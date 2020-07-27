@@ -1,5 +1,5 @@
 # Unlock the GUI on your Technicolor DJA0231
-The tch-gui-unhide-DJA0231-18.1.c.0514 script can be applied to the Telstra Smart Modem Gen 2 (Technicolor DJA0231) to unlock hidden features in the web GUI.
+The *tch-gui-unhide-DJA0231-18.1.c.0514* script can be applied to the Telstra Smart Modem Gen 2 (Technicolor DJA0231) to unlock hidden features in the web GUI.
 
 It also completely removes the Telstra AIR and FON Wi-Fi hotspot.
 
@@ -31,10 +31,10 @@ So, I set out to enable whatever hidden features were included with the firmware
 - The **CWMP** card is enabled to show and configure CWMP
 - The **System Extras** card is enabled to:
     - Allow you to trigger a BOOTP upgrade (**BEWARE! Do not press this button unless you know what you are doing!**)
-    - Turn SSH access on or for for the WAN/LAN
+    - Turn SSH access on or off for the WAN/LAN
     - Configure an external syslog server
 - The **NAT Helpers** card is enabled where you can enable or disable ALG's for FTP, IRC, SIP, PPTP, RTSP, SNMP, TFTP and AMANDA
-- the **xDSL Config** card is enabled where you can see xDSL core settings
+- The **xDSL Config** card is enabled where you can see xDSL core settings
 
 Some screens included on the device are not enabled, mainly because they fail and cause issues in the GUI, or sometimes more work would be required to implement them than can be done with simple stream editing of the existing files.
 
@@ -56,10 +56,10 @@ It also does a few other things.
 - Enables DumaOS
 - Modernises the GUI a little bit 
 
-### ipv4-DNS-Servers
+#### ipv4-DNS-Servers
 If a file called *ipv4-DNS-Servers* is found in the directory from which the script is invoked, the contents will be added to the list of DNS Servers on the **Local Network** screen.
 
-The contents of the file are simply the one line per hostname and IP address, which are separeated by a space.
+The contents of the file are simply the one line per hostname and IP address, which are separated by a space.
 
 For example, my *ipv4-DNS-Servers* file consists of my main and backup [Pi-hole](https://pi-hole.net/) servers:
 ```
@@ -114,6 +114,18 @@ The script accepts 3 options:
 The hardware and firmware version will be checked during execution. If they do not match the target version, you will be prompted to exit or force execution. This is **YOUR** decision to proceeed.
 
 The script will restart and reload services for which it has modified configuration (except when the **-r** option is specified).
+
+#### Post-customisation configuration
+You can remove specific cards/tabs from the GUI by changing the role in the web config. For example, I am on HFC, so xDSL is of no interest to me. So, I can remove the 'xDSL Config' card from the GUI by changing the allowed role from admin to something else using the following commands:
+```
+uci del_list web.xdsllowmodal.roles='admin'
+uci add_list web.xdsllowmodal.roles='guest'
+uci commit web
+/etc/init.d/nginx restart
+```
+**WARNING:** Do not leave the roles list empty. It will break everything.
+
+Taking this approach to customisation will prevent the card being displayed again if you re-run *tch-gui-unhide-DJA0231-18.1.c.0514* (unless you have cleared all GUI customisation by running the script with the -r option first).
 
 ### Finally, clear your browser cache
 To see the updated logo and icons and to correctly apply the updated style sheet, you will probably need to clear cached images and files from your browser.
