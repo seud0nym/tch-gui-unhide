@@ -303,6 +303,7 @@ done
 sed -e 's/switchName, content\["cwmp_state"\], {input = {id = "cwmp_card_state"}}/nil, nil, nil/' -i /www/cards/090_cwmpconf.lp
 
 echo [$SCRIPT]: Remove the background card icons from the cards that do have them
+sed -e 's/class="content card_bg" data-bg-text="\&#xf012;"/class="content"/' -i /www/cards/003_lte.lp
 sed -e 's/class="content card_bg" data-bg-text="\&#xf0ad;"/class="content"/' -i /www/cards/091_system.lp
 sed -e 's/class="content card_bg" data-bg-text="\&#xf0ad;"/class="content"/' -i /www/cards/092_natalghelper.lp
 sed -e 's/class="content card_bg" data-bg-text="\&#xf0ad;"/class="content"/' -i /www/cards/093_xdsl.lp
