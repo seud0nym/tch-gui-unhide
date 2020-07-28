@@ -89,6 +89,11 @@ wget https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/tch-gui-un
 
 Alternatively, download the script manually and load it up to your DJA0231 using WinSCP or equivalent.
 
+After you have the script on your DJA0231, you may need to make it executable, which is done with this command:
+```
+chmod +x tch-gui-unhide-DJA0231-18.1.c.0514
+```
+
 You do **not** need to download any other files. The script contains all that is required (including images).
 
 ### Third, optionally create customisatiom files
