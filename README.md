@@ -84,7 +84,7 @@ The script has only be tested against firmware version **18.1.c.0514-950-RB**. I
 Execute this command on your DJA0231 via a PuTTY session or eqivalent (an active WAN/Internet connection is required):
 
 ```
-wget https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/tch-gui-unhide-DJA0231-18.1.c.0514 
+wget https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/tch-gui-unhide-DJA0231-18.1.c.0514 
 ```
 
 Alternatively, download the script manually and load it up to your DJA0231 using WinSCP or equivalent.
