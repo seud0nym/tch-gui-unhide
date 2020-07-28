@@ -277,6 +277,7 @@ for f in $(ls /www/docroot/modals/gateway-modal.lp /www/docroot/modals/internet-
 do
   sed -e 's/\(if [^ ]*role[^=]*==[^"]*"\)\(guest\)\("\)/\1admin\3/g' -i $f
 done
+sed -e 's/if role ~= "admin"/if role == "admin"/' -i /www/docroot/modals/mmpbx-service-modal.lp
 
 echo [$SCRIPT]: Show the hidden Telephony tabs
 sed \
