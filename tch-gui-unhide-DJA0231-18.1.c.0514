@@ -198,7 +198,7 @@ uci -q del_list web.parentalblock.roles='admin'
 uci add_list web.parentalblock.roles='admin'
 
 echo [$SCRIPT]: Enabling VoLTE backup voice service and SMS reception
-uci set mmpbxmobilenet.mobile_profile_0.enabled='1'
+uci set mmpbxmobilenet.VoLTE.enabled='1'
 uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
 uci set mobiled_sessions.@session[0].activated='1'
 uci set mobiled_sessions.@session[0].autoconnect='1'
