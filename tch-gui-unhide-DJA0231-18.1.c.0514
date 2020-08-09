@@ -1,29 +1,59 @@
 # Based on various pages https://hack-technicolor.readthedocs.io/en/stable/
 
-SCRIPT="tch-gui-unhide"
-TARGET_VARIANT="DJA0231"
-TARGET_VERSION="18.1.c.0514"
+TARGET_VARIANT=""
+TARGET_VERSION=""
+for x in $(basename $0 | tr '-' "$IFS")
+do 
+  TARGET_VARIANT=$TARGET_VERSION
+  TARGET_VERSION=$x
+done
+echo "$TARGET_VERSION" | grep -q '\.'
+if [ $? -eq 1 ]
+then
+  echo "ERROR: Unable to determine Target device Variant and Version!"
+  echo "       Did the script get renamed??"
+  echo "       Aborting..."
+  exit 1
+fi
+SCRIPT=$(basename $0 | sed "s/-$TARGET_VARIANT-$TARGET_VERSION//")
 
 # Use the device variant as the host name
 VARIANT=$(uci get env.var.variant_friendly_name)
 # Something more sensible than modem
 DOMAIN=gateway
+# Default to a light theme
+THEME=light
 
 RESTORE=false
+YES=false
 
-while getopts h:d:r option
+while getopts t:h:d:ry option
 do
  case "${option}" in
+ t) if [ "$(echo ${OPTARG} | tr "LN" "ln" | sed 's/\(.\)\(.*\)/\1/')" = "n" ]; then THEME=night; fi;;
  h) VARIANT=${OPTARG};;
  d) DOMAIN=${OPTARG};;
  r) RESTORE=true;;
+ y) YES=true;;
+ ?) echo "Optional parameters:"
+    echo " -h hostname     : Set the host name to 'hostname' rather than $VARIANT"
+    echo " -d domainname   : Set the domain name to 'domainname' rather than $DOMAIN"
+    echo " -t light|night  : Set the theme to either light (the default) or night"
+    echo " -r              : Restore changed GUI files to their original state (config changes are NOT restored)"
+    echo " -y              : Bypass confirmation prompts (answers 'y')"
+    exit;;
  esac
 done
 
 if [ $RESTORE = true ]
 then
   echo [$SCRIPT]: Restore requested!! Enter y to undo changes:
-  read
+  if [ $YES = true ]
+  then
+    REPLY=y
+  else
+    read
+  fi
   if [ "$REPLY" = "y" -o "$REPLY" = "Y" ]
   then
     for d in $(echo cards docroot lua snippets | tr " " "$IFS")
@@ -79,24 +109,24 @@ else
   fi
 fi
 
+if [ -f /etc/init.d/cwmpd -a "$(uci get cwmpd.cwmpd_config.state)" = "1" ]
+then
+  CWMP=enabled
+else
+  CWMP=disabled
+fi
+
 echo "[$SCRIPT]: This script will perform the following actions:"
 echo "[$SCRIPT]:  - The host name will be set to:   $VARIANT"
 echo "[$SCRIPT]:  - The domain name will be set to: $DOMAIN"
-if [ -f authorized_keys ]
-then
-  echo "[$SCRIPT]:  - The local authorized_keys file will be copied to /etc/dropbear/authorized_keys"
-else 
-  echo "[$SCRIPT]:  - All keys will be removed from /etc/dropbear/authorized_keys"
-  echo "[$SCRIPT]:   \(If you wish to automatically apply your own public keys, run this script from the directory containing your authorized_keys file\)"
-fi
-echo "[$SCRIPT]:  - SSH LAN access will be enabled"
-echo "[$SCRIPT]:  - SSH WAN access will be disabled"
-echo "[$SCRIPT]:  - CWMP will be disabled"
-echo "[$SCRIPT]:  - Telstra monitoring will be disabled"
-echo "[$SCRIPT]:  - Telstra AIR hotspot will be disabled and the associated SSIDs removed"
-echo "[$SCRIPT]:  - Configuration export/import and firmware upgrade will be enabled in the GUI"
+echo "[$SCRIPT]:  - Properly enable SSH access over LAN"
+echo "[$SCRIPT]:  - Enable unsigned configuration export/import and firmware upgrade in the web GUI"
+echo "[$SCRIPT]:  - Ensure admin role can administer the parental block"
 echo "[$SCRIPT]:  - The following screens which are normally hidden will be visible:"
-echo "[$SCRIPT]:    . cwmpconf-modal.lp"
+if [ "$CWMP" = "enabled" ]
+then
+  echo "[$SCRIPT]:    . cwmpconf-modal.lp"
+fi
 echo "[$SCRIPT]:    . diagnostics-tcpdump-modal.lp"
 echo "[$SCRIPT]:    . iproutes-modal.lp"
 echo "[$SCRIPT]:    . log-connections-modal.lp"
@@ -111,98 +141,109 @@ echo "[$SCRIPT]:    . nat-alg-helper-modal.lp"
 echo "[$SCRIPT]:    . system-modal.lp"
 echo "[$SCRIPT]:    . tod_wireless-modal.lp"
 echo "[$SCRIPT]:    . xdsl-low-modal.lp"
-echo "[$SCRIPT]:  - The GUI screen will be prettied up a bit."
-echo "[$SCRIPT]:  - DumaOS will be enabled."
+echo "[$SCRIPT]:  - The GUI screen will be prettied up a bit and the $THEME theme applied."
 
 echo [$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop and re-run with the -h and/or -d parameters.
-read
+if [ $YES = true ]
+then
+  REPLY=y
+else
+  read
+fi
 if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]
 then
-  echo [$SCRIPT]: Optional parameters are -h hostname -d domainname
+  echo [$SCRIPT]: Optional parameters are -h hostname -d domainname -t [light\|night] [-r]
   exit
 fi
 
-echo [$SCRIPT]: IMPORTANT NOTE - You can restore changed files to their original state by running: $SCRIPT -r
+echo [$SCRIPT]: IMPORTANT NOTE - You can restore changed GUI files to their original state by running: $0 -r
 
-echo [$SCRIPT]: Setting the host name to $VARIANT
-uci -q delete dhcp.main.hostname
-uci -q delete dhcp.guest.hostname
+# Keep count of changes so we know whether to restart services
+SRV_dnsmasq=0
+SRV_dropbear=0
+SRV_nginx=0
+SRV_system=0
 
-uci add_list dhcp.main.hostname="$VARIANT"
-uci add_list dhcp.guest.hostname="$VARIANT"
-uci set system.@system[0].hostname="$VARIANT"
-export HOSTNAME=$VARIANT
-
-echo [$SCRIPT]: Setting the domain to $DOMAIN
-uci set dhcp.main.domain="$DOMAIN"
-uci set dhcp.guest.domain="$DOMAIN"
-
-sed -e "s^http://mymodem.modem^http://$VARIANT.$DOMAIN^" -i /etc/nginx/nginx.conf
-
-echo [$SCRIPT]: Fixing SSH access
-if [ -f authorized_keys ]
+if [ "$(uci get dhcp.main.hostname)" = "$VARIANT" -a "$(uci get system.@system[0].hostname)" = "$VARIANT" ]
 then
-  echo [$SCRIPT]: Found authorized_keys - replacing /etc/dropbear/authorized_keys
-  cp authorized_keys /etc/dropbear/authorized_keys
+  echo [$SCRIPT]: Host name is already $VARIANT
 else
-  echo [$SCRIPT]: Removing all public keys from /etc/dropbear/authorized_keys
-  echo > /etc/dropbear/authorized_keys
+  echo [$SCRIPT]: Setting the host name to $VARIANT
+  uci -q delete dhcp.main.hostname
+  uci add_list dhcp.main.hostname="$VARIANT"
+  SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
+  uci set system.@system[0].hostname="$VARIANT"
+  SRV_system=$(( $SRV_system + 1 ))
+  export HOSTNAME=$VARIANT
 fi
-echo [$SCRIPT]: Enable SSH access over LAN
-# We need to enable this properly as you can enable/disable via the GUI, and if done
-# without allowing password auth and root login, it can accidently prevent SSH access
-uci set dropbear.lan.enable='1'
-uci set dropbear.lan.PasswordAuth='on'
-uci set dropbear.lan.RootPasswordAuth='on'
-uci set dropbear.lan.RootLogin='1'
 
-echo [$SCRIPT]: Completely disable SSH access over WAN
-uci set dropbear.wan.enable='0'
-
-echo [$SCRIPT]: Disabling CWMP
-uci set cwmpd.cwmpd_config.state=0
-
-echo [$SCRIPT]: Disabling Telstra monitoring
-uci -q delete autoreset.vsparc_enabled
-uci -q delete autoreset.thor_enabled
-uci -q delete wifi_doctor_agent.acs
-uci -q delete wifi_doctor_agent.config
-uci -q delete wifi_doctor_agent.as_config
-
-echo [$SCRIPT]: Removing Telstra Air
-uci -q delete dhcp.hotspot
-uci -q delete dhcp.fonopen
-uci -q delete network.fonopen
-uci -q delete web.fon
-uci -q del_list qos.reclassify_1.srcif='fonopen'
-for wl in $(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | cut -d. -f2)
-do
-  ap=$(uci show wireless | grep iface=\'$wl\' | cut -d. -f2)
-  echo [$SCRIPT]: Removing SSID $wl \(AP=$ap\)
-  uci delete wireless.$wl
-  uci delete wireless.$ap
-done
-if [ -f /www/cards/010_fon.lp ]
+if [ "$(uci get dhcp.main.domain)" = "$DOMAIN" ]
 then
-  rm /www/cards/010_fon.lp
+  echo [$SCRIPT]: Domain name is already $DOMAIN
+else
+  echo [$SCRIPT]: Setting the domain to $DOMAIN
+  uci set dhcp.main.domain="$DOMAIN"
+  SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
 fi
 
-echo [$SCRIPT]: Enabling Unsigned config export and Firmware upgrade in Web GUI
-uci set system.config.export_plaintext='1'
-uci set system.config.export_unsigned='1'
-uci set system.config.import_plaintext='1'
-uci set system.config.import_unsigned='1'
-uci set web.uidefault.upgradefw='1'
-uci set web.uidefault.upgradefw_role='admin'
-uci -q del_list web.parentalblock.roles='admin'
-uci add_list web.parentalblock.roles='admin'
+if [ "$(uci get dropbear.lan.enable)" = "1" -a "$(uci get dropbear.lan.PasswordAuth)" = "on" -a "$(uci get dropbear.lan.RootPasswordAuth)" = "on" -a "$(uci get dropbear.lan.RootLogin)" = "1" ]
+then
+  echo [$SCRIPT]: SSH already properly enabled for LAN access
+else
+  echo [$SCRIPT]: Properly enable SSH access over LAN
+  # We need to enable this properly as you can enable/disable via the GUI, and if done
+  # without allowing password auth and root login, it can accidently prevent SSH access
+  uci set dropbear.lan.enable='1'
+  uci set dropbear.lan.PasswordAuth='on'
+  uci set dropbear.lan.RootPasswordAuth='on'
+  uci set dropbear.lan.RootLogin='1'
+  SRV_dropbear=$(( $SRV_dropbear + 4 ))
+fi
+  
+if [ "$(uci get system.config.export_plaintext)" = "1" -a "$(uci get system.config.export_unsigned)" = "1" -a "$(uci get system.config.import_plaintext)" = "1" -a "$(uci get system.config.import_unsigned)" = "1" ] 
+then
+  echo [$SCRIPT]: Unsigned configuration export/import already enabled in the web GUI
+else
+  echo [$SCRIPT]: Enabling unsigned configuration export/import in the web GUI
+  uci set system.config.export_plaintext='1'
+  uci set system.config.export_unsigned='1'
+  uci set system.config.import_plaintext='1'
+  uci set system.config.import_unsigned='1'
+  SRV_system=$(( $SRV_system + 4 ))
+fi
 
-echo [$SCRIPT]: Enabling VoLTE backup voice service and SMS reception
-uci set mmpbxmobilenet.VoLTE.enabled='1'
-uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
-uci set mobiled_sessions.@session[0].activated='1'
-uci set mobiled_sessions.@session[0].autoconnect='1'
-uci set mobiled_sessions.@session[0].optional='1'
+if [ "$(uci get web.uidefault.upgradefw)" = "1" -a "$(uci get web.uidefault.upgradefw_role)" = "admin" ] 
+then
+  echo [$SCRIPT]: Firmware upgrade already enabled in the web GUI
+else
+  echo [$SCRIPT]: Enabling firmware upgrade in the web GUI
+  uci set web.uidefault.upgradefw='1'
+  uci set web.uidefault.upgradefw_role='admin'
+  SRV_nginx=$(( $SRV_nginx + 4 ))
+fi
+
+echo "$(uci get web.parentalblock.roles)" | grep -q "admin"
+if [ $? -eq 0 ]
+then
+  echo [$SCRIPT]: The admin role can already administer the parental block
+else
+  echo [$SCRIPT]: Ensure admin role can administer the parental block
+  uci -q del_list web.parentalblock.roles='admin'
+  uci add_list web.parentalblock.roles='admin'
+  SRV_nginx=$(( $SRV_nginx + 2 ))
+fi
+  
+if [ "$(uci get mmpbxmobilenet.VoLTE.enabled)" = "1" ] 
+then
+  echo [$SCRIPT]: VoLTE already enabled
+else
+  echo [$SCRIPT]: Enabling VoLTE backup voice service and SMS reception
+  uci set mmpbxmobilenet.VoLTE.enabled='1'
+  uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
+  uci set mobiled_sessions.@session[0].activated='1'
+  uci set mobiled_sessions.@session[0].autoconnect='1'
+  uci set mobiled_sessions.@session[0].optional='1'
+fi
 
 uci commit
 
@@ -217,33 +258,39 @@ uci commit
 #  - wireless-qrcode-modal.lp (fails with a nill password index error)
 for f in $(ls /www/docroot/modals | grep -E -v \(bridge-grouping-modal.lp\|diagnostics-airiq-modal.lp\|fon-modal.lp\|hostmap-modal.lp\|mwan-modal.lp\|relay-modal.lp\|speedservice-modal.lp\|wireless-qrcode-modal.lp\) )
 do
+  RULE=$(basename $f .lp | sed -e 's/-//g')
+  if [ "$RULE" = "cwmpconfmodal" -a "$CWMP" = "disabled" ]
+  then
+    echo [$SCRIPT]: CWMP is disabled so disabling $f
+    uci -q delete web.$RULE
+    SRV_nginx=$(( $SRV_nginx + 1 ))
+    continue
+  fi
   uci show web | grep -q "/modals/$f"
   if [ $? -eq 1 ]
   then
-      echo [$SCRIPT]: Enabling $f
-      RULE=$(basename $f .lp | sed -e 's/-//g')
-      uci add_list web.ruleset_main.rules=$RULE
-      uci set web.$RULE=rule
-      uci set web.$RULE.target=/modals/$f
-      uci set web.$RULE.normally_hidden='1'
-      uci add_list web.$RULE.roles=admin
+    echo [$SCRIPT]: Enabling $f
+    uci add_list web.ruleset_main.rules=$RULE
+    uci set web.$RULE=rule
+    uci set web.$RULE.target=/modals/$f
+    uci set web.$RULE.normally_hidden='1'
+    uci add_list web.$RULE.roles=admin
+    SRV_nginx=$(( $SRV_nginx + 4 ))
   fi
 done
 uci commit web
 
-echo [$SCRIPT]: Enable DumaOS
-uci set dumaos.tr69.dumaos_enabled='1'
-uci commit dumaos
-
-echo [$SCRIPT]: Change the title in browser tabs from Modem or Gateway to $VARIANT
-sed -e "s/\(Modem\|Gateway\)/$VARIANT/g" -i /www/lua/telstra_helper.lua
-
 echo [$SCRIPT]: Restore any changed files from /rom/www
-for d in $(echo cards docroot snippets | tr " " "$IFS")
+for d in $(echo cards docroot lua snippets | tr " " "$IFS")
 do
-  for s in $(find /rom/www/$d -type f | grep -v -E \(/rom/www/docroot/help\|010_lte.lp\|010_fon.lp\))
+  for s in $(find /rom/www/$d -type f | grep -v -E \(/rom/www/docroot/help\|010_fon.lp\))
   do
-    t=$(echo "$s" | cut -c5-)
+    if [ "$s" = "/rom/www/cards/010_lte.lp" ]
+    then
+      t="/www/cards/003_lte.lp"
+    else
+      t=$(echo "$s" | cut -c5-)
+    fi
     cmp -s "$s" "$t"
     if [ $? -ne 0 ]
     then
@@ -251,6 +298,16 @@ do
     fi
   done
 done
+if [ -f /www/cards/010_fon.lp ]
+then
+  rm /www/cards/010_fon.lp
+fi
+
+echo [$SCRIPT]: Change the title in browser tabs to $VARIANT
+sed -e "s/\(Modem\|Gateway\)/$VARIANT/g" -i /www/lua/telstra_helper.lua
+
+echo [$SCRIPT]: Change config export filename from config.bin to $VARIANT-$VERSION-YYMMDD.bin
+sed -e "s/=config.bin/=$VARIANT-$VERSION-\" .. os.date(\"%Y%m%d\") .. \".bin/" -i /www/docroot/modals/gateway-modal.lp
 
 if [ -f ipv4-DNS-Servers ]
 then
@@ -268,16 +325,18 @@ then
   mv /www/docroot/modals/ethernet-modal.lp.tmp /www/docroot/modals/ethernet-modal.lp
 fi
 
-echo [$SCRIPT]: Change config export filename from config.bin to $VARIANT-$VERSION-YYMMDD.bin
-sed -e "s/=config.bin/=$VARIANT-$VERSION-\" .. os.date(\"%Y%m%d\") .. \".bin/" -i /www/docroot/modals/gateway-modal.lp
-
-echo [$SCRIPT]: Add DumaOS button
-sed -e '/id="basicview"/,$ d' /rom/www/docroot/gateway.lp > /www/docroot/gateway.lp.tmp
-echo "            html[#html + 1] = '<a href=\"desktop/index.html#com.netdumasoftware.desktop\" class=\"btn\" id=\"dumaos\">'" >> /www/docroot/gateway.lp.tmp
-echo '            html[#html + 1] = T"DumaOS"' >> /www/docroot/gateway.lp.tmp
-echo "            html[#html + 1] = '</a>'" >> /www/docroot/gateway.lp.tmp
-sed -e '1,/if not bridged.isBridgedMode/ d' /rom/www/docroot/gateway.lp >> /www/docroot/gateway.lp.tmp
-mv /www/docroot/gateway.lp.tmp /www/docroot/gateway.lp
+if [ "$(uci get dumaos.tr69.dumaos_enabled)" = '1' ]
+then
+  echo [$SCRIPT]: Add DumaOS button
+  sed -e '/id="basicview"/,$ d' /rom/www/docroot/gateway.lp > /www/docroot/gateway.lp.tmp
+  echo "            html[#html + 1] = '<a href=\"desktop/index.html#com.netdumasoftware.desktop\" class=\"btn\" id=\"dumaos\">'" >> /www/docroot/gateway.lp.tmp
+  echo '            html[#html + 1] = T"DumaOS"' >> /www/docroot/gateway.lp.tmp
+  echo "            html[#html + 1] = '</a>'" >> /www/docroot/gateway.lp.tmp
+  sed -e '1,/if not bridged.isBridgedMode/ d' /rom/www/docroot/gateway.lp >> /www/docroot/gateway.lp.tmp
+  mv /www/docroot/gateway.lp.tmp /www/docroot/gateway.lp
+else
+  echo [$SCRIPT]: DumaOS button NOT added - DumaOS is disabled
+fi
 
 echo [$SCRIPT]: Enable various things that only the guest role\(!!!\) was allowed to do or see
 for f in $(ls /www/docroot/modals/gateway-modal.lp /www/docroot/modals/internet-modal.lp /www/docroot/modals/wireless-modal.lp /www/docroot/modals/wanservices-modal.lp /www/snippets/tabs-diagnostics.lp)
@@ -286,12 +345,11 @@ do
 done
 sed -e 's/if role ~= "admin"/if role == "admin"/' -i /www/docroot/modals/mmpbx-service-modal.lp
 
-echo [$SCRIPT]: Show the hidden Telephony tabs
+echo [$SCRIPT]: Show the hidden Telephony tabs and fix default tab
 sed \
  -e 's/--  {"mmpbx-contacts/    {"mmpbx-contacts/' \
  -e 's/--  {"mmpbx-service-modal.lp", T"Service"},/    {"mmpbx-service-modal.lp", T"Service"},\n    {"mmpbx-sipdevice-modal.lp", T"SIP Device"},\n    {"mmpbx-inoutgoingmap-modal.lp", T"In\/Outgoing Map"},\n    {"mmpbx-statistics-modal.lp", T"Statistics"},/' \
  -i /www/snippets/tabs-voice.lp
-echo [$SCRIPT]: Change default Telephony tab to Global
 # Default telephony tab is DECT!!! 
 # - Set test to always be false (mmpbx_state can only be 0 or 1, so 9 should always be false) 
 #   to invoke alternate processing branches and show global or info first.
@@ -300,8 +358,10 @@ sed -e 's/if mmpbx_state == "1"/if mmpbx_state == "9"/' -i /www/cards/008_teleph
 echo [$SCRIPT]: Add missing icons on Diagnostics card
 # Show the icons for all tabs on the card
 # (Nicer and extra icons are below...)
-sed -e 's^\(alt="ping/trace"></div></td>\)\(</tr>\\\)^\1\\\n <td><div data-toggle="modal" data-remote="modals/logviewer-modal.lp" data-id="logviewer-modal"><img href="#" rel="tooltip" data-original-title="LOGVIEWER" src="/img/log-viewer.png" alt="logviewer"></div></td>\2^' -i /www/cards/009_diagnostics.lp
-sed -e 's^\(alt="network"></div></td>\)\(</tr>\\\)^\1\\\n <td><div data-toggle="modal" data-remote="modals/diagnostics-tcpdump-modal.lp" data-id="diagnostics-tcpdump-modal"><img href="#" rel="tooltip" data-original-title="TCPDUMP" src="/img/tcp-dump.png" alt="tcpdump"></div></td>\2^' -i /www/cards/009_diagnostics.lp
+sed \
+ -e 's^\(alt="ping/trace"></div></td>\)\(</tr>\\\)^\1\\\n <td><div data-toggle="modal" data-remote="modals/logviewer-modal.lp" data-id="logviewer-modal"><img href="#" rel="tooltip" data-original-title="LOGVIEWER" src="/img/log-viewer.png" alt="logviewer"></div></td>\2^' \
+ -e 's^\(alt="network"></div></td>\)\(</tr>\\\)^\1\\\n <td><div data-toggle="modal" data-remote="modals/diagnostics-tcpdump-modal.lp" data-id="diagnostics-tcpdump-modal"><img href="#" rel="tooltip" data-original-title="TCPDUMP" src="/img/tcp-dump.png" alt="tcpdump"></div></td>\2^' \
+ -i /www/cards/009_diagnostics.lp
 
 echo [$SCRIPT]: Add cogs to card headers
 for f in $(grep -l createCardHeaderNoIcon /www/cards/*)
@@ -310,335 +370,167 @@ do
 done
 sed -e 's/switchName, content\["cwmp_state"\], {input = {id = "cwmp_card_state"}}/nil, nil, nil/' -i /www/cards/090_cwmpconf.lp
 
-echo [$SCRIPT]: Remove the background card icons from the cards that do have them
-sed -e 's/class="content card_bg" data-bg-text="\&#xf012;"/class="content"/' -i /www/cards/003_lte.lp
-sed -e 's/class="content card_bg" data-bg-text="\&#xf0ad;"/class="content"/' -i /www/cards/091_system.lp
-sed -e 's/class="content card_bg" data-bg-text="\&#xf0ad;"/class="content"/' -i /www/cards/092_natalghelper.lp
-sed -e 's/class="content card_bg" data-bg-text="\&#xf0ad;"/class="content"/' -i /www/cards/093_xdsl.lp
-
-echo [$SCRIPT]: Apply the CSS changes
-sed \
- -e '$ a a{color:#404040;}' \
- -e '$ a body{background-color:#fff;font-family:'Roboto','Noto',sans-serif;}' \
- -e '$ a input,button,select,textarea{font-family:'Roboto','Noto',sans-serif;}' \
- -e '$ a u{text-decoration:none;}' \
- -e '$ a .card{font-family:'Roboto','Noto',sans-serif;}' \
- -e '$ a .copyright{font-family:'Roboto','Noto',sans-serif;text-shadow:none;display:none;}' \
- -e '$ a .dw{font-family:'Roboto','Noto',sans-serif;}' \
- -e '$ a .header img{width:180px;}' \
- -e '$ a .header .btn{margin-left:5px;}' \
- -e '$ a .modal-backdrop{background-color:#fff;}' \
- -e '$ a .modal-header{color:#404040;}' \
- -e '$ a .nav-header{text-shadow:none;}' \
- -e '$ a .nav-list>li>a,.nav-list .nav-header{text-shadow:none;}' \
- -e '$ a .nav-tabs>.active>a, .nav-tabs>.active>a:hover, .nav-tabs>.active>a:focus{background-color:#00B1EB;color:#fff}' \
- -e '$ a .simple-desc{display:block;}' \
- -e '$ a .smallcard{border:0px;background-color:#eee;font-family:'Roboto','Noto',sans-serif;font-size:14px;font-weight:400;color:rgba(64,64,64,0.75);}' \
- -e '$ a .smallcard .content{font-size:14px;}' \
- -e '$ a .smallcard .header{background-color:#eee;background-image:none;border-bottom:0px;color:#404040;font-size:20px;font-weight:400;text-shadow:none;}' \
- -e '$ a .smallcard .subinfos{font-size:14px;color:rgba(64,64,64,0.75);}' \
- -i /www/docroot/css/gw.css
-sed -e '$ a .navbar-inverse .navbar-inner{background-color:#fff;background-image:none;border-width:0px;}' -i /www/docroot/css/gw-telstra.css
-sed -e 's/margin-left:70px/margin-left:190px/' -i /www/docroot/css/mobiled.css
-
 echo [$SCRIPT]: Add a favicon
 for f in $(grep -l '<head>\\' /www/docroot/*.lp)
 do
   sed -e 's^<head>\\^<link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico"/>\\^' -i $f
 done
-echo 'AAABAAIAEBAAAAEAIABoBAAAJgAAABAQAAABAAgAaAUAAI4EAAAoAAAAEAAAACAAAAABACAAAAAA
-AAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADijQAJ
-/6oAAwAAAAB/AH8CVQCqAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADw
-uABb15EA6MV9AGaWM1FVgSuBq3EnnuZbIsKwLhvsUiJk88gWn/hQAub+ewbn+Ewq1NQMQqkAG0Od
-AHFMigDQ8rkA/9mVAP+xYAL/mDs8/4Ysef9wJ6D/WCPF/zAb7P8jZfP/ErT9/wXg//8Y4eD8MtOz
-6j67Yd9CogD/TIoA//bOTJPrwFzM0p5czL6CeM2xd6XNo3S/zJNw2Mx4bPPNcZz3zGXP/cxe7f7N
-bezozX3hyMyD0I7MhcBbzIKsTZUAAAAA////KP7+/ir+/v4f/v7+NP///xj+/v4p////Hv7+/hf/
-//8z/v7+Jv///yj+/v4k/v7+Nv7+/hkAAAAAAAAAAP7+/lz+/v5u/v7+a/7+/jL+/v5d////eP7+
-/m7///9E////Vf7+/lP///9Q/v7+fv7+/lf///9g////BAAAAAD+/v4h////CP///wL///8K/v7+
-Sv///wb///8K/v7+G/7+/gn///8E/v7+B////0T///8K////Bv///wIAAAAAAAAAAAAAAAAAAAAA
-AAAAAP///wMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD///8DAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAP//AAD//wAA//8AAP//AAD//wAAsX4AAAAAAAAAAAAA//8AAP//
-AAD//wAA//8AAP//AAD//wAA//8AAP//AAAoAAAAEAAAACAAAAABAAgAAAAAAAACAAAAAAAAAAAA
-AAAAAAAAAAAAAAAA/5g7PP+xYAL/xnwB/5U0Uv+GLHn/TIoA/0OfAP9CogD/QKYA/z+8Yf/VjwD/
-15EA/9mVAP/yuQD/gq1N/76Def/Sn1z/hsBb//bOTf/rwFz/dymU/3Eonv9wJ6D/MBvs/1sjwv9Y
-I8X/I2Xz/3ls9P+BK4L/snem/6R0v/+Tcdj/MtO0/xee+v8StP3/cpz3/yrbyv8Y4uH/B+n3/wXg
-//8D5v//feHI/2XQ/v9e7f//bezp/4PRj//+/v7//////wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA
-/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/
-AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8A
-AAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAA
-AP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA
-/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/
-AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8A
-AAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAA
-AP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA
-/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/
-AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8A
-AAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAA
-AP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA
-/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/
-AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8A
-AAD/AAAA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAACwsAFRUAAAAAAAAAAAAADgwDBB0WGRgbIiknJQkHBg4NAgEFFxoYGyMo
-JiEKCAYTFBEQHh8gHCQrLC0qLhIPADAwMDAvMDAwMDAwMDAwAAAwMDAwMDAwMDAwMDAwMDAAMDAw
-MDAwMDAwMDAwMDAwAAAAAAAvAAAAAAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//wAA//8AAP//AAD//wAA//8AALF+
-AAAAAAAAAAAAAP//AAD//wAA//8AAP//AAD//wAA//8AAP//AAD//wAA' | base64 -d > /www/docroot/img/favicon.ico
+echo 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 | base64 -d > /www/docroot/img/favicon.ico
 
-echo [$SCRIPT]: Change the logo
-echo 'R0lGODlhDQLIAHAAACH5BAEAAP8ALAAAAAANAsgAhwAAAG1ucm9wdHBxdXR1eXd4e3l5fXt8fzc9
-mTk9mQNNoghSpRtdqiFlrzBtsjJxtWYukUJAmk5NoVJTpXNAm3t8gH1+gQCKTBCRVxSTWhiVXACl
-QAeiSAmiSRmvUiOrXTu0Rjq0SE27VQCO1AWR1QiS1haZ2BmZ2Amm4wC58gq78hS+8xm/8yCu5X+A
-g3+AhE2w4VKy4mS/6F/Hh2DHh2HHiJQpd78kXqcqbqctcagucqYwdK8/fOwbMOkhN+kiOMAlXsU5
-bu4yRew3S+9BNPNlI/R0OvFVSY0ygZ09g5dDjJlDi5p2tpx5uK5dmK9gmrBimrRqoI7GP5HHPpbK
-TZrLTZnLUvqbF/qeGfqdIfuhG/usM8nbKs7ePtHdJNDdKtjiPP/CD//EG//RE//HJ//VLP/sAf7t
-Fv/uGv/vMv/wNv/wPM/fQN3oef/wQP/xSv/yVP/yXOPpZv/zZP/0bIGBhYOEh4OEiIWGiYeIi4mJ
-jYuMj42OkY+Qk5GRlJOUl5WVmJeYmpmanZ2doJ+goqKjpaWlqKeoqqqqra6usa+wsrCxs7GytLO0
-trS1t7W2uIamz4ukz4Gm0Imm0IW024W53pOjzpqhzYS84aSeyq+RxaubybGVxraYxrCYyLuYxKCg
-zIDTn4DFpoPGqIPKporJrY7LsIHRoZXOtaTaoqvcoqLUvrDeooHH64PL7YXS8oPY9oHb+Ire+ZPg
-+Zri+qbWwKnYw7TcyrjezbrO5b7Q5rrmy73ozbzg0KPl+q3o+7bq+7rg87vs+8OIs8aVvMiUut6S
-rdWWttGWuNqUsveNl/aPmfKRnviemOKTq+uSo/igmfmykvq8ksGYwfq/xcfin8njn9Hmntfondzq
-m8vjoPzMjvvBkfzMkP3VjP/fhv7ZiuTtleDsmOjvlO3wkv/ghv/kiP/shv/oiPTyjf71gfn0iPHy
-kP/uvf75ud3I39XG4NbJ4uHF2u3F1OjH2PrBxvvLyPTG0PvWxfvYxuDvy+LwzfD1xPH2yAAAAAAA
-AAj/AP8JHEiwoMGDCBMqXMiwocOHECNKHECx4gABEjNq3Mixo8ePIDXyoRigZElAIVOqXMmypcuX
-MBeanBkgps2bOHOm3EPzpM6fQIMKHaqyZ0miSJMq9cizJ8qlUKNKnerRaE2qWLMObUrzqdavYMMO
-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
-0IYkWWc1AjByImg119d3QBgR6/gulziQJsGI3yYsnZgQGOQtHVEIFukpYcl+FOmQNLeRHIWIHTFn
-HpSWE4UxxleMVykRJNlEPvl9CvcZzEgT9ScRfmCSRsGLIZEIgWkVcZhq9Bh2ShmRy9aUy/cPZvku
-ApCDsMSQ8dUR9hh071IAfUmAx1UaI6EseJCMGTEI3bIeBLAHqhlyGGQBKnlKhXCbt2kIsQkRuJmb
-uskQvYmbu+kQhhCct/kQxnmcIQeQXnUHdBkRhQBHfPCOH5GcIKEIpMIow/kQiZCc1Nkn4CoZnuI5
-nuRZnuZ5nuiZnuq5nuzZnu75nvAZn/I5n/RZn/Z5n/iZn/q5n/z/2Z/++Z8AGqACOqAEWqAGeqAI
-mqAKuqAM2qAO+qAQGqESOqEUWqEWeqEYmqEauqEc2qEe+qEgGqIiOqIkWqImeqIomqIquqIs+hDC
-8KIvCgwyOqMyCqM2eqMvKhDBsKM82qM++qNA2qMCoQtEqgu5cKRImqRKuqRMqgvxAA9QGqVSOqVU
-WqVS+g7ykKVauqVc2qVeyqX0MA9iOqZkWqZmeqZleg/1sKZs2qZtSg1wCqduOqdsag/4cKd4mqd6
-uqd8mqf50A6AGqiCOqiEWqiE6g6ImqiKuqiM2qiM2g/8EKmSOqmUWqmWKqn90A//sA+cqg+e+qmg
-GqqiGqqcug///8ALqMoLu7CqrNqqrvqqu5CqssoL/9ALtroLuJCrurqrvNqrvQoVtBALwjqsxFqs
-xnqsxOoKraCsytoKzvqs0Bqt0gqtzEoJknCt2Jqt2rqt3KqtoMAJ4Bqu4jqu5Fqu40oMxZCu6rqu
-7Nqu7squyWAM8jqv9Fqv9nqv9foMyrCv/Nqv/vqvAOuvzRANBFuwBnuwCJuwBwsO5dCwDvuwEBux
-Egux56AOFnuxGJuxGruxGUsO4fCxIBuyIjuyJCuy2VANKJuyKruyLNuy2qCyqhAKMjuzNFuzNnuz
-NXsKorCzPNuzPvuzQOuztkAUwoCsRnu0xuoKzTqtTNu00mqt3bAatVKrrZZgrlZ7teT6Ce+6tVzr
-rvj6tWB7r8wQsGRbtv86sAqbtmp7sN0wsW77thFrDhw7t3S7sSV7t3hLsifbsnzbt3ybCjgbuIJr
-szobtIZ7uD5bCkIxC0jbuEertE4buZFbCVNbuVI7CZ6AtZp7tejatZ67tcgQtqIbtstgtqZbtmi7
-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' | base64 -d > /www/docroot/img/logo.gif
+echo [$SCRIPT]: Applying $THEME theme
+sed -e 's/margin-left:70px/margin-left:190px/' -i /www/docroot/css/mobiled.css
+if [ "$THEME" = "light" ]
+then
+  echo [$SCRIPT]: Remove the background card icons from the cards that do have them
+  sed -e 's/class="content card_bg" data-bg-text="\&#xf012;"/class="content"/' -i /www/cards/003_lte.lp
+  sed -e 's/class="content card_bg" data-bg-text="\&#xf0ad;"/class="content"/' -i /www/cards/091_system.lp
+  sed -e 's/class="content card_bg" data-bg-text="\&#xf0ad;"/class="content"/' -i /www/cards/092_natalghelper.lp
+  sed -e 's/class="content card_bg" data-bg-text="\&#xf0ad;"/class="content"/' -i /www/cards/093_xdsl.lp
+  
+  echo [$SCRIPT]: Apply the CSS changes
+  sed \
+   -e '$ a a{color:#404040;}' \
+   -e '$ a body{background-color:#fff;font-family:'Roboto','Noto',sans-serif;}' \
+   -e '$ a input,button,select,textarea{font-family:'Roboto','Noto',sans-serif;}' \
+   -e '$ a u{text-decoration:none;}' \
+   -e '$ a .card{font-family:'Roboto','Noto',sans-serif;}' \
+   -e '$ a .copyright{font-family:'Roboto','Noto',sans-serif;text-shadow:none;display:none;}' \
+   -e '$ a .dw{font-family:'Roboto','Noto',sans-serif;}' \
+   -e '$ a .header{border-bottom:0px;box-shadow:none;margin-bottom:30px;}' \
+   -e '$ a .header img{width:180px;}' \
+   -e '$ a .header .btn{margin-left:5px;}' \
+   -e '$ a .modal-backdrop{background-color:#fff;}' \
+   -e '$ a .modal-header{color:#404040;}' \
+   -e '$ a .nav-header{text-shadow:none;}' \
+   -e '$ a .nav-list>li>a,.nav-list .nav-header{text-shadow:none;}' \
+   -e '$ a .nav-tabs>.active>a, .nav-tabs>.active>a:hover, .nav-tabs>.active>a:focus{background-color:#00B1EB;color:#fff}' \
+   -e '$ a .simple-desc{display:block;}' \
+   -e '$ a .smallcard{border:0px;background-color:#eee;font-family:'Roboto','Noto',sans-serif;font-size:14px;font-weight:400;color:rgba(64,64,64,0.75);}' \
+   -e '$ a .smallcard .content{font-size:14px;}' \
+   -e '$ a .smallcard .header{background-color:#eee;background-image:none;border-bottom:0px;color:#404040;font-size:20px;font-weight:400;text-shadow:none;}' \
+   -e '$ a .smallcard .subinfos{font-size:14px;color:rgba(64,64,64,0.75);}' \
+   -i /www/docroot/css/gw.css
+  sed \
+   -e '$ a body{background-color:#fff;font-family:Roboto,Noto,sans-serif;background-image:none;}' \
+   -e '$ a .container>.row{background-color:#dadada;border-color:#dadada;}' \
+   -e '$ a .navbar+.container{margin-top:130px;}' \
+   -e '$ a .navbar-fixed-top .container{background-image:url(/img/logo.gif);background-repeat:no-repeat;background-size:180px;height:75px;margin-top:30px;}' \
+   -e '$ a .navbar-fixed-top .navbar-inner{box-shadow:none;}' \
+   -e '$ a .navbar-inner{box-shadow:none;}' \
+   -e '$ a .navbar-inverse .navbar-inner{background-color:#fff;background-image:none;border-width:0px;}' \
+   -e '$ a .networkmap .devicelist{border-color:#094f9c;}' \
+   -e '$ a .networkmap .right, .networkmap .left, .networkmap .longleft{background-color:#f89406;color:#fff}' \
+   -i /www/docroot/css/gw-telstra.css
+  
+  echo [$SCRIPT]: Change the logo
+  echo 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 | base64 -d > /www/docroot/img/logo.gif
+  echo [$SCRIPT]: Update the diagnostics card icons
+  echo iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAQJSURBVFhHtZdNiI1RGMfvlcUsLCyoUbOgLJRRU0YRmlEUMWlCLIhio0iisJAkIXaT2CEsRBk1YjEyE0WZpTILolhMmYXFLCzU+P3Oe85079z33veO3H8993ne8/F8nY/n3HJpDujp6ekql8u7EDuh9kjimzQ9Pf0FPjw6Ovo+tDaBQgcw2gY7i+HD8I7QWIxxnLkHv4szE1lTPho6gPEjGL6EmCJV2RDKX8F/RBJLJcauhO+DkqMTIyMjS6Kci1wHMLwAZXcQd2ctpbcYvUg0w/G7IZi/mfkHEadw4GjWmo8aB5jczuQXiF3QJIaPYvhJ6JyF3t7eAVgHRvqzlnwYEOwQ9BJdn0NjxLzIA2LkybjruLGe8YiQ+kzMgI426BgUliHphAagE2FQBaoyQESPYaY9GZ+M7U1FKjC4NQZxFR2Xo7wBUucmdFZtypkMMPEITOOmvT8Zj6iJtAGGmd8H3SwyLkIGMN7G4K+I7QzcU5D2QqS0I9YYp28/fWdoM8jPKQNnIY/a21YaF/SthnXCT/kdHODDS6bE4Ity4bpDT+NnU8gzDv+Nnuv0eXtq45Ec7KOtbR4/7nh37ASeVp7zuax7o8i7odP07YWXaPOaHocWQrvn0+HdLoYiD2DH90WxBtHYFcRe6A+k42uhmrQbFONX2e63oP8h8y9B212ClBqv10JE4x8Qj0HONYOnodw1F3x/hHQ0YSzyDh1I93y61xsiRr4CGsPYNmgjclq6sdnG6yDdhrUONLH5TLsZO48xr1brxPHQUyptjrwGs/RavsVSHZifyWEtRdHmszyLX5GLqci98+thRm/lcpTxyvXsJop1dBQ+JBhvlbSweOMZ+RTLch1uGR5m826BNwT7qIM53xEnzUBas6YeGxg9B3OOJfdTVKTxKfpOwpvBzHtBB8LxQNF6eRHcZBhag+ixNfWS2TCDH5GbgUdWjJdJxwaMv+HjG+lblrW3FizjaxlOHwjFiIafsEVGRhTpjLYEBOyDx2VzORe7BOKBP3RcCF8tRLThyRsk2F/BATyxCHmsduBhOOetALqXw3x3/MGmmzmrhnpCwzVlPLzDwEXK/xPotO7cRzT629gMt2FaAnEDGoF8Xj92Qmj9T0DnLZi733oRohdVb0KMukHeIXpjebR8HVXeeHNGjFzjpt5Me1xnKmNlBtIZ34ZoXfCi+YAC6/k/gbnL0eERT8b7Ko2Lmv8FImbCwpEujAdM9o9J1Zu+HuJ8d7uGXUrT7huwyrjIdUDE1KnEWp8K0HsUPYdbfn+gMFRQxnq1SmuZsxPu20DDFp3bzDnH2FSwqlDXgYQYjW8A7/vkSBE0PBgNN8xaoQMJOGKpdV/k/T33P4QFylQ/gw9huInNWyr9BdP9/tf6GBTcAAAAAElFTkSuQmCC | base64 -d > /www/docroot/img/bandwidth-px-png.png
+  echo iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAH2SURBVFhH7ZWvS0NRFMffmyIGg2FFELZoMBjUJGxh4IKgwWgSsSiIiCCY9hcoLKxMECy2TRCZbWuihgWDweDAMNGwsKAwfH7OfffNN6bb0/2wvC8cvueee+8533vu9q7hBdFoNIll9LAtfrM+oLkdNrEl2/UEz+u9CugZfAG+AF+AqVk+HpZ2+4J8Pq9quzvwpLmvcHfgBpq2LGumUCjc2tHuIhKJBE3TfMEt04Exibk7UNY8p7kXmNJc73ZdACc/E0bhvAr0AE5up5bA3YEsVsPitGpCRboIcg5Da/bIONX8JYB7f4XS4qM0xYZB8bsFciahUSxLrQcVBO4OSGsSUAWLsuFABbsADiPPs5y+Ro1dFdQY0KxQKpWqoVCoRPFlhrPig6I9+zdQPEa+E9wAxXc4/YU9Y6NBgICCdxRmjyldiIsfDoevicvvwzPkCtm3To4jhnL/aYrvq0kXmgQIKJan8DubRb3YCuNnEaeXtIQ+dQZbZTiEHXL6LfZ/qAUu1D9E34FECyRJ4Y7bEeNK/4Vy2CMnkt+LrBuBwph0bRGOSRxUWL/NumM9bkJLAQKSS/v2SLwBB1WwPapYmuIJR+RPaCvAgdwp5JxwUpsjSIrcY0WKXsI5Cr/JRE8hL2inr2jDd+A/4AvwBfgCOhVwjnXwWhrGJ0DpoRtqFzigAAAAAElFTkSuQmCC | base64 -d > /www/docroot/img/connection-established.png
+  echo iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAJ6SURBVFhH7ZUxSJVRFMff93BwcHBwbHAwaHiBkMMDhfcNBgVCNQQJiUEJhUvioIJLREQkFKRgUDQo6ODgoBA09B4pvUDJwcHBwcHBwcGhoUF4/f73u/dx+b7vPV9LLd8fDufcc8/9n/Odd+95uQwZMmT43wisNiiVSm2oB0EQXEMXkd/Ifq1W+1ipVKrYLQOuAjwPMfuQTqQKzy56Ga5faIN6ARy4woEVzN7Ik8Dbcrk8Ye2mCMPwDepptErgiEKG3QeZAmzyn5jtyA4B76WRLqTI3hS6A6kXwZkelIqV/xCpQnruJT9H5uDaRh8hvfCMoge1h/868eVAbWfjG061fJ6NCRFh10FMNzFfMJX0A6LCbiM+VISKvoecwHMTnj1t+IBrFq7nmOrEVRWg3/wTjgM54skdiBuwhTqcIluI7omK70YM4BmBZ9kuE6BL+phB4p7lIe2Xk8WLRskF9pRMInwm/jI/xx1kWDa+xWgrd9gsuUD8K2nlzqN1S4VEu1KgFovgB0nOjAeocPnssmUe0KcCdPEEtfIiuA6lxTbbi8PFtqkAV02j5+fDxexb7cN9+d/w7OVd6/g9Jo2rAbiEBVQYrVLbfIBowBSIvWE8DUCucWtW1QE9Kx0ucnBa3jjwd3JIL0WTcp7f/NhseLD3YEY2se84c8lsxID/PkpP9VSX0Q0iDZvvssE6GwtofxC9RIvQvF2S1UdpHDyxr1LImS1IL8cfRI8QXeS78Kz5ozgkYAkztXKwwaEnaV/vA54OeF5jPo48CaiwMSXXIv5npFbrLuhparicIBrNmxxYxW4ZcA3BdQvTDSnNfnEtXPQRGTJkyPAPkcv9AcLqFj3ew5/oAAAAAElFTkSuQmCC | base64 -d > /www/docroot/img/log-viewer.png
+  echo iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEASURBVFhH7ZbhDcIgEIXBSXQSGMkN1A3qRmUSHUEnwINwBBNK74CUH+2XNFAhvee7u1JxsHukUuoe5kOQWmsb5kOIAqy1D//LRkgpb35EAfM8SzduBcY9+buBDBfASgGjYyZjzCfMs2BclgDcuwYU9AUEvMNtlqYacB2Tu2Cp+K9zkBxA67F1lvbCs14wnOGaQNAXXFhMGcsBFxiDE7lS97NSkFidBdaepfUcLAHO0pKtsOaqn3W2VL8H0pZsOdCqBaQ5ZtbHH9UC0lxz855CakPcQw2EjlCeyRLApZuA2iKjvIhYZ0FPMG51EfYiOtBSyTVgoUYBoxj+WX6wd4T4AZufpQmn26YYAAAAAElFTkSuQmCC | base64 -d > /www/docroot/img/network_sans-32.png
+  echo iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAJtSURBVFhHxZaxb9NAFIdtWiSQMmQsElLCztABiQ6Vki5FQp1QhzB0YEdqOzAi1D+gajfExMAAA3thc7Yu3RB0I5nogISY6BAp/Z7zzpzt2L2zHfWTTu/d3Tu/353v7At7vd7DIAi2Kb58GQ6Hp+pXJuz3+7+wK7OqF5dRFN1VvzIiYCrOdDo9iFscCMPwjVgEhHFDHUSAEeFKlTFFJCvgMxszxmPVIvZLpH6KWgI8mCD2HiJ+az1h4SvAftnFtIl9gIDRrPU/tQS4jCH2J6ZbJOCW2htjIceQj9sKs70QP7sCdp8gAv5g27OqFxME3FY/gQTbCPxAwh0SfbYFYO/Td4L/mr5jiV/qdDpnWAka2oXAS2yL4MNsn5a34/H4OzZFt9vdZOwW5RnP/oHdpFkmeIb/EdvCno9Go68SX7SE6wSd4LYox8x0P+5whPF7jD/CnWi5o3aZknrektqETHJhjVm1jWIXWJlTZv+X5zylKkkF2fC5yaRWgOQSvEcxyW0+8d7O1XfCWgnBeyUbAREDykutusOgVcojrS6Mok0oR0l2rHwfnstxijsKIL7ypSYnwEpuNo/8SEpFcNYrX2qymzCb3FAqos7XNBFgJ+dB+/jx7rX8QhFGALt87iudhxmT/IxI8hgTJydJ/JkUxJc23GWNaZREAOpfkWjDTm5QERsSo02Nkfodk2jutUko66vDzd8H1OawdvaLuKEE9sZ7sVU2YZmAfxj5izmD2OrHMAvHckDQE61ex4DiJVaZOC9ZGYjdwuT+G3psV1mZd7OWHN8aETAPRDldanIXkibIJBcKLzWNrwDJPS41QXAFEZFPIo+IhF8AAAAASUVORK5CYII= | base64 -d > /www/docroot/img/pocket-32-black.png
+  echo iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAMMSURBVFhH7ZY/aFNRFMaTGKRDkQ4OGQKJ4qCQgoNC/UcyKFZwUFARdLDgUBFBBxFxSEsHEQsKVrSoqFMVClYQrNghgQqCATMIOjgkkEFxccgYiL/vvvtekyZ5SWMbEfrB4Zx7zn3nO/f/C6zjXyNodddIJpN9qNFgMLgPvQ0pI7lqtfoBPZfNZivolvirAiA/DfEdzIjjaYAKuUAROdtuQNcFQD4Gedo2FyF6js4j/cgQsYvoKFIhdoQiFrAb4FsAJGHUOUSJhDyJ5vAPQ/CWtpJrhI+d8BLoM0Cfp5jHkBL9Bun32wRr0LIAEuwnwQPMhOPx8A3RKKMkHSfpmPE2ATn6yPEZczsymclkrppADTZYXQf7oTbRViQP0TTtj9iaCW20TUgZ8sPoligWi5VYLPaTb0/R3FgoFB45kSWErF6OUUQbKwP5bo2S6q9rGvF9Vweg9e4EKlxIMDAtaR3qCqBDJJVK3abiCbUhfAm5d4ywy/j2IFuQ49btC74pWVOz+gqOnbZt4O0BAifoMIPpVimyAyTodKQtwaB+oTY7LTOwK+S9K9sUAPl5yLU+Gu1DOkzT4YtiqwU4VIB4bqD74bgEx1SQQBTnV+vUeZ3XB2sF+BLwfcIMwzcYonGNho7VVDfkTG9VYpttoZmFeBwzDHdam3CXAjhfS/cIb6weUgHuPe4erzVHzf6KqwCXWLdVT8A+0GUmlFSAOWasxxnpHuGg1bkQa38fQ2/4WR1H415DwBFnsDdlw/3EvQf0rusSEuYJ3ELr5Wt4vZbDPQFc1e1eVi3xUXh0Dwwgz/hmpPYmVBH3ML0bazmakfgV4HM8ZxnkCAMse28BjRc4d2BOIouIlqUpKLbhUXHhE1O+BRFT7EmRy+k7bc0AQYSZek8i/QvM1s4AMb0naWKHiP0wH7SBNwMrgP6QdJ3OiNBxmcLcx0w/MMPG2QFWPAMCo9aP6GVEj5c75cZm9N5L1wma/hG1A3827+LxuHbyXsdjoCO9InKhqwKEmiKG1O6GfFWg5WD9tRzr+B8RCPwB8HxQ0ZLbTfYAAAAASUVORK5CYII= | base64 -d > /www/docroot/img/tcp-dump.png
+  echo [$SCRIPT]: Update the tip icons
+  echo iVBORw0KGgoAAAANSUhEUgAAAAgAAABQCAYAAAAk0jQRAAAABGdBTUEAALGOfPtRkwAAACBjSFJNAACHDwAAjA8AAP1SAACBQAAAfXkAAOmLAAA85QAAGcxzPIV3AAAKL2lDQ1BJQ0MgUHJvZmlsZQAASMedlndUVNcWh8+9d3qhzTDSGXqTLjCA9C4gHQRRGGYGGMoAwwxNbIioQEQREQFFkKCAAaOhSKyIYiEoqGAPSBBQYjCKqKhkRtZKfHl57+Xl98e939pn73P32XuftS4AJE8fLi8FlgIgmSfgB3o401eFR9Cx/QAGeIABpgAwWempvkHuwUAkLzcXerrICfyL3gwBSPy+ZejpT6eD/0/SrFS+AADIX8TmbE46S8T5Ik7KFKSK7TMipsYkihlGiZkvSlDEcmKOW+Sln30W2VHM7GQeW8TinFPZyWwx94h4e4aQI2LER8QFGVxOpohvi1gzSZjMFfFbcWwyh5kOAIoktgs4rHgRm4iYxA8OdBHxcgBwpLgvOOYLFnCyBOJDuaSkZvO5cfECui5Lj25qbc2ge3IykzgCgaE/k5XI5LPpLinJqUxeNgCLZ/4sGXFt6aIiW5paW1oamhmZflGo/7r4NyXu7SK9CvjcM4jW94ftr/xS6gBgzIpqs+sPW8x+ADq2AiB3/w+b5iEAJEV9a7/xxXlo4nmJFwhSbYyNMzMzjbgclpG4oL/rfzr8DX3xPSPxdr+Xh+7KiWUKkwR0cd1YKUkpQj49PZXJ4tAN/zzE/zjwr/NYGsiJ5fA5PFFEqGjKuLw4Ubt5bK6Am8Kjc3n/qYn/MOxPWpxrkSj1nwA1yghI3aAC5Oc+gKIQARJ5UNz13/vmgw8F4psXpjqxOPefBf37rnCJ+JHOjfsc5xIYTGcJ+RmLa+JrCdCAACQBFcgDFaABdIEhMANWwBY4AjewAviBYBAO1gIWiAfJgA8yQS7YDApAEdgF9oJKUAPqQSNoASdABzgNLoDL4Dq4Ce6AB2AEjIPnYAa8AfMQBGEhMkSB5CFVSAsygMwgBmQPuUE+UCAUDkVDcRAPEkK50BaoCCqFKqFaqBH6FjoFXYCuQgPQPWgUmoJ+hd7DCEyCqbAyrA0bwwzYCfaGg+E1cBycBufA+fBOuAKug4/B7fAF+Dp8Bx6Bn8OzCECICA1RQwwRBuKC+CERSCzCRzYghUg5Uoe0IF1IL3ILGUGmkXcoDIqCoqMMUbYoT1QIioVKQ21AFaMqUUdR7age1C3UKGoG9QlNRiuhDdA2aC/0KnQcOhNdgC5HN6Db0JfQd9Dj6DcYDIaG0cFYYTwx4ZgEzDpMMeYAphVzHjOAGcPMYrFYeawB1g7rh2ViBdgC7H7sMew57CB2HPsWR8Sp4sxw7rgIHA+XhyvHNeHO4gZxE7h5vBReC2+D98Oz8dn4Enw9vgt/Az+OnydIE3QIdoRgQgJhM6GC0EK4RHhIeEUkEtWJ1sQAIpe4iVhBPE68QhwlviPJkPRJLqRIkpC0k3SEdJ50j/SKTCZrkx3JEWQBeSe5kXyR/Jj8VoIiYSThJcGW2ChRJdEuMSjxQhIvqSXpJLlWMkeyXPKk5A3JaSm8lLaUixRTaoNUldQpqWGpWWmKtKm0n3SydLF0k/RV6UkZrIy2jJsMWyZf5rDMRZkxCkLRoLhQWJQtlHrKJco4FUPVoXpRE6hF1G+o/dQZWRnZZbKhslmyVbJnZEdoCE2b5kVLopXQTtCGaO+XKC9xWsJZsmNJy5LBJXNyinKOchy5QrlWuTty7+Xp8m7yifK75TvkHymgFPQVAhQyFQ4qXFKYVqQq2iqyFAsVTyjeV4KV9JUCldYpHVbqU5pVVlH2UE5V3q98UXlahabiqJKgUqZyVmVKlaJqr8pVLVM9p/qMLkt3oifRK+g99Bk1JTVPNaFarVq/2ry6jnqIep56q/ojDYIGQyNWo0yjW2NGU1XTVzNXs1nzvhZei6EVr7VPq1drTltHO0x7m3aH9qSOnI6XTo5Os85DXbKug26abp3ubT2MHkMvUe+A3k19WN9CP16/Sv+GAWxgacA1OGAwsBS91Hopb2nd0mFDkqGTYYZhs+GoEc3IxyjPqMPohbGmcYTxbuNe408mFiZJJvUmD0xlTFeY5pl2mf5qpm/GMqsyu21ONnc332jeaf5ymcEyzrKDy+5aUCx8LbZZdFt8tLSy5Fu2WE5ZaVpFW1VbDTOoDH9GMeOKNdra2Xqj9WnrdzaWNgKbEza/2BraJto22U4u11nOWV6/fMxO3Y5pV2s3Yk+3j7Y/ZD/ioObAdKhzeOKo4ch2bHCccNJzSnA65vTC2cSZ79zmPOdi47Le5bwr4urhWuja7ybjFuJW6fbYXd09zr3ZfcbDwmOdx3lPtKe3527PYS9lL5ZXo9fMCqsV61f0eJO8g7wrvZ/46Pvwfbp8Yd8Vvnt8H67UWslb2eEH/Lz89vg98tfxT/P/PgAT4B9QFfA00DQwN7A3iBIUFdQU9CbYObgk+EGIbogwpDtUMjQytDF0Lsw1rDRsZJXxqvWrrocrhHPDOyOwEaERDRGzq91W7109HmkRWRA5tEZnTdaaq2sV1iatPRMlGcWMOhmNjg6Lbor+wPRj1jFnY7xiqmNmWC6sfaznbEd2GXuKY8cp5UzE2sWWxk7G2cXtiZuKd4gvj5/munAruS8TPBNqEuYS/RKPJC4khSW1JuOSo5NP8WR4ibyeFJWUrJSBVIPUgtSRNJu0vWkzfG9+QzqUvia9U0AV/Uz1CXWFW4WjGfYZVRlvM0MzT2ZJZ/Gy+rL1s3dkT+S453y9DrWOta47Vy13c+7oeqf1tRugDTEbujdqbMzfOL7JY9PRzYTNiZt/yDPJK817vSVsS1e+cv6m/LGtHlubCyQK+AXD22y31WxHbedu799hvmP/jk+F7MJrRSZF5UUfilnF174y/ariq4WdsTv7SyxLDu7C7OLtGtrtsPtoqXRpTunYHt897WX0ssKy13uj9l4tX1Zes4+wT7hvpMKnonO/5v5d+z9UxlfeqXKuaq1Wqt5RPXeAfWDwoOPBlhrlmqKa94e4h+7WetS212nXlR/GHM44/LQ+tL73a8bXjQ0KDUUNH4/wjowcDTza02jV2Nik1FTSDDcLm6eORR67+Y3rN50thi21rbTWouPguPD4s2+jvx064X2i+yTjZMt3Wt9Vt1HaCtuh9uz2mY74jpHO8M6BUytOdXfZdrV9b/T9kdNqp6vOyJ4pOUs4m3924VzOudnzqeenL8RdGOuO6n5wcdXF2z0BPf2XvC9duex++WKvU++5K3ZXTl+1uXrqGuNax3XL6+19Fn1tP1j80NZv2d9+w+pG503rm10DywfODjoMXrjleuvyba/b1++svDMwFDJ0dzhyeOQu++7kvaR7L+9n3J9/sOkh+mHhI6lH5Y+VHtf9qPdj64jlyJlR19G+J0FPHoyxxp7/lP7Th/H8p+Sn5ROqE42TZpOnp9ynbj5b/Wz8eerz+emCn6V/rn6h++K7Xxx/6ZtZNTP+kv9y4dfiV/Kvjrxe9rp71n/28ZvkN/NzhW/l3x59x3jX+z7s/cR85gfsh4qPeh+7Pnl/eriQvLDwG/eE8/s3BCkeAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAUUlEQVRIS+3WsRGAMAxDUcz+E2qZ5IQ4HwHHC6Bf2M0rXDoAjKPpvPc2A2WgDJSBMlAGykAZqJ+A4OierQuwHUrAKrQA9kYfwJ6oBKw7PAMwJtsNHQAcIMzmAAAAAElFTkSuQmCC | base64 -d > /www/docroot/img/tipleft.png
+  echo iVBORw0KGgoAAAANSUhEUgAAAAgAAACgCAYAAAAxQC0IAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAABfSURBVFhH7di7EcAwCMDQOPtPyDLOEeV8+dgsEKmA5hXUtIjoW9F+7WUCEpCABCQgAQlIQAISkIAEJCABCUhAAhLQT0DLUT3vTpCt0ADZDD1A9kYfkN3RFGTV4aOI6AcxLh2gWYuDsAAAAABJRU5ErkJggg== | base64 -d > /www/docroot/img/tiplongleft.png
+  echo iVBORw0KGgoAAAANSUhEUgAAAAgAAACgCAYAAAAxQC0IAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAB6SURBVFhH7dZBDsIgFAZh6v1PyGU0f0eJbR+oa2cWsOBLeGHF1nu/t0W35z5NQAISkIAEJCABCehPwJZl9dnaQZqhAVKFDiCd0QWkd1SCtBp8FPTdO1S9rvh9yPNwB1BNPkB1mHYwO0x+m0lAAhKQgAQkIAEJ6ANo7QEhUDZ03JluFAAAAABJRU5ErkJggg== | base64 -d > /www/docroot/img/tipmid.png
+  echo iVBORw0KGgoAAAANSUhEUgAAAAgAAABQCAYAAAAk0jQRAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABRSURBVEhL7dbBEcAgDANBQTHuvx43E0ZRkgECVKD9+KErwCUzLxzU5245EAfiQByIA3EgDsSBOAAiomwDjrzL4B3pF/QjDcE80hesxtv5XQQaoM8KagmNzSsAAAAASUVORK5CYII= | base64 -d > /www/docroot/img/tipright.png
+else # night theme
+  echo [$SCRIPT]: Add or update card background icons
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf129;"/' -i /www/cards/001_gateway.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0b2;"/' -i /www/cards/002_broadband.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0ac;"/' -i /www/cards/003_internet.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf012;"/' -i /www/cards/003_lte.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf09e;"/' -i /www/cards/004_wireless.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf015;"/' -i /www/cards/005_LAN.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf10b;"/' -i /www/cards/006_Devices.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0c2;"/' -i /www/cards/007_wanservices.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf132;"/' -i /www/cards/008_firewall.lp
+  sed -e 's/class="content"/class="content card_bg mirror" data-bg-text="\&#xf095;"/' -i /www/cards/008_telephony.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf188;"/' -i /www/cards/009_diagnostics.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0c0;"/' -i /www/cards/011_usermgr.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf115;"/' -i /www/cards/012_contentsharing.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf02f;"/' -i /www/cards/012_printersharing.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf023;"/' -i /www/cards/013_parental.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf074;"/' -i /www/cards/015_iproutes.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf017;"/' -i /www/cards/015_tod.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf019;"/' -i /www/cards/090_cwmpconf.lp
+  sed -e 's/xf0ad/xf0ec;"/' -i /www/cards/092_natalghelper.lp
+  sed -e 's/xf0ad/xf0b1;"/' -i /www/cards/093_xdsl.lp
+  
+  echo [$SCRIPT]: Apply the CSS changes
+  sed \
+   -e '$ a body{background-color:#353c42;color:#fff;font-family:Roboto,Noto,sans-serif;}' \
+   -e '$ a input,button,select,textarea{font-family:Roboto,Noto,sans-serif;}' \
+   -e '$ a legend{color:#fff;}' \
+   -e '$ a u{text-decoration:none;}' \
+   -e '$ a .card{background-color:#272c30;font-family:Roboto,Noto,sans-serif;}' \
+   -e '$ a .card_bg>*{z-index:20;}' \
+   -e '$ a .card_bg:after{color:#3399cc2b;font-size:110px;bottom:-5px;}' \
+   -e '$ a .card_bg.mirror:after{transform: matrix(-1,0,0,1,0,0);}' \
+   -e '$ a .copyright{font-family:Roboto,Noto,sans-serif;text-shadow:none;display:none;}' \
+   -e '$ a .dw{font-family:Roboto,Noto,sans-serif;}' \
+   -e '$ a .dropdown-menu,.dropdown-menu>li>a{background-color:#005c32;color:#fff;}' \
+   -e '$ a .header{border-bottom:0px;box-shadow:none;margin-bottom:30px;}' \
+   -e '$ a .header img{width:180px;}' \
+   -e '$ a .header .btn{background-color:#005c32;color:#fff;margin-left:5px;}' \
+   -e '$ a .login{background-color:#272c30;}' \
+   -e '$ a .modal-header,.modal-body,.modal-footer{background-color:#272c30;}' \
+   -e '$ a .nav-header{text-shadow:none;}' \
+   -e '$ a .nav-list>li>a,.nav-list .nav-header{text-shadow:none;}' \
+   -e '$ a .simple-desc{display:block;}' \
+   -e '$ a .smallcard{border:0px;background-color:#272c30;font-family:Roboto,Noto,sans-serif;font-size:14px;font-weight:400;color:rgba(64,64,64,0.75);}' \
+   -e '$ a .smallcard .content{background-color:#272c30;color:#fff;font-size:14px;}' \
+   -e '$ a .smallcard .header{background-color:#3d8dbb;background-image:none;border-bottom:0px;color:#fff;font-size:20px;font-weight:400;text-shadow:none;}' \
+   -e '$ a .smallcard .subinfos{font-size:14px;color:#bec5cb;}' \
+   -e '$ a .table-striped tbody>tr:nth-child(odd)>td, .table-striped tbody>tr:nth-child(odd)>th {background-color:#353c42;}' \
+   -i /www/docroot/css/gw.css
+  sed \
+   -e '$ a body{background-color:#353c42;color:#fff;font-family:Roboto,Noto,sans-serif;background-image:none;}' \
+   -e '$ a legend{color:#fff;}' \
+   -e '$ a .btn{background-color:#005c32;background-image:none;color:#fff;text-shadow:none;}' \
+   -e '$ a .container>.row{background-color:#272c30;border-color:#272330;}' \
+   -e '$ a .landingpage{background-color:#f8f8f8;}' \
+   -e '$ a .menubar .menu-item a .menu-icon.selected, .menubar .menu-item a:hover .menu-icon{background-color:#3d8dbb;}' \
+   -e '$ a .menubar .menu-item a{color:#0088cc;}' \
+   -e '$ a .navbar+.container{margin-top:130px;}' \
+   -e '$ a .navbar-fixed-top .container{background-image:url(/img/logo.gif);background-repeat:no-repeat;background-size:180px;height:75px;margin-top:30px;}' \
+   -e '$ a .navbar-fixed-top .navbar-inner{box-shadow:none;}' \
+   -e '$ a .navbar-inner{box-shadow:none;}' \
+   -e '$ a .navbar-inverse .navbar-inner{background-color:#353c42;background-image:none;border-width:0px;color:#fff;}' \
+   -e '$ a .networkmap .devicelist{border-color:#024b96;}' \
+   -e '$ a .networkmap .right, .networkmap .left, .networkmap .longleft{background-color:#fff;color:#000}' \
+   -e '$ a .table-striped tbody>tr:nth-child(odd)>td, .table-striped tbody>tr:nth-child(odd)>th {background-color:#353c42;}' \
+   -i /www/docroot/css/gw-telstra.css
+  
+  echo [$SCRIPT]: Change the logo
+  echo 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P3yVACKRhLKcAsMfAJ0Gktc0W0BeSW7uNaCHBumP8H+Dl4AqDz7MA8/Fg3yVnUfpfEFUHQHsnwDbl5XZF5slu6Vj+aqf1hIQ9Emw+beD+mr9fBH6pKMLPcH+NVDqVY/yCtuf/RqG3hmQ+ReF3Fejqqdyu/BF7je59948SPK0r3p46gePBAiyLHkP6D74KtPbsST4LHUyH/QOkPg+B9QE8kqdyHwMdC9IXmcMtDncy0B5Hnw8CueCZa30GnyQQT6yBB8Og3LpW88YpH0VxuQefRJ0J+gO0BL4mMdvJAn+fRGKD/ZQLg9qX/DINzqrYQKIcpRRac04l4a1F2hPkGw2lA5BnkSkE5CB+VVUnDSmWBN8k45rOkii6Mkg6dyEsiDZ1yFPHkIvwz85NzKhHNLBCcbTQHuDJoJyIMF5J2gt6CWUoRe/TETAGAQG2+4BcEjuw/1Bck/KICIk95wEDjKL4eDXiASfpY84HCQDpNxzcv+Jf32gV0ASmK81yWf4E3sCTjNhVOp0Ekj6V+mXdoEEowFinwQkmIgAESACRIAIEAEiQASIABEgAkSACBABIkAEiAARIAJEgAgQASJABIgAESACRIAIEAEiQASIABEgAkSACBABIkAEiAARIAJEgAgQASJABIgAESACRIAIEAEiQASIABEgAkSACBABIkAEiAARIAJEgAgQASJABIgAESACRIAIEAEiQASIABEgAkSACBABIkAEiAARIAJEgAgQASJABIgAESACRIAIEAEiQASIABEgAkSACBABIkAEiAARIAJEgAgQASJABIgAESACRIAIEAEiQASIABEgAkSACBABIkAEiAARIAJEgAgQASJABIgAESACRIAIEAEiQASIABEgAkSACBABIkAEiAARIAJEgAgQASJABIgAESACRIAIEAEiQASIABEgAkSACBABIkAEiAARIAJEgAgQASJABIgAESACRIAIEAEiQASIABEgAkSACBABIkAEiAARIAJEICACdkC5QGKLXDe76sXcBbZj72FnrGbXtZpt1252B46dFhvncmw7Fg7tId9wNHDsWrt/ceJC1rXxI45AxoWAnODa4G/pHHkDPJKHaxk7k3e37CzirCVQIUISyhQtx3n51QL+tjiD5SpXDVyGyl+6jsKNuiZ5tuWMuu5WkS/hWNK3WzZbPGZHt5Nx3RYANIBVeb6f44yV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 | base64 -d > /www/docroot/img/logo.gif
+  echo [$SCRIPT]: Update the diagnostics card icons
+  echo iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAANySURBVFhHtZc/SJVRGMbvvTjcwcGhwcChwUHIoaHAyKDBwaCtBgdHx4bGBgfhDg4NDQ4ODg4NDg4SumU4OBgkONwgocKgwMCgIKGh0H7Puc+5Xr33O9+nXR94eM95z/vn/PvOOV+5dA4cHx/fgA8pDsN+U/hsfoLrlUrljZRdAQmrcObo6OgLshCwfY94CmMHM5GcAQJNIWrlcjkEIuA3xBp8je4rUhSuibRfR07QNiCl7JmNqyqfCzj2knwZGUB5EzHm5lzIFp8XcN6q4sC5H8cdJz6Aj9zUBtrm4IqrmSCUBvQYDlrVGTaMybWOQ27qCGxWZe9qAD5VdEoWl0ExNYOKOReMsoBBmHakkl+xuvBIBezGHWMW0ZpcMbM3JQZTNjxAnBo5uraRZgHfHmwfwAFYLDmNmrZ9G2eueVEQJnPk1CdhHZ7sBwxmbLxp1YVBmOS0o3vutpMvhEo8ZJqfGrrC6x6Bf1ty2Ef5GdTpqbgjbv+BqMpJx6sU+yGKQb3wuguE6Dhy5Jh1tWAI3C7dpCo1VxbcngvMlUwzpLXcgRphatqH0fW4qvq0bZdUWXFlwu1JYKrkYQRnYX32bjewi5/qZoV6cPDZngv8ZrEdQm7D+6juItcbraVt2nRf5OGj5YB6s0cAQReK6snNR1tdxshxq9QpdUi6U/uoFa1xMe2RvaAZCGtD+a8kCDdbo9gRVcuflvI9dLHXshOacZmlmCv07K16ghyxKgnsFm3/CjGE1Im3FHU2S0I+tj9QZdWVQicgprotw6nZCnS/YPjW84BdPAvqWoLdhrp0xzIJb7Jb+K/BQ1Ob8DaPj3fBKB9xtnc1olGo3uxZeekg14ZzTkaFbkApbgbFJYI0WsI/IuW+oKQSL4jVoLhEkGPeuZatCr3ShaHLQbhndddBjkEYRq+y1Q2QWM/osBcQzddQt0BMPVS2nKP9aWaDuDkkm5dHN0DMBcfWfdH5wKJBGyQczUgdNI1N8h8ghgYWk2uZkw9dOeh0Cw8U5Ad44S8DX615nHYlH3VTGhhqJoKjQFk/Gek3fQtwkf881Kcmf017euRngYOmrgZ/K4hAeQtOwxEY3v2CytY9gRswJtZun6OYuqTSwFmjWYTNjuTBiZdh7qwV/j0nrkah913z95x7Ib77viN0R+heeYl+DTav62yUSv8ASf7ZHr1pAl0AAAAASUVORK5CYII= | base64 -d > /www/docroot/img/bandwidth-px-png.png
+  echo iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGPSURBVFhH7ZatTgNBFIW3pGIFAlHBAyAQFRVIBKIJhgRbiURUICsQfQNEBaIP0ZAgShBIBKYJBoeABBIEJBWQNFn47nJ2oQllp9stDcl8yc2Znztn7ky33QYuRFHUIXrqZjJtfibvQt1MlO6UvyRdGL4AX4AvoCSNv7tq/gklME1vgP3v1VwM/HRe2S2gGxoqHOwr2uNBQ2PPwKN0UzoPatL0tr8XcCLdlhYOh0+8k72+sOvhakZ2RbCu4cLAM8T/2czRNQ2Pw8SxEi6QsoYLAc+uvCe/pplfJSGpsqPhmcGrKc8R8fPpE0hoWLLY03Bu8KjbxmaGHmj4d8hta8ErcUgz1JQzrCmzdp8YyqurKTdY02JRUvkt0dBUJiyxU1/bWoP2ETL9M8XCHeLu0yY2ukRaRI1YUZptuMxclWgS5/RjaNvzNNvHiEFItDF7MlMXyB0Sduq0yEmkL6MsMLMr3EJ30aoF75OK5l6QG2LA2BnaR99sbq6wcYy6ufB/SHwBvoD/XQA/AafEQN0cBMEHAhGTlq0fXc0AAAAASUVORK5CYII= | base64 -d > /www/docroot/img/connection-established.png
+  echo iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAIdSURBVFhH7ZQhTwNBEIXbpqICgUAiEAhERRMQCEQFAoFEICpIQCD4AQgECQKBQCAQDQoSZAUCUYFAAAECCSQVCAQCgYAEEkggLd/bzpa2t6VVYO5LHjM38/b2lu5uIiYmJua/SVp01Gq1NJojHUXj6APdop1UKnVK7JlqtZolzKMx1I80/jKZTO6hN/JWmHiEQVfEIPQ2zdoVeW1YBHr3SIv7gbomfzfDOVogzaFJ8hX0ar3GR5APoxnKc2gCpa3uJid+onU0jbKogMq+R8i7F5GkKZxYY0vPrtEEtSF6d+YpopLyZtRH+5Y/EnI2vAV6K+a5J/Tp5VqBChVCZHIPPa2yAf4nVEL79rIGPBdsWBD67j8Bq3ooKus2SOA5Nu8hQRvLQa7/4rb17qzcEWyT5i2neNYuFdcWf+NCf9jFZ+jFVYD8SzV77Pk9MKYPyNRzd+S68WUx4mVBHXsBvDetD/BfE9w0bTgPk+luaMevvOf3wLV+1yX7PU6sGIS+jpKOj7yDVm5AWfvAH9cpKweh70/LhgZmSHQCxLJ5WqDej+dcBuKWlSPQ84vRkYx8pKBeMM8TYcAXx1UU5Drj2qWaVJeNLpAH69XP7i/gOTLvM1pEWY1BE+TuxAnyGRtSh1qeopsoBL0DFFxVM1j78LkjGYKePqx1cg99rXoNHZqxgnbRrFl6hjG6gnVr3qBXVEa6mrsuIiYmJuYPSSS+AeY41K3RjbdvAAAAAElFTkSuQmCC | base64 -d > /www/docroot/img/log-viewer.png
+  echo iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEGSURBVFhH7ZaBEYIwDEXBCVzBCR1BnECdUEdwAupPTXvhCFxSlHon7w6atiH5R9NCs/H3tCGEju0qkIDAdhWkgDO3a3GiWxbQAmrXIuXdxV5FqgtwLQFcrTvminBPtlVyXqeA6GvggHAPtlVy3mz4BKg7BtNHhNnDNAuIBhE7E2C64yvCwyP6vr/TPNoLmtnlIj/CKmAAD49IAhI8rMIuwbsL6NXPHVg3XK4DzVQDFh+JJ2bxOYDn8xpL2w0pIbirwi4DH9nX5gjuqrCLuwYkcq1d6y5x1QCwJnp/6QwxvQJcfFJAUZEh5ORzLgHfIOX9nc8xKK7kQoa/ZLUgAeWn2MbGYprmBauSGENpu41PAAAAAElFTkSuQmCC | base64 -d > /www/docroot/img/network_sans-32.png
+  echo iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAJXSURBVFhHxZaxbhNBEIZ9VgqQUlCGDnqKFEg0KVIg0VCmcAoKeiTgCVBqF6FDqShDwQNQpuQBKOigCwUSBYWRYtl8/96/57v4zt49x8onbWZmd2Z2bu7W2WI2mz0qiuJokMl8Pv8yHA6/2uyNCrikgD3byVDAPwq4a7M3BYnm1k8sU3inPxReBGsTVICwmYRDsmK6qDqQ8zS1zVO7dkH6C+sNNi0gCdynpL/P+O2piq13ANfXpL6H+hD5s5ytoWTCZhIOSYrhlP2w+wNPNRha3hpbOYak3GPpl3R1AF1PH15BfS2Awx8VkQtxV07RgPkjxkTSdvUKGAfYfxlvgjOoA0+RB6W5gPkniH2qPStnmrD+jV/CzzYrlJyYU9anmMeMsTqA/QL9A/ou+nti38q/FRxCpUg96amnk1ERjr1iTKJuuTofPtXmkbVBLRATiqjTlqfxEeGzw1ALdz1V5xPz360noSL0OqSTd3XbtwVFjBivbKZDxfsEPra5NVrPMRvrCJ2X1uC47Wuvg3/vS43VBdqcEb5YId0FdcL6pd2zIG7S6IA3OudpdsqZEnzDme7qhJJZzf41rdDmjHhWqyMUda3Jx+4NgiPYTMIhixiSjzWhDWWHVfBaLGIs+zrBEWwm4ZBmDPah1SUH1GrtOqVnvwJaT4HQoiTfQ6dPJMc3EmNu/z5guUSsEF5aruKj/vTpQGcAH9yEfHdsppJ/qQlqCxQwQjwrrbWMehSrLkyTW7YKin1OAUv/N9hg7aXG6s1D8o0uNRtR3zzSVcSNvII67JVxqRkM/gNUEa7uXccymQAAAABJRU5ErkJggg== | base64 -d > /www/docroot/img/pocket-32-black.png
+  echo iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAJYSURBVFhH7ZatT1tRGIdbgkAgEAgEogJRUYGYY2JiAjExUUGCQUwgJhAIZB0CMdE/YHJiYksmJiYmyIKABBLExJYgWIJAICBBjLQ8v3N/h93b3PX2FloMT/LmPef97v06rTzx2FSth6bb7U4h6yyXkAXkCjlAflSr1c/IDevR0Ol0VpAzBsgF3z7yzOEPC/VbSZvQaBd5o2ZsXyBbrE/t+4t66bRykDipwmg1k7yWHdsy61Bc/hDcA+4ZfJ8cp2Fm7BoMEp6TeKwCabD9dEHRcngu+KcUr0D0js3FODHcW/QhqoXeRk5kE6wvHd4X4pqO37epGII3nPQdNWmzBpvG9su+XZv7Qty8469Rd7VyIWCOwB3k0kl6vTJgnkVq0jYVolqCel9QizZnwdlE9MQGPER+cEmodZ5UTWC/YVcCBj3pcuipbiMNux4MyuvK6fWMV/dtcLCYTxmXg3GE0KOBXCO62nUZ2m7edkwplCu8HQjCt5RDzw8aYE8bGOpr5dxSA9CzoRz0iTbx3a7ZXwrnlhpAOK07wfq3DXXpccCP1qmpnn80wJE2sGo9DuLtPtAUNSaKb0HuwdIP5QlvCyFU/S6Ug34VjCxWZBCsv6J0pA50eoUk8Pa/EFKn9maq+Xu7EjQEkvli9eLQDHb19fVCn4+oaYf9A+MsTp0F+oMRbksahykufUAFvM31CdVDvrFcs3s4KKAD6xhpeh/QWjb52M5pPxIoHr9iOjfCWS/cPB5m9/uVRdDonbqkGt6t0dmTblTEIdKMrXkkPcTYm0c0xKM1f+L+VCq3Tg+DI07J+28AAAAASUVORK5CYII= | base64 -d > /www/docroot/img/tcp-dump.png
+  echo [$SCRIPT]: Update the tip icons
+  echo iVBORw0KGgoAAAANSUhEUgAAAAgAAABQCAYAAAAk0jQRAAAABGdBTUEAALGOfPtRkwAAACBjSFJNAACHDwAAjA8AAP1SAACBQAAAfXkAAOmLAAA85QAAGcxzPIV3AAAKL2lDQ1BJQ0MgUHJvZmlsZQAASMedlndUVNcWh8+9d3qhzTDSGXqTLjCA9C4gHQRRGGYGGMoAwwxNbIioQEQREQFFkKCAAaOhSKyIYiEoqGAPSBBQYjCKqKhkRtZKfHl57+Xl98e939pn73P32XuftS4AJE8fLi8FlgIgmSfgB3o401eFR9Cx/QAGeIABpgAwWempvkHuwUAkLzcXerrICfyL3gwBSPy+ZejpT6eD/0/SrFS+AADIX8TmbE46S8T5Ik7KFKSK7TMipsYkihlGiZkvSlDEcmKOW+Sln30W2VHM7GQeW8TinFPZyWwx94h4e4aQI2LER8QFGVxOpohvi1gzSZjMFfFbcWwyh5kOAIoktgs4rHgRm4iYxA8OdBHxcgBwpLgvOOYLFnCyBOJDuaSkZvO5cfECui5Lj25qbc2ge3IykzgCgaE/k5XI5LPpLinJqUxeNgCLZ/4sGXFt6aIiW5paW1oamhmZflGo/7r4NyXu7SK9CvjcM4jW94ftr/xS6gBgzIpqs+sPW8x+ADq2AiB3/w+b5iEAJEV9a7/xxXlo4nmJFwhSbYyNMzMzjbgclpG4oL/rfzr8DX3xPSPxdr+Xh+7KiWUKkwR0cd1YKUkpQj49PZXJ4tAN/zzE/zjwr/NYGsiJ5fA5PFFEqGjKuLw4Ubt5bK6Am8Kjc3n/qYn/MOxPWpxrkSj1nwA1yghI3aAC5Oc+gKIQARJ5UNz13/vmgw8F4psXpjqxOPefBf37rnCJ+JHOjfsc5xIYTGcJ+RmLa+JrCdCAACQBFcgDFaABdIEhMANWwBY4AjewAviBYBAO1gIWiAfJgA8yQS7YDApAEdgF9oJKUAPqQSNoASdABzgNLoDL4Dq4Ce6AB2AEjIPnYAa8AfMQBGEhMkSB5CFVSAsygMwgBmQPuUE+UCAUDkVDcRAPEkK50BaoCCqFKqFaqBH6FjoFXYCuQgPQPWgUmoJ+hd7DCEyCqbAyrA0bwwzYCfaGg+E1cBycBufA+fBOuAKug4/B7fAF+Dp8Bx6Bn8OzCECICA1RQwwRBuKC+CERSCzCRzYghUg5Uoe0IF1IL3ILGUGmkXcoDIqCoqMMUbYoT1QIioVKQ21AFaMqUUdR7age1C3UKGoG9QlNRiuhDdA2aC/0KnQcOhNdgC5HN6Db0JfQd9Dj6DcYDIaG0cFYYTwx4ZgEzDpMMeYAphVzHjOAGcPMYrFYeawB1g7rh2ViBdgC7H7sMew57CB2HPsWR8Sp4sxw7rgIHA+XhyvHNeHO4gZxE7h5vBReC2+D98Oz8dn4Enw9vgt/Az+OnydIE3QIdoRgQgJhM6GC0EK4RHhIeEUkEtWJ1sQAIpe4iVhBPE68QhwlviPJkPRJLqRIkpC0k3SEdJ50j/SKTCZrkx3JEWQBeSe5kXyR/Jj8VoIiYSThJcGW2ChRJdEuMSjxQhIvqSXpJLlWMkeyXPKk5A3JaSm8lLaUixRTaoNUldQpqWGpWWmKtKm0n3SydLF0k/RV6UkZrIy2jJsMWyZf5rDMRZkxCkLRoLhQWJQtlHrKJco4FUPVoXpRE6hF1G+o/dQZWRnZZbKhslmyVbJnZEdoCE2b5kVLopXQTtCGaO+XKC9xWsJZsmNJy5LBJXNyinKOchy5QrlWuTty7+Xp8m7yifK75TvkHymgFPQVAhQyFQ4qXFKYVqQq2iqyFAsVTyjeV4KV9JUCldYpHVbqU5pVVlH2UE5V3q98UXlahabiqJKgUqZyVmVKlaJqr8pVLVM9p/qMLkt3oifRK+g99Bk1JTVPNaFarVq/2ry6jnqIep56q/ojDYIGQyNWo0yjW2NGU1XTVzNXs1nzvhZei6EVr7VPq1drTltHO0x7m3aH9qSOnI6XTo5Os85DXbKug26abp3ubT2MHkMvUe+A3k19WN9CP16/Sv+GAWxgacA1OGAwsBS91Hopb2nd0mFDkqGTYYZhs+GoEc3IxyjPqMPohbGmcYTxbuNe408mFiZJJvUmD0xlTFeY5pl2mf5qpm/GMqsyu21ONnc332jeaf5ymcEyzrKDy+5aUCx8LbZZdFt8tLSy5Fu2WE5ZaVpFW1VbDTOoDH9GMeOKNdra2Xqj9WnrdzaWNgKbEza/2BraJto22U4u11nOWV6/fMxO3Y5pV2s3Yk+3j7Y/ZD/ioObAdKhzeOKo4ch2bHCccNJzSnA65vTC2cSZ79zmPOdi47Le5bwr4urhWuja7ybjFuJW6fbYXd09zr3ZfcbDwmOdx3lPtKe3527PYS9lL5ZXo9fMCqsV61f0eJO8g7wrvZ/46Pvwfbp8Yd8Vvnt8H67UWslb2eEH/Lz89vg98tfxT/P/PgAT4B9QFfA00DQwN7A3iBIUFdQU9CbYObgk+EGIbogwpDtUMjQytDF0Lsw1rDRsZJXxqvWrrocrhHPDOyOwEaERDRGzq91W7109HmkRWRA5tEZnTdaaq2sV1iatPRMlGcWMOhmNjg6Lbor+wPRj1jFnY7xiqmNmWC6sfaznbEd2GXuKY8cp5UzE2sWWxk7G2cXtiZuKd4gvj5/munAruS8TPBNqEuYS/RKPJC4khSW1JuOSo5NP8WR4ibyeFJWUrJSBVIPUgtSRNJu0vWkzfG9+QzqUvia9U0AV/Uz1CXWFW4WjGfYZVRlvM0MzT2ZJZ/Gy+rL1s3dkT+S453y9DrWOta47Vy13c+7oeqf1tRugDTEbujdqbMzfOL7JY9PRzYTNiZt/yDPJK817vSVsS1e+cv6m/LGtHlubCyQK+AXD22y31WxHbedu799hvmP/jk+F7MJrRSZF5UUfilnF174y/ariq4WdsTv7SyxLDu7C7OLtGtrtsPtoqXRpTunYHt897WX0ssKy13uj9l4tX1Zes4+wT7hvpMKnonO/5v5d+z9UxlfeqXKuaq1Wqt5RPXeAfWDwoOPBlhrlmqKa94e4h+7WetS212nXlR/GHM44/LQ+tL73a8bXjQ0KDUUNH4/wjowcDTza02jV2Nik1FTSDDcLm6eORR67+Y3rN50thi21rbTWouPguPD4s2+jvx064X2i+yTjZMt3Wt9Vt1HaCtuh9uz2mY74jpHO8M6BUytOdXfZdrV9b/T9kdNqp6vOyJ4pOUs4m3924VzOudnzqeenL8RdGOuO6n5wcdXF2z0BPf2XvC9duex++WKvU++5K3ZXTl+1uXrqGuNax3XL6+19Fn1tP1j80NZv2d9+w+pG503rm10DywfODjoMXrjleuvyba/b1++svDMwFDJ0dzhyeOQu++7kvaR7L+9n3J9/sOkh+mHhI6lH5Y+VHtf9qPdj64jlyJlR19G+J0FPHoyxxp7/lP7Th/H8p+Sn5ROqE42TZpOnp9ynbj5b/Wz8eerz+emCn6V/rn6h++K7Xxx/6ZtZNTP+kv9y4dfiV/Kvjrxe9rp71n/28ZvkN/NzhW/l3x59x3jX+z7s/cR85gfsh4qPeh+7Pnl/eriQvLDwG/eE8/s3BCkeAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAY0lEQVRIS+3Wyw2AIBCEYeBkD15NuHCw/1q4WofuMMYnawPOnywLyVcAMZd5DR+lfbsJMAEmwASYABNgAkyA/QhMvPYDWGxcFHHYd22wNdpUvK81gDx0ANRDN4Ce6AXQiULdAAShCtT9qtSfAAAAAElFTkSuQmCC | base64 -d > /www/docroot/img/tipleft.png
+  echo iVBORw0KGgoAAAANSUhEUgAAAAgAAACgCAYAAAAxQC0IAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAABuSURBVFhH7cq7DYAwDABRoGIHWiQaCvafhZY5IOYQ/7AAd5JjR3pl1w9z8VG17WwCEpCABCQgAQlIQAISkIAEJCABCUhAAhLQj0DL+V6AKU0WlfF0/VCn1aQZ439uBVEO7SB6QxcQ3dEDRAcqxgVICAt0iH3bqAAAAABJRU5ErkJggg== | base64 -d > /www/docroot/img/tiplongleft.png
+  echo iVBORw0KGgoAAAANSUhEUgAAAAgAAACgCAYAAAAxQC0IAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAACSSURBVFhH7dY7DoMwFERROxV7oEVKQ8H+15KWdSQeX4ScxA9EzVyJn96RAFfOz3l5p4Me2zXMgAzIgAzIgAzIgAzoRmDitp/AWo4QZZ3Kdm0ol7EcLz23VaAitAPVQ19A/aI/oFp0ug7XXnH4kb2hqiAaKm16w6HSX4RDJRAO1ek6GJABGZABGZABGZAB3QKk9AFnBxTM1+YHQAAAAABJRU5ErkJggg== | base64 -d > /www/docroot/img/tipmid.png
+  echo iVBORw0KGgoAAAANSUhEUgAAAAgAAABQCAYAAAAk0jQRAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABcSURBVEhL7cqxDYAgFIThw1lIaCzcfwoLGwdgBzvhcWoUgQnuTwh5uc+FeTkxaLr+bgJMgAkwASbABJgAE2ACJT8CPr/YA2Xct/VogWe0owaf0XqD32jdoDkCQAJZ8hnFzVxXJAAAAABJRU5ErkJggg== | base64 -d > /www/docroot/img/tipright.png
+fi
 
-echo [$SCRIPT]: Update the diagnostics card icons
-echo 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACx
-jwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAJwSURBVFhH7ZYhSC1BFIZXMRgMBsMDjQaDwWAw
-GF4wGARtIggaDEaD8YUHBqPhRYOIgoiCwWAwGA0iBoPBoKBgeA+eoGBQ0P/bnSP3LrM7s94LGvzh
-Y+bu3T1z5sw5Zzf51merxY2x6hGjYlx0iR8C3YprcSo2xT/RVPWKHfHqeBKX4sjBnGv89yy4t080
-Rb8ERjG+IcZEh/CJ6GwJnFngQiNqEyzIwsdiQOQ1IeayaaFGRJHDpbLFCWc7Fzz6LVazaSqcXhSd
-6a8kWRHYmE9/VRBht8VNGD7PpoUiSR/EkLDFsYFj0SLhOHPCXrvzfjGdTYPyLT4ssB0UD/Gw78xj
-VLRzq5pSEUIe5vxNzH9m06Dyi5Og7Bz9EfxXF4VWN5ooI7TtxpBoRoBYnNLbFVPiRUwKc2DdjTNu
-9GpfUMOhsqEDEk52BDduDCXclSg9BhKPswoJIyTqnuCImON4KNt5DicKVeshTYY6z4uQs1sWN9nZ
-+xKXHmB9YE1w37vyOcAOODtEmLuzaZ2sNO/diB7d6IsANuylFdSJuMimpToThJydLwmaD3lQ1DFN
-B+JvNvWLGzAWMsSbDkcJJ7C4ZXuZyK/SbkoZYZAXSEg4OegIOYyof2wTtULZTTSNZot3CbaDTc1K
-LKpvR4q343/BEYRKNS0lPKUpNUtWppR2lKxvL6e/GtOsqLwhwnQoeNDXjGLF4hwnmV/5q4gHyAec
-oMdHNxOJM7ews3iVZ+tEJPjkwhCNh6bDh0mRSFyynYSzsH/oezAvSocuiVGg8XBE9HaggZHh9j/z
-6ISrIrodUSCsd8IWpL1yjbDjbLDUvvVFlCRvNb6efaT1ImUAAAAASUVORK5CYII=' | base64 -d > /www/docroot/img/bandwidth-px-png.png
-
-echo 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACx
-jwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAFISURBVFhH7ZQtT8NAAIY7gphAICYQExM4+AEI
-xAQCgUDwA/YTEAgkDoFAICYRSAQCQwIJAsES5MwSIEgkJJBAAgk8b+/a0OauPVK5e5In99G+be+j
-l0QikcjU07Kliy6u4DK+4gVOMIQebmAHH3BkyyBmcQ+/8KfkAdahe1zZI5zDWoaowDVqFBrNGp6h
-+g9RrOM+6oVbqA/XtarsOVbSR914inpgmewF97b867Mt67KDtOXhBD9Qa+eijXqRplgj1wgXcNf2
-hWQv05aHMd6ZqpdsOss8YUj2xVQNM7bM0Fd+mqqXb3w31QLqD8m6lidH6/eGvt2qsEZ6k7aKNMnm
-bKKmV7+Mix3U9e20VaRJtoBGohu1IXUIiUXMdvEt+qaxSTZnHo9RgbL6j7Xrffw7W3UU6xhexSV8
-RB2nVxhCk2wkEolMFUnyCzQVa09G2sExAAAAAElFTkSuQmCC' | base64 -d > /www/docroot/img/log-viewer.png
-
-echo 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACx
-jwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAFVSURBVFhH7ZYvSwRBGIdX0wWDwXjBcEGw+AEM
-hgsXLhgMFwX1OxgFbX4Ag8gdXLhw5doJBoN+AbEIBoPFIBgUDAb9PTOzcAve/h2RhXngYeZddufe
-nXlvdqJAndiXU9tN5Vwe2a5f+vLbdlN5kte2m82ia/+NkEBIYMG1s2zKPdtNwPWWHJhoPjvyQ16a
-KMmFvLXd+XQkf7e/cFcm+G0JXl17IpkhHx5IeHFtKsvySz6ayA9XkhlomigH8QOseVWW5Ke8MVFO
-tiQJDE1UjWPJWF0TFeBU8uChicrRk4zBd6QwDXkvqQcGKgqz+C6fJXVVijVJMfIWI7kqs1iRZ5LE
-+XH2j0pQRAxIEhQTS8NmQ3IxJLYtOQe8Se4dS5LxBkUUz0YsCTHNs9e4hwRzwSZRlA3ZluuSt6ZW
-JvJOss1mbrU+4eTDCag04XMcEqh9Ag/OQF2Joh9d+FWdYqZ31AAAAABJRU5ErkJggg==' | base64 -d > /www/docroot/img/connection-established.png
-
-echo 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACx
-jwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAEXSURBVFhH7ZQxEsFAFIbDKBQ6jZJO6QAKhcIx
-GIeg1OpcwHAAB9BR0GvUHIEZPf+fvGRIsmw2CYX9Zr55bzH27b6XOBbL31OQ6NORmDdbiZEC7hLz
-Jtg3roAdnLur7BnCNgzvG8ACFl6aC/zvl1suSvwZcS1YwoG7imciUcUMXrw0Am+gD1O1gL95Zx2q
-yKwFK9gIyZMnJkkBz9Xf4DnkFZIT3HjpZ0xugDOy99IXDpDfsThjeELVDET6p+DdDWQ2A2QMW7Am
-uRFpCqjCMixJboRJAXyO6RE2YVdy//MKNEZnBnTUnoEkb0Kelv3WgW9CPhVhWEDqN2EatG5gDafu
-KntGsAeDfeMK+AbKAtifb8A5s1gswHEea/FOISlGxQwAAAAASUVORK5CYII=' | base64 -d > /www/docroot/img/network_sans-32.png
-
-echo 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACx
-jwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAIGSURBVFhH7ZY9LwVBGEYvUZAoFAodEgmFQkmi
-oKP3A4hGSSHolFQkJAoSOhIKKj+Agk5HoqCjkJCQkJDwnP24xtjZnXVXKO5JTmaGvTuzM+/MO6Uq
-f01NVMYMyd6wmsmDXJVvQasgnuV7DvtlRdRGZUy93JPtGU5LqIvKH2MvAV+1JceClptRuSmn5Bl/
-cMAypf3/GwyAF2fBAMylSLNHOrGXIC8LktlKckNCU1R6wYjzzMBA0ErG55nEGWiR/CjNTunCFZhe
-AXsv47Xz0T4z2JaXskuaMzApj2Sj/IK9C3hBR1gtMyMv5EHQ+uRF7oTVMvz+UD5JdtOsZFuPSN4x
-KG+lN0uSr3iVvMQHBvEozZk6lyxtLpi2K0Om1vfkMwfxo86LgPhYkxV1TuROSDsuCsMOQhM635as
-PYFDABFISfClRL4PJ3IurLoHYHYe4xpEmyRGOPcxjWbJVkz78KDzXUkAxSVbi6C6kfaXMgCemQ9a
-6XDK8myZpJOQs7tbLss47Z7KYUm69p1qL5IGcCf7JKnW5FhyF9gPWgXhyoautcxa49z4puNWaSek
-WN87ZCKp0Sg4RAg8H1gaO1/YjEtOyXK/WQMAtuK3LGZAYK5Ir3QrSGINYdVvAD6wM8wjl/q6XJQE
-r8l15K9B5yQg9jtnR2oCK2oGTLgDmDcm7gYcvZRV/hul0gen1YXvDbQ2ZgAAAABJRU5ErkJggg==' | base64 -d > /www/docroot/img/pocket-32-black.png
-
-echo 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAARnQU1BAACx
-jwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAHBSURBVFhH7ZaxLwRBFIeXKBQKhUKhVChIFCQK
-hVKhVCgUJEoFHZ1EofAnKJQKBa0oSDQSBQkJCQkJiYJEQUfC79vdl5xxO3t3u2ub/ZIvO7uZm3nz
-9s3OBRUVZdMWX7MyLAdkh7yK/ZKFMyiP5Lfjo5yWhTIh3+Wn3JJMOClX5IskkHWZCwuSleKS7JdM
-QgCk36VHnkuCG+NBFg4lq7FV1UpgSRAYfXbDuxaZlQyyKSkwWJMWQC8PPFxK6qFpOuWifJZM1C1r
-GZfUQBpWoATtjpEI2+lW8kPSvidbhSIkC4zFYkakF6IkZXSe4UFOkK17SdF6XxsRE+1UeNcY29JX
-jAa7wbZsImeSSJuBgAmiEU7kr6Jsj68G+/chahbCneyLmhFuABeS/WtbLm8o8JuoGeEGcCApxI3w
-Ll/YutTBcXjnwfbujuSTm0ZaDXTJOcmWRl6zFzowIAPjm6QwkSJyqRcABxP9KTgbh/afc8F9BfAq
-5+WoXJWkjMLEJwmsql527GD6kPSn6PblshySpzIXeE18rCgqywCnJG3SXTikmI+KnRV2vZZpB1Ru
-WBBM/O+TGxZEKZMb/A0rbfKKiowEwQ95KHXNif93wwAAAABJRU5ErkJggg==' | base64 -d > /www/docroot/img/tcp-dump.png
-
-echo [$SCRIPT]: Applying service changes...
-/etc/init.d/cwmpd disable
-/etc/init.d/cwmpd stop
-/etc/init.d/hotspotd stop
-/etc/init.d/hotspotd disable
-/etc/init.d/autoreset stop
-/etc/init.d/wifi-doctor-agent reload
-/etc/init.d/system reload
-/etc/init.d/dnsmasq reload
-/etc/init.d/network reload
-/etc/init.d/mmpbxd restart
-/etc/init.d/nginx restart
-/etc/init.d/dumaos start
+echo [$SCRIPT]: Applying service changes if required...
+[ $SRV_dnsmasq -gt 0 ] && /etc/init.d/dnsmasq reload
+[ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear restart
+[ $SRV_system -gt 0 ] && /etc/init.d/system reload
+[ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
 
 echo "************************************************************"
 echo "* Done!! You should clear your browser cache of images and *"
 echo "* files, otherwise you won't see the theme changes.        *"
 echo "************************************************************"
 echo
-echo "++ TIP #1: Bookmark http://$(uci get network.lan.ipaddr)/gateway.lp to bypass the"
-echo "++         Telstra Basic web GUI..."
-echo
-echo "++ TIP #2: To add DNS Servers to the Local Network modal,"
-echo "++         edit /www/docroot/modals/ethernet-modal.lp"
-echo "++         and add them in the same format as the existing"
-echo "++         entries. Make sure you have the trailing comma"
-echo "++         on each line."
+echo "++ TIP: Bookmark http://$(uci get network.lan.ipaddr)/gateway.lp to bypass the"
+echo "++      Telstra Basic web GUI..."
 echo
