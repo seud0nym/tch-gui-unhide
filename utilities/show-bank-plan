@@ -1,0 +1,34 @@
+OPTIMAL=0
+for f in $(find /proc/banktable -type f | sort)
+do
+  CONTENT=$(cat $f)
+  printf "%-30s : %s " "$f" "$CONTENT"
+  if [ "$f" = "/proc/banktable/active" ]
+  then
+    if [ "$CONTENT" = "bank_1" ]
+    then
+      OPTIMAL=$(( $OPTIMAL + 1 ))
+      echo " OK"
+    else 
+      echo " !! [Should be bank_1]"
+    fi
+  elif [ "$f" = "/proc/banktable/booted" ]
+  then
+    if [ "$CONTENT" = "bank_2" ]
+    then
+      OPTIMAL=$(( $OPTIMAL + 1 ))
+      echo " OK"
+    else 
+      echo " !! [Should be bank_2]"
+    fi
+  else
+    echo
+  fi
+done
+echo
+if [ $OPTIMAL -eq 2 ]
+then
+  echo "Bank Plan is OPTIMAL"
+else
+  echo "Bank Plan is NOT optimal"
+fi

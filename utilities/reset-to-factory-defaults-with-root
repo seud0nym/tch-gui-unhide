@@ -1,0 +1,87 @@
+ACTIVE="$(cat /proc/banktable/active)"
+BOOTED="$(cat /proc/banktable/booted)"
+FIRMWARE=""
+REBOOT="Y"
+while getopts f:n option
+do
+ case "${option}" in
+ f) FIRMWARE=${OPTARG};;
+ n) REBOOT="N";;
+ ?) echo "Optional parameters:"
+    echo " -f filename     : Flash 'filename' into the mounted bank ($BOOTED) after reset and before reboot"
+    echo " -n              : Do NOT reboot"
+    exit;;
+ esac
+done
+
+if [ ! -z "$FIRMWARE" ]
+then
+  if [ -f "$FIRMWARE" ]
+  then
+    if [ "$ACTIVE" = "bank_1" -a "$BOOTED" = "bank_2" ]
+    then
+      echo "NOTE:    $FIRMWARE will be flashed into $BOOTED after reset"
+      echo "$FIRMWARE" | grep -q -E '\.bin$'
+      if [ $? -eq 1 ]
+      then
+        echo "WARNING: Flash image files normally end with '.bin'."
+        echo "         Are you REALLY sure you wish to proceed?"
+      fi
+    else 
+      echo "WARNING: Bank plan is NOT optimal! Active bank is $ACTIVE and booted bank is $BOOTED!"
+      echo "         Are you REALLY sure you wish to proceed?"
+    fi
+  else 
+    echo "ABORTING: $FIRMWARE does not exist!"
+    exit
+  fi
+fi
+
+if [ "$REBOOT" = "Y" ]
+then
+  echo "WARNING: Device will be rebooted!"
+fi
+echo "NOTE:    root access will be preserved. root password will be reset to root"
+echo "ACTION:  Enter y to continue, or anything else to exit now"
+read
+if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]
+then
+  exit
+fi
+
+rm -rf /overlay/`cat /proc/banktable/booted`
+mkdir -p /overlay/`cat /proc/banktable/booted`/etc
+chmod 755 /overlay/`cat /proc/banktable/booted` /overlay/`cat /proc/banktable/booted`/etc
+echo -e "echo root:root | chpasswd
+sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
+sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
+uci -q set \$(uci show firewall | grep -m 1 \$(fw3 -q print | \
+egrep 'iptables -t filter -A zone_lan_input -p tcp -m tcp --dport 22 -m comment --comment \"!fw3: .+\" -j DROP' | \
+sed -n -e 's/^iptables.\+fw3: \(.\+\)\".\+/\1/p') | \
+sed -n -e \"s/\(.\+\).name='.\+'$/\1/p\").target='ACCEPT'
+uci add dropbear dropbear
+uci rename dropbear.@dropbear[-1]=afg
+uci set dropbear.afg.enable='1'
+uci set dropbear.afg.Interface='lan'
+uci set dropbear.afg.Port='22'
+uci set dropbear.afg.IdleTimeout='600'
+uci set dropbear.afg.PasswordAuth='on'
+uci set dropbear.afg.RootPasswordAuth='on'
+uci set dropbear.afg.RootLogin='1'
+uci commit dropbear
+/etc/init.d/dropbear enable
+/etc/init.d/dropbear restart
+rm /overlay/\$(cat /proc/banktable/booted)/etc/rc.local
+" > /overlay/`cat /proc/banktable/booted`/etc/rc.local
+chmod +x /overlay/`cat /proc/banktable/booted`/etc/rc.local
+
+if [ ! -z "$FIRMWARE" ]
+then
+  mtd write "$FIRMWARE" $(cat /proc/banktable/booted)
+fi
+
+if [ "$REBOOT" = "Y" ]
+then
+  echo Please wait for device to reboot...
+  reboot
+fi

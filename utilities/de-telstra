@@ -1,0 +1,189 @@
+# Based on https://hack-technicolor.readthedocs.io/en/stable/Hardening/
+
+SCRIPT=$(basename $0)
+SRV_cups=0
+SRV_cwmp=0
+SRV_dhcp=0
+SRV_dlna=0
+SRV_dropbear=0
+SRV_fw=0
+SRV_hotspot=0
+SRV_monitor=0
+SRV_network=0
+SRV_qos=0
+SRV_samba=0
+SRV_watchdog=0
+SRV_web=0
+
+echo [$SCRIPT]: Checking SSH access
+if [ -f authorized_keys ]
+then
+  cmp -s authorized_keys /etc/dropbear/authorized_keys
+  if [ $? -eq 1 ]
+  then
+    echo [$SCRIPT]: Found authorized_keys - replacing /etc/dropbear/authorized_keys
+    cp authorized_keys /etc/dropbear/authorized_keys
+    SRV_dropbear=$(( $SRV_dropbear + 1 ))
+  else
+    echo [$SCRIPT]: authorized_keys already replaced /etc/dropbear/authorized_keys
+  fi
+else
+  if [ -z "$(cat /etc/dropbear/authorized_keys)" ]
+  then
+    echo [$SCRIPT]: All public keys already removed from /etc/dropbear/authorized_keys
+  else
+    echo [$SCRIPT]: Removing all public keys from /etc/dropbear/authorized_keys
+    echo > /etc/dropbear/authorized_keys
+  fi
+fi
+if [ "$(uci get dropbear.wan.enable)" = '0' -a "$(uci get dropbear.lan.enable)" = '1'  -a "$(uci get dropbear.lan.enable)" = '1' -a "$(uci get dropbear.lan.PasswordAuth)" = 'on' -a "$(uci get dropbear.lan.RootPasswordAuth)" = 'on' -a "$(uci get dropbear.lan.RootLogin)" = '1' ]
+then
+  echo [$SCRIPT]: dropbear re-configuration already completed
+else
+  uci set dropbear.wan.enable='0'
+  # We need to enable dropbear LAN access properly as you can enable/disable via the GUI, and if
+  # done without allowing password auth and root login, it can accidently prevent SSH access
+  uci set dropbear.lan.enable='1'
+  uci set dropbear.lan.PasswordAuth='on'
+  uci set dropbear.lan.RootPasswordAuth='on'
+  uci set dropbear.lan.RootLogin='1'
+  uci commit dropbear
+  SRV_dropbear=$(( $SRV_dropbear + 4 ))
+fi
+
+if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" ]
+then
+  echo [$SCRIPT]: Disabling CWMP
+  uci set cwmpd.cwmpd_config.state='0'
+  uci commit cwmpd
+  SRV_cwmp=$(( $SRV_cwmp + 1 ))
+  uci -q delete firewall.cwmpd
+  uci commit firewall
+  SRV_fw=$(( $SRV_fw + 1 ))
+  uci -q del_list watchdog.@watchdog[0].pidfile='/var/run/cwmpd.pid'
+  uci -q del_list watchdog.@watchdog[0].pidfile='/var/run/cwmpevents.pid'
+  uci commit watchdog
+  SRV_watchdog=$(( $SRV_watchdog + 2 ))
+else
+  echo [$SCRIPT]: CWMP already disabled
+fi
+
+if [ -z "$(uci -q get autoreset.vsparc_enabled)" -a -z "$(uci -q get autoreset.thor_enabled)" -a -z "$(uci -q get wifi_doctor_agent.acs)" -a -z "$(uci -q get wifi_doctor_agent.config)" -a -z "$(uci -q get wifi_doctor_agent.as_config)" ]
+then
+  echo [$SCRIPT]: Telstra monitoring already disabled
+else
+  echo [$SCRIPT]: Disabling Telstra monitoring
+  uci -q delete autoreset.vsparc_enabled
+  uci -q delete autoreset.thor_enabled
+  uci commit autoreset
+  SRV_monitor=$(( $SRV_monitor + 2 ))
+  uci -q delete wifi_doctor_agent.acs
+  uci -q delete wifi_doctor_agent.config
+  uci -q delete wifi_doctor_agent.as_config
+  uci commit wifi_doctor_agent
+  SRV_monitor=$(( $SRV_monitor + 3 ))
+fi
+
+if [ -z "$(uci -q get dhcp.hotspot)" -a -z "$(uci -q get dhcp.fonopen)" -a -z "$(uci -q get network.fonopen)" -a -z "$(uci -q get web.fon)" -a -z "$(uci -q show web.ruleset_main.rules | grep '\bfon\b')" -a -z "$(uci -q show qos.reclassify_1.srcif | grep '\bfonopen\b')" -a -z "$(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\))" ]
+then
+  echo [$SCRIPT]: Telstra AIR already removed
+else
+  echo [$SCRIPT]: Removing Telstra Air
+  SRV_hotspot=$(( $SRV_hotspot + 1 ))
+  uci -q delete dhcp.hotspot
+  uci -q delete dhcp.fonopen
+  uci commit dhcp
+  SRV_dhcp=$(( $SRV_dhcp + 2 ))
+  uci -q delete network.fonopen
+  uci commit network
+  SRV_network=$(( $SRV_network + 2 ))
+  uci -q delete web.fon
+  uci -q del_list web.ruleset_main.rules='fon'
+  uci commit web
+  SRV_web=$(( $SRV_web + 2 ))
+  uci -q del_list qos.reclassify_1.srcif='fonopen'
+  uci commit qos
+  SRV_qos=$(( $SRV_qos + 1 ))
+  for wl in $(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | cut -d. -f2)
+  do
+    ap=$(uci show wireless | grep iface=\'$wl\' | cut -d. -f2)
+    echo [$SCRIPT]: Removing SSID $wl \(AP=$ap\)
+    uci delete wireless.$wl
+    uci delete wireless.$ap
+    SRV_network=$(( $SRV_network + 2 ))
+  done
+  uci commit wireless
+fi
+
+if [ -z "$(uci -q get web.default.default_user)" -a -z "$(uci -q get web.uidefault.defaultuser)" ]
+then
+  echo [$SCRIPT]: Web GUI default user access already removed
+else
+  echo [$SCRIPT]: Removing web GUI default user access
+  uci -q delete web.default.default_user
+  uci -q delete web.uidefault.defaultuser
+  uci commit web
+  SRV_web=$(( $SRV_web + 2 ))
+fi
+
+if [ "$(uci -q get printersharing.config.enabled)" = "1" ]
+then
+  echo [$SCRIPT]: Disabling printer sharing
+  uci set printersharing.config.enabled='0'
+  uci commit printersharing
+  SRV_cups=$(( $SRV_cups + 1 ))
+else
+  echo [$SCRIPT]: Printer sharing already disabled
+fi
+
+if [ "$(uci -q get samba.samba.filesharing)" = "1" ]
+then
+  echo [$SCRIPT]: Disabling file sharing
+  uci set samba.samba.filesharing='0'
+  uci commit samba
+  SRV_samba=$(( $SRV_samba + 1 ))
+else
+  echo [$SCRIPT]: File sharing already disabled
+fi
+
+if [ "$(uci -q get dlnad.config.enabled)" = "1" ]
+then
+  echo [$SCRIPT]: Disabling content sharing
+  uci set dlnad.config.enabled='0'
+  uci commit dlnad
+else
+  echo [$SCRIPT]: Content sharing already disabled
+fi
+
+for g in $(uci show firewall | grep '\.helper' | cut -d\' -f2 | grep -v -i sip)
+do
+  key=$(uci show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
+  if [ "$(uci get -q $key.enable)" != "0" ]
+  then
+    echo [$SCRIPT]: Disabling $g ALG
+    uci set $key.enable='0'
+    SRV_fw=$(( $SRV_fw + 1 ))
+  else
+    echo [$SCRIPT]: $g ALG already disabled
+  fi
+done
+
+echo [$SCRIPT]: Applying required service changes...
+/etc/init.d/watchdog-tch reload
+[ -f /etc/init.d/cwmpd -a $SRV_cwmp -gt 0 ]                && { /etc/init.d/cwmpd disable;/etc/init.d/cwmpd stop; }
+[ -f /etc/init.d/hotspotd -a $SRV_hotspot -gt 0 ]          && { /etc/init.d/hotspotd disable; /etc/init.d/hotspotd stop; }
+[ -f /etc/init.d/autoreset -a $SRV_monitor -gt 0 ]         && { /etc/init.d/autoreset disable; /etc/init.d/autoreset stop; }
+[ -f /etc/init.d/tls-thor -a $SRV_monitor -gt 0 ]          && { /etc/init.d/tls-thor disable; /etc/init.d/tls-thor stop; }
+[ -f /etc/init.d/wifi-doctor-agent -a $SRV_monitor -gt 0 ] && /etc/init.d/wifi-doctor-agent reload
+[ $SRV_samba -gt 0 ]    && { /etc/init.d/samba reload; /etc/init.d/samba-nmbd reload; }
+[ $SRV_dlna -gt 0 ]     && { /etc/init.d/dlnad disable; /etc/init.d/dlnad stop; }
+[ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear reload
+[ $SRV_dhcp -gt 0 ]     && /etc/init.d/dnsmasq reload
+[ $SRV_fw -gt 0 ]       && /etc/init.d/firewall reload
+[ $SRV_network -gt 0 ]  && /etc/init.d/network reload
+
+echo [$SCRIPT]: Removing packages that are no longer required
+opkg --force-removal-of-dependent-packages remove conf-cwmpd cwmpd autoreset-tch mappings-fon geolocation-tch hotspotd webui-fon tls-thor wifi-doctor-agent conf-wifi-doctor-agent
+
+echo [$SCRIPT]: Done!
+echo "[$SCRIPT]: NOTE: If you haven't changed the root password, you should do it now..."
