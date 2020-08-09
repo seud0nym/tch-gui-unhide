@@ -1,17 +1,27 @@
-2020-08-03
+2020.08.08
+==========
+- Selected theme is now applied to both the basic and advanced GUI
+- Moved hardening configuration to new 'de-telstra' script
+- Moved enabling of DumaOS to new 'dumaos-beta' script
+- Added additional utility scripts for bank planning, RTFD with root, and setting web admin password
+- Added new script for unhiding GUI on TG800vac running firmware 17.2.0284
+- Added new script for unhiding GUI on DJA0231 running firmware 18.1.c.0462
+- Removed additional theme scripts, because theme is now specified by the -t command line option
+
+2020.08.03
 ==========
 - Restore of lte card was not handled correctly
 - Original snippets files were not restored before applying changes
 - Enabled VoLTE backup voice service and SMS reception
 
-2020-07-28
+2020.07.28
 ==========
 - Fixed admin role in mmpbx-service-modal.lp
 
-2020-07-27
+2020.07.27
 ==========
 - Removed an extra background icon in light theme
 
-2020-07-20
+2020.07.20
 ==========
 - Initial release
