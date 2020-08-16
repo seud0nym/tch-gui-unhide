@@ -21,9 +21,6 @@ The script does not expose features not present in the stock GUI or the hidden c
     - Phone Book (Set up contacts)
     - Phone Numbers (Define SIP profiles)
     - Service (Configure VoIP services)
-    - SIP Device (Shows SIP mappings)
-    - Incoming/Outgoing Map (Assign phone numbers to handsets)
-    - Statistics
     - Call Log
 - The TCP Dump tab is enabled on the **Diagnostics** screen
 - The **IP Extras** card is enabled to:
@@ -38,7 +35,7 @@ The script does not expose features not present in the stock GUI or the hidden c
 - The **NAT Helpers** card is enabled where you can enable or disable ALG's for FTP, IRC, SIP, PPTP, RTSP, SNMP, TFTP and AMANDA
 - The **xDSL Config** card is enabled where you can see xDSL core settings
 
-Some screens included on the device are not enabled, mainly because they fail and cause issues in the GUI, or sometimes more work would be required to implement them than can be done with simple stream editing of the existing files.
+Some hidden screens included on the device are not enabled, mainly because they fail and cause issues in the GUI, or sometimes more work would be required to implement them than can be done with simple stream editing of the existing files. Somne of them are only applicable to older versions of the firmware.
 
 *PLEASE NOTE: Previous versions of the script (release 2020.08.03 and before) also automatically enabled the beta version of DumaOS on the DJA0231. To get this functionality, run the [`dumaos-beta`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities) utility script (see below).*
 

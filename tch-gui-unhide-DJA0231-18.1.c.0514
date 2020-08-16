@@ -133,10 +133,7 @@ echo "[$SCRIPT]:    . log-connections-modal.lp"
 echo "[$SCRIPT]:    . log-routingtable-modal.lp"
 echo "[$SCRIPT]:    . lte-sms.lp"
 echo "[$SCRIPT]:    . mmpbx-global-modal.lp"
-echo "[$SCRIPT]:    . mmpbx-inoutgoingmap-modal.lp"
 echo "[$SCRIPT]:    . mmpbx-profile-modal.lp"
-echo "[$SCRIPT]:    . mmpbx-sipdevice-modal.lp"
-echo "[$SCRIPT]:    . mmpbx-statistics-modal.lp"
 echo "[$SCRIPT]:    . nat-alg-helper-modal.lp"
 echo "[$SCRIPT]:    . system-modal.lp"
 echo "[$SCRIPT]:    . tod_wireless-modal.lp"
@@ -256,7 +253,10 @@ uci commit
 #  - relay-modal.lp (fails with nil reference)
 #  - speedservice-modal.lp
 #  - wireless-qrcode-modal.lp (fails with a nill password index error)
-for f in $(ls /www/docroot/modals | grep -E -v \(bridge-grouping-modal.lp\|diagnostics-airiq-modal.lp\|fon-modal.lp\|hostmap-modal.lp\|mwan-modal.lp\|relay-modal.lp\|speedservice-modal.lp\|wireless-qrcode-modal.lp\) )
+#  - mmpbx-inoutgoingmap-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
+#  - mmpbx-sipdevice-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
+#  - mmpbx-statistics-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
+for f in $(ls /www/docroot/modals | grep -E -v \(bridge-grouping-modal.lp\|diagnostics-airiq-modal.lp\|fon-modal.lp\|hostmap-modal.lp\|mmpbx-inoutgoingmap-modal.lp\|mmpbx-sipdevice-modal.lp\|mmpbx-statistics-modal.lp\|mwan-modal.lp\|relay-modal.lp\|speedservice-modal.lp\|wireless-qrcode-modal.lp\) )
 do
   RULE=$(basename $f .lp | sed -e 's/-//g')
   if [ "$RULE" = "cwmpconfmodal" -a "$CWMP" = "disabled" ]
@@ -278,6 +278,10 @@ do
     SRV_nginx=$(( $SRV_nginx + 4 ))
   fi
 done
+# These were incorrectly enabled in release 2020.08.08 and earlier
+uci -q delete web.mmpbxinoutgoingmapmodal
+uci -q delete web.mmpbxsipdevicemodal
+uci -q delete web.mmpbxstatisticsmodal
 uci commit web
 
 echo [$SCRIPT]: Restore any changed files from /rom/www
@@ -348,7 +352,7 @@ sed -e 's/if role ~= "admin"/if role == "admin"/' -i /www/docroot/modals/mmpbx-s
 echo [$SCRIPT]: Show the hidden Telephony tabs and fix default tab
 sed \
  -e 's/--  {"mmpbx-contacts/    {"mmpbx-contacts/' \
- -e 's/--  {"mmpbx-service-modal.lp", T"Service"},/    {"mmpbx-service-modal.lp", T"Service"},\n    {"mmpbx-sipdevice-modal.lp", T"SIP Device"},\n    {"mmpbx-inoutgoingmap-modal.lp", T"In\/Outgoing Map"},\n    {"mmpbx-statistics-modal.lp", T"Statistics"},/' \
+ -e 's/--  {"mmpbx-service-modal.lp", T"Service"},/    {"mmpbx-service-modal.lp", T"Service"},/' \
  -i /www/snippets/tabs-voice.lp
 # Default telephony tab is DECT!!! 
 # - Set test to always be false (mmpbx_state can only be 0 or 1, so 9 should always be false) 
