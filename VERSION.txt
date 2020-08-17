@@ -1,8 +1,8 @@
 2020.08.16
 ==========
 - Removed SIP Device, Incoming/Outgoing Map, and Statistics Telephony tabs (only applicable to FW 17.2.0188
-  and earlier, accoording to https://hack-technicolor.readthedocs.io/en/stable/Unlock/#voip-setup)
-  
+  and earlier, according to https://hack-technicolor.readthedocs.io/en/stable/Unlock/#voip-setup)
+
 2020.08.08
 ==========
 - Selected theme is now applied to both the basic and advanced GUI
