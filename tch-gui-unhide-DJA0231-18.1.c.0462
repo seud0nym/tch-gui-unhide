@@ -24,19 +24,23 @@ DOMAIN=gateway
 # Default to a light theme
 THEME=light
 
+HOSTNAME=$VARIANT
 RESTORE=false
+SERIAL=false
 YES=false
 
-while getopts t:h:d:ry option
+while getopts t:h:d:rsy option
 do
  case "${option}" in
  t) if [ "$(echo ${OPTARG} | tr "LN" "ln" | sed 's/\(.\)\(.*\)/\1/')" = "n" ]; then THEME=night; fi;;
- h) VARIANT=${OPTARG};;
+ h) HOSTNAME=${OPTARG};;
  d) DOMAIN=${OPTARG};;
  r) RESTORE=true;;
+ s) SERIAL=true;;
  y) YES=true;;
  ?) echo "Optional parameters:"
     echo " -h hostname     : Set the host name to 'hostname' rather than $VARIANT"
+    echo " -s              : Append the serial number to the hostname"
     echo " -d domainname   : Set the domain name to 'domainname' rather than $DOMAIN"
     echo " -t light|night  : Set the theme to either light (the default) or night"
     echo " -r              : Restore changed GUI files to their original state (config changes are NOT restored)"
@@ -122,8 +126,13 @@ else
   CWMP=disabled
 fi
 
+if [ $SERIAL = true ]
+then
+  HOSTNAME=$HOSTNAME-$(uci get env.var.serial)
+fi
+
 echo "[$SCRIPT]: This script will perform the following actions:"
-echo "[$SCRIPT]:  - The host name will be set to:   $VARIANT"
+echo "[$SCRIPT]:  - The host name will be set to:   $HOSTNAME"
 echo "[$SCRIPT]:  - The domain name will be set to: $DOMAIN"
 echo "[$SCRIPT]:  - Properly enable SSH access over LAN"
 echo "[$SCRIPT]:  - Enable unsigned configuration export/import and firmware upgrade in the web GUI"
@@ -168,17 +177,17 @@ SRV_dropbear=0
 SRV_nginx=0
 SRV_system=0
 
-if [ "$(uci get dhcp.main.hostname)" = "$VARIANT" -a "$(uci get system.@system[0].hostname)" = "$VARIANT" ]
+if [ "$(uci get dhcp.main.hostname)" = "$HOSTNAME" -a "$(uci get system.@system[0].hostname)" = "$HOSTNAME" ]
 then
-  echo [$SCRIPT]: Host name is already $VARIANT
+  echo [$SCRIPT]: Host name is already $HOSTNAME
 else
-  echo [$SCRIPT]: Setting the host name to $VARIANT
+  echo [$SCRIPT]: Setting the host name to $HOSTNAME
   uci -q delete dhcp.main.hostname
-  uci add_list dhcp.main.hostname="$VARIANT"
+  uci add_list dhcp.main.hostname="$HOSTNAME"
   SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
-  uci set system.@system[0].hostname="$VARIANT"
+  uci set system.@system[0].hostname="$HOSTNAME"
   SRV_system=$(( $SRV_system + 1 ))
-  export HOSTNAME=$VARIANT
+  export HOSTNAME=$HOSTNAME
 fi
 
 if [ "$(uci get dhcp.main.domain)" = "$DOMAIN" ]
@@ -330,9 +339,10 @@ fi
 
 echo [$SCRIPT]: Change the title in browser tabs to $VARIANT
 sed -e "s/\(Modem\|Gateway\)/$VARIANT/g" -i /www/lua/telstra_helper.lua
+sed -e 's/"Telstra "[ ]*\.\.[ ]*//' -i /www/snippets/header.lp
 
-echo [$SCRIPT]: Change config export filename from config.bin to $VARIANT-$VERSION-YYMMDD.bin
-sed -e "s/=config.bin/=$VARIANT-$VERSION-\" .. os.date(\"%Y%m%d\") .. \".bin/" -i /www/docroot/modals/gateway-modal.lp
+echo [$SCRIPT]: Change config export filename from config.bin to $HOSTNAME-$VERSION@YYMMDD.bin
+sed -e "s/=config.bin/=$HOSTNAME-$VERSION@\" .. os.date(\"%Y%m%d\") .. \".bin/" -i /www/docroot/modals/gateway-modal.lp
 
 if [ -f ipv4-DNS-Servers ]
 then
