@@ -73,9 +73,15 @@ then
           cp -f -p "$s" "$t"
         fi
       done
+      for f in $(find /www/$d -type f | grep -v -E \(/www/docroot/help\))
+      do
+        if [ ! -f "/rom$f" ]
+        then
+          echo [$SCRIPT]: Removing $f
+          rm -f "$f"
+        fi
+      done
     done
-    echo [$SCRIPT]: Removing additional files added to filesystem
-    rm -f /www/docroot/img/favicon.ico /www/docroot/img/log-viewer /www/docroot/img/tcp-dump.png
     echo [$SCRIPT]: Removing config entries added to display hidden modals
     for s in $(uci show web | grep normally_hidden | cut -d. -f1,2)
     do
