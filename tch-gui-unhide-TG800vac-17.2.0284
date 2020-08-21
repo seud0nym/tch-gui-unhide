@@ -277,9 +277,9 @@ fi
 
 SERIAL=$(uci get env.var.serial)
 
-echo [$SCRIPT]: Change the title in browser tabs to $VARIANT-$SERIAL
-sed -e "s/Telstra Gateway/$VARIANT-$SERIAL/" -i /www/snippets/header.lp
-sed -e "s/Gateway/$VARIANT-$SERIAL/g" -i /www/docroot/gateway.lp
+echo [$SCRIPT]: Change the title in browser tabs to $VARIANT
+sed -e "s/Telstra Gateway/$VARIANT/" -i /www/snippets/header.lp
+sed -e "s/Gateway/$VARIANT/g" -i /www/docroot/gateway.lp
 
 echo [$SCRIPT]: Change the title of Gateway card to $VARIANT
 sed -e "s/Gateway/$VARIANT/g" -i /www/cards/001_gateway.lp

@@ -287,8 +287,8 @@ fi
 
 SERIAL=$(uci get env.var.serial)
 
-echo [$SCRIPT]: Change the title in browser tabs to $VARIANT-$SERIAL
-sed -e "s/\(Modem\|Gateway\)/$VARIANT-$SERIAL/g" -i /www/lua/telstra_helper.lua
+echo [$SCRIPT]: Change the title in browser tabs to $VARIANT
+sed -e "s/\(Modem\|Gateway\)/$VARIANT/g" -i /www/lua/telstra_helper.lua
 sed -e 's/"Telstra "[ ]*\.\.[ ]*//' -i /www/snippets/header.lp
 
 echo [$SCRIPT]: Change config export filename from config.bin to $VARIANT-$SERIAL-$VERSION@YYMMDD.bin
