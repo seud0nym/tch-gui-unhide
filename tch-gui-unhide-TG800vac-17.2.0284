@@ -17,31 +17,21 @@ then
 fi
 SCRIPT=$(basename $0 | sed "s/-$TARGET_VARIANT-$TARGET_VERSION//")
 
-# Use the device variant as the host name
+# Device variant
 VARIANT=$(uci get env.var.variant_friendly_name)
-# Something more sensible than modem
-DOMAIN=gateway
 # Default to a light theme
 THEME=light
 
-HOSTNAME=$VARIANT
 RESTORE=false
-SERIAL=false
 YES=false
 
-while getopts t:h:d:rsy option
+while getopts t:ry option
 do
  case "${option}" in
  t) if [ "$(echo ${OPTARG} | tr "LN" "ln" | sed 's/\(.\)\(.*\)/\1/')" = "n" ]; then THEME=night; fi;;
- h) HOSTNAME=${OPTARG};;
- d) DOMAIN=${OPTARG};;
  r) RESTORE=true;;
- s) SERIAL=true;;
  y) YES=true;;
  ?) echo "Optional parameters:"
-    echo " -h hostname     : Set the host name to 'hostname' rather than $VARIANT"
-    echo " -s              : Append the serial number to the hostname"
-    echo " -d domainname   : Set the domain name to 'domainname' rather than $DOMAIN"
     echo " -t light|night  : Set the theme to either light (the default) or night"
     echo " -r              : Restore changed GUI files to their original state (config changes are NOT restored)"
     echo " -y              : Bypass confirmation prompts (answers 'y')"
@@ -121,14 +111,7 @@ else
   CWMP=disabled
 fi
 
-if [ $SERIAL = true ]
-then
-  HOSTNAME=$HOSTNAME-$(uci get env.var.serial)
-fi
-
 echo "[$SCRIPT]: This script will perform the following actions:"
-echo "[$SCRIPT]:  - The host name will be set to:   $HOSTNAME"
-echo "[$SCRIPT]:  - The domain name will be set to: $DOMAIN"
 echo "[$SCRIPT]:  - Properly enable SSH access over LAN"
 echo "[$SCRIPT]:  - Enable unsigned configuration export/import and firmware upgrade in the web GUI"
 echo "[$SCRIPT]:  - Ensure admin role can administer the parental block"
@@ -151,7 +134,7 @@ echo "[$SCRIPT]:    . tod_wireless-modal.lp"
 echo "[$SCRIPT]:    . xdsl-low-modal.lp"
 echo "[$SCRIPT]:  - The GUI screen will be prettied up a bit and the $THEME theme applied."
 
-echo [$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop and re-run with the -h and/or -d parameters.
+echo [$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop.
 if [ $YES = true ]
 then
   REPLY=y
@@ -160,7 +143,6 @@ else
 fi
 if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]
 then
-  echo [$SCRIPT]: Optional parameters are -h hostname -d domainname -t [light\|night] [-r]
   exit
 fi
 
@@ -171,28 +153,6 @@ SRV_dnsmasq=0
 SRV_dropbear=0
 SRV_nginx=0
 SRV_system=0
-
-if [ "$(uci get dhcp.main.hostname)" = "$HOSTNAME" -a "$(uci get system.@system[0].hostname)" = "$HOSTNAME" ]
-then
-  echo [$SCRIPT]: Host name is already $HOSTNAME
-else
-  echo [$SCRIPT]: Setting the host name to $HOSTNAME
-  uci -q delete dhcp.main.hostname
-  uci add_list dhcp.main.hostname="$HOSTNAME"
-  SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
-  uci set system.@system[0].hostname="$HOSTNAME"
-  SRV_system=$(( $SRV_system + 1 ))
-  export HOSTNAME=$HOSTNAME
-fi
-
-if [ "$(uci get dhcp.main.domain)" = "$DOMAIN" ]
-then
-  echo [$SCRIPT]: Domain name is already $DOMAIN
-else
-  echo [$SCRIPT]: Setting the domain to $DOMAIN
-  uci set dhcp.main.domain="$DOMAIN"
-  SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
-fi
 
 if [ "$(uci get dropbear.lan.enable)" = "1" -a "$(uci get dropbear.lan.PasswordAuth)" = "on" -a "$(uci get dropbear.lan.RootPasswordAuth)" = "on" -a "$(uci get dropbear.lan.RootLogin)" = "1" ]
 then
@@ -240,7 +200,7 @@ else
   uci add_list web.parentalblock.roles='admin'
   SRV_nginx=$(( $SRV_nginx + 2 ))
 fi
-  
+
 uci commit
 
 # Check all modals are enabled, except:
@@ -315,15 +275,17 @@ then
   rm /www/cards/010_fon.lp
 fi
 
-echo [$SCRIPT]: Change the title in browser tabs to $VARIANT
-sed -e "s/Telstra Gateway/$VARIANT/" -i /www/snippets/header.lp
-sed -e "s/Gateway/$VARIANT/g" -i /www/docroot/gateway.lp
+SERIAL=$(uci get env.var.serial)
+
+echo [$SCRIPT]: Change the title in browser tabs to $VARIANT-$SERIAL
+sed -e "s/Telstra Gateway/$VARIANT-$SERIAL/" -i /www/snippets/header.lp
+sed -e "s/Gateway/$VARIANT-$SERIAL/g" -i /www/docroot/gateway.lp
 
 echo [$SCRIPT]: Change the title of Gateway card to $VARIANT
 sed -e "s/Gateway/$VARIANT/g" -i /www/cards/001_gateway.lp
 
-echo [$SCRIPT]: Change config export filename from config.bin to $HOSTNAME-$VERSION@YYMMDD.bin
-sed -e "s/=config.bin/=$HOSTNAME-$VERSION@\" .. os.date(\"%Y%m%d\") .. \".bin/" -i /www/docroot/modals/gateway-modal.lp
+echo [$SCRIPT]: Change config export filename from config.bin to $VARIANT-$SERIAL-$VERSION@YYMMDD.bin
+sed -e "s/=config.bin/=$VARIANT-$SERIAL-$VERSION@\" .. os.date(\"%Y%m%d\") .. \".bin/" -i /www/docroot/modals/gateway-modal.lp
 
 echo [$SCRIPT]: Enable various things that only the guest role\(!!!\) was allowed to do or see
 for f in $(ls /www/docroot/modals/gateway-modal.lp /www/snippets/tabs-voice.lp)

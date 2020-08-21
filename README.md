@@ -4,16 +4,12 @@ These scripts can be applied to the Telstra Gateway MAX 2 (Technicolor TG800vac)
 *PLEASE NOTE: Previous versions of the `tch-gui-unhide` script (release 2020.08.03 and before) also applied most of the hardening recommendations from https://hack-technicolor.readthedocs.io/en/stable/Hardening/. These have now been moved to a separate utility script ([`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities)).*
 
 ## Why not just use https://github.com/Ansuel/tch-nginx-gui?
-When I first rooted my DJA0231, I applied the tch-nginx-gui because I had used it for some time on my Technicolor TG800vac, and found it very good.
+When I first rooted my DJA0231, I applied the tch-nginx-gui because I had used it for some time on my Technicolor TG800vac, and found it very good. However, on the DJA0231, I encountered various problems after reboots, such as loss of customised SSID's and IP addresses, loss of root in one instance, the admin password got reset to Telstra default, and so on.
 
-However, on the DJA0231, I encountered various problems after reboots, such as loss of customised SSID's and IP addresses, loss of root in one instance, the admin password got reset to Telstra default, and so on.
-
-So, I set out to enable whatever hidden features were included with the firmware by default, without making significant changes to the GUI code, and to try and make it almost as pretty as the tch-nginx-gui.
-
-The script does not expose features not present in the stock GUI or the hidden cards, and therefore is not as comprehensive as the Ansuel GUI. It is a trade-off: stability vs features. The aim of this script is to make as few changes as possible to be as stable as possible.
+So, I set out to enable whatever hidden features were included with the firmware by default, without making significant changes to the GUI code so as to maintain stability, and to try and make it almost as pretty as the tch-nginx-gui. Since then, it has been expanded to incorporate some features of the Ansuel GUI, but the original goal of stability is unchanged. No features are enabled is stability is compromised. No system executables are added or replaced. The aim of this script is to make as few changes as possible to be as stable as possible, but also to unlock as many features as is practicable.
 
 ## What GUI features are unlocked?
-- Configuration export/import, and the export file name is changed from *config.bin* to *VARIANT-VERSION-yymmdd.bin* (i.e. it includes the hardware type, firmware version and the current date)
+- Configuration export/import, and the export file name is changed from *config.bin* to *VARIANT-SERIAL-VERSION@yymmdd.bin* (i.e. it includes the hardware type, serial number, firmware version and the current date)
 - Firmware update from the GUI
 - The SMS tab is enabled on the **Mobile** screen
 - The **Telephony** screen has the following tabs enabled:
@@ -37,17 +33,23 @@ The script does not expose features not present in the stock GUI or the hidden c
 
 Some hidden screens included on the device are not enabled, mainly because they fail and cause issues in the GUI, or sometimes more work would be required to implement them than can be done with simple stream editing of the existing files. Somne of them are only applicable to older versions of the firmware.
 
-*PLEASE NOTE: Previous versions of the script (release 2020.08.03 and before) also automatically enabled the beta version of DumaOS on the DJA0231. To get this functionality, run the [`dumaos-beta`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities) utility script (see below).*
+### GUI Features incorporated from the Ansuel Custom GUI
+- The **Broadband** screen has been ported in to:
+    - Disable/enable WAN Sensing
+    - Set connection mode manually when WAN Sensing disabled
+    - Allow VLAN ID tagging
 
 ## What else does it do?
-- You can set the hostname of the device and the domain of the LAN. Default Telstra hostnames are removed.
-- Properly enables SSH LAN access (because if you don't and then disable it through the GUI, you can lose SSH access)
-- Modernises the GUI a little bit with a light theme by default, or optionally with a dark (night) theme
+- Properly enables SSH LAN access (because if you don't and then disable it through the GUI, you can lose SSH access).
+- Modernises the GUI a little bit with a light theme by default, or optionally with a dark (night) theme.
+
+*PLEASE NOTE: Previous versions of the script (release 2020.08.16 and before) also set the hostname and domain. This functionality has been moved to the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities) utility script.*
 
 ### DJA0231 Specific
 - If a file called *ipv4-DNS-Servers* is found in the directory from which the script is invoked, the contents will be added to the list of DNS Servers on the **Local Network** screen. (See below) 
-- Enables VoLTE backup voice service and SMS reception.
 - If run on the 18.1.c.0514 firmware, it will also add a button to access the pre-release version of DumaOS, but only if DumaOS has been enabled. To add this button, execute the [`dumaos-beta`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities) script with the `-on` parameter to enable DumaOS before running the `tch-gui-unhide-DJA0231-18.1.c.0514` script.
+
+*PLEASE NOTE: Previous versions of the script (release 2020.08.03 and before) also automatically enabled the beta version of DumaOS on the DJA0231. To get this functionality, run the [`dumaos-beta`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities) utility script (see below).*
 
 #### ipv4-DNS-Servers file
 The contents of this file are simply the hostname and IP address, which are separated by a space. Multiple servers may be added, each on its own line.
@@ -103,10 +105,6 @@ Alternatively, you can download the release to your computer and then upload it 
 ./tch-gui-unhide-TG800vac-17.2.0284 <options>
 ```
 The scripts accept the following options:
-- -h hostname
-    - Allows you to specify an alternate hostname. The default is determined by the hardware variant (i.e. either **DJA0231** or **TG800vac**).
-- -d domain
-    - Allows you to specify an alternate domain. The default is **gateway**.
 - -t theme
     - By default, the script will apply a **light** theme. You may specify **night** to apply the dark theme. Specifying anything other than **night** will cause the light theme to be applied.
 - -y

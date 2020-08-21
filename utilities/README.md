@@ -5,20 +5,30 @@ A collection of utility scripts for your Technicolor router.
 This script applies most of the hardening recommendations from https://hack-technicolor.readthedocs.io/en/stable/Hardening/, modified to only apply those that are applicable to later model devices such as the TG800vac and DJA0231. 
 
 In addition, it:
+- Sets the hostname of the device and the domain of the LAN. Default Telstra hostnames (except telstra.wifi, which is used by EasyMesh) are removed.
 - Overwrites the */etc/dropbear/authorized_keys* file with either:
     - the contents of an *authorized_keys* file found in the directory from which the script is invoked; or
     - an empty file (to remove any ISP default public keys)
 - Correctly enables SSH LAN access
 - Disables SSH WAN access
 - Disables and removes CWMP
-- Disables and removes Telstra monitoring
+- Disables and removes all Telstra monitoring
 - Disables and removes Telstra AIR, including the SSIDs and GUI card
 - Removes web GUI default user access
 - Disables content and printer sharing, and the DLNA server
 - Disables all ALGs except SIP (FTP, TFTP, SNMP, PPTP, IRC, AMANDA, RTSP)
+- Enables VoLTE backup voice service and SMS reception.
 - Removes packages related to CWMP, Telstra monitoring, and Telstra AIR
 
-It doe NOT remove the hidden BH-xxxxxx SSID from the DJA0231, as this is not related to Telstra AIR. It is the wireless backhaul for EasyMesh.
+It does NOT remove the hidden BH-xxxxxx SSID from the DJA0231, as this is not related to Telstra AIR. It is the wireless backhaul for EasyMesh.
+
+This script accepts the following options:
+- -h hostname
+    - Allows you to specify an alternate hostname. The default is determined by the hardware variant (i.e. either **DJA0231** or **TG800vac**).
+- -s 
+    - Appends the device serial number to the hostname. (Useful if you have multiple devices of the same variant.)
+- -d domain
+    - Allows you to specify an alternate domain. The default is **gateway**.
 
 ## dumaos-beta
 Enables or disables DumaOS on a DJA0231 running the 18.1.c.0514 firmware. It also disables or enables reboot on core dump, because if DumaOS gets into trouble, the router will just continally reboot.

@@ -1,6 +1,8 @@
 # Based on https://hack-technicolor.readthedocs.io/en/stable/Hardening/
 
 SCRIPT=$(basename $0)
+
+# Keep count of changes so we know whether to restart services
 SRV_cups=0
 SRV_cwmp=0
 SRV_dhcp=0
@@ -8,12 +10,77 @@ SRV_dlna=0
 SRV_dropbear=0
 SRV_fw=0
 SRV_hotspot=0
+SRV_mmpbxd=0
+SRV_mobiled=0
 SRV_monitor=0
 SRV_network=0
 SRV_qos=0
 SRV_samba=0
+SRV_system=0
 SRV_watchdog=0
 SRV_web=0
+
+# Use the device variant as the default host name
+HOSTNAME=$(uci get env.var.variant_friendly_name)
+# Something more sensible than modem
+DOMAIN=gateway
+
+SERIAL=false
+
+while getopts h:d:s option
+do
+ case "${option}" in
+ h) HOSTNAME=${OPTARG};;
+ d) DOMAIN=${OPTARG};;
+ s) SERIAL=true;;
+ ?) echo "Optional parameters:"
+    echo " -h hostname     : Set the host name to 'hostname' rather than $HOSTNAME"
+    echo " -s              : Append the serial number to the hostname"
+    echo " -d domainname   : Set the domain name to 'domainname' rather than $DOMAIN"
+    exit;;
+ esac
+done
+
+if [ $SERIAL = true ]
+then
+  HOSTNAME=$HOSTNAME-$(uci get env.var.serial)
+fi
+
+uci get dhcp.main.hostname | grep -q "$HOSTNAME"
+if [ $? -eq 0 -a "$(uci get system.@system[0].hostname)" = "$HOSTNAME" ]
+then
+  echo [$SCRIPT]: Host name is already $HOSTNAME
+else
+  echo [$SCRIPT]: Setting the host name to $HOSTNAME
+  uci get dhcp.main.hostname | grep -q telstra.wifi
+  if [ $? -eq 0 ]
+  then
+    MULTIAP=true
+  else
+    MULTIAP=false
+  fi
+  uci -q delete dhcp.main.hostname
+  uci add_list dhcp.main.hostname="$HOSTNAME"
+  SRV_dnsmasq=$(( $SRV_dnsmasq + 2 ))
+  if [ $MULTIAP = true ]
+  then
+    echo [$SCRIPT]: Re-adding telstra.wifi hostname for EasyMesh
+    uci add_list dhcp.main.hostname='telstra.wifi'
+    SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
+  fi
+  uci set system.@system[0].hostname="$HOSTNAME"
+  SRV_system=$(( $SRV_system + 1 ))
+  export HOSTNAME=$HOSTNAME
+fi
+
+if [ "$(uci get dhcp.main.domain)" = "$DOMAIN" ]
+then
+  echo [$SCRIPT]: Domain name is already $DOMAIN
+else
+  echo [$SCRIPT]: Setting the domain to $DOMAIN
+  uci set dhcp.main.domain="$DOMAIN"
+  SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
+fi
 
 echo [$SCRIPT]: Checking SSH access
 if [ -f authorized_keys ]
@@ -168,6 +235,25 @@ do
   fi
 done
 
+if [ "$(uci -q get mmpbxmobilenet.VoLTE)" ]
+then
+  if [ "$(uci get mmpbxmobilenet.VoLTE.enabled)" = "1" ]
+  then
+    echo [$SCRIPT]: VoLTE already enabled
+  else
+    echo [$SCRIPT]: Enabling VoLTE backup voice service and SMS reception
+    uci set mmpbxmobilenet.VoLTE.enabled='1'
+    SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
+    uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
+    uci set mobiled_sessions.@session[0].activated='1'
+    uci set mobiled_sessions.@session[0].autoconnect='1'
+    uci set mobiled_sessions.@session[0].optional='1'
+    SRV_mobiled=$(( $SRV_mobiled + 1 ))
+  fi
+fi
+
+uci commit
+
 echo [$SCRIPT]: Applying required service changes...
 /etc/init.d/watchdog-tch reload
 [ -f /etc/init.d/cwmpd -a $SRV_cwmp -gt 0 ]                && { /etc/init.d/cwmpd disable;/etc/init.d/cwmpd stop; }
@@ -175,12 +261,15 @@ echo [$SCRIPT]: Applying required service changes...
 [ -f /etc/init.d/autoreset -a $SRV_monitor -gt 0 ]         && { /etc/init.d/autoreset disable; /etc/init.d/autoreset stop; }
 [ -f /etc/init.d/tls-thor -a $SRV_monitor -gt 0 ]          && { /etc/init.d/tls-thor disable; /etc/init.d/tls-thor stop; }
 [ -f /etc/init.d/wifi-doctor-agent -a $SRV_monitor -gt 0 ] && /etc/init.d/wifi-doctor-agent reload
+[ $SRV_system -gt 0 ]   && /etc/init.d/system reload
 [ $SRV_samba -gt 0 ]    && { /etc/init.d/samba reload; /etc/init.d/samba-nmbd reload; }
 [ $SRV_dlna -gt 0 ]     && { /etc/init.d/dlnad disable; /etc/init.d/dlnad stop; }
 [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear reload
 [ $SRV_dhcp -gt 0 ]     && /etc/init.d/dnsmasq reload
 [ $SRV_fw -gt 0 ]       && /etc/init.d/firewall reload
 [ $SRV_network -gt 0 ]  && /etc/init.d/network reload
+[ $SRV_mmpbxd -gt 0 ]   && /etc/init.d/mmpbxd restart
+[ $SRV_mobiled -gt 0 ]  && /etc/init.d/mobiled restart
 
 echo [$SCRIPT]: Removing packages that are no longer required
 opkg --force-removal-of-dependent-packages remove conf-cwmpd cwmpd autoreset-tch mappings-fon geolocation-tch hotspotd webui-fon tls-thor wifi-doctor-agent conf-wifi-doctor-agent
