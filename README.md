@@ -17,6 +17,7 @@ So, I set out to enable whatever hidden features were included with the firmware
     - Phone Book (Set up contacts)
     - Phone Numbers (Define SIP profiles)
     - Service (Configure VoIP services)
+    - Incoming/Outgoing Map (Assign phone numbers to handsets)
     - Call Log
 - The TCP Dump tab is enabled on the **Diagnostics** screen
 - The **IP Extras** card is enabled to:
@@ -49,7 +50,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - If a file called *ipv4-DNS-Servers* is found in the directory from which the script is invoked, the contents will be added to the list of DNS Servers on the **Local Network** screen. (See below) 
 - If run on the 18.1.c.0514 firmware, it will also add a button to access the pre-release version of DumaOS, but only if DumaOS has been enabled. To add this button, execute the [`dumaos-beta`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities) script with the `-on` parameter to enable DumaOS before running the `tch-gui-unhide-DJA0231-18.1.c.0514` script.
 
-*PLEASE NOTE: Previous versions of the script (release 2020.08.03 and before) also automatically enabled the beta version of DumaOS on the DJA0231. To get this functionality, run the [`dumaos-beta`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities) utility script (see below).*
+*PLEASE NOTE: Previous versions of the script (release 2020.08.03 and before) also automatically enabled the beta version of DumaOS on the DJA0231. To get this functionality, run the [`dumaos-beta`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities) utility script.*
 
 #### ipv4-DNS-Servers file
 The contents of this file are simply the hostname and IP address, which are separated by a space. Multiple servers may be added, each on its own line.
@@ -76,6 +77,7 @@ Follow the instructions at https://hack-technicolor.rtfd.io
 
 The scripts have only be tested against the specified hardware and firmware version denoted in the script name. If you are not running the firmware version for which the script was written, you should upgrade. (https://hack-technicolor.readthedocs.io/en/latest/Repository)
 
+#### Harden your root access
 It is recommended that you apply whatever hardening (such as the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities) script) and other configuration changes you want to make *before* executing the script, as features are enabled or disabled depending on the current configuration of the target device.
 
 ### Second, download and extract the scripts

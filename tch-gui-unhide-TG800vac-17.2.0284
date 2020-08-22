@@ -1,3 +1,4 @@
+#!/bin/sh
 # Based on various pages https://hack-technicolor.readthedocs.io/en/stable/
 
 TARGET_VARIANT=""
@@ -127,6 +128,7 @@ echo "[$SCRIPT]:    . log-connections-modal.lp"
 echo "[$SCRIPT]:    . log-routingtable-modal.lp"
 echo "[$SCRIPT]:    . lte-sms.lp"
 echo "[$SCRIPT]:    . mmpbx-global-modal.lp"
+echo "[$SCRIPT]:    . mmpbx-inoutgoingmap-modal.lp"
 echo "[$SCRIPT]:    . mmpbx-profile-modal.lp"
 echo "[$SCRIPT]:    . nat-alg-helper-modal.lp"
 echo "[$SCRIPT]:    . system-modal.lp"
@@ -223,6 +225,7 @@ for f in $(ls \
   /www/docroot/modals/log-routingtable-modal.lp \
   /www/docroot/modals/lte-sms.lp \
   /www/docroot/modals/mmpbx-global-modal.lp \
+  /www/docroot/modals/mmpbx-inoutgoingmap-modal.lp \
   /www/docroot/modals/mmpbx-profile-modal.lp \
   /www/docroot/modals/nat-alg-helper-modal.lp \
   /www/docroot/modals/system-modal.lp \
@@ -252,7 +255,6 @@ do
   fi
 done
 # These were incorrectly enabled in release 2020.08.08 and earlier
-uci -q delete web.mmpbxinoutgoingmapmodal
 uci -q delete web.mmpbxsipdevicemodal
 uci -q delete web.mmpbxstatisticsmodal
 uci commit web

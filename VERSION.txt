@@ -1,7 +1,15 @@
+2020-08-22
+==========
+- Added Broadband modal from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www to allow VLAN tagging + dis/enable WAN Sensing and set connection method
+- Improved detection of added files to more easily restore state
+- Included serial number in configuration export file name (for those with multiple devices of the same variant) and browser tabs
+- Moved hostname and VoLTE backup from tch-gui-unhide to de-telstra (so that tch-gui-unhide only makes GUI changes and de-telstra makes once-off config changes)
+- Added option to include serial number in host name (for those with multiple devices of the same variant)
+- Restored Incoming/Outgoing Map Telephony tab
+
 2020.08.16
 ==========
-- Removed SIP Device, Incoming/Outgoing Map, and Statistics Telephony tabs (only applicable to FW 17.2.0188
-  and earlier, according to https://hack-technicolor.readthedocs.io/en/stable/Unlock/#voip-setup)
+- Removed SIP Device, Incoming/Outgoing Map, and Statistics Telephony tabs (only applicable to FW 17.2.0188 and earlier, according to https://hack-technicolor.readthedocs.io/en/stable/Unlock/#voip-setup)
 
 2020.08.08
 ==========

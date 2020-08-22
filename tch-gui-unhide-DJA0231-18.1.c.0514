@@ -1,3 +1,4 @@
+#!/bin/sh
 # Based on various pages https://hack-technicolor.readthedocs.io/en/stable/
 
 TARGET_VARIANT=""
@@ -132,6 +133,7 @@ echo "[$SCRIPT]:    . log-connections-modal.lp"
 echo "[$SCRIPT]:    . log-routingtable-modal.lp"
 echo "[$SCRIPT]:    . lte-sms.lp"
 echo "[$SCRIPT]:    . mmpbx-global-modal.lp"
+echo "[$SCRIPT]:    . mmpbx-inoutgoingmap-modal.lp"
 echo "[$SCRIPT]:    . mmpbx-profile-modal.lp"
 echo "[$SCRIPT]:    . nat-alg-helper-modal.lp"
 echo "[$SCRIPT]:    . system-modal.lp"
@@ -228,6 +230,7 @@ for f in $(ls \
   /www/docroot/modals/log-routingtable-modal.lp \
   /www/docroot/modals/lte-sms.lp \
   /www/docroot/modals/mmpbx-global-modal.lp \
+  /www/docroot/modals/mmpbx-inoutgoingmap-modal.lp \
   /www/docroot/modals/mmpbx-profile-modal.lp \
   /www/docroot/modals/nat-alg-helper-modal.lp \
   /www/docroot/modals/system-modal.lp \
@@ -257,7 +260,6 @@ do
   fi
 done
 # These were incorrectly enabled in release 2020.08.08 and earlier
-uci -q delete web.mmpbxinoutgoingmapmodal
 uci -q delete web.mmpbxsipdevicemodal
 uci -q delete web.mmpbxstatisticsmodal
 uci commit web
@@ -333,7 +335,7 @@ sed -e 's/if role ~= "admin"/if role == "admin"/' -i /www/docroot/modals/mmpbx-s
 echo [$SCRIPT]: Show the hidden Telephony tabs and fix default tab
 sed \
  -e 's/--  {"mmpbx-contacts/    {"mmpbx-contacts/' \
- -e 's/--  {"mmpbx-service-modal.lp", T"Service"},/    {"mmpbx-service-modal.lp", T"Service"},/' \
+ -e 's/--  {"mmpbx-service-modal.lp", T"Service"},/    {"mmpbx-service-modal.lp", T"Service"},\n    {"mmpbx-inoutgoingmap-modal.lp", T"In\/Outgoing Map"},/' \
  -i /www/snippets/tabs-voice.lp
 # Default telephony tab is DECT!!! 
 # - Set test to always be false (mmpbx_state can only be 0 or 1, so 9 should always be false) 
