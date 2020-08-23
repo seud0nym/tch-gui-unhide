@@ -297,6 +297,9 @@ sed -e 's/"Telstra "[ ]*\.\.[ ]*//' -i /www/snippets/header.lp
 echo [$SCRIPT]: Change config export filename from config.bin to $VARIANT-$SERIAL-$VERSION@YYMMDD.bin
 sed -e "s/=config.bin/=$VARIANT-$SERIAL-$VERSION@\" .. os.date(\"%Y%m%d\") .. \".bin/" -i /www/docroot/modals/gateway-modal.lp
 
+echo [$SCRIPT]: Changing description of router DNS Server from Telstra to $VARIANT 
+sed -e "s/Telstra/$VARIANT/" -i /www/docroot/modals/ethernet-modal.lp
+
 if [ -f ipv4-DNS-Servers ]
 then
   echo [$SCRIPT]: Adding custom IPv4 DNS Servers
