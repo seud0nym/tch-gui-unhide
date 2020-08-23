@@ -12,9 +12,5 @@ local dosprotect = proxy.get("uci.dosprotect.globals.enabled")
 if dosprotect and dosprotect[1].value ~="" then
 	table.insert(items, {"dosprotect-modal.lp", T"DoS Protect"})
 end
-local flowcache = proxy.get("uci.fcctlsettings.state.enabled")
-if flowcache and flowcache[1].value ~="" then
-	table.insert(items, {"fast-cache-option-modal.lp", T"Flow Cache"})
-end
 
 require("sharedModalTabHelper").createModalTab(items)
