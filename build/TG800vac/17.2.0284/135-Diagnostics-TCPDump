@@ -1,0 +1,3 @@
+echo [$SCRIPT]: Add TCP Dump to Diagnostics
+sed -e 's/    {"logviewer-modal.lp", T"Log viewer"},/    {"logviewer-modal.lp", T"Log viewer"},\n    {"diagnostics-tcpdump-modal.lp", T"TCP Dump"},/' -i /www/snippets/tabs-diagnostics.lp
+

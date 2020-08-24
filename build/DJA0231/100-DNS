@@ -1,0 +1,19 @@
+echo [$SCRIPT]: Changing description of router DNS Server from Telstra to $VARIANT 
+sed -e "s/Telstra/$VARIANT/" -i /www/docroot/modals/ethernet-modal.lp
+
+if [ -f ipv4-DNS-Servers ]
+then
+  echo [$SCRIPT]: Adding custom IPv4 DNS Servers
+  sed -e '/^  },/,$ d' /www/docroot/modals/ethernet-modal.lp > /www/docroot/modals/ethernet-modal.lp.tmp
+  while read -r host ip
+  do 
+    if [ ! -z "$ip" ]
+    then 
+      echo "    {\"$ip\", T\"$host ($ip)\"}," | sed -e 's/\r//g' >> /www/docroot/modals/ethernet-modal.lp.tmp
+    fi
+  done < ipv4-DNS-Servers
+  echo "  }," >> /www/docroot/modals/ethernet-modal.lp.tmp
+  sed -e '1,/^  },/ d' /www/docroot/modals/ethernet-modal.lp >> /www/docroot/modals/ethernet-modal.lp.tmp
+  mv /www/docroot/modals/ethernet-modal.lp.tmp /www/docroot/modals/ethernet-modal.lp
+fi
+

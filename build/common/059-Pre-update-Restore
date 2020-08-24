@@ -1,0 +1,12 @@
+    cmp -s "$s" "$t"
+    if [ $? -ne 0 ]
+    then
+      cp -f -p "$s" "$t"
+    fi
+  done
+done
+if [ -f /www/cards/010_fon.lp ]
+then
+  rm /www/cards/010_fon.lp
+fi
+

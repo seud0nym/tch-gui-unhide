@@ -1,0 +1,44 @@
+if [ -f /etc/init.d/cwmpd -a "$(uci get cwmpd.cwmpd_config.state)" = "1" ]
+then
+  CWMP=enabled
+else
+  CWMP=disabled
+fi
+
+# Check all modals are enabled, except:
+#  - diagnostics-airiq-modal.lp (requires Flash player)
+#  - fon-modal.lp (Telstra Air)
+#  - hostmap-modal.lp
+#  - mmpbx-sipdevice-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
+#  - mmpbx-statistics-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
+#  - relay-modal.lp (fails with nil reference)
+#  - speedservice-modal.lp
+#  - wireless-qrcode-modal.lp (fails with a nil password index error)
+for f in $(ls /www/docroot/modals | grep -E -v \(diagnostics-airiq-modal.lp\|fon-modal.lp\|hostmap-modal.lp\|mmpbx-sipdevice-modal.lp\|mmpbx-statistics-modal.lp\|relay-modal.lp\|speedservice-modal.lp\|wireless-qrcode-modal.lp\) )
+do
+  MODAL=$(basename $f)
+  RULE=$(basename $f .lp | sed -e 's/-//g')
+  if [ "$RULE" = "cwmpconfmodal" -a "$CWMP" = "disabled" ]
+  then
+    echo [$SCRIPT]: CWMP is disabled so disabling $f
+    uci -q delete web.$RULE
+    SRV_nginx=$(( $SRV_nginx + 1 ))
+    continue
+  fi
+  uci show web | grep -q "/modals/$MODAL"
+  if [ $? -eq 1 ]
+  then
+    echo [$SCRIPT]: Enabling $MODAL
+    uci add_list web.ruleset_main.rules=$RULE
+    uci set web.$RULE=rule
+    uci set web.$RULE.target=/modals/$MODAL
+    uci set web.$RULE.normally_hidden='1'
+    uci add_list web.$RULE.roles=admin
+    SRV_nginx=$(( $SRV_nginx + 4 ))
+  fi
+done
+# These were incorrectly enabled in release 2020.08.08 and earlier
+uci -q delete web.mmpbxsipdevicemodal
+uci -q delete web.mmpbxstatisticsmodal
+uci commit web
+

@@ -1,0 +1,12 @@
+echo [$SCRIPT]: Add missing icons on Diagnostics card
+# Show the icons for all tabs on the card
+# (Nicer and extra icons are below...)
+sed \
+ -e 's^\(alt="ping/trace"></div></td>\)\(</tr>\\\)^\1\\\n <td><div data-toggle="modal" data-remote="modals/logviewer-modal.lp" data-id="logviewer-modal"><img href="#" rel="tooltip" data-original-title="LOGVIEWER" src="/img/log-viewer.png" alt="logviewer"></div></td>\2^' \
+ -e 's^\(alt="network"></div></td>\)\(</tr>\\\)^\1\\\n <td><div data-toggle="modal" data-remote="modals/diagnostics-tcpdump-modal.lp" data-id="diagnostics-tcpdump-modal"><img href="#" rel="tooltip" data-original-title="TCPDUMP" src="/img/tcp-dump.png" alt="tcpdump"></div></td>\2^' \
+ -i /www/cards/009_diagnostics.lp
+
+echo [$SCRIPT]: Rename Diagnostics tabs and add Connections tab
+sed -e 's/"Connection"/"Connection Check"/' -e 's/"Network"/"Ports"/' -e 's/Tcpdump/TCP Dump/' -e '/connection-modal/a {"log-connections-modal.lp", T"Network Connections"},'  -e '/airiq/,/^[ ]*$/d' -i /www/snippets/tabs-diagnostics.lp
+sed -e 's/tabs-management/tabs-diagnostics/' -e 's/"Management"/"Diagnostics Network Connections"/' -i /www/docroot/modals/log-connections-modal.lp
+

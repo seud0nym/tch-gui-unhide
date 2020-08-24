@@ -1,0 +1,25 @@
+echo "[$SCRIPT]: This script will perform the following actions:"
+echo "[$SCRIPT]:  - Properly enable SSH access over LAN"
+echo "[$SCRIPT]:  - Enable unsigned configuration export/import and firmware upgrade in the web GUI"
+echo "[$SCRIPT]:  - Ensure admin role can administer the parental block"
+echo "[$SCRIPT]:  - Allows editing of host names in the device list"
+echo "[$SCRIPT]:  - Replace the stock Broadband modal with the Ansuel tch-nginx-gui version to allow VLAN modification"
+echo "[$SCRIPT]:  - Replace the stock Internet modal with modified Ansuel tch-nginx-gui version to allow parameter modifications such as DNS servers"
+echo "[$SCRIPT]:  - Replace the stock IP Extra modal from with modified Ansuel tch-nginx-gui version to change various routing settings"
+echo "[$SCRIPT]:  - Unhide various cards and tabs contained in the stock GUI that are normally hidden"
+echo "[$SCRIPT]:  - The GUI screen will be prettied up a bit and the $THEME theme applied."
+
+echo [$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop.
+if [ $YES = true ]
+then
+  REPLY=y
+else
+  read
+fi
+if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]
+then
+  exit
+fi
+
+echo [$SCRIPT]: IMPORTANT NOTE - You can restore changed GUI files to their original state by running: $0 -r
+

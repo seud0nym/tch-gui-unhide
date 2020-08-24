@@ -1,0 +1,7 @@
+echo [$SCRIPT]: Add cogs to card headers
+for f in $(grep -l createCardHeaderNoIcon /www/cards/*)
+do
+  sed -e 's/createCardHeaderNoIcon/createCardHeader/' -i $f
+done
+sed -e 's/switchName, content\["cwmp_state"\], {input = {id = "cwmp_card_state"}}/nil, nil, nil/' -i /www/cards/090_cwmpconf.lp
+

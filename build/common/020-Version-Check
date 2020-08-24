@@ -1,0 +1,16 @@
+VERSION=$(uci get version.@version[0].version | cut -d- -f1)
+if [ "$VARIANT" = "$TARGET_VARIANT" -a "$VERSION" = "$TARGET_VERSION" ]
+then
+  echo [$SCRIPT]: Technicolor variant and version match target.
+else
+  echo [$SCRIPT]: WARNING: This script was tested on a Technicolor $TARGET_VARIANT with $TARGET_VERSION firmware.
+  echo [$SCRIPT]: It MAY work on your $VARIANT with $VERSION firmware, but it is untested.
+  echo [$SCRIPT]: If you still wish to proceed, reply FORCE \(in capitals as shown\).
+  read
+  if [ "$REPLY" != "FORCE" ]
+  then
+    echo [$SCRIPT]: Good choice.
+    exit
+  fi
+fi
+

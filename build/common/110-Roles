@@ -1,0 +1,7 @@
+echo [$SCRIPT]: Enable various things that only the guest role\(!!!\) was allowed to do or see
+for f in $(ls /www/docroot/modals/gateway-modal.lp /www/docroot/modals/internet-modal.lp /www/docroot/modals/wireless-modal.lp /www/docroot/modals/wanservices-modal.lp /www/snippets/tabs-diagnostics.lp /www/snippets/tabs-voice.lp)
+do
+  sed -e 's/\(if [^ ]*role[^=]*==[^"]*"\)\(guest\)\("\)/\1admin\3/g' -i $f
+done
+sed -e 's/if role ~= "admin"/if role == "admin"/' -i /www/docroot/modals/mmpbx-service-modal.lp
+

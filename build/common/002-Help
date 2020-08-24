@@ -1,0 +1,17 @@
+RESTORE=false
+YES=false
+
+while getopts t:ry option
+do
+ case "${option}" in
+ t) if [ "$(echo ${OPTARG} | tr "LN" "ln" | sed 's/\(.\)\(.*\)/\1/')" = "n" ]; then THEME=night; fi;;
+ r) RESTORE=true;;
+ y) YES=true;;
+ ?) echo "Optional parameters:"
+    echo " -t light|night  : Set the theme to either light (the default) or night"
+    echo " -r              : Restore changed GUI files to their original state (config changes are NOT restored)"
+    echo " -y              : Bypass confirmation prompts (answers 'y')"
+    exit;;
+ esac
+done
+

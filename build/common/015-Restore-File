@@ -1,0 +1,6 @@
+        cmp -s "$s" "$t"
+        if [ $? -ne 0 ]
+        then
+          echo [$SCRIPT]: Restoring $t
+          cp -f -p "$s" "$t"
+        fi

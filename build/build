@@ -1,0 +1,60 @@
+#!/bin/sh
+
+DIR=$(pwd)
+
+echo Cleaning up..
+rm -rf /tmp/ansuel ../ansuel/*.b64
+
+echo Building Ansuel Base64 tar images...
+cp -r ../ansuel/ /tmp/ansuel
+for d in $(ls /tmp/ansuel)
+do
+  if [ -d /tmp/ansuel/$d ]
+  then
+    cd /tmp/ansuel/$d
+    for f in $(find . -type f -name "*.lp" -o -name "*.lua")
+    do
+      sed -e 's/^[    ]*//g' -e 's/[    ]*$//' -i $f
+      chmod -x $f
+    done
+    echo -\> $d.b64
+    echo "echo [$$SCRIPT]: Deploy Ansuel $d code" > $DIR/../ansuel/$d.b64
+    echo "echo $(tar --owner=root --group=root -czf - * | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> $DIR/../ansuel/$d.b64
+    echo >> $DIR/../ansuel/$d.b64
+    cd $DIR
+  fi
+done
+
+for f in $(find . -mindepth 2 -type d | cut -c3- | tr '/' '-')
+do
+  VARIANT=$(echo $f | cut -d- -f1)
+  VERSION=$(echo $f | cut -d- -f2)
+  TARGET=../tch-gui-unhide-$VARIANT-$VERSION
+  
+  echo Writing $TARGET...
+  echo "#!/bin/sh" > $TARGET
+
+  for s in $(find . -mindepth 2 -type f -exec sh -c 'echo $(basename {})$(dirname {} | cut -c2-)' \; | sort)
+  do
+    echo $s | grep -q -E "(common$|${VARIANT}$|${VARIANT}/${VERSION}$)"
+    if [ $? -eq 0 ]
+    then
+      echo $s | grep -q "Ansuel"
+      if [ $? -eq 0 ]
+      then
+        for b in $(ls ../ansuel/*.b64)
+        do
+          cat $b >> $TARGET
+        done
+      else
+        FILENAME="$(echo $s | cut -d/ -f1)"
+        DIRECTORY="$(echo $s | cut -d/ -f2-)"
+        cat "$DIRECTORY/$FILENAME" >> $TARGET
+      fi
+    fi
+  done
+done
+
+echo Cleaning up..
+rm -rf /tmp/ansuel ../ansuel/*.b64
+echo Done.

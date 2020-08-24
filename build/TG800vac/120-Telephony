@@ -1,0 +1,4 @@
+echo [$SCRIPT]: Fix default Telephony tab
+# Default telephony tab is DECT!!! 
+sed -e 's^modalPath = "/modals/mmpbx-dect-modal.lp"^modalPath = "/modals/mmpbx-global-modal.lp"^' -i /www/cards/008_telephony.lp
+

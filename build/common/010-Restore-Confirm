@@ -1,0 +1,15 @@
+if [ $RESTORE = true ]
+then
+  echo [$SCRIPT]: Restore requested!! Enter y to undo changes:
+  if [ $YES = true ]
+  then
+    REPLY=y
+  else
+    read
+  fi
+  if [ "$REPLY" = "y" -o "$REPLY" = "Y" ]
+  then
+    for d in $(echo cards docroot lua snippets | tr " " "$IFS")
+    do
+      for s in $(find /rom/www/$d -type f | grep -v -E \(/rom/www/docroot/help\))
+      do
