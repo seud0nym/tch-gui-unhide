@@ -18,7 +18,7 @@ do
       chmod -x $f
     done
     echo -\> $d.b64
-    echo "echo [$$SCRIPT]: Deploy Ansuel $d code" > $DIR/../ansuel/$d.b64
+    echo "echo [\$SCRIPT]: Deploy Ansuel $d code" > $DIR/../ansuel/$d.b64
     echo "echo $(tar --owner=root --group=root -czf - * | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> $DIR/../ansuel/$d.b64
     echo >> $DIR/../ansuel/$d.b64
     cd $DIR
