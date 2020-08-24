@@ -10,7 +10,7 @@ else # night theme
   sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf132;"/' -i /www/cards/008_firewall.lp
   sed -e 's/class="content"/class="content card_bg mirror" data-bg-text="\&#xf095;"/' -i /www/cards/008_telephony.lp
   sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf188;"/' -i /www/cards/009_diagnostics.lp
-  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0c0;"/' -i /www/cards/011_usermgr.lp
+  [ -f /www/cards/011_usermgr.lp ] && sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0c0;"/' -i /www/cards/011_usermgr.lp
   sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf115;"/' -i /www/cards/012_contentsharing.lp
   sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf02f;"/' -i /www/cards/012_printersharing.lp
   sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf023;"/' -i /www/cards/013_parental.lp
