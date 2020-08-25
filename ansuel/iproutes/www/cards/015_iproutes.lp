@@ -50,43 +50,38 @@ end
   ngx.print('\
 \
 <div class="span3">\
-    <div class="smallcard" data-aos="zoom-in" data-aos-anchor-placement="center-bottom" data-aos-easing="ease-in-back">\
-        ');  ngx.print( ui_helper.createCardHeader(T"IP Extras", "/modals/iproutes-modal.lp") ); ngx.print('\
-        <div class="content card_bg" data-bg-text="&#xf018;">\
+    <div class="smallcard">\
+        ');  ngx.print( ui_helper.createCardHeader(T"IP Routing", "/modals/iproutes-modal.lp") ); ngx.print('\
+      <div class="content card_bg" data-bg-text="&#xf018;">\
 		<div class="divtable">\
             <span class="simple-desc">\
-            <i class="fas fa-exchange-alt" aria-hidden="true" href="#">&nbsp</i>\
+            <i href="#">&nbsp</i>\
               ');
-            local modal_link=format('class="modal-link" data-toggle="modal" data-remote="%s" data-id="device-modal"',modalPath)
+                local modal_link=format('class="modal-link" data-toggle="modal" data-remote="%s" data-id="device-modal"',modalPath)
+                ngx.print(
+                    format( N('<strong %1$s>%2$d</strong> Route',
+                            '<strong id="iproutescard_noofroutes" %1$s>%2$d</strong> Routes ', dyn_count),
+                            modal_link, dyn_count))
+                    ngx.print('\
+                    </span>\
+                    <span class="simple-desc">\
+                    ');
+                    local modal_link=format('class="modal-link" data-toggle="modal" data-remote="%s" data-id="device-modal"',modalPath)
+                    ngx.print(
+                    '<i href="#">&nbsp</i>' .. format( N('<strong id="iproutescard_noofipv4staticroutes" %1$s>%2$d</strong> IPv4 Static Route',
+                            '<strong id="iproutescard_noofipv4staticroutes" %1$s>%2$d</strong> IPv4 Static Routes', ipv4_count),
+                            modal_link, ipv4_count))
+                    ngx.print('\
+                    </span>\
+                    <span class="simple-desc">\
+                ');
             ngx.print(
-            format( N('<strong %1$s>%2$d Route</strong>',
-                      '<strong id="iproutescard_noofroutes" %1$s>%2$d Routes</strong> ', dyn_count),
-                      modal_link, dyn_count))
-              ngx.print('\
-            </span>\
-            <span class="simple-desc">\
-            ');
-            local modal_link=format('class="modal-link" data-toggle="modal" data-remote="%s" data-id="device-modal"',modalPath)
-            ngx.print(
-            '<i class="fas fa-forward" aria-hidden="true" href="#">&nbsp</i>' .. format( N('<strong id="iproutescard_noofipv4staticroutes" %1$s>%2$d IPv4 Static Route</strong>',
-                      '<strong id="iproutescard_noofipv4staticroutes" %1$s>%2$d IPv4 Static Routes</strong>', ipv4_count),
-                      modal_link, ipv4_count))
-              ngx.print('\
-            </span>\
-            <span class="simple-desc">\
-            ');
-            ngx.print(
-           '<i class="fas fa-server" aria-hidden="true" href="#">&nbsp</i>' .. format( N('<strong %1$s>%2$d DNS Server</strong>',
-                      '<strong id="iproutescard_dnsservers" %1$s>%2$d DNS Servers</strong>', dns_count),
+           '<i href="#">&nbsp</i>' .. format( N('<strong %1$s>%2$d</strong> DNS Server',
+                      '<strong id="iproutescard_dnsservers" %1$s>%2$d</strong> DNS Servers', dns_count),
                       modal_link, dns_count))
               ngx.print('\
             </span>\
 			')
-			local subinfo_light = {
-				span = {
-					style = "font-weight: bold;"
-				}
-			}
             local dosprotect = proxy.get("uci.dosprotect.globals.enabled")
             if dosprotect and dosprotect[1].value ~="" then
                 local dosprotect = dosprotect[1].value or "0"
@@ -97,7 +92,7 @@ end
                 else
                     dosprotect_status = T"DoS Protect disabled"
                 end
-                ngx.print( ui_helper.createSimpleLight(dosprotect, dosprotect_status, subinfo_light,"fa fas fa-menorah") )
+                ngx.print( ui_helper.createSimpleLight(dosprotect, dosprotect_status) )
             end
 
             local flowcache = proxy.get("uci.fcctlsettings.state.enabled")
@@ -109,12 +104,11 @@ end
                 else
                     flowcache_status = T"Flow Cache disabled"
                 end
-                ngx.print( ui_helper.createSimpleLight(flowcache, flowcache_status, subinfo_light,"fa fas fa-map-signs") )
+                ngx.print( ui_helper.createSimpleLight(flowcache, flowcache_status) )
             end
 			ngx.print('\
          </div>\
-		 </div>\
-\
+      </div>\
     </div>\
 </div>\
 ');

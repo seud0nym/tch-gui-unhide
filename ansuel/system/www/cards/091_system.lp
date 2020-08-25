@@ -27,7 +27,6 @@ if SSH_wan and (SSH_wan[1].value == "1") then
     sshwan_enabled = "Enabled"
 end
 
-
 local light_map = {
     Disabled = "off",
     Enabled = "green",
