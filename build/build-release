@@ -1,5 +1,5 @@
 #!/bin/sh
-COMMON="../utilities/de-telstra ../utilities/reset-to-factory-defaults-with-root ../utilities/set-optimal-bank-plan ../utilities/set-web-admin-password ../utilities/show-bank-plan"
+COMMON="../tch-gui-unhide ../utilities/de-telstra ../utilities/reset-to-factory-defaults-with-root ../utilities/set-optimal-bank-plan ../utilities/set-web-admin-password ../utilities/show-bank-plan"
 tar --xform='s,utilities/,,' --owner=root --group=root --mode=755 -czf DJA0231-18.1.c.0462.tar.gz ../tch-gui-unhide-DJA0231-18.1.c.0462 $COMMON
 tar --xform='s,utilities/,,' --owner=root --group=root --mode=755 -czf DJA0231-18.1.c.0514.tar.gz ../tch-gui-unhide-DJA0231-18.1.c.0514 $COMMON ../utilities/dumaos-beta
 tar --xform='s,utilities/,,' --owner=root --group=root --mode=755 -czf TG800vac-17.2.0284.tar.gz  ../tch-gui-unhide-TG800vac-17.2.0284  $COMMON

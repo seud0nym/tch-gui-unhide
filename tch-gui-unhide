@@ -1,0 +1,8 @@
+#!/bin/sh
+SCRIPT="tch-gui-unhide-$(uci get env.var.variant_friendly_name)-$(uci get version.@version[0].version | cut -d- -f1)"
+if [ -f "$SCRIPT" ]
+then
+  ./$SCRIPT $*
+else
+  echo "ERROR: Platform script not found ($SCRIPT)!!! Did you download the correct release?"
+fi 
