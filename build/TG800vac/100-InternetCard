@@ -1,0 +1,3 @@
+echo [$SCRIPT]: Fix default connection mode 
+sed -e 's/mode_active = "default"/mode_active = mode_default/' -i /www/cards/003_internet.lp
+

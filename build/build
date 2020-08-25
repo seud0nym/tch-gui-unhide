@@ -40,16 +40,16 @@ do
     echo $s | grep -q -E "(common$|${VARIANT}$|${VARIANT}/${VERSION}$)"
     if [ $? -eq 0 ]
     then
+      FILENAME="$(echo $s | cut -d/ -f1)"
+      DIRECTORY="$(echo $s | cut -d/ -f2-)"
       echo $s | grep -q "Ansuel"
       if [ $? -eq 0 ]
       then
-        for b in $(ls ../ansuel/*.b64)
+        for b in $(cat "$DIRECTORY/$FILENAME")
         do
-          cat $b >> $TARGET
+          cat ../ansuel/$b.b64 >> $TARGET
         done
       else
-        FILENAME="$(echo $s | cut -d/ -f1)"
-        DIRECTORY="$(echo $s | cut -d/ -f2-)"
         cat "$DIRECTORY/$FILENAME" >> $TARGET
       fi
     fi
