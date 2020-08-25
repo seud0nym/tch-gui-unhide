@@ -19,6 +19,13 @@ SCRIPT=$(basename $0 | sed "s/-$TARGET_VARIANT-$TARGET_VERSION//")
 
 # Device variant
 VARIANT=$(uci get env.var.variant_friendly_name)
-# Default to a light theme
-THEME=light
+
+# Default to night theme if already in use
+grep -q 'body{background-color:#353c42;color:#fff;font-family:Roboto,Noto,sans-serif;}' /www/docroot/css/gw.css
+if [ $? -eq 0 ]
+then
+  THEME=night
+else
+  THEME=light
+fi
 
