@@ -14,7 +14,7 @@ do
     cd /tmp/ansuel/$d
     for f in $(find . -type f -name "*.lp" -o -name "*.lua")
     do
-      sed -e 's/^[    ]*//g' -e 's/[    ]*$//' -i $f
+      sed -e 's/^[ \t]*//g' -e 's/[ \t]*$//' -i $f
       chmod -x $f
     done
     echo -\> $d.b64
@@ -33,6 +33,7 @@ do
   
   echo Writing $TARGET...
   echo "#!/bin/sh" > $TARGET
+  echo "echo [tch-gui-unhide]: Built for $VARIANT with Firmware $VERSION on $(date)" >> $TARGET
 
   for s in $(find . -mindepth 2 -type f -exec sh -c 'echo $(basename {})$(dirname {} | cut -c2-)' \; | sort)
   do
