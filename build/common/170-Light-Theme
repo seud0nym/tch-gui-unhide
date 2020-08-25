@@ -3,6 +3,7 @@ sed -e 's/margin-left:70px/margin-left:190px/' -i /www/docroot/css/mobiled.css
 if [ "$THEME" = "light" ]
 then
   echo [$SCRIPT]: Remove the background card icons from the cards that do have them
+  sed -e 's/class="content card_bg" data-bg-text="\&#xf072;"/class="content"/' -i /www/cards/008_qos.lp
   sed -e 's/class="content card_bg" data-bg-text="\&#xf085;"/class="content"/' -i /www/cards/091_system.lp
   sed -e 's/class="content card_bg" data-bg-text="\&#xf0ad;"/class="content"/' -i /www/cards/092_natalghelper.lp
   sed -e 's/class="content card_bg" data-bg-text="\&#xf0ad;"/class="content"/' -i /www/cards/093_xdsl.lp
