@@ -1,5 +1,5 @@
 echo [$SCRIPT]: Add a favicon
-for f in $(grep -l -r '<head>\\' /www/)
+for f in $(grep -l -r '<head>\\' /www/ 2>/dev/null)
 do
   sed -e 's^<head>\\^<link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico"/>\\^' -i $f
 done
