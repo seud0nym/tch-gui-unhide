@@ -51,7 +51,7 @@ if session:hasAccess("/modals/system-modal.lp") then
 <div class="span3">\
   <div class="smallcard">\
     ');  ngx.print( ui_helper.createCardHeader(T"System Extras", modalPath) ); ngx.print('\
-    <div class="content">\
+    <div class="content card_bg" data-bg-text="&#xf085;">\
         ');  
         local html = {
             ui_helper.createSimpleLight(nil, syslog_state_map[syslog_present], { light = { class = light_map[syslog_present] } })
