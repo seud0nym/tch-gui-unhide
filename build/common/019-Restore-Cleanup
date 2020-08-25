@@ -1,5 +1,3 @@
-      done
-      for f in $(find /www/$d -type f | grep -v -E \(/www/docroot/help\))
       do
         if [ ! -f "/rom$f" ]
         then
