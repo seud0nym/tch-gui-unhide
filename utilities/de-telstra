@@ -20,93 +20,124 @@ SRV_samba=0
 SRV_system=0
 SRV_watchdog=0
 SRV_web=0
+SRV_upnp=0
 
-# Use the device variant as the default host name
-HOSTNAME=$(uci get env.var.variant_friendly_name)
-# Something more sensible than modem
-DOMAIN=gateway
+# Options
+VARIANT=$(uci get env.var.variant_friendly_name)
+SERIAL=$(uci get env.var.serial)
+HOST='u'
+DOMAIN='u'
+NS='u'
+ALG='u'
+DLNAD='u'
+POWER='u' 
+PRNTR='u'
+SAMBA='u'
+MMPBX='u'
+UPNP='u'
 
-SERIAL=false
-
-while getopts h:d:s option
+while getopts h:d:n:a:c:f:p:r:t:u:AS option
 do
  case "${option}" in
- h) HOSTNAME=${OPTARG};;
- d) DOMAIN=${OPTARG};;
- s) SERIAL=true;;
- ?) echo "Optional parameters:"
-    echo " -h hostname     : Set the host name to 'hostname' rather than $HOSTNAME"
-    echo " -s              : Append the serial number to the hostname"
-    echo " -d domainname   : Set the domain name to 'domainname' rather than $DOMAIN"
+ A) HOST='d'; DOMAIN='gateway'; NS='c'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
+ S) HOST='s'; DOMAIN='gateway'; NS='c'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
+ h) HOST=${OPTARG};;
+ d) case "${OPTARG}" in g|G) DOMAIN='gateway';; u|U) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
+ n) NS=${OPTARG};;
+ a) case "${OPTARG}" in y|Y) ALG='1';; n|N) ALG='0';; u|U) ALG='u';; *) ALG='u'; echo 'WARNING: -a valid options are y, n, or u';; esac;;
+ c) case "${OPTARG}" in y|Y) DLNAD='1';; n|N) DLNAD='0';; u|U) DLNAD='u';; *) DLNAD='u'; echo 'WARNING: -c valid options are y, n, or u';; esac;;
+ f) case "${OPTARG}" in y|Y) SAMBA='1';; n|N) SAMBA='0';; u|U) SAMBA='u';; *) SAMBA='u'; echo 'WARNING: -f valid options are y, n, or u';; esac;;
+ p) case "${OPTARG}" in y|Y) POWER='y';; n|N) POWER='n';; u|U) POWER='u';; *) POWER='u'; echo 'WARNING: -p valid options are y, n, or u';; esac;;
+ r) case "${OPTARG}" in y|Y) PRNTR='1';; n|N) PRNTR='0';; u|U) PRNTR='u';; *) PRNTR='u'; echo 'WARNING: -r valid options are y, n, or u';; esac;;
+ t) case "${OPTARG}" in y|Y) MMPBX='1';; n|N) MMPBX='0';; u|U) MMPBX='u';; *) MMPBX='u'; echo 'WARNING: -t valid options are y, n, or u';; esac;;
+ u) case "${OPTARG}" in y|Y) UPNP='1';; n|N) UPNP='0';; u|U) UPNP='u';; *) UPNP='u'; echo 'WARNING: -u valid options are y, n, or u';; esac;;
+ ?) echo "Syntax: $0 <options>"
+    echo "Optional parameters:"
+    echo " -h u|d|s|<hostname>"
+    echo "    where u            Leave hostname unchanged (Default)"
+    echo "          d            Set the hostname to $VARIANT"
+    echo "          s            Set the hostname to $VARIANT-$SERIAL"
+    echo "          <hostname>   Use the specified hostname"
+    echo " -d u|g|<domainname>"
+    echo "    where u            Leave domain name unchanged (Default)"
+    echo "          g            Set the domain name to gateway"
+    echo "          <domainname> Set the domain name to <domainname>"
+    echo " -n u|a|c|g|f|o|<n.n.n.n>"
+    echo "    where u            Leave DNS servers unchanged (Default)"
+    echo "          a            Automatically use the DNS servers from the ISP (device default)"
+    echo "          c            Set the DNS servers to Cloudflare"
+    echo "          g            Set the DNS servers to Google"
+    echo "          f            Set the DNS servers to OpenDNS Family Shield"
+    echo "          o            Set the DNS servers to OpenDNS"
+    echo "          <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)"
+    echo " -a u|y|n"
+    echo "    where u            Leave ALGs unchanged (Default)"
+    echo "          y            Enable ALGs (device default)"
+    echo "          n            Disable ALGs (except SIP if telephony enabled)"
+    echo " -c u|y|n"
+    echo "    where u            Leave Content Sharing unchanged (Default)"
+    echo "          y            Enable Content Sharing (device default)"
+    echo "          n            Disable Content Sharing"
+    echo " -f u|y|n"
+    echo "    where u            Leave File Sharing unchanged (Default)"
+    echo "          y            Enable File Sharing (device default)"
+    echo "          n            Disable File Sharing"
+    echo " -p u|y|n"
+    echo "    where u            Leave power saving unchanged (Default)"
+    echo "          y            Enable power saving (device default)"
+    echo "          n            Disable power saving"
+    echo " -r u|y|n"
+    echo "    where u            Leave Printer Sharing unchanged (Default)"
+    echo "          y            Enable Printer Sharing (device default)"
+    echo "          n            Disable Printer Sharing"
+    echo " -t u|y|n"
+    echo "    where u            Leave Telephony (mmpbx) unchanged (Default)"
+    echo "          y            Enable the telephony service (device default)"
+    echo "          n            Disable the telephony service"
+    echo " -u u|y|n"
+    echo "    where u            Leave UPnP unchanged (Default)"
+    echo "          y            Enable the UPnP service (device default)"
+    echo "          n            Disable the UPnP service"
+    echo " -A                    Equivalent to: -h d -d g -n c -a n -f n -p n"
+    echo " -S                    Equivalent to: -h s -d g -n c -a n -f n -p n"
     exit;;
  esac
 done
 
-if [ $SERIAL = true ]
-then
-  HOSTNAME=$HOSTNAME-$(uci get env.var.serial)
-fi
-
-uci get dhcp.main.hostname | grep -q "$HOSTNAME"
-if [ $? -eq 0 -a "$(uci get system.@system[0].hostname)" = "$HOSTNAME" ]
-then
-  echo [$SCRIPT]: Host name is already $HOSTNAME
-else
-  echo [$SCRIPT]: Setting the host name to $HOSTNAME
-  uci get dhcp.main.hostname | grep -q telstra.wifi
-  if [ $? -eq 0 ]
+status2text() {
+  if [ "$1" = "0" ]
   then
-    MULTIAP=true
+    echo Disabled
   else
-    MULTIAP=false
+    echo Enabled
   fi
-  uci -q delete dhcp.main.hostname
-  uci add_list dhcp.main.hostname="$HOSTNAME"
-  SRV_dnsmasq=$(( $SRV_dnsmasq + 2 ))
-  if [ $MULTIAP = true ]
-  then
-    echo [$SCRIPT]: Re-adding telstra.wifi hostname for EasyMesh
-    uci add_list dhcp.main.hostname='telstra.wifi'
-    SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
-  fi
-  uci set system.@system[0].hostname="$HOSTNAME"
-  SRV_system=$(( $SRV_system + 1 ))
-  export HOSTNAME=$HOSTNAME
-fi
+}
 
-if [ "$(uci get dhcp.main.domain)" = "$DOMAIN" ]
-then
-  echo [$SCRIPT]: Domain name is already $DOMAIN
-else
-  echo [$SCRIPT]: Setting the domain to $DOMAIN
-  uci set dhcp.main.domain="$DOMAIN"
-  SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
-fi
+echo [$SCRIPT]: Applying default hardening rules...
 
-echo [$SCRIPT]: Checking SSH access
 if [ -f authorized_keys ]
 then
   cmp -s authorized_keys /etc/dropbear/authorized_keys
   if [ $? -eq 1 ]
   then
-    echo [$SCRIPT]: Found authorized_keys - replacing /etc/dropbear/authorized_keys
+    echo [$SCRIPT]: - Found authorized_keys - replacing /etc/dropbear/authorized_keys
     cp authorized_keys /etc/dropbear/authorized_keys
     SRV_dropbear=$(( $SRV_dropbear + 1 ))
   else
-    echo [$SCRIPT]: authorized_keys already replaced /etc/dropbear/authorized_keys
+    echo [$SCRIPT]: - authorized_keys already replaced /etc/dropbear/authorized_keys
   fi
 else
   if [ -z "$(cat /etc/dropbear/authorized_keys)" ]
   then
-    echo [$SCRIPT]: All public keys already removed from /etc/dropbear/authorized_keys
+    echo [$SCRIPT]: - All public keys already removed from /etc/dropbear/authorized_keys
   else
-    echo [$SCRIPT]: Removing all public keys from /etc/dropbear/authorized_keys
+    echo [$SCRIPT]: - Removing all public keys from /etc/dropbear/authorized_keys
     echo > /etc/dropbear/authorized_keys
   fi
 fi
 if [ "$(uci get dropbear.wan.enable)" = '0' -a "$(uci get dropbear.lan.enable)" = '1'  -a "$(uci get dropbear.lan.enable)" = '1' -a "$(uci get dropbear.lan.PasswordAuth)" = 'on' -a "$(uci get dropbear.lan.RootPasswordAuth)" = 'on' -a "$(uci get dropbear.lan.RootLogin)" = '1' ]
 then
-  echo [$SCRIPT]: dropbear re-configuration already completed
+  echo [$SCRIPT]: - dropbear re-configuration already completed
 else
   uci set dropbear.wan.enable='0'
   # We need to enable dropbear LAN access properly as you can enable/disable via the GUI, and if
@@ -121,7 +152,7 @@ fi
 
 if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" ]
 then
-  echo [$SCRIPT]: Disabling CWMP
+  echo [$SCRIPT]: - Disabling CWMP
   uci set cwmpd.cwmpd_config.state='0'
   uci commit cwmpd
   SRV_cwmp=$(( $SRV_cwmp + 1 ))
@@ -133,14 +164,14 @@ then
   uci commit watchdog
   SRV_watchdog=$(( $SRV_watchdog + 2 ))
 else
-  echo [$SCRIPT]: CWMP already disabled
+  echo [$SCRIPT]: - CWMP already disabled
 fi
 
 if [ -z "$(uci -q get autoreset.vsparc_enabled)" -a -z "$(uci -q get autoreset.thor_enabled)" -a -z "$(uci -q get wifi_doctor_agent.acs)" -a -z "$(uci -q get wifi_doctor_agent.config)" -a -z "$(uci -q get wifi_doctor_agent.as_config)" ]
 then
-  echo [$SCRIPT]: Telstra monitoring already disabled
+  echo [$SCRIPT]: - Telstra monitoring already disabled
 else
-  echo [$SCRIPT]: Disabling Telstra monitoring
+  echo [$SCRIPT]: - Disabling Telstra monitoring
   uci -q delete autoreset.vsparc_enabled
   uci -q delete autoreset.thor_enabled
   uci commit autoreset
@@ -154,9 +185,9 @@ fi
 
 if [ -z "$(uci -q get dhcp.hotspot)" -a -z "$(uci -q get dhcp.fonopen)" -a -z "$(uci -q get network.fonopen)" -a -z "$(uci -q get web.fon)" -a -z "$(uci -q show web.ruleset_main.rules | grep '\bfon\b')" -a -z "$(uci -q show qos.reclassify_1.srcif | grep '\bfonopen\b')" -a -z "$(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\))" ]
 then
-  echo [$SCRIPT]: Telstra AIR already removed
+  echo [$SCRIPT]: - Telstra AIR already removed
 else
-  echo [$SCRIPT]: Removing Telstra Air
+  echo [$SCRIPT]: - Removing Telstra Air
   SRV_hotspot=$(( $SRV_hotspot + 1 ))
   uci -q delete dhcp.hotspot
   uci -q delete dhcp.fonopen
@@ -175,7 +206,7 @@ else
   for wl in $(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | cut -d. -f2)
   do
     ap=$(uci show wireless | grep iface=\'$wl\' | cut -d. -f2)
-    echo [$SCRIPT]: Removing SSID $wl \(AP=$ap\)
+    echo [$SCRIPT]: - Removing SSID $wl \(AP=$ap\)
     uci delete wireless.$wl
     uci delete wireless.$ap
     SRV_network=$(( $SRV_network + 2 ))
@@ -188,14 +219,14 @@ do
   echo $s | grep -q -i telstra
   if [ $? -eq 0 ]
   then
-    echo [$SCRIPT]: Removing Telstra NTP server $s
+    echo [$SCRIPT]: - Removing Telstra NTP server $s
     uci del_list system.ntp.server="$s"
     SRV_ntp=$(( $SRV_ntp + 1 ))
   fi
 done
 if [ $SRV_ntp -eq 0 ]
 then
-  echo [$SCRIPT]: Telstra NTP servers already removed
+  echo [$SCRIPT]: - Telstra NTP servers already removed
 else
   uci commit system
 fi
@@ -203,102 +234,302 @@ fi
 /etc/init.d/lotagent enabled
 if [ $? -eq 0 ]
 then
-  echo [$SCRIPT]: Disabling lotagent
+  echo [$SCRIPT]: - Disabling lotagent  \(Telstra logging\)
   /etc/init.d/lotagent stop
   /etc/init.d/lotagent disable
 else
-  echo [$SCRIPT]: lotagent already disabled
+  echo [$SCRIPT]: - lotagent already disabled
 fi
 
 if [ -z "$(uci -q get web.default.default_user)" -a -z "$(uci -q get web.uidefault.defaultuser)" ]
 then
-  echo [$SCRIPT]: Web GUI default user access already removed
+  echo [$SCRIPT]: - Web GUI default user access already removed
 else
-  echo [$SCRIPT]: Removing web GUI default user access
+  echo [$SCRIPT]: - Removing web GUI default user access
   uci -q delete web.default.default_user
   uci -q delete web.uidefault.defaultuser
   uci commit web
   SRV_web=$(( $SRV_web + 2 ))
 fi
 
-if [ "$(uci -q get printersharing.config.enabled)" = "1" ]
+if [ "$HOST" = "u" ]
 then
-  echo [$SCRIPT]: Disabling printer sharing
-  uci set printersharing.config.enabled='0'
-  uci commit printersharing
+  echo [$SCRIPT]: Host name unchanged \[$HOSTNAME\]
+else
+  case $HOST in
+  d) HOSTNAME=$VARIANT;;
+  s) HOSTNAME=$VARIANT-$SERIAL;;
+  *) HOSTNAME=$HOST;;
+  esac
+  uci get dhcp.main.hostname | grep -q "$HOSTNAME"
+  if [ $? -eq 0 -a "$(uci get system.@system[0].hostname)" = "$HOSTNAME" ]
+  then
+    echo [$SCRIPT]: Host name is already $HOSTNAME
+  else
+    echo [$SCRIPT]: Setting the host name to $HOSTNAME
+    uci get dhcp.main.hostname | grep -q telstra.wifi
+    if [ $? -eq 0 ]
+    then
+      MULTIAP=true
+    else
+      MULTIAP=false
+    fi
+    uci -q delete dhcp.main.hostname
+    uci add_list dhcp.main.hostname="$HOSTNAME"
+    SRV_dnsmasq=$(( $SRV_dnsmasq + 2 ))
+    if [ $MULTIAP = true ]
+    then
+      echo [$SCRIPT]: Re-adding telstra.wifi hostname for EASYM
+      uci add_list dhcp.main.hostname='telstra.wifi'
+      SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
+    fi
+    uci set system.@system[0].hostname="$HOSTNAME"
+    SRV_system=$(( $SRV_system + 1 ))
+    export HOSTNAME=$HOSTNAME
+  fi
+fi
+
+DOMAIN_NOW="$(uci get dhcp.main.domain)"
+if [ "$DOMAIN" = "u" -o "$DOMAIN_NOW" = "$DOMAIN" ]
+then
+  echo [$SCRIPT]: Domain name unchanged \[$DOMAIN_NOW\]
+else
+  echo [$SCRIPT]: Setting the domain to $DOMAIN
+  uci set dhcp.main.domain="$DOMAIN"
+  SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
+fi
+
+PEERDNS_NOW="$(uci -q get network.wan.peerdns)"
+WANDNS_NOW="$(uci get network.wan.dns)"
+if [ "$NS" = "u" ]
+then
+  echo [$SCRIPT]: DNS Servers unchanged \[ $WANDNS_NOW ISP Peer DNS $(status2text $PEERDNS_NOW) \]
+else
+  case $NS in
+  a) PEERDNS=1; WANDNS1=""; WANDNS2="";;
+  c) PEERDNS=0; WANDNS1="1.1.1.1"; WANDNS2="1.0.0.1";;
+  g) PEERDNS=0; WANDNS1="8.8.8.8"; WANDNS2="8.8.4.4";;
+  f) PEERDNS=0; WANDNS1="208.67.222.123"; WANDNS2="208.67.220.123";;
+  o) PEERDNS=0; WANDNS1="208.67.222.222"; WANDNS2="208.67.220.220";;
+  *) PEERDNS=0; WANDNS1="$(echo $NS | cut -d, -f1)"; WANDNS2="$(echo $NS | cut -d, -f2)";;
+  esac
+  if [ "$PEERDNS" = "0" -a -z "$WANDNS1" ]
+  then
+    echo [$SCRIPT]: No DNS Server IP address specified???
+  else
+    if [ $PEERDNS -eq 0 ]
+    then
+      IPv4PATTERN="([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
+      echo "$WANDNS1" | grep -q -E $IPv4PATTERN
+      if [ $? -eq 1 ]
+      then 
+        echo [$SCRIPT]: WARNING! Invalid IP address $WANDNS1 IGNORED
+        WANDNS1=""
+      fi
+      if [ ! -z "$WANDNS2" ]
+      then
+        echo "$WANDNS2" | grep -q -E $IPv4PATTERN
+        if [ $? -eq 1 ]
+        then 
+          echo [$SCRIPT]: WARNING! Invalid IP address $WANDNS2 IGNORED
+          WANDNS2=""
+        fi
+      fi
+      if [ -z "$WANDNS1" -a -z "$WANDNS2" ]
+      then
+        echo [$SCRIPT]: WARNING! No valid IP addresses specified - No DNS Server changes applied
+      else
+        if [ "$PEERDNS_NOW" = "0" ]
+        then
+          echo [$SCRIPT]: ISP peer DNS unchanged \[$(status2text $PEERDNS_NOW)\]
+        else
+          echo [$SCRIPT]: Ignoring ISP defined DNS Servers
+          uci set network.wan.peerdns='0'
+          SRV_network=$(( $SRV_network + 1 ))
+        fi
+        if [ "$WANDNS_NOW" = "$WANDNS1 $WANDNS2" ]
+        then
+          echo [$SCRIPT]: DNS Servers unchanged \[ $WANDNS_NOW \]
+        else 
+          uci -q delete network.wan.dns
+          SRV_network=$(( $SRV_network + 2 ))
+          if [ ! -z "$WANDNS1" ]
+          then
+            uci add_list network.wan.dns="$WANDNS1"
+            SRV_network=$(( $SRV_network + 1 ))
+          fi
+          if [ ! -z "$WANDNS2" ]
+          then
+            uci add_list network.wan.dns="$WANDNS2"
+            SRV_network=$(( $SRV_network + 1 ))
+          fi
+          echo [$SCRIPT]: DNS Servers changed \[ $WANDNS1 $WANDNS2 \]
+        fi
+      fi
+    else
+      if [ "$PEERDNS_NOW" = "1" ]
+      then
+        echo [$SCRIPT]: ISP peer DNS unchanged \[$(status2text $PEERDNS_NOW)\]
+      else
+        echo [$SCRIPT]: Using ISP defined DNS Servers
+        uci set network.wan.peerdns='1'
+        uci -q delete network.wan.dns
+        SRV_network=$(( $SRV_network + 2 ))
+      fi
+    fi
+  fi
+fi
+
+DLNA_NOW="$(uci -q get dlnad.config.enabled)"
+if [ "$DLNAD" = "u" -o "$DLNA_NOW" = "$DLNAD" ]
+then
+  echo [$SCRIPT]: Content sharing unchanged \[$(status2text $DLNA_NOW)\]
+else
+  uci set dlnad.config.enabled="$DLNAD"
+  SRV_dlna=$(( $SRV_dlna + 1 ))
+  echo [$SCRIPT]: Content sharing $(status2text $DLNA_NOW)
+fi
+
+PRNTR_NOW="$(uci -q get printersharing.config.enabled)"
+if [ "$PRNTR" = "u" -o "$PRNTR_NOW" = "$PRNTR" ]
+then
+  echo [$SCRIPT]: Printer sharing unchanged \[$(status2text $PRNTR_NOW)\]
+else
+  uci set printersharing.config.enabled="$PRNTR"
   SRV_cups=$(( $SRV_cups + 1 ))
-else
-  echo [$SCRIPT]: Printer sharing already disabled
+  echo [$SCRIPT]: Printer sharing $(status2text $DLNA_NOW)
 fi
 
-if [ "$(uci -q get samba.samba.filesharing)" = "1" ]
+SAMBA_NOW="$(uci -q get samba.samba.filesharing)"
+if [ "$SAMBA" = "u" -o "$SAMBA_NOW" = "$SAMBA" ]
 then
-  echo [$SCRIPT]: Disabling file sharing
-  uci set samba.samba.filesharing='0'
-  uci commit samba
+  echo [$SCRIPT]: File sharing unchanged \[$(status2text $SAMBA_NOW)\]
+else
+  uci set samba.samba.filesharing="$SAMBA"
   SRV_samba=$(( $SRV_samba + 1 ))
-else
-  echo [$SCRIPT]: File sharing already disabled
+  echo [$SCRIPT]: File sharing  $(status2text $SAMBA_NOW)
 fi
 
-if [ "$(uci -q get dlnad.config.enabled)" = "1" ]
+MMPBX_NOW="$(uci -q get mmpbx.global.enabled)"
+if [ "$MMPBX" = "u" -o "$MMPBX_NOW" = "$MMPBX" ]
 then
-  echo [$SCRIPT]: Disabling content sharing
-  uci set dlnad.config.enabled='0'
-  uci commit dlnad
+  echo [$SCRIPT]: Telephony unchanged \[$(status2text $MMPBX_NOW)\]
 else
-  echo [$SCRIPT]: Content sharing already disabled
+  uci set mmpbx.global.enabled="$MMPBX"
+  SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
+  MMPBX_NOW="$MMPBX"
+  if [ "$MMPBX" = "1" ]
+  then
+    echo [$SCRIPT]: Telephony enabled
+    if [ "$(uci -q get mmpbxmobilenet.VoLTE)" ]
+    then
+      if [ "$(uci get mmpbxmobilenet.VoLTE.enabled)" = "1" ]
+      then
+        echo [$SCRIPT]: VoLTE already enabled
+      else
+        echo [$SCRIPT]: Enabling VoLTE backup voice service and SMS reception
+        uci set mmpbxmobilenet.VoLTE.enabled='1'
+        SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
+        uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
+        uci set mobiled_sessions.@session[0].activated='1'
+        uci set mobiled_sessions.@session[0].autoconnect='1'
+        uci set mobiled_sessions.@session[0].optional='1'
+        SRV_mobiled=$(( $SRV_mobiled + 1 ))
+      fi
+    fi
+  else
+    echo [$SCRIPT]: Telephony disabled
+  fi
 fi
 
-for g in $(uci show firewall | grep '\.helper' | cut -d\' -f2 | grep -v -i sip)
-do
-  key=$(uci show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
-  if [ "$(uci get -q $key.enable)" != "0" ]
-  then
-    echo [$SCRIPT]: Disabling $g ALG
-    uci set $key.enable='0'
-    SRV_fw=$(( $SRV_fw + 1 ))
-  else
-    echo [$SCRIPT]: $g ALG already disabled
-  fi
-done
-
-if [ "$(uci -q get mmpbxmobilenet.VoLTE)" ]
+if [ "$ALG" = "u" ]
 then
-  if [ "$(uci get mmpbxmobilenet.VoLTE.enabled)" = "1" ]
-  then
-    echo [$SCRIPT]: VoLTE already enabled
-  else
-    echo [$SCRIPT]: Enabling VoLTE backup voice service and SMS reception
-    uci set mmpbxmobilenet.VoLTE.enabled='1'
-    SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
-    uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
-    uci set mobiled_sessions.@session[0].activated='1'
-    uci set mobiled_sessions.@session[0].autoconnect='1'
-    uci set mobiled_sessions.@session[0].optional='1'
-    SRV_mobiled=$(( $SRV_mobiled + 1 ))
-  fi
+  echo [$SCRIPT]: ALGs unchanged \[$(uci show firewall | grep helper | grep -E "enable='(1|y)'" | wc -l) Enabled\]
+else
+  for g in $(uci show firewall | grep '\.helper' | cut -d\' -f2)
+  do
+    key=$(uci show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
+    G=$(echo $g | tr "[a-z]" "[A-Z]")
+    G_NOW="$(uci get -q $key.enable)"
+    if [ "$G_NOW" != "$ALG" ]
+    then
+      if [ "$ALG" = "0" ]
+      then
+        echo $g | grep -q -i sip
+        if [ $? -eq 0 ]
+        then
+          if [ "$MMPBX_NOW" = "1" ]
+          then
+            echo [$SCRIPT]: SIP ALG left enabled because Telephony enabled
+            continue
+          fi
+        fi
+        echo [$SCRIPT]: $G ALG disabled
+      else 
+        echo [$SCRIPT]: $G ALG enabled
+      fi
+      uci set $key.enable="$ALG"
+      SRV_fw=$(( $SRV_fw + 1 ))
+    else
+      echo [$SCRIPT]: $G ALG unchanged \[$(status2text $G_NOW)\]
+    fi
+  done
+fi
+
+NATPMP_NOW="$(uci get upnpd.config.enable_natpmp)"
+UPNP_NOW="$(uci get upnpd.config.enable_upnp)"
+if [ "$UPNP" = "u" -o \( "$NATPMP_NOW" = "$UPNP" -a "$UPNP_NOW" = "$UPNP" \) ]
+then
+  echo [$SCRIPT]: UPnP unchanged \[UPnP $(status2text $UPNP_NOW) NAT-PMP $(status2text $NATPMP_NOW)\]
+else
+  uci set upnpd.config.enable_natpmp="$UPNP"
+  uci set upnpd.config.enable_upnp="$UPNP"
+  uci commit upnpd
+  SRV_upnp=$(( $SRV_upnp + 2 ))
+  echo [$SCRIPT]: UPnP \[$(status2text $UPNP)\]
 fi
 
 uci commit
 
+PWR_STATUS=$(pwrctl show | grep ENABLED | grep -v "Switch Deep Green Mode" | wc -l)
+if [ \( $PWR_STATUS -eq 0 -a "$POWER" = "n" \) -o \( $PWR_STATUS -gt 0 -a "$POWER" = "y" \) ]
+then
+  POWER='u'
+fi
+case "$POWER" in
+u)  echo [$SCRIPT]: Power saving settings unchanged \[$(status2text $PWR_STATUS)\];;
+n)  echo [$SCRIPT]: Disabling power saving...
+    pwrctl config --cpuspeed 0
+    pwrctl config --wait off
+    pwrctl config --ethapd off
+    pwrctl config --eee off
+    pwrctl config --autogreeen off;;
+y)  echo [$SCRIPT]: Enabling power saving...
+    pwrctl config --cpuspeed 1
+    pwrctl config --wait on
+    pwrctl config --ethapd on
+    pwrctl config --eee on
+    pwrctl config --autogreeen on;;
+esac
+
 echo [$SCRIPT]: Applying required service changes...
-/etc/init.d/watchdog-tch reload
-[ -f /etc/init.d/cwmpd -a $SRV_cwmp -gt 0 ]                && { /etc/init.d/cwmpd disable;/etc/init.d/cwmpd stop; }
-[ -f /etc/init.d/hotspotd -a $SRV_hotspot -gt 0 ]          && { /etc/init.d/hotspotd disable; /etc/init.d/hotspotd stop; }
-[ -f /etc/init.d/autoreset -a $SRV_monitor -gt 0 ]         && { /etc/init.d/autoreset disable; /etc/init.d/autoreset stop; }
-[ -f /etc/init.d/tls-thor -a $SRV_monitor -gt 0 ]          && { /etc/init.d/tls-thor disable; /etc/init.d/tls-thor stop; }
-[ -f /etc/init.d/wifi-doctor-agent -a $SRV_monitor -gt 0 ] && /etc/init.d/wifi-doctor-agent reload
-[ $SRV_ntp -gt 0 ]      && /etc/init.d/sysntpd restart
-[ $SRV_system -gt 0 ]   && /etc/init.d/system reload
-[ $SRV_samba -gt 0 ]    && { /etc/init.d/samba reload; /etc/init.d/samba-nmbd reload; }
-[ $SRV_dlna -gt 0 ]     && { /etc/init.d/dlnad disable; /etc/init.d/dlnad stop; }
-[ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear reload
-[ $SRV_dhcp -gt 0 ]     && /etc/init.d/dnsmasq reload
-[ $SRV_fw -gt 0 ]       && /etc/init.d/firewall reload
-[ $SRV_network -gt 0 ]  && /etc/init.d/network reload
-[ $SRV_mmpbxd -gt 0 ]   && /etc/init.d/mmpbxd restart
-[ $SRV_mobiled -gt 0 ]  && /etc/init.d/mobiled restart
+/etc/init.d/watchdog-tch reload  > /dev/null 2>&1
+[ -f /etc/init.d/cwmpd -a $SRV_cwmp -gt 0 ]                && { /etc/init.d/cwmpd disable;/etc/init.d/cwmpd stop; } > /dev/null 2>&1
+[ -f /etc/init.d/hotspotd -a $SRV_hotspot -gt 0 ]          && { /etc/init.d/hotspotd disable; /etc/init.d/hotspotd stop; } > /dev/null 2>&1
+[ -f /etc/init.d/autoreset -a $SRV_monitor -gt 0 ]         && { /etc/init.d/autoreset disable; /etc/init.d/autoreset stop; } > /dev/null 2>&1
+[ -f /etc/init.d/tls-thor -a $SRV_monitor -gt 0 ]          && { /etc/init.d/tls-thor disable; /etc/init.d/tls-thor stop; } > /dev/null 2>&1
+[ -f /etc/init.d/wifi-doctor-agent -a $SRV_monitor -gt 0 ] && /etc/init.d/wifi-doctor-agent reload > /dev/null 2>&1
+[ $SRV_ntp -gt 0 ]      && /etc/init.d/sysntpd restart > /dev/null 2>&1
+[ $SRV_system -gt 0 ]   && /etc/init.d/system reload > /dev/null 2>&1
+[ $SRV_samba -gt 0 ]    && { /etc/init.d/samba reload; /etc/init.d/samba-nmbd reload; } > /dev/null 2>&1
+[ $SRV_dlna -gt 0 ]     && /etc/init.d/dlnad restart > /dev/null 2>&1
+[ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear reload > /dev/null 2>&1
+[ $SRV_dhcp -gt 0 ]     && /etc/init.d/dnsmasq reload > /dev/null 2>&1
+[ $SRV_fw -gt 0 ]       && /etc/init.d/firewall reload > /dev/null 2>&1
+[ $SRV_network -gt 0 ]  && /etc/init.d/network reload > /dev/null 2>&1
+[ $SRV_mmpbxd -gt 0 ]   && /etc/init.d/mmpbxd restart > /dev/null 2>&1
+[ $SRV_mobiled -gt 0 ]  && /etc/init.d/mobiled restart > /dev/null 2>&1
+[ $SRV_upnp -gt 0 ]     && /etc/init.d/miniupnpd-tch restart > /dev/null 2>&1
 
 echo [$SCRIPT]: Removing packages that are no longer required
 opkg --force-removal-of-dependent-packages remove conf-cwmpd cwmpd autoreset-tch mappings-fon geolocation-tch hotspotd webui-fon tls-thor wifi-doctor-agent conf-wifi-doctor-agent libbcmairiq conf-airiq
