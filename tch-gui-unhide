@@ -1,8 +1,14 @@
 #!/bin/sh
-SCRIPT="tch-gui-unhide-$(uci get env.var.variant_friendly_name)-$(uci get version.@version[0].version | cut -d- -f1)"
-if [ -f "$SCRIPT" ]
+
+SCRIPT="tch-gui-unhide-$(uci get version.@version[0].version | cut -d- -f1)"
+if [ -f "$SCRIPT" -o  -a "$1" != "-U" ]
 then
   ./$SCRIPT $*
+  if [ "$1" = "-?" ]
+  then
+      echo " -U              : Download the latest release (will overwrite all existing script versions)"
+  fi
 else
-  echo "ERROR: Platform script not found ($SCRIPT)!!! Did you download the correct release?"
+  echo "[tch-gui-unhide] Attempting to download latest release from GitHub..."
+  wget https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$(uci get version.@version[0].version | cut -d- -f1).tar.gz -O - | tar -xzvf -
 fi 

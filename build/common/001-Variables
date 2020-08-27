@@ -1,21 +1,19 @@
 # Based on various pages https://hack-technicolor.readthedocs.io/en/stable/
 
-TARGET_VARIANT=""
 TARGET_VERSION=""
 for x in $(basename $0 | tr '-' "$IFS")
 do 
-  TARGET_VARIANT=$TARGET_VERSION
   TARGET_VERSION=$x
 done
 echo "$TARGET_VERSION" | grep -q '\.'
 if [ $? -eq 1 ]
 then
-  echo "ERROR: Unable to determine Target device Variant and Version!"
+  echo "ERROR: Unable to determine Target Version!"
   echo "       Did the script get renamed??"
   echo "       Aborting..."
   exit 1
 fi
-SCRIPT=$(basename $0 | sed "s/-$TARGET_VARIANT-$TARGET_VERSION//")
+SCRIPT=$(basename $0 | sed "s/-$TARGET_VERSION//")
 
 # Device variant
 VARIANT=$(uci get env.var.variant_friendly_name)

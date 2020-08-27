@@ -1,17 +1,68 @@
 RESTORE=false
 YES=false
 
-while getopts t:ry option
+FILENAME=$(basename $0)
+
+while getopts t:ryu option
 do
  case "${option}" in
- t) if [ "$(echo ${OPTARG} | tr "LN" "ln" | sed 's/\(.\)\(.*\)/\1/')" = "n" ]; then THEME=night; fi;;
- r) RESTORE=true;;
- y) YES=true;;
- ?) echo "Optional parameters:"
-    echo " -t light|night  : Set the theme to either light (the default) or night"
-    echo " -r              : Restore changed GUI files to their original state (config changes are NOT restored)"
-    echo " -y              : Bypass confirmation prompts (answers 'y')"
-    exit;;
+   t) if [ "$(echo ${OPTARG} | tr "LN" "ln" | sed 's/\(.\)\(.*\)/\1/')" = "n" ]; then THEME=night; fi;;
+   r) RESTORE=true;;
+   y) YES=true;;
+   u) RESULT=$(curl -s -k -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME | sed 's/\r//')
+      if [ $? -ne 0 ]
+      then
+         echo "[tch-gui-unhide] GitHub check of $FILENAME failed with an unknown error. Do you have an internet connection?"
+         return 5
+      else 
+         STATUS=$(echo $RESULT | grep '^HTTP' | cut -d' ' -f2)
+         LENGTH=$(echo $RESULT | grep '^Content-Length' | cut -d' ' -f2)
+         next=''
+         for t in $(echo $RESULT | tr " " "$IFS")
+         do
+            case "$next" in
+            s) STATUS="$t";next='';;
+            l) LENGTH="$t";next='';;
+            *) case "$t" in
+            "HTTP/1.1") next='s';;
+            "Content-Length:") next='l';;
+            *) next='';;
+            esac
+            esac
+         done
+         case "$STATUS" in
+         200)  if [ -f $FILENAME ]
+               then
+                  SIZE=$(ls -l $FILENAME | tr -s ' ' | cut -d' ' -f5)
+                  if [ $SIZE -eq $LENGTH ]
+                  then
+                  echo "[tch-gui-unhide] Size of $FILENAME matches GitHub version - No update required"
+                  return 0
+                  fi
+               fi
+               wget -O $FILENAME https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME 
+               if [ $? -eq 0 ]
+               then
+                  chmod +x $FILENAME
+                  echo "[tch-gui-unhide] Successfully updated $FILENAME."
+                  return 0
+               else
+                  echo "[tch-gui-unhide] Failed to download updated version of $FILENAME."
+                  return 2
+               fi;;
+         404)  echo "[tch-gui-unhide] Platform script $FILENAME not found!!!"
+               return 4;;
+         *)    echo "[tch-gui-unhide] GitHub check of $FILENAME returned $STATUS"
+               return 5;;
+         esac
+      fi
+      exit;;
+   ?) echo "Optional parameters:"
+      echo " -t light|night  : Set the theme to either light (the default) or night"
+      echo " -r              : Restore changed GUI files to their original state (config changes are NOT restored)"
+      echo " -y              : Bypass confirmation prompts (answers 'y')"
+      echo " -u              : Check for and download any updates to $FILENAME"
+      exit;;
  esac
 done
 

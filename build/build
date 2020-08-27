@@ -27,17 +27,17 @@ done
 
 for f in $(find . -mindepth 2 -type d | cut -c3- | tr '/' '-')
 do
-  VARIANT=$(echo $f | cut -d- -f1)
-  VERSION=$(echo $f | cut -d- -f2)
-  TARGET=../tch-gui-unhide-$VARIANT-$VERSION
+  MAJOR=$(echo $f | cut -d- -f1)
+  MINOR=$(echo $f | cut -d- -f2)
+  TARGET=../tch-gui-unhide-$MAJOR.$MINOR
   
   echo Writing $TARGET...
   echo "#!/bin/sh" > $TARGET
-  echo "echo [tch-gui-unhide]: Built for $VARIANT with Firmware $VERSION on $(date)" >> $TARGET
+  echo "echo [tch-gui-unhide]: Built for version $MAJOR.$MINOR" >> $TARGET
 
   for s in $(find . -mindepth 2 -type f -exec sh -c 'echo $(basename {})$(dirname {} | cut -c2-)' \; | sort)
   do
-    echo $s | grep -q -E "(common$|${VARIANT}$|${VARIANT}/${VERSION}$)"
+    echo $s | grep -q -E "(common$|${MAJOR}$|${MAJOR}/${MINOR}$)"
     if [ $? -eq 0 ]
     then
       FILENAME="$(echo $s | cut -d/ -f1)"
