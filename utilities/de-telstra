@@ -300,7 +300,7 @@ else
 fi
 
 PEERDNS_NOW="$(uci -q get network.wan.peerdns)"
-WANDNS_NOW="$(uci get network.wan.dns)"
+WANDNS_NOW="$(uci -q get network.wan.dns)"
 if [ "$NS" = "u" ]
 then
   echo [$SCRIPT]: DNS Servers unchanged \[ $WANDNS_NOW ISP Peer DNS $(status2text $PEERDNS_NOW) \]
