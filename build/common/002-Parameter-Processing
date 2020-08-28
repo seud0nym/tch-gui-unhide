@@ -9,7 +9,7 @@ do
    t) if [ "$(echo ${OPTARG} | tr "LN" "ln" | sed 's/\(.\)\(.*\)/\1/')" = "n" ]; then THEME=night; fi;;
    r) RESTORE=true;;
    y) YES=true;;
-   u) RESULT=$(curl -s -k -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME | sed 's/\r//')
+   u) RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME | sed 's/\r//')
       if [ $? -ne 0 ]
       then
          echo "[tch-gui-unhide] GitHub check of $FILENAME failed with an unknown error. Do you have an internet connection?"
@@ -40,7 +40,7 @@ do
                   return 0
                   fi
                fi
-               wget -O $FILENAME https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME 
+               curl -k -L https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME > $FILENAME
                if [ $? -eq 0 ]
                then
                   chmod +x $FILENAME

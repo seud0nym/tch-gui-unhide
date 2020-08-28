@@ -96,7 +96,7 @@ Click [`here`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities)
 ### Second, download and extract the scripts
 Download and extract the release archive directly to the device with the following command:
 ```
- wget https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$(uci get version.@version[0].version | cut -d- -f1).tar.gz -O - | tar -xzvf -
+ curl -k -L https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$(uci get version.@version[0].version | cut -d- -f1).tar.gz | tar -xzvf -
 ```
 The above command will only work if run from a supported firmware version, with internet access.
 
