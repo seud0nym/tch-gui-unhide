@@ -58,6 +58,10 @@ This script accepts the following options:
     where u            Leave File Sharing unchanged (Default)
           y            Enable File Sharing (device default)
           n            Disable File Sharing
+ -m u|y|n"
+    where u            Leave EasyMesh (multiap) unchanged (Default)
+          y            Enable EasyMesh (multiap) (device default)
+          n            Disable EasyMesh (multiap)
  -p u|y|n
     where u            Leave power saving unchanged (Default)
           y            Enable power saving (device default)
@@ -76,7 +80,9 @@ This script accepts the following options:
           n            Disable the UPnP service
  -A                    Equivalent to: -h d -d g -n c -a n -f n -p n
  -S                    Equivalent to: -h s -d g -n c -a n -f n -p n
+ -U                    Check for and download the latest version from GitHub
 ```
+Note that the options to disable/enable EasyMesh are only applicable to devices with multiap installed.
 
 ## dumaos-beta
 Enables or disables the DumaOS beta on a DJA0231 running the 18.1.c.0514 or later firmware. It also disables or enables reboot on core dump, because if DumaOS gets into trouble, the router will just continally reboot.

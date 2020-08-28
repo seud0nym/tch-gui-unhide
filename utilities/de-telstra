@@ -22,85 +22,145 @@ SRV_watchdog=0
 SRV_web=0
 SRV_upnp=0
 
+if [ -f /etc/config/multiap ]
+then
+  SRV_multiap=0
+else
+  SRV_multiap=-1
+fi
+
 # Options
-VARIANT=$(uci get env.var.variant_friendly_name)
-SERIAL=$(uci get env.var.serial)
+VARIANT=$(uci -q get env.var.variant_friendly_name)
+SERIAL=$(uci -q get env.var.ssid_mac_postfix_r0)
 HOST='u'
 DOMAIN='u'
 NS='u'
 ALG='u'
 DLNAD='u'
+MMPBX='u'
+MULTIAP='u'
 POWER='u' 
 PRNTR='u'
 SAMBA='u'
-MMPBX='u'
 UPNP='u'
 
-while getopts h:d:n:a:c:f:p:r:t:u:AS option
+while getopts h:d:n:a:c:f:m:p:r:t:u:ASU option
 do
  case "${option}" in
- A) HOST='d'; DOMAIN='gateway'; NS='c'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
- S) HOST='s'; DOMAIN='gateway'; NS='c'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
- h) HOST=${OPTARG};;
- d) case "${OPTARG}" in g|G) DOMAIN='gateway';; u|U) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
- n) NS=${OPTARG};;
- a) case "${OPTARG}" in y|Y) ALG='1';; n|N) ALG='0';; u|U) ALG='u';; *) ALG='u'; echo 'WARNING: -a valid options are y, n, or u';; esac;;
- c) case "${OPTARG}" in y|Y) DLNAD='1';; n|N) DLNAD='0';; u|U) DLNAD='u';; *) DLNAD='u'; echo 'WARNING: -c valid options are y, n, or u';; esac;;
- f) case "${OPTARG}" in y|Y) SAMBA='1';; n|N) SAMBA='0';; u|U) SAMBA='u';; *) SAMBA='u'; echo 'WARNING: -f valid options are y, n, or u';; esac;;
- p) case "${OPTARG}" in y|Y) POWER='y';; n|N) POWER='n';; u|U) POWER='u';; *) POWER='u'; echo 'WARNING: -p valid options are y, n, or u';; esac;;
- r) case "${OPTARG}" in y|Y) PRNTR='1';; n|N) PRNTR='0';; u|U) PRNTR='u';; *) PRNTR='u'; echo 'WARNING: -r valid options are y, n, or u';; esac;;
- t) case "${OPTARG}" in y|Y) MMPBX='1';; n|N) MMPBX='0';; u|U) MMPBX='u';; *) MMPBX='u'; echo 'WARNING: -t valid options are y, n, or u';; esac;;
- u) case "${OPTARG}" in y|Y) UPNP='1';; n|N) UPNP='0';; u|U) UPNP='u';; *) UPNP='u'; echo 'WARNING: -u valid options are y, n, or u';; esac;;
- ?) echo "Syntax: $0 <options>"
-    echo "Optional parameters:"
-    echo " -h u|d|s|<hostname>"
-    echo "    where u            Leave hostname unchanged (Default)"
-    echo "          d            Set the hostname to $VARIANT"
-    echo "          s            Set the hostname to $VARIANT-$SERIAL"
-    echo "          <hostname>   Use the specified hostname"
-    echo " -d u|g|<domainname>"
-    echo "    where u            Leave domain name unchanged (Default)"
-    echo "          g            Set the domain name to gateway"
-    echo "          <domainname> Set the domain name to <domainname>"
-    echo " -n u|a|c|g|f|o|<n.n.n.n>"
-    echo "    where u            Leave DNS servers unchanged (Default)"
-    echo "          a            Automatically use the DNS servers from the ISP (device default)"
-    echo "          c            Set the DNS servers to Cloudflare"
-    echo "          g            Set the DNS servers to Google"
-    echo "          f            Set the DNS servers to OpenDNS Family Shield"
-    echo "          o            Set the DNS servers to OpenDNS"
-    echo "          <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)"
-    echo " -a u|y|n"
-    echo "    where u            Leave ALGs unchanged (Default)"
-    echo "          y            Enable ALGs (device default)"
-    echo "          n            Disable ALGs (except SIP if telephony enabled)"
-    echo " -c u|y|n"
-    echo "    where u            Leave Content Sharing unchanged (Default)"
-    echo "          y            Enable Content Sharing (device default)"
-    echo "          n            Disable Content Sharing"
-    echo " -f u|y|n"
-    echo "    where u            Leave File Sharing unchanged (Default)"
-    echo "          y            Enable File Sharing (device default)"
-    echo "          n            Disable File Sharing"
-    echo " -p u|y|n"
-    echo "    where u            Leave power saving unchanged (Default)"
-    echo "          y            Enable power saving (device default)"
-    echo "          n            Disable power saving"
-    echo " -r u|y|n"
-    echo "    where u            Leave Printer Sharing unchanged (Default)"
-    echo "          y            Enable Printer Sharing (device default)"
-    echo "          n            Disable Printer Sharing"
-    echo " -t u|y|n"
-    echo "    where u            Leave Telephony (mmpbx) unchanged (Default)"
-    echo "          y            Enable the telephony service (device default)"
-    echo "          n            Disable the telephony service"
-    echo " -u u|y|n"
-    echo "    where u            Leave UPnP unchanged (Default)"
-    echo "          y            Enable the UPnP service (device default)"
-    echo "          n            Disable the UPnP service"
-    echo " -A                    Equivalent to: -h d -d g -n c -a n -f n -p n"
-    echo " -S                    Equivalent to: -h s -d g -n c -a n -f n -p n"
-    exit;;
+  A)  HOST='d'; DOMAIN='gateway'; NS='c'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
+  S)  HOST='s'; DOMAIN='gateway'; NS='c'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
+  h)  HOST=${OPTARG};;
+  d)  case "${OPTARG}" in g|G) DOMAIN='gateway';; u|U) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
+  n)  NS=${OPTARG};;
+  a)  case "${OPTARG}" in y|Y) ALG='1';; n|N) ALG='0';; u|U) ALG='u';; *) ALG='u'; echo 'WARNING: -a valid options are y, n, or u';; esac;;
+  c)  case "${OPTARG}" in y|Y) DLNAD='1';; n|N) DLNAD='0';; u|U) DLNAD='u';; *) DLNAD='u'; echo 'WARNING: -c valid options are y, n, or u';; esac;;
+  f)  case "${OPTARG}" in y|Y) SAMBA='1';; n|N) SAMBA='0';; u|U) SAMBA='u';; *) SAMBA='u'; echo 'WARNING: -f valid options are y, n, or u';; esac;;
+  m)  case "${OPTARG}" in y|Y) MULTIAP='1';; n|N) MULTIAP='0';; u|U) MULTIAP='u';; *) MULTIAP='u'; echo 'WARNING: -m valid options are y, n, or u';; esac;;
+  p)  case "${OPTARG}" in y|Y) POWER='y';; n|N) POWER='n';; u|U) POWER='u';; *) POWER='u'; echo 'WARNING: -p valid options are y, n, or u';; esac;;
+  r)  case "${OPTARG}" in y|Y) PRNTR='1';; n|N) PRNTR='0';; u|U) PRNTR='u';; *) PRNTR='u'; echo 'WARNING: -r valid options are y, n, or u';; esac;;
+  t)  case "${OPTARG}" in y|Y) MMPBX='1';; n|N) MMPBX='0';; u|U) MMPBX='u';; *) MMPBX='u'; echo 'WARNING: -t valid options are y, n, or u';; esac;;
+  u)  case "${OPTARG}" in y|Y) UPNP='1';; n|N) UPNP='0';; u|U) UPNP='u';; *) UPNP='u'; echo 'WARNING: -u valid options are y, n, or u';; esac;;
+  U)  RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT | sed 's/\r//')
+      if [ $? -ne 0 ]
+      then
+          echo "[$SCRIPT] GitHub check of $SCRIPT failed with an unknown error. Do you have an internet connection?"
+          return 5
+      else 
+          STATUS=$(echo $RESULT | grep '^HTTP' | cut -d' ' -f2)
+          LENGTH=$(echo $RESULT | grep '^Content-Length' | cut -d' ' -f2)
+          next=''
+          for t in $(echo $RESULT | tr " " "$IFS")
+          do
+            case "$next" in
+            s) STATUS="$t";next='';;
+            l) LENGTH="$t";next='';;
+            *) case "$t" in
+            "HTTP/1.1") next='s';;
+            "Content-Length:") next='l';;
+            *) next='';;
+            esac
+            esac
+          done
+          case "$STATUS" in
+          200)  if [ -f "$SCRIPT" ]
+                then
+                  SIZE=$(ls -l $SCRIPT | tr -s ' ' | cut -d' ' -f5)
+                  if [ $SIZE -eq $LENGTH ]
+                  then
+                  echo "[$SCRIPT] Size of $SCRIPT matches GitHub version - No update required"
+                  exit
+                  fi
+                fi
+                curl -k -L $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT > $SCRIPT
+                if [ $? -eq 0 ]
+                then
+                  chmod +x $SCRIPT
+                  echo "[$SCRIPT] Successfully updated $SCRIPT."
+                else
+                  echo "[$SCRIPT] Failed to download updated version of $SCRIPT."
+                fi;;
+          *)    echo "[$SCRIPT] GitHub check of $SCRIPT returned $STATUS";;
+          esac
+      fi
+      exit;;
+  ?)  echo "Syntax: $0 <options>"
+      echo "Optional parameters:"
+      echo " -h u|d|s|<hostname>"
+      echo "    where u            Leave hostname unchanged (Default)"
+      echo "          d            Set the hostname to $VARIANT"
+      echo "          s            Set the hostname to $VARIANT-$SERIAL"
+      echo "          <hostname>   Use the specified hostname"
+      echo " -d u|g|<domainname>"
+      echo "    where u            Leave domain name unchanged (Default)"
+      echo "          g            Set the domain name to gateway"
+      echo "          <domainname> Set the domain name to <domainname>"
+      echo " -n u|a|c|g|f|o|<n.n.n.n>"
+      echo "    where u            Leave DNS servers unchanged (Default)"
+      echo "          a            Automatically use the DNS servers from the ISP (device default)"
+      echo "          c            Set the DNS servers to Cloudflare"
+      echo "          g            Set the DNS servers to Google"
+      echo "          f            Set the DNS servers to OpenDNS Family Shield"
+      echo "          o            Set the DNS servers to OpenDNS"
+      echo "          <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)"
+      echo " -a u|y|n"
+      echo "    where u            Leave ALGs unchanged (Default)"
+      echo "          y            Enable ALGs (device default)"
+      echo "          n            Disable ALGs (except SIP if telephony enabled)"
+      echo " -c u|y|n"
+      echo "    where u            Leave Content Sharing unchanged (Default)"
+      echo "          y            Enable Content Sharing (device default)"
+      echo "          n            Disable Content Sharing"
+      echo " -f u|y|n"
+      echo "    where u            Leave File Sharing unchanged (Default)"
+      echo "          y            Enable File Sharing (device default)"
+      echo "          n            Disable File Sharing"
+      if [ $SRV_multiap -eq 0 ]
+      then
+        echo " -m u|y|n"
+        echo "    where u            Leave EasyMesh (multiap) unchanged (Default)"
+        echo "          y            Enable EasyMesh (multiap) (device default)"
+        echo "          n            Disable EasyMesh (multiap)"
+      fi
+      echo " -p u|y|n"
+      echo "    where u            Leave power saving unchanged (Default)"
+      echo "          y            Enable power saving (device default)"
+      echo "          n            Disable power saving"
+      echo " -r u|y|n"
+      echo "    where u            Leave Printer Sharing unchanged (Default)"
+      echo "          y            Enable Printer Sharing (device default)"
+      echo "          n            Disable Printer Sharing"
+      echo " -t u|y|n"
+      echo "    where u            Leave Telephony (mmpbx) unchanged (Default)"
+      echo "          y            Enable the telephony service (device default)"
+      echo "          n            Disable the telephony service"
+      echo " -u u|y|n"
+      echo "    where u            Leave UPnP unchanged (Default)"
+      echo "          y            Enable the UPnP service (device default)"
+      echo "          n            Disable the UPnP service"
+      echo " -A                    Equivalent to: -h d -d g -n c -a n -f n -p n"
+      echo " -S                    Equivalent to: -h s -d g -n c -a n -f n -p n"
+      echo " -U                    Check for and download the latest version from GitHub"
+      exit;;
  esac
 done
 
@@ -121,10 +181,10 @@ then
   if [ $? -eq 1 ]
   then
     echo [$SCRIPT]: - Found authorized_keys - replacing /etc/dropbear/authorized_keys
-    cp authorized_keys /etc/dropbear/authorized_keys
+    cp -p authorized_keys /etc/dropbear/authorized_keys
     SRV_dropbear=$(( $SRV_dropbear + 1 ))
   else
-    echo [$SCRIPT]: - authorized_keys already replaced /etc/dropbear/authorized_keys
+    echo [$SCRIPT]: - /etc/dropbear/authorized_keys already replaced
   fi
 else
   if [ -z "$(cat /etc/dropbear/authorized_keys)" ]
@@ -135,9 +195,9 @@ else
     echo > /etc/dropbear/authorized_keys
   fi
 fi
-if [ "$(uci get dropbear.wan.enable)" = '0' -a "$(uci get dropbear.lan.enable)" = '1'  -a "$(uci get dropbear.lan.enable)" = '1' -a "$(uci get dropbear.lan.PasswordAuth)" = 'on' -a "$(uci get dropbear.lan.RootPasswordAuth)" = 'on' -a "$(uci get dropbear.lan.RootLogin)" = '1' ]
+if [ "$(uci -q get dropbear.wan.enable)" = '0' -a "$(uci -q get dropbear.lan.enable)" = '1'  -a "$(uci -q get dropbear.lan.enable)" = '1' -a "$(uci -q get dropbear.lan.PasswordAuth)" = 'on' -a "$(uci -q get dropbear.lan.RootPasswordAuth)" = 'on' -a "$(uci -q get dropbear.lan.RootLogin)" = '1' ]
 then
-  echo [$SCRIPT]: - dropbear re-configuration already completed
+  echo [$SCRIPT]: - SSH WAN/LAN access already correctly configured
 else
   uci set dropbear.wan.enable='0'
   # We need to enable dropbear LAN access properly as you can enable/disable via the GUI, and if
@@ -148,6 +208,7 @@ else
   uci set dropbear.lan.RootLogin='1'
   uci commit dropbear
   SRV_dropbear=$(( $SRV_dropbear + 4 ))
+  echo [$SCRIPT]: - SSH WAN/LAN access correctly configured
 fi
 
 if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" ]
@@ -214,7 +275,7 @@ else
   uci commit wireless
 fi
 
-for s in $(uci get system.ntp.server | tr " " "$IFS")
+for s in $(uci -q get system.ntp.server | tr " " "$IFS")
 do 
   echo $s | grep -q -i telstra
   if [ $? -eq 0 ]
@@ -234,7 +295,7 @@ fi
 /etc/init.d/lotagent enabled
 if [ $? -eq 0 ]
 then
-  echo [$SCRIPT]: - Disabling lotagent  \(Telstra logging\)
+  echo [$SCRIPT]: - Disabling lotagent \(Telstra logging?\)
   /etc/init.d/lotagent stop
   /etc/init.d/lotagent disable
 else
@@ -261,25 +322,25 @@ else
   s) HOSTNAME=$VARIANT-$SERIAL;;
   *) HOSTNAME=$HOST;;
   esac
-  uci get dhcp.main.hostname | grep -q "$HOSTNAME"
-  if [ $? -eq 0 -a "$(uci get system.@system[0].hostname)" = "$HOSTNAME" ]
+  uci -q get dhcp.main.hostname | grep -q "$HOSTNAME"
+  if [ $? -eq 0 -a "$(uci -q get system.@system[0].hostname)" = "$HOSTNAME" ]
   then
     echo [$SCRIPT]: Host name is already $HOSTNAME
   else
     echo [$SCRIPT]: Setting the host name to $HOSTNAME
-    uci get dhcp.main.hostname | grep -q telstra.wifi
-    if [ $? -eq 0 ]
+    uci -q get dhcp.main.hostname | grep -q telstra.wifi
+    if [ $SRV_multiap -eq 0 -a $? -eq 0 ]
     then
-      MULTIAP=true
+      easymesh=true
     else
-      MULTIAP=false
+      easymesh=false
     fi
     uci -q delete dhcp.main.hostname
     uci add_list dhcp.main.hostname="$HOSTNAME"
     SRV_dnsmasq=$(( $SRV_dnsmasq + 2 ))
-    if [ $MULTIAP = true ]
+    if [ $easymesh = true ]
     then
-      echo [$SCRIPT]: Re-adding telstra.wifi hostname for EASYM
+      echo [$SCRIPT]: Re-adding telstra.wifi hostname for EasyMesh
       uci add_list dhcp.main.hostname='telstra.wifi'
       SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
     fi
@@ -289,7 +350,7 @@ else
   fi
 fi
 
-DOMAIN_NOW="$(uci get dhcp.main.domain)"
+DOMAIN_NOW="$(uci -q get dhcp.main.domain)"
 if [ "$DOMAIN" = "u" -o "$DOMAIN_NOW" = "$DOMAIN" ]
 then
   echo [$SCRIPT]: Domain name unchanged \[$DOMAIN_NOW\]
@@ -423,7 +484,7 @@ else
     echo [$SCRIPT]: Telephony enabled
     if [ "$(uci -q get mmpbxmobilenet.VoLTE)" ]
     then
-      if [ "$(uci get mmpbxmobilenet.VoLTE.enabled)" = "1" ]
+      if [ "$(uci -q get mmpbxmobilenet.VoLTE.enabled)" = "1" ]
       then
         echo [$SCRIPT]: VoLTE already enabled
       else
@@ -450,7 +511,7 @@ else
   do
     key=$(uci show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
     G=$(echo $g | tr "[a-z]" "[A-Z]")
-    G_NOW="$(uci get -q $key.enable)"
+    G_NOW="$(uci -q get -q $key.enable)"
     if [ "$G_NOW" != "$ALG" ]
     then
       if [ "$ALG" = "0" ]
@@ -476,17 +537,40 @@ else
   done
 fi
 
-NATPMP_NOW="$(uci get upnpd.config.enable_natpmp)"
-UPNP_NOW="$(uci get upnpd.config.enable_upnp)"
+NATPMP_NOW="$(uci -q get upnpd.config.enable_natpmp)"
+UPNP_NOW="$(uci -q get upnpd.config.enable_upnp)"
 if [ "$UPNP" = "u" -o \( "$NATPMP_NOW" = "$UPNP" -a "$UPNP_NOW" = "$UPNP" \) ]
 then
-  echo [$SCRIPT]: UPnP unchanged \[UPnP $(status2text $UPNP_NOW) NAT-PMP $(status2text $NATPMP_NOW)\]
+  echo [$SCRIPT]: UPnP unchanged \[UPnP: $(status2text $UPNP_NOW) NAT-PMP: $(status2text $NATPMP_NOW)\]
 else
   uci set upnpd.config.enable_natpmp="$UPNP"
   uci set upnpd.config.enable_upnp="$UPNP"
   uci commit upnpd
   SRV_upnp=$(( $SRV_upnp + 2 ))
   echo [$SCRIPT]: UPnP \[$(status2text $UPNP)\]
+fi
+
+if [ $SRV_multiap -ge 0 ]
+then
+  AGENT_NOW="$(uci -q get multiap.agent.enabled)"
+  CTRLR_NOW="$(uci -q get multiap.controller.enabled)"
+  BHAUL_NOW="$(uci -q get wireless.wl1_2.state)"
+  if [ "$MULTIAP" = "u" -o \( "$AGENT_NOW" = "$MULTIAP" -a "$CTRLR_NOW" = "$MULTIAP" -a "$BHAUL_NOW" = "$MULTIAP" \) ]
+  then
+    echo [$SCRIPT]: EasyMesh \(multiap\) unchanged \[Controller: $(status2text $CTRLR_NOW) Agent: $(status2text $AGENT_NOW) BackHaul SSID: $(status2text $BHAUL_NOW)\]
+  else
+    uci set multiap.agent.enabled="$MULTIAP"
+    uci set multiap.controller.enabled="$MULTIAP"
+    uci commit multiap
+    SRV_multiap=$(( $SRV_multiap + 2 ))
+    uci set wireless.wl1_2.state="$MULTIAP"
+    SRV_network=$(( $SRV_network + 1 ))
+    uci commit wireless
+    echo [$SCRIPT]: EasyMesh \(multiap\) \[$(status2text $MULTIAP)\]
+  fi
+elif [ "$MULTIAP" != "u" ]
+then
+  echo [$SCRIPT]: EasyMesh \(multiap\) not found on device
 fi
 
 uci commit
@@ -529,6 +613,7 @@ echo [$SCRIPT]: Applying required service changes...
 [ $SRV_network -gt 0 ]  && /etc/init.d/network reload > /dev/null 2>&1
 [ $SRV_mmpbxd -gt 0 ]   && /etc/init.d/mmpbxd restart > /dev/null 2>&1
 [ $SRV_mobiled -gt 0 ]  && /etc/init.d/mobiled restart > /dev/null 2>&1
+[ $SRV_multiap -gt 0 ]  && { /etc/init.d/multiap_controller restart; /etc/init.d/multiap_agent restart; } > /dev/null 2>&1
 [ $SRV_upnp -gt 0 ]     && /etc/init.d/miniupnpd-tch restart > /dev/null 2>&1
 
 echo [$SCRIPT]: Removing packages that are no longer required
