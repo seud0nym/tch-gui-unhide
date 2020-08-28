@@ -181,7 +181,8 @@ then
   if [ $? -eq 1 ]
   then
     echo [$SCRIPT]: - Found authorized_keys - replacing /etc/dropbear/authorized_keys
-    cp -p authorized_keys /etc/dropbear/authorized_keys
+    cp authorized_keys /etc/dropbear/authorized_keys
+    chmod 600 /etc/dropbear/authorized_keys
     SRV_dropbear=$(( $SRV_dropbear + 1 ))
   else
     echo [$SCRIPT]: - /etc/dropbear/authorized_keys already replaced
