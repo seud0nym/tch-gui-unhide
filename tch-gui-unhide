@@ -1,10 +1,22 @@
 #!/bin/sh
 
 SCRIPT="tch-gui-unhide-$(uci get version.@version[0].version | cut -d- -f1)"
-if [ -f "$SCRIPT" -o  -a "$1" != "-U" ]
+DOWNLOAD=n
+HELP=n
+
+while getopts t:ryuU option
+do
+ case "${option}" in
+   t|r|y|u) ;;
+   U) DOWNLOAD=y;;
+   *) HELP=y;;
+ esac
+done
+
+if [ -f "$SCRIPT" -a "$DOWNLOAD" = "n" ]
 then
   ./$SCRIPT $*
-  if [ "$1" = "-?" ]
+  if [ "$HELP" = "y" ]
   then
       echo " -U              : Download the latest release (will overwrite all existing script versions)"
   fi
