@@ -620,5 +620,8 @@ echo [$SCRIPT]: Applying required service changes...
 echo [$SCRIPT]: Removing packages that are no longer required
 opkg --force-removal-of-dependent-packages remove conf-cwmpd cwmpd autoreset-tch mappings-fon geolocation-tch hotspotd webui-fon tls-thor wifi-doctor-agent conf-wifi-doctor-agent libbcmairiq conf-airiq
 
+echo [$SCRIPT]: Cleaning up broken links in /etc/rc.d
+find /etc/rc.d -type l ! -exec test -e {} \; -exec rm {} \;
+
 echo [$SCRIPT]: Done!
 echo "[$SCRIPT]: NOTE: If you haven't changed the root password, you should do it now..."
