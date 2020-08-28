@@ -1,40 +1,76 @@
+2020.08.28
+==========
+tch-gui-unhide
+--------------
+* Allowed editing of host names in device list
+* Replaced Internet modal with https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www modified version to allow setting of internet parameters, such as DNS servers
+* Replaced IP Extras card/modal with https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www modified version to access additional features and tabs (Customise DNS by network interface, Policy routing for mwan, Bridge grouping and DoS protection)
+* Changed description of router DNS Server from Telstra to device variant (DJA0231)
+* Diagnostics modal tab name changes, and exposed hidden network connections tab
+* Fixed night theme display bug in time of day modal
+* Removed User Management card
+* Show SSH status on System Extras card
+* Missing favicon on some screens
+* Added modified QoS card/modal from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www
+* Decreased LOW and MEDIUM LED levels on DJA0231
+* Added tch-gui-unhide script that runs the correct variant-version qualified script
+* Default theme is now the previously applied theme
+* Added ability to download latest version or latest release from GitHub
+* Added support for 18.1.c.0543 FW
+de-telstra
+----------
+* Added airiq and dependencies to package removal
+* Removed Telstra NTP servers
+* Disabled lotagent (Telstra logging?)
+* Setting hostname and domain are now optional
+* Reworked with new command line options to set, enable, disable or leave unchanged existing features and new options:
+** ALGs
+** DNS servers
+** Content, File and Printer Sharing
+** EasyMesh configuration
+** Telephony
+** UPnP
+** Power saving
+* Added ability to download latest version from GitHub
+
 2020.08.22
 ==========
-- Added Broadband modal from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www to allow VLAN tagging + dis/enable WAN Sensing and set connection method
-- Improved detection of added files to more easily restore state
-- Included serial number in configuration export file name (for those with multiple devices of the same variant) and browser tabs
-- Moved hostname and VoLTE backup from tch-gui-unhide to de-telstra (so that tch-gui-unhide only makes GUI changes and de-telstra makes once-off config changes)
-- Added option to include serial number in host name (for those with multiple devices of the same variant)
-- Restored Incoming/Outgoing Map Telephony tab
+* Added Broadband modal from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www to allow VLAN tagging + dis/enable WAN Sensing and set connection method
+* Improved detection of added files to more easily restore state
+* Included serial number in configuration export file name (for those with multiple devices of the same variant)
+* Moved hostname and VoLTE backup from tch-gui-unhide to de-telstra (so that tch-gui-unhide only makes GUI changes and de-telstra makes once-off config changes)
+* Added option to include serial number in host name (for those with multiple devices of the same variant)
+* Removed any Windows line endings in the ipv4-DNS-Servers file so that they doesn't break the GUI
+* Restored Incoming/Outgoing Map Telephony tab
 
 2020.08.16
 ==========
-- Removed SIP Device, Incoming/Outgoing Map, and Statistics Telephony tabs (only applicable to FW 17.2.0188 and earlier, according to https://hack-technicolor.readthedocs.io/en/stable/Unlock/#voip-setup)
+* Removed SIP Device, Incoming/Outgoing Map, and Statistics Telephony tabs (only applicable to FW 17.2.0188 and earlier, according to https://hack-technicolor.readthedocs.io/en/stable/Unlock/#voip-setup)
 
 2020.08.08
 ==========
-- Selected theme is now applied to both the basic and advanced GUI
-- Moved hardening configuration to new 'de-telstra' script
-- Moved enabling of DumaOS to new 'dumaos-beta' script
-- Added additional utility scripts for bank planning, RTFD with root, and setting web admin password
-- Added new script for unhiding GUI on TG800vac running firmware 17.2.0284
-- Added new script for unhiding GUI on DJA0231 running firmware 18.1.c.0462
-- Removed additional theme scripts, because theme is now specified by the -t command line option
+* Selected theme is now applied to both the basic and advanced GUI
+* Moved hardening configuration to new 'de-telstra' script
+* Moved enabling of DumaOS to new 'dumaos-beta' script
+* Added additional utility scripts for bank planning, RTFD with root, and setting web admin password
+* Added new script for unhiding GUI on TG800vac running firmware 17.2.0284
+* Added new script for unhiding GUI on DJA0231 running firmware 18.1.c.0462
+* Removed additional theme scripts, because theme is now specified by the -t command line option
 
 2020.08.03
 ==========
-- Restore of lte card was not handled correctly
-- Original snippets files were not restored before applying changes
-- Enabled VoLTE backup voice service and SMS reception
+* Restore of lte card was not handled correctly
+* Original snippets files were not restored before applying changes
+* Enabled VoLTE backup voice service and SMS reception
 
 2020.07.28
 ==========
-- Fixed admin role in mmpbx-service-modal.lp
+* Fixed admin role in mmpbx-service-modal.lp
 
 2020.07.27
 ==========
-- Removed an extra background icon in light theme
+* Removed an extra background icon in light theme
 
 2020.07.20
 ==========
-- Initial release
+* Initial release
