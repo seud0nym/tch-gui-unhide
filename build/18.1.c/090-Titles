@@ -1,4 +1,0 @@
-echo [$SCRIPT]: Change the title in browser tabs to $VARIANT
-sed -e "s/\(Modem\|Gateway\)/$VARIANT/g" -i /www/lua/telstra_helper.lua
-sed -e 's/"Telstra "[ ]*\.\.[ ]*//' -i /www/snippets/header.lp
-
