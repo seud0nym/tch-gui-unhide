@@ -2,35 +2,37 @@
 ==========
 tch-gui-unhide
 --------------
+* Removed device variant dependencies - scripts are now only dependent on firmware version
+* Added tch-gui-unhide script that runs the correct firmware version script
+* Added support for 18.1.c.0543 FW
 * Allowed editing of host names in device list
 * Replaced Internet modal with https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www modified version to allow setting of internet parameters, such as DNS servers
 * Replaced IP Extras card/modal with https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www modified version to access additional features and tabs (Customise DNS by network interface, Policy routing for mwan, Bridge grouping and DoS protection)
-* Changed description of router DNS Server from Telstra to device variant (DJA0231)
+* Added modified QoS card/modal from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www (may be vDSL only?)
+* Changed description of router DNS Server from Telstra to device variant (18.1.c)
 * Diagnostics modal tab name changes, and exposed hidden network connections tab
 * Fixed night theme display bug in time of day modal
 * Removed User Management card
 * Show SSH status on System Extras card
 * Missing favicon on some screens
-* Added modified QoS card/modal from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www
-* Decreased LOW and MEDIUM LED levels on DJA0231
-* Added tch-gui-unhide script that runs the correct variant-version qualified script
+* Decreased LOW and MEDIUM LED levels on 18.1.c
 * Default theme is now the previously applied theme
 * Added ability to download latest version or latest release from GitHub
-* Added support for 18.1.c.0543 FW
+
 de-telstra
 ----------
-* Added airiq and dependencies to package removal
+* Removed airiq pacakage and dependencies
 * Removed Telstra NTP servers
 * Disabled lotagent (Telstra logging?)
 * Setting hostname and domain are now optional
 * Reworked with new command line options to set, enable, disable or leave unchanged existing features and new options:
-** ALGs
-** DNS servers
-** Content, File and Printer Sharing
-** EasyMesh configuration
-** Telephony
-** UPnP
-** Power saving
+    * ALGs
+    * DNS servers
+    * Content, File and Printer Sharing
+    * EasyMesh configuration
+    * Telephony
+    * UPnP
+    * Power saving
 * Added ability to download latest version from GitHub
 
 2020.08.22
