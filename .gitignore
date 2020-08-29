@@ -1,3 +1,4 @@
+authorized_keys
 *.b64
 *.tar.gz
 build/deploy
