@@ -1,3 +1,10 @@
+# Make sure that we are running on Telstra firmware
+if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]
+then
+  echo "ERROR! This script is intended for devices with Telstra firmware. Exiting"
+  exit 1
+fi
+
 # Based on various pages https://hack-technicolor.readthedocs.io/en/stable/
 
 TARGET_VERSION=""
