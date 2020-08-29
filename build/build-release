@@ -1,6 +1,8 @@
 #!/bin/sh
 
-common=$(find ../utilities/ -type f | grep -v -E '(README|dumaos)' | tr "$IFS" " ")
+./build
+
+common=$(find ../utilities/ -type f | grep -v -E '(README|dumaos|wifi-booster)' | tr "$IFS" " ")
 
 for f in $(ls ../tch-gui-unhide-*)
 do
@@ -13,5 +15,5 @@ do
   fi
 
   echo Writing $TARGET...
-  tar --xform='s,utilities/,,' --owner=root --group=root --mode=755 -czf "$(echo $f | sed -e 's/tch-gui-unhide-//').tar.gz" ../tch-gui-unhide $f $common $dumaos
+  tar --xform='s,utilities/,,' --owner=root --group=root --mode=755 -czvf "$(echo $f | sed -e 's/tch-gui-unhide-//').tar.gz" ../tch-gui-unhide $f $common $dumaos
 done
