@@ -1,25 +1,32 @@
-      do
-        if [ ! -f "/rom$f" ]
+    do
+      if [ ! -f "/rom$f" ]
+      then
+        if [ "$1" = "V" ]
         then
           echo [$SCRIPT]: Removing $f
-          rm -f "$f"
         fi
-      done
+        rm -f "$f"
+      fi
     done
-    echo [$SCRIPT]: Removing config entries added to display hidden modals
-    for s in $(uci show web | grep normally_hidden | cut -d. -f1,2)
-    do
-      uci delete $s
-    done
-    uci commit web
-    /etc/init.d/nginx restart
-    echo "************************************************************"
-    echo "* Restore complete. You should clear your browser cache of *"
-    echo "* images and files to make sure you can see the changes.   *"
-    echo "* NOTE: No config changes have been restored, except to    *"
-    echo "*       remove added entries to display hidden modals.     *"
-    echo "************************************************************"
-  fi
+  done
+}
+
+if [ $RESTORE = true ]
+then
+  restore_www V
+  echo [$SCRIPT]: Removing config entries added to display hidden modals
+  for s in $(uci show web | grep normally_hidden | cut -d. -f1,2)
+  do
+    uci delete $s
+  done
+  uci commit web
+  /etc/init.d/nginx restart
+  echo "************************************************************"
+  echo "* Restore complete. You should clear your browser cache of *"
+  echo "* images and files to make sure you can see the changes.   *"
+  echo "* NOTE: No config changes have been restored, except to    *"
+  echo "*       remove added entries to display hidden modals.     *"
+  echo "************************************************************"
   exit
 fi
 

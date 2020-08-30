@@ -1,6 +1,6 @@
-        if [ "$s" = "/rom/www/cards/010_lte.lp" ]
-        then
-          t="/www/cards/003_lte.lp"
-        else
-          t=$(echo "$s" | cut -c5-)
-        fi
+      if [ "$s" = "/rom/www/cards/010_lte.lp" ]
+      then
+        t="/www/cards/003_lte.lp"
+      else
+        t=$(echo "$s" | cut -c5-)
+      fi

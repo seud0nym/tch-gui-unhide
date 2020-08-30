@@ -1,5 +1,2 @@
-echo [$SCRIPT]: Restore any changed files from /rom/www
-for d in $(echo cards docroot lua snippets | tr " " "$IFS")
-do
-  for s in $(find /rom/www/$d -type f | grep -v -E \(/rom/www/docroot/help\|010_fon.lp\))
-  do
+restore_www
+
