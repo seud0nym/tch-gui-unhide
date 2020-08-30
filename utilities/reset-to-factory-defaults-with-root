@@ -2,15 +2,27 @@ ACTIVE="$(cat /proc/banktable/active)"
 BOOTED="$(cat /proc/banktable/booted)"
 FIRMWARE=""
 REBOOT="Y"
-while getopts f:n option
+IPADDR=""
+while getopts f:I:in option
 do
  case "${option}" in
- f) FIRMWARE=${OPTARG};;
- n) REBOOT="N";;
- ?) echo "Optional parameters:"
-    echo " -f filename     : Flash 'filename' into the mounted bank ($BOOTED) after reset and before reboot"
-    echo " -n              : Do NOT reboot"
-    exit;;
+  f)  FIRMWARE="${OPTARG}";;
+  I)  echo "${OPTARG}" | grep -q -E "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
+      if [ $? -eq 1 ]
+      then 
+        echo ERROR! Invalid IP address: $OPTARG
+        exit
+      else 
+        IPADDR="${OPTARG}"
+      fi;;
+  i)  IPADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)";;
+  n)  REBOOT="N";;
+  ?)  echo "Optional parameters:"
+      echo " -f filename     : Flash 'filename' into the mounted bank ($BOOTED) after reset and before reboot"
+      echo " -I n.n.n.n      : Use IP address n.n.n.n after reset and reboot"
+      echo " -i              : Keep existing IP address [$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)] after reset and reboot"
+      echo " -n              : Do NOT reboot"
+      exit;;
  esac
 done
 
@@ -37,11 +49,21 @@ then
   fi
 fi
 
+
 if [ "$REBOOT" = "Y" ]
 then
   echo "WARNING: Device will be rebooted!"
 fi
 echo "NOTE:    root access will be preserved. root password will be reset to root"
+if [ -z "$IPADDR" ]
+then
+  LANCONFIG=""
+else
+  echo "NOTE:    IP address will be set to '$IPADDR'"
+  LANCONFIG="uci set network.lan.ipaddr='$IPADDR' 
+uci commit network 
+/etc/init.d/network reload"
+fi
 echo "ACTION:  Enter y to continue, or anything else to exit now"
 read
 if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]
@@ -71,6 +93,7 @@ uci set dropbear.afg.RootLogin='1'
 uci commit dropbear
 /etc/init.d/dropbear enable
 /etc/init.d/dropbear restart
+$LANCONFIG
 rm /overlay/\$(cat /proc/banktable/booted)/etc/rc.local
 " > /overlay/`cat /proc/banktable/booted`/etc/rc.local
 chmod +x /overlay/`cat /proc/banktable/booted`/etc/rc.local
