@@ -1,8 +1,8 @@
-SERIAL=$(uci -q get env.var.ssid_mac_postfix_r0)
-echo [$SCRIPT]: Change the title in browser tabs to $VARIANT-$SERIAL
+MAC=$(uci -q get env.var.ssid_mac_postfix_r0)
+echo [$SCRIPT]: Change the title in browser tabs to $VARIANT-$MAC
 for f in /www/docroot/gateway.lp /www/lua/hni_helper.lua /www/snippets/header.lp
 do
-    sed -e "s,title>.*</title,title>$VARIANT-$SERIAL</title," -i $f
+    sed -e "s,title>.*</title,title>$VARIANT-$MAC</title," -i $f
 done
 
 if [ -f /www/lua/telstra_helper.lua ]
@@ -12,3 +12,4 @@ else
     sed -e "s/Gateway/$VARIANT/g" -i /www/cards/001_gateway.lp
     sed -e "s/Gateway/$VARIANT/g" -i /www/cards/005_LAN.lp
 fi
+
