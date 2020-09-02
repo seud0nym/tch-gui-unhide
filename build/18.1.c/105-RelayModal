@@ -1,0 +1,8 @@
+echo [$SCRIPT]: Fix bug in relay setup card 
+sed \
+ -e '/local function getRelayBackUpValues/i local server_addr = proxy.get\("uci.dhcp.relay.@relay.server_addr"\)' \
+ -e '/local function getRelayBackUpValues/i \ ' \
+ -e 's/\(if proxy.get."uci.dhcp.relay.@relay.server_addr".\[1\].value\)\( ==.*\)\( then\)/if not server_addr or \(server_addr\[1\].value\2\)\3/' \
+ -e 's/\(if proxy.get."uci.dhcp.relay.@relay.server_addr".\[1\].value ~= ""\)\(.*\)\( then\)/if server_addr and server_addr\[1\].value ~= ""\2\3/' \
+ -i /www/docroot/modals/relay-modal.lp
+

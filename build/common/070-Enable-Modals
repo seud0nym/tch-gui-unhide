@@ -11,10 +11,9 @@ fi
 #  - hostmap-modal.lp
 #  - mmpbx-sipdevice-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
 #  - mmpbx-statistics-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
-#  - relay-modal.lp (fails with nil reference)
 #  - speedservice-modal.lp
 #  - wireless-qrcode-modal.lp (fails with a nil password index error)
-for f in $(ls /www/docroot/modals | grep -E -v \(diagnostics-airiq-modal.lp\|fon-modal.lp\|hostmap-modal.lp\|mmpbx-sipdevice-modal.lp\|mmpbx-statistics-modal.lp\|relay-modal.lp\|speedservice-modal.lp\|wireless-qrcode-modal.lp\) )
+for f in $(ls /www/docroot/modals | grep -E -v \(diagnostics-airiq-modal.lp\|fon-modal.lp\|hostmap-modal.lp\|mmpbx-sipdevice-modal.lp\|mmpbx-statistics-modal.lp\|speedservice-modal.lp\|wireless-qrcode-modal.lp\) )
 do
   MODAL=$(basename $f)
   RULE=$(basename $f .lp | sed -e 's/-//g')
