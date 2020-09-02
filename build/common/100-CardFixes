@@ -1,0 +1,42 @@
+echo [$SCRIPT]: Fix DSL disabled status on Broadband Card 
+sed \
+ -e '/sys.eth.port.@eth4.status/a \  dsl0_enabled      = "uci.xdsl.xdsl.@dsl0.enabled",' \
+ -e '/"DSL disconnected"/a \      elseif wan_data["dsl0_enabled"] == "0" then' \
+ -e '/"DSL disconnected"/a \        html[#html+1] = ui_helper.createSimpleLight("0", "DSL disabled")' \
+ -i /www/cards/002_broadband.lp
+
+echo [$SCRIPT]: Fix default connection mode 
+sed -e 's/mode_active = "default"/mode_active = mode_default/' -i /www/cards/003_internet.lp
+
+echo [$SCRIPT]: Add DHCPv6 Server status to LAN card 
+sed \
+ -e '/local dhcpState$/a local dhcp6State_text = ""' \
+ -e '/local dhcpState$/a local dhcp6State' \
+ -e '/@lan.dhcpv4/a \    dhcpv6State = "uci.dhcp.dhcp.@lan.dhcpv6",' \
+ -e '/@lan.dhcpv4/a \    dhcpv4Proto = "uci.network.interface.@lan.proto",' \
+ -e '/localdevmask = /d' \
+ -e 's/localdevIP = "uci/localdevIP = "rpc/' \
+ -e 's/dhcpState/dhcp4State/g' \
+ -e 's/DHCP disabled/DHCPv4 disabled/' \
+ -e '/getExactContent/a if mapParams["dhcpv6State"] == "" or mapParams["dhcpv6State"] == "server" then' \
+ -e '/getExactContent/a \    dhcp6State_text = T"DHCPv6 enabled"' \
+ -e '/getExactContent/a \    dhcp6State = "1"' \
+ -e '/getExactContent/a else' \
+ -e '/getExactContent/a \    dhcp6State_text = T"DHCPv6 disabled"' \
+ -e '/getExactContent/a \    dhcp6State = "0"' \
+ -e '/getExactContent/a end' \
+ -e '/createSimpleLight/a \            ui_helper.createSimpleLight(dhcp6State, dhcp6State_text),' \
+ -e 's/IP is/IP:/' \
+ -e 's/and netmask is <strong>%s<\/strong>/\(<strong>%s<\/strong>\)/' \
+ -e 's/localdevmask/dhcpv4Proto/' \
+ -e '/^\\$/d' \
+ -i /www/cards/005_LAN.lp
+
+echo [$SCRIPT]: Fix bug in relay setup card 
+sed \
+ -e '/getExactContent/a \ ' \
+ -e '/getExactContent/a local server_addr = proxy.get\("uci.dhcp.relay.@relay.server_addr"\)' \
+ -e 's/\(if proxy.get."uci.dhcp.relay.@relay.server_addr".\)\(.*\)\( then\)/if not server_addr or \(server_addr\2\)\3/' \
+ -i /www/cards/018_relaysetup.lp
+
+
