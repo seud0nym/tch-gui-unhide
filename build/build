@@ -50,7 +50,7 @@ do
           cat ../ansuel/$b.b64 >> $TARGET
         done
       else
-        cat "$DIRECTORY/$FILENAME" >> $TARGET
+        sed -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
       fi
     fi
   done
