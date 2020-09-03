@@ -46,6 +46,7 @@ else # night theme
    -e '$ a .smallcard .subinfos{font-size:14px;color:#bec5cb;}' \
    -e '$ a .table-striped tbody>tr:nth-child(odd)>td, .table-striped tbody>tr:nth-child(odd)>th {background-color:#353c42;}' \
    -e '$ a #tod-modal div:nth-child(3){background-color:#353c42;color:#fff;font-family:Roboto,Noto,sans-serif;}' \
+   -e '$ a .grey{background: #353c42;}' \
    -i /www/docroot/css/gw.css
   sed \
    -e '$ a body{background-color:#353c42;color:#fff;font-family:Roboto,Noto,sans-serif;background-image:none;}' \

@@ -1,3 +1,24 @@
 echo [$SCRIPT]: Make device hostnames editable
-sed -e "$(grep -n readonly /www/docroot/modals/device-modal.lp | sed -e '1d' -e '3,$d' | cut -d: -f1)d" -e 's/canEdit = false/canEdit = true/' -i /www/docroot/modals/device-modal.lp
+sed \
+ -e "$(grep -n readonly /www/docroot/modals/device-modal.lp | sed -e '1d' -e '3,$d' | cut -d: -f1)d" \
+ -e 's/canEdit = false/canEdit = true/' \
+ -i /www/docroot/modals/device-modal.lp
+
+echo [$SCRIPT]: Add the device host map
+sed \
+ -e "/modal-body/a \ ');" \
+ -e '/modal-body/a \local tabs = {' \
+ -e '/modal-body/a \    {' \
+ -e '/modal-body/a \        desc = T"Devices List",' \
+ -e '/modal-body/a \        active = "active",' \
+ -e '/modal-body/a \        target = "modals/device-modal.lp",' \
+ -e '/modal-body/a \    },' \
+ -e '/modal-body/a \    {' \
+ -e '/modal-body/a \        desc = T"Devices Map",' \
+ -e '/modal-body/a \        target = "modals/hostmap-modal.lp",' \
+ -e '/modal-body/a \    },' \
+ -e '/modal-body/a \}' \
+ -e '/modal-body/a \ngx.print(ui_helper.createModalTabs(tabs))' \
+ -e "/modal-body/a \  ngx.print('\\\\" \
+ -i /www/docroot/modals/device-modal.lp
 
