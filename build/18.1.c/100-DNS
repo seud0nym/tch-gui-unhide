@@ -4,16 +4,25 @@ sed -e "s/Telstra/$VARIANT/" -i /www/docroot/modals/ethernet-modal.lp
 if [ -f ipv4-DNS-Servers ]
 then
   echo [$SCRIPT]: Adding custom IPv4 DNS Servers
-  sed -e '/^  },/,$ d' /www/docroot/modals/ethernet-modal.lp > /www/docroot/modals/ethernet-modal.lp.tmp
-  while read -r host ip
+  sed -e 's/\r//g' ipv4-DNS-Servers | sort -r | while read -r host ip
   do 
     if [ ! -z "$ip" ]
     then 
-      echo "    {\"$ip\", T\"$host ($ip)\"}," | sed -e 's/\r//g' >> /www/docroot/modals/ethernet-modal.lp.tmp
+      sed -e "/127.0.0.1/a \    {\"$ip\", T\"$host ($ip)\"}," -i /www/docroot/modals/ethernet-modal.lp
     fi
-  done < ipv4-DNS-Servers
-  echo "  }," >> /www/docroot/modals/ethernet-modal.lp.tmp
-  sed -e '1,/^  },/ d' /www/docroot/modals/ethernet-modal.lp >> /www/docroot/modals/ethernet-modal.lp.tmp
-  mv /www/docroot/modals/ethernet-modal.lp.tmp /www/docroot/modals/ethernet-modal.lp
+  done
+fi
+
+if [ -f ipv6-DNS-Servers ]
+then
+  echo [$SCRIPT]: Adding custom IPv6 DNS Servers
+  sed -e 's/\r//g' ipv6-DNS-Servers | sort | while read -r host ip
+  do 
+    if [ ! -z "$ip" ]
+    then 
+      ipv6=$(echo $ip  | tr ':' '-')
+      sed -e "/2001-4860-4860--8888/i \    {\"$ipv6\", T\"$host ($ip)\"}," -i /www/docroot/modals/ethernet-modal.lp
+    fi
+  done
 fi
 
