@@ -8,7 +8,6 @@ fi
 # Check all modals are enabled, except:
 #  - diagnostics-airiq-modal.lp (requires Flash player)
 #  - fon-modal.lp (Telstra Air)
-#  - hostmap-modal.lp
 #  - mmpbx-sipdevice-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
 #  - mmpbx-statistics-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
 #  - speedservice-modal.lp

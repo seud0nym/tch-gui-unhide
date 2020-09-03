@@ -31,7 +31,8 @@ sed \
  -e '/"\.dhcpv4"/a \    dhcpv6State = "uci.dhcp.dhcp.@" .. cur_dhcp_intf .. ".dhcpv6",' \
  -e 's/dhcpv4Stateselect/dhcpStateselect/' \
  -e 's/DHCP Server/DHCPv4 Server/' \
- -e '/Lease time/a \                 ,ui_helper.createSwitch(T"DHCPv6 Server", "dhcpv6State", content["dhcpv6State"],switchDHCP),' -e '/gVIES(/a \    dhcpv6State = gVIES(dhcpStateselect),' \
+ -e '/Lease time/a \                 ,ui_helper.createSwitch(T"DHCPv6 Server", "dhcpv6State", content["dhcpv6State"],switchDHCP)' \
+ -e '/gVIES(/a \    dhcpv6State = gVIES(dhcpStateselect),' \
  -i /www/docroot/modals/ethernet-modal.lp
 
  
