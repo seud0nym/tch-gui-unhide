@@ -1,7 +1,8 @@
-echo [$SCRIPT]: Make device hostnames editable
+echo [$SCRIPT]: Make device hostnames editable and sort list by host name
 sed \
  -e "$(grep -n readonly /www/docroot/modals/device-modal.lp | sed -e '1d' -e '3,$d' | cut -d: -f1)d" \
  -e 's/canEdit = false/canEdit = true/' \
+ -e '/basepath/a \    sorted = "FriendlyName",' \
  -i /www/docroot/modals/device-modal.lp
 
 echo [$SCRIPT]: Add the device host map
