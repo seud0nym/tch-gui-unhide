@@ -16,6 +16,7 @@ else # night theme
   sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf023;"/' -i /www/cards/013_parental.lp
   sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf074;"/' -i /www/cards/015_iproutes.lp
   sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf017;"/' -i /www/cards/015_tod.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf079;"/' -i /www/cards/018_relaysetup.lp
   sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf019;"/' -i /www/cards/090_cwmpconf.lp
   sed -e 's/xf0ad/xf0ec;"/' -i /www/cards/092_natalghelper.lp
   sed -e 's/xf0ad/xf0b1;"/' -i /www/cards/093_xdsl.lp
