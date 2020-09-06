@@ -1,5 +1,5 @@
 #!/bin/sh
-echo [tch-gui-unhide]: Built for version 18.1.c.0543
+echo [tch-gui-unhide]: Built for version 17.2.0468
 # Make sure that we are running on Telstra firmware
 if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]
 then
@@ -110,12 +110,7 @@ restore_www() {
     echo [$SCRIPT]: Restoring /www/$d
     for s in $(find /rom/www/$d -type f | grep -v -E \(/rom/www/docroot/help\))
     do
-      if [ "$s" = "/rom/www/cards/010_lte.lp" ]
-      then
-        t="/www/cards/003_lte.lp"
-      else
-        t=$(echo "$s" | cut -c5-)
-      fi
+      t=$(echo "$s" | cut -c5-)
       cmp -s "$s" "$t"
       if [ $? -ne 0 ]
       then
@@ -127,7 +122,7 @@ restore_www() {
       fi
     done
 
-    for f in $(find /www/$d -type f | grep -v -E \(/www/docroot/help\|003_lte.lp\))
+    for f in $(find /www/$d -type f | grep -v -E \(/www/docroot/help\))
     do
       if [ ! -f "/rom$f" ]
       then
@@ -331,9 +326,6 @@ SERIAL=$(uci get env.var.serial)
 echo [$SCRIPT]: Change config export filename from config.bin to $VARIANT-$SERIAL-$VERSION@YYMMDD.bin
 sed -e "s/=config.bin/=$VARIANT-$SERIAL-$VERSION@\" .. os.date(\"%Y%m%d\") .. \".bin/" -i /www/docroot/modals/gateway-modal.lp
 
-echo [$SCRIPT]: Decrease LOW and MEDIUM LED levels
-sed -e 's/LOW = "2"/LOW = "1"/' -e 's/MID = "5"/MID = "4"/' -i /www/docroot/modals/gateway-modal.lp
-
 MAC=$(uci -q get env.var.ssid_mac_postfix_r0)
 echo [$SCRIPT]: Change the title in browser tabs to $VARIANT-$MAC
 for f in /www/docroot/gateway.lp /www/lua/hni_helper.lua /www/snippets/header.lp
@@ -341,7 +333,8 @@ do
     sed -e "s,title>.*</title,title>$VARIANT-$MAC</title," -i $f
 done
 
-sed -e "s/\(Modem\|Gateway\)/$VARIANT/g" -i /www/lua/telstra_helper.lua
+sed -e "s/Gateway/$VARIANT/g" -i /www/cards/001_gateway.lp
+sed -e "s/Gateway/$VARIANT/g" -i /www/cards/005_LAN.lp
 
 echo [$SCRIPT]: Fix DSL disabled status on Broadband Card 
 sed \
@@ -427,13 +420,8 @@ sed \
  -e '/gVIES(/a \    dhcpv6State = gVIES(dhcpStateselect),' \
  -i /www/docroot/modals/ethernet-modal.lp
 
- echo [$SCRIPT]: Fix bug in relay setup card 
-sed \
- -e '/local function getRelayBackUpValues/i local server_addr = proxy.get\("uci.dhcp.relay.@relay.server_addr"\)' \
- -e '/local function getRelayBackUpValues/i \ ' \
- -e 's/\(if proxy.get."uci.dhcp.relay.@relay.server_addr".\[1\].value\)\( ==.*\)\( then\)/if not server_addr or \(server_addr\[1\].value\2\)\3/' \
- -e 's/\(if proxy.get."uci.dhcp.relay.@relay.server_addr".\[1\].value ~= ""\)\(.*\)\( then\)/if server_addr and server_addr\[1\].value ~= ""\2\3/' \
- -i /www/docroot/modals/relay-modal.lp
+ echo [$SCRIPT]: Missing proxy in relay setup card 
+sed -e '/local content_helper/a local proxy = require\("datamodel"\)' -i /www/cards/018_relaysetup.lp
 
 echo [$SCRIPT]: Enable various things that only the guest role\(!!!\) was allowed to do or see
 for f in $(ls /www/docroot/modals/gateway-modal.lp /www/docroot/modals/internet-modal.lp /www/docroot/modals/wireless-modal.lp /www/docroot/modals/wanservices-modal.lp /www/snippets/tabs-diagnostics.lp /www/snippets/tabs-voice.lp)
@@ -444,14 +432,12 @@ sed -e 's/if role ~= "admin"/if role == "admin"/' -i /www/docroot/modals/mmpbx-s
 
 echo [$SCRIPT]: Show the hidden Telephony tabs and fix default tab
 sed \
- -e 's/--  {"mmpbx-contacts/    {"mmpbx-contacts/' \
- -e 's/--  {"mmpbx-service-modal.lp", T"Service"},/    {"mmpbx-service-modal.lp", T"Service"},/' \
- -e '/  {"mmpbx-service-modal.lp", T"Service"},/a \    {"mmpbx-inoutgoingmap-modal.lp", T"In\/Outgoing Map"},' \
+ -e 's/--       {"mmpbx-contacts/       {"mmpbx-contacts/' \
+ -e 's/--       {"mmpbx-service-modal.lp", T"Service"},/       {"mmpbx-service-modal.lp", T"Service"},\n       {"mmpbx-inoutgoingmap-modal.lp", T"In\/Outgoing Map"},/' \
  -i /www/snippets/tabs-voice.lp
+echo [$SCRIPT]: Fix default Telephony tab
 # Default telephony tab is DECT!!! 
-# - Set test to always be false (mmpbx_state can only be 0 or 1, so 9 should always be false) 
-#   to invoke alternate processing branches and show global or info first.
-sed -e 's/if mmpbx_state == "1"/if mmpbx_state == "9"/' -i /www/cards/008_telephony.lp
+sed -e 's^modalPath = "/modals/mmpbx-dect-modal.lp"^modalPath = "/modals/mmpbx-global-modal.lp"^' -i /www/cards/008_telephony.lp
 
 echo [$SCRIPT]: Add missing icons on Diagnostics card
 # Show the icons for all tabs on the card
@@ -464,6 +450,9 @@ sed \
 echo [$SCRIPT]: Rename Diagnostics tabs and add Connections tab
 sed -e 's/"Connection"/"Connection Check"/' -e 's/"Network"/"Ports"/' -e 's/Tcpdump/TCP Dump/' -e '/connection-modal/a {"log-connections-modal.lp", T"Network Connections"},'  -e '/airiq/,/^[ ]*$/d' -i /www/snippets/tabs-diagnostics.lp
 sed -e 's/tabs-management/tabs-diagnostics/' -e 's/"Management"/"Diagnostics Network Connections"/' -i /www/docroot/modals/log-connections-modal.lp
+
+echo [$SCRIPT]: Add TCP Dump to Diagnostics
+sed -e 's/    {"logviewer-modal.lp", T"Log viewer"},/    {"logviewer-modal.lp", T"Log viewer"},\n    {"diagnostics-tcpdump-modal.lp", T"TCP Dump"},/' -i /www/snippets/tabs-diagnostics.lp
 
 echo [$SCRIPT]: Make device hostnames editable and sort list by host name
 sed \
@@ -647,12 +636,10 @@ else # night theme
   echo iVBORw0KGgoAAAANSUhEUgAAAAgAAACgCAYAAAAxQC0IAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAACSSURBVFhH7dY7DoMwFERROxV7oEVKQ8H+15KWdSQeX4ScxA9EzVyJn96RAFfOz3l5p4Me2zXMgAzIgAzIgAzIgAzoRmDitp/AWo4QZZ3Kdm0ol7EcLz23VaAitAPVQ19A/aI/oFp0ug7XXnH4kb2hqiAaKm16w6HSX4RDJRAO1ek6GJABGZABGZABGZAB3QKk9AFnBxTM1+YHQAAAAABJRU5ErkJggg== | base64 -d > /www/docroot/img/tipmid.png
   echo iVBORw0KGgoAAAANSUhEUgAAAAgAAABQCAYAAAAk0jQRAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABcSURBVEhL7cqxDYAgFIThw1lIaCzcfwoLGwdgBzvhcWoUgQnuTwh5uc+FeTkxaLr+bgJMgAkwASbABJgAE2ACJT8CPr/YA2Xct/VogWe0owaf0XqD32jdoDkCQAJZ8hnFzVxXJAAAAABJRU5ErkJggg== | base64 -d > /www/docroot/img/tipright.png
   sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf012;"/' -i /www/cards/003_lte.lp
- sed \
-   -e '$ a .card_bg:after{color:#3399cc2b;font-size:110px;bottom:-5px;}' \
+    sed \
+   -e '$ a .card_bg{position:relative;z-index:1;}' \
+   -e '$ a .card_bg:after{color:#3399cc2b;font-family:FontAwesome;content:attr(data-bg-text);display:block;font-size:110px;line-height:1;position:absolute;bottom:-5px;right:5px;}' \
    -i /www/docroot/css/gw.css
-  sed \
-   -e '$ a .landingpage{background-color:#f8f8f8;}' \
-   -i /www/docroot/css/gw-telstra.css
 fi
 
 echo [$SCRIPT]: Applying service changes if required...

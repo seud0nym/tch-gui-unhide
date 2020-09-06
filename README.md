@@ -60,21 +60,26 @@ Some hidden screens included on the device are not enabled, mainly because they 
 
 *PLEASE NOTE: Previous versions of the script (release 2020.08.16 and before) also set the hostname and domain. This functionality has been moved to the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) utility script.*
 
-### Firmware Version 18.1.c.nnnn Specific
-- If a file called *ipv4-DNS-Servers* is found in the directory from which the script is invoked, the contents will be added to the list of DNS Servers on the **Local Network** screen. (See below) 
-- If run thsi script on the DJA0231 with the 18.1.c.0514 firmware, it will also add a button to access the pre-release version of DumaOS, but only if DumaOS has been enabled. To add this button, execute the [`dumaos-beta`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos-beta) script with the `-on` parameter to enable DumaOS before running the `tch-gui-unhide` script.
+### Firmware Versions 0468 and Later
+- If a file called *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* is found in the directory from which the script is invoked, the contents will be added to the list of DNS Servers on the **Local Network** screen.
+
+    The contents of these file are simply the hostname and IP address, which are separated by a space. Multiple servers may be added, each on its own line.
+
+    For example, my *ipv4-DNS-Servers* and *ipv6-DNS-Servers* files consists of my main and backup [Pi-hole](https://pi-hole.net/) servers:
+```
+    Pi-hole 192.168.0.168
+    Pi-hole-VM 192.168.0.192
+```
+
+```
+    Pi-hole fe80::aaaa:bbbb:cccc:dddd
+    Pi-hole-VM fe80::1:22:3300:444
+```
+
+### Firmware Version 18.1.c.0514 Specific
+- If run this script on the DJA0231 with the 18.1.c.0514 firmware, it will also add a button to access the pre-release version of DumaOS, but only if DumaOS has been enabled. To add this button, execute the [`dumaos-beta`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos-beta) script with the `-on` parameter to enable DumaOS before running the `tch-gui-unhide` script.
 
 *PLEASE NOTE: Previous versions of the script (release 2020.08.03 and before) also automatically enabled the beta version of DumaOS on the DJA0231. To get this functionality, run the [`dumaos-beta`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos-beta) utility script.*
-
-#### ipv4-DNS-Servers file
-The contents of this file are simply the hostname and IP address, which are separated by a space. Multiple servers may be added, each on its own line.
-
-For example, my *ipv4-DNS-Servers* file consists of my main and backup [Pi-hole](https://pi-hole.net/) servers:
-```
-Pi-hole 192.168.0.168
-Pi-hole-VM 192.168.0.192
-```
-This adds these servers to the end of the IPv4 Primary and Secondary DNS lists on the **Local Network** screen.
 
 ## What does it actually do?
 All configuration changes are applied using the *uci* command interface to update the configuration files.
@@ -106,7 +111,7 @@ Alternatively, you can download the release for your firmware version to your co
 It is recommended that you apply whatever hardening (such as the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script) and other configuration changes you want to make *before* executing the script, as features are enabled or disabled depending on the current configuration of the target device.
 
 ### Third, optionally create customisation file (DJA0231 only)
-- Create your *ipv4-DNS-Servers* file in the same directory as the scripts, as specified above.
+- Create your *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* file in the same directory as the scripts, as specified above.
 
 ### Last, execute the script
 **PLEASE NOTE:** The GUI files will be restored to their original state (from /rom/www/...) by the script before it makes its modifications. If you have previously installed the Ansuel tch-nginx-gui, you should remove it before running this script.
