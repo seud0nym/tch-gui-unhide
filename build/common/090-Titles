@@ -5,11 +5,3 @@ do
     sed -e "s,title>.*</title,title>$VARIANT-$MAC</title," -i $f
 done
 
-if [ -f /www/lua/telstra_helper.lua ]
-then
-    sed -e "s/\(Modem\|Gateway\)/$VARIANT/g" -i /www/lua/telstra_helper.lua
-else
-    sed -e "s/Gateway/$VARIANT/g" -i /www/cards/001_gateway.lp
-    sed -e "s/Gateway/$VARIANT/g" -i /www/cards/005_LAN.lp
-fi
-

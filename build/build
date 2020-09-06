@@ -35,7 +35,7 @@ do
   echo "#!/bin/sh" > $TARGET
   echo "echo [tch-gui-unhide]: Built for version $MAJOR.$MINOR" >> $TARGET
 
-  for s in $(find . -mindepth 2 -type f -exec sh -c 'echo $(basename {})$(dirname {} | cut -c2-)' \; | sort)
+  for s in $(find . -mindepth 2 -type f -a ! -name .do-not-delete -exec sh -c 'echo $(basename {})$(dirname {} | cut -c2-)' \; | sort)
   do
     echo $s | grep -q -E "(common$|${MAJOR}$|${MAJOR}/${MINOR}$)"
     if [ $? -eq 0 ]

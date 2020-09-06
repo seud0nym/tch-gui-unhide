@@ -1,0 +1,2 @@
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf012;"/' -i /www/cards/010_lte.lp
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf079;"/' -i /www/cards/016_nfc.lp

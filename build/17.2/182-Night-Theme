@@ -1,5 +1,3 @@
-  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf012;"/' -i /www/cards/010_lte.lp
-  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf079;"/' -i /www/cards/016_nfc.lp
   sed \
    -e '$ a .card_bg{position:relative;z-index:1;}' \
    -e '$ a .card_bg:after{color:#3399cc2b;font-family:FontAwesome;content:attr(data-bg-text);display:block;font-size:110px;line-height:1;position:absolute;bottom:-5px;right:5px;}' \
