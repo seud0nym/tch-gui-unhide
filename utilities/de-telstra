@@ -165,8 +165,8 @@ do
       echo "    where u            Leave UPnP unchanged (Default)"
       echo "          y            Enable the UPnP service (device default)"
       echo "          n            Disable the UPnP service"
-      echo " -A                    Equivalent to: -h d -d g -n c -a n -f n -p n"
-      echo " -S                    Equivalent to: -h s -d g -n c -a n -f n -p n"
+      echo " -A                    Equivalent to: -hd -dg -nc -an -fn -pn -rn -un"
+      echo " -S                    Equivalent to: -hs -dg -nc -an -fn -pn -rn -un"
       echo " -U                    Check for and download the latest version from GitHub"
       exit;;
  esac

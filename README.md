@@ -108,9 +108,9 @@ The above command will only work if run from a supported firmware version, with 
 Alternatively, you can download the release for your firmware version to your computer and then upload it up to your device using WinSCP or equivalent. Run the `tar -xzvf <filename>` command to extract the release files.
 
 #### Harden your root access
-It is recommended that you apply whatever hardening (such as the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script) and other configuration changes you want to make *before* executing the script, as features are enabled or disabled depending on the current configuration of the target device.
+It is recommended that you apply whatever hardening (such as the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script) and other configuration changes you want to make *before* executing the script, as some features are enabled or disabled depending on the current configuration of the target device.
 
-### Third, optionally create customisation file (DJA0231 only)
+### Third, optionally create customisation files (FW versions 0468 and later only)
 - Create your *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* file in the same directory as the scripts, as specified above.
 
 ### Last, execute the script

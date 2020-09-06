@@ -31,9 +31,9 @@ local class_link='class="modal-link" data-toggle="modal" data-remote="modals/qos
 
 local qosState
 if dataQoS.enabled == "1" then
-  qosState = T"QoS Queue Scheduling Enabled"
+  qosState = T"QoS enabled"
 else
-  qosState = T"QoS Queue Scheduling Disabled"
+  qosState = T"QoS disabled"
 end
 
 ngx.print('\
