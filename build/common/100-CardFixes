@@ -40,3 +40,7 @@ sed \
  -i /www/cards/018_relaysetup.lp
 
 
+echo [$SCRIPT]: Enable cards in Bridge Mode
+# https://www.crc.id.au/hacking-the-technicolor-tg799vac-and-unlocking-features/#mozTocId685948
+sed -e '/if info.bridged then/,/end/d' -i /www/lua/cards_limiter.lua
+
