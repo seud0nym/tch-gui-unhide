@@ -5,9 +5,4 @@ if [ -f /www/cards/010_fon.lp ]
 then
   rm /www/cards/010_fon.lp
 fi
-# Always remove User Management card
-if [ -f /www/cards/011_usermgr.lp ]
-then
-  rm /www/cards/011_usermgr.lp
-fi
 

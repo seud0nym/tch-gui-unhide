@@ -11,7 +11,7 @@
   done
 }
 
-if [ $RESTORE = true ]
+if [ $RESTORE = y ]
 then
   restore_www V
   echo [$SCRIPT]: Removing config entries added to display hidden modals
@@ -19,6 +19,8 @@ then
   do
     uci delete $s
   done
+  uci -q delete web.usermgrmodal.roles
+  uci add_list web.usermgrmodal.roles='admin'
   uci commit web
   /etc/init.d/nginx restart
   echo "************************************************************"

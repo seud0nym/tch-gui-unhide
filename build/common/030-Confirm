@@ -11,14 +11,12 @@ echo "[$SCRIPT]:  - Unhide various cards and tabs contained in the stock GUI tha
 echo "[$SCRIPT]:  - The GUI screen will be prettied up a bit and the $THEME theme applied."
 
 echo [$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop.
-if [ $YES = true ]
-then
+if [ $YES = y ]; then
   REPLY=y
 else
   read
 fi
-if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]
-then
+if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
   exit
 fi
 

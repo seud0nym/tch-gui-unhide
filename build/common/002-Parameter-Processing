@@ -1,14 +1,37 @@
-RESTORE=false
-YES=false
+RESTORE=n
+WRAPPER=n
+YES=n
 
 FILENAME=$(basename $0)
 
-while getopts t:ryu option
+CARDS=""
+update_cards() {
+  MODAL=""
+  case "$2" in
+    c) MODAL="contentsharing-modal.lp";;
+    m) MODAL="usermgr-modal.lp";;
+    n) MODAL="nat-alg-helper-modal.lp";;
+    p) MODAL="printersharing-modal.lp";;
+    q) MODAL="qos-queue-modal.lp";;
+    r) MODAL="relay-modal.lp";;
+    s) MODAL="system-modal.lp";;
+    x) MODAL="xdsl-low-modal.lp";;
+    *) echo "[$SCRIPT]: WARNING - Ignored unknown card include/exclude option $2"
+  esac
+  if [ ! -z "$MODAL" ]; then
+    CARDS=${1}${MODAL}$(echo $CARDS | sed -e "s/[IX]$MODAL//")
+  fi
+}
+
+while getopts Wt:ryux:i: option
 do
  case "${option}" in
+   W) WRAPPER=y;;
    t) if [ "$(echo ${OPTARG} | tr "LN" "ln" | sed 's/\(.\)\(.*\)/\1/')" = "n" ]; then THEME=night; fi;;
-   r) RESTORE=true;;
-   y) YES=true;;
+   r) RESTORE=y;;
+   i) update_cards 'I' $OPTARG;;
+   x) update_cards 'X' $OPTARG;;
+   y) YES=y;;
    u) RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME | sed 's/\r//')
       if [ $? -ne 0 ]
       then
@@ -58,10 +81,20 @@ do
       fi
       exit;;
    ?) echo "Optional parameters:"
-      echo " -t light|night  : Set the theme to either light (the default) or night"
-      echo " -r              : Restore changed GUI files to their original state (config changes are NOT restored)"
-      echo " -y              : Bypass confirmation prompts (answers 'y')"
-      echo " -u              : Check for and download any updates to $FILENAME"
+      echo " -t light|night     : Set the theme to either light (the default) or night"
+      echo " -r                 : Restore changed GUI files to their original state (config changes are NOT restored)"
+      echo " -y                 : Bypass confirmation prompts (answers 'y')"
+      echo " -x c|m|n|p|q|r|s|x : Exclude specific cards (use -x multiple times to specify multiple cards):"
+      echo "                        c=Content Sharing m=Management n=NAT Helpers p=Printer Sharing q=QoS r=Relay Setup s=System Extras x=xDSL config"
+      echo " -i c|m|n|p|q|r|s|x : Include specific cards that were previously excluded (use -i multiple times to specify multiple cards)"
+      echo " -u                 : Check for and download any updates to $FILENAME"
+      if [ $WRAPPER = y ]; then
+      echo " -U                 : Download the latest release, including utility scripts (will overwrite all existing script versions)"
+      fi
+      echo 
+      echo "NOTE: Theme (-t) and excluded/included cards (-x/-i) do not need to be re-specified when re-running the script:"
+      echo "      state will be 'remembered' between executions (unless you execute with the -r option, which will remove all state information)"
+      echo
       exit;;
  esac
 done

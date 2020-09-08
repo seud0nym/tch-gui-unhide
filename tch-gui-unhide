@@ -1,26 +1,25 @@
 #!/bin/sh
 
-SCRIPT="tch-gui-unhide-$(uci get version.@version[0].version | cut -d- -f1)"
+VERSION="$(uci get version.@version[0].version | cut -d- -f1)"
+SCRIPT="tch-gui-unhide-$VERSION"
 DOWNLOAD=n
 HELP=n
 
-while getopts t:ryuU option
+while getopts t:ryuUx:i: option
 do
  case "${option}" in
-   t|r|y|u) ;;
+   t|r|y|u|x|i) HELP=n;;
    U) DOWNLOAD=y;;
    *) HELP=y;;
  esac
 done
 
-if [ -f "$SCRIPT" -a "$DOWNLOAD" = "n" ]
-then
-  ./$SCRIPT $*
-  if [ "$HELP" = "y" ]
-  then
-      echo " -U              : Download the latest release (will overwrite all existing script versions)"
-  fi
+if [ -f "$SCRIPT" -a "$DOWNLOAD" = "n" ]; then
+  ./$SCRIPT -W $*
 else
-  echo "[tch-gui-unhide] Attempting to download latest release from GitHub..."
-  wget https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$(uci get version.@version[0].version | cut -d- -f1).tar.gz -O - | tar -xzvf -
+  if [ ! -f "$SCRIPT" ]; then
+    echo "[tch-gui-unhide] Platform script $SCRIPT not found!"
+  fi
+  echo "[tch-gui-unhide] Attempting to download latest release for FW $VERSION from GitHub..."
+  curl -k -L https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$VERSION.tar.gz | tar -xzvf -
 fi 
