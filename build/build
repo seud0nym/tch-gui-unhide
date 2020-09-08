@@ -14,7 +14,7 @@ do
     cd /tmp/ansuel/$d
     for f in $(find . -type f -name "*.lp" -o -name "*.lua")
     do
-      sed -e 's/^[ \t]*//g' -e 's/[ \t]*$//' -i $f
+      sed -e 's/^[ \t]*//g' -e 's/[ \t]*$//' -e 's/\r$//' -i $f
       chmod -x $f
     done
     echo -\> $d.b64
