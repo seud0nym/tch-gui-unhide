@@ -14,15 +14,18 @@ local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
 local proxy = require("datamodel")
 
+local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
+
 -- Menu display information (policy classgroup name MUST match value in qos config)
 local dataQoS = {
-  enabled = "uci.qos.device.@ptm0.enable",
+  enabled = "uci.qos.device.@" .. wan_ifname:untaint() .. ".enable",
   numQueues   = "uci.qos.classNumberOfEntries",
   numClassify = "uci.qos.classifyNumberOfEntries",
 }
 
 if not proxy.get(dataQoS.enabled) then
-	mapParams.enabled = "uci.qos.interface.@wan.enable"
+  proxy.set(dataQoS.enabled, "0")
+  proxy.apply()
 end
 
 content_helper.getExactContent(dataQoS)
@@ -31,9 +34,9 @@ local class_link='class="modal-link" data-toggle="modal" data-remote="modals/qos
 
 local qosState
 if dataQoS.enabled == "1" then
-  qosState = T"QoS enabled"
+  qosState = T"QoS on interface " .. wan_ifname:untaint() .. " enabled"
 else
-  qosState = T"QoS disabled"
+  qosState = T"QoS on interface " .. wan_ifname:untaint() .. " disabled"
 end
 
 ngx.print('\

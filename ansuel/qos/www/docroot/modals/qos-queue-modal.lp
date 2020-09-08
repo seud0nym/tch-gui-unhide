@@ -53,8 +53,10 @@ for id=0,15,1 do
     trafficid_options[#trafficid_options+1] = { tostring(id), tostring(id) }
 end
 
+local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
+
 local mapParams = {
-    wan_queues_enabled = "uci.qos.device.@ptm0.enable",
+    wan_queues_enabled = "uci.qos.device.@" .. wan_ifname:untaint() .. ".enable",
     wan_queues_policy = "uci.qos.classgroup.@TO_WAN.policy",
     wan_queues_default = "uci.qos.classgroup.@TO_WAN.default",
     lan_queues_enabled = "uci.qos.interface.@lan.enable",
@@ -76,7 +78,8 @@ local mapValid = {
 }
 
 if not proxy.get(mapParams.wan_queues_enabled) then
-	mapParams.wan_queues_enabled = "uci.qos.interface.@wan.enable"
+    proxy.set(mapParams.wan_queues_enabled, "0")
+    proxy.apply()
 end
 
 local ethports = {}
@@ -387,7 +390,7 @@ ngx.print( ui_helper.createHeader(T"QoS", false, true) ); ngx.print('\
 	local html = {}
 	
     html[#html+1] = "<fieldset>"
-    html[#html+1] =   "<legend>" ..  T"QoS Queue Scheduling on Interface WAN".."</legend>"
+    html[#html+1] =   "<legend>" ..  T"QoS Queue Scheduling on Interface WAN (".. wan_ifname:untaint() ..")</legend>"
 
     html[#html+1] =     ui_helper.createSwitch(T"Enabled", "wan_queues_enabled", content["wan_queues_enabled"])
     html[#html+1] =     ui_helper.createInputSelect(T"Algorithm", "wan_queues_policy", policy_options, content["wan_queues_policy"])
