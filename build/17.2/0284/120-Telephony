@@ -1,4 +1,16 @@
-echo [$SCRIPT]: Fix default Telephony tab
+echo [$SCRIPT]: Show the hidden Telephony tabs and fix default tab
+sed \
+ -e '/mmpbx-contacts/d' \
+ -e '/T"Service"/i \       {"mmpbx-inoutgoingmap-modal.lp", T"In\/Outgoing Map"},' \
+ -e '/T"DECT"/a    \       {"mmpbx-contacts-modal.lp", T"Phone Book"},' \
+ -i /www/snippets/tabs-voice.lp
 # Default telephony tab is DECT!!! 
-sed -e 's^modalPath = "/modals/mmpbx-dect-modal.lp"^modalPath = "/modals/mmpbx-global-modal.lp"^' -i /www/cards/008_telephony.lp
+sed \
+ -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/a \    if mmpbx_state == "1" then' \
+ -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/a \        modalPath = "\/modals\/mmpbx-info-modal.lp"' \
+ -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/a \    else' \
+ -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/a \        modalPath = "\/modals\/mmpbx-global-modal.lp"' \
+ -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/a \    end' \
+ -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/d' \
+ -i /www/cards/008_telephony.lp
 

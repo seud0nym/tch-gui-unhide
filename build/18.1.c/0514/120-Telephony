@@ -1,10 +1,13 @@
 echo [$SCRIPT]: Show the hidden Telephony tabs and fix default tab
 sed \
- -e 's/--  {"mmpbx-contacts/    {"mmpbx-contacts/' \
- -e 's/--  {"mmpbx-service-modal.lp", T"Service"},/    {"mmpbx-service-modal.lp", T"Service"},\n    {"mmpbx-inoutgoingmap-modal.lp", T"In\/Outgoing Map"},/' \
+ -e 's/--  {"mmpbx-service/    {"mmpbx-service/' \
+ -e '/mmpbx-contacts/d' \
+ -e '/T"Service"/i \    {"mmpbx-inoutgoingmap-modal.lp", T"In\/Outgoing Map"},' \
+ -e '/T"DECT"/a    \    {"mmpbx-contacts-modal.lp", T"Phone Book"},' \
  -i /www/snippets/tabs-voice.lp
 # Default telephony tab is DECT!!! 
-# - Set test to always be false (mmpbx_state can only be 0 or 1, so 9 should always be false) 
-#   to invoke alternate processing branches and show global or info first.
-sed -e 's/if mmpbx_state == "1"/if mmpbx_state == "9"/' -i /www/cards/008_telephony.lp
+sed \
+ -e 's/if mmpbx_state == "1" and (emission_state == "1" or emission_state == "0")/if mmpbx_state == "0"/' \
+ -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/,/elseif session:hasAccess("\/modals\/mmpbx-global-modal.lp") then/d' \
+ -i /www/cards/008_telephony.lp
 
