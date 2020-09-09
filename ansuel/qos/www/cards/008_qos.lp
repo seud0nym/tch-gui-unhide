@@ -3,18 +3,16 @@
 -- Enable localization
 gettext.textdomain('webui-qos')
 
-local format = string.format
-local modal_link = nil
-
 local session = ngx.ctx.session
-if session:hasAccess("/modals/qos-queue-modal.lp") and session:hasAccess("/modals/qos-classify-modal.lp") then
-  modal_link = "/modals/qos-queue-modal.lp"
+local format = string.format
+local proxy = require("datamodel")
+local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
 
+if wan_ifname and wan_ifname ~= "" and session:hasAccess("/modals/qos-queue-modal.lp") and session:hasAccess("/modals/qos-classify-modal.lp") then
+
+local modal_link = "/modals/qos-queue-modal.lp"
 local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
-local proxy = require("datamodel")
-
-local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
 
 -- Menu display information (policy classgroup name MUST match value in qos config)
 local dataQoS = {
