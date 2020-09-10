@@ -1,5 +1,6 @@
 else # night theme
   echo [$SCRIPT]: Add or update card background icons
+  sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf012;"/' -i $(find /www/cards -type f -name '*lte.lp')
   sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf129;"/' -i /www/cards/001_gateway.lp
   sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0b2;"/' -i /www/cards/002_broadband.lp
   sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0ac;"/' -i /www/cards/003_internet.lp

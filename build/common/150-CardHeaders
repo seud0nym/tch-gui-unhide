@@ -5,6 +5,16 @@ do
 done
 sed -e 's/switchName, content\["cwmp_state"\], {input = {id = "cwmp_card_state"}}/nil, nil, nil/' -i /www/cards/090_cwmpconf.lp
 
+echo [$SCRIPT]: Fix mobile signal placement
+sed \
+ -e '/<\/script>/i var div = document.querySelector("#mobiletab").querySelector(".header-title");\\' \
+ -e '/<\/script>/i var signal = document.querySelector("#signal-strength-indicator-small");\\' \
+ -e '/<\/script>/i div.parentNode.insertBefore(signal, div.nextSibling);\\' \
+ -i $(find /www/cards -type f -name '*lte.lp')
+sed \
+ -e '$ a #signal-strength-indicator-small .absolute{float:right;margin-top:unset;margin-left:unset;height:unset;padding-left:10px;width:unset;position:relative;}' \
+ -i /www/docroot/css/mobiled.css
+
 echo [$SCRIPT]: Handle Wi-Fi switch
 sed \
  -e '/Take the input/i \if ngx.var.request_method == "POST" then' \
@@ -18,4 +28,3 @@ sed \
  -e '/Take the input/i \end' \
  -i /www/docroot/modals/wireless-modal.lp
 
- 
