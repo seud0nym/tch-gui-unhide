@@ -5,3 +5,17 @@ do
 done
 sed -e 's/switchName, content\["cwmp_state"\], {input = {id = "cwmp_card_state"}}/nil, nil, nil/' -i /www/cards/090_cwmpconf.lp
 
+echo [$SCRIPT]: Handle Wi-Fi switch
+sed \
+ -e '/Take the input/i \if ngx.var.request_method == "POST" then' \
+ -e '/Take the input/i \  local radio_state = ngx.req.get_post_args().set_wifi_radio_state' \
+ -e '/Take the input/i \  if radio_state then' \
+ -e '/Take the input/i \     proxy.set("uci.wireless.wifi-device.@radio_2G.state", radio_state:untaint())' \
+ -e '/Take the input/i \     proxy.set("uci.wireless.wifi-device.@radio_5G.state", radio_state:untaint())' \
+ -e '/Take the input/i \     proxy.apply()' \
+ -e '/Take the input/i \     ngx.exit(ngx.HTTP_OK)' \
+ -e '/Take the input/i \  end' \
+ -e '/Take the input/i \end' \
+ -i /www/docroot/modals/wireless-modal.lp
+
+ 
