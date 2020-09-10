@@ -7,7 +7,7 @@ rm -rf /tmp/additional ../additional/*.b64
 
 echo Building Base64 tar images...
 mkdir /tmp/additional
-cp -r ../ansuel/* ../additional/* /tmp/additional/
+cp -p -r ../ansuel/* ../additional/* /tmp/additional/
 for d in $(ls /tmp/additional)
 do
   if [ -d /tmp/additional/$d ]
