@@ -17,6 +17,7 @@ sed \
  -e '/localdevmask = /d' \
  -e 's/localdevIP = "uci/localdevIP = "rpc/' \
  -e 's/dhcpState/dhcp4State/g' \
+ -e 's/DHCP enabled/DHCPv4 enabled/' \
  -e 's/DHCP disabled/DHCPv4 disabled/' \
  -e '/getExactContent/a if mapParams["dhcpv6State"] == "" or mapParams["dhcpv6State"] == "server" then' \
  -e '/getExactContent/a \    dhcp6State_text = T"DHCPv6 enabled"' \
