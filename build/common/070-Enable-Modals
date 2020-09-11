@@ -74,3 +74,9 @@ uci commit web
 # Modify management card to allow it to be suppressed
 sed -e 's/^if assistant then/if admin and assistant then/' -i /www/cards/011_usermgr.lp
 
+echo [$SCRIPT]: Display Telephony tabs even when mmpbx disabled
+sed \
+ -e '/if mmpbx_state == "1" then/d' \
+ -e '/elseif session:hasAccess/,/end/d' \
+ -i /www/snippets/tabs-voice.lp
+

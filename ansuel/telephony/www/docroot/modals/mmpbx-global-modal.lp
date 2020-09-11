@@ -14,20 +14,16 @@ local content_helper = require("web.content_helper")
 local tinsert = table.insert
 local format, untaint = string.format, string.untaint
 local session = ngx.ctx.session
-local show_modal = 1
 
 if ngx.var.request_method == "POST" then
   local mmpbx_enable = ngx.req.get_post_args().mmpbx_enable
   if mmpbx_enable then
-    showmodal=0
     proxy.set("uci.mmpbx.mmpbx.@global.enabled", mmpbx_enable:untaint())
     proxy.apply()
     ngx.sleep(20)
-    ngx.exit(ngx.HTTP_OK)
+    ngx.exit(ngx.HTTP_NO_CONTENT)
   end
 end
-
-if showmodal == 1 then
 
 --Generate random key for new rule
 --@return 4 digit random key.
@@ -374,25 +370,3 @@ ngx.print('\
 '); ngx.print(
     ui_helper.createFooter()
 );
-if content and content["mmpbx_enabled"] == "0" then
-    ngx.print('\
-  <style>\
-    .disabled{\
-       cursor:not-allowed !important;\
-       color:#666;\
-    }\
-  </style>\
-  <script>\
-    $(".nav li a").addClass("disabled");\
-  </script>\
-  ');
-else
-    ngx.print('\
-  <script>\
-    if($(".nav li a").hasClass("disabled")){\
-      $(".nav li a").removeClass("disabled");\
-    }\
-  </script>\
-  ');
-end
-end
