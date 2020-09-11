@@ -28,3 +28,22 @@ sed \
  -e '/Take the input/i \end' \
  -i /www/docroot/modals/wireless-modal.lp
 
+echo [$SCRIPT]: Handle Telephony switch
+ sed \
+  -e '/local sipnet_options/i \local show_modal = 1' \
+  -e '/local sipnet_options/i \if ngx.var.request_method == "POST" then' \
+  -e '/local sipnet_options/i \  local mmpbx_enable = ngx.req.get_post_args().mmpbx_enable' \
+  -e '/local sipnet_options/i \  if mmpbx_enable then' \
+  -e '/local sipnet_options/i \    show_modal = 0' \
+  -e '/local sipnet_options/i \    proxy.set("uci.mmpbx.mmpbx.@global.enabled", mmpbx_enable:untaint())' \
+  -e '/local sipnet_options/i \    proxy.apply()' \
+  -e '/local sipnet_options/i \    ngx.sleep(20)' \
+  -e '/local sipnet_options/i \    ngx.exit(ngx.HTTP_OK)' \
+  -e '/local sipnet_options/i \  end' \
+  -e '/local sipnet_options/i \end' \
+  -e '/local sipnet_options/i \if show_modal = 1 then' \
+  -e '$ a <%' \
+  -e '$ a end' \
+  -e '$ a %>' \
+  -i /www/docroot/modals/mmpbx-info-modal.lp
+

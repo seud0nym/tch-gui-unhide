@@ -14,11 +14,25 @@ local content_helper = require("web.content_helper")
 local tinsert = table.insert
 local format, untaint = string.format, string.untaint
 local session = ngx.ctx.session
-local open = io.open
+local show_modal = 1
+
+if ngx.var.request_method == "POST" then
+  local mmpbx_enable = ngx.req.get_post_args().mmpbx_enable
+  if mmpbx_enable then
+    showmodal=0
+    proxy.set("uci.mmpbx.mmpbx.@global.enabled", mmpbx_enable:untaint())
+    proxy.apply()
+    ngx.sleep(20)
+    ngx.exit(ngx.HTTP_OK)
+  end
+end
+
+if showmodal == 1 then
 
 --Generate random key for new rule
 --@return 4 digit random key.
 function getRandomKey()
+  local open = io.open
   local bytes
   local key = ("%02X"):rep(4)
   local fd = open("/dev/urandom", "r")
@@ -380,4 +394,5 @@ else
     }\
   </script>\
   ');
+end
 end
