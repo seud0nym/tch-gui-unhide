@@ -87,4 +87,5 @@ end
     </div>\
   </div>\
 </div>\
+<script>$(".header input#set_wifi_radio_state").on("change",function(){$("#waiting").removeClass("hide")});</script>\
 '); 
