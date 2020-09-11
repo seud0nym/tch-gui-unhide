@@ -27,7 +27,7 @@ while getopts Wt:ryux:i: option
 do
  case "${option}" in
    W) WRAPPER=y;;
-   t) if [ "$(echo ${OPTARG} | tr "LN" "ln" | sed 's/\(.\)\(.*\)/\1/')" = "n" ]; then THEME=night; fi;;
+   t) if [ "$(echo ${OPTARG} | tr "LN" "ln" | sed 's/\(.\)\(.*\)/\1/')" = "n" ]; then THEME=night; else THEME=light; fi;;
    r) RESTORE=y;;
    i) update_cards 'I' $OPTARG;;
    x) update_cards 'X' $OPTARG;;
