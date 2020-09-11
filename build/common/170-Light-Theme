@@ -1,4 +1,7 @@
 echo [$SCRIPT]: Applying $THEME theme
+ sed \
+   -e '$ a .switchOn{background-color:#005c32;}' \
+   -i /www/docroot/css/gw.css
 if [ "$THEME" = "light" ]
 then
   echo [$SCRIPT]: Remove the background card icons from the cards that do have them
