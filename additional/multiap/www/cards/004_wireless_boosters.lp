@@ -29,9 +29,9 @@ if content.agent_enabled and content.controller_enabled  then
   local boosters = 0
   
   if content.agent_enabled == "1" then
-    agentStatus = "Agent enabled"
+    agentStatus = "Multi-AP Agent enabled"
   else
-    agentStatus = "Agent disabled"
+    agentStatus = "Multi-AP Agent disabled"
   end
   if content.controller_enabled == "1" then
     local path = "Device.Services.X_TELSTRA_MultiAP.Agent."
@@ -41,15 +41,15 @@ if content.agent_enabled and content.controller_enabled  then
         boosters = boosters + 1
       end
     end
-    controllerStatus = "Controller enabled"
+    controllerStatus = "Multi-AP Controller enabled"
   else
-    controllerStatus = "Controller disabled"
+    controllerStatus = "Multi-AP Controller disabled"
   end
   if content["ap6state"] and content["ap6iface"] == "wl1_2" and content["wl1_2ssid"] ~= "" then
     if content["ap6state"] == "0" then
       backhaulStatus = T"Backhaul " .. content["wl1_2ssid"] .. " (5G) disabled"
     elseif content["state5g"] == "0" then
-      content["ap6state"] = "4"
+      content["ap6state"] = "2"
       backhaulStatus = T"Backhaul " .. content["wl1_2ssid"] .. " (5G) radio off"
     else
       backhaulStatus = T"Backhaul " .. content["wl1_2ssid"] .. " (5G) enabled"

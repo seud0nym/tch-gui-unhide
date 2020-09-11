@@ -46,18 +46,18 @@ else
 end
 if content["state2g"] == "0" then
   if content["ap0state"] and content["ap0state"] == "1" then
-    content["ap0state"] = "4"
+    content["ap0state"] = "2"
   end
   if content["ap1state"] and content["ap1state"] == "1" then
-    content["ap1state"] = "4"
+    content["ap1state"] = "2"
   end
 end
 if content["state5g"] == "0" then
   if content["ap2state"] and content["ap2state"] == "1" then
-    content["ap2state"] = "4"
+    content["ap2state"] = "2"
   end
   if content["ap3state"] and content["ap3state"] == "1" then
-    content["ap3state"] = "4"
+    content["ap3state"] = "2"
   end
 end
 
