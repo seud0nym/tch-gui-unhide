@@ -5,6 +5,7 @@ else # night theme
     *)      RGB_BTN=662e91; RGB_HDR=008fd5; RGB_NAV=008fd5; RGB_SYM=00b9f21f;;
   esac
 
+  # if changing any of these lines, recheck 002-Parameter-Processing
   sed \
    -e "$ a a{color:#$RGB_NAV;}" \
    -e "$ a body{background-color:#353c42;color:#fff}" \

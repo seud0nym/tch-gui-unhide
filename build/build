@@ -7,7 +7,8 @@ rm -rf /tmp/additional ../additional/*.b64
 
 echo Building Base64 tar images...
 mkdir /tmp/additional
-cp -p -r ../ansuel/* ../additional/* /tmp/additional/
+tar --exclude README.md --exclude '*.b64'  -cf - -C ../ansuel/ .  | tar -xf - -C /tmp/additional/
+tar --exclude README.md --exclude '*.b64'  -cf - -C ../additional/ .  | tar -xf - -C /tmp/additional/
 for d in $(ls /tmp/additional)
 do
   if [ -d /tmp/additional/$d ]

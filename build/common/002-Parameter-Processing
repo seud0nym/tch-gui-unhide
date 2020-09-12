@@ -108,7 +108,7 @@ do
  esac
 done
 
-if [ "$ICONS" == "" ]; then
+if [ "$ICONS" = "" ]; then
   if [ "$THEME" = "light" ]; then
     ICONS=hidden
   else
@@ -116,5 +116,5 @@ if [ "$ICONS" == "" ]; then
   fi
 fi
 
-if [ THEME_ONLY = n ]; then
+if [ $THEME_ONLY = n ]; then
 
