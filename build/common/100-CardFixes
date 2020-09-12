@@ -1,8 +1,44 @@
-echo [$SCRIPT]: Fix DSL disabled status on Broadband Card 
+echo [$SCRIPT]: Fix DSL disabled status on Broadband card and add upload/download stats
 sed \
  -e '/sys.eth.port.@eth4.status/a \  dsl0_enabled      = "uci.xdsl.xdsl.@dsl0.enabled",' \
  -e '/"DSL disconnected"/a \      elseif wan_data["dsl0_enabled"] == "0" then' \
  -e '/"DSL disconnected"/a \        html[#html+1] = ui_helper.createSimpleLight("0", "DSL disabled")' \
+ -e '/ngx.ctx.session/i \local wan_intf ="wan"' \
+ -e '/ngx.ctx.session/i \local wan6_intf ="wan6"' \
+ -e '/ngx.ctx.session/i \local content_wan = {' \
+ -e '/ngx.ctx.session/i \  wwan_ipaddr = "rpc.network.interface.@wwan.ipaddr",' \
+ -e '/ngx.ctx.session/i \  wwan_ip6addr = "rpc.network.interface.@wwan.ip6addr",' \
+ -e '/ngx.ctx.session/i \}' \
+ -e '/ngx.ctx.session/i \content_helper.getExactContent(content_wan)' \
+ -e '/ngx.ctx.session/i \if content_wan.wwan_ipaddr:len() ~= 0 or content_wan.wwan_ip6addr:len() ~= 0 then' \
+ -e '/ngx.ctx.session/i \  wan_intf = "wwan"' \
+ -e '/ngx.ctx.session/i \end' \
+ -e '/ngx.ctx.session/i \local content_rpc = {' \
+ -e '/ngx.ctx.session/i \  uptime = "rpc.network.interface.@" .. wan_intf .. ".uptime",' \
+ -e '/ngx.ctx.session/i \  tx_bytes = "rpc.network.interface.@" .. wan_intf .. ".tx_bytes",' \
+ -e '/ngx.ctx.session/i \  rx_bytes = "rpc.network.interface.@" .. wan_intf .. ".rx_bytes",' \
+ -e '/ngx.ctx.session/i \}' \
+ -e '/ngx.ctx.session/i \content_helper.getExactContent(content_rpc)' \
+ -e '/ngx.ctx.session/i \local function bytes2string(s_bytes)' \
+ -e '/ngx.ctx.session/i \  if s_bytes=="" then' \
+ -e '/ngx.ctx.session/i \    return "0 B"' \
+ -e '/ngx.ctx.session/i \  else' \
+ -e '/ngx.ctx.session/i \    local bytes = tonumber(s_bytes)' \
+ -e '/ngx.ctx.session/i \    local kb = bytes/1024' \
+ -e '/ngx.ctx.session/i \    local mb = kb/1024' \
+ -e '/ngx.ctx.session/i \    local gb = mb/1024' \
+ -e '/ngx.ctx.session/i \    if gb >= 1 then' \
+ -e '/ngx.ctx.session/i \      return format("%.2f", gb) .. " GB"' \
+ -e '/ngx.ctx.session/i \    elseif mb >= 1 then' \
+ -e '/ngx.ctx.session/i \      return format("%.2f", mb) .. " MB"' \
+ -e '/ngx.ctx.session/i \    elseif kb >= 1 then' \
+ -e '/ngx.ctx.session/i \      return format("%.2f", kb) .. " KB"' \
+ -e '/ngx.ctx.session/i \    else' \
+ -e '/ngx.ctx.session/i \      return s_bytes .. " B"' \
+ -e '/ngx.ctx.session/i \    end' \
+ -e '/ngx.ctx.session/i \  end' \
+ -e '/ngx.ctx.session/i \end' \
+ -e '/ngx.print(html)/i \      html[#html+1] = format("<p class=\\"subinfos\\"><i class=\\"icon-download\\"></i>%s&ensp;<i class=\\"icon-upload\\"></i>%s</p>", bytes2string(content_rpc.rx_bytes), bytes2string(content_rpc.tx_bytes))' \
  -i /www/cards/002_broadband.lp
 
 echo [$SCRIPT]: Fix default connection mode 
@@ -27,7 +63,6 @@ sed \
  -e '/getExactContent/a \    dhcp6State = "0"' \
  -e '/getExactContent/a end' \
  -e '/createSimpleLight/a \            ui_helper.createSimpleLight(dhcp6State, dhcp6State_text),' \
- -e 's/IP is/IP:/' \
  -e 's/and netmask is <strong>%s<\/strong>/\(<strong>%s<\/strong>\)/' \
  -e 's/localdevmask/dhcpv4Proto/' \
  -e '/^\\$/d' \
@@ -40,7 +75,6 @@ sed \
  -e 's/\(if proxy.get."uci.dhcp.relay.@relay.server_addr".\)\(.*\)\( then\)/if not server_addr or \(server_addr\2\)\3/' \
  -e 's/\r//' \
  -i /www/cards/018_relaysetup.lp
-
 
 echo [$SCRIPT]: Enable cards in Bridge Mode
 # https://www.crc.id.au/hacking-the-technicolor-tg799vac-and-unlocking-features/#mozTocId685948
