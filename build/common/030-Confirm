@@ -5,7 +5,7 @@ echo "[$SCRIPT]:  - Ensure admin role can administer the parental block"
 echo "[$SCRIPT]:  - Unhide various cards and tabs contained in the stock GUI that are normally hidden"
 echo "[$SCRIPT]:  - Add modified cards and screens from the Ansuel tch-nginx-gui"
 echo "[$SCRIPT]:  - Allow editing of various settings that are not exposed in the stock GUI"
-echo "[$SCRIPT]:  - The GUI screens will be prettied up a bit and the $THEME theme applied."
+echo "[$SCRIPT]:  - The GUI screens will be prettied up a bit and the $THEME theme applied with card icons $ICONS."
 
 echo [$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop.
 if [ $YES = y ]; then

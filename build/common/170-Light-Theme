@@ -1,47 +1,20 @@
-echo [$SCRIPT]: Applying $THEME theme
- sed \
-   -e '$ a .switchOn{background-color:#005c32;}' \
-   -i /www/docroot/css/gw.css
-if [ "$THEME" = "light" ]
-then
-  echo [$SCRIPT]: Remove the background card icons from the cards that do have them
-  sed -e 's/class="content card_bg" data-bg-text="\&#xf012;"/class="content"/' -i $(find /www/cards -type f -name '*lte.lp')
-  sed -e 's/class="content card_bg" data-bg-text="\&#xf072;"/class="content"/' -i /www/cards/008_qos.lp
-  sed -e 's/class="content card_bg" data-bg-text="\&#xf085;"/class="content"/' -i /www/cards/091_system.lp
-  sed -e 's/class="content card_bg" data-bg-text="\&#xf0ad;"/class="content"/' -i /www/cards/092_natalghelper.lp
-  sed -e 's/class="content card_bg" data-bg-text="\&#xf0ad;"/class="content"/' -i /www/cards/093_xdsl.lp
-  
-  echo [$SCRIPT]: Apply the CSS changes
+if [ "$THEME" = "light" ]; then # light theme
   sed \
    -e '$ a a{color:#404040;}' \
-   -e '$ a body{background-color:#fff;font-family:'Roboto','Noto',sans-serif;}' \
-   -e '$ a input,button,select,textarea{font-family:'Roboto','Noto',sans-serif;}' \
-   -e '$ a u{text-decoration:none;}' \
-   -e '$ a .card{font-family:'Roboto','Noto',sans-serif;}' \
-   -e '$ a .copyright{font-family:'Roboto','Noto',sans-serif;text-shadow:none;display:none;}' \
-   -e '$ a .dw{font-family:'Roboto','Noto',sans-serif;}' \
-   -e '$ a .header{border-bottom:0px;box-shadow:none;margin-bottom:30px;}' \
-   -e '$ a .header img{width:180px;}' \
-   -e '$ a .header .btn{margin-left:5px;}' \
+   -e '$ a body{background-color:#fff;}' \
+   -e '$ a .card_bg:after{color:#018ed42b;}' \
    -e '$ a .modal-backdrop{background-color:#fff;}' \
    -e '$ a .modal-header{color:#404040;}' \
-   -e '$ a .nav-header{text-shadow:none;}' \
-   -e '$ a .nav-list>li>a,.nav-list .nav-header{text-shadow:none;}' \
    -e '$ a .nav-tabs>.active>a, .nav-tabs>.active>a:hover, .nav-tabs>.active>a:focus{background-color:#00B1EB;color:#fff}' \
-   -e '$ a .simple-desc{display:block;}' \
-   -e '$ a .smallcard{border:0px;background-color:#eee;font-family:'Roboto','Noto',sans-serif;font-size:14px;font-weight:400;color:rgba(64,64,64,0.75);}' \
-   -e '$ a .smallcard .content{font-size:14px;}' \
-   -e '$ a .smallcard .header{background-color:#eee;background-image:none;border-bottom:0px;color:#404040;font-size:20px;font-weight:400;text-shadow:none;}' \
-   -e '$ a .smallcard .subinfos{font-size:14px;color:rgba(64,64,64,0.75);}' \
+   -e '$ a .smallcard{background-color:#eee;color:rgba(64,64,64,0.75);}' \
+   -e '$ a .smallcard .header{background-color:#eee;color:#404040;}' \
+   -e '$ a .smallcard .subinfos{color:rgba(64,64,64,0.75);}' \
+   -e '$ a .switchOn{background-color:#00a540;}' \
    -i /www/docroot/css/gw.css
   sed \
-   -e '$ a body{background-color:#fff;font-family:Roboto,Noto,sans-serif;background-image:none;}' \
+   -e '$ a body{background-color:#fff;}' \
    -e '$ a .container>.row{background-color:#dadada;border-color:#dadada;}' \
-   -e '$ a .navbar+.container{margin-top:130px;}' \
-   -e '$ a .navbar-fixed-top .container{background-image:url(/img/logo.gif);background-repeat:no-repeat;background-size:180px;height:75px;margin-top:30px;}' \
-   -e '$ a .navbar-fixed-top .navbar-inner{box-shadow:none;}' \
-   -e '$ a .navbar-inner{box-shadow:none;}' \
-   -e '$ a .navbar-inverse .navbar-inner{background-color:#fff;background-image:none;border-width:0px;}' \
+   -e '$ a .navbar-inverse .navbar-inner{background-color:#fff;}' \
    -e '$ a .networkmap .devicelist{border-color:#094f9c;}' \
    -e '$ a .networkmap .right, .networkmap .left, .networkmap .longleft{background-color:#f89406;color:#fff}' \
    -i /www/docroot/css/gw-telstra.css

@@ -23,11 +23,18 @@ update_cards() {
   fi
 }
 
-while getopts Wt:ryux:i: option
+while getopts Wt:s:Tryux:i: option
 do
  case "${option}" in
    W) WRAPPER=y;;
-   t) if [ "$(echo ${OPTARG} | tr "LN" "ln" | sed 's/\(.\)\(.*\)/\1/')" = "n" ]; then THEME=night; else THEME=light; fi;;
+   t) case "$(echo ${OPTARG} | tr "NOL" "nol" | sed 's/\(.\)\(.*\)/\1/')" in
+         n) THEME=night;;
+         o) THEME=orange;; 
+         p) THEME=purple;; 
+         *) THEME=light;;
+      esac;;
+   s) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then ICONS=visible; else ICONS=hidden; fi;;
+   T) THEME_ONLY=y;;
    r) RESTORE=y;;
    i) update_cards 'I' $OPTARG;;
    x) update_cards 'X' $OPTARG;;
@@ -81,11 +88,13 @@ do
       fi
       exit;;
    ?) echo "Optional parameters:"
-      echo " -t light|night     : Set the theme to either light (the default) or night"
+      echo " -t l|n|o|p         : Set the theme to either light (l), night (n), or night with orange (o) or purple (p) (Default is current setting, or light if not yet applied)"
+      echo " -s y|n             : Show (y) or hide (n) the card symbols (Default is current setting, or n for light theme and y for night theme)"
+      echo " -T                 : Apply theme ONLY - bypass all other processing"
       echo " -r                 : Restore changed GUI files to their original state (config changes are NOT restored)"
       echo " -y                 : Bypass confirmation prompts (answers 'y')"
       echo " -x c|m|n|p|q|r|s|x : Exclude specific cards (use -x multiple times to specify multiple cards):"
-      echo "                        c=Content Sharing m=Management n=NAT Helpers p=Printer Sharing q=QoS r=Relay Setup s=System Extras x=xDSL config"
+      echo "                       c=Content Sharing m=Management n=NAT Helpers p=Printer Sharing q=QoS r=Relay Setup s=System Extras x=xDSL config"
       echo " -i c|m|n|p|q|r|s|x : Include specific cards that were previously excluded (use -i multiple times to specify multiple cards)"
       echo " -u                 : Check for and download any updates to $FILENAME"
       if [ $WRAPPER = y ]; then
@@ -98,4 +107,14 @@ do
       exit;;
  esac
 done
+
+if [ "$ICONS" == "" ]; then
+  if [ "$THEME" = "light" ]; then
+    ICONS=hidden
+  else
+    ICONS=visible
+  fi
+fi
+
+if [ THEME_ONLY = n ]; then
 

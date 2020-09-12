@@ -1,6 +1,3 @@
- sed \
-   -e '$ a .card_bg:after{color:#3399cc2b;font-size:110px;bottom:-5px;}' \
-   -i /www/docroot/css/gw.css
   sed \
    -e '$ a .landingpage{background-color:#f8f8f8;}' \
    -i /www/docroot/css/gw-telstra.css

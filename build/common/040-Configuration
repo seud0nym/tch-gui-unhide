@@ -1,9 +1,3 @@
-# Keep count of changes so we know whether to restart services
-SRV_dnsmasq=0
-SRV_dropbear=0
-SRV_nginx=0
-SRV_system=0
-
 if [ "$(uci get dropbear.lan.enable)" = "1" -a "$(uci get dropbear.lan.PasswordAuth)" = "on" -a "$(uci get dropbear.lan.RootPasswordAuth)" = "on" -a "$(uci get dropbear.lan.RootLogin)" = "1" ]
 then
   echo [$SCRIPT]: SSH already properly enabled for LAN access
