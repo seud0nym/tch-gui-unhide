@@ -6,7 +6,7 @@ gettext.textdomain('webui-qos')
 local session = ngx.ctx.session
 local format = string.format
 local proxy = require("datamodel")
-local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
+local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")
 
 if wan_ifname and wan_ifname ~= "" and session:hasAccess("/modals/qos-queue-modal.lp") and session:hasAccess("/modals/qos-classify-modal.lp") then
 
@@ -14,9 +14,11 @@ local modal_link = "/modals/qos-queue-modal.lp"
 local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
 
+wan_ifname = wan_ifname[1].value:untaint()
+
 -- Menu display information (policy classgroup name MUST match value in qos config)
 local dataQoS = {
-  enabled = "uci.qos.device.@" .. wan_ifname:untaint() .. ".enable",
+  enabled = "uci.qos.device.@" .. wan_ifname .. ".enable",
   numQueues   = "uci.qos.classNumberOfEntries",
   numClassify = "uci.qos.classifyNumberOfEntries",
 }
@@ -32,9 +34,9 @@ local class_link='class="modal-link" data-toggle="modal" data-remote="modals/qos
 
 local qosState
 if dataQoS.enabled == "1" then
-  qosState = T"QoS on interface " .. wan_ifname:untaint() .. " enabled"
+  qosState = T"QoS on interface " .. wan_ifname .. " enabled"
 else
-  qosState = T"QoS on interface " .. wan_ifname:untaint() .. " disabled"
+  qosState = T"QoS on interface " .. wan_ifname .. " disabled"
 end
 
 ngx.print('\
