@@ -1,10 +1,10 @@
 else # night theme
   # if you chang any of these colors or CSS, recheck 001-Variables for default settings
   case "$THEME" in 
-    green)  RGB_BTN=662e91; RGB_HDR=005c32; RGB_NAV=005c32; RGB_SYM=ffec0126;;
-    purple) RGB_BTN=005c32; RGB_HDR=662e91; RGB_NAV=008a4c; RGB_SYM=f365232b;;
-    orange) RGB_BTN=662e91; RGB_HDR=f36523; RGB_NAV=f36523; RGB_SYM=008a4c3d;;
-    *)      RGB_BTN=f36523; RGB_HDR=008fd5; RGB_NAV=008fd5; RGB_SYM=00b9f21f;;
+    green)  RGB_BTN=662e91; RGB_HDR=005c32; RGB_NAV=005c32; RGB_SYM=ffec0126; RGB_GRAD_FROM=008a4c; RGB_GRAD_TO=005c32;;
+    purple) RGB_BTN=005c32; RGB_HDR=662e91; RGB_NAV=008a4c; RGB_SYM=f365232b; RGB_GRAD_FROM=942977; RGB_GRAD_TO=008a4c;;
+    orange) RGB_BTN=662e91; RGB_HDR=f36523; RGB_NAV=f36523; RGB_SYM=008a4c3d; RGB_GRAD_FROM=f89406; RGB_GRAD_TO=f36523;;
+    *)      RGB_BTN=f36523; RGB_HDR=008fd5; RGB_NAV=008fd5; RGB_SYM=00b9f21f; RGB_GRAD_FROM=00b9f2; RGB_GRAD_TO=008fd5;;
   esac
 
   sed \
@@ -12,6 +12,10 @@ else # night theme
    -e "$ a body{background-color:#353c42;color:#fff}" \
    -e "$ a legend{color:#fff;}" \
    -e "$ a #tod-modal div:nth-child(3){background-color:#353c42;color:#fff;}" \
+   -e "$ a .btn{color:#000}" \
+   -e "$ a .btn-primary,.button:hover,.btn:hover,.smallcard .header .settings,.smallcard .header .settings:hover{background-color:#$RGB_GRAD_TO;background-image:-moz-linear-gradient(top,#$RGB_GRAD_FROM,#$RGB_GRAD_TO);background-image:-webkit-gradient(linear,00,0100%,from(#$RGB_GRAD_FROM),to(#$RGB_GRAD_TO));background-image:-webkit-linear-gradient(top,#$RGB_GRAD_FROM,#$RGB_GRAD_TO);background-image:-o-linear-gradient(top,#$RGB_GRAD_FROM,#$RGB_GRAD_TO);background-image:linear-gradient(tobottom,#$RGB_GRAD_FROM,#$RGB_GRAD_TO);border-color:#$RGB_GRAD_TO;text-shadow:unset;}" \
+   -e "$ a .btn:hover{-webkit-box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(12,208,246,1);-moz-box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(12,208,246,1);box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(0,0,0,1);}" \
+   -e "$ a .button:hover:hover,.button:hover:focus,.button:hover:active,.button:hover.active,.button:hover.disabled,.button:hover[disabled],.btn:hover:hover,.btn:hover:focus,.btn:hover:active,.btn:hover.active,.btn:hover.disabled,.btn:hover[disabled],.smallcard .header .settings:hover:hover, .smallcard .header .settings:hover:focus, .smallcard .header .settings:hover:active, .smallcard .header .settings:hover.active, .smallcard .header .settings:hover.disabled, .smallcard .header .settings:hover[disabled]{background-color:#$RGB_GRAD_FROM;color:#fff}" \
    -e "$ a .card{background-color:#272c30;}" \
    -e "$ a .card_bg:after{color:#$RGB_SYM;}" \
    -e "$ a .dropdown-menu,.dropdown-menu>li>a{background-color:#$RGB_BTN;color:#fff;}" \
