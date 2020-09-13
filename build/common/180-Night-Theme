@@ -14,7 +14,9 @@ else # night theme
    -e "$ a .card{background-color:#272c30;}" \
    -e "$ a .card_bg:after{color:#$RGB_SYM;}" \
    -e "$ a .dropdown-menu,.dropdown-menu>li>a{background-color:#$RGB_BTN;color:#fff;}" \
+   -e "$ a .grey{background:#353c42;}" \
    -e "$ a .header .btn{background-color:#$RGB_BTN;color:#fff;}" \
+   -e "$ a .loading{background:#000000e0;}" \
    -e "$ a .login{background-color:#272c30;}" \
    -e "$ a .modal-header{color:#$RGB_HDR;}" \
    -e "$ a .modal-header,.modal-body,.modal-footer{background-color:#272c30;}" \
@@ -25,7 +27,6 @@ else # night theme
    -e "$ a .smallcard .subinfos{color:#bec5cb;}" \
    -e "$ a .switchOn{background-color:#00a540;}" \
    -e "$ a .table-striped tbody>tr:nth-child(odd)>td, .table-striped tbody>tr:nth-child(odd)>th {background-color:#353c42;}" \
-   -e "$ a .grey{background: #353c42;}" \
    -i /www/docroot/css/gw.css
   sed \
    -e "$ a body{background-color:#353c42;color:#fff;}" \
