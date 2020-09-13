@@ -15,7 +15,7 @@ else # night theme
    -e "$ a .btn{color:#000}" \
    -e "$ a .btn-primary,.button:hover,.btn:hover,.smallcard .header .settings,.smallcard .header .settings:hover{background-color:#$RGB_GRAD_TO;background-image:-moz-linear-gradient(top,#$RGB_GRAD_FROM,#$RGB_GRAD_TO);background-image:-webkit-gradient(linear,00,0100%,from(#$RGB_GRAD_FROM),to(#$RGB_GRAD_TO));background-image:-webkit-linear-gradient(top,#$RGB_GRAD_FROM,#$RGB_GRAD_TO);background-image:-o-linear-gradient(top,#$RGB_GRAD_FROM,#$RGB_GRAD_TO);background-image:linear-gradient(tobottom,#$RGB_GRAD_FROM,#$RGB_GRAD_TO);border-color:#$RGB_GRAD_TO;text-shadow:unset;}" \
    -e "$ a .btn:hover{-webkit-box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(12,208,246,1);-moz-box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(12,208,246,1);box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(0,0,0,1);}" \
-   -e "$ a .button:hover:hover,.button:hover:focus,.button:hover:active,.button:hover.active,.button:hover.disabled,.button:hover[disabled],.btn:hover:hover,.btn:hover:focus,.btn:hover:active,.btn:hover.active,.btn:hover.disabled,.btn:hover[disabled],.smallcard .header .settings:hover:hover, .smallcard .header .settings:hover:focus, .smallcard .header .settings:hover:active, .smallcard .header .settings:hover.active, .smallcard .header .settings:hover.disabled, .smallcard .header .settings:hover[disabled]{background-color:#$RGB_GRAD_FROM;color:#fff}" \
+   -e "$ a .button:hover:hover,.button:hover:focus,.button:hover:active,.button:hover.active,.button:hover.disabled,.button:hover[disabled],.btn:hover:hover,.btn:hover:focus,.btn:hover:active,.btn:hover.active,.btn:hover.disabled,.btn:hover[disabled],.smallcard .header .settings:hover:hover,.smallcard .header .settings:hover:focus,.smallcard .header .settings:hover:active,.smallcard .header .settings:hover.active,.smallcard .header .settings:hover.disabled,.smallcard .header .settings:hover[disabled]{background-color:#$RGB_GRAD_FROM;color:#fff}" \
    -e "$ a .card{background-color:#272c30;}" \
    -e "$ a .card_bg:after{color:#$RGB_SYM;}" \
    -e "$ a .dropdown-menu,.dropdown-menu>li>a{background-color:#$RGB_BTN;color:#fff;}" \
@@ -31,19 +31,19 @@ else # night theme
    -e "$ a .smallcard .header{background-color:#$RGB_HDR;}" \
    -e "$ a .smallcard .subinfos{color:#bec5cb;}" \
    -e "$ a .switchOn{background-color:#00a540;}" \
-   -e "$ a .table-striped tbody>tr:nth-child(odd)>td, .table-striped tbody>tr:nth-child(odd)>th {background-color:#353c42;}" \
+   -e "$ a .table-striped tbody>tr:nth-child(odd)>td,.table-striped tbody>tr:nth-child(odd)>th {background-color:#353c42;}" \
    -i /www/docroot/css/gw.css
   sed \
    -e "$ a body{background-color:#353c42;color:#fff;}" \
    -e "$ a legend{color:#fff;}" \
-   -e "$ a .btn{background-color:#$RGB_BTN;background-image:none;color:#fff;text-shadow:none;}" \
+   -e "$ a .btn{background-color:#005c32;background-image:none;color:#fff;text-shadow:none;}" \
    -e "$ a .container>.row{background-color:#272c30;border-color:#272330;}" \
-   -e "$ a .menubar .menu-item a .menu-icon.selected, .menubar .menu-item a:hover .menu-icon{background-color:#3d8dbb;}" \
+   -e "$ a .menubar .menu-item a .menu-icon.selected,.menubar .menu-item a:hover .menu-icon{background-color:#3d8dbb;}" \
    -e "$ a .menubar .menu-item a{color:#0088cc;}" \
    -e "$ a .navbar-inverse .navbar-inner{background-color:#353c42;color:#fff;}" \
    -e "$ a .networkmap .devicelist{border-color:#024b96;}" \
-   -e "$ a .networkmap .right, .networkmap .left, .networkmap .longleft{background-color:#fff;color:#000}" \
-   -e "$ a .table-striped tbody>tr:nth-child(odd)>td, .table-striped tbody>tr:nth-child(odd)>th {background-color:#353c42;}" \
+   -e "$ a .networkmap .right,.networkmap .left,.networkmap .longleft{background-color:#fff;color:#000}" \
+   -e "$ a .table-striped tbody>tr:nth-child(odd)>td,.table-striped tbody>tr:nth-child(odd)>th {background-color:#353c42;}" \
    -i /www/docroot/css/gw-telstra.css
   
   echo [$SCRIPT]: Change the logo
