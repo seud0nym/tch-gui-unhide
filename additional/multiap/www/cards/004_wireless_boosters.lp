@@ -22,7 +22,7 @@ local content = {
 
 content_helper.getExactContent(content)
 
-if content.agent_enabled and content.controller_enabled  then
+if content.agent_enabled and content.agent_enabled ~= "" and content.controller_enabled and content.controller_enabled ~= ""  then
 
   local agentStatus, controllerStatus
   local backhaulStatus = nil
