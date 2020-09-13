@@ -29,8 +29,9 @@ do
    W) WRAPPER=y;;
    t) case "$(echo ${OPTARG} | tr "NOL" "nol" | sed 's/\(.\)\(.*\)/\1/')" in
          n) THEME=night;;
-         o) THEME=orange;; 
+         g) THEME=green;; 
          p) THEME=purple;; 
+         o) THEME=orange;; 
          *) THEME=light;;
       esac;;
    s) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then ICONS=visible; else ICONS=hidden; fi;;
@@ -88,7 +89,7 @@ do
       fi
       exit;;
    ?) echo "Optional parameters:"
-      echo " -t l|n|o|p         : Set the theme to either light (l), night (n), or night with orange (o) or purple (p) (Default is current setting, or light if not yet applied)"
+      echo " -t l|n|o|g|p       : Set the theme to either light (l), night (n), or night with orange (o), green (g) or purple (p) (Default is current setting, or light if not yet applied)"
       echo " -s y|n             : Show (y) or hide (n) the card symbols (Default is current setting, or n for light theme and y for night theme)"
       echo " -T                 : Apply theme ONLY - bypass all other processing"
       echo " -r                 : Restore changed GUI files to their original state (config changes are NOT restored)"

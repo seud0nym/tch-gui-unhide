@@ -27,6 +27,7 @@ VARIANT=$(uci get env.var.variant_friendly_name)
 grep -q 'body{background-color:#353c42;' /www/docroot/css/gw.css
 if [ $? -eq 0 ]; then
   case "$(grep '.smallcard .header{background-color:#......;}' /www/docroot/css/gw.css  | cut -d# -f2 | cut -d\; -f1)" in
+    "005c32") THEME=green;;
     "662e91") THEME=purple;;
     "f36523") THEME=orange;;
     *)        THEME=night;;

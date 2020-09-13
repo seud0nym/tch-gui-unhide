@@ -1,6 +1,7 @@
 else # night theme
   # if you chang any of these colors or CSS, recheck 001-Variables for default settings
   case "$THEME" in 
+    green)  RGB_BTN=662e91; RGB_HDR=005c32; RGB_NAV=005c32; RGB_SYM=ffec0126;;
     purple) RGB_BTN=005c32; RGB_HDR=662e91; RGB_NAV=008a4c; RGB_SYM=f365232b;;
     orange) RGB_BTN=662e91; RGB_HDR=f36523; RGB_NAV=f36523; RGB_SYM=008a4c3d;;
     *)      RGB_BTN=f36523; RGB_HDR=008fd5; RGB_NAV=008fd5; RGB_SYM=00b9f21f;;
