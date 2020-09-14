@@ -43,8 +43,16 @@ sed \
  -e '/ngx.print(html)/i \      end' \
  -i /www/cards/002_broadband.lp
 
-echo [$SCRIPT]: Fix default connection mode 
-sed -e 's/mode_active = "default"/mode_active = mode_default/' -i /www/cards/003_internet.lp
+echo [$SCRIPT]: Fix Internet card bug and bridge detection
+sed \
+ -e '/^local untaint_mt/a local dyntab_helper = require("web.dyntab_helper")' \
+ -e 's/\(^local mode_active =\)\( "".*\)/\1 dyntab_helper.process(imh).current.name/' \
+ -e '/^local mode_active = "default"/d' \
+ -e '/mode_active = "uci.network.config.wan_mode"/,/wan_proto = "uci.network.interface.@wan.proto"/d' \
+ -e 's/if content_mode.mode_active ~= "" then/if mode_active == "" then/' \
+ -e "/-- Get current mode by 'wan_mode'/,/--'wan_mode' not there, then get @wan.proto/d" \
+ -e 's/mode_active = content_mode.wan_proto/mode_active = mode_default/' \
+ -i /www/cards/003_internet.lp
 
 echo [$SCRIPT]: Add DHCPv6 Server status to LAN card 
 sed \
