@@ -59,7 +59,7 @@ if content.agent_enabled and content.agent_enabled ~= "" and content.controller_
 ngx.print('\
 <div class="span3">\
     <div class="smallcard">\
-        '); ngx.print( ui_helper.createCardHeader(T"Wi-Fi Boosters", modal_link) ); ngx.print('\
+        '); ngx.print( ui_helper.createCardHeader(T"Wi-Fi Boosters", modalPath) ); ngx.print('\
       <div class="content card_bg" data-bg-text="&#xf0e8;">\
 		    <div class="divtable">\
             ');
