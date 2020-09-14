@@ -49,15 +49,17 @@ do
     then
       FILENAME="$(echo $s | cut -d/ -f1)"
       DIRECTORY="$(echo $s | cut -d/ -f2-)"
-      echo $s | grep -q "^060-"
+      echo $s | grep -q "060-Additional"
       if [ $? -eq 0 ]
       then
         for b in $(cat "$DIRECTORY/$FILENAME")
         do
           cat ../additional/$b.b64 >> $TARGET
+          echo " -> Added $b.b64"
         done
       else
         sed -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
+	echo " -> Added $FILENAME"
       fi
     fi
   done
