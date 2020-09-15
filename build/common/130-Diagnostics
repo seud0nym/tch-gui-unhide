@@ -1,12 +1,24 @@
-echo [$SCRIPT]: Add missing icons on Diagnostics card
-# Show the icons for all tabs on the card
-# (Nicer and extra icons are below...)
+echo [$SCRIPT]: Add missing icons on Diagnostics card and change default tab to Traffic Monitor
 sed \
+ -e 's^"Diagnostics", "modals/diagnostics-xdsl-modal.lp"^"Diagnostics", "modals/diagnostics-traffic-modal.lp"^' \
+ -e 's^\(<td><div data-toggle="modal" data-remote="modals/diagnostics-xdsl\)^<td><div data-toggle="modal" data-remote="modals/diagnostics-traffic-modal.lp" data-id="diagnostics-traffic-modal"><img  href="#" rel="tooltip" data-original-title="TRAFFIC" src="/img/Profit-01-WF.png" alt="traffic"></div></td>\\\n\1^' \
  -e 's^\(alt="ping/trace"></div></td>\)\(</tr>\\\)^\1\\\n <td><div data-toggle="modal" data-remote="modals/logviewer-modal.lp" data-id="logviewer-modal"><img href="#" rel="tooltip" data-original-title="LOGVIEWER" src="/img/log-viewer.png" alt="logviewer"></div></td>\2^' \
+ -e 's^\(<td><div data-toggle="modal" data-remote="modals/diagnostics-connection\)^<td><div data-toggle="modal" data-remote="modals/log-connections-modal.lp" data-id="log-connections-modal"><img  href="#" rel="tooltip" data-original-title="CONNECTIONS" src="/img/Data Sync-WF.png" alt="connections"></div></td>\\\n\1^' \
  -e 's^\(alt="network"></div></td>\)\(</tr>\\\)^\1\\\n <td><div data-toggle="modal" data-remote="modals/diagnostics-tcpdump-modal.lp" data-id="diagnostics-tcpdump-modal"><img href="#" rel="tooltip" data-original-title="TCPDUMP" src="/img/tcp-dump.png" alt="tcpdump"></div></td>\2^' \
  -i /www/cards/009_diagnostics.lp
 
-echo [$SCRIPT]: Rename Diagnostics tabs and add Connections tab
-sed -e 's/"Connection"/"Connection Check"/' -e 's/"Network"/"Ports"/' -e 's/Tcpdump/TCP Dump/' -e '/connection-modal/a {"log-connections-modal.lp", T"Network Connections"},'  -e '/airiq/,/^[ ]*$/d' -i /www/snippets/tabs-diagnostics.lp
-sed -e 's/tabs-management/tabs-diagnostics/' -e 's/"Management"/"Diagnostics Network Connections"/' -i /www/docroot/modals/log-connections-modal.lp
+echo [$SCRIPT]: Rename Diagnostics tabs and add Connections and Traffic Monitor tabs
+sed \
+ -e 's/"Connection"/"Connection Check"/' \
+ -e 's/"Network"/"Ports"/' \
+ -e 's/Tcpdump/TCP Dump/' \
+ -e '/xdsl-modal/i       \    {"diagnostics-traffic-modal.lp", T"Traffic Monitor"},'  \
+ -e '/connection-modal/a \    {"log-connections-modal.lp", T"Network Connections"},'  \
+ -e '/string.len(ngx.var.args)/,/^end/d' \
+ -e '/airiq/,/^[ ]*$/d' \
+ -i /www/snippets/tabs-diagnostics.lp
+sed \
+ -e 's/tabs-management/tabs-diagnostics/' \
+ -e 's/"Management"/"Diagnostics Network Connections"/' \
+ -i /www/docroot/modals/log-connections-modal.lp
 
