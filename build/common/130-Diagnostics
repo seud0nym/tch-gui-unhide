@@ -19,6 +19,12 @@ sed \
  -i /www/snippets/tabs-diagnostics.lp
 sed \
  -e 's/tabs-management/tabs-diagnostics/' \
- -e 's/"Management"/"Diagnostics Network Connections"/' \
+ -e 's/"Management"/"Diagnostics"/' \
  -i /www/docroot/modals/log-connections-modal.lp
+
+echo [$SCRIPT]: Fix headings on Diagnostics tabs
+for m in $(grep -L 'createHeader(T"Diagnostics"' /www/docroot/modals/diagnostics-*)
+do 
+    sed -e 's/\(createHeader(\)\([T]*\)\("Diagnostics\)\([^"]*\)\("\)/\1T\3\5/' -i $m
+done
 
