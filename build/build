@@ -19,13 +19,16 @@ do
       sed -e 's/^[ \t]*//g' -e 's/[ \t]*$//' -e 's/\r$//' -i $f
       chmod -x $f
     done
-    echo -\> $d.b64
     echo "echo [\$SCRIPT]: Deploy modified $d GUI code" > $DIR/../additional/$d.b64
     echo "echo $(tar --owner=root --group=root -czf - * | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> $DIR/../additional/$d.b64
     echo >> $DIR/../additional/$d.b64
     cd $DIR
   fi
 done
+echo "  echo [\$SCRIPT]: Deploy new and modified light theme images" > ../additional/light.b64
+echo "  echo $(tar --owner=root --group=root --mode=644 --transform='s|images/light|www/docroot/img|' -czf - ../images/light/* | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> ../additional/light.b64
+echo "  echo [\$SCRIPT]: Deploy new and modified night theme images" > ../additional/night.b64
+echo "  echo $(tar --owner=root --group=root --mode=644 --transform='s|images/night|www/docroot/img|' -czf - ../images/night/* | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> ../additional/night.b64
 
 for f in $(find . -mindepth 2 -type d | cut -c3- | tr '/' '-')
 do
@@ -49,8 +52,7 @@ do
     then
       FILENAME="$(echo $s | cut -d/ -f1)"
       DIRECTORY="$(echo $s | cut -d/ -f2-)"
-      echo $s | grep -q "060-Additional"
-      if [ $? -eq 0 ]
+      if [ $FILENAME = "060-Additional" ]
       then
         for b in $(cat "$DIRECTORY/$FILENAME")
         do
@@ -59,7 +61,16 @@ do
         done
       else
         sed -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
-	echo " -> Added $FILENAME"
+	      echo " -> Added $FILENAME"
+        if [ $FILENAME = "170-Light-Theme" ]
+        then
+          cat ../additional/light.b64 >> $TARGET
+          echo " -> Added light.b64"
+        elif [ $FILENAME = "180-Night-Theme" ]
+        then
+          cat ../additional/night.b64 >> $TARGET
+          echo " -> Added night.b64"
+        fi
       fi
     fi
   done
