@@ -38,7 +38,7 @@ sed \
  -e '/ngx.ctx.session/i \    end' \
  -e '/ngx.ctx.session/i \  end' \
  -e '/ngx.ctx.session/i \end' \
- -e '/ngx.print(html)/i \      if tonumber(content_rpc.rx_bytes) and tonumber(content_rpc.tx_bytes) then' \
+ -e '/ngx.print(html)/i \      if tonumber(content_rpc.rx_bytes) and tonumber(content_rpc.tx_bytes) and tonumber(content_rpc.uptime) then' \
  -e '/ngx.print(html)/i \        html[#html+1] = format("<p class=\\"subinfos\\"><i class=\\"icon-download\\"></i> %s <i class=\\"icon-upload\\"></i> %s %s/<i>d</i></p>", bytes2string(content_rpc.rx_bytes), bytes2string(content_rpc.tx_bytes), bytes2string((content_rpc.rx_bytes+content_rpc.tx_bytes)/(content_rpc.uptime/86400)))' \
  -e '/ngx.print(html)/i \      end' \
  -i /www/cards/002_broadband.lp
