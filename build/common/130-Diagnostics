@@ -10,6 +10,7 @@ sed \
 echo [$SCRIPT]: Rename Diagnostics tabs and add Connections and Traffic Monitor tabs
 sed \
  -e 's/"Connection"/"Connection Check"/' \
+ -e 's/Log viewer/Log Viewer/' \
  -e 's/"Network"/"Ports"/' \
  -e 's/Tcpdump/TCP Dump/' \
  -e '/xdsl-modal/i       \    {"diagnostics-traffic-modal.lp", T"Traffic Monitor"},'  \
