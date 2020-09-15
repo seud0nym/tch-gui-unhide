@@ -2,24 +2,20 @@
 
 VERSION="$(uci get version.@version[0].version | cut -d- -f1)"
 SCRIPT="tch-gui-unhide-$VERSION"
-DOWNLOAD=n
-HELP=n
+DOWNLOAD="$(echo $* | sed -e 's/^-U/y/')"
 
-while getopts t:ryuUx:i: option
-do
- case "${option}" in
-   t|r|y|u|x|i) HELP=n;;
-   U) DOWNLOAD=y;;
-   *) HELP=y;;
- esac
-done
-
-if [ -f "$SCRIPT" -a "$DOWNLOAD" = "n" ]; then
+if [ -f "$SCRIPT" -a "$DOWNLOAD" != "y" ]; then
   ./$SCRIPT -W $*
 else
   if [ ! -f "$SCRIPT" ]; then
     echo "[tch-gui-unhide] Platform script $SCRIPT not found!"
   fi
   echo "[tch-gui-unhide] Attempting to download latest release for FW $VERSION from GitHub..."
-  curl -k -L https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$VERSION.tar.gz | tar -xzvf -
+  wget -s -q https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$VERSION.tar.gz
+  if [ $? -eq -0 ]
+  then
+    curl -k -L https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$VERSION.tar.gz | tar -xzvf -
+  else
+    echo "[tch-gui-unhide] ERROR! No platform script found on GitHub for FW $VERSION"
+  fi
 fi 
