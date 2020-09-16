@@ -1,3 +1,23 @@
+2020.09.16
+==========
+* tch-gui-unhide: Optionally hide/show some cards (Content Sharing, Management, NAT Helpers, Printer Sharing, QoS, Relay Setup, System Extras, and xDSL config)
+* tch-gui-unhide: Added 3 new night theme variations (purple, green and orange) with option to show or hide card icons (-s), and can now apply theme only (-T option)
+* tch-gui-unhide: Re-ordered telephony tabs and made info default
+* tch-gui-unhide: Display Telephony tabs even when mmpbx disabled
+* tch-gui-unhide: Replaced Telephony Global modal with https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www modified version to allow setting of second SIP provider and interface
+* tch-gui-unhide: Added switch to Telephony card to enable/disable, and display status of SIP profiles
+* tch-gui-unhide: Added switch to Wi-Fi card to disable/enable radios, and display status of Guest SSIDs
+* tch-gui-unhide: Added Wi-Fi Boosters card and screens to manage Multi-AP settings
+* tch-gui-unhide: Added traffic monitor charts to Diagnostics
+* tch-gui-unhide: Added upload/download stats to Broadband card 
+* tch-gui-unhide: Fixed positioning of signal indicator on Mobile card
+* tch-gui-unhide: Fixed hard-coded QoS vDSL WAN interface - now uses current defined WAN interface, or card hidden if no current WAN interface
+* tch-gui-unhide: Fixed Internet card bug and bridge detection
+* tch-gui-unhide: Fixed "invalid exact path uci.network.interface.@wan.host_uniq" message when using PPoE
+* tch-gui-unhide: Fixed "invalid instance" message when broadband mode configured as ADSL2+
+* tch-gui-unhide: Fixed allowed role in broadband mode configuration imported from Ansuel GUI
+* de-telstra: File/Printer/Content Sharing messages showed current state not new state when changed
+
 2020.09.06
 ==========
 * reset-to-factory-defaults-with-root: Can now keep or set new IP address after reset
@@ -33,7 +53,7 @@ tch-gui-unhide
 
 de-telstra
 ----------
-* Removed airiq pacakage and dependencies
+* Removed airiq package and dependencies
 * Removed Telstra NTP servers
 * Disabled lotagent (Telstra logging?)
 * Setting hostname and domain are now optional

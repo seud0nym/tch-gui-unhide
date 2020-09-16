@@ -6,12 +6,13 @@ These scripts can be applied to various Telstra branded Technicolor devices to u
 ## Why not just use https://github.com/Ansuel/tch-nginx-gui?
 When I first rooted my DJA0231, I applied the tch-nginx-gui because I had used it for some time on my Technicolor TG800vac, and found it very good. However, on the DJA0231, I encountered various problems after reboots, such as loss of customised SSID's and IP addresses, loss of root in one instance, the admin password got reset to Telstra default, and so on.
 
-So, I set out to enable whatever hidden features were included with the firmware by default, without making significant changes to the GUI code so as to maintain stability, and to try and make it almost as pretty as the tch-nginx-gui. Since then, it has been expanded to incorporate some features of the Ansuel GUI, but the original goal of stability is unchanged. No features are enabled if stability is compromised. No system executables are added or replaced. The aim of this script is to make as few changes as possible to be as stable as possible, but also to unlock as many features as is practicable.
+So, I set out to enable whatever hidden features were included with the firmware by default, without making significant changes to the GUI code so as to maintain stability, and to try and make it almost as pretty as the tch-nginx-gui. Since then, it has been expanded to incorporate some features of the Ansuel GUI, but the original goal of stability is unchanged. No features are enabled if stability is compromised. No system executables (other than GUI code) are added or replaced. The aim of this script is to make as few changes as possible to be as stable as possible, but also to unlock as many features as is practicable.
 
 ## What GUI features are unlocked?
 - Configuration export/import, and the export file name is changed from *config.bin* to *VARIANT-SERIAL-VERSION@yymmdd.bin* (i.e. it includes the hardware type, serial number, firmware version and the current date)
 - Firmware update from the GUI
 - The SMS tab is enabled on the **Mobile** screen
+- You can disable/enable the radios from the **Wi-Fi** card (with opening the screen), and the status of Guest SSIDs is displayed
 - You can edit the host names on the **Device** screen
 - The **Telephony** screen has the following tabs enabled:
     - Global (Enable/Disable telephony + SIP network provider details)
@@ -20,7 +21,9 @@ So, I set out to enable whatever hidden features were included with the firmware
     - Service (Configure VoIP services)
     - Incoming/Outgoing Map (Assign phone numbers to handsets)
     - Call Log
-- The TCP Dump tab is enabled on the **Diagnostics** screen
+- On the **Diagnostics** screen, the following extra tabs are enabled:
+    - Network Connections
+    - TCP Dump
 - The **IP Extras** card is enabled to:
     - show IPv4 Routes
     - allow configuration of IPv4 static routes
@@ -33,7 +36,7 @@ So, I set out to enable whatever hidden features were included with the firmware
 - The **NAT Helpers** card is enabled where you can enable or disable ALG's for FTP, IRC, SIP, PPTP, RTSP, SNMP, TFTP and AMANDA
 - The **xDSL Config** card is enabled where you can see xDSL core settings
 
-Some hidden screens included on the device are not enabled, mainly because they fail and cause issues in the GUI, or sometimes more work would be required to implement them than can be done with simple stream editing of the existing files. Somne of them are only applicable to older versions of the firmware.
+Some hidden screens included on the device are not enabled, mainly because they fail and cause issues in the GUI, or sometimes more work would be required to implement them than can be done with simple stream editing of the existing files. Some of them are only applicable to older versions of the firmware.
 
 ### GUI Features incorporated from the Ansuel Custom GUI
 - **Broadband** screen allows:
@@ -51,8 +54,14 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - Modified **System Extras** card to show:
     - SSH LAN status
     - SSH WAN status
-- **QoS** card
-    - NOTE: This *might* only work with vDSL connections.
+- Modified **QoS** card
+- Modified **Telephony** Global tab to allow:
+    - Add/delete SIP providers (up to maximum of 2)
+    - Editing of the name, and setting of interface (LAN/WAN/etc.)
+
+### Additional (new) GUI Features
+- **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0231)
+- **Traffic monitor** tab in Diagnostics
 
 ## What else does it do?
 - Properly enables SSH LAN access (because if you don't and then disable it through the GUI, you can lose SSH access).
@@ -84,9 +93,9 @@ Some hidden screens included on the device are not enabled, mainly because they 
 ## What does it actually do?
 All configuration changes are applied using the *uci* command interface to update the configuration files.
 
-GUI changes are implemented by making relatively small edits on the existing files.
+GUI changes are implemented by making edits on the existing files.
 
-No new executables are added to the system.
+No new executables are added to the system outside of the GUI changes.
 
 ## How do I run it?
 Basically, the steps are:
@@ -94,7 +103,7 @@ Basically, the steps are:
 ### First, you need to get root access to your device and ensure it is running the correct firmware:
 Follow the instructions at https://hack-technicolor.rtfd.io
 
-The scripts have only be tested against the specified hardware and firmware version denoted in the script name. If you are not running the firmware version for which the script was written, you should upgrade. (https://hack-technicolor.readthedocs.io/en/latest/Repository)
+The scripts have only be tested against the specified firmware version denoted in the script name. If you are not running the firmware version for which the script was written, you should upgrade. (https://hack-technicolor.readthedocs.io/en/latest/Repository)
 
 Click [`here`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities) for information about the utility scripts.
 
@@ -119,36 +128,35 @@ It is recommended that you apply whatever hardening (such as the [`de-telstra`](
 ./tch-gui-unhide <options>
 ```
 The script accepts the following options:
-- -t theme
-    - By default, the script will apply a **light** theme. You may specify **night** to apply the dark theme. Specifying anything other than **night** will cause the light theme to be applied.
+- -t *l*|*n*|*o*|*g*|*p*
+    - Set the theme to either light (*l*), night (*n*), or night with orange (*o*), night with green (*g*) or night with purple (*p*). The default is the currently applied theme, or light (*l*) if no theme has previously been applied).
+- -i *y*|*n*
+    - Show (*y*) or hide (*n*) the card icons. The default is the same as the current setting, or if no theme has yet been applied, then *n* for the light theme and *y* for all the night themes.
+ - -T
+    - Apply the theme settings *ONLY*. All other processing is bypassed.
 - -y
-    - Allows you to skip the initial prompt to confirm execution, and automtically responds with **y**.
+    - Allows you to skip the initial prompt to confirm execution, and automatically responds with **y**.
 - -r
     - Allows you to revert the *GUI* changes. Configuration changes are **NOT** undone!
 - -u
     - Check for and download any updates to the firmware-specific version of `tch-gui-unhide`
+- -x *c*|*m*|*n*|*p*|*q*|*r*|*s*|*x*|*A*
+    - Exclude specific cards (use -x multiple times to specify multiple cards, use -xA for all of the following cards):
+    - *c*=Content Sharing *m*=Management *n*=NAT Helpers *p*=Printer Sharing *q*=QoS *r*=Relay Setup *s*=System Extras *x*=xDSL config *A*=ALL
+- -n *c*|*m*|*n*|*p*|*q*|*r*|*s*|*x*|*A*
+    - Include specific cards that were previously excluded (use -n multiple times to specify multiple cards, or use -nA for all cards)
 - -U
-    - Download the latest release (will overwrite all existing script versions)
+    - Download the latest release, including utility scripts (will overwrite all existing script versions)
 - -?
     - Displays usage information
+
+NOTE: The theme (-t) and excluded/included cards (-x/-n) options do not need to be re-specified when re-running the script: state will be 'remembered' between executions (unless you execute with the -r option, which will remove all state information).
 
 The `tch-gui-unhide` script is a short-cut to the actual script for your firmware, which is named `tch-gui-unhide-<version>` (e.g. `tch-gui-unhide-18.1.c.0462`). If you get a "Platform script not found" error running this script, download the correct release for your firmware configuration.
 
 The firmware version will be checked during execution. If it does not match the target version, you will be prompted to exit or force execution. This is **YOUR** decision to proceeed.
 
-The script will restart and reload services for which it has modified configuration (except when the **-r** option is specified). Subsequent executions will not re-apply configuration already set correctly, and therefore will not restart services unnecessarily.
-
-### Post-customisation configuration
-You can remove specific cards/tabs from the GUI by changing the role in the web config. For example, I am on HFC, so xDSL is of no interest to me. So, I can remove the 'xDSL Config' card from the GUI by changing the allowed role from admin to something else using the following commands:
-```
-uci del_list web.xdsllowmodal.roles='admin'
-uci add_list web.xdsllowmodal.roles='guest'
-uci commit web
-/etc/init.d/nginx restart
-```
-**WARNING:** Do not leave the roles list empty. It will break everything.
-
-Taking this approach to customisation will prevent the card being displayed again if you re-run the script (unless you have cleared all GUI customisation by running the script with the -r option first).
+The script will restart and reload services for which it has modified configuration. Subsequent executions will not re-apply configuration already set correctly, and therefore will not restart services unnecessarily.
 
 ### Finally, clear your browser cache
 To see the updated logo and icons and to correctly apply the updated style sheet, you will probably need to clear cached images and files from your browser.
@@ -157,11 +165,28 @@ To see the updated logo and icons and to correctly apply the updated style sheet
 - The script changes will not persist a reset or restore. If you factory reset your device, or restore to it a state before you applied the script, or upgrade/install firmware, you will need to run the script again!
 
 # Themes
-*PLEASE NOTE: Previous releases of this script had additional scripts to switch between the light and dark themes. This release includes both themes in the single script.*
+*PLEASE NOTE: Previous releases of this script had additional scripts to switch between the light and dark themes. This release includes multiple themes in the single script.*
 
 By default, the script will apply a "light" theme, similar to the DumaOS theme.
 
-If you prefer a "dark" theme, run or re-run the script using the **-t night** option. To switch back, run again without the option or specify **-t light**.
+You can switch to a "dark" (or "night") theme by re-running the script with the following options:
+
+- `./tch-gui-unhide -T -tn -sy`
+    - Applies the default night theme (with blue accent colours) and enables the background icons on the cards.
+- `./tch-gui-unhide -T -to -sy`
+    - Applies the night theme with orange accent colours.
+- `./tch-gui-unhide -T -tg -sy`
+    - Applies the night theme with green accent colours.
+- `./tch-gui-unhide -T -tp -sy`
+    - Applies the night theme with purple accent colours.
+- `./tch-gui-unhide -T -tl -sn`
+    - Applies the light theme, and the background icons on the cards will be hidden.
+
+The `-T` parameter bypasses all processing except the application of the theme. Without this option, the entire script will be re-applied with the selected theme.
+
+The `-s` parameter controls whether or not the background icons on the cards will be displayed. `-sy` makes the icons visible; `-sn` hides them.
+
+When you re-run the script without specifying a theme, it will default to the previously select theme, or the "light" theme when run the first time or immediately running the script with the `-r` option to revert all GUI changes.
 
 After applying a theme, you will probably need to clear cached images and files from your browser to see the changes.
 
