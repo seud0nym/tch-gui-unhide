@@ -32,6 +32,7 @@ sed \
  -e '$ a body{font-family:Roboto,Noto,sans-serif;}' \
  -e '$ a input,button,select,textarea{font-family:Roboto,Noto,sans-serif;}' \
  -e '$ a u{text-decoration:none;}' \
+ -e '$ a .bbstats{margin:0px 0px -6px 20px;}' \
  -e '$ a .card{font-family:Roboto,Noto,sans-serif;}' \
  -e '$ a .card_bg>*{z-index:20;}' \
  -e "$ a .card_bg:after{visibility:$ICONS;}" \
