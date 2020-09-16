@@ -15,12 +15,6 @@ local match, format, find, upper = string.match, string.format, string.find, str
 -- Process POST query
 local post_helper = require("web.post_helper")
 local session = ngx.ctx.session
-local role = session:getrole()
-
-local tech = false
-if role == "engineer" or role == "ispuser" then
-  tech = true
-end
 
 local ppp_state_map = {
   disabled = T"Disabled",
@@ -405,18 +399,18 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
       class = "span6",
     }
   }
-  if tech then
-  html[#html + 1] = "<div class='control-group'><label class='control-label'>" .. T"Username" .. "</label><div class='controls'>"
-  html[#html + 1] = ui_helper.createSimpleInputText("uci_wan_username", content["uci_wan_username"], class_username, helpmsg["uci_wan_username"])
-  if content_uci["wan_domain"] ~= "" then
-    html[#html + 1] = " @ " .. content_uci["wan_domain"]
-  end
-  html[#html + 1] = "</div></div>"
 
-    -- PPP password
-    local class_password = class_username
-    html[#html + 1] = ui_helper.createInputText(T"Password", "uci_wan_password", content["uci_wan_password"], class_username, helpmsg["uci_wan_password"])
+html[#html + 1] = "<div class='control-group'><label class='control-label'>" .. T"Username" .. "</label><div class='controls'>"
+html[#html + 1] = ui_helper.createSimpleInputText("uci_wan_username", content["uci_wan_username"], class_username, helpmsg["uci_wan_username"])
+if content_uci["wan_domain"] ~= "" then
+  html[#html + 1] = " @ " .. content_uci["wan_domain"]
 end
+html[#html + 1] = "</div></div>"
+
+-- PPP password
+local class_password = class_username
+html[#html + 1] = ui_helper.createInputText(T"Password", "uci_wan_password", content["uci_wan_password"], class_username, helpmsg["uci_wan_password"])
+
 ajax_attr.span.id = "ipaddr"
 html[#html+1] = ui_helper.createLabel(T"IP address", content_rpc["ipaddr"],ajax_attr)
 ajax_attr.span.id = "nexthop"

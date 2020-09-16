@@ -10,12 +10,6 @@ local ui_helper = require("web.ui_helper")
 local proxy = require("datamodel")
 local bmh = require("broadbandmode_helper")
 
-local session = ngx.ctx.session
-local tech = false
-if session:getrole() == "admin" then
-   tech = true
-end
-
 local ethname = proxy.get("sys.eth.port.@eth4.status")
 if ethname and ethname[1].value then
 	ethname =  "eth4"
@@ -255,14 +249,9 @@ ngx.print('\
             class =string.format("monitor-intf_vlan monitor-%s",b),
         },
     }
-	if tech then
     html[#html + 1] = ui_helper.createSwitch(T"Using VLAN", "intf_vlan", difname, vlanswitchclass)
 	html[#html + 1] = ui_helper.createInputRadio(T"Notation", "auswahlliste" , liste, check, vlanidclass)
     html[#html + 1] = ui_helper.createInputText(T"VLAN ID", "intf_vlanid", vid, vlanidclass, helpmes)
-	else
-	html[#html + 1] = ui_helper.createLight(T"Using VLAN", nil, intf_state_map[intf_state], { light = { class = intf_light_map[intf_state] } })
-	html[#html + 1] = ui_helper.createLabel(T"VLAN ID", vid)
-	end
     ngx.print(html)
 	
   ngx.print('\

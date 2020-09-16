@@ -20,13 +20,6 @@ local ajax_attr = {
     }
 }
 
-local session = ngx.ctx.session
-local tech = false
-local role = session:getrole()
-if role == "admin" or role == "engineer" or role == "ispuser" then
-   tech = true
-end
-
 local content = {
   dsl_status = "sys.class.xdsl.@line0.Status",
   dsl_type = "sys.class.xdsl.@line0.ModulationType",
@@ -161,37 +154,15 @@ local dsl_switch_data, dsl_switch_helpmsg = post_helper.handleQuery(dsl_switch_p
                                   -- ^this does not work !!!!
         )
     end
-    if tech then
-      html[#html + 1] = ui_helper.createSwitch(T"DSL Enabled", "dsl_enable", dsl_switch_data["dsl_enable"])
-    else
-      local intf_state = "disabled"
-      local intf_state_map = {
-      disabled = T"disabled",
-      connected = T"enabled",
-      disconnected = T"VLAN not connected",
-      }
-
-      local intf_light_map = {
-      disabled = "off",
-      disconnected = "red",
-      connected = "green",
-      }
-
-      if dsl_switch_data["dsl_enable"] == "1" then
-	intf_state = "connected"
-      else
-	intf_state = "disabled"
-      end
-	html[#html + 1] = ui_helper.createLight(T"DSL", nil, intf_state_map[intf_state], { light = { class = intf_light_map[intf_state] } })
-    end
+    html[#html + 1] = ui_helper.createSwitch(T"DSL Enabled", "dsl_enable", dsl_switch_data["dsl_enable"])
     if (content["dsl_status"] == "Up") or (content_other_line["dsl_status"] == "Up") then
       if( content["dsl_status"] == "Up") then
-	ajax_attr.span.id = "dsl_uptime"
+      	ajax_attr.span.id = "dsl_uptime"
         html[#html + 1] = ui_helper.createLabel(T"DSL Uptime", post_helper.secondsToTime(content["dsl_uptime"]), ajax_attr)
         html[#html + 1] = ui_helper.createLabel(T"DSL Type", T(content["dsl_type"]), attributesAdvanced)
         html[#html + 1] = ui_helper.createLabel(T"DSL Mode", T(DSLMode), attributesAdvanced)
       else
-	ajax_attr.span.id = "dsl_uptime"
+      	ajax_attr.span.id = "dsl_uptime"
         html[#html + 1] = ui_helper.createLabel(T"DSL Uptime", post_helper.secondsToTime(content_other_line["dsl_uptime"]), ajax_attr)
         html[#html + 1] = ui_helper.createLabel(T"DSL Type", T(content_other_line["dsl_type"]), attributesAdvanced)
         html[#html + 1] = ui_helper.createLabel(T"DSL Mode", T(DSLMode_other_line), attributesAdvanced)
@@ -204,9 +175,9 @@ local dsl_switch_data, dsl_switch_helpmsg = post_helper.handleQuery(dsl_switch_p
         dslLineRateMaxDown = floor(content["dsl_linerate_down_max"] / 10) / 100
       end
       if tonumber(content_other_line["dsl_linerate_up_max"]) ~= nil and tonumber(content_other_line["dsl_linerate_down_max"]) ~= nil then
-    otherDslLineRateMaxUp = floor(content_other_line["dsl_linerate_up_max"] / 10) / 100
+        otherDslLineRateMaxUp = floor(content_other_line["dsl_linerate_up_max"] / 10) / 100
         otherDslLineRateMaxDown = floor(content_other_line["dsl_linerate_down_max"] / 10) / 100
-  end
+      end
       ajax_attr.span.id = "dsl_max_linerate"
       if showBondingStats ~= true then
         html[#html + 1] =
@@ -229,7 +200,7 @@ local dsl_switch_data, dsl_switch_helpmsg = post_helper.handleQuery(dsl_switch_p
         dslLineRateDown = floor(content["dsl_linerate_down"] / 10) / 100
       end
       if tonumber(content_other_line["dsl_linerate_up"]) ~= nil and tonumber(content_other_line["dsl_linerate_down"]) ~= nil then
-    otherDslLineRateUp = floor(content_other_line["dsl_linerate_up"] / 10) / 100
+        otherDslLineRateUp = floor(content_other_line["dsl_linerate_up"] / 10) / 100
         otherDslLineRateDown = floor(content_other_line["dsl_linerate_down"] / 10) / 100
       end
       ajax_attr.span.id = "dsl_linerate"
@@ -254,7 +225,7 @@ local dsl_switch_data, dsl_switch_helpmsg = post_helper.handleQuery(dsl_switch_p
         dslTransferedDown = floor(content["dsl_transfered_down"] / 1048576 * 100) / 100
       end
       if tonumber(content_other_line["dsl_transfered_up"]) ~= nil and tonumber(content_other_line["dsl_transfered_down"]) ~= nil then
-    otherDslTransferedUp = floor(content_other_line["dsl_transfered_up"] / 1048576 * 100) / 100
+        otherDslTransferedUp = floor(content_other_line["dsl_transfered_up"] / 1048576 * 100) / 100
         otherDslTransferedDown = floor(content_other_line["dsl_transfered_down"] / 1048576 * 100) / 100
       end
       ajax_attr.span.id="dsl_transfered"
