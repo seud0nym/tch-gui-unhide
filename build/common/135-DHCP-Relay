@@ -1,0 +1,13 @@
+echo [$SCRIPT]: Add missing DHCP Relay configuration
+sed \
+ -e '/local format/a \local exists = proxy.get("uci.dhcp.relay.@relay.server_addr")' \
+ -e '/local format/a \if not exists then' \
+ -e '/local format/a \  proxy.add("uci.dhcp.relay.","relay")' \
+ -e '/local format/a \  proxy.set("uci.dhcp.relay.@relay.server_addr","")' \
+ -e '/local format/a \  proxy.set("uci.dhcp.relay.@relay.local_addr","")' \
+ -e '/local format/a \  proxy.set("uci.dhcp.relay.@relay.interface","")' \
+ -e '/local format/a \  proxy.apply();' \
+ -e '/local format/a \end' \
+ -i /www/docroot/modals/relay-modal.lp
+
+
