@@ -18,11 +18,6 @@ local post_helper = require("web.post_helper")
 local session = ngx.ctx.session
 local role = session:getrole()
 
-local tech = false
-if role == "engineer" or role == "ispuser" then
-  tech = true
-end
-
 local ppp_state_map = {
   disabled = T"Disabled",
   disconnecting = T"Disconnecting",
@@ -147,7 +142,6 @@ local mapParams = {
   uci_wan_password = "uci.network.interface.@wan.password",
   uci_wan_masq = "uci.firewall.zone."..zonenum..".masq",
   uci_wan_ipv6 = "uci.network.interface.@wan.ipv6",
-  uci_wan_host_uniq = "uci.network.interface.@wan.host_uniq",
   uci_wan_mac = "uci.network.interface.@wan.macaddr",
   uci_wan_peerdns = "uci.network.interface.@wan.peerdns",
 }
@@ -304,7 +298,6 @@ local mapValid = {
   uci_wan_username = gCV(isWanEnabled, validateUsername, gOV(validateUsername)),
   uci_wan_password = gCV(isWanEnabled, gVP(vNES), gVP()),
   uci_wan_masq = validateNat,
-  uci_wan_host_uniq = gCV(isWanEnabled, validateHostUniq),
   uci_wan_ipv6 = IPv6andUsername,
   uci_wan_mac = gOV(post_helper.validateStringIsMAC),
   uci_wan_peerdns = vB,
@@ -472,22 +465,21 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
         class = "span6",
       }
 	}
-if tech then
-    html[#html + 1] = "<div class='control-group'><label class='control-label'>" .. T"Username" .. "</label><div class='controls'>"
-    html[#html + 1] = ui_helper.createSimpleInputText("uci_wan_username", content["uci_wan_username"], class_username, helpmsg["uci_wan_username"])
 
-    if content_uci["wan_domain"] ~= "" then
-        html[#html + 1] = " @ " .. content_uci["wan_domain"]
-    end
-    html[#html + 1] = "</div></div>"
+  html[#html + 1] = "<div class='control-group'><label class='control-label'>" .. T"Username" .. "</label><div class='controls'>"
+  html[#html + 1] = ui_helper.createSimpleInputText("uci_wan_username", content["uci_wan_username"], class_username, helpmsg["uci_wan_username"])
 
-    -- PPP password
-    local class_password = class_username
-    html[#html + 1] = ui_helper.createInputText(T"Password", "uci_wan_password", content["uci_wan_password"], class_username, helpmsg["uci_wan_password"])
-    html[#html + 1] = ui_helper.createInputText(T"Host Uniq Tag","uci_wan_host_uniq", content["uci_wan_host_uniq"], nil, helpmsg["uci_wan_host_uniq"])
-    html[#html + 1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac", content["uci_wan_mac"], nil, helpmsg["uci_wan_mac"])
-end
-	ajax_attr.span.id = "ipaddr"
+  if content_uci["wan_domain"] ~= "" then
+      html[#html + 1] = " @ " .. content_uci["wan_domain"]
+  end
+  html[#html + 1] = "</div></div>"
+
+  -- PPP password
+  local class_password = class_username
+  html[#html + 1] = ui_helper.createInputText(T"Password", "uci_wan_password", content["uci_wan_password"], class_username, helpmsg["uci_wan_password"])
+  html[#html + 1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac", content["uci_wan_mac"], nil, helpmsg["uci_wan_mac"])
+
+  ajax_attr.span.id = "ipaddr"
     html[#html+1] = ui_helper.createLabel(T"IPv4 address", content_rpc["ipaddr"], ajax_attr)
 	ajax_attr.span.id = "nexthop"
     html[#html+1] = ui_helper.createLabel(T"Gateway", content_rpc["nexthop"], ajax_attr)
