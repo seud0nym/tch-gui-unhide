@@ -49,8 +49,8 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
   local v = {}
   for _, v in pairs (sipprofile_content) do
     local name = string.match (v.path, "@([^%.]+)")
-    if v.userfriendlyname ~= nil and v.userfriendlyname ~= "" then
-      sipprofile_info[name] = v.userfriendlyname
+    if v.display_name ~= nil and v.display_name ~= "" then
+      sipprofile_info[name] = v.display_name
     else
       sipprofile_info[name] = v.uri
     end
@@ -79,10 +79,10 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
           if (type(res) == "table") then
             if (res[1].value == "Registered") then
               reg_num["1"] = reg_num["1"] + 1
-              ngx.print (ui_helper.createSimpleLight("1", name .. T" registered"))
+              ngx.print (ui_helper.createSimpleLight("1", value .. T" registered"))
             elseif (res[1].value == "Registering") then
               reg_num["2"] = reg_num["2"] + 1
-              ngx.print (ui_helper.createSimpleLight("2", name .. T" registering"))
+              ngx.print (ui_helper.createSimpleLight("2", value .. T" registering"))
             end
           end
           reg_num["0"] = reg_num["0"] + 1
