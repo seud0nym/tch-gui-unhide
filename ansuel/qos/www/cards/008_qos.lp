@@ -29,8 +29,6 @@ if not proxy.get(dataQoS.enabled) then
 end
 
 content_helper.getExactContent(dataQoS)
-local queue_link='class="modal-link" data-toggle="modal" data-remote="modals/qos-queue-modal.lp" data-id="device-modal"'
-local class_link='class="modal-link" data-toggle="modal" data-remote="modals/qos-classify-modal.lp" data-id="device-modal"'
 
 local qosState
 if dataQoS.enabled == "1" then
@@ -38,6 +36,17 @@ if dataQoS.enabled == "1" then
 else
   qosState = T"QoS on interface " .. wan_ifname .. " disabled"
 end
+local queues = tonumber(dataQoS.numQueues)
+if not queues then
+  queues = 0
+end
+local classify = tonumber(dataQoS.numClassify)
+if not classify then
+  classify = 0
+end
+
+local queue_link='class="modal-link" data-toggle="modal" data-remote="modals/qos-queue-modal.lp" data-id="device-modal"'
+local class_link='class="modal-link" data-toggle="modal" data-remote="modals/qos-classify-modal.lp" data-id="device-modal"'
 
 ngx.print('\
 <div class="span3">\
@@ -49,10 +58,10 @@ ngx.print('\
             ngx.print(
                 ui_helper.createSimpleLight(dataQoS.enabled, qosState),
                 '<p class="subinfos">',
-                format(N("<strong %1$s>%2$d queue</strong> active","<strong %1$s>%2$d queues</strong> active",dataQoS.numQueues),queue_link,dataQoS.numQueues),
+                format(N("<strong %1$s>%2$d queue</strong> active","<strong %1$s>%2$d queues</strong> active",queues),queue_link,queues),
                 '</p>',
                 '<p class="subinfos">',
-                format(N("<strong %1$s>%2$d classify rule</strong> active","<strong %1$s>%2$d classify rules</strong> active",dataQoS.numClassify),class_link,dataQoS.numQueues),
+                format(N("<strong %1$s>%2$d classify rule</strong> active","<strong %1$s>%2$d classify rules</strong> active",classify),class_link,classify),
                 '</p>'
             )
             ngx.print('\
