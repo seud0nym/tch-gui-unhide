@@ -54,6 +54,9 @@ for id=0,15,1 do
 end
 
 local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
+if wan_ifname == "atmwan" then
+    wan_ifname = "atm_8_35"
+end
 
 local mapParams = {
     wan_queues_enabled = "uci.qos.device.@" .. wan_ifname:untaint() .. ".enable",
