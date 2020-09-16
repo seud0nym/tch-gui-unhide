@@ -26,6 +26,7 @@ else # night theme
    -e "$ a .header .btn:hover{background-color:#fff;color:#000;}" \
    -e "$ a .header .btn:hover .caret{border-top-color:#000;}" \
    -e "$ a .loading{background:#000000e0;}" \
+   -e "$ a .loading-wrapper{background:#000000e0;}" \
    -e "$ a .login{background-color:#272c30;}" \
    -e "$ a .modal-header{color:#$RGB_HDR;}" \
    -e "$ a .modal-header,.modal-body,.modal-footer{background-color:#272c30;}" \
