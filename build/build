@@ -43,7 +43,7 @@ do
 
   echo Writing $TARGET...
   echo "#!/bin/sh" > $TARGET
-  echo "echo [tch-gui-unhide]: Built for version $MAJOR.$MINOR" >> $TARGET
+  echo "echo 000: Built for version $MAJOR.$MINOR" >> $TARGET
 
   for s in $(find . -mindepth 2 -type f -a ! -name .do-not-delete -exec sh -c 'echo $(basename {})$(dirname {} | cut -c2-)' \; | sort)
   do
@@ -51,24 +51,25 @@ do
     if [ $? -eq 0 ]
     then
       FILENAME="$(echo $s | cut -d/ -f1)"
+      SEQUENCE="$(echo $FILENAME | cut -d- -f1)"
       DIRECTORY="$(echo $s | cut -d/ -f2-)"
       if [ $FILENAME = "060-Additional" ]
       then
         for b in $(cat "$DIRECTORY/$FILENAME")
         do
-          cat ../additional/$b.b64 >> $TARGET
+          sed -e "s/\[\$SCRIPT\]/$SEQUENCE/" ../additional/$b.b64 >> $TARGET
           echo " -> Added $b.b64"
         done
       else
-        sed -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
+        sed -e "s/\[\$SCRIPT\]/$SEQUENCE/" -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
 	      echo " -> Added $FILENAME"
         if [ $FILENAME = "170-Light-Theme" ]
         then
-          cat ../additional/light.b64 >> $TARGET
+          sed -e "s/\[\$SCRIPT\]/$SEQUENCE/" ../additional/light.b64 >> $TARGET
           echo " -> Added light.b64"
         elif [ $FILENAME = "180-Night-Theme" ]
         then
-          cat ../additional/night.b64 >> $TARGET
+          sed -e "s/\[\$SCRIPT\]/$SEQUENCE/" ../additional/night.b64 >> $TARGET
           echo " -> Added night.b64"
         fi
       fi

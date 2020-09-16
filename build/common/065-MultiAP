@@ -1,6 +1,18 @@
+if [ -f /www/docroot/booster.lp ]
+then
+  echo [$SCRIPT]: Importing Booster screen into advanced view
+  sed \
+    -e '/lp.include("header.lp")/,/lp.include("message.lp")/d' \
+    -e '/local lp = require("web.lp")/i \    ngx.print(ui_helper.createHeader(T"Wi-Fi Boosters", false, false, nil, nil) )' \
+    -e 's#<div class="container">#<div class="modal-body update">#' \
+    -e 's#<div class="row">#<div>#' \
+    -e 's#lp.include("tabs-home.lp")#lp.include("tabs-boosters.lp")#' \
+    -e 's#lp.include("footer.lp")#ngx.print(ui_helper.createFooter())#' \
+    /www/docroot/booster.lp > /www/docroot/modals/wireless-boosters-boosters-modal.lp
+fi
 if [ -f /www/docroot/boosterstatus.lp ]
 then
-  echo [$SCRIPT]: Importing /www/docroot/boosterstatus.lp into /www/docroot/modals/wireless-boosters-status-modal.lp
+  echo [$SCRIPT]: Importing Booster status screen into advanced view
   sed \
     -e '/lp.include("header.lp")/,/lp.include("message.lp")/d' \
     -e '/require("web.content_helper")/a local ui_helper = require("web.ui_helper")' \
@@ -12,21 +24,9 @@ then
     -e 's#lp.include("footer.lp")#ngx.print(ui_helper.createFooter())#' \
     /www/docroot/boosterstatus.lp > /www/docroot/modals/wireless-boosters-status-modal.lp
 fi
-if [ -f /www/docroot/booster.lp ]
-then
-  echo [$SCRIPT]: Importing /www/docroot/booster.lp into /www/docroot/modals/wireless-boosters-boosters-modal.lp
-  sed \
-    -e '/lp.include("header.lp")/,/lp.include("message.lp")/d' \
-    -e '/local lp = require("web.lp")/i \    ngx.print(ui_helper.createHeader(T"Wi-Fi Boosters", false, false, nil, nil) )' \
-    -e 's#<div class="container">#<div class="modal-body update">#' \
-    -e 's#<div class="row">#<div>#' \
-    -e 's#lp.include("tabs-home.lp")#lp.include("tabs-boosters.lp")#' \
-    -e 's#lp.include("footer.lp")#ngx.print(ui_helper.createFooter())#' \
-    /www/docroot/booster.lp > /www/docroot/modals/wireless-boosters-boosters-modal.lp
-fi
 if [ -f /www/docroot/wifidevices.lp ]
 then
-  echo [$SCRIPT]: Importing /www/docroot/wifidevices.lp into /www/docroot/modals/wireless-boosters-devices-modal.lp
+  echo [$SCRIPT]: Importing Booster Wi-Fi devices screen into advanced view
   sed \
     -e '/lp.include("header.lp")/,/lp.include("message.lp")/d' \
     -e '/local content =/i \    ngx.print(ui_helper.createHeader(T"Wi-Fi Boosters", false, false, nil, nil) )' \
