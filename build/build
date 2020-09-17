@@ -43,7 +43,7 @@ do
 
   echo Writing $TARGET...
   echo "#!/bin/sh" > $TARGET
-  echo "echo 000: Built for version $MAJOR.$MINOR" >> $TARGET
+  echo "echo 000: Built for version $MAJOR.$MINOR - Release $(date +%Y.%m.%d)" >> $TARGET
 
   for s in $(find . -mindepth 2 -type f -a ! -name .do-not-delete -exec sh -c 'echo $(basename {})$(dirname {} | cut -c2-)' \; | sort)
   do
