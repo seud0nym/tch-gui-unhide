@@ -1,3 +1,7 @@
+2020.09.17
+==========
+* tch-gui-unhide: Allow increase in WiFi output power to +6dBm
+
 2020.09.16
 ==========
 * tch-gui-unhide: Optionally hide/show some cards (Content Sharing, Management, NAT Helpers, Printer Sharing, QoS, Relay Setup, System Extras, and xDSL config)
