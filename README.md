@@ -12,7 +12,7 @@ So, I set out to enable whatever hidden features were included with the firmware
 - Configuration export/import, and the export file name is changed from *config.bin* to *VARIANT-SERIAL-VERSION@yymmdd.bin* (i.e. it includes the hardware type, serial number, firmware version and the current date)
 - Firmware update from the GUI
 - The SMS tab is enabled on the **Mobile** screen
-- You can disable/enable the radios from the **Wi-Fi** card (with opening the screen), and the status of Guest SSIDs is displayed
+- You can disable/enable the radios from the **Wi-Fi** card (without opening the screen), and the status of Guest SSIDs is displayed
 - You can edit the host names on the **Device** screen
 - The **Telephony** screen has the following tabs enabled:
     - Global (Enable/Disable telephony + SIP network provider details)
@@ -58,6 +58,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - Modified **Telephony** Global tab to allow:
     - Add/delete SIP providers (up to maximum of 2)
     - Editing of the name, and setting of interface (LAN/WAN/etc.)
+- Greater control over the **Wi-Fi** output power
 
 ### Additional (new) GUI Features
 - **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0231)
