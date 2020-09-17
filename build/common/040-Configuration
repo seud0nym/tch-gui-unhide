@@ -9,6 +9,7 @@ else
   uci set dropbear.lan.PasswordAuth='on'
   uci set dropbear.lan.RootPasswordAuth='on'
   uci set dropbear.lan.RootLogin='1'
+  uci commit dropbear
   SRV_dropbear=$(( $SRV_dropbear + 4 ))
 fi
   
@@ -21,6 +22,7 @@ else
   uci set system.config.export_unsigned='1'
   uci set system.config.import_plaintext='1'
   uci set system.config.import_unsigned='1'
+  uci commit system
   SRV_system=$(( $SRV_system + 4 ))
 fi
 
@@ -31,6 +33,7 @@ else
   echo [$SCRIPT]: Enabling firmware upgrade in the web GUI
   uci set web.uidefault.upgradefw='1'
   uci set web.uidefault.upgradefw_role='admin'
+  uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
 fi
 
@@ -42,8 +45,7 @@ else
   echo [$SCRIPT]: Ensure admin role can administer the parental block
   uci -q del_list web.parentalblock.roles='admin'
   uci add_list web.parentalblock.roles='admin'
+  uci commit web
   SRV_nginx=$(( $SRV_nginx + 2 ))
 fi
-
-uci commit
 
