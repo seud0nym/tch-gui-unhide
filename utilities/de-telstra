@@ -52,11 +52,11 @@ PRNTR='u'
 SAMBA='u'
 UPNP='u'
 
-while getopts h:d:n:a:c:f:m:p:r:t:u:ASU option
+while getopts h:d:n:a:c:f:m:p:r:t:u:ASUR option
 do
  case "${option}" in
-  A)  HOST='d'; DOMAIN='gateway'; NS='c'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
-  S)  HOST='s'; DOMAIN='gateway'; NS='c'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
+  A)  HOST='d'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
+  S)  HOST='s'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
   h)  HOST=${OPTARG};;
   d)  case "${OPTARG}" in g|G) DOMAIN='gateway';; u|U) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
   n)  NS=${OPTARG};;
@@ -68,6 +68,7 @@ do
   r)  case "${OPTARG}" in y|Y) PRNTR='1';; n|N) PRNTR='0';; u|U) PRNTR='u';; *) PRNTR='u'; echo 'WARNING: -r valid options are y, n, or u';; esac;;
   t)  case "${OPTARG}" in y|Y) MMPBX='1';; n|N) MMPBX='0';; u|U) MMPBX='u';; *) MMPBX='u'; echo 'WARNING: -t valid options are y, n, or u';; esac;;
   u)  case "${OPTARG}" in y|Y) UPNP='1';; n|N) UPNP='0';; u|U) UPNP='u';; *) UPNP='u'; echo 'WARNING: -u valid options are y, n, or u';; esac;;
+  R)  HOST='mymodem'; DOMAIN='modem'; NS='a'; ALG='1'; DLNAD='1'; SAMBA='1'; MULTIAP='1'; POWER='y'; PRNTR='1'; MMPBX='1'; UPNP='1';;
   U)  RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT | sed 's/\r//')
       if [ $? -ne 0 ]
       then
@@ -165,8 +166,9 @@ do
       echo "    where u            Leave UPnP unchanged (Default)"
       echo "          y            Enable the UPnP service (device default)"
       echo "          n            Disable the UPnP service"
-      echo " -A                    Equivalent to: -hd -dg -nc -an -fn -pn -rn -un"
-      echo " -S                    Equivalent to: -hs -dg -nc -an -fn -pn -rn -un"
+      echo " -A                    Equivalent to: -hd -dg -an -cn -fn -pn -rn -un"
+      echo " -S                    Equivalent to: -hs -dg -an -cn -fn -pn -rn -un"
+      echo " -R                    Reset to device defaults (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -uy)"
       echo " -U                    Check for and download the latest version from GitHub"
       exit;;
  esac
@@ -463,7 +465,7 @@ then
 else
   uci set dlnad.config.enabled="$DLNAD"
   SRV_dlna=$(( $SRV_dlna + 1 ))
-  echo [$SCRIPT]: Content sharing $(status2text $DLNA)
+  echo [$SCRIPT]: Content sharing $(status2text $DLNAD)
 fi
 
 PRNTR_NOW="$(uci -q get printersharing.config.enabled)"
@@ -473,7 +475,7 @@ then
 else
   uci set printersharing.config.enabled="$PRNTR"
   SRV_cups=$(( $SRV_cups + 1 ))
-  echo [$SCRIPT]: Printer sharing $(status2text $DLNA)
+  echo [$SCRIPT]: Printer sharing $(status2text $PRNTR)
 fi
 
 SAMBA_NOW="$(uci -q get samba.samba.filesharing)"
