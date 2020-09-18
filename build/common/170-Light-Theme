@@ -1,8 +1,9 @@
 if [ "$THEME" = "light" ]; then # light theme
   if [ $COLOR = monochrome ]; then
-    RGB_BTN=404040; RGB_HDR=eee; RGB_NAV=404040; RGB_SYM=018ed42b; RGB_GRAD_FROM=404040; RGB_GRAD_TO=404040; RGB_TXT=404040;
+    RGB_BTN=404040; RGB_HDR=eee; RGB_NAV=404040; RGB_SYM=018ed42b; RGB_GRAD_FROM=404040; RGB_GRAD_TO=404040; RGB_TXT=404040; RGB_HDR_TXT=$RGB_TXT;
   else
     RGB_TXT=fff
+    RGB_HDR_TXT=$RGB_HDR
   fi
   sed \
    -e "$ a a{color:#$RGB_NAV;}" \
@@ -14,7 +15,7 @@ if [ "$THEME" = "light" ]; then # light theme
    -e "$ a .button:hover:hover,.button:hover:focus,.button:hover:active,.button:hover.active,.button:hover.disabled,.button:hover[disabled],.btn:hover:hover,.btn:hover:focus,.btn:hover:active,.btn:hover.active,.btn:hover.disabled,.btn:hover[disabled],.smallcard .header .settings:hover:hover,.smallcard .header .settings:hover:focus,.smallcard .header .settings:hover:active,.smallcard .header .settings:hover.active,.smallcard .header .settings:hover.disabled,.smallcard .header .settings:hover[disabled]{background-color:#$RGB_GRAD_FROM;color:#fff}" \
    -e "$ a .card_bg:after{color:#$RGB_SYM;}" \
    -e "$ a .modal-backdrop{background-color:#fff;}" \
-   -e "$ a .modal-header{color:#$RGB_HDR;}" \
+   -e "$ a .modal-header{color:#$RGB_HDR_TXT;}" \
    -e "$ a .nav-tabs>.active>a, .nav-tabs>.active>a:hover, .nav-tabs>.active>a:focus{background-color:#00B1EB;color:#fff}" \
    -e "$ a .smallcard{background-color:#eee;color:rgba(64,64,64,0.75);}" \
    -e "$ a .smallcard .header{background-color:#$RGB_HDR;color:#$RGB_TXT;}" \

@@ -1,6 +1,6 @@
 else # night theme
   if [ $COLOR = monochrome ]; then
-    RGB_BTN=272c30; RGB_HDR=272c30; RGB_NAV=272c30; RGB_SYM=eeeeee0f; RGB_GRAD_FROM=272c30; RGB_GRAD_TO=272c30; RGB_TXT=fff;
+    RGB_BTN=272c30; RGB_HDR=272c30; RGB_NAV=0088cc; RGB_SYM=eeeeee0f; RGB_GRAD_FROM=272c30; RGB_GRAD_TO=272c30; RGB_TXT=fff;
   else
     RGB_TXT=$RGB_HDR
   fi
