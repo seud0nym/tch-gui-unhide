@@ -1,12 +1,9 @@
 else # night theme
-  # if you chang any of these colors or CSS, recheck 001-Variables for default settings
-  case "$THEME" in 
-    green)  RGB_BTN=662e91; RGB_HDR=005c32; RGB_NAV=005c32; RGB_SYM=ffec0126; RGB_GRAD_FROM=008a4c; RGB_GRAD_TO=005c32;;
-    purple) RGB_BTN=005c32; RGB_HDR=662e91; RGB_NAV=008a4c; RGB_SYM=f365232b; RGB_GRAD_FROM=942977; RGB_GRAD_TO=662e91;;
-    orange) RGB_BTN=662e91; RGB_HDR=f36523; RGB_NAV=f36523; RGB_SYM=008a4c3d; RGB_GRAD_FROM=f89406; RGB_GRAD_TO=f36523;;
-    *)      RGB_BTN=f36523; RGB_HDR=008fd5; RGB_NAV=008fd5; RGB_SYM=00b9f21f; RGB_GRAD_FROM=00b9f2; RGB_GRAD_TO=008fd5;;
-  esac
-
+  if [ $COLOR = monochrome ]; then
+    RGB_BTN=272c30; RGB_HDR=272c30; RGB_NAV=272c30; RGB_SYM=eeeeee0f; RGB_GRAD_FROM=272c30; RGB_GRAD_TO=272c30; RGB_TXT=fff;
+  else
+    RGB_TXT=$RGB_HDR
+  fi
   sed \
    -e "$ a a{color:#$RGB_NAV;}" \
    -e "$ a body{background-color:#353c42;color:#fff}" \
@@ -28,7 +25,7 @@ else # night theme
    -e "$ a .loading{background:#000000e0;}" \
    -e "$ a .loading-wrapper{background:#000000e0;}" \
    -e "$ a .login{background-color:#272c30;}" \
-   -e "$ a .modal-header{color:#$RGB_HDR;}" \
+   -e "$ a .modal-header{color:#$RGB_TXT;}" \
    -e "$ a .modal-header,.modal-body,.modal-footer{background-color:#272c30;}" \
    -e "$ a .nav-list>.active>a,.nav-list>.active>a:hover,.nav-list>.active>a:focus{background-color:#$RGB_NAV;}" \
    -e "$ a .smallcard{background-color:#272c30;color:rgba(64,64,64,0.75);}" \

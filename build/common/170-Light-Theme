@@ -1,20 +1,30 @@
 if [ "$THEME" = "light" ]; then # light theme
+  if [ $COLOR = monochrome ]; then
+    RGB_BTN=404040; RGB_HDR=eee; RGB_NAV=404040; RGB_SYM=018ed42b; RGB_GRAD_FROM=404040; RGB_GRAD_TO=404040; RGB_TXT=404040;
+  else
+    RGB_TXT=fff
+  fi
   sed \
-   -e '$ a a{color:#404040;}' \
-   -e '$ a body{background-color:#fff;}' \
-   -e '$ a .card_bg:after{color:#018ed42b;}' \
-   -e '$ a .modal-backdrop{background-color:#fff;}' \
-   -e '$ a .modal-header{color:#404040;}' \
-   -e '$ a .nav-tabs>.active>a, .nav-tabs>.active>a:hover, .nav-tabs>.active>a:focus{background-color:#00B1EB;color:#fff}' \
-   -e '$ a .smallcard{background-color:#eee;color:rgba(64,64,64,0.75);}' \
-   -e '$ a .smallcard .header{background-color:#eee;color:#404040;}' \
-   -e '$ a .smallcard .subinfos{color:rgba(64,64,64,0.75);}' \
-   -e '$ a .switchOn{background-color:#00a540;}' \
+   -e "$ a a{color:#$RGB_NAV;}" \
+   -e "$ a body{background-color:#fff;}" \
+   -e "$ a .btn{color:#000}" \
+   -e "$ a .btn.btn-primary{color:#fff}" \
+   -e "$ a .btn-primary,.button:hover,.btn:hover,.smallcard .header .settings,.smallcard .header .settings:hover{background-color:#$RGB_GRAD_TO;background-image:-moz-linear-gradient(top,#$RGB_GRAD_FROM,#$RGB_GRAD_TO);background-image:-webkit-gradient(linear,00,0100%,from(#$RGB_GRAD_FROM),to(#$RGB_GRAD_TO));background-image:-webkit-linear-gradient(top,#$RGB_GRAD_FROM,#$RGB_GRAD_TO);background-image:-o-linear-gradient(top,#$RGB_GRAD_FROM,#$RGB_GRAD_TO);background-image:linear-gradient(tobottom,#$RGB_GRAD_FROM,#$RGB_GRAD_TO);border-color:#$RGB_GRAD_TO;text-shadow:unset;}" \
+   -e "$ a .btn:hover{-webkit-box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(12,208,246,1);-moz-box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(12,208,246,1);box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(0,0,0,1);}" \
+   -e "$ a .button:hover:hover,.button:hover:focus,.button:hover:active,.button:hover.active,.button:hover.disabled,.button:hover[disabled],.btn:hover:hover,.btn:hover:focus,.btn:hover:active,.btn:hover.active,.btn:hover.disabled,.btn:hover[disabled],.smallcard .header .settings:hover:hover,.smallcard .header .settings:hover:focus,.smallcard .header .settings:hover:active,.smallcard .header .settings:hover.active,.smallcard .header .settings:hover.disabled,.smallcard .header .settings:hover[disabled]{background-color:#$RGB_GRAD_FROM;color:#fff}" \
+   -e "$ a .card_bg:after{color:#$RGB_SYM;}" \
+   -e "$ a .modal-backdrop{background-color:#fff;}" \
+   -e "$ a .modal-header{color:#$RGB_HDR;}" \
+   -e "$ a .nav-tabs>.active>a, .nav-tabs>.active>a:hover, .nav-tabs>.active>a:focus{background-color:#00B1EB;color:#fff}" \
+   -e "$ a .smallcard{background-color:#eee;color:rgba(64,64,64,0.75);}" \
+   -e "$ a .smallcard .header{background-color:#$RGB_HDR;color:#$RGB_TXT;}" \
+   -e "$ a .smallcard .subinfos{color:rgba(64,64,64,0.75);}" \
+   -e "$ a .switchOn{background-color:#00a540;}" \
    -i /www/docroot/css/gw.css
   sed \
-   -e '$ a body{background-color:#fff;}' \
-   -e '$ a .container>.row{background-color:#dadada;border-color:#dadada;}' \
-   -e '$ a .navbar-inverse .navbar-inner{background-color:#fff;}' \
-   -e '$ a .networkmap .devicelist{border-color:#094f9c;}' \
-   -e '$ a .networkmap .right, .networkmap .left, .networkmap .longleft{background-color:#f89406;color:#fff}' \
+   -e "$ a body{background-color:#fff;}" \
+   -e "$ a .container>.row{background-color:#dadada;border-color:#dadada;}" \
+   -e "$ a .navbar-inverse .navbar-inner{background-color:#fff;}" \
+   -e "$ a .networkmap .devicelist{border-color:#094f9c;}" \
+   -e "$ a .networkmap .right,.networkmap .left,.networkmap .longleft{background-color:#f89406;color:#fff}" \
    -i /www/docroot/css/gw-telstra.css

@@ -24,16 +24,23 @@ update_cards() {
   fi
 }
 
-while getopts Wt:s:Tryux:i: option
+while getopts Wt:s:Tryux:i:c: option
 do
  case "${option}" in
    W) WRAPPER=y;;
-   t) case "$(echo ${OPTARG} | tr "NOL" "nol" | sed 's/\(.\)\(.*\)/\1/')" in
-         n) THEME=night;;
-         g) THEME=green;; 
-         p) THEME=purple;; 
-         o) THEME=orange;; 
-         *) THEME=light;;
+   t) case "$(echo ${OPTARG} | tr "GNOPL" "gnopl" | sed 's/\(.\)\(.*\)/\1/')" in
+        g) THEME=night; COLOR=green; echo WARNING: -tg deprecated. Use -tn -cg in future;; 
+        n) THEME=night; COLOR=blue;;
+        o) THEME=night; COLOR=orange; echo WARNING: -to deprecated. Use -tn -co in future;; 
+        p) THEME=night; COLOR=purple; echo WARNING: -tp deprecated. Use -tn -cp in future;; 
+        *) THEME=light; COLOR=monochrome;;
+      esac;;
+   c) case "$(echo ${OPTARG} | tr "BGMOP" "bgmop" | sed 's/\(.\)\(.*\)/\1/')" in
+        b) COLOR=blue;; 
+        g) COLOR=green;; 
+        o) COLOR=orange;; 
+        p) COLOR=purple;; 
+        *) COLOR=monochrome;;
       esac;;
    i) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then ICONS=visible; else ICONS=hidden; fi;;
    T) THEME_ONLY=y;;
@@ -44,54 +51,55 @@ do
    u) RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME | sed 's/\r//')
       if [ $? -ne 0 ]
       then
-         echo "[tch-gui-unhide] GitHub check of $FILENAME failed with an unknown error. Do you have an internet connection?"
-         return 5
+        echo "[tch-gui-unhide] GitHub check of $FILENAME failed with an unknown error. Do you have an internet connection?"
+        return 5
       else 
-         STATUS=$(echo $RESULT | grep '^HTTP' | cut -d' ' -f2)
-         LENGTH=$(echo $RESULT | grep '^Content-Length' | cut -d' ' -f2)
-         next=''
-         for t in $(echo $RESULT | tr " " "$IFS")
-         do
-            case "$next" in
-            s) STATUS="$t";next='';;
-            l) LENGTH="$t";next='';;
-            *) case "$t" in
-            "HTTP/1.1") next='s';;
-            "Content-Length:") next='l';;
-            *) next='';;
-            esac
-            esac
-         done
-         case "$STATUS" in
-         200)  if [ -f $FILENAME ]
-               then
+        STATUS=$(echo $RESULT | grep '^HTTP' | cut -d' ' -f2)
+        LENGTH=$(echo $RESULT | grep '^Content-Length' | cut -d' ' -f2)
+        next=''
+        for t in $(echo $RESULT | tr " " "$IFS")
+        do
+          case "$next" in
+            s)  STATUS="$t";next='';;
+            l)  LENGTH="$t";next='';;
+            *)  case "$t" in
+                  "HTTP/1.1") next='s';;
+                  "Content-Length:") next='l';;
+                  *) next='';;
+                esac;;
+          esac
+        done
+        case "$STATUS" in
+          200)  if [ -f $FILENAME ]
+                then
                   SIZE=$(ls -l $FILENAME | tr -s ' ' | cut -d' ' -f5)
                   if [ $SIZE -eq $LENGTH ]
                   then
                   echo "[tch-gui-unhide] Size of $FILENAME matches GitHub version - No update required"
                   return 0
                   fi
-               fi
-               curl -k -L https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME > $FILENAME
-               if [ $? -eq 0 ]
-               then
+                fi
+                curl -k -L https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME > $FILENAME
+                if [ $? -eq 0 ]
+                then
                   chmod +x $FILENAME
                   echo "[tch-gui-unhide] Successfully updated $FILENAME."
                   return 0
-               else
+                else
                   echo "[tch-gui-unhide] Failed to download updated version of $FILENAME."
                   return 2
-               fi;;
-         404)  echo "[tch-gui-unhide] Platform script $FILENAME not found!!!"
-               return 4;;
-         *)    echo "[tch-gui-unhide] GitHub check of $FILENAME returned $STATUS"
-               return 5;;
-         esac
+                fi;;
+          404)  echo "[tch-gui-unhide] Platform script $FILENAME not found!!!"
+                return 4;;
+          *)    echo "[tch-gui-unhide] GitHub check of $FILENAME returned $STATUS"
+                return 5;;
+        esac
       fi
       exit;;
    ?) echo "Optional parameters:"
-      echo " -t l|n|o|g|p         : Set the theme (Default is current setting, or light if no theme has been applied)"
-      echo "                         l=light n=night (blue) o=night (orange), g=night (green) p=night (purple)"
+      echo " -t l|n               : Set a light (l) or night (n) theme (Default is current setting, or light if no theme has been applied)"
+      echo " -c b|o|g|p|m         : Set the theme highlight colour (Default is current setting, or (m) for light theme or (b) for night theme)"
+      echo "                         b=blue o=orange g=green p=purple m=monochrome"
       echo " -i y|n               : Show (y) or hide (n) the card icons (Default is current setting, or n for light theme and y for night theme)"
       echo " -T                   : Apply theme ONLY - bypass all other processing"
       echo " -r                   : Restore changed GUI files to their original state (config changes are NOT restored)"
