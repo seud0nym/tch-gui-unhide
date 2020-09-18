@@ -2,7 +2,7 @@
 A collection of utility scripts for your Technicolor router.
 
 ## de-telstra
-This script applies most of the hardening recommendations from https://hack-technicolor.readthedocs.io/en/stable/Hardening/, modified to only apply those that are applicable to later model devices such as the TG800vac and DJA0231. 
+This script applies most of the hardening recommendations from https://hack-technicolor.readthedocs.io/en/stable/Hardening/. 
 
 In addition, it automatically:
 - Overwrites the */etc/dropbear/authorized_keys* file with either:
@@ -22,8 +22,10 @@ Optionally, it can also:
 - Disable or enable content and printer sharing, and the DLNA server
 - Disable or enable all ALGs (FTP, TFTP, SNMP, PPTP, IRC, AMANDA, RTSP, SIP)
 - Disable or enable telephony, and enables VoLTE backup voice service and SMS reception
+- Disable or enable DECT Emission Mode
 - Disable or enable UPnP
 - Disable or enable power saving
+- On the DJA0231, it can also disable or enable EasyMesh (multiap)
 
 It does NOT remove the hidden BH-xxxxxx SSID from the DJA0231, as this is not related to Telstra AIR. It is the wireless backhaul for EasyMesh.
 
@@ -74,12 +76,17 @@ This script accepts the following options:
     where u            Leave Telephony (mmpbx) unchanged (Default)
           y            Enable the telephony service
           n            Disable the telephony service
+ -e u|y|n
+    where u            Leave DECT Emission Mode unchanged (Default)
+          y            Enable DECT Emission Mode (device default)
+          n            Disable DECT Emission Mode
  -u u|y|n
     where u            Leave UPnP unchanged (Default)
           y            Enable the UPnP service
           n            Disable the UPnP service
- -A                    Equivalent to: -h d -d g -n c -a n -f n -p n
- -S                    Equivalent to: -h s -d g -n c -a n -f n -p n
+ -A                    Equivalent to: -hd -dg -an -cn -fn -pn -rn -un
+ -S                    Equivalent to: -hs -dg -an -cn -fn -pn -rn -un
+ -R                    Reset to device defaults (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -ty -ey -uy)
  -U                    Check for and download the latest version from GitHub
 ```
 Note that the options to disable/enable EasyMesh are only applicable to devices with multiap installed.

@@ -46,13 +46,14 @@ NS='u'
 ALG='u'
 DLNAD='u'
 MMPBX='u'
+DECT='u'
 MULTIAP='u'
 POWER='u' 
 PRNTR='u'
 SAMBA='u'
 UPNP='u'
 
-while getopts h:d:n:a:c:f:m:p:r:t:u:ASUR option
+while getopts h:d:n:a:c:f:m:p:r:t:e:u:ASUR option
 do
  case "${option}" in
   A)  HOST='d'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
@@ -67,8 +68,9 @@ do
   p)  case "${OPTARG}" in y|Y) POWER='y';; n|N) POWER='n';; u|U) POWER='u';; *) POWER='u'; echo 'WARNING: -p valid options are y, n, or u';; esac;;
   r)  case "${OPTARG}" in y|Y) PRNTR='1';; n|N) PRNTR='0';; u|U) PRNTR='u';; *) PRNTR='u'; echo 'WARNING: -r valid options are y, n, or u';; esac;;
   t)  case "${OPTARG}" in y|Y) MMPBX='1';; n|N) MMPBX='0';; u|U) MMPBX='u';; *) MMPBX='u'; echo 'WARNING: -t valid options are y, n, or u';; esac;;
+  e)  case "${OPTARG}" in y|Y) DECT='1';; n|N) DECT='0';; u|U) DECT='u';; *) DECT='u'; echo 'WARNING: -e valid options are y, n, or u';; esac;;
   u)  case "${OPTARG}" in y|Y) UPNP='1';; n|N) UPNP='0';; u|U) UPNP='u';; *) UPNP='u'; echo 'WARNING: -u valid options are y, n, or u';; esac;;
-  R)  HOST='mymodem'; DOMAIN='modem'; NS='a'; ALG='1'; DLNAD='1'; SAMBA='1'; MULTIAP='1'; POWER='y'; PRNTR='1'; MMPBX='1'; UPNP='1';;
+  R)  HOST='mymodem'; DOMAIN='modem'; NS='a'; ALG='1'; DLNAD='1'; SAMBA='1'; MULTIAP='1'; POWER='y'; PRNTR='1'; MMPBX='1'; DECT='1'; UPNP='1';;
   U)  RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT | sed 's/\r//')
       if [ $? -ne 0 ]
       then
@@ -162,13 +164,18 @@ do
       echo "    where u            Leave Telephony (mmpbx) unchanged (Default)"
       echo "          y            Enable the telephony service (device default)"
       echo "          n            Disable the telephony service"
+      echo " -e u|y|n"
+      echo "    where u            Leave DECT Emission Mode unchanged (Default)"
+      echo "          y            Enable DECT Emission Mode (device default)"
+      echo "          n            Disable DECT Emission Mode"
       echo " -u u|y|n"
       echo "    where u            Leave UPnP unchanged (Default)"
       echo "          y            Enable the UPnP service (device default)"
       echo "          n            Disable the UPnP service"
       echo " -A                    Equivalent to: -hd -dg -an -cn -fn -pn -rn -un"
       echo " -S                    Equivalent to: -hs -dg -an -cn -fn -pn -rn -un"
-      echo " -R                    Reset to device defaults (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -uy)"
+      echo " -R                    Reset to device defaults"
+      echo "                        (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -ty -ey -uy)"
       echo " -U                    Check for and download the latest version from GitHub"
       exit;;
  esac
@@ -236,12 +243,12 @@ then
   uci commit watchdog
   SRV_watchdog=$(( $SRV_watchdog + 2 ))
 else
-  echo [$SCRIPT]: - CWMP already disabled
+  echo [$SCRIPT]: - CWMP already Disabled
 fi
 
 if [ -z "$(uci -q get autoreset.vsparc_enabled)" -a -z "$(uci -q get autoreset.thor_enabled)" -a -z "$(uci -q get wifi_doctor_agent.acs)" -a -z "$(uci -q get wifi_doctor_agent.config)" -a -z "$(uci -q get wifi_doctor_agent.as_config)" ]
 then
-  echo [$SCRIPT]: - Telstra monitoring already disabled
+  echo [$SCRIPT]: - Telstra monitoring already Disabled
 else
   echo [$SCRIPT]: - Disabling Telstra monitoring
   uci -q delete autoreset.vsparc_enabled
@@ -310,7 +317,7 @@ then
   /etc/init.d/lotagent stop
   /etc/init.d/lotagent disable
 else
-  echo [$SCRIPT]: - lotagent already disabled
+  echo [$SCRIPT]: - lotagent already Disabled
 fi
 
 if [ -z "$(uci -q get web.default.default_user)" -a -z "$(uci -q get web.uidefault.defaultuser)" ]
@@ -485,7 +492,7 @@ then
 else
   uci set samba.samba.filesharing="$SAMBA"
   SRV_samba=$(( $SRV_samba + 1 ))
-  echo [$SCRIPT]: File sharing  $(status2text $SAMBA)
+  echo [$SCRIPT]: File sharing $(status2text $SAMBA)
 fi
 
 MMPBX_NOW="$(uci -q get mmpbx.global.enabled)"
@@ -498,12 +505,12 @@ else
   MMPBX_NOW="$MMPBX"
   if [ "$MMPBX" = "1" ]
   then
-    echo [$SCRIPT]: Telephony enabled
+    echo [$SCRIPT]: Telephony Enabled
     if [ "$(uci -q get mmpbxmobilenet.VoLTE)" ]
     then
       if [ "$(uci -q get mmpbxmobilenet.VoLTE.enabled)" = "1" ]
       then
-        echo [$SCRIPT]: VoLTE already enabled
+        echo [$SCRIPT]: VoLTE already Enabled
       else
         echo [$SCRIPT]: Enabling VoLTE backup voice service and SMS reception
         uci set mmpbxmobilenet.VoLTE.enabled='1'
@@ -516,8 +523,18 @@ else
       fi
     fi
   else
-    echo [$SCRIPT]: Telephony disabled
+    echo [$SCRIPT]: Telephony Disabled
   fi
+fi
+
+DECT_NOW="$(uci -q get mmpbx.dectemission.state)"
+if [ "$DECT" = "u" -o "$DECT_NOW" = "$DECT" ]
+then
+  echo [$SCRIPT]: DECT Emission Mode unchanged \[$(status2text $DECT_NOW)\]
+else
+  uci set mmpbx.dectemission.state="$DECT"
+  SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
+  echo [$SCRIPT]: DECT Emission Mode $(status2text $DECT)
 fi
 
 if [ "$ALG" = "u" ]
@@ -538,13 +555,13 @@ else
         then
           if [ "$MMPBX_NOW" = "1" ]
           then
-            echo [$SCRIPT]: SIP ALG left enabled because Telephony enabled
+            echo [$SCRIPT]: SIP ALG left Enabled because Telephony Enabled
             continue
           fi
         fi
-        echo [$SCRIPT]: $G ALG disabled
+        echo [$SCRIPT]: $G ALG Disabled
       else 
-        echo [$SCRIPT]: $G ALG enabled
+        echo [$SCRIPT]: $G ALG Enabled
       fi
       uci set $key.enable="$ALG"
       SRV_fw=$(( $SRV_fw + 1 ))
