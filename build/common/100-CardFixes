@@ -88,6 +88,13 @@ sed \
  -e 's/\r//' \
  -i /www/cards/018_relaysetup.lp
 
+echo [$SCRIPT]: Only show xDSL Config card if WAN interface is DSL 
+sed \
+ -e '/if session:hasAccess/i local proxy = require("datamodel")' \
+ -e '/if session:hasAccess/i local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")' \
+ -e 's/if session:hasAccess/if wan_ifname and (wan_ifname[1].value:untaint() == "ptm0" or wan_ifname[1].value:untaint() == "atmwan") and session:hasAccess/' \
+ -i /www/cards/093_xdsl.lp
+
 echo [$SCRIPT]: Enable cards in Bridge Mode
 # https://www.crc.id.au/hacking-the-technicolor-tg799vac-and-unlocking-features/#mozTocId685948
 sed -e '/if info.bridged then/,/end/d' -i /www/lua/cards_limiter.lua
