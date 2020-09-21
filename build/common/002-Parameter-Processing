@@ -24,7 +24,7 @@ update_cards() {
   fi
 }
 
-while getopts Wt:s:Tryux:i:c: option
+while getopts Wt:s:Tryun:x:i:c: option
 do
  case "${option}" in
    W) WRAPPER=y;;
