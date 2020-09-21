@@ -52,11 +52,18 @@ sed \
  -e 's/\r//' \
  -i /www/cards/018_relaysetup.lp
 
+echo [$SCRIPT]: Only show WAN Services card if WAN interface is defined 
+sed \
+ -e '/uci.firewall.userredirectNumberOfEntries/a \  wan_ifname = "uci.network.interface.@wan.ifname",' \
+ -e '/if session:hasAccess/i \local wan_ifname = wan_services_data["wan_ifname"]' \
+ -e 's/if session:hasAccess/if wan_ifname and wan_ifname ~= "" and session:hasAccess/' \
+ -i /www/cards/007_wanservices.lp
+
 echo [$SCRIPT]: Only show xDSL Config card if WAN interface is DSL 
 sed \
- -e '/if session:hasAccess/i local proxy = require("datamodel")' \
- -e '/if session:hasAccess/i local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")' \
- -e 's/if session:hasAccess/if wan_ifname and (wan_ifname[1].value:untaint() == "ptm0" or wan_ifname[1].value:untaint() == "atmwan") and session:hasAccess/' \
+ -e '/uci.xdsl.xdsl.@dsl0.enabled/a \      wan_ifname = "uci.network.interface.@wan.ifname",' \
+ -e '/if session:hasAccess/i \local wan_ifname = content["wan_ifname"]' \
+ -e 's/if session:hasAccess/if wan_ifname and (wan_ifname == "ptm0" or wan_ifname == "atmwan") and session:hasAccess/' \
  -i /www/cards/093_xdsl.lp
 
 echo [$SCRIPT]: Enable cards in Bridge Mode
