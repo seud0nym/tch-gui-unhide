@@ -12,6 +12,14 @@ sed \
  -e 's/mode_active = content_mode.wan_proto/mode_active = mode_default/' \
  -i /www/cards/003_internet.lp
 
+echo [$SCRIPT]: Hide Mobile card if no devices found
+sed \
+ -e '/require("web.lte-utils")/a local result = utils.getContent("rpc.mobiled.DeviceNumberOfEntries")' \
+ -e '/require("web.lte-utils")/a local devices = tonumber(result.DeviceNumberOfEntries)' \
+ -e '/require("web.lte-utils")/a if devices and devices > 0 then' \
+ -e '$ a end' \
+ -i $(find /www/cards -type f -name '*lte.lp')
+
 echo [$SCRIPT]: Add DHCPv6 Server status to LAN card 
 sed \
  -e '/local dhcpState$/a local dhcp6State_text = ""' \
