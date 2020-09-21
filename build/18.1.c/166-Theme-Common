@@ -1,16 +1,32 @@
 sed \
- -e '$ a .card_bg:after{font-size:110px;bottom:-5px;}' \
- -i /www/docroot/css/gw.css
-# landingpage (login)
-sed \
- -e "$ a body.landingpage>div:nth-child(2),body.landingpage>div:nth-child(3){display:none !important;}" \
- -e "$ a #login_part>div>div.login.span3>fieldset>div:nth-child(4){display:none;}" \
- -e "$ a #login_part>div>div:nth-child(3)>fieldset>h2{display:none;}" \
- -e "$ a #login_part>div>div:nth-child(3)>fieldset{background:url(/img/logo.gif) 65%/200px no-repeat;height:100px;}" \
- -e "$ a #login_part_mobile>div:nth-child(1)>center>img{width:200px;height:100px;box-sizing:border-box;padding-left:200px;background:url(/img/logo.gif) center/200px no-repeat;}" \
- -e "$ a #login_part_mobile>div:nth-child(2){visibility:hidden;}" \
- -e "$ a #icon_down{display:none !important;}" \
- -e "$ a #detailed_info_mobile.hide{display:block;}" \
- -e "$ a #detailed_info_mobile>div:not(:nth-child(5)){display:none;}" \
- -e "$ a #footer_picture_mobile{display:none !important;}" \
- -i /www/docroot/css/gw-telstra.css
+  -e '$ a .card_bg:after{font-size:110px;bottom:-5px;}' \
+  -i /www/docroot/css/gw.css
+if [ -f /www/docroot/landingpage.lp ]
+then
+  echo [$SCRIPT]: Theming and de-branding landing page
+  sed \
+    -e "$ a body.landingpage>div:nth-child(2),body.landingpage>div:nth-child(3){display:none !important;}" \
+    -e "$ a #login_part>div>div.login.span3>fieldset>div:nth-child(4){display:none;}" \
+    -e "$ a #login_part>div>div:nth-child(3)>fieldset>h2{display:none;}" \
+    -e "$ a #login_part>div>div:nth-child(3)>fieldset{background:url(/img/logo.gif) 65%/200px no-repeat;height:100px;}" \
+    -e "$ a #login_part_mobile>div:nth-child(1)>center>img{width:200px;height:100px;box-sizing:border-box;padding-left:200px;background:url(/img/logo.gif) center/200px no-repeat;}" \
+    -e "$ a #login_part_mobile>div:nth-child(2){visibility:hidden;}" \
+    -e "$ a #icon_down{display:none !important;}" \
+    -e "$ a #detailed_info_mobile.hide{display:block;}" \
+    -e "$ a #detailed_info_mobile>div:not(:nth-child(5)){display:none;}" \
+    -e "$ a #footer_picture_mobile{display:none !important;}" \
+    -i /www/docroot/css/gw-telstra.css
+  sed \
+    -e 's/.hidden-desktop{display:none/.hidden-desktop{display:inherit/' \
+    -e 's/.visible-desktop{display:inherit/.visible-desktop{display:none/' \
+    -i /www/docroot/css/responsive.css
+  sed \
+    -e '/<head>/a <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico"/>\\' \
+    -e 's/height:60%;min-height:400px;/height:40%;min-height:400px;width:100%;/' \
+    -e 's/"-webkit-border-radius: 20px;-moz-border-radius: 20px;border-radius: 20px;width:50%;"/"display:block;margin-bottom:2px;width:220px;"/' \
+    -e 's/"erroruserpass alert alert-error hide"/"erroruserpass alert alert-error hide" style="width:212px;margin:auto;padding:10px;"/' \
+    -e 's/buttonborder linear-mobile" style="width:50%/linear-mobile" style="width:65px/' \
+    /rom/www/docroot/landingpage.lp > /www/docroot/landingpage.lp
+  # Have to restart if changing landing page
+  SRV_nginx=$(( $SRV_nginx + 1 ))
+fi

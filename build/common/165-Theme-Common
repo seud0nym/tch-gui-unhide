@@ -22,7 +22,7 @@
   sed -e 's/xf0ad/xf0b1;"/' -i /www/cards/093_xdsl.lp
 else # THEME_ONLY = y
   echo [$SCRIPT]: Restoring CSS files to apply theme change
-  cp -p /rom/www/docroot/css/gw.css /rom/www/docroot/css/gw-telstra.css /www/docroot/css/
+  cp -p /rom/www/docroot/css/gw.css /rom/www/docroot/css/gw-telstra.css /rom/www/docroot/css/responsive.css /www/docroot/css/
 fi # End of if [ THEME_ONLY = n ]   
   
 echo [$SCRIPT]: Applying $THEME theme with $COLOR highlights and $ICONS card icons
