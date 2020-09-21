@@ -39,7 +39,7 @@ fi
 
 # Options
 VARIANT=$(uci -q get env.var.variant_friendly_name)
-SERIAL=$(uci -q get env.var.ssid_mac_postfix_r0)
+MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
 HOST='u'
 DOMAIN='u'
 NS='u'
@@ -119,7 +119,7 @@ do
       echo " -h u|d|s|<hostname>"
       echo "    where u            Leave hostname unchanged (Default)"
       echo "          d            Set the hostname to $VARIANT"
-      echo "          s            Set the hostname to $VARIANT-$SERIAL"
+      echo "          s            Set the hostname to $VARIANT-$MAC_HEX"
       echo "          <hostname>   Use the specified hostname"
       echo " -d u|g|<domainname>"
       echo "    where u            Leave domain name unchanged (Default)"
@@ -337,7 +337,7 @@ then
 else
   case $HOST in
   d) HOSTNAME=$VARIANT;;
-  s) HOSTNAME=$VARIANT-$SERIAL;;
+  s) HOSTNAME=$VARIANT-$MAC_HEX;;
   *) HOSTNAME=$HOST;;
   esac
   uci -q get dhcp.main.hostname | grep -q "$HOSTNAME"
@@ -362,10 +362,24 @@ else
       uci add_list dhcp.main.hostname='telstra.wifi'
       SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
     fi
+    uci commit dhcp
     uci set system.@system[0].hostname="$HOSTNAME"
+    uci commit system
     SRV_system=$(( $SRV_system + 1 ))
     export HOSTNAME=$HOSTNAME
   fi
+fi
+if [ "$(uci -q get samba.samba.name)" = 'Telstra-Modem' ]
+then
+  HOSTNAME="$(uci -q get system.@system[0].hostname)"
+  VERSION="$(uci -q get version.version.@version[0].version | cut -d- -f1)"
+  SUFFIX="$(uci -q get versioncusto.override.fwversion_suffix)"
+  SERIAL="$(uci get env.var.serial)"
+  echo [$SCRIPT]: Changing SAMBA host name from Telstra-Modem to $HOSTNAME
+  uci set samba.samba.name="$HOSTNAME"
+  uci set samba.samba.description="$VARIANT Build $VERSION$SUFFIX - $SERIAL"
+  uci commit samba
+  SRV_samba=$(( $SRV_samba + 1 ))
 fi
 
 DOMAIN_NOW="$(uci -q get dhcp.main.domain)"
@@ -375,6 +389,7 @@ then
 else
   echo [$SCRIPT]: Setting the domain to $DOMAIN
   uci set dhcp.main.domain="$DOMAIN"
+  uci commit dhcp
   SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
 fi
 
@@ -459,6 +474,7 @@ then
           SRV_network=$(( $SRV_network + 2 ))
         fi
       fi
+      uci commit network
     fi
   fi
 else
@@ -471,6 +487,7 @@ then
   echo [$SCRIPT]: Content sharing unchanged \[$(status2text $DLNA_NOW)\]
 else
   uci set dlnad.config.enabled="$DLNAD"
+  uci commit dlnad
   SRV_dlna=$(( $SRV_dlna + 1 ))
   echo [$SCRIPT]: Content sharing $(status2text $DLNAD)
 fi
@@ -481,6 +498,7 @@ then
   echo [$SCRIPT]: Printer sharing unchanged \[$(status2text $PRNTR_NOW)\]
 else
   uci set printersharing.config.enabled="$PRNTR"
+  uci commit printersharing
   SRV_cups=$(( $SRV_cups + 1 ))
   echo [$SCRIPT]: Printer sharing $(status2text $PRNTR)
 fi
@@ -491,6 +509,7 @@ then
   echo [$SCRIPT]: File sharing unchanged \[$(status2text $SAMBA_NOW)\]
 else
   uci set samba.samba.filesharing="$SAMBA"
+  uci commit samba
   SRV_samba=$(( $SRV_samba + 1 ))
   echo [$SCRIPT]: File sharing $(status2text $SAMBA)
 fi
@@ -501,6 +520,7 @@ then
   echo [$SCRIPT]: Telephony unchanged \[$(status2text $MMPBX_NOW)\]
 else
   uci set mmpbx.global.enabled="$MMPBX"
+  uci commit mmpbx
   SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
   MMPBX_NOW="$MMPBX"
   if [ "$MMPBX" = "1" ]
@@ -514,11 +534,14 @@ else
       else
         echo [$SCRIPT]: Enabling VoLTE backup voice service and SMS reception
         uci set mmpbxmobilenet.VoLTE.enabled='1'
+        uci commit mmpbxmobilenet
         SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
         uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
         uci set mobiled_sessions.@session[0].activated='1'
         uci set mobiled_sessions.@session[0].autoconnect='1'
         uci set mobiled_sessions.@session[0].optional='1'
+        uci commit mobiled_device_specific
+        uci commit mobiled_sessions
         SRV_mobiled=$(( $SRV_mobiled + 1 ))
       fi
     fi
@@ -533,6 +556,7 @@ then
   echo [$SCRIPT]: DECT Emission Mode unchanged \[$(status2text $DECT_NOW)\]
 else
   uci set mmpbx.dectemission.state="$DECT"
+  uci commit mmpbx
   SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
   echo [$SCRIPT]: DECT Emission Mode $(status2text $DECT)
 fi
@@ -564,6 +588,7 @@ else
         echo [$SCRIPT]: $G ALG Enabled
       fi
       uci set $key.enable="$ALG"
+      uci commit firewall
       SRV_fw=$(( $SRV_fw + 1 ))
     else
       echo [$SCRIPT]: $G ALG unchanged \[$(status2text $G_NOW)\]
@@ -606,8 +631,6 @@ elif [ "$MULTIAP" != "u" ]
 then
   echo [$SCRIPT]: EasyMesh \(multiap\) not found on device
 fi
-
-uci commit
 
 PWR_STATUS=$(pwrctl show | grep ENABLED | grep -v "Switch Deep Green Mode" | wc -l)
 if [ \( $PWR_STATUS -eq 0 -a "$POWER" = "n" \) -o \( $PWR_STATUS -gt 0 -a "$POWER" = "y" \) ]
