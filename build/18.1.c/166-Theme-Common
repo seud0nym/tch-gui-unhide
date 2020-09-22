@@ -30,3 +30,7 @@ then
   # Have to restart if changing landing page
   SRV_nginx=$(( $SRV_nginx + 1 ))
 fi
+if [ -f /www/snippets/tabs-home.lp ]
+then
+  sed -e '/^else/,/T"Boost Your Wi-Fi"/d' -i /www/snippets/tabs-home.lp
+fi
