@@ -42,6 +42,7 @@ case "$(grep '.smallcard .header{background-color:#......;}' /www/docroot/css/gw
   "662e91") COLOR=purple;;
   "f36523") COLOR=orange;;
   "008fd5") COLOR=blue;;
+  "272c30") COLOR=monochrome;;
   *)        if [ $THEME = light ]; then COLOR=monochrome; else COLOR=blue; fi;;
 esac
 ICONS="$(grep '.card_bg:after{visibility:' /www/docroot/css/gw.css | cut -d: -f3 | cut -d\; -f1)"
