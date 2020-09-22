@@ -24,7 +24,7 @@ update_cards() {
   fi
 }
 
-while getopts Wt:s:Tryun:x:i:c: option
+while getopts Wt:s:Tryun:x:i:c:h: option
 do
  case "${option}" in
    W) WRAPPER=y;;
@@ -44,6 +44,11 @@ do
       esac;;
    i) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then ICONS=visible; else ICONS=hidden; fi;;
    T) THEME_ONLY=y;;
+   h) case "$(echo ${OPTARG} | tr "DSN" "dsn" | sed 's/\(.\)\(.*\)/\1/')" in
+        d) TITLE="$VARIANT";;
+        n) TITLE="$HOSTNAME";;
+        *) TITLE="$VARIANT-$MAC";;
+      esac;;
    r) RESTORE=y;;
    n) update_cards 'I' $OPTARG;;
    x) update_cards 'X' $OPTARG;;
@@ -102,6 +107,7 @@ do
       echo "                         b=blue o=orange g=green p=purple m=monochrome"
       echo " -i y|n               : Show (y) or hide (n) the card icons (Default is current setting, or n for light theme and y for night theme)"
       echo " -T                   : Apply theme ONLY - bypass all other processing"
+      echo " -h d|s|n             : Set the browser tabs title to $VARIANT-$MAC (s), $VARIANT (d) or $HOSTNAME (n) (Default is current setting or $VARIANT-$MAC if not previously applied)"
       echo " -r                   : Restore changed GUI files to their original state (config changes are NOT restored)"
       echo " -y                   : Bypass confirmation prompt (answers 'y')"
       echo " -x c|m|n|p|q|r|s|x|A : Exclude specific cards (use -x multiple times to specify multiple cards or use -xA for all of the following cards):"
