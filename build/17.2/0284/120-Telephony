@@ -2,6 +2,7 @@ echo [$SCRIPT]: Show the hidden Telephony tabs and fix default tab
 sed \
  -e '/mmpbx-contacts/d' \
  -e '/T"Service"/i \       {"mmpbx-inoutgoingmap-modal.lp", T"In\/Outgoing Map"},' \
+ -e '/T"Service"/a \       {"mmpbx-codec-modal.lp", T"Codecs"},' \
  -e '/T"DECT"/a    \       {"mmpbx-contacts-modal.lp", T"Phone Book"},' \
  -i /www/snippets/tabs-voice.lp
 # Default telephony tab is DECT!!! 
@@ -13,4 +14,10 @@ sed \
  -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/a \    end' \
  -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/d' \
  -i /www/cards/008_telephony.lp
+
+if [ "$(uci -q get mmpbxbrcmfxsdev.@device[1])" != "device" ]
+then
+  # only 1 FXS device
+  sed -e '/fxs2/d' -e '/FXS2/d' -i /www/docroot/modals/mmpbx-codec-modal.lp
+fi
 
