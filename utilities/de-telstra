@@ -11,6 +11,7 @@ fi
 SCRIPT=$(basename $0)
 
 # Keep count of changes so we know whether to restart services
+SRV_bulkdata=0
 SRV_cups=0
 SRV_cwmp=0
 SRV_dhcp=0
@@ -331,6 +332,17 @@ else
   SRV_web=$(( $SRV_web + 2 ))
 fi
 
+if [ "$(uci -q get bulkdata.global.enabled)" = "1" ]
+then
+  echo [$SCRIPT]: - Disabling bulkdata collection \(More logging?\)
+  uci set bulkdata.global.enabled='0'
+  uci set bulkdata.profile_1.enabled='0'
+  uci commit bulkdata
+  SRV_bulkdata=$(( $SRV_bulkdata + 1 ))
+else
+  echo [$SCRIPT]: - bulkdata collection already disabled
+fi
+
 if [ "$HOST" = "u" ]
 then
   echo [$SCRIPT]: Host name unchanged \[$HOSTNAME\]
@@ -369,15 +381,22 @@ else
     export HOSTNAME=$HOSTNAME
   fi
 fi
+HOSTNAME="$(uci -q get system.@system[0].hostname)"
+VERSION="$(uci -q get version.@version[0].version | cut -d- -f1)"
+SUFFIX="$(uci -q get versioncusto.override.fwversion_suffix)"
+SERIAL="$(uci get env.var.serial)"
+if [ "$(uci -q get dlnad.config.friendly_name)" = 'Telstra Modem' ]
+then
+  echo [$SCRIPT]: Changing DLNAD friendly name from Telstra Modem to $HOSTNAME
+  uci set dlnad.config.friendly_name="$HOSTNAME"
+  uci commit dlnad
+  SRV_dlna=$(( $SRV_dlna + 1 ))
+fi
 if [ "$(uci -q get samba.samba.name)" = 'Telstra-Modem' ]
 then
-  HOSTNAME="$(uci -q get system.@system[0].hostname)"
-  VERSION="$(uci -q get version.version.@version[0].version | cut -d- -f1)"
-  SUFFIX="$(uci -q get versioncusto.override.fwversion_suffix)"
-  SERIAL="$(uci get env.var.serial)"
   echo [$SCRIPT]: Changing SAMBA host name from Telstra-Modem to $HOSTNAME
   uci set samba.samba.name="$HOSTNAME"
-  uci set samba.samba.description="$VARIANT Build $VERSION$SUFFIX - $SERIAL"
+  uci set samba.samba.description="Technicolor $VARIANT Build ${VERSION}${SUFFIX} - $SERIAL"
   uci commit samba
   SRV_samba=$(( $SRV_samba + 1 ))
 fi
@@ -526,27 +545,27 @@ else
   if [ "$MMPBX" = "1" ]
   then
     echo [$SCRIPT]: Telephony Enabled
-    if [ "$(uci -q get mmpbxmobilenet.VoLTE)" ]
-    then
-      if [ "$(uci -q get mmpbxmobilenet.VoLTE.enabled)" = "1" ]
-      then
-        echo [$SCRIPT]: VoLTE already Enabled
-      else
-        echo [$SCRIPT]: Enabling VoLTE backup voice service and SMS reception
-        uci set mmpbxmobilenet.VoLTE.enabled='1'
-        uci commit mmpbxmobilenet
-        SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
-        uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
-        uci set mobiled_sessions.@session[0].activated='1'
-        uci set mobiled_sessions.@session[0].autoconnect='1'
-        uci set mobiled_sessions.@session[0].optional='1'
-        uci commit mobiled_device_specific
-        uci commit mobiled_sessions
-        SRV_mobiled=$(( $SRV_mobiled + 1 ))
-      fi
-    fi
   else
     echo [$SCRIPT]: Telephony Disabled
+  fi
+fi
+if [ "$(uci -q get mmpbxmobilenet.VoLTE)" ]
+then
+  if [ "$(uci -q get mmpbxmobilenet.VoLTE.enabled)" = "1" ]
+  then
+    echo [$SCRIPT]: VoLTE already Enabled
+  else
+    echo [$SCRIPT]: Enabling VoLTE backup voice service and SMS reception
+    uci set mmpbxmobilenet.VoLTE.enabled='1'
+    uci commit mmpbxmobilenet
+    SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
+    uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
+    uci set mobiled_sessions.@session[0].activated='1'
+    uci set mobiled_sessions.@session[0].autoconnect='1'
+    uci set mobiled_sessions.@session[0].optional='1'
+    uci commit mobiled_device_specific
+    uci commit mobiled_sessions
+    SRV_mobiled=$(( $SRV_mobiled + 1 ))
   fi
 fi
 
@@ -660,6 +679,7 @@ echo [$SCRIPT]: Applying required service changes...
 [ -f /etc/init.d/autoreset -a $SRV_monitor -gt 0 ]         && { /etc/init.d/autoreset disable; /etc/init.d/autoreset stop; } > /dev/null 2>&1
 [ -f /etc/init.d/tls-thor -a $SRV_monitor -gt 0 ]          && { /etc/init.d/tls-thor disable; /etc/init.d/tls-thor stop; } > /dev/null 2>&1
 [ -f /etc/init.d/wifi-doctor-agent -a $SRV_monitor -gt 0 ] && /etc/init.d/wifi-doctor-agent reload > /dev/null 2>&1
+[ $SRV_bulkdata -gt 0 ] && { /etc/init.d/bulkdata disable; /etc/init.d/bulkdata stop; } > /dev/null 2>&1
 [ $SRV_ntp -gt 0 ]      && /etc/init.d/sysntpd restart > /dev/null 2>&1
 [ $SRV_system -gt 0 ]   && /etc/init.d/system reload > /dev/null 2>&1
 [ $SRV_samba -gt 0 ]    && { /etc/init.d/samba reload; /etc/init.d/samba-nmbd reload; } > /dev/null 2>&1
