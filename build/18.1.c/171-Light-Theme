@@ -1,4 +1,4 @@
   sed \
-   -e "$ a body.landingpage{background-color:#f8f8f8;}" \
-   -e "$ a @media screen and (max-width: 979px) body.landingpage{background-color:#f8f8f8;}" \
+   -e "$ a @media screen and (max-width: 979px) body.landingpage{background-color:#f8f8f8;background-image:unset;}" \
+   -e "$ a body.landingpage{background-color:#f8f8f8;background-image:unset;}" \
    -i /www/docroot/css/gw-telstra.css

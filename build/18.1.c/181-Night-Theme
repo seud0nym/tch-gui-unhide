@@ -1,5 +1,5 @@
   sed \
-   -e "$ a body.landingpage{background-color:#353c42;}" \
-   -e "$ a @media screen and (max-width: 979px) body.landingpage{background-color:#353c42;}" \
-   -e "$ a #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color:#f8f8f8;}" \
+   -e "$ a @media screen and (max-width: 979px) body.landingpage{background-color:#353c42;background-image:unset;}" \
+   -e "$ a body.landingpage{background-color:#353c42;background-image:unset;}" \
+   -e "$ a body.landingpage#detailed_info_mobile>div:nth-child(5)>form>center>div{background-color:#f8f8f8;}" \
    -i /www/docroot/css/gw-telstra.css
