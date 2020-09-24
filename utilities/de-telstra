@@ -663,13 +663,19 @@ n)  echo [$SCRIPT]: Disabling power saving...
     pwrctl config --wait off
     pwrctl config --ethapd off
     pwrctl config --eee off
-    pwrctl config --autogreeen off;;
+    pwrctl config --autogreeen off
+    uci set power.ethernet.autogreeen='0'
+    uci set power.ethernet.eee='0'
+    uci commit power;;
 y)  echo [$SCRIPT]: Enabling power saving...
     pwrctl config --cpuspeed 1
     pwrctl config --wait on
     pwrctl config --ethapd on
     pwrctl config --eee on
-    pwrctl config --autogreeen on;;
+    pwrctl config --autogreeen on
+    uci set power.ethernet.autogreeen='1'
+    uci set power.ethernet.eee='1'
+    uci commit power;;
 esac
 
 echo [$SCRIPT]: Applying required service changes...
