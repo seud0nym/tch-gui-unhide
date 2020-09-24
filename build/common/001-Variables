@@ -25,7 +25,7 @@ SCRIPT=$(basename $0 | sed "s/-$TARGET_VERSION//")
 VARIANT=$(uci get env.var.variant_friendly_name)
 MAC=$(uci -q get env.var.ssid_mac_postfix_r0)
 HOSTNAME=$(uci -q get system.@system[0].hostname)
-case "$(grep 'title>.*</title' /rom/www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1)" in
+case "$(grep 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1)" in
   $VARIANT)   TITLE="$VARIANT";;
   $HOSTNAME)  TITLE="$HOSTNAME";;
   *)          TITLE="$VARIANT-$MAC";;
