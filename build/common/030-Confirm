@@ -7,6 +7,10 @@ echo "[$SCRIPT]:  - Add new cards and screens, and modified cards and screens fr
 echo "[$SCRIPT]:  - Allow editing of various settings that are not exposed in the stock GUI"
 echo "[$SCRIPT]:  - The GUI screens will be prettied up a bit and the $THEME theme applied with $COLOR highlights and $ICONS card icons."
 echo "[$SCRIPT]:  - The browser tabs titles will be set to $TITLE."
+if [ ! -z "$CARDS" ]
+then
+echo "[$SCRIPT]:  - Cards:$(echo $CARDS | sed -e 's/-modal.lp//g' -e 's/I/ Include /g' -e 's/X/ Exclude /g')"
+fi
 
 echo [$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop.
 if [ $YES = y ]; then
