@@ -14,6 +14,7 @@ In addition, it automatically:
 - Disables and removes all Telstra monitoring and logging
 - Disables and removes Telstra AIR, including the SSIDs and GUI card
 - Removes web GUI default user access
+- Sets SAMBA and DLNA hostnames to the device hostname (replacing Telstra-Modem)
 - Removes packages related to CWMP, Telstra monitoring, and Telstra AIR
 
 Optionally, it can also:

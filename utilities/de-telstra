@@ -382,8 +382,6 @@ else
   fi
 fi
 HOSTNAME="$(uci -q get system.@system[0].hostname)"
-VERSION="$(uci -q get version.@version[0].version | cut -d- -f1)"
-SUFFIX="$(uci -q get versioncusto.override.fwversion_suffix)"
 SERIAL="$(uci get env.var.serial)"
 if [ "$(uci -q get dlnad.config.friendly_name)" = 'Telstra Modem' ]
 then
@@ -396,7 +394,7 @@ if [ "$(uci -q get samba.samba.name)" = 'Telstra-Modem' ]
 then
   echo [$SCRIPT]: Changing SAMBA host name from Telstra-Modem to $HOSTNAME
   uci set samba.samba.name="$HOSTNAME"
-  uci set samba.samba.description="Technicolor $VARIANT Build ${VERSION}${SUFFIX} - $SERIAL"
+  uci set samba.samba.description="Technicolor $VARIANT - $SERIAL"
   uci commit samba
   SRV_samba=$(( $SRV_samba + 1 ))
 fi
