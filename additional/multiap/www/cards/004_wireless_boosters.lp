@@ -9,8 +9,6 @@ local ui_helper = require("web.ui_helper")
 local format, untaint, match, upper, gsub = string.format, string.untaint, string.match, string.upper, string.gsub
 local proxy = require("datamodel")
 
-local modalPath = "/modals/wireless-boosters-modal.lp"
-
 local content = {
   agent_enabled = "uci.multiap.agent.enabled",
   controller_enabled = "uci.multiap.controller.enabled",
@@ -23,6 +21,12 @@ local content = {
 content_helper.getExactContent(content)
 
 if content.agent_enabled and content.agent_enabled ~= "" and content.controller_enabled and content.controller_enabled ~= ""  then
+  local modalPath
+  if content.controller_enabled == "1" then
+    modalPath= "/modals/wireless-boosters-status-modal.lp"
+  else
+    modalPath = "/modals/wireless-boosters-modal.lp"
+  end
 
   local agentStatus, controllerStatus
   local backhaulStatus = nil
