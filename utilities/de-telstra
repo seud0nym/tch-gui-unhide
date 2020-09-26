@@ -343,9 +343,10 @@ else
   echo [$SCRIPT]: - bulkdata collection already disabled
 fi
 
+CURRENT_HOSTNAME="$(uci -q get system.@system[0].hostname)"
 if [ "$HOST" = "u" ]
 then
-  echo [$SCRIPT]: Host name unchanged \[$HOSTNAME\]
+  echo [$SCRIPT]: Host name unchanged \[$CURRENT_HOSTNAME\]
 else
   case $HOST in
   d) HOSTNAME=$VARIANT;;
@@ -383,16 +384,18 @@ else
 fi
 HOSTNAME="$(uci -q get system.@system[0].hostname)"
 SERIAL="$(uci get env.var.serial)"
-if [ "$(uci -q get dlnad.config.friendly_name)" = 'Telstra Modem' ]
+DLNA_NAME="$(uci -q get dlnad.config.friendly_name)"
+SAMBA_NAME="$(uci -q get samba.samba.name)"
+if [ "$DLNA_NAME" = 'Telstra Modem' -o \( "$DLNA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "$HOSTNAME" \) ]
 then
-  echo [$SCRIPT]: Changing DLNAD friendly name from Telstra Modem to $HOSTNAME
+  echo [$SCRIPT]: Changing DLNAD friendly name from $DLNA_NAME to $HOSTNAME
   uci set dlnad.config.friendly_name="$HOSTNAME"
   uci commit dlnad
   SRV_dlna=$(( $SRV_dlna + 1 ))
 fi
-if [ "$(uci -q get samba.samba.name)" = 'Telstra-Modem' ]
+if [ "$SAMBA_NAME" = 'Telstra-Modem' -o \( "$SAMBA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "$HOSTNAME" \) ]
 then
-  echo [$SCRIPT]: Changing SAMBA host name from Telstra-Modem to $HOSTNAME
+  echo [$SCRIPT]: Changing SAMBA host name from $SAMBA_NAME to $HOSTNAME
   uci set samba.samba.name="$HOSTNAME"
   uci set samba.samba.description="Technicolor $VARIANT - $SERIAL"
   uci commit samba
