@@ -1,3 +1,19 @@
+2020.09.26
+==========
+* tch-gui-unhide: Added option to apply theme colors to both the light and night themes
+* tch-gui-unhide: Added option to set browser tabs titles to variant, variant-MAChex, or hostname
+* tch-gui-unhide: De-branded and themed DJA0231 landing page
+* tch-gui-unhide: Removed "Boost Your Wi-Fi" tab in Basic view
+* tch-gui-unhide: Only show xDSL Config card if WAN interface is DSL
+* tch-gui-unhide: Hide Mobile card if no devices found
+* tch-gui-unhide: Only show WAN Services card if WAN interface defined
+* tch-gui-unhide: Adding favicon accidently replaced the <head> tag
+* tch-gui-unhide: Added Telephony Codecs tab from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www
+* de-telstra: Disable bulkdata (Telstra data collection)
+* de-telstra: Disable or enable DECT Emission Mode and fixed some display message bugs
+* de-telstra: Set SAMBA and DLNA hostnames to hostname (replacing Telstra-Modem)
+* de-telstra: Power settings for Ethernet eee and autogreeen were not persisted between reboots
+
 2020.09.17
 ==========
 * tch-gui-unhide: Allow increase in WiFi output power to +6dBm
