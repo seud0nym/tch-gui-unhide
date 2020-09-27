@@ -12,6 +12,8 @@ local floor = math.floor
 local concat = table.concat
 local format, match = string.format, string.match
 local content_helper = require("web.content_helper")
+local lp = require("web.lp")
+lp.setpath("/www/snippets/")
 
 local devices_columns = {
   {--[1]
@@ -140,20 +142,7 @@ end
 
 ngx.print( ui_helper.createHeader(T"Devices", false, true) ); ngx.print('\
 <div class="modal-body update">\
- ');
-  local tabs = {
-    {
-        desc = T"Device List",
-        active = "active",
-        target = "modals/device-modal.lp",
-    },
-    {
-        desc = T"Network Map",
-        target = "modals/device-map-modal.lp",
-    },
-  }
-  ngx.print(ui_helper.createModalTabs(tabs))
-  ngx.print('\
+');  lp.include("tabs-devices.lp")   ngx.print('\
   <form class="form-horizontal" method="post" action="modals/device-modal.lp">\
     ');  
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))

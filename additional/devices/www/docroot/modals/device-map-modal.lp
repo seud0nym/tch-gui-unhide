@@ -3,6 +3,7 @@
 -- Enable localization
 gettext.textdomain('webui-core')
 
+local lp = require("web.lp")
 local ui_helper = require("web.ui_helper")
 ngx.print( ui_helper.createHeader(T"Devices", false, true) ); ngx.print('\
 <style>\
@@ -23,21 +24,9 @@ ngx.print( ui_helper.createHeader(T"Devices", false, true) ); ngx.print('\
 .networkmap .device:hover .deviceinfo.hoveronly{display:inline-block;}\
 </style>\
 <div class="modal-body">\
- ');
-  local tabs = {
-    {
-        desc = T"Device List",
-        target = "modals/device-modal.lp",
-    },
-    {
-        desc = T"Network Map",
-        active = "active",
-        target = "modals/device-map-modal.lp",
-    },
-  }
-  ngx.print(ui_helper.createModalTabs(tabs))
-  local lp = require("web.lp")
+');  
   lp.setpath("/www/snippets/")
+  lp.include("tabs-devices.lp")
   lp.include("networkmap.lp")
   ngx.print('\
 </div>\
