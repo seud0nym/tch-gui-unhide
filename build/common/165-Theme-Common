@@ -57,7 +57,11 @@ sed \
  -e '$ a .navbar-inner{box-shadow:none;}' \
  -e '$ a .navbar-inverse .navbar-inner{background-image:none;border-width:0px;}' \
  -i /www/docroot/css/gw-telstra.css
-
+sed \
+  -e 's/:56px/:80px/' \
+  -e 's/:170px/:150px/' \
+  -i /www/docroot/css/responsive.css
+ 
   # if you change any of these colors or CSS, recheck 001-Variables for default settings
   case "$COLOR" in 
     blue)   RGB_BTN=f36523; RGB_HDR=008fd5; RGB_NAV=008fd5; RGB_SYM=00b9f21f; RGB_GRAD_FROM=00b9f2; RGB_GRAD_TO=008fd5;;
