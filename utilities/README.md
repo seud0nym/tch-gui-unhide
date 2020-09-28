@@ -26,9 +26,10 @@ Optionally, it can also:
 - Disable or enable DECT Emission Mode
 - Disable or enable UPnP
 - Disable or enable power saving
-- On the DJA0231, it can also disable or enable EasyMesh (multiap)
+- Disable or enable MultiAP (EasyMesh) if it is installed on the device
+- Configure the opkg package manager so that you can install additional packages on the device
 
-It does NOT remove the hidden BH-xxxxxx SSID from the DJA0231, as this is not related to Telstra AIR. It is the wireless backhaul for EasyMesh.
+It does NOT remove the hidden BH-xxxxxx SSID from the DJA0230 or DJA0231, as this is not related to Telstra AIR. It is the wireless backhaul for EasyMesh.
 
 This script accepts the following options:
 ```
@@ -61,10 +62,6 @@ This script accepts the following options:
     where u            Leave File Sharing unchanged (Default)
           y            Enable File Sharing (device default)
           n            Disable File Sharing
- -m u|y|n"
-    where u            Leave EasyMesh (multiap) unchanged (Default)
-          y            Enable EasyMesh (multiap) (device default)
-          n            Disable EasyMesh (multiap)
  -p u|y|n
     where u            Leave power saving unchanged (Default)
           y            Enable power saving (device default)
@@ -85,6 +82,11 @@ This script accepts the following options:
     where u            Leave UPnP unchanged (Default)
           y            Enable the UPnP service
           n            Disable the UPnP service
+ -m u|y|n"
+    where u            Leave EasyMesh (multiap) unchanged (Default)
+          y            Enable EasyMesh (multiap) (device default)
+          n            Disable EasyMesh (multiap)
+ -o                    Configures opkg
  -A                    Equivalent to: -hd -dg -an -cn -fn -pn -rn -un
  -S                    Equivalent to: -hs -dg -an -cn -fn -pn -rn -un
  -R                    Reset to device defaults (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -ty -ey -uy)

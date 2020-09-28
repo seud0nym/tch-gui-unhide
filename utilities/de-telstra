@@ -53,12 +53,11 @@ POWER='u'
 PRNTR='u'
 SAMBA='u'
 UPNP='u'
+OPKG='n'
 
-while getopts h:d:n:a:c:f:m:p:r:t:e:u:ASUR option
+while getopts h:d:n:a:c:f:m:p:r:t:e:u:oASRU option
 do
  case "${option}" in
-  A)  HOST='d'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
-  S)  HOST='s'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
   h)  HOST=${OPTARG};;
   d)  case "${OPTARG}" in g|G) DOMAIN='gateway';; u|U) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
   n)  NS=${OPTARG};;
@@ -71,6 +70,9 @@ do
   t)  case "${OPTARG}" in y|Y) MMPBX='1';; n|N) MMPBX='0';; u|U) MMPBX='u';; *) MMPBX='u'; echo 'WARNING: -t valid options are y, n, or u';; esac;;
   e)  case "${OPTARG}" in y|Y) DECT='1';; n|N) DECT='0';; u|U) DECT='u';; *) DECT='u'; echo 'WARNING: -e valid options are y, n, or u';; esac;;
   u)  case "${OPTARG}" in y|Y) UPNP='1';; n|N) UPNP='0';; u|U) UPNP='u';; *) UPNP='u'; echo 'WARNING: -u valid options are y, n, or u';; esac;;
+  o)  OPKG='y';;
+  A)  HOST='d'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
+  S)  HOST='s'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
   R)  HOST='mymodem'; DOMAIN='modem'; NS='a'; ALG='1'; DLNAD='1'; SAMBA='1'; MULTIAP='1'; POWER='y'; PRNTR='1'; MMPBX='1'; DECT='1'; UPNP='1';;
   U)  RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT | sed 's/\r//')
       if [ $? -ne 0 ]
@@ -115,69 +117,70 @@ do
           esac
       fi
       exit;;
-  ?)  echo "Syntax: $0 <options>"
-      echo "Optional parameters:"
-      echo " -h u|d|s|<hostname>"
-      echo "    where u            Leave hostname unchanged (Default)"
-      echo "          d            Set the hostname to $VARIANT"
-      echo "          s            Set the hostname to $VARIANT-$MAC_HEX"
-      echo "          <hostname>   Use the specified hostname"
-      echo " -d u|g|<domainname>"
-      echo "    where u            Leave domain name unchanged (Default)"
-      echo "          g            Set the domain name to gateway"
-      echo "          <domainname> Set the domain name to <domainname>"
-      echo " -n u|a|c|g|f|o|<n.n.n.n>"
-      echo "    where u            Leave DNS servers unchanged (Default)"
-      echo "          a            Automatically use the DNS servers from the ISP (device default)"
-      echo "          c            Set the DNS servers to Cloudflare"
-      echo "          g            Set the DNS servers to Google"
-      echo "          f            Set the DNS servers to OpenDNS Family Shield"
-      echo "          o            Set the DNS servers to OpenDNS"
-      echo "          <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)"
-      echo " -a u|y|n"
-      echo "    where u            Leave ALGs unchanged (Default)"
-      echo "          y            Enable ALGs (device default)"
-      echo "          n            Disable ALGs (except SIP if telephony enabled)"
-      echo " -c u|y|n"
-      echo "    where u            Leave Content Sharing unchanged (Default)"
-      echo "          y            Enable Content Sharing (device default)"
-      echo "          n            Disable Content Sharing"
-      echo " -f u|y|n"
-      echo "    where u            Leave File Sharing unchanged (Default)"
-      echo "          y            Enable File Sharing (device default)"
-      echo "          n            Disable File Sharing"
-      if [ $SRV_multiap -eq 0 ]
-      then
-        echo " -m u|y|n"
-        echo "    where u            Leave EasyMesh (multiap) unchanged (Default)"
-        echo "          y            Enable EasyMesh (multiap) (device default)"
-        echo "          n            Disable EasyMesh (multiap)"
-      fi
-      echo " -p u|y|n"
-      echo "    where u            Leave power saving unchanged (Default)"
-      echo "          y            Enable power saving (device default)"
-      echo "          n            Disable power saving"
-      echo " -r u|y|n"
-      echo "    where u            Leave Printer Sharing unchanged (Default)"
-      echo "          y            Enable Printer Sharing (device default)"
-      echo "          n            Disable Printer Sharing"
-      echo " -t u|y|n"
-      echo "    where u            Leave Telephony (mmpbx) unchanged (Default)"
-      echo "          y            Enable the telephony service (device default)"
-      echo "          n            Disable the telephony service"
-      echo " -e u|y|n"
-      echo "    where u            Leave DECT Emission Mode unchanged (Default)"
-      echo "          y            Enable DECT Emission Mode (device default)"
-      echo "          n            Disable DECT Emission Mode"
-      echo " -u u|y|n"
-      echo "    where u            Leave UPnP unchanged (Default)"
-      echo "          y            Enable the UPnP service (device default)"
-      echo "          n            Disable the UPnP service"
-      echo " -A                    Equivalent to: -hd -dg -an -cn -fn -pn -rn -un"
-      echo " -S                    Equivalent to: -hs -dg -an -cn -fn -pn -rn -un"
-      echo " -R                    Reset to device defaults"
-      echo "                        (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -ty -ey -uy)"
-      echo " -U                    Check for and download the latest version from GitHub"
+  ?) cat <<EOH | less -E -~
+Syntax: $0 <options>
+Optional parameters:
+ -h u|d|s|<hostname>
+    where u            Leave hostname unchanged (Default)
+          d            Set the hostname to $VARIANT
+          s            Set the hostname to $VARIANT-$MAC_HEX
+          <hostname>   Use the specified hostname
+ -d u|g|<domainname>
+    where u            Leave domain name unchanged (Default)
+          g            Set the domain name to gateway
+          <domainname> Set the domain name to <domainname>
+ -n u|a|c|g|f|o|<n.n.n.n>
+    where u            Leave DNS servers unchanged (Default)
+          a            Automatically use the DNS servers from the ISP (device default)
+          c            Set the DNS servers to Cloudflare
+          g            Set the DNS servers to Google
+          f            Set the DNS servers to OpenDNS Family Shield
+          o            Set the DNS servers to OpenDNS
+          <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
+ -a u|y|n
+    where u            Leave ALGs unchanged (Default)
+          y            Enable ALGs (device default)
+          n            Disable ALGs (except SIP if telephony enabled)
+ -c u|y|n
+    where u            Leave Content Sharing unchanged (Default)
+          y            Enable Content Sharing (device default)
+          n            Disable Content Sharing
+ -f u|y|n
+    where u            Leave File Sharing unchanged (Default)
+          y            Enable File Sharing (device default)
+          n            Disable File Sharing
+ -p u|y|n
+    where u            Leave power saving unchanged (Default)
+          y            Enable power saving (device default)
+          n            Disable power saving
+ -r u|y|n
+    where u            Leave Printer Sharing unchanged (Default)
+          y            Enable Printer Sharing (device default)
+          n            Disable Printer Sharing
+ -t u|y|n
+    where u            Leave Telephony (mmpbx) unchanged (Default)
+          y            Enable the telephony service (device default)
+          n            Disable the telephony service
+ -e u|y|n
+    where u            Leave DECT Emission Mode unchanged (Default)
+          y            Enable DECT Emission Mode (device default)
+          n            Disable DECT Emission Mode
+ -u u|y|n
+    where u            Leave UPnP unchanged (Default)
+          y            Enable the UPnP service (device default)
+          n            Disable the UPnP service
+ -m u|y|n              
+    where u            Leave MultiAP unchanged (Default)
+          y            Enable MultiAP (device default)
+          n            Disable MultiAP
+                       NOTE: -m option is only applicable to devices with MultiAP installed
+ -o                    Configures opkg
+ -A                    Equivalent to: -hd -dg -an -cn -fn -pn -rn -un
+ -S                    Equivalent to: -hs -dg -an -cn -fn -pn -rn -un
+ -R                    Reset to device defaults
+                        (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -ty -ey -uy)
+ -U                    Check for and download the latest version from GitHub
+EOH
       exit;;
  esac
 done
@@ -626,7 +629,7 @@ else
   uci set upnpd.config.enable_upnp="$UPNP"
   uci commit upnpd
   SRV_upnp=$(( $SRV_upnp + 2 ))
-  echo [$SCRIPT]: UPnP \[$(status2text $UPNP)\]
+  echo [$SCRIPT]: UPnP $(status2text $UPNP)
 fi
 
 if [ $SRV_multiap -ge 0 ]
@@ -636,7 +639,7 @@ then
   BHAUL_NOW="$(uci -q get wireless.wl1_2.state)"
   if [ "$MULTIAP" = "u" -o \( "$AGENT_NOW" = "$MULTIAP" -a "$CTRLR_NOW" = "$MULTIAP" -a "$BHAUL_NOW" = "$MULTIAP" \) ]
   then
-    echo [$SCRIPT]: EasyMesh \(multiap\) unchanged \[Controller: $(status2text $CTRLR_NOW) Agent: $(status2text $AGENT_NOW) BackHaul SSID: $(status2text $BHAUL_NOW)\]
+    echo [$SCRIPT]: MultiAP unchanged \[Controller: $(status2text $CTRLR_NOW) Agent: $(status2text $AGENT_NOW) BackHaul SSID: $(status2text $BHAUL_NOW)\]
   else
     uci set multiap.agent.enabled="$MULTIAP"
     uci set multiap.controller.enabled="$MULTIAP"
@@ -645,11 +648,11 @@ then
     uci set wireless.wl1_2.state="$MULTIAP"
     SRV_network=$(( $SRV_network + 1 ))
     uci commit wireless
-    echo [$SCRIPT]: EasyMesh \(multiap\) \[$(status2text $MULTIAP)\]
+    echo [$SCRIPT]: MultiAP $(status2text $MULTIAP)
   fi
 elif [ "$MULTIAP" != "u" ]
 then
-  echo [$SCRIPT]: EasyMesh \(multiap\) not found on device
+  echo [$SCRIPT]: MultiAP not found on device
 fi
 
 PWR_STATUS=$(pwrctl show | grep ENABLED | grep -v "Switch Deep Green Mode" | wc -l)
@@ -658,26 +661,69 @@ then
   POWER='u'
 fi
 case "$POWER" in
-u)  echo [$SCRIPT]: Power saving settings unchanged \[$(status2text $PWR_STATUS)\];;
-n)  echo [$SCRIPT]: Disabling power saving...
-    pwrctl config --cpuspeed 0
-    pwrctl config --wait off
-    pwrctl config --ethapd off
-    pwrctl config --eee off
-    pwrctl config --autogreeen off
-    uci set power.ethernet.autogreeen='0'
-    uci set power.ethernet.eee='0'
-    uci commit power;;
-y)  echo [$SCRIPT]: Enabling power saving...
-    pwrctl config --cpuspeed 1
-    pwrctl config --wait on
-    pwrctl config --ethapd on
-    pwrctl config --eee on
-    pwrctl config --autogreeen on
-    uci set power.ethernet.autogreeen='1'
-    uci set power.ethernet.eee='1'
-    uci commit power;;
+  u)  echo [$SCRIPT]: Power saving settings unchanged \[$(status2text $PWR_STATUS)\];;
+  n)  echo [$SCRIPT]: Disabling power saving...
+      pwrctl config --cpuspeed 0
+      pwrctl config --wait off
+      pwrctl config --ethapd off
+      pwrctl config --eee off
+      pwrctl config --autogreeen off
+      uci set power.ethernet.autogreeen='0'
+      uci set power.ethernet.eee='0'
+      uci commit power;;
+  y)  echo [$SCRIPT]: Enabling power saving...
+      pwrctl config --cpuspeed 1
+      pwrctl config --wait on
+      pwrctl config --ethapd on
+      pwrctl config --eee on
+      pwrctl config --autogreeen on
+      uci set power.ethernet.autogreeen='1'
+      uci set power.ethernet.eee='1'
+      uci commit power;;
 esac
+
+if [ "$OPKG" = "y" ]
+then
+  if [ $(grep "^arch " /etc/opkg.conf | wc -l) -eq 0 -o $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | wc -l) -eq 0 ]
+  then
+    HOMEWARE=$(uci get version.@version[0].version | cut -d. -f1)
+    if [ "$HOMEWARE" -eq 17 -o "$HOMEWARE" -eq 18 ]
+    then
+      echo [$SCRIPT]: Configuring opkg for Homeware $HOMEWARE...
+      echo "arch all 1">>/etc/opkg.conf
+      echo "arch noarch 1">>/etc/opkg.conf
+      case "$HOMEWARE" in
+        17) cat <<-HW17 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
+              src/gz base https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/base
+              src/gz luci https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/luci
+              src/gz management https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/management
+              src/gz packages https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/packages
+              src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/routing
+              src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony
+HW17
+;;
+        18) echo "arch arm_cortex-a9 10">>/etc/opkg.conf
+            echo "arch arm_cortex-a9_neon 20">>/etc/opkg.conf
+            cat <<-HW18 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
+              src/gz chaos_calmer_base_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/base
+              src/gz chaos_calmer_packages_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/packages
+              src/gz chaos_calmer_luci_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/luci
+              src/gz chaos_calmer_routing_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/routing
+              src/gz chaos_calmer_telephony_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/telephony
+              src/gz chaos_calmer_core_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/target/packages
+HW18
+;;
+      esac
+      echo "arch brcm63xx-tch 30">>/etc/opkg.conf
+      sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf
+      opkg update
+    else
+      echo [$SCRIPT]: Sorry!! I do not know how to configure opkg for Firmware Version $(uci get version.@version[0].version)
+    fi
+  else
+    echo [$SCRIPT]: Looks like opkg has already been configured...
+  fi
+fi
 
 echo [$SCRIPT]: Applying required service changes...
 /etc/init.d/watchdog-tch reload  > /dev/null 2>&1
