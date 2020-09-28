@@ -105,7 +105,7 @@ do
                   exit
                   fi
                 fi
-                curl -k -L $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT > $SCRIPT
+                curl -k -L https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT > $SCRIPT
                 if [ $? -eq 0 ]
                 then
                   chmod +x $SCRIPT
