@@ -684,44 +684,56 @@ esac
 
 if [ "$OPKG" = "y" ]
 then
-  if [ $(grep "^arch " /etc/opkg.conf | wc -l) -eq 0 -o $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | wc -l) -eq 0 ]
+  cat /proc/cpuinfo | grep -q 'ARMv7 Processor rev 1 (v7l)'
+  if [ $? -eq 0 ]
   then
-    HOMEWARE=$(uci get version.@version[0].version | cut -d. -f1)
-    if [ "$HOMEWARE" -eq 17 -o "$HOMEWARE" -eq 18 ]
+    if [ $(grep "^arch " /etc/opkg.conf | wc -l) -eq 0 -o $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | wc -l) -eq 0 ]
     then
-      echo [$SCRIPT]: Configuring opkg for Homeware $HOMEWARE...
-      echo "arch all 1">>/etc/opkg.conf
-      echo "arch noarch 1">>/etc/opkg.conf
-      case "$HOMEWARE" in
-        17) cat <<-HW17 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
-              src/gz base https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/base
-              src/gz luci https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/luci
-              src/gz management https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/management
-              src/gz packages https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/packages
-              src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/routing
-              src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony
+      HOMEWARE=$(uci get version.@version[0].version | cut -d. -f1)
+      if [ "$HOMEWARE" -eq 17 -o "$HOMEWARE" -eq 18 ]
+      then
+        echo [$SCRIPT]: Configuring opkg for Homeware $HOMEWARE...
+        echo "arch all 1">>/etc/opkg.conf
+        echo "arch noarch 1">>/etc/opkg.conf
+        case "$HOMEWARE" in
+          17) cat <<-HW17 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
+                src/gz base https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/base
+                src/gz luci https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/luci
+                src/gz management https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/management
+                src/gz packages https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/packages
+                src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/routing
+                src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony
 HW17
 ;;
-        18) echo "arch arm_cortex-a9 10">>/etc/opkg.conf
-            echo "arch arm_cortex-a9_neon 20">>/etc/opkg.conf
-            cat <<-HW18 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
-              src/gz chaos_calmer_base_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/base
-              src/gz chaos_calmer_packages_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/packages
-              src/gz chaos_calmer_luci_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/luci
-              src/gz chaos_calmer_routing_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/routing
-              src/gz chaos_calmer_telephony_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/telephony
-              src/gz chaos_calmer_core_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/target/packages
+          18) echo "arch arm_cortex-a9 10">>/etc/opkg.conf
+              echo "arch arm_cortex-a9_neon 20">>/etc/opkg.conf
+              cat <<-HW18 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
+                src/gz chaos_calmer_base_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/base
+                src/gz chaos_calmer_packages_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/packages
+                src/gz chaos_calmer_luci_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/luci
+                src/gz chaos_calmer_routing_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/routing
+                src/gz chaos_calmer_telephony_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/telephony
+                src/gz chaos_calmer_core_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/target/packages
 HW18
 ;;
-      esac
-      echo "arch brcm63xx-tch 30">>/etc/opkg.conf
-      sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf
-      opkg update
+        esac
+        echo "arch brcm63xx-tch 30">>/etc/opkg.conf
+        sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf
+        ping -c 1 -W 2 -q 1.1.1.1 >/dev/null 2>&1
+        if [ $? -eq 0 ]
+        then
+          opkg update
+        else
+          echo [$SCRIPT]: WARNING: Unable to execute opkg update - You do not have an internet connection???
+        fi
+      else
+        echo [$SCRIPT]: Sorry!! I do not know how to configure opkg for Firmware Version $(uci get version.@version[0].version)
+      fi
     else
-      echo [$SCRIPT]: Sorry!! I do not know how to configure opkg for Firmware Version $(uci get version.@version[0].version)
+      echo [$SCRIPT]: Looks like opkg has already been configured...
     fi
   else
-    echo [$SCRIPT]: Looks like opkg has already been configured...
+    echo [$SCRIPT]: Sorry!! I can only configure opkg for ARMv7 devices...
   fi
 fi
 
