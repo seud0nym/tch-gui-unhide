@@ -24,7 +24,7 @@ Read on for the long version...
 *PLEASE NOTE: Previous versions of the `tch-gui-unhide` script (release 2020.08.03 and before) also applied most of the hardening recommendations from https://hack-technicolor.readthedocs.io/en/stable/Hardening/. These have now been moved to a separate utility script ([`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra)).*
 
 ## Why not just use https://github.com/Ansuel/tch-nginx-gui?
-When I first acquired root on my DJA0231, I applied tch-nginx-gui because I had used it for some time on my Technicolor TG800vac, and found it very good. However, on the DJA0231, I encountered various problems after reboots, such as loss of customised SSID's and IP addresses, loss of root in one instance, the admin password got reset to Telstra default, and so on.
+When I first acquired root access to my DJA0231, I applied tch-nginx-gui because I had used it for some time on my Technicolor TG800vac, and found it very good. However, on the DJA0231, I encountered various problems after reboots, such as loss of customised SSID's and IP addresses, loss of root in one instance, the admin password got reset to Telstra default, and so on.
 
 So, I set out to enable whatever hidden features were included with the firmware by default, without making significant changes to the GUI code so as to maintain stability, and to try and make it almost as pretty as the tch-nginx-gui. Since then, it has been expanded to incorporate some features of the Ansuel GUI, but the original goal of stability is unchanged. No features are enabled if stability is compromised. No system executables (other than GUI code) are added or replaced. The aim of this script is to make as few changes as possible to be as stable as possible, but also to unlock as many features as is practicable.
 
@@ -82,7 +82,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - Greater control over the **Wi-Fi** output power
 
 ### Additional (new) GUI Features
-- **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0231)
+- **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
 - **Traffic monitor** tab in Diagnostics
 
 ## What else does it do?
