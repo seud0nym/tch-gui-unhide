@@ -48,14 +48,14 @@ MAP
   grep -q minidlna /www/cards/012_contentsharing.lp
   if [ $? -eq 1 ]
   then
-    sed -e 's/dlnad/minidlna/' -i /www/cards/012_contentsharing.lp
+    sed -e 's/dlnad/minidlna/' -e 's/DLNA/MiniDLNA/' -i /www/cards/012_contentsharing.lp
   fi
 
   # Update the modal
   grep -q minidlna /www/docroot/modals/contentsharing-modal.lp
   if [ $? -eq 1 ]
   then
-    sed -e 's/dlnad/minidlna/' -i /www/docroot/modals/contentsharing-modal.lp
+    sed -e 's/dlnad/minidlna/' -e 's/DLNA/MiniDLNA/' -i /www/docroot/modals/contentsharing-modal.lp
   fi
  else
   [ -f /usr/share/transformer/commitapply/uci_minidlna.ca ] && rm /usr/share/transformer/commitapply/uci_minidlna.ca
