@@ -1,0 +1,7 @@
+# Run any extra feature scripts
+for s in tch-gui-unhide-xtra.*
+do
+  echo [$SCRIPT]: Loading extra feature - $(echo $s | cut -d. -f2-)
+  . $s
+done
+
