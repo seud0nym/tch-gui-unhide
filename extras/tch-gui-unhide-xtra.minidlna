@@ -1,0 +1,63 @@
+#!/bin/sh
+
+if [ -f /etc/init.d/minidlna ]
+then
+  if [ "$(uci get dlnad.config.enabled)" = "1" ]
+  then
+    # Shut down dlnad
+    uci set dlnad.config.enabled='0'
+    uci commit dlnad
+    /etc/init.d/dlnad restart
+  fi
+
+  # Create the commit/apply rules
+  if [ ! -f /usr/share/transformer/commitapply/uci_minidlna.ca ]
+  then
+    echo '^minidlna /etc/init.d/minidlna restart'>/usr/share/transformer/commitapply/uci_minidlna.ca
+  fi
+
+  # Create the UCI transformer mapping
+  if [ ! -f /usr/share/transformer/mappings/uci/minidlna.map ]
+  then
+    cat <<MAP > /usr/share/transformer/mappings/uci/minidlna.map
+local config_minidlna = "minidlna"
+
+-- uci.minidlna
+mapper("uci_1to1").registerConfigMap(config_minidlna)
+
+-- uci.minidlna.config
+local minidlna_config = {
+  config = config_minidlna,
+  section = "config",
+  type = "minidlna",
+  options = {
+    "album_art_names", "db_dir", "enable_tivo", "enabled", "friendly_name",
+    "inotify", "interface", "log_dir", "model_number", "notify_interval",
+    "port", "root_container", "serial", "strict_dlna", "wide_links"
+  },
+  lists = {
+    "media_dir"
+  }
+}
+
+mapper("uci_1to1").registerSimpleMap(minidlna_config) 
+MAP
+  fi
+
+  # Update the card
+  grep -q minidlna /www/cards/012_contentsharing.lp
+  if [ $? -eq 1 ]
+  then
+    sed -e 's/dlnad/minidlna/' -i /www/cards/012_contentsharing.lp
+  fi
+
+  # Update the modal
+  grep -q minidlna /www/docroot/modals/contentsharing-modal.lp
+  if [ $? -eq 1 ]
+  then
+    sed -e 's/dlnad/minidlna/' -i /www/docroot/modals/contentsharing-modal.lp
+  fi
+ else
+  [ -f /usr/share/transformer/commitapply/uci_minidlna.ca ] && rm /usr/share/transformer/commitapply/uci_minidlna.ca
+  [ -f /usr/share/transformer/mappings/uci/minidlna.map ] && rm /usr/share/transformer/mappings/uci/minidlna.map
+fi

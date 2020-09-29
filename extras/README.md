@@ -1,6 +1,15 @@
 # Extras
 This is where extra functionality scripts can be found. These are not incorporated in the main tch-gui-unhide code line, because they rely on additional packages being installed, and/or they make changes outside of the /www directory.
 
+## tch-gui-unhide-xtra.minidlna
+Replaces the stock DLNA server management in the GUI so that it supports OpenWRT minidlna.
+#### Requires
+Install minidlna using the opkg command: `opkg install minidlna`
+#### Changes External to the GUI
+Creates the the following transformer UCI mappings and commit/apply scripts to support the GUI changes:
+- /usr/share/transformer/commitapply/uci_minidlna.ca
+- /usr/share/transformer/mappings/uci/minidlna.map
+
 # How to download and execute these scripts
 Download the scripts that you wish to execute into the same directory as `tch-gui-unhide`.
 
