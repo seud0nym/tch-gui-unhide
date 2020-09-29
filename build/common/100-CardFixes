@@ -1,3 +1,9 @@
+echo [$SCRIPT]: Remove obsolete help links
+for m in $(grep -l 'local help_link = ' /www/docroot/modals/*)
+do
+  sed -e 's/\(local help_link = \)\(.*\)/\1nil/' -i "$m"
+done
+
 echo [$SCRIPT]: Fix Internet card bug and bridge detection, and hide if no WAN interface defined
 sed \
  -e '/local proxy = require("datamodel")/a local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")' \
