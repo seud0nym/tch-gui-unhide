@@ -45,19 +45,65 @@ MAP
   fi
 
   # Update the card
-  grep -q minidlna /www/cards/012_contentsharing.lp
-  if [ $? -eq 1 ]
-  then
-    sed -e 's/dlnad/minidlna/' -e 's/DLNA/MiniDLNA/' -i /www/cards/012_contentsharing.lp
-  fi
-
+  sed -e 's/dlnad/minidlna/' -e 's/"DLNA/"MiniDLNA/' -i /www/cards/012_contentsharing.lp
   # Update the modal
-  grep -q minidlna /www/docroot/modals/contentsharing-modal.lp
-  if [ $? -eq 1 ]
-  then
-    sed -e 's/dlnad/minidlna/' -e 's/DLNA/MiniDLNA/' -i /www/docroot/modals/contentsharing-modal.lp
-  fi
- else
+  sed \
+    -e 's/dlnad/minidlna/' \
+    -e 's/"DLNA/"MiniDLNA/' \
+    -e 's/getValidateCheckboxSwitch()/validateBoolean/' \
+    -e '/^local gVCS/a local gVIES = post_helper.getValidateInEnumSelect' \
+    -e '/^local dlna_available/i \local root_containers = {' \
+    -e '/^local dlna_available/i \    {".", T"<strong>Use standard container"},' \
+    -e '/^local dlna_available/i \    {"B", T"<strong>Browse Directory</strong>"},' \
+    -e '/^local dlna_available/i \    {"M", T"<strong>Music</strong>"},' \
+    -e '/^local dlna_available/i \    {"V", T"<strong>Video</strong>"},' \
+    -e '/^local dlna_available/i \    {"P", T"<strong>Pictures</strong>"},' \
+    -e '/^local dlna_available/i \}' \
+    -e '/"uci.minidlna.config.friendly_name"/a\         dlna_inotify       = "uci.minidlna.config.inotify",' \
+    -e '/"uci.minidlna.config.friendly_name"/a\         dlna_root_container = "uci.minidlna.config.root_container",' \
+    -e '/^local function valid_samba_dlna_string/i \local dir_options = {' \
+    -e '/^local function valid_samba_dlna_string/i \  tableid = "media_dirs",' \
+    -e '/^local function valid_samba_dlna_string/i \  basepath = "uci.minidlna.config.media_dir.@.",' \
+    -e '/^local function valid_samba_dlna_string/i \  createMsg = T"Add new Media Directory",' \
+    -e '/^local function valid_samba_dlna_string/i \  minEntries = 0,' \
+    -e '/^local function valid_samba_dlna_string/i \}' \
+    -e '/^local function valid_samba_dlna_string/i' \
+    -e '/^local function valid_samba_dlna_string/i \local dir_columns = {' \
+    -e '/^local function valid_samba_dlna_string/i \  {' \
+    -e '/^local function valid_samba_dlna_string/i \    header = T"Directory",' \
+    -e '/^local function valid_samba_dlna_string/i \    name = "media_dir",' \
+    -e '/^local function valid_samba_dlna_string/i \    param = "value",' \
+    -e '/^local function valid_samba_dlna_string/i \    type = "text",' \
+    -e '/^local function valid_samba_dlna_string/i \  }' \
+    -e '/^local function valid_samba_dlna_string/i \}' \
+    -e '/^local function valid_samba_dlna_string/i' \
+    -e '/^local function valid_samba_dlna_string/i \local dir_valid = {' \
+    -e '/^local function valid_samba_dlna_string/i \  dns_server = vNES' \
+    -e '/^local function valid_samba_dlna_string/i \}' \
+    -e '/^local function valid_samba_dlna_string/i' \
+    -e '/^local function valid_samba_dlna_string/i \local dir_data, dir_helpmsg = post_helper.handleTableQuery(dir_columns, dir_options, nil, nil, dir_valid)' \
+    -e '/^local function valid_samba_dlna_string/i' \
+    -e '/dlna_friendly_name = valid_empty_string,/a\    dlna_inotify = gVCS,' \
+    -e '/dlna_friendly_name = valid_empty_string,/a\    dlna_root_container=gVIES(root_containers),' \
+    -e 's/\(local help_link = \)\(.*\)/\1nil/' \
+    -e '/T"General status"/d' \
+    -e 's/local advancedhide/local info_attr/' \
+    -e '/class = "advanced show"/d' \
+    -e 's/span = { class = "span4" }/alert = { class = "alert-info" }/' \
+    -e 's/createCheckboxSwitch/createSwitch/' \
+    -e '/"File Server Enabled"/i\                tinsert(html, "<fieldset><legend>" .. T"File Server Status" .. "<\/legend>")' \
+    -e '/"File Server descript/a\                tinsert(html, "<\/fieldset>")' \
+    -e '/DLNA Enabled"/i\                tinsert(html, "<fieldset><legend>" .. T"DLNA Server Status" .. "<\/legend>")' \
+    -e '/DLNA name: ",/a\                tinsert(html, ui_helper.createInputSelect(T"Root Container", "root_container", root_containers, content["dlna_root_container"], advanced))' \
+    -e '/DLNA name: ",/a\                tinsert(html, format("<label class=\\"control-label\\">%s</label><div class=\\"controls\\">", T"Media Directories: "))' \
+    -e '/DLNA name: ",/a\                tinsert(html, ui_helper.createAlertBlock(T("If you want to restrict a Media Directory to a specific content type, you can prepend the type, followed by a comma, to the directory:<br>\\"A\\" for audio (eg. A,/tmp/run/mountd/sda1/Music)<br>\\"V\\" for video (eg. V,/tmp/run/mountd/sda1/Videos)<br>\\"P\\" for images (eg. P,/tmp/run/mountd/sda1/Pictures)"), info_attr))' \
+    -e '/DLNA name: ",/a\                tinsert(html, ui_helper.createTable(dir_columns, dir_data, dir_options, nil, dir_helpmsg))' \
+    -e '/DLNA name: ",/a\                tinsert(html, ui_helper.createSwitch(T"Auto-discover new files: ", "dlna_inotify", content["dlna_inotify"], attributes))' \
+    -e '/DLNA name: ",/a\                tinsert(html, "<\/div>")' \
+    -e '/DLNA name: ",/a\                tinsert(html, "<\/fieldset>")' \
+    -e '/^            tinsert(html, "<\/fieldset>")/d' \
+    /rom/www/docroot/modals/contentsharing-modal.lp > /www/docroot/modals/contentsharing-modal.lp
+else
   [ -f /usr/share/transformer/commitapply/uci_minidlna.ca ] && rm /usr/share/transformer/commitapply/uci_minidlna.ca
   [ -f /usr/share/transformer/mappings/uci/minidlna.map ] && rm /usr/share/transformer/mappings/uci/minidlna.map
 fi
