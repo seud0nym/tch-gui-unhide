@@ -1,0 +1,12 @@
+echo [$SCRIPT]: Allow enabling/disabling of internet IPv6 pings
+sed \
+  -e 's/"rpc.network.firewall.internetping"/"rpc.network.firewall.internetpingipv4"/' \
+  -e '/rpc.network.firewall.internetping/a \    fw_ping_ipv6 = "rpc.network.firewall.internetpingipv6",' \
+  -e 's/fw_ping = post_helper.getValidateCheckboxSwitch()/fw_ping = post_helper.validateBoolean/' \
+  -e '/fw_ping = post_helper/a \    fw_ping_ipv6 = post_helper.validateBoolean,' \
+  -e '/createCheckboxSwitch/i \    html[#html+1] = "<label class=\\"control-label\\">Internet ping response:<\/label><div class=\\"controls\\">"' \
+  -e '/createCheckboxSwitch/a \    html[#html+1] = ui_helper.createSwitch(T"Answer IPv6 ping?", "fw_ping_ipv6", content["fw_ping_ipv6"])' \
+  -e '/createCheckboxSwitch/a \    html[#html+1] = "<\/div>"' \
+  -e 's/createCheckboxSwitch(T"Answer Internet ping/createSwitch(T"Answer IPv4 ping\?/' \
+  -i /www/docroot/modals/firewall-modal.lp
+
