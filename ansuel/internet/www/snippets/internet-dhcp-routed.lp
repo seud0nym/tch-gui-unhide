@@ -12,6 +12,7 @@ local ajax_helper = require("web.ajax_helper")
 local tonumber = tonumber
 local match, format = string.match, string.format
 local post_helper = require("web.post_helper")
+local gVIES = post_helper.getValidateInEnumSelect
 local session = ngx.ctx.session
 -- State data
 local dhcp_state = "connecting"
@@ -330,10 +331,24 @@ dhcp_state = get_dhcp_state(content["uci_wan_auto"], cs["ipaddr"])
 cs["leaseobtained"] = ""
 cs["leaseexpires"] = ""
 if dhcp_state == "connected" then
-
-    content_helper.getExactContent(dhcp_lease)
+  content_helper.getExactContent(dhcp_lease)
 	cs["leaseobtained"],  cs["leaseexpires"] = getLeaseTime(dhcp_lease["uptime"],  dhcp_lease["lease"], dhcp_lease["lease_expires"]) 
 end
+
+local supervision_modes = {
+  { "BFD", T"BFD" },
+  { "DNS", T"DNS" },
+  { "Disabled", T"Disabled" },
+}
+local supervision_modes_param = {
+  supervision_mode = "uci.supervision.global.mode",
+  supervision_enabled = "uci.supervision.global.enabled",
+}
+local supervision_modes_valid = {
+  supervision_mode = gVIES(supervision_modes),
+  supervision_enabled = vB,
+}
+local supervision_modes_content = post_helper.handleQuery(supervision_modes_param, supervision_modes_valid)
 
   ngx.print('\
 \
@@ -346,12 +361,16 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
 ');  
     local html = {}
     ajax_attr_light.light.class = dhcp_light_map[dhcp_state]
-    html[#html + 1] = ui_helper.createLight(T"Status", nil, dhcp_state_map[dhcp_state], ajax_attr_light)
+    html[#html+1] = ui_helper.createLight(T"Status", nil, dhcp_state_map[dhcp_state], ajax_attr_light)
     html[#html+1] = ui_helper.createSwitch(T"Enabled", "uci_wan_auto", content["uci_wan_auto"])
-    html[#html + 1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
-    html[#html + 1] = ui_helper.createSwitch(T"IPv6", "uci_wan_ipv6", content.uci_wan_ipv6)
-    html[#html + 1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac", content["uci_wan_mac"], nil, helpmsg["uci_wan_mac"])
-	html[#html + 1] = ui_helper.createInputText(T"VendorID","uci_wan_vendorid", content["uci_wan_vendorid"], nil, helpmsg["uci_wan_vendorid"])
+    html[#html+1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
+    html[#html+1] = ui_helper.createSwitch(T"IPv6", "uci_wan_ipv6", content.uci_wan_ipv6)
+    if supervision_modes_content["supervision_enabled"] then
+      html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision", "supervision_mode", supervision_modes, supervision_modes_content["supervision_mode"])
+      html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled", "supervision_enabled", supervision_modes_content["supervision_enabled"])
+    end
+    html[#html+1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac", content["uci_wan_mac"], nil, helpmsg["uci_wan_mac"])
+	  html[#html+1] = ui_helper.createInputText(T"VendorID","uci_wan_vendorid", content["uci_wan_vendorid"], nil, helpmsg["uci_wan_vendorid"])
     ajax_attr.span.id = "leaseobtained"
     html[#html+1] = ui_helper.createLabel(T"Lease obtained", cs["leaseobtained"], ajax_attr)
     ajax_attr.span.id = "leaseexpires"
@@ -362,7 +381,7 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     html[#html+1] = ui_helper.createLabel(T"Gateway", cs["nexthop"], ajax_attr)
     ajax_attr.span.id = "dns"
     html[#html+1] = ui_helper.createLabel(T"DNS servers", cs["dns"],ajax_attr)
-	local ipv6_enabled = proxy.get("uci.network.interface.@wan.ipv6")
+	  local ipv6_enabled = proxy.get("uci.network.interface.@wan.ipv6")
 		if cs["ip6addr"] and cs["ip6addr"]:len() > 0 then
 			ajax_attr.span.id = "ip6addr"
 			html[#html+1] = ui_helper.createLabel(T"IPv6 address", cs["ip6addr"], ajax_attr)
