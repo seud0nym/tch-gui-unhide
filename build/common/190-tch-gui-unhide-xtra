@@ -1,6 +1,6 @@
 # Run any extra feature scripts
 SRV_transformer=0
-for s in tch-gui-unhide-xtra.*
+for s in $(ls tch-gui-unhide-xtra.* 2>/dev/null)
 do
   echo [$SCRIPT]: Executing extra feature script for $(echo $s | cut -d. -f2-)
   . $s
