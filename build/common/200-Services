@@ -2,5 +2,5 @@ echo [$SCRIPT]: Applying service changes if required...
 [ $SRV_dnsmasq -gt 0 ] && /etc/init.d/dnsmasq reload
 [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear restart
 [ $SRV_system -gt 0 ] && /etc/init.d/system reload
-[ $SRV_nginx -gt 0 ] && { /etc/init.d/transformer restart; /etc/init.d/nginx restart; }
+[ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
 

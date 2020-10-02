@@ -1,7 +1,16 @@
 # Run any extra feature scripts
+SRV_transformer=0
 for s in tch-gui-unhide-xtra.*
 do
-  echo [$SCRIPT]: Loading extra feature - $(echo $s | cut -d. -f2-)
+  echo [$SCRIPT]: Executing extra feature script for $(echo $s | cut -d. -f2-)
   . $s
 done
 
+if [ $SRV_transformer -gt 0 ]
+then
+  # Need to stop watchdog whilst we restart transformer, because if it does not find /var/run/transformer.pid, it will reboot the system!
+  /etc/init.d/watchdog-tch stop
+  echo [$SCRIPT]: Restarting transformer...
+  /etc/init.d/transformer restart
+  /etc/init.d/watchdog-tch start
+fi
