@@ -5,14 +5,15 @@ These scripts can be applied to various Telstra branded Technicolor devices to u
 Skip any of these steps that you have already done.
 1. Root your device (see https://hack-technicolor.rtfd.io) and ensure it is running a supported firmware version.
 2. [Download](https://github.com/seud0nym/tch-gui-unhide/releases/latest) the latest release for your firmware.
-3. Copy the release file into the /root or /tmp directory of your device, or onto your USB stick (I normally use a USB stick so that the scripts are not lost if the device is reset, otherwise I use /root so the scripts are in the root user home directory).
-4. Change to the directory containing the release, aand extract the files using the command: `tar -xzvf <filename>`
-5. Set the optimal bank plan. Run `./show-bank-plan` to see if your bank plan is optimal,and if not, execute: `./set-optimal-bank-plan` (*WARNING: This will reboot your device*)
-6. Harden root access and disable un-needed services with the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script. Run `./de-telstra -?` to see available options, or for some sensible settings, just execute: `./de-telstra -A`
-7. Change the root password by executing: `passwd`
-8. If you are running FW 17.2.0468 or later, optionally create your *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* files in the same directory as the scripts. (See [**Firmware Versions 0468 and Later**](https://github.com/seud0nym/tch-gui-unhide#firmware-versions-0468-and-later))
-8. Apply the GUI changes. Run `./tch-gui-unhide -?` to see available options, or just execute: `./tch-gui-unhide`
-9. Clear cached images and files from your browser to see the changes.
+3. Download any [extra feature scripts](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras) for opkg packages you have installed. 
+4. Copy the downloaded file(s) into the /root or /tmp directory of your device, or onto your USB stick (I normally use a USB stick so that the scripts are not lost if the device is reset, otherwise I use /root so the scripts are in the root user home directory).
+5. Change to the directory containing the release, aand extract the files using the command: `tar -xzvf <filename>`
+6. Set the optimal bank plan. Run `./show-bank-plan` to see if your bank plan is optimal,and if not, execute: `./set-optimal-bank-plan` (*WARNING: This will reboot your device*)
+7. Harden root access and disable un-needed services with the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script. Run `./de-telstra -?` to see available options, or for some sensible settings, just execute: `./de-telstra -A`
+8. Change the root password by executing: `passwd`
+9. If you are running FW 17.2.0468 or later, optionally create your *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* files in the same directory as the scripts. (See [**Firmware Versions 0468 and Later**](https://github.com/seud0nym/tch-gui-unhide#firmware-versions-0468-and-later))
+10. Apply the GUI changes. Run `./tch-gui-unhide -?` to see available options, or just execute: `./tch-gui-unhide`
+11. Clear cached images and files from your browser to see the changes.
 
 #### NOTES:
 - If you reset your device, *or* restore it to a state before you applied the scripts, *or* upgrade the firmware, you will need to run `de-telstra` and `tch-gui-unhide` again!

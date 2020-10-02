@@ -27,4 +27,4 @@ After you have the script on your device, you may need to make it executable, wh
 chmod +x <scriptname>
 ```
 
-These scripts will be automatically run by `tch-gui-unhide` if they exist in the directory when it is executed. They may also be executed independently of `tch-gui-unhide`, but it should be executed *before* running any of these scripts.
+These scripts will be automatically run by `tch-gui-unhide` if they exist in the directory when it is executed.

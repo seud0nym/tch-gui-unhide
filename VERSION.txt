@@ -1,3 +1,14 @@
+2020.10.02
+==========
+* de-telstra: Optionally configures opkg so that you can install additional packages on the device
+* tch-gui-unhide: Added abililty to disable/enable the firewall
+* tch-gui-unhide: Allow enabling/disabling of Internet IPv6 pings
+* tch-gui-unhide: Added abililty to sort device list by column headings
+* tch-gui-unhide: Replaced ugly host map with the nicer network map from the basic view
+* tch-gui-unhide: Added support for extra feature scripts that rely on additional packages being installed, and/or that make changes outside of the /www directory
+* tch-gui-unhide: Added WAN Supervision to Internet DHCP Routed Mode snippet
+* tch-gui-unhide-xtra.minidlna: Extra feature script to manage minidlna (if installed) through the GUI 
+
 2020.09.26
 ==========
 * tch-gui-unhide: Added option to apply theme colors to both the light and night themes
