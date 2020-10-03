@@ -1,4 +1,4 @@
-if [ "$THEME" = "light" ]; then # light theme
+if [ "$THEME" = "light" ]; then
   if [ $COLOR = monochrome ]; then
     RGB_BTN=404040; RGB_HDR=eee; RGB_NAV=404040; RGB_SYM=018ed42b; RGB_GRAD_FROM=404040; RGB_GRAD_TO=404040; RGB_TXT=404040; RGB_HDR_TXT=$RGB_TXT;
   else

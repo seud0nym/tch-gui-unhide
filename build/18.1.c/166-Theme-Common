@@ -1,7 +1,7 @@
 sed \
   -e '$ a .card_bg:after{font-size:110px;bottom:-5px;}' \
   -i /www/docroot/css/gw.css
-if [ -f /www/docroot/landingpage.lp ]
+if [ -f /www/docroot/landingpage.lp -a "$KEEP_LP" = "n" ]
 then
   echo [$SCRIPT]: Theming and de-branding landing page
   sed \

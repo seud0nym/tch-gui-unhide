@@ -29,6 +29,8 @@ echo "  echo [\$SCRIPT]: Deploy new and modified light theme images" > ../additi
 echo "  echo $(tar --owner=root --group=root --mode=644 --transform='s|images/light|www/docroot/img|' -czf - ../images/light/* | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> ../additional/light.b64
 echo "  echo [\$SCRIPT]: Deploy new and modified night theme images" > ../additional/night.b64
 echo "  echo $(tar --owner=root --group=root --mode=644 --transform='s|images/night|www/docroot/img|' -czf - ../images/night/* | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> ../additional/night.b64
+echo "  echo [\$SCRIPT]: Deploy new and modified diagnostics images for Telstra theme" > ../additional/telstra.b64
+echo "  echo $(tar --exclude=logo.gif --exclude=tip* --owner=root --group=root --mode=644 --transform='s|images/light|www/docroot/img|' -czf - ../images/light/* | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> ../additional/telstra.b64
 
 for f in $(find . -mindepth 2 -type d | cut -c3- | tr '/' '-')
 do
@@ -67,6 +69,10 @@ do
         then
           sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/light.b64 >> $TARGET
           echo " -> Added light.b64"
+        elif [ $FILENAME = "175-Telstra-Theme" ]
+        then
+          sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/telstra.b64 >> $TARGET
+          echo " -> Added telstra.b64"
         elif [ $FILENAME = "180-Night-Theme" ]
         then
           sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/night.b64 >> $TARGET

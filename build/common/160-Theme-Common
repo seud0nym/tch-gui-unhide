@@ -1,0 +1,91 @@
+else # THEME_ONLY = y
+  echo [$SCRIPT]: Restoring CSS files to apply theme change
+  cp -p /rom/www/docroot/css/gw.css /rom/www/docroot/css/gw-telstra.css /rom/www/docroot/css/responsive.css /www/docroot/css/
+fi # End of if [ THEME_ONLY = n ]   
+
+echo [$SCRIPT]: Add or update card background icons
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf012;"/' -i $(find /www/cards -type f -name '*lte.lp')
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf129;"/' -i /www/cards/001_gateway.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0b2;"/' -i /www/cards/002_broadband.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0ac;"/' -i /www/cards/003_internet.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf09e;"/' -i /www/cards/004_wireless.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf015;"/' -i /www/cards/005_LAN.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf10b;"/' -i /www/cards/006_Devices.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0c2;"/' -i /www/cards/007_wanservices.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf132;"/' -i /www/cards/008_firewall.lp
+sed -e 's/class="content"/class="content card_bg mirror" data-bg-text="\&#xf095;"/' -i /www/cards/008_telephony.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf188;"/' -i /www/cards/009_diagnostics.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0c0;"/' -i /www/cards/011_usermgr.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf115;"/' -i /www/cards/012_contentsharing.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf02f;"/' -i /www/cards/012_printersharing.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf023;"/' -i /www/cards/013_parental.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf074;"/' -i /www/cards/015_iproutes.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf017;"/' -i /www/cards/015_tod.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf079;"/' -i /www/cards/018_relaysetup.lp
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf019;"/' -i /www/cards/090_cwmpconf.lp
+sed -e 's/xf0ad/xf0ec;"/' -i /www/cards/092_natalghelper.lp
+sed -e 's/xf0ad/xf0b1;"/' -i /www/cards/093_xdsl.lp
+
+for f in $(grep -l -r '<head>\\' /www/ 2>/dev/null)
+do
+  grep -q '<link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico"/>' $f
+  if [ $? -ne 0 ]; then 
+    echo [$SCRIPT]: Add the favicon to $f
+    sed -e '/<head>/a <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico"/>\\' -i $f
+  fi
+done
+if [ "$THEME" = "telstra" ]; then
+  echo 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AP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACorECwkAAAAAAAAAAAAICcnERERKCkAAAAAAAAAJCUREREREREmAAAAAAAAEhAREREREREQAAAAAAAAGCERIgUFIxERJAAAAAAAABERER4FBR8RCyAAAAAAABkREREaBQUbHB0AAAAAAAARERERFgUFFxgAAAAAAAAAEBEREREUBQUVAAAAAAAAAA8QERESEwUFAgAAAAAAAAAACgsMDQcFBQ4AAAAAAAAAAAAGAgIHBQUIAgIJAAAAAAAABAUFBQUFBQUFAwAAAAAAAAECAgICAgICAgMAAAAAAAAAAAAAAAAAAAAAAAD//wAA/88AAP4HAAD8BwAA+AcAAPAPAADgDwAA4B8AAMA/AADAPwAA4D8AAP4/AAD4BwAA+AMAAPgHAAD//wAA | base64 -d > /www/docroot/img/favicon.ico
+else 
+  echo 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 | base64 -d > /www/docroot/img/favicon.ico
+fi
+
+echo [$SCRIPT]: Applying $THEME theme with $COLOR highlights and $ICONS card icons
+if [ "$THEME" != "Telstra" ]; then
+  # Common elements
+  sed \
+    -e '$ a body{font-family:Roboto,Noto,sans-serif;}' \
+    -e '$ a input,button,select,textarea{font-family:Roboto,Noto,sans-serif;}' \
+    -e '$ a .bbstats{margin:0px 0px -6px 20px;}' \
+    -e '$ a .card{font-family:Roboto,Noto,sans-serif;}' \
+    -e '$ a .card_bg>*{z-index:20;}' \
+    -e '$ a .copyright{display:none;}' \
+    -e '$ a .dw{font-family:Roboto,Noto,sans-serif;}' \
+    -e '$ a .header{border-bottom:0px;box-shadow:none;margin-bottom:30px;}' \
+    -e '$ a .header img{width:180px;}' \
+    -e '$ a .nav-header{text-shadow:none;}' \
+    -e '$ a .nav-list>li>a,.nav-list .nav-header{text-shadow:none;}' \
+    -e '$ a .smallcard{border:0px;font-family:Roboto,Noto,sans-serif;font-size:14px;font-weight:400;}' \
+    -e '$ a .smallcard .header{background-image:none;border-bottom:0px;font-size:20px;font-weight:400;text-shadow:none;}' \
+    -i /www/docroot/css/gw.css
+  sed \
+    -e '$ a body{font-family:Roboto,Noto,sans-serif;background-image:none;}' \
+    -e '$ a .navbar+.container{margin-top:130px;}' \
+    -e '$ a .navbar-fixed-top .container{background-image:url(/img/logo.gif);background-repeat:no-repeat;background-size:180px;height:75px;margin-top:30px;}' \
+    -e '$ a .navbar-fixed-top .navbar-inner{box-shadow:none;}' \
+    -e '$ a .navbar-inner{box-shadow:none;}' \
+    -e '$ a .navbar-inverse .navbar-inner{background-image:none;border-width:0px;}' \
+    -i /www/docroot/css/gw-telstra.css
+fi
+sed \
+  -e '$ a u{text-decoration:none;}' \
+  -e "$ a .card_bg:after{visibility:$ICONS;}" \
+  -e '$ a .card_bg.mirror:after{transform:matrix(-1,0,0,1,0,0);}' \
+  -e '$ a .header .btn{margin-left:5px;}' \
+  -e '$ a .simple-desc{display:block;}' \
+  -e '$ a .smallcard .content{font-size:14px;}' \
+  -e '$ a .smallcard .subinfos{font-size:14px;}' \
+  -i /www/docroot/css/gw.css
+sed \
+  -e 's/:56px/:80px/' \
+  -e 's/:170px/:150px/' \
+  -i /www/docroot/css/responsive.css
+ 
+# if you change any of these colors or CSS, recheck 001-Variables for default settings
+case "$COLOR" in 
+  blue)   RGB_BTN=f36523; RGB_HDR=008fd5; RGB_NAV=008fd5; RGB_SYM=00b9f21f; RGB_GRAD_FROM=00b9f2; RGB_GRAD_TO=008fd5;;
+  green)  RGB_BTN=662e91; RGB_HDR=005c32; RGB_NAV=005c32; RGB_SYM=ffec0126; RGB_GRAD_FROM=008a4c; RGB_GRAD_TO=005c32;;
+  purple) RGB_BTN=005c32; RGB_HDR=662e91; RGB_NAV=008a4c; RGB_SYM=f365232b; RGB_GRAD_FROM=942977; RGB_GRAD_TO=662e91;;
+  orange) RGB_BTN=662e91; RGB_HDR=f36523; RGB_NAV=f36523; RGB_SYM=008a4c3d; RGB_GRAD_FROM=f89406; RGB_GRAD_TO=f36523;;
+esac
+

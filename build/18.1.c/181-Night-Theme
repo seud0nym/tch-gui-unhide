@@ -1,5 +1,11 @@
-  sed \
-   -e "$ a @media screen and (max-width: 979px) body.landingpage{background-color:#353c42;background-image:unset;}" \
-   -e "$ a body.landingpage{background-color:#353c42;background-image:unset;}" \
-   -e "$ a body.landingpage#detailed_info_mobile>div:nth-child(5)>form>center>div{background-color:#f8f8f8;}" \
-   -i /www/docroot/css/gw-telstra.css
+if [ -f /www/docroot/landingpage.lp ]; then
+  if [ $KEEP_LP = y ]; then
+    grep ^body /www/docroot/css/gw-telstra.css | grep gradient | sed -e 's/^body{/body.landingpage{/' >> /www/docroot/css/gw-telstra.css
+  else
+    sed \
+      -e "$ a @media screen and (max-width: 979px) body.landingpage{background-color:#353c42;background-image:unset;}" \
+      -e "$ a body.landingpage{background-color:#353c42;background-image:unset;}" \
+      -e "$ a body.landingpage#detailed_info_mobile>div:nth-child(5)>form>center>div{background-color:#f8f8f8;}" \
+      -i /www/docroot/css/gw-telstra.css
+  fi
+fi

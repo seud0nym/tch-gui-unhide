@@ -1,6 +1,7 @@
 RESTORE=n
 WRAPPER=n
 YES=n
+KEEP_LP=n
 
 FILENAME=$(basename $0)
 
@@ -24,16 +25,18 @@ update_cards() {
   fi
 }
 
-while getopts Wt:s:Tryun:x:i:c:h: option
+while getopts Wt:s:Tryun:x:i:c:h:l option
 do
  case "${option}" in
    W) WRAPPER=y;;
-   t) case "$(echo ${OPTARG} | tr "GNOPL" "gnopl" | sed 's/\(.\)\(.*\)/\1/')" in
+   l) KEEP_LP=y;;
+   t) case "$(echo ${OPTARG} | tr "GNOPLT" "gnoplt" | sed 's/\(.\)\(.*\)/\1/')" in
         g) THEME=night; COLOR=green; echo WARNING: -tg deprecated. Use -tn -cg in future;; 
         n) THEME=night; COLOR=blue;;
         o) THEME=night; COLOR=orange; echo WARNING: -to deprecated. Use -tn -co in future;; 
         p) THEME=night; COLOR=purple; echo WARNING: -tp deprecated. Use -tn -cp in future;; 
-        *) THEME=light; COLOR=monochrome;;
+        l) THEME=light; COLOR=monochrome;;
+        *) THEME=Telstra; COLOR=blue; KEEP_LP=y;;
       esac;;
    c) case "$(echo ${OPTARG} | tr "BGMOP" "bgmop" | sed 's/\(.\)\(.*\)/\1/')" in
         b) COLOR=blue;; 
@@ -102,10 +105,11 @@ do
       fi
       exit;;
    ?) echo "Optional parameters:"
-      echo " -t l|n               : Set a light (l) or night (n) theme (Default is current setting, or light if no theme has been applied)"
+      echo " -t l|n|t             : Set a light (l), night (n), or default Telstra (t) theme (Default is current setting, or Telstra if no theme has been applied)"
       echo " -c b|o|g|p|m         : Set the theme highlight colour (Default is current setting, or (m) for light theme or (b) for night theme)"
       echo "                         b=blue o=orange g=green p=purple m=monochrome"
       echo " -i y|n               : Show (y) or hide (n) the card icons (Default is current setting, or n for light theme and y for night theme)"
+      echo " -l                   : Keep the Telstra landing page"
       echo " -T                   : Apply theme ONLY - bypass all other processing"
       echo " -h d|s|n             : Set the browser tabs title to $VARIANT-$MAC (s), $VARIANT (d) or $HOSTNAME (n) (Default is current setting or $VARIANT-$MAC if not previously applied)"
       echo " -r                   : Restore changed GUI files to their original state (config changes are NOT restored)"
@@ -135,4 +139,3 @@ if [ "$ICONS" = "" ]; then
 fi
 
 if [ $THEME_ONLY = n ]; then
-
