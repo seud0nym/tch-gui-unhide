@@ -19,6 +19,7 @@ then
   do
     uci delete $s
   done
+  uci -q delete web.gatewaystatusajax
   uci -q delete web.usermgrmodal.roles
   uci add_list web.usermgrmodal.roles='admin'
   uci commit web

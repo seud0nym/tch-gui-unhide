@@ -1,0 +1,11 @@
+if [ "$(uci -q get web.gatewaystatusajax)" != "rule" ]
+then
+  echo [$SCRIPT]: Enabling gateway status
+  uci add_list web.ruleset_main.rules='gatewaystatusajax'
+  uci set web.gatewaystatusajax='rule'
+  uci set web.gatewaystatusajax.target='/ajax/gateway-status.lua'
+  uci add_list web.gatewaystatusajax.roles='admin'
+  uci commit web
+  SRV_nginx=$(( $SRV_nginx + 4 ))
+fi
+
