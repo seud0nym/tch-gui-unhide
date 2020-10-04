@@ -83,6 +83,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - Greater control over the **Wi-Fi** output power
 
 ### Additional (new) GUI Features
+- **Gateway** card now has current device status for CPU usage and free RAM
 - **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
 - **Traffic monitor** tab in Diagnostics
 
@@ -200,7 +201,7 @@ To see the updated logo and icons and to correctly apply the updated style sheet
 # Themes
 *PLEASE NOTE: Previous releases of this script had additional scripts to switch between the light and dark themes. This release includes multiple themes in the single script.*
 
-By default, the script will apply a "light" theme, similar to the DumaOS theme.
+By default, the script will keep a "Telstra" theme, very similar to the default Telstra theme.
 
 You can switch to a "dark" (or "night") theme by re-running the script with the `-T`, `-t`, `-c` and `-i` parameters
 
