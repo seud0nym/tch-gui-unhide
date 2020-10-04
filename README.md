@@ -153,15 +153,17 @@ It is recommended that you apply whatever hardening (such as the [`de-telstra`](
 ./tch-gui-unhide <options>
 ```
 The script accepts the following options:
-- -t l|n
-    - Set a light (*-tl*) or night (*-tn*) theme 
-    - The default is the current setting, or light if no theme has been applied.
+- -t l|n|t
+    - Set a light (*-tl*), night (*-tn*), or default Tesltra (*-tt*) theme
+    - The default is the current setting, or Telstra if no theme has been applied.
 - -c b|o|g|p|m
     - Set the theme highlight colour: *-cb*=blue *-co*=orange *-cg*=green *-cp*=purple *-cm*=monochrome
     - The default is the current setting, or *-cm* for the light theme or *-cb* for the night theme.
 - -i y|n
     - Show (*y*) or hide (*n*) the card icons.
     - The default is the current setting, or *-in* for the light theme and *-iy* for the night theme.
+- -l
+    - Keep the Telstra landing page
 - -T
     - Apply the theme settings *ONLY*. All other processing is bypassed.
 - -x *c*|*m*|*n*|*p*|*q*|*r*|*s*|*x*|*A*
@@ -203,13 +205,14 @@ By default, the script will apply a "light" theme, similar to the DumaOS theme.
 You can switch to a "dark" (or "night") theme by re-running the script with the `-T`, `-t`, `-c` and `-i` parameters
 
 - The `-T` parameter bypasses all processing except the application of the theme. Without this option, the entire script will be re-applied with the selected theme.
-- The `-t` parameter has 2 options: `-tl` for the light theme, or `-tn` for the night theme.
+- The `-t` parameter has 3 options: `-tl` for the light theme, or `-tn` for the night theme, or `-tt` for the Telstra theme.
 - The `-c` parameter specifies a highlight colour for the selected theme. There are 5 choices: blue (`-cb`), orange (`-co`), green (`-cg`), purple (`-cp`) or monochrome (`-cm`). If no theme has been previously applied, the default colour for the light theme is monochrome, and blue for the night theme.
 - The `-i` parameter controls whether or not the background icons on the cards will be displayed. `-iy` makes the icons visible; `-in` hides them. If no theme has been previously applied, the default is no icons for the light theme, and icons visible for the night theme.
+- The `-l` parameter turns of theming and de-branding of the Telstra landing page (DJA0231).
 
-When you re-run the script without specifying a theme, it will default to the previously select theme, or the "light" theme with monochrome highlights and no card icons when run the first time or immediately after running the script with the `-r` option to revert all GUI changes.
+When you re-run the script without specifying a theme, it will default to the previously select theme, or the "Telstra" theme when run the first time or immediately after running the script with the `-r` option to revert all GUI changes.
 
-After applying a theme, you will probably need to clear cached images and files from your browser to see the changes.
+After applying a theme, you will need to clear cached images and files from your browser to see the changes.
 
 # Thanks
 This would not have been possible without the following resources:

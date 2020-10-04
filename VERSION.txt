@@ -1,3 +1,8 @@
+2020.10.04
+==========
+* tch-gui-unhide: Added Telstra theme, and option to leave landing page unchanged
+* tch-gui-unhide: Added auto-refreshing device status to gateway card
+
 2020.10.02
 ==========
 * de-telstra: Optionally configures opkg so that you can install additional packages on the device
