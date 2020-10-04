@@ -93,16 +93,12 @@ if session:hasAccess("/modals/broadband-modal.lp") then
 end
 
   ngx.print('\
-\
 <div class="span3">\
   <div class="smallcard">\
-\
     ');  ngx.print( ui_helper.createCardHeader(T"Broadband", modalPath, nil, nil, nil) ); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf0b2;">\
     ');  ngx.print( ui_helper.createSimpleLight(nil, WS_state_map, { light = { class = WS_light_map[WS_State] } }) ); ngx.print('\
     ');  
-      local iconUp = "<i class=\"icon-upload icon-small gray\"></i> "
-      local iconDown = " <i class=\"icon-download icon-small gray\"></i> "
       local html = {}
       if wan_data["dsl_status"] == "Up" then
         html[#html+1] = ui_helper.createSimpleLight("1", "DSL connected")
@@ -113,7 +109,7 @@ end
         if rate_up and rate_down then
           rate_up = floor(rate_up / 10) / 100
           rate_down = floor(rate_down / 10) / 100
-          html[#html+1] = format("<p class=\"bbstats\">%s %.2f Mbps %s %.2f Mbps</p>", iconUp, rate_up, iconDown, rate_down)
+          html[#html+1] = format('<p class="bbstats"><i class="icon-upload icon-small gray"></i> %.2f<small>Mbps</small> <i class="icon-download icon-small gray"></i> %.2f<small>Mbps</small></p>', rate_up, rate_down)
         end
       elseif wan_data["dsl_status"] == "NoSignal" then
         html[#html+1] = ui_helper.createSimpleLight("4", "DSL disconnected")
@@ -131,7 +127,7 @@ end
         html[#html+1] = ui_helper.createSimpleLight("1", "Mobile connected")
       end
       if tonumber(content_rpc.rx_bytes) and tonumber(content_rpc.tx_bytes) and tonumber(content_rpc.uptime) then
-        html[#html+1] = format("<p>%s %s %s %s %s/<i>d</i></p>", iconUp, bytes2string(content_rpc.tx_bytes), iconDown, bytes2string(content_rpc.rx_bytes), bytes2string((content_rpc.rx_bytes+content_rpc.tx_bytes)/(content_rpc.uptime/86400)))
+        html[#html+1] = format('<span class="simple-desc"><i class="icon-cloud-upload icon-small blueDark"></i> %s <i class="icon-cloud-download icon-small blueDark"></i> %s %s/<i>d</i></span>', bytes2string(content_rpc.tx_bytes), bytes2string(content_rpc.rx_bytes), bytes2string((content_rpc.rx_bytes+content_rpc.tx_bytes)/(content_rpc.uptime/86400)))
       end
       ngx.print(html)
       ngx.print('\
