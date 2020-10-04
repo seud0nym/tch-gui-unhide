@@ -3,7 +3,7 @@ else # THEME_ONLY = y
   cp -p /rom/www/docroot/css/gw.css /rom/www/docroot/css/gw-telstra.css /rom/www/docroot/css/responsive.css /www/docroot/css/
 fi # End of if [ THEME_ONLY = n ]   
 
-echo [$SCRIPT]: Add or update card background icons
+echo [$SCRIPT]: Adding or updating card background icons
 sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf012;"/' -i $(find /www/cards -type f -name '*lte.lp')
 sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf129;"/' -i /www/cards/001_gateway.lp
 sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0b2;"/' -i /www/cards/002_broadband.lp
@@ -30,7 +30,7 @@ for f in $(grep -l -r '<head>\\' /www/ 2>/dev/null)
 do
   grep -q '<link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico"/>' $f
   if [ $? -ne 0 ]; then 
-    echo [$SCRIPT]: Add the favicon to $f
+    echo [$SCRIPT]: Adding the favicon to $f
     sed -e '/<head>/a <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico"/>\\' -i $f
   fi
 done
@@ -66,6 +66,14 @@ if [ "$THEME" != "Telstra" ]; then
     -e '$ a .navbar-inner{box-shadow:none;}' \
     -e '$ a .navbar-inverse .navbar-inner{background-image:none;border-width:0px;}' \
     -i /www/docroot/css/gw-telstra.css
+
+  # if you change any of these colors or CSS, recheck 001-Variables for default settings
+  case "$COLOR" in 
+    blue)   RGB_BTN=f36523; RGB_HDR=008fd5; RGB_NAV=008fd5; RGB_SYM=00b9f21f; RGB_GRAD_FROM=00b9f2; RGB_GRAD_TO=008fd5;;
+    green)  RGB_BTN=662e91; RGB_HDR=005c32; RGB_NAV=005c32; RGB_SYM=ffec0126; RGB_GRAD_FROM=008a4c; RGB_GRAD_TO=005c32;;
+    purple) RGB_BTN=005c32; RGB_HDR=662e91; RGB_NAV=008a4c; RGB_SYM=f365232b; RGB_GRAD_FROM=942977; RGB_GRAD_TO=662e91;;
+    orange) RGB_BTN=662e91; RGB_HDR=f36523; RGB_NAV=f36523; RGB_SYM=008a4c3d; RGB_GRAD_FROM=f89406; RGB_GRAD_TO=f36523;;
+  esac
 fi
 sed \
   -e '$ a u{text-decoration:none;}' \
@@ -73,19 +81,11 @@ sed \
   -e '$ a .card_bg.mirror:after{transform:matrix(-1,0,0,1,0,0);}' \
   -e '$ a .header .btn{margin-left:5px;}' \
   -e '$ a .simple-desc{display:block;}' \
-  -e '$ a .smallcard .content{font-size:14px;}' \
+  -e '$ a .smallcard .content{font-size:14px;height:125px;}' \
   -e '$ a .smallcard .subinfos{font-size:14px;}' \
   -i /www/docroot/css/gw.css
 sed \
   -e 's/:56px/:80px/' \
   -e 's/:170px/:150px/' \
   -i /www/docroot/css/responsive.css
- 
-# if you change any of these colors or CSS, recheck 001-Variables for default settings
-case "$COLOR" in 
-  blue)   RGB_BTN=f36523; RGB_HDR=008fd5; RGB_NAV=008fd5; RGB_SYM=00b9f21f; RGB_GRAD_FROM=00b9f2; RGB_GRAD_TO=008fd5;;
-  green)  RGB_BTN=662e91; RGB_HDR=005c32; RGB_NAV=005c32; RGB_SYM=ffec0126; RGB_GRAD_FROM=008a4c; RGB_GRAD_TO=005c32;;
-  purple) RGB_BTN=005c32; RGB_HDR=662e91; RGB_NAV=008a4c; RGB_SYM=f365232b; RGB_GRAD_FROM=942977; RGB_GRAD_TO=662e91;;
-  orange) RGB_BTN=662e91; RGB_HDR=f36523; RGB_NAV=f36523; RGB_SYM=008a4c3d; RGB_GRAD_FROM=f89406; RGB_GRAD_TO=f36523;;
-esac
 
