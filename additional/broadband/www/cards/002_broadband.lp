@@ -127,7 +127,7 @@ end
         html[#html+1] = ui_helper.createSimpleLight("1", "Mobile connected")
       end
       if tonumber(content_rpc.rx_bytes) and tonumber(content_rpc.tx_bytes) and tonumber(content_rpc.uptime) then
-        html[#html+1] = format('<span class="simple-desc"><i class="icon-cloud-upload icon-small blueDark"></i> %s <i class="icon-cloud-download icon-small blueDark"></i> %s %s/<i>d</i></span>', bytes2string(content_rpc.tx_bytes), bytes2string(content_rpc.rx_bytes), bytes2string((content_rpc.rx_bytes+content_rpc.tx_bytes)/(content_rpc.uptime/86400)))
+        html[#html+1] = format('<span class="simple-desc"><i class="icon-cloud-upload icon-small status-icon"></i> %s <i class="icon-cloud-download icon-small status-icon"></i> %s %s/<i>d</i></span>', bytes2string(content_rpc.tx_bytes), bytes2string(content_rpc.rx_bytes), bytes2string((content_rpc.rx_bytes+content_rpc.tx_bytes)/(content_rpc.uptime/86400)))
       end
       ngx.print(html)
       ngx.print('\

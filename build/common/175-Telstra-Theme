@@ -1,4 +1,5 @@
 elif [ "$THEME" = "Telstra" ]; then
+  RGB_STATUS_ICON=3399cc;
   sed \
     -e '$ a .card_bg:after{z-index:-20;}' \
     -i /www/docroot/css/gw.css

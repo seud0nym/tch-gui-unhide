@@ -65,10 +65,10 @@ local headerAttr = {
     ');  ngx.print( ui_helper.createCardHeader(T(symbolv1), "modals/gateway-modal.lp", nil, nil, headerAttr) ); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf129;">\
       <span class="simple-desc"><i class="icon-info-sign green"></i>&nbsp; Version: <strong>'); ngx.print(content.name .. " (" .. content.version .. ")"); ngx.print('</strong></span>\
-      <span class="simple-desc"><i class="icon-time blueDark"></i>&nbsp; System Time: <strong id="gateway-modal-time">'); ngx.print(os.date("%d/%m/%Y %H:%M:%S",os.time())); ngx.print('</strong></span>\
-      <span class="simple-desc"><i class="icon-circle-arrow-up blueDark"></i>&nbsp; Up: <strong id="gateway-modal-uptime">'); ngx.print(secondsToTime(content.uptime)); ngx.print('</strong></span>\
-      <span class="simple-desc"><i class="icon-dashboard blueDark"></i>&nbsp; CPU Usage: <strong><span id="gateway-modal-cpu">'); ngx.print(content.cpu); ngx.print('</span>% [<span id="gateway-modal-load">'); ngx.print(content.load); ngx.print('</span>]</strong></span>\
-      <span class="simple-desc"><i class="icon-hdd blueDark"></i>&nbsp; RAM: <span id="gateway-modal-ram-total">'); ngx.print(format('%.2f', content.ram_total / 1024)); ngx.print('</span>MB <strong>[<span id="gateway-modal-ram-free">'); ngx.print(format('%.2f', content.ram_free / 1024)); ngx.print('</span>MB Free]</strong></span>\
+      <span class="simple-desc"><i class="icon-time status-icon"></i>&nbsp; System Time: <strong id="gateway-modal-time">'); ngx.print(os.date("%d/%m/%Y %H:%M:%S",os.time())); ngx.print('</strong></span>\
+      <span class="simple-desc"><i class="icon-circle-arrow-up status-icon"></i>&nbsp; Up: <strong id="gateway-modal-uptime">'); ngx.print(secondsToTime(content.uptime)); ngx.print('</strong></span>\
+      <span class="simple-desc"><i class="icon-dashboard status-icon"></i>&nbsp; CPU Usage: <strong><span id="gateway-modal-cpu">'); ngx.print(content.cpu); ngx.print('</span>% [<span id="gateway-modal-load">'); ngx.print(content.load); ngx.print('</span>]</strong></span>\
+      <span class="simple-desc"><i class="icon-hdd status-icon"></i>&nbsp; RAM: <span id="gateway-modal-ram-total">'); ngx.print(format('%.2f', content.ram_total / 1024)); ngx.print('</span>MB <strong>[<span id="gateway-modal-ram-free">'); ngx.print(format('%.2f', content.ram_free / 1024)); ngx.print('</span>MB Free]</strong></span>\
     </div>\
   </div>\
 </div>\
