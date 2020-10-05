@@ -16,8 +16,9 @@ update_cards() {
     q) MODAL="qos-queue-modal.lp";;
     r) MODAL="relay-modal.lp";;
     s) MODAL="system-modal.lp";;
+    t) MODAL="tod-modal.lp";;
     x) MODAL="xdsl-low-modal.lp";;
-    A) for PARAM in c m n p q r s x; do update_cards $1 $PARAM; done;;
+    A) for PARAM in c m n p q r s t x; do update_cards $1 $PARAM; done;;
     *) echo "[$SCRIPT]: WARNING - Ignored unknown card include/exclude option $2"
   esac
   if [ ! -z "$MODAL" ]; then
@@ -105,22 +106,24 @@ do
       fi
       exit;;
    ?) echo "Optional parameters:"
-      echo " -t l|n|t             : Set a light (l), night (n), or default Telstra (t) theme (Default is current setting, or Telstra if no theme has been applied)"
-      echo " -c b|o|g|p|m         : Set the theme highlight colour (Default is current setting, or (m) for light theme or (b) for night theme)"
-      echo "                         b=blue o=orange g=green p=purple m=monochrome"
-      echo " -i y|n               : Show (y) or hide (n) the card icons (Default is current setting, or n for light theme and y for night theme)"
-      echo " -l                   : Keep the Telstra landing page"
-      echo " -T                   : Apply theme ONLY - bypass all other processing"
-      echo " -h d|s|n             : Set the browser tabs title to $VARIANT-$MAC (s), $VARIANT (d) or $HOSTNAME (n) (Default is current setting or $VARIANT-$MAC if not previously applied)"
-      echo " -r                   : Restore changed GUI files to their original state (config changes are NOT restored)"
-      echo " -y                   : Bypass confirmation prompt (answers 'y')"
-      echo " -x c|m|n|p|q|r|s|x|A : Exclude specific cards (use -x multiple times to specify multiple cards or use -xA for all of the following cards):"
-      echo "                         c=Content Sharing m=Management n=NAT Helpers p=Printer Sharing q=QoS r=Relay Setup s=System Extras x=xDSL config A=ALL"
-      echo " -n c|m|n|p|q|r|s|x|A : Include specific cards that were previously excluded (use -n multiple times to specify multiple cards or use -nA)"
-      echo " -u                   : Check for and download any updates to $FILENAME"
+      echo " -t l|n|t       : Set a light (l), night (n), or default Telstra (t) theme (Default is current setting, or Telstra if no theme has been applied)"
+      echo " -c b|o|g|p|m   : Set the theme highlight colour (Default is current setting, or (m) for light theme or (b) for night theme)"
+      echo "                    b=blue o=orange g=green p=purple m=monochrome"
+      echo " -i y|n         : Show (y) or hide (n) the card icons (Default is current setting, or n for light theme and y for night theme)"
+      echo " -l             : Keep the Telstra landing page"
+      echo " -T             : Apply theme ONLY - bypass all other processing"
+      echo " -h d|s|n       : Set the browser tabs title to $VARIANT-$MAC (s), $VARIANT (d) or $HOSTNAME (n) (Default is current setting or $VARIANT-$MAC if not previously applied)"
+      echo " -r             : Restore changed GUI files to their original state (config changes are NOT restored)"
+      echo " -y             : Bypass confirmation prompt (answers 'y')"
+      echo " -x c|m|n|p|q|r|s|t|x|A :"
+      echo "                  Exclude specific cards (use -x multiple times to specify multiple cards or use -xA for all of the following cards):"
+      echo "                    c=Content Sharing m=Management n=NAT Helpers p=Printer Sharing q=QoS r=Relay Setup s=System Extras t=Time of Day x=xDSL config A=ALL"
+      echo " -n c|m|n|p|q|r|s|t|x|A : "
+      echo "                  Include specific cards that were previously excluded (use -n multiple times to specify multiple cards or use -nA)"
+      echo " -u             : Check for and download any updates to $FILENAME"
       if [ $WRAPPER = y ]; then
-      echo " -U                   : Download the latest release, including utility scripts (will overwrite all existing script versions)."
-      echo "                        When specifying the -U option, it must be the ONLY parameter specifed."
+      echo " -U             : Download the latest release, including utility scripts (will overwrite all existing script versions)."
+      echo "                    When specifying the -U option, it must be the ONLY parameter specifed."
       fi
       echo 
       echo "NOTE: Theme (-t) and excluded/included cards (-x/-n) do not need to be re-specified when re-running the script: the"
