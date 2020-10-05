@@ -86,6 +86,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - **Gateway** card now has current device status for CPU usage and free RAM
 - **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
 - **Traffic monitor** tab in Diagnostics
+- **Time of Day** card shows the Wireless Control rule count
 
 ## What else does it do?
 - Properly enables SSH LAN access (because if you don't and then disable it through the GUI, you can lose SSH access).
@@ -167,10 +168,10 @@ The script accepts the following options:
     - Keep the Telstra landing page
 - -T
     - Apply the theme settings *ONLY*. All other processing is bypassed.
-- -x *c*|*m*|*n*|*p*|*q*|*r*|*s*|*x*|*A*
-    - Exclude specific cards: *-xc*=Content Sharing *-xm*=Management *-xn*=NAT Helpers *-xp*=Printer Sharing *-xq*=QoS *-xr*=Relay Setup *-xs*=System Extras *-xx*=xDSL config *-xA*=ALL
+- -x *c*|*m*|*n*|*p*|*q*|*r*|*s*|*t*|*x*|*A*
+    - Exclude specific cards: *-xc*=Content Sharing *-xm*=Management *-xn*=NAT Helpers *-xp*=Printer Sharing *-xq*=QoS *-xr*=Relay Setup *-xs*=System Extras *-xt*=Time of Day *-xx*=xDSL config *-xA*=ALL
     - Use the *-x* option multiple times to specify multiple cards, or use *-xA* for all of the above cards.
-- -n *c*|*m*|*n*|*p*|*q*|*r*|*s*|*x*|*A*
+- -n *c*|*m*|*n*|*p*|*q*|*r*|*s*|*t*|*x*|*A*
     - Include specific cards that were previously excluded.
     - Use the *-n* option multiple times to specify multiple cards, or use *-nA* for all cards.
 - -y
@@ -209,7 +210,7 @@ You can switch to a "dark" (or "night") theme by re-running the script with the 
 - The `-t` parameter has 3 options: `-tl` for the light theme, or `-tn` for the night theme, or `-tt` for the Telstra theme.
 - The `-c` parameter specifies a highlight colour for the selected theme. There are 5 choices: blue (`-cb`), orange (`-co`), green (`-cg`), purple (`-cp`) or monochrome (`-cm`). If no theme has been previously applied, the default colour for the light theme is monochrome, and blue for the night theme.
 - The `-i` parameter controls whether or not the background icons on the cards will be displayed. `-iy` makes the icons visible; `-in` hides them. If no theme has been previously applied, the default is no icons for the light theme, and icons visible for the night theme.
-- The `-l` parameter turns of theming and de-branding of the Telstra landing page (DJA0231).
+- The `-l` parameter turns off theming and de-branding of the Telstra landing page (DJA0231).
 
 When you re-run the script without specifying a theme, it will default to the previously select theme, or the "Telstra" theme when run the first time or immediately after running the script with the `-r` option to revert all GUI changes.
 

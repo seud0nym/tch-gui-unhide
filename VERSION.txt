@@ -1,3 +1,11 @@
+2020.10.05
+==========
+* tch-gui-unhide: RAM usage showed wrong units (is MB, but showed KB)
+* tch-gui-unhide: Restore did not correctly clean up web config
+* tch-gui-unhide: Added Time of Day to excludable/includable cards
+* tch-gui-unhide: Show Wi-Fi Control rule count on Time of Day card
+* tch-gui-unhide: Status icon colours match theme colour
+
 2020.10.04
 ==========
 * tch-gui-unhide: Added Telstra theme, and option to leave landing page unchanged
