@@ -1,8 +1,6 @@
     do
-      if [ ! -f "/rom$f" ]
-      then
-        if [ "$1" = "V" ]
-        then
+      if [ ! -f "/rom$f" ]; then
+        if [ "$1" = "V" ]; then
           echo [$SCRIPT]: Removing $f
         fi
         rm -f "$f"
@@ -11,17 +9,31 @@
   done
 }
 
-if [ $RESTORE = y ]
-then
+if [ $RESTORE = y ]; then
   restore_www V
-  echo [$SCRIPT]: Removing config entries added to display hidden modals
-  for s in $(uci show web | grep normally_hidden | cut -d. -f1,2)
+  for s in $(uci show web | grep normally_hidden | cut -d. -f2)
   do
-    uci delete $s
+    echo [$SCRIPT]: Removing config entry web.$s
+    uci -q delete web.$s
+    uci -q del_list web.ruleset_main.rules="$s"
   done
-  uci -q delete web.gatewaystatusajax
-  uci -q delete web.usermgrmodal.roles
-  uci add_list web.usermgrmodal.roles='admin'
+  RULES=$(uci get web.ruleset_main.rules)
+  for s in $(echo $RULES | tr " " "\n" | sort -u)
+  do
+    TARGET=$(uci -q get web.$s.target)
+    if [ ! -z "$TARGET" -a ":$TARGET" != ":/" -a ! -f /www/docroot$TARGET -a ! -f /www$TARGET -a ! -f /www/docroot/ajax$TARGET ]; then
+      echo [$SCRIPT]: Removing config entry web.$s
+      uci -q delete web.$s
+      uci -q del_list web.ruleset_main.rules="$s"
+    else
+      ROLE=$(uci -q get web.$s.roles)
+      if [ ! -z "$ROLE" -a "$ROLE" = "nobody" ]; then
+        echo [$SCRIPT]: Resetting admin role on config entry web.$s.roles
+        uci -q delete web.$s.roles
+        uci add_list web.$s.roles="admin"
+      fi
+    fi
+  done
   uci commit web
   /etc/init.d/nginx restart
   echo "************************************************************"
