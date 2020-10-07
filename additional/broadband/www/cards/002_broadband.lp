@@ -12,6 +12,7 @@ local content_helper = require("web.content_helper")
 
 -- wan status data
 local wan_data = {
+  wan_ifname        = "uci.network.interface.@wan.ifname",
   wans_enable       = "uci.wansensing.global.enable",
   wans_l2type       = "uci.wansensing.global.l2type",
   dsl_status        = "sys.class.xdsl.@line0.Status",
@@ -100,28 +101,32 @@ end
     ');  ngx.print( ui_helper.createSimpleLight(nil, WS_state_map, { light = { class = WS_light_map[WS_State] } }) ); ngx.print('\
     ');  
       local html = {}
-      if wan_data["dsl_status"] == "Up" then
-        html[#html+1] = ui_helper.createSimpleLight("1", "DSL connected")
-        -- After disabling broadband the page immediately refreshes. At this time the state is still up but the line
-        -- rate is already cleared.
-        local rate_up = tonumber(wan_data["dsl_linerate_up"])
-        local rate_down = tonumber(wan_data["dsl_linerate_down"])
-        if rate_up and rate_down then
-          rate_up = floor(rate_up / 10) / 100
-          rate_down = floor(rate_down / 10) / 100
-          html[#html+1] = format('<p class="bbstats"><i class="icon-upload icon-small gray"></i> %.2f<small>Mbps</small> <i class="icon-download icon-small gray"></i> %.2f<small>Mbps</small></p>', rate_up, rate_down)
+      if wan_data["wan_ifname"] and (wan_data["wan_ifname"] == "ptm0" or wan_data["wan_ifname"] == "atmwan") then
+        if wan_data["dsl_status"] == "Up" then
+          html[#html+1] = ui_helper.createSimpleLight("1", "DSL connected")
+          -- After disabling broadband the page immediately refreshes. At this time the state is still up but the line
+          -- rate is already cleared.
+          local rate_up = tonumber(wan_data["dsl_linerate_up"])
+          local rate_down = tonumber(wan_data["dsl_linerate_down"])
+          if rate_up and rate_down then
+            rate_up = floor(rate_up / 10) / 100
+            rate_down = floor(rate_down / 10) / 100
+            html[#html+1] = format('<p class="bbstats"><i class="icon-upload icon-small gray"></i> %.2f<small>Mbps</small> <i class="icon-download icon-small gray"></i> %.2f<small>Mbps</small></p>', rate_up, rate_down)
+          end
+        elseif wan_data["dsl_status"] == "NoSignal" then
+          html[#html+1] = ui_helper.createSimpleLight("4", "DSL disconnected")
+        elseif wan_data["dsl0_enabled"] == "0" then
+          html[#html+1] = ui_helper.createSimpleLight("0", "DSL disabled")
+        else
+          html[#html+1] = ui_helper.createSimpleLight("2", "DSL connecting")
         end
-      elseif wan_data["dsl_status"] == "NoSignal" then
-        html[#html+1] = ui_helper.createSimpleLight("4", "DSL disconnected")
-      elseif wan_data["dsl0_enabled"] == "0" then
-        html[#html+1] = ui_helper.createSimpleLight("0", "DSL disabled")
-      else
-        html[#html+1] = ui_helper.createSimpleLight("2", "DSL connecting")
       end
-      if wan_data["ethwan_status"] == "up" then
-        html[#html+1] = ui_helper.createSimpleLight("1", "Ethernet connected")
-      else
-        html[#html+1] = ui_helper.createSimpleLight("4", "Ethernet disconnected")
+      if wan_data["wan_ifname"] and wan_data["wan_ifname"] == "eth4" then
+        if wan_data["ethwan_status"] == "up" then
+          html[#html+1] = ui_helper.createSimpleLight("1", "Ethernet connected")
+        else
+          html[#html+1] = ui_helper.createSimpleLight("4", "Ethernet disconnected")
+        end
       end
       if mobiled_state["mob_session_state"] == "connected" then
         html[#html+1] = ui_helper.createSimpleLight("1", "Mobile connected")
