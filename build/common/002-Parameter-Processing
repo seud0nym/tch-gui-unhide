@@ -1,7 +1,6 @@
 RESTORE=n
 WRAPPER=n
 YES=n
-KEEP_LP=n
 
 FILENAME=$(basename $0)
 

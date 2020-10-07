@@ -51,6 +51,12 @@ case "$(grep '.smallcard .header{background-color:#......;}' /www/docroot/css/gw
   *)        if [ $THEME = light ]; then COLOR=monochrome; else COLOR=blue; fi;;
 esac
 ICONS="$(grep '.card_bg:after{visibility:' /www/docroot/css/gw.css | cut -d: -f3 | cut -d\; -f1)"
+grep -q 'body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color' /www/docroot/css/gw-telstra.css
+if [ $? -eq 0 ]; then
+  KEEP_LP=n
+else
+  KEEP_LP=y
+fi
 THEME_ONLY=n
 
 # Keep count of changes so we know whether to restart services
