@@ -15,6 +15,9 @@ local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
 
 wan_ifname = wan_ifname[1].value:untaint()
+if wan_ifname ~= "eth4" and string.find(wan_ifname, "eth4") then
+  wan_ifname = "eth4"
+end
 
 -- Menu display information (policy classgroup name MUST match value in qos config)
 local dataQoS = {

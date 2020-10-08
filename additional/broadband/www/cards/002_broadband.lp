@@ -121,7 +121,7 @@ end
           html[#html+1] = ui_helper.createSimpleLight("2", "DSL connecting")
         end
       end
-      if wan_data["wan_ifname"] and wan_data["wan_ifname"] == "eth4" then
+      if wan_data["wan_ifname"] and string.find(wan_data["wan_ifname"],"eth") then
         if wan_data["ethwan_status"] == "up" then
           html[#html+1] = ui_helper.createSimpleLight("1", "Ethernet connected")
         else
