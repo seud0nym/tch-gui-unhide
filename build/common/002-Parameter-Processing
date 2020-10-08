@@ -31,11 +31,11 @@ do
    W) WRAPPER=y;;
    l) KEEP_LP=y;;
    t) case "$(echo ${OPTARG} | tr "GNOPLT" "gnoplt" | sed 's/\(.\)\(.*\)/\1/')" in
-        g) THEME=night; COLOR=green; echo WARNING: -tg deprecated. Use -tn -cg in future;; 
-        n) THEME=night; COLOR=blue;;
-        o) THEME=night; COLOR=orange; echo WARNING: -to deprecated. Use -tn -co in future;; 
-        p) THEME=night; COLOR=purple; echo WARNING: -tp deprecated. Use -tn -cp in future;; 
-        l) THEME=light; COLOR=monochrome;;
+        g) THEME=night; COLOR=green; KEEP_LP=n; echo WARNING: -tg deprecated. Use -tn -cg in future;; 
+        n) THEME=night; COLOR=blue; KEEP_LP=n;;
+        o) THEME=night; COLOR=orange; KEEP_LP=n; echo WARNING: -to deprecated. Use -tn -co in future;; 
+        p) THEME=night; COLOR=purple; KEEP_LP=n; echo WARNING: -tp deprecated. Use -tn -cp in future;; 
+        l) THEME=light; COLOR=monochrome; KEEP_LP=n;;
         *) THEME=Telstra; COLOR=blue; KEEP_LP=y;;
       esac;;
    c) case "$(echo ${OPTARG} | tr "BGMOP" "bgmop" | sed 's/\(.\)\(.*\)/\1/')" in

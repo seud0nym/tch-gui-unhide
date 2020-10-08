@@ -31,6 +31,7 @@ case "$(grep 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'
   *)          TITLE="$VARIANT-$MAC";;
 esac
 
+KEEP_LP=n
 grep -q 'body{background-color:#353c42;' /www/docroot/css/gw.css
 if [ $? -eq 0 ]; then
   THEME=night
@@ -40,6 +41,10 @@ else
     THEME=light
   else
     THEME=Telstra
+    grep -q 'body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color' /www/docroot/css/gw-telstra.css
+    if [ $? -eq 1 ]; then
+      KEEP_LP=y
+    fi
   fi
 fi
 case "$(grep '.smallcard .header{background-color:#......;}' /www/docroot/css/gw.css  | cut -d# -f2 | cut -d\; -f1)" in
@@ -51,12 +56,6 @@ case "$(grep '.smallcard .header{background-color:#......;}' /www/docroot/css/gw
   *)        if [ $THEME = light ]; then COLOR=monochrome; else COLOR=blue; fi;;
 esac
 ICONS="$(grep '.card_bg:after{visibility:' /www/docroot/css/gw.css | cut -d: -f3 | cut -d\; -f1)"
-grep -q 'body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color' /www/docroot/css/gw-telstra.css
-if [ $? -eq 0 ]; then
-  KEEP_LP=n
-else
-  KEEP_LP=y
-fi
 THEME_ONLY=n
 
 # Keep count of changes so we know whether to restart services
@@ -64,5 +63,4 @@ SRV_dnsmasq=0
 SRV_dropbear=0
 SRV_nginx=0
 SRV_system=0
-
 
