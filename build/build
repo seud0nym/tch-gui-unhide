@@ -57,28 +57,23 @@ do
       DIRECTORY="$(echo $s | cut -d/ -f2-)"
       if [ $FILENAME = "060-Additional" ]
       then
-        echo "sed -e \"s/\(current_year); ngx.print('\)/\1 \[tch-gui-unhide $(date +%Y.%m.%d)\]/\" -i /www/docroot/gateway.lp" >> $TARGET
+        echo "sed -e \"s/\(current_year); ngx.print('\)/\\\1 \[tch-gui-unhide $(date +%Y.%m.%d)\]/\" -i /www/docroot/gateway.lp" >> $TARGET
         echo >> $TARGET
         for b in $(cat "$DIRECTORY/$FILENAME")
         do
           sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/$b.b64 >> $TARGET
-          echo " -> Added $b.b64"
         done
       else
         sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
-	      echo " -> Added $FILENAME"
         if [ $FILENAME = "170-Light-Theme" ]
         then
           sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/light.b64 >> $TARGET
-          echo " -> Added light.b64"
         elif [ $FILENAME = "175-Telstra-Theme" ]
         then
           sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/telstra.b64 >> $TARGET
-          echo " -> Added telstra.b64"
         elif [ $FILENAME = "180-Night-Theme" ]
         then
           sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/night.b64 >> $TARGET
-          echo " -> Added night.b64"
         fi
       fi
     fi
