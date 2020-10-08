@@ -57,6 +57,8 @@ if [ "$THEME" != "Telstra" ]; then
     -e '$ a .nav-list>li>a,.nav-list .nav-header{text-shadow:none;}' \
     -e '$ a .smallcard{border:0px;font-family:Roboto,Noto,sans-serif;font-size:14px;font-weight:400;}' \
     -e '$ a .smallcard .header{background-image:none;border-bottom:0px;font-size:20px;font-weight:400;text-shadow:none;}' \
+    -e '$ a #tod>tbody>tr.additional-edit>td:nth-child(1)>fieldset>div:nth-child(3)>div.controls>label.checkbox{padding-left:0px;}' \
+    -e '$ a #tod>tbody>tr.additional-edit>td:nth-child(1)>fieldset>div:nth-child(3)>div.controls>label.checkbox>input[type="checkbox"]{margin-left:2px;width:20px;}' \
     -i /www/docroot/css/gw.css
   sed \
     -e '$ a body{font-family:Roboto,Noto,sans-serif;background-image:none;}' \
