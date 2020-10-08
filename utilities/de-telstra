@@ -71,8 +71,8 @@ do
   e)  case "${OPTARG}" in y|Y) DECT='1';; n|N) DECT='0';; u|U) DECT='u';; *) DECT='u'; echo 'WARNING: -e valid options are y, n, or u';; esac;;
   u)  case "${OPTARG}" in y|Y) UPNP='1';; n|N) UPNP='0';; u|U) UPNP='u';; *) UPNP='u'; echo 'WARNING: -u valid options are y, n, or u';; esac;;
   o)  OPKG='y';;
-  A)  HOST='d'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
-  S)  HOST='s'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; POWER='n'; PRNTR='0'; UPNP='0';;
+  A)  HOST='d'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; PRNTR='0'; UPNP='0';;
+  S)  HOST='s'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; PRNTR='0'; UPNP='0';;
   R)  HOST='mymodem'; DOMAIN='modem'; NS='a'; ALG='1'; DLNAD='1'; SAMBA='1'; MULTIAP='1'; POWER='y'; PRNTR='1'; MMPBX='1'; DECT='1'; UPNP='1';;
   U)  RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT | sed 's/\r//')
       if [ $? -ne 0 ]
@@ -175,8 +175,8 @@ Optional parameters:
           n            Disable MultiAP
                        NOTE: -m option is only applicable to devices with MultiAP installed
  -o                    Configures opkg
- -A                    Equivalent to: -hd -dg -an -cn -fn -pn -rn -un
- -S                    Equivalent to: -hs -dg -an -cn -fn -pn -rn -un
+ -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un
+ -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un
  -R                    Reset to device defaults
                         (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -ty -ey -uy)
  -U                    Check for and download the latest version from GitHub
