@@ -1,3 +1,11 @@
+2020.10.08
+==========
+* tch-gui-unhide: "Keep landing page" default not detected from current setting
+* tch-gui-unhide: Only show connected interfaces on broadband card (Issue #9)
+* tch-gui-unhide: Added Time of Day Wireless Control modal from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www
+* tch-gui-unhide: Added tch-gui-unhide release version to copyright line
+* de-telstra: Removed power saving from -A and -S shortcuts
+
 2020.10.05
 ==========
 * tch-gui-unhide: RAM usage showed wrong units (is MB, but showed KB)

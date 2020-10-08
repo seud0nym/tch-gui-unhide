@@ -81,6 +81,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
     - Editing of the name, and setting of interface (LAN/WAN/etc.)
 - Added the **Telephony** Codecs tab
 - Greater control over the **Wi-Fi** output power
+- Modified **Time of Day** Wireless Control tab to allow selection of access point
 
 ### Additional (new) GUI Features
 - **Gateway** card now has current device status for CPU usage and free RAM
