@@ -5,3 +5,5 @@ do
 done
 sed -e "s,<title>');  ngx.print( T\"Change password\" ); ngx.print('</title>,<title>$TITLE - Change Password</title>," -i /www/docroot/password.lp
 
+sed -e "s/Gateway/$VARIANT/g" -i /www/cards/001_gateway.lp
+

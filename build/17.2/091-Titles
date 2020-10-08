@@ -1,4 +1,3 @@
-sed -e "s/Gateway/$VARIANT/g" -i /www/cards/001_gateway.lp
 sed -e "s/Gateway/$VARIANT/g" -i /www/cards/005_LAN.lp
 sed -e "s,<title>');  ngx.print( T\"Login\" ); ngx.print('</title>,<title>$TITLE Login</title>," -i /www/docroot/login.lp
 

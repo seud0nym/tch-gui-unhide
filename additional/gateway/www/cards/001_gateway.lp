@@ -6,8 +6,6 @@ gettext.textdomain('webui-core')
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
-local telstra_helper = require("telstra_helper")
-local symbolv1 = telstra_helper.symbolnamev1
 
 local find, sub = string.find, string.sub
 local floor, ipairs = math.floor, ipairs
@@ -62,7 +60,7 @@ local headerAttr = {
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ');  ngx.print( ui_helper.createCardHeader(T(symbolv1), "modals/gateway-modal.lp", nil, nil, headerAttr) ); ngx.print('\
+    ');  ngx.print( ui_helper.createCardHeader(T"Gateway", "modals/gateway-modal.lp", nil, nil, headerAttr) ); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf129;">\
       <span class="simple-desc"><i class="icon-info-sign green"></i>&nbsp; Version: <strong>'); ngx.print(content.name .. " (" .. content.version .. ")"); ngx.print('</strong></span>\
       <span class="simple-desc"><i class="icon-time status-icon"></i>&nbsp; System Time: <strong id="gateway-modal-time">'); ngx.print(os.date("%d/%m/%Y %H:%M:%S",os.time())); ngx.print('</strong></span>\
