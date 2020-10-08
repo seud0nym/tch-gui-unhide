@@ -57,6 +57,8 @@ do
       DIRECTORY="$(echo $s | cut -d/ -f2-)"
       if [ $FILENAME = "060-Additional" ]
       then
+        echo "sed -e \"s/\(current_year); ngx.print('\)/\1 \[tch-gui-unhide $(date +%Y.%m.%d)\]/\" -i /www/docroot/gateway.lp" >> $TARGET
+        echo >> $TARGET
         for b in $(cat "$DIRECTORY/$FILENAME")
         do
           sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/$b.b64 >> $TARGET

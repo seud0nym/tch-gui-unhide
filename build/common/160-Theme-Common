@@ -49,7 +49,7 @@ if [ "$THEME" != "Telstra" ]; then
     -e '$ a .bbstats{margin:0px 0px -6px 20px;}' \
     -e '$ a .card{font-family:Roboto,Noto,sans-serif;}' \
     -e '$ a .card_bg>*{z-index:20;}' \
-    -e '$ a .copyright{display:none;}' \
+    -e '$ a .copyright{border-top:none;text-shadow:none;-webkit-box-shadow:none;-moz-box-shadow:none;box-shadow:none;}' \
     -e '$ a .dw{font-family:Roboto,Noto,sans-serif;}' \
     -e '$ a .header{border-bottom:0px;box-shadow:none;margin-bottom:30px;}' \
     -e '$ a .header img{width:180px;}' \
