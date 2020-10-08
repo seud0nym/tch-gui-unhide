@@ -4,6 +4,7 @@
 * tch-gui-unhide: Only show connected interfaces on broadband card (Issue #9)
 * tch-gui-unhide: Added Time of Day Wireless Control modal from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www
 * tch-gui-unhide: Added tch-gui-unhide release version to copyright line
+* tch-gui-unhide: Fixed bug causing error 500 when accessing gateway.lp
 * de-telstra: Removed power saving from -A and -S shortcuts
 
 2020.10.05
