@@ -1,3 +1,7 @@
+2020.10.09
+==========
+* tch-gui-unhide: Auto-refreshing device status on gateway card broke 17.2.0284
+
 2020.10.08
 ==========
 * tch-gui-unhide: "Keep landing page" default not detected from current setting
