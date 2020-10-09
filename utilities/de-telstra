@@ -266,7 +266,7 @@ else
   SRV_monitor=$(( $SRV_monitor + 3 ))
 fi
 
-if [ -z "$(uci -q get dhcp.hotspot)" -a -z "$(uci -q get dhcp.fonopen)" -a -z "$(uci -q get network.fonopen)" -a -z "$(uci -q get web.fon)" -a -z "$(uci -q show web.ruleset_main.rules | grep '\bfon\b')" -a -z "$(uci -q show qos.reclassify_1.srcif | grep '\bfonopen\b')" -a -z "$(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\))" ]
+if [ -z "$(uci -q get dhcp.hotspot)" -a -z "$(uci -q get dhcp.fonopen)" -a -z "$(uci -q get network.fonopen)" -a -z "$(uci -q get web.fon)" -a -z "$(uci -q show web.ruleset_main.rules | grep '\bfon\b')" -a -z "$(uci -q show qos.reclassify_1.srcif | grep '\bfonopen\b')" -a -z "$(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\))" -a -z "$(uci get wireless.bs2)" -a -z "$(uci get wireless.bs3)" ]
 then
   echo [$SCRIPT]: - Telstra AIR already removed
 else
@@ -294,6 +294,10 @@ else
     uci delete wireless.$ap
     SRV_network=$(( $SRV_network + 2 ))
   done
+  echo [$SCRIPT]: - Removing Telstra Air Band Steering configuration
+  uci -q delete wireless.bs2
+  uci -q delete wireless.bs3
+  SRV_network=$(( $SRV_network + 2 ))
   uci commit wireless
 fi
 
