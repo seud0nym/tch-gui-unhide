@@ -18,6 +18,7 @@ SRV_dhcp=0
 SRV_dlna=0
 SRV_dropbear=0
 SRV_fw=0
+SRV_hostapd=0
 SRV_hotspot=0
 SRV_mmpbxd=0
 SRV_mobiled=0
@@ -54,26 +55,28 @@ PRNTR='u'
 SAMBA='u'
 UPNP='u'
 OPKG='n'
+WPS='u'
 
-while getopts h:d:n:a:c:f:m:p:r:t:e:u:oASRU option
+while getopts a:c:d:e:f:h:m:n:op:r:t:u:w:ARSU option
 do
  case "${option}" in
-  h)  HOST=${OPTARG};;
-  d)  case "${OPTARG}" in g|G) DOMAIN='gateway';; u|U) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
-  n)  NS=${OPTARG};;
   a)  case "${OPTARG}" in y|Y) ALG='1';; n|N) ALG='0';; u|U) ALG='u';; *) ALG='u'; echo 'WARNING: -a valid options are y, n, or u';; esac;;
   c)  case "${OPTARG}" in y|Y) DLNAD='1';; n|N) DLNAD='0';; u|U) DLNAD='u';; *) DLNAD='u'; echo 'WARNING: -c valid options are y, n, or u';; esac;;
+  d)  case "${OPTARG}" in g|G) DOMAIN='gateway';; u|U) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
+  e)  case "${OPTARG}" in y|Y) DECT='1';; n|N) DECT='0';; u|U) DECT='u';; *) DECT='u'; echo 'WARNING: -e valid options are y, n, or u';; esac;;
   f)  case "${OPTARG}" in y|Y) SAMBA='1';; n|N) SAMBA='0';; u|U) SAMBA='u';; *) SAMBA='u'; echo 'WARNING: -f valid options are y, n, or u';; esac;;
+  h)  HOST=${OPTARG};;
   m)  case "${OPTARG}" in y|Y) MULTIAP='1';; n|N) MULTIAP='0';; u|U) MULTIAP='u';; *) MULTIAP='u'; echo 'WARNING: -m valid options are y, n, or u';; esac;;
+  n)  NS=${OPTARG};;
+  o)  OPKG='y';;
   p)  case "${OPTARG}" in y|Y) POWER='y';; n|N) POWER='n';; u|U) POWER='u';; *) POWER='u'; echo 'WARNING: -p valid options are y, n, or u';; esac;;
   r)  case "${OPTARG}" in y|Y) PRNTR='1';; n|N) PRNTR='0';; u|U) PRNTR='u';; *) PRNTR='u'; echo 'WARNING: -r valid options are y, n, or u';; esac;;
   t)  case "${OPTARG}" in y|Y) MMPBX='1';; n|N) MMPBX='0';; u|U) MMPBX='u';; *) MMPBX='u'; echo 'WARNING: -t valid options are y, n, or u';; esac;;
-  e)  case "${OPTARG}" in y|Y) DECT='1';; n|N) DECT='0';; u|U) DECT='u';; *) DECT='u'; echo 'WARNING: -e valid options are y, n, or u';; esac;;
   u)  case "${OPTARG}" in y|Y) UPNP='1';; n|N) UPNP='0';; u|U) UPNP='u';; *) UPNP='u'; echo 'WARNING: -u valid options are y, n, or u';; esac;;
-  o)  OPKG='y';;
-  A)  HOST='d'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; PRNTR='0'; UPNP='0';;
-  S)  HOST='s'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; PRNTR='0'; UPNP='0';;
-  R)  HOST='mymodem'; DOMAIN='modem'; NS='a'; ALG='1'; DLNAD='1'; SAMBA='1'; MULTIAP='1'; POWER='y'; PRNTR='1'; MMPBX='1'; DECT='1'; UPNP='1';;
+  w)  case "${OPTARG}" in y|Y) WPS='1';; n|N) WPS='0';; u|U) WPS='u';; *) WPS='u'; echo 'WARNING: -w valid options are y, n, or u';; esac;;
+  A)  HOST='d'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; PRNTR='0'; UPNP='0'; WPS='0';;
+  R)  HOST='mymodem'; DOMAIN='modem'; NS='a'; ALG='1'; DLNAD='1'; SAMBA='1'; MULTIAP='1'; POWER='y'; PRNTR='1'; MMPBX='1'; DECT='1'; UPNP='1'; WPS='1';;
+  S)  HOST='s'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; PRNTR='0'; UPNP='0'; WPS='0';;
   U)  RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT | sed 's/\r//')
       if [ $? -ne 0 ]
       then
@@ -174,11 +177,15 @@ Optional parameters:
           y            Enable MultiAP (device default)
           n            Disable MultiAP
                        NOTE: -m option is only applicable to devices with MultiAP installed
+ -w u|y|n              
+    where u            Leave WPS unchanged on non-Guest and non-Backhaul SSIDs (Default)
+          y            Enable WPS on non-Guest and non-Backhaul SSIDs (device default)
+          n            Disable WPS on non-Guest and non-Backhaul SSIDs
  -o                    Configures opkg
- -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un
- -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un
+ -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un -wn
+ -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn
  -R                    Reset to device defaults
-                        (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -ty -ey -uy)
+                        (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -ty -ey -uy -wy)
  -U                    Check for and download the latest version from GitHub
 EOH
       exit;;
@@ -265,7 +272,7 @@ else
   SRV_monitor=$(( $SRV_monitor + 3 ))
 fi
 
-if [ -z "$(uci -q get dhcp.hotspot)" -a -z "$(uci -q get dhcp.fonopen)" -a -z "$(uci -q get network.fonopen)" -a -z "$(uci -q get web.fon)" -a -z "$(uci -q show web.ruleset_main.rules | grep '\bfon\b')" -a -z "$(uci -q show qos.reclassify_1.srcif | grep '\bfonopen\b')" -a -z "$(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\))" -a -z "$(uci get wireless.bs2)" -a -z "$(uci get wireless.bs3)" ]
+if [ -z "$(uci -q get dhcp.hotspot)" -a -z "$(uci -q get dhcp.fonopen)" -a -z "$(uci -q get network.fonopen)" -a -z "$(uci -q get web.fon)" -a -z "$(uci -q show web.ruleset_main.rules | grep '\bfon\b')" -a -z "$(uci -q show qos.reclassify_1.srcif | grep '\bfonopen\b')" -a -z "$(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\))" -a -z "$(uci -q get wireless.bs2)" -a -z "$(uci -q get wireless.bs3)" ]
 then
   echo [$SCRIPT]: - Telstra AIR already removed
 else
@@ -587,6 +594,38 @@ else
   echo [$SCRIPT]: DECT Emission Mode $(status2text $DECT)
 fi
 
+if [ "$WPS" = "u" ]
+then
+  WPS_NOW="$(uci show wireless | grep wps_state=\'1\' | wc -l)"
+  if [ "$WPS_NOW" -eq 1 ]
+  then
+    echo [$SCRIPT]: WPS unchanged \[Enabled on 1 Access Point\]
+  else
+    echo [$SCRIPT]: WPS unchanged \[Enabled on $WPS_NOW Access Points\]
+  fi
+else
+  for iface in $(uci show wireless | grep ssid= | grep -v -E \(Guest\|BH-\) | cut -d. -f2)
+  do
+    ap="$(uci show wireless | grep =\'$iface\' | cut -d. -f2)"
+    if [ ! -z "$ap" ]
+    then
+      wps_state="$(uci -q get wireless.$ap.wps_state)"
+      if [ "$wps_state" = "$WPS" ]
+      then
+        echo [$SCRIPT]: WPS State unchanged on SSID $(uci get wireless.$iface.ssid) \[$(status2text $WPS)\]
+      else
+        uci set wireless.$ap.wps_state="$WPS"
+        SRV_hostapd=$(( $SRV_hostapd + 1 ))
+        echo [$SCRIPT]: WPS State on SSID $(uci get wireless.$iface.ssid) $(status2text $WPS) 
+      fi
+    fi
+  done
+  if [ $SRV_hostapd -gt 0 ]
+  then
+    uci commit wireless
+  fi
+fi
+
 if [ "$ALG" = "u" ]
 then
   echo [$SCRIPT]: ALGs unchanged \[$(uci show firewall | grep helper | grep -E "enable='(1|y)'" | wc -l) Enabled\]
@@ -755,6 +794,7 @@ echo [$SCRIPT]: Applying required service changes...
 [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear reload > /dev/null 2>&1
 [ $SRV_dhcp -gt 0 ]     && /etc/init.d/dnsmasq reload > /dev/null 2>&1
 [ $SRV_fw -gt 0 ]       && /etc/init.d/firewall reload > /dev/null 2>&1
+[ $SRV_hostapd -gt 0 ]  && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1
 [ $SRV_network -gt 0 ]  && /etc/init.d/network reload > /dev/null 2>&1
 [ $SRV_mmpbxd -gt 0 ]   && /etc/init.d/mmpbxd restart > /dev/null 2>&1
 [ $SRV_mobiled -gt 0 ]  && /etc/init.d/mobiled restart > /dev/null 2>&1

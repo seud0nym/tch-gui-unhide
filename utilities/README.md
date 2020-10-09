@@ -26,6 +26,7 @@ Optionally, it can also:
 - Disable or enable UPnP
 - Disable or enable power saving
 - Disable or enable MultiAP (EasyMesh) if it is installed on the device
+- Disable or enable WPS on non-Guest and non-Backhaul SSIDs 
 - Configure the opkg package manager so that you can install additional packages on the device
 
 It does NOT remove the hidden BH-xxxxxx SSID from the DJA0230 or DJA0231, as this is not related to Telstra AIR. It is the wireless backhaul for EasyMesh.
@@ -85,10 +86,14 @@ This script accepts the following options:
     where u            Leave EasyMesh (multiap) unchanged (Default)
           y            Enable EasyMesh (multiap) (device default)
           n            Disable EasyMesh (multiap)
+ -w u|y|n              
+    where u            Leave WPS unchanged on non-Guest and non-Backhaul SSIDs (Default)
+          y            Enable WPS on non-Guest and non-Backhaul SSIDs (device default)
+          n            Disable WPS on non-Guest and non-Backhaul SSIDs
  -o                    Configures opkg
- -A                    Equivalent to: -hd -dg -an -cn -fn -pn -rn -un
- -S                    Equivalent to: -hs -dg -an -cn -fn -pn -rn -un
- -R                    Reset to device defaults (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -ty -ey -uy)
+ -A                    Equivalent to: -hd -dg -an -cn -fn -pn -rn -un -wn
+ -S                    Equivalent to: -hs -dg -an -cn -fn -pn -rn -un -wn
+ -R                    Reset to device defaults (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -ty -ey -uy -wy)
  -U                    Check for and download the latest version from GitHub
 ```
 Note that the options to disable/enable EasyMesh are only applicable to devices with multiap installed.
