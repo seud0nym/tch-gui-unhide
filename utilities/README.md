@@ -9,7 +9,6 @@ In addition, it automatically:
     - the contents of an *authorized_keys* file found in the directory from which the script is invoked; or
     - an empty file (to remove any ISP default public keys)
 - Correctly enables SSH LAN access
-- Disables SSH WAN access
 - Disables and removes CWMP
 - Disables and removes all Telstra monitoring and logging
 - Disables and removes Telstra AIR, including the SSIDs and GUI card

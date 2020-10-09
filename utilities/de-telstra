@@ -217,11 +217,10 @@ else
     echo > /etc/dropbear/authorized_keys
   fi
 fi
-if [ "$(uci -q get dropbear.wan.enable)" = '0' -a "$(uci -q get dropbear.lan.enable)" = '1'  -a "$(uci -q get dropbear.lan.enable)" = '1' -a "$(uci -q get dropbear.lan.PasswordAuth)" = 'on' -a "$(uci -q get dropbear.lan.RootPasswordAuth)" = 'on' -a "$(uci -q get dropbear.lan.RootLogin)" = '1' ]
+if [ "$(uci -q get dropbear.lan.enable)" = '1'  -a "$(uci -q get dropbear.lan.enable)" = '1' -a "$(uci -q get dropbear.lan.PasswordAuth)" = 'on' -a "$(uci -q get dropbear.lan.RootPasswordAuth)" = 'on' -a "$(uci -q get dropbear.lan.RootLogin)" = '1' ]
 then
-  echo [$SCRIPT]: - SSH WAN/LAN access already correctly configured
+  echo [$SCRIPT]: - SSH LAN access already correctly configured
 else
-  uci set dropbear.wan.enable='0'
   # We need to enable dropbear LAN access properly as you can enable/disable via the GUI, and if
   # done without allowing password auth and root login, it can accidently prevent SSH access
   uci set dropbear.lan.enable='1'
@@ -230,7 +229,7 @@ else
   uci set dropbear.lan.RootLogin='1'
   uci commit dropbear
   SRV_dropbear=$(( $SRV_dropbear + 4 ))
-  echo [$SCRIPT]: - SSH WAN/LAN access correctly configured
+  echo [$SCRIPT]: - SSH LAN access correctly configured
 fi
 
 if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" ]
