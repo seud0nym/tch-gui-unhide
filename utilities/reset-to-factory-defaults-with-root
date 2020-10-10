@@ -1,11 +1,15 @@
+#!/bin/sh
+
 ACTIVE="$(cat /proc/banktable/active)"
 BOOTED="$(cat /proc/banktable/booted)"
+BKUP=""
 FIRMWARE=""
 REBOOT="Y"
 IPADDR=""
-while getopts f:I:in option
+while getopts bf:I:in option
 do
  case "${option}" in
+  b)  BKUP="Y";;
   f)  FIRMWARE="${OPTARG}";;
   I)  echo "${OPTARG}" | grep -q -E "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
       if [ $? -eq 1 ]
@@ -19,6 +23,7 @@ do
   n)  REBOOT="N";;
   ?)  echo "Optional parameters:"
       echo " -f filename     : Flash 'filename' into the mounted bank ($BOOTED) after reset and before reboot"
+      echo " -b              : Make a full backup of your booted bank configuration (requires attached USB device)"
       echo " -I n.n.n.n      : Use IP address n.n.n.n after reset and reboot"
       echo " -i              : Keep existing IP address [$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)] after reset and reboot"
       echo " -n              : Do NOT reboot"
@@ -49,6 +54,19 @@ then
   fi
 fi
 
+if [ ! -z "$BKUP" ]
+then
+  USB="$(ls /mnt/usb | head -n1)"
+  if [ -z "$USB" ]
+  then
+    echo "WARNING: Backup requested, but no attached USB device found!"
+    echo "         Are you REALLY sure you wish to proceed?"
+  else
+    SOURCE="$(cat /proc/banktable/booted)"
+    TARGET="/mnt/usb/$USB/${SOURCE}_Backup-$(date +%Y-%m-%d@%H%M).tar.gz"
+    echo "NOTE:    $SOURCE will be backed up to $TARGET"
+  fi
+fi
 
 if [ "$REBOOT" = "Y" ]
 then
@@ -69,6 +87,11 @@ read
 if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]
 then
   exit
+fi
+
+if [ ! -z "$USB" -a ! -z "$SOURCE" -a ! -z "$TARGET" ]
+then
+  tar -C /overlay -czf $TARGET $SOURCE
 fi
 
 rm -rf /overlay/`cat /proc/banktable/booted`
