@@ -55,14 +55,15 @@ MAP
     -e 's/getValidateCheckboxSwitch()/validateBoolean/' \
     -e '/^local gVCS/a local gVIES = post_helper.getValidateInEnumSelect' \
     -e '/^local dlna_available/i \local root_containers = {' \
-    -e '/^local dlna_available/i \    {".", T"<strong>Use standard container"},' \
-    -e '/^local dlna_available/i \    {"B", T"<strong>Browse Directory</strong>"},' \
-    -e '/^local dlna_available/i \    {"M", T"<strong>Music</strong>"},' \
-    -e '/^local dlna_available/i \    {"V", T"<strong>Video</strong>"},' \
-    -e '/^local dlna_available/i \    {"P", T"<strong>Pictures</strong>"},' \
+    -e '/^local dlna_available/i \    {".", T"Use standard container"},' \
+    -e '/^local dlna_available/i \    {"B", T"Browse Directory"},' \
+    -e '/^local dlna_available/i \    {"M", T"Music"},' \
+    -e '/^local dlna_available/i \    {"V", T"Video"},' \
+    -e '/^local dlna_available/i \    {"P", T"Pictures"},' \
     -e '/^local dlna_available/i \}' \
-    -e '/"uci.minidlna.config.friendly_name"/a\         dlna_inotify       = "uci.minidlna.config.inotify",' \
-    -e '/"uci.minidlna.config.friendly_name"/a\         dlna_root_container = "uci.minidlna.config.root_container",' \
+    -e '/"uci.minidlna.config.friendly_name"/a\        dlna_inotify = "uci.minidlna.config.inotify",' \
+    -e '/"uci.minidlna.config.friendly_name"/a\        dlna_root_container = "uci.minidlna.config.root_container",' \
+    -e '/"uci.minidlna.config.friendly_name"/a\        dlna_interface = "uci.minidlna.config.interface",' \
     -e '/^local function valid_samba_dlna_string/i \local dir_options = {' \
     -e '/^local function valid_samba_dlna_string/i \  tableid = "media_dirs",' \
     -e '/^local function valid_samba_dlna_string/i \  basepath = "uci.minidlna.config.media_dir.@.",' \
@@ -78,15 +79,32 @@ MAP
     -e '/^local function valid_samba_dlna_string/i \    type = "text",' \
     -e '/^local function valid_samba_dlna_string/i \  }' \
     -e '/^local function valid_samba_dlna_string/i \}' \
-    -e '/^local function valid_samba_dlna_string/i' \
     -e '/^local function valid_samba_dlna_string/i \local dir_valid = {' \
     -e '/^local function valid_samba_dlna_string/i \  dns_server = vNES' \
     -e '/^local function valid_samba_dlna_string/i \}' \
-    -e '/^local function valid_samba_dlna_string/i' \
     -e '/^local function valid_samba_dlna_string/i \local dir_data, dir_helpmsg = post_helper.handleTableQuery(dir_columns, dir_options, nil, nil, dir_valid)' \
+    -e '/^local function valid_samba_dlna_string/i' \
+    -e '/^local function valid_samba_dlna_string/i \local network_rpc_path = "rpc.network.interface."' \
+    -e '/^local function valid_samba_dlna_string/i \local network_rpc_content = content_helper.getMatchedContent (network_rpc_path)' \
+    -e '/^local function valid_samba_dlna_string/i \local intfs = {}' \
+    -e '/^local function valid_samba_dlna_string/i \local function split(x, sep)' \
+    -e '/^local function valid_samba_dlna_string/i \  local sep, fields = sep or ":", {}' \
+    -e '/^local function valid_samba_dlna_string/i \  local pattern = string.format("([^%s]+)", sep)' \
+    -e '/^local function valid_samba_dlna_string/i \  for field in x:gmatch(pattern) do' \
+    -e '/^local function valid_samba_dlna_string/i \    fields[#fields+1] = field' \
+    -e '/^local function valid_samba_dlna_string/i \  end' \
+    -e '/^local function valid_samba_dlna_string/i \  return fields' \
+    -e '/^local function valid_samba_dlna_string/i \end' \
+    -e '/^local function valid_samba_dlna_string/i \for _, v in ipairs (network_rpc_content) do' \
+    -e '/^local function valid_samba_dlna_string/i \  local path = split(split(format("%s",v.path),"@")[2],".")[1]' \
+    -e '/^local function valid_samba_dlna_string/i \  if path == "wan" or path == "lan" then' \
+    -e '/^local function valid_samba_dlna_string/i \    intfs[#intfs+1] = { v.ifname, T(v.ifname) }' \
+    -e '/^local function valid_samba_dlna_string/i \  end' \
+    -e '/^local function valid_samba_dlna_string/i \end' \
     -e '/^local function valid_samba_dlna_string/i' \
     -e '/dlna_friendly_name = valid_empty_string,/a\    dlna_inotify = gVCS,' \
     -e '/dlna_friendly_name = valid_empty_string,/a\    dlna_root_container=gVIES(root_containers),' \
+    -e '/dlna_friendly_name = valid_empty_string,/a\    dlna_interface=gVIES(intfs),' \
     -e 's/\(local help_link = \)\(.*\)/\1nil/' \
     -e '/T"General status"/d' \
     -e 's/local advancedhide/local info_attr/' \
@@ -96,7 +114,8 @@ MAP
     -e '/"File Server Enabled"/i\                tinsert(html, "<fieldset><legend>" .. T"File Server Status" .. "<\/legend>")' \
     -e '/"File Server descript/a\                tinsert(html, "<\/fieldset>")' \
     -e '/DLNA Enabled"/i\                tinsert(html, "<fieldset><legend>" .. T"DLNA Server Status" .. "<\/legend>")' \
-    -e '/DLNA name: ",/a\                tinsert(html, ui_helper.createInputSelect(T"Root Container", "root_container", root_containers, content["dlna_root_container"], advanced))' \
+    -e '/DLNA name: ",/a\                tinsert(html, ui_helper.createInputSelect(T"Interface:", "dlna_interface", intfs, content["dlna_interface"], advanced))' \
+    -e '/DLNA name: ",/a\                tinsert(html, ui_helper.createInputSelect(T"Root Container:", "dlna_root_container", root_containers, content["dlna_root_container"], advanced))' \
     -e '/DLNA name: ",/a\                tinsert(html, format("<label class=\\"control-label\\">%s</label><div class=\\"controls\\">", T"Media Directories: "))' \
     -e '/DLNA name: ",/a\                tinsert(html, ui_helper.createAlertBlock(T("If you want to restrict a Media Directory to a specific content type, you can prepend the type, followed by a comma, to the directory:<br>\\"A\\" for audio (eg. A,/tmp/run/mountd/sda1/Music)<br>\\"V\\" for video (eg. V,/tmp/run/mountd/sda1/Videos)<br>\\"P\\" for images (eg. P,/tmp/run/mountd/sda1/Pictures)"), info_attr))' \
     -e '/DLNA name: ",/a\                tinsert(html, ui_helper.createTable(dir_columns, dir_data, dir_options, nil, dir_helpmsg))' \
