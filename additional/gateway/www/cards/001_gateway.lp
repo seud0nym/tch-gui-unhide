@@ -11,10 +11,14 @@ local find, sub = string.find, string.sub
 local floor, ipairs = math.floor, ipairs
 local format = string.format
 
+local temp1_input = {}
+local temp_output = {}
+for i,f in ipairs(temp1_input) do
+  temp_output[i] = content_helper.readfile(f,"number",floor) / 1000
+end
+
 -- Non-configurable data
 local content = {
-  name = "uci.version.version.@version[0].marketing_name",
-  version = "uci.version.version.@version[0].marketing_version",
   ram_total = "sys.mem.RAMTotal",
   ram_free = "sys.mem.RAMFree",
   cpu = "sys.proc.CPUUsage",
@@ -24,6 +28,7 @@ content_helper.getExactContent(content)
 
 content["uptime"] = content_helper.readfile("/proc/uptime","number",floor)
 content["load"] = content_helper.readfile("/proc/loadavg","string"):sub(1,14)
+content["temps"] = table.concat(temp_output, "&deg; ") .. "&deg;"
 
 -- Construct an uptime string from the number of seconds
 local function secondsToTime(uptime)
@@ -62,11 +67,11 @@ local headerAttr = {
   <div class="smallcard">\
     ');  ngx.print( ui_helper.createCardHeader(T"Gateway", "modals/gateway-modal.lp", nil, nil, headerAttr) ); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf129;">\
-      <span class="simple-desc"><i class="icon-info-sign green"></i>&nbsp; Version: <strong>'); ngx.print(content.name .. " (" .. content.version .. ")"); ngx.print('</strong></span>\
-      <span class="simple-desc"><i class="icon-time status-icon"></i>&nbsp; System Time: <strong id="gateway-modal-time">'); ngx.print(os.date("%d/%m/%Y %H:%M:%S",os.time())); ngx.print('</strong></span>\
-      <span class="simple-desc"><i class="icon-circle-arrow-up status-icon"></i>&nbsp; Up: <strong id="gateway-modal-uptime">'); ngx.print(secondsToTime(content.uptime)); ngx.print('</strong></span>\
-      <span class="simple-desc"><i class="icon-dashboard status-icon"></i>&nbsp; CPU Usage: <strong><span id="gateway-modal-cpu">'); ngx.print(content.cpu); ngx.print('</span>% [<span id="gateway-modal-load">'); ngx.print(content.load); ngx.print('</span>]</strong></span>\
-      <span class="simple-desc"><i class="icon-hdd status-icon"></i>&nbsp; RAM: <span id="gateway-modal-ram-total">'); ngx.print(format('%.2f', content.ram_total / 1024)); ngx.print('</span>MB <strong>[<span id="gateway-modal-ram-free">'); ngx.print(format('%.2f', content.ram_free / 1024)); ngx.print('</span>MB Free]</strong></span>\
+      <span class="simple-desc"><i class="icon-time status-icon"></i>&nbsp; System Time: <strong id="gateway-card-time">'); ngx.print(os.date("%d/%m/%Y %H:%M:%S",os.time())); ngx.print('</strong></span>\
+      <span class="simple-desc"><i class="icon-circle-arrow-up status-icon"></i>&nbsp; Up: <strong id="gateway-card-uptime">'); ngx.print(secondsToTime(content.uptime)); ngx.print('</strong></span>\
+      <span class="simple-desc"><i class="icon-dashboard status-icon"></i>&nbsp; CPU Usage: <strong><span id="gateway-card-cpu">'); ngx.print(content.cpu); ngx.print('</span>% [<span id="gateway-card-load">'); ngx.print(content.load); ngx.print('</span>]</strong></span>\
+      <span class="simple-desc"><i class="icon-hdd status-icon"></i>&nbsp; RAM: <span id="gateway-card-ram-total">'); ngx.print(format('%.2f', content.ram_total / 1024)); ngx.print('</span>MB <strong>[<span id="gateway-card-ram-free">'); ngx.print(format('%.2f', content.ram_free / 1024)); ngx.print('</span>MB Free]</strong></span>\
+      <span class="simple-desc"><i class="icon-fire status-icon"></i>&nbsp; Sensor Temperatures: <strong><span id="gateway-card-temps">'); ngx.print(content.temps); ngx.print('</span></strong></span>\
     </div>\
   </div>\
 </div>\
@@ -83,12 +88,13 @@ function secondsToTime(uptime) {\
 }\
 function updateGatewayCard(){\
   $.post("/ajax/gateway-status.lua", [tch.elementCSRFtoken()], function(data){\
-    $("#gateway-modal-time").text(data["time"]);\
-    $("#gateway-modal-uptime").text(secondsToTime(Number(data["uptime"])));\
-    $("#gateway-modal-cpu").text(data["cpu"]);\
-    $("#gateway-modal-load").text(data["load"]);\
-    $("#gateway-modal-ram-free").text((Number(data["ram_free"]) / 1024).toFixed(2));\
-    $("#gateway-modal-ram-total").text((Number(data["ram_total"]) / 1024).toFixed(2));\
+    $("#gateway-card-time").text(data["time"]);\
+    $("#gateway-card-uptime").text(secondsToTime(Number(data["uptime"])));\
+    $("#gateway-card-cpu").text(data["cpu"]);\
+    $("#gateway-card-load").text(data["load"]);\
+    $("#gateway-card-ram-free").text((Number(data["ram_free"]) / 1024).toFixed(2));\
+    $("#gateway-card-ram-total").text((Number(data["ram_total"]) / 1024).toFixed(2));\
+    $("#gateway-card-temps").html(data["temps"]);\
   }, "json")\
   .fail(function(response){\
     if (response.status == 403) { window.location.href="/gateway.lp?r="+Date.now(); }\

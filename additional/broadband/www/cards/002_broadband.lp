@@ -53,7 +53,6 @@ local WS_light_map = {
 }
 
 local wan_intf ="wan"
-local wan6_intf ="wan6"
 local content_wan = {
   wwan_ipaddr = "rpc.network.interface.@wwan.ipaddr",
   wwan_ip6addr = "rpc.network.interface.@wwan.ip6addr",
@@ -68,6 +67,7 @@ local content_rpc = {
   rx_bytes = "rpc.network.interface.@" .. wan_intf .. ".rx_bytes",
 }
 content_helper.getExactContent(content_rpc)
+
 local function bytes2string(s_bytes)
   if s_bytes=="" then
     return "0<small>B</small>"
@@ -132,7 +132,7 @@ end
         html[#html+1] = ui_helper.createSimpleLight("1", "Mobile connected")
       end
       if tonumber(content_rpc.rx_bytes) and tonumber(content_rpc.tx_bytes) and tonumber(content_rpc.uptime) then
-        html[#html+1] = format('<span class="simple-desc"><i class="icon-cloud-upload icon-small status-icon"></i> %s <i class="icon-cloud-download icon-small status-icon"></i> %s %s/<i>d</i></span>', bytes2string(content_rpc.tx_bytes), bytes2string(content_rpc.rx_bytes), bytes2string((content_rpc.rx_bytes+content_rpc.tx_bytes)/(content_rpc.uptime/86400)))
+        html[#html+1] = format('<span class="simple-desc"><i class="icon-cloud-upload icon-small status-icon"></i> <span id="broadband-card-upload">%s</span> <i class="icon-cloud-download icon-small status-icon"></i> <span id="broadband-card-download">%s</span> <span id="broadband-card-daily-average">%s</span>/<i>d</i></span>', bytes2string(content_rpc.tx_bytes), bytes2string(content_rpc.rx_bytes), bytes2string((content_rpc.rx_bytes+content_rpc.tx_bytes)/(content_rpc.uptime/86400)))
       end
       ngx.print(html)
       ngx.print('\

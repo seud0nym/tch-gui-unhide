@@ -4,6 +4,17 @@ do
   sed -e 's/\(local help_link = \)\(.*\)/\1nil/' -i "$m"
 done
 
+echo [$SCRIPT]: Update gateway card and status ajax with hardware temperature monitors
+elements=""
+for m in $(find /sys/devices/i2c-*/ -name temp1_input)
+do
+  elements="$elements\"$m\","
+done
+for f in /www/cards/001_gateway.lp /www/docroot/ajax/gateway-status.lua
+do
+  sed -e "s|\(^local temp1_input = {\)|\1$elements|" -i $f
+done
+
 echo [$SCRIPT]: Fix Internet card bug and bridge detection, and hide if no WAN interface defined
 sed \
  -e '/local proxy = require("datamodel")/a local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")' \
