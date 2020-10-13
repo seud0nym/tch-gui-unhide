@@ -8,17 +8,22 @@ CARDS=""
 update_cards() {
   MODAL=""
   case "$2" in
-    c) MODAL="contentsharing-modal.lp";;
-    m) MODAL="usermgr-modal.lp";;
-    n) MODAL="nat-alg-helper-modal.lp";;
-    p) MODAL="printersharing-modal.lp";;
-    q) MODAL="qos-queue-modal.lp";;
-    r) MODAL="relay-modal.lp";;
-    s) MODAL="system-modal.lp";;
-    t) MODAL="tod-modal.lp";;
-    x) MODAL="xdsl-low-modal.lp";;
-    A) for PARAM in c m n p q r s t x; do update_cards $1 $PARAM; done;;
-    *) echo "[$SCRIPT]: WARNING - Ignored unknown card include/exclude option $2"
+    c)  MODAL="contentsharing-modal.lp";;
+    m)  MODAL="usermgr-modal.lp";;
+    n)  MODAL="nat-alg-helper-modal.lp";;
+    p)  MODAL="printersharing-modal.lp";;
+    q)  MODAL="qos-queue-modal.lp";;
+    r)  MODAL="relay-modal.lp";;
+    s)  MODAL="system-modal.lp";;
+    t)  MODAL="tod-modal.lp";;
+    x)  MODAL="xdsl-low-modal.lp";;
+    A)  for PARAM in c m n p q r s t x; do update_cards $1 $PARAM; done;;
+    *)  if [ ! -z "$2" -a -f "/www/docroot/modals/$2" ]
+        then
+          MODAL=$2
+        else
+          echo "[$SCRIPT]: WARNING - Ignored unknown card include/exclude option $2"
+        fi;;
   esac
   if [ ! -z "$MODAL" ]; then
     CARDS=${1}${MODAL}$(echo $CARDS | sed -e "s/[IX]$MODAL//")
@@ -116,7 +121,8 @@ do
       echo " -y             : Bypass confirmation prompt (answers 'y')"
       echo " -x c|m|n|p|q|r|s|t|x|A :"
       echo "                  Exclude specific cards (use -x multiple times to specify multiple cards or use -xA for all of the following cards):"
-      echo "                    c=Content Sharing m=Management n=NAT Helpers p=Printer Sharing q=QoS r=Relay Setup s=System Extras t=Time of Day x=xDSL config A=ALL"
+      echo "                    c=Content Sharing m=Management n=NAT Helpers p=Printer Sharing q=QoS r=Relay Setup s=System Extras t=Time of Day x=xDSL config"
+      echo "                    You can also specify the full name of a modal file (e.g. -x mmpbx-info-modal.lp). Be aware that this may not work for all cards."
       echo " -n c|m|n|p|q|r|s|t|x|A : "
       echo "                  Include specific cards that were previously excluded (use -n multiple times to specify multiple cards or use -nA)"
       echo " -u             : Check for and download any updates to $FILENAME"
