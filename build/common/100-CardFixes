@@ -31,8 +31,6 @@ sed \
  -e '/local dhcpState$/a local dhcp6State_text = ""' \
  -e '/local dhcpState$/a local dhcp6State' \
  -e '/@lan.dhcpv4/a \    dhcpv6State = "uci.dhcp.dhcp.@lan.dhcpv6",' \
- -e '/@lan.dhcpv4/a \    dhcpv4Proto = "uci.network.interface.@lan.proto",' \
- -e '/localdevmask = /d' \
  -e 's/localdevIP = "uci/localdevIP = "rpc/' \
  -e 's/dhcpState/dhcp4State/g' \
  -e 's/DHCP enabled/DHCPv4 enabled/' \
@@ -45,8 +43,7 @@ sed \
  -e '/getExactContent/a \    dhcp6State = "0"' \
  -e '/getExactContent/a end' \
  -e '/createSimpleLight/a \            ui_helper.createSimpleLight(dhcp6State, dhcp6State_text),' \
- -e 's/and netmask is <strong>%s<\/strong>/\(<strong>%s<\/strong>\)/' \
- -e 's/localdevmask/dhcpv4Proto/' \
+  -e 's/and netmask/<br>Subnet Mask/' \
  -e '/^\\$/d' \
  -i /www/cards/005_LAN.lp
 
