@@ -31,6 +31,22 @@ do
  esac
 done
 
+if [ ! -z "$BKUP" ]
+then
+  USB="$(ls /mnt/usb | head -n1)"
+  if [ -z "$USB" ]
+  then
+    echo "WARNING: Backup requested, but no attached USB device found!"
+    echo "         Are you REALLY sure you wish to proceed?"
+  else
+    SOURCE="$(cat /proc/banktable/booted)"
+    TARGET="/mnt/usb/$USB/${SOURCE}_Backup-$(date +%Y-%m-%d@%H%M).tar.gz"
+    echo "NOTE:    $SOURCE will be backed up to $TARGET"
+  fi
+else
+  echo "NOTE:    NO backup requested"
+fi
+
 if [ ! -z "$FIRMWARE" ]
 then
   if [ -f "$FIRMWARE" ]
@@ -51,20 +67,6 @@ then
   else 
     echo "ABORTING: $FIRMWARE does not exist!"
     exit
-  fi
-fi
-
-if [ ! -z "$BKUP" ]
-then
-  USB="$(ls /mnt/usb | head -n1)"
-  if [ -z "$USB" ]
-  then
-    echo "WARNING: Backup requested, but no attached USB device found!"
-    echo "         Are you REALLY sure you wish to proceed?"
-  else
-    SOURCE="$(cat /proc/banktable/booted)"
-    TARGET="/mnt/usb/$USB/${SOURCE}_Backup-$(date +%Y-%m-%d@%H%M).tar.gz"
-    echo "NOTE:    $SOURCE will be backed up to $TARGET"
   fi
 fi
 
