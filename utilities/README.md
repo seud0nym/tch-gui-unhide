@@ -91,8 +91,8 @@ This script accepts the following options:
           y            Enable WPS on non-Guest and non-Backhaul SSIDs (device default)
           n            Disable WPS on non-Guest and non-Backhaul SSIDs
  -o                    Configures opkg
- -A                    Equivalent to: -hd -dg -an -cn -fn -pn -rn -un -wn
- -S                    Equivalent to: -hs -dg -an -cn -fn -pn -rn -un -wn
+ -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un -wn
+ -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn
  -R                    Reset to device defaults (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -ty -ey -uy -wy)
  -U                    Check for and download the latest version from GitHub
 ```
@@ -147,7 +147,7 @@ You can also download the latest version individually:
 
 **NOTE: Replace `<scriptname>` with the name of the script you wish to download.**
 
-Execute these commands on your device via a PuTTY session or equivalent (an active WAN/Internet connection is required):
+Execute this command on your device via a PuTTY session or equivalent (an active WAN/Internet connection is required):
 ```
 wget https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/<scriptname> 
 ```
