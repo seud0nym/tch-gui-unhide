@@ -6,7 +6,6 @@ gettext.textdomain('webui-core')
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
-local wirelessSSID_helper = require("wirelessSSID_helper")
 local ipairs, ngx, string = ipairs, ngx, string
 local format = string.format
 
