@@ -335,29 +335,31 @@ if dhcp_state == "connected" then
 	cs["leaseobtained"],  cs["leaseexpires"] = getLeaseTime(dhcp_lease["uptime"],  dhcp_lease["lease"], dhcp_lease["lease_expires"]) 
 end
 
-local supervision_modes = {
-  { "BFD", T"BFD" },
-  { "DNS", T"DNS" },
-  { "Disabled", T"Disabled" },
-}
-local supervision_modes_param = {
-  supervision_mode = "uci.supervision.global.mode",
-  supervision_enabled = "uci.supervision.global.enabled",
-}
-local supervision_modes_valid = {
-  supervision_mode = gVIES(supervision_modes),
-  supervision_enabled = vB,
-}
-local supervision_modes_content = post_helper.handleQuery(supervision_modes_param, supervision_modes_valid)
+local supervision_support = proxy.get("uci get supervision.global")
+
+if supervision_support then
+  local supervision_modes = {
+    { "BFD", T"BFD" },
+    { "DNS", T"DNS" },
+    { "Disabled", T"Disabled" },
+  }
+  local supervision_modes_param = {
+    supervision_mode = "uci.supervision.global.mode",
+    supervision_enabled = "uci.supervision.global.enabled",
+  }
+  local supervision_modes_valid = {
+    supervision_mode = gVIES(supervision_modes),
+    supervision_enabled = vB,
+  }
+  local supervision_modes_content = post_helper.handleQuery(supervision_modes_param, supervision_modes_valid)
+end
 
   ngx.print('\
-\
 <fieldset>\
 ');  
 ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   ngx.print('\
 <legend>');  ngx.print( T"DHCP connection" ); ngx.print('</legend>\
-\
 ');  
     local html = {}
     ajax_attr_light.light.class = dhcp_light_map[dhcp_state]
@@ -365,7 +367,7 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     html[#html+1] = ui_helper.createSwitch(T"Enabled", "uci_wan_auto", content["uci_wan_auto"])
     html[#html+1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
     html[#html+1] = ui_helper.createSwitch(T"IPv6", "uci_wan_ipv6", content.uci_wan_ipv6)
-    if supervision_modes_content["supervision_enabled"] then
+    if supervision_support then
       html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision", "supervision_mode", supervision_modes, supervision_modes_content["supervision_mode"])
       html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled", "supervision_enabled", supervision_modes_content["supervision_enabled"])
     end
