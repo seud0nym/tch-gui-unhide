@@ -352,8 +352,17 @@ then
   uci set bulkdata.profile_1.enabled='0'
   uci commit bulkdata
   SRV_bulkdata=$(( $SRV_bulkdata + 1 ))
+  sed -e '/bulkdata/d' /etc/crontabs/root
 else
   echo [$SCRIPT]: - bulkdata collection already disabled
+fi
+grep -q bulkdata /etc/crontabs/root
+if [ $? -eq 1 ]
+then
+  echo [$SCRIPT]: - Removing bulkdata cron job
+  sed -e '/bulkdata/d' -i /etc/crontabs/root
+else
+  echo [$SCRIPT]: - bulkdata cron job already removed
 fi
 
 CURRENT_HOSTNAME="$(uci -q get system.@system[0].hostname)"
