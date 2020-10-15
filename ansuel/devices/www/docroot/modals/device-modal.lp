@@ -103,7 +103,8 @@ local devices_options = {
 local devices_filter = function(data)
   if data["L2Interface"] == "" then
     return false
-  elseif match(data["L2Interface"], "^wl0") then
+  end
+  if match(data["L2Interface"], "^wl0") then
     data["InterfaceType"] = "Wireless - 2.4GHz"
   elseif match(data["L2Interface"], "^wl1") then
     data["InterfaceType"] = "Wireless - 5GHz"
@@ -111,6 +112,16 @@ local devices_filter = function(data)
     data["InterfaceType"] = format("Ethernet - %s",data["Port"])
   elseif match(data["L2Interface"], "moca*") then
     data["InterfaceType"] = "MoCA"
+  end
+  if data["IPv4"] == "" or data["IPv6"] == "" then
+    if data["DhcpLeaseIP"] ~= "" then
+      local chunks = {data["DhcpLeaseIP"]:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")}
+      if (#chunks == 4) then
+        data["IPv4"] = data["DhcpLeaseIP"]
+      else
+        data["IPv6"] = data["DhcpLeaseIP"]
+      end
+    end 
   end
   return true
 end
