@@ -173,8 +173,6 @@ for(var i=0;i<hdrs.length;i++){\
   switch(text){\
     case "Hostname":sort="FriendlyName";break;\
     case "MAC":sort="MACAddress";break;\
-    case "IPv4":sort="IPv4";break;\
-    case "IPv6":sort="IPv6";break;\
     case "Interface":sort="L2Interface";break;\
     case "Connected":sort="ConnectedTime";break;\
     default:sort="";break;\
