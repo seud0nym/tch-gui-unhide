@@ -83,7 +83,7 @@ local function bytes2string(s_bytes)
     elseif kb >= 1 then
       return format("%.2f", kb) .. "<small>KB</small>"
     else
-      return s_bytes .. "<small>B</small>"
+      return format("%d", s_bytes) .. "<small>B</small>"
     end
   end
 end
