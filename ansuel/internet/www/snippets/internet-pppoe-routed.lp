@@ -135,6 +135,37 @@ for _, v in ipairs(firewall_forwarding_path) do
     break
   end
 end
+local function validateNat(value, object, key)
+  local valid, msg = post_helper.validateBoolean(value, object, key)
+  if valid and zonenum ~= "" and value ~= proxy.get("uci.firewall.zone."..zonenum..".masq")[1].value then
+    proxy.set("uci.firewall.zone."..zonenum..".conntrack", "1")
+    local fwd_enabled
+    if value == "1" then
+      fwd_enabled = "0"
+    else
+      fwd_enabled = "1"
+    end
+    if forwdnum == "" then
+      forwdnum = proxy.add("uci.firewall.forwarding.")
+      -- 106-BEGIN the build will delete this block in FW 17.2.x, because it is only required for FW 18.1.c (possible transformer change - return value is now _key, @forwarding[index] as in FW 17)
+      local count = 0
+      firewall_forwarding_path = content_helper.convertResultToObject("uci.firewall.forwarding.",firewall_forwarding)
+      for _ in ipairs(firewall_forwarding_path) do
+        count = count + 1
+      end
+      forwdnum = "@forwarding[" .. count .. "]"
+      -- 106-END
+      proxy.set("uci.firewall.forwarding."..forwdnum..".src", "wan")
+      proxy.set("uci.firewall.forwarding."..forwdnum..".dest", "lan")
+      proxy.set("uci.firewall.forwarding."..forwdnum..".name", "for_w2l")
+      proxy.set("uci.firewall.forwarding."..forwdnum..".enabled", fwd_enabled)
+    else
+      proxy.set("uci.firewall.forwarding."..forwdnum..".enabled", fwd_enabled)
+    end
+    proxy.apply()
+  end
+  return valid, msg
+end
 
 local mapParams = {
   uci_wan_auto = "uci.network.interface.@wan.auto",
@@ -229,35 +260,6 @@ local function validateUsername (value, postdata)
   end
 
   return true
-end
-local firewall_value = {["uci.firewall.forwarding.@"..forwdnum..".src"] = "wan",
-                        ["uci.firewall.forwarding.@"..forwdnum..".dest"] = "lan",
-                        ["uci.firewall.forwarding.@"..forwdnum..".name"] = "for_w2l"}
-local function validateNat(value, object, key)
-  local valid, msg = post_helper.validateBoolean(value, object, key)
-  if valid and zonenum ~= "" and value ~= proxy.get("uci.firewall.zone."..zonenum..".masq")[1].value then
-    proxy.set("uci.firewall.zone."..zonenum..".conntrack", "1")
-    local key = "forwarding"..post_helper.getRandomKey()
-    if value == "1" then
-      if forwdnum == "" then
-        forwdnum = proxy.add("uci.firewall.forwarding.", key)
-        proxy.set(firewall_value)
-        proxy.set("uci.firewall.forwarding.@"..forwdnum..".enabled", "0")
-      else
-        proxy.set("uci.firewall.forwarding.@"..forwdnum..".enabled", "0")
-      end
-    else
-      if forwdnum == "" then
-        forwdnum = proxy.add("uci.firewall.forwarding.", key)
-        proxy.set(firewall_value)
-        proxy.set("uci.firewall.forwarding.@"..forwdnum..".enabled", "1")
-      else
-        proxy.set("uci.firewall.forwarding.@"..forwdnum..".enabled", "1")
-      end
-    end
-    proxy.apply()
-  end
-  return valid, msg
 end
 
 local function isWanEnabled(value, object, key)
