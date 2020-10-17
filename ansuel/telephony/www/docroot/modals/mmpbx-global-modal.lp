@@ -25,21 +25,7 @@ if ngx.var.request_method == "POST" then
   end
 end
 
---Generate random key for new rule
---@return 4 digit random key.
-function getRandomKey()
-  local open = io.open
-  local bytes
-  local key = ("%02X"):rep(4)
-  local fd = open("/dev/urandom", "r")
-  if fd then
-    bytes = fd:read(4)
-    fd:close()
-  end
-  return key:format(bytes:byte(1, 4))
-end
-
-local uniqueKey = getRandomKey()
+local uniqueKey = post_helper.getRandomKey()
 
 local mapValid = {
   mmpbx_enabled = post_helper.validateBoolean,

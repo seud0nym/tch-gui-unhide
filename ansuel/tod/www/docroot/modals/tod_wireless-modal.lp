@@ -39,18 +39,7 @@ local tod_action_path = "uci.tod.action."
 local tod_wifitod_path = "uci.tod.wifitod."
 local tod_ap_path = "uci.tod.ap."
 
-local function getRandomKey()
-  local bytes
-  local key = ("%02X"):rep(16)
-  local fd = io.open("/dev/urandom", "r")
-  if fd then
-    bytes = fd:read(16)
-    fd:close()
-  end
-  return key:format(bytes:byte(1, 16))
-end
-
-local uniqueKey = getRandomKey()
+local uniqueKey = post_helper.getRandomKey()
 
 local function validateTime(value, object, key)
   local timepattern = "^(%d+):(%d+)$"

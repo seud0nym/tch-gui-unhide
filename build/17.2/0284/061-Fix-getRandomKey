@@ -1,0 +1,23 @@
+echo [$SCRIPT]: Add missing getRandomKey function
+cat <<GRK > /www/lua/randomKey.lua
+local M = {}
+
+function M.getRandomKey()
+  local bytes
+  local key = ("%02X"):rep(16)
+  local fd = io.open("/dev/urandom", "r")
+  if fd then
+    bytes = fd:read(16)
+    fd:close()
+  end
+  return key:format(bytes:byte(1, 16))
+end
+
+return M
+GRK
+
+for f in $(grep -rl getRandomKey /www)
+do
+  sed -e 's/\(post_helper\)\(\.getRandomKey\)/require("randomKey")\2/' -i $f
+done
+
