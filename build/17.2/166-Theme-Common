@@ -1,4 +1,6 @@
-  sed \
-   -e '$ a .card_bg{position:relative;z-index:1;}' \
-   -e '$ a .card_bg:after{font-family:FontAwesome;content:attr(data-bg-text);display:block;font-size:110px;line-height:1;position:absolute;bottom:-5px;right:5px;}' \
-   -i /www/docroot/css/gw.css
+[ -f /www/cards/016_nfc.lp ] && sed -e 's/class="content"/class="content card_bg mirror" data-bg-text="\&#xf0c1;"/' -i /www/cards/016_nfc.lp
+
+sed \
+  -e '$ a .card_bg{position:relative;z-index:1;}' \
+  -e '$ a .card_bg:after{color:#EAEAEA;font-family:FontAwesome;content:attr(data-bg-text);display:block;font-size:110px;line-height:1;position:absolute;bottom:-5px;right:5px;}' \
+  -i /www/docroot/css/gw.css
