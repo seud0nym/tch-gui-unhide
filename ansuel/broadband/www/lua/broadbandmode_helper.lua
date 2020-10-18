@@ -34,15 +34,6 @@ local function get_wan_mode()
 	return ""
 end
 
-local function isVoiceMode()
-	local ppp_mgmt = proxy.get("uci.modgui.var.ppp_mgmt")
-	local wan_username = proxy.get("uci.network.interface.@wan.username")
-    if wan_username and ppp_mgmt and ( wan_username[1].value == ppp_mgmt[1].value ) and not ( wan_username[1].value == "" )then
-        return true
-    end
-	return nil
-end
-
 local function findwan(interface)
 	for i,v in ipairs(proxy.getPN("uci.network.device.", true)) do
 		local result = match(v.path, "uci%.network%.device%.@.*".. interface .. ".*%.")
@@ -114,42 +105,6 @@ local function bridge(mode)
     return
 end
 
-local function voice(mode)
-    local ifnames = proxy.get("uci.network.interface.@lan.ifname")[1].value
-	local tim_data_ptm = "ptm0.835"
-	local ppp_mgmt = proxy.get("uci.modgui.var.ppp_mgmt")
-	local ppp_original = proxy.get("uci.modgui.var.ppp_realm_ipv4")
-	if mode == "enable" then
-	
-		proxy.set({
-			["uci.network.interface.@wan.username"] = ppp_mgmt[1].value or "Unknown",
-			["uci.dhcp.dhcp.@lan.ignore"] = '1',
-			["uci.wireless.wifi-device.@radio_2G.state"] = '0',
-			["uci.wireless.wifi-device.@radio_5G.state"] = '0',
-			["uci.network.interface.@lan.ifname"] = ifnames .. ' ' .. tim_data_ptm,
-			["uci.network.interface.@wan.ifname"] = 'ptm0.837',
-			["uci.network.interface.@wan.password"] = 'alicenewag',
-		})
-	elseif not isVoiceMode() then
-        return
-	else
-		
-		proxy.set({
-			["uci.network.interface.@wan.username"] = ppp_original[1].value or "Unknown",
-			["uci.wireless.wifi-device.@radio_2G.state"] = '1',
-			["uci.wireless.wifi-device.@radio_5G.state"] = '1',
-			["uci.dhcp.dhcp.@lan.ignore"] = '0',
-			["uci.network.interface.@lan.ifname"] = string.gsub(string.gsub(ifnames, tim_data_ptm, ""), "%s$", ""),
-			["uci.network.interface.@wan.ifname"] = 'wanptm0',
-			["uci.network.interface.@wan.password"] = 'alicenewag',
-		})
-	end
-	
-	restartNetwork()
-
-    return
-end
-
 local tablecontent = {}
 tablecontent[#tablecontent + 1] = {
     name = "adsl",
@@ -159,9 +114,6 @@ tablecontent[#tablecontent + 1] = {
     card = "002_broadband_xdsl.lp",
     check = function()
         if get_wansensing() == "1" then
-			if isVoiceMode() then
-				return false
-			end
             local L2 = proxy.get("uci.wansensing.global.l2type")[1].value
             if L2 == "ADSL" then
                 return true
@@ -181,7 +133,6 @@ tablecontent[#tablecontent + 1] = {
     end,
     operations = function()
 		bridge("check")
-		voice("check")
 		local interface = findwan("atm") or "@wanatmwan"
         local difname = proxy.get("uci.network.device." .. interface .. ".ifname")
         if difname then
@@ -217,9 +168,6 @@ tablecontent[#tablecontent + 1] = {
     check = function()
 
         if get_wansensing() == "1" then
-			if isVoiceMode() then
-				return false
-			end
             local L2 = proxy.get("uci.wansensing.global.l2type")[1].value
             if L2 == "VDSL" then
                 return true
@@ -238,7 +186,6 @@ tablecontent[#tablecontent + 1] = {
     end,
     operations = function()
 		bridge("check")
-		voice("check")
 		local interface = findwan("ptm") or "@wanptm0"
         local difname = proxy.get("uci.network.device." .. interface .. ".ifname")
         if difname then
@@ -277,22 +224,7 @@ tablecontent[#tablecontent + 1] = {
         end
     end,
     operations = function()
-		voice("check")
 		bridge("enable")
-	end,
-}
-tablecontent[#tablecontent + 1] = {
-    name = "voice",
-    default = false,
-    description = "Voice Mode",
-    view = "broadband-bridge.lp",
-    card = "002_broadband_bridge.lp",
-    check = function()
-        return isVoiceMode() or false
-    end,
-    operations = function()
-		bridge("check")
-		voice("enable")
 	end,
 }
 tablecontent[#tablecontent + 1] = {
@@ -304,9 +236,6 @@ tablecontent[#tablecontent + 1] = {
     check = function()
 
         if get_wansensing() == "1" then
-			if isVoiceMode() then
-				return false
-			end
             local L2 = proxy.get("uci.wansensing.global.l2type")[1].value
             if L2 == "ETH" then
                 return true
@@ -331,7 +260,6 @@ tablecontent[#tablecontent + 1] = {
     end,
     operations = function()
 		bridge("check")
-		voice("check")
 		local interface = findwan(ethname) or "@waneth4"
         local difname = proxy.get("uci.network.device." .. interface .. ".ifname")
         if difname then
@@ -368,9 +296,6 @@ if sfp == 1 then
         card = "002_broadband_gpon.lp",
         check = function()
             if get_wansensing() == "1" then
-				if isVoiceMode() then
-					return false
-				end
                 local L2 = proxy.get("uci.wansensing.global.l2type")[1].value
                 if L2 == "SFP" then
                     return true
@@ -396,7 +321,6 @@ if sfp == 1 then
         end,
         operations = function()
 			bridge("check")
-			voice("check")
 			local interface = findwan(ethname) or "@waneth4"
             local difname = proxy.get("uci.network.device." .. interface .. ".ifname")
             if difname then
