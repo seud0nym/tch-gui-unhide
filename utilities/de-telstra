@@ -352,7 +352,6 @@ then
   uci set bulkdata.profile_1.enabled='0'
   uci commit bulkdata
   SRV_bulkdata=$(( $SRV_bulkdata + 1 ))
-  sed -e '/bulkdata/d' /etc/crontabs/root
 else
   echo [$SCRIPT]: - bulkdata collection already disabled
 fi
