@@ -337,14 +337,15 @@ if dhcp_state == "connected" then
 	cs["leaseobtained"],  cs["leaseexpires"] = getLeaseTime(dhcp_lease["uptime"],  dhcp_lease["lease"], dhcp_lease["lease_expires"]) 
 end
 
-local supervision_support = proxy.get("uci get supervision.global")
+local supervision_support = proxy.get("uci.supervision.global.enabled")
+local supervision_modes = {
+  { "BFD", T"BFD" },
+  { "DNS", T"DNS" },
+  { "Disabled", T"Disabled" },
+}
+local supervision_modes_content
 
 if supervision_support then
-  local supervision_modes = {
-    { "BFD", T"BFD" },
-    { "DNS", T"DNS" },
-    { "Disabled", T"Disabled" },
-  }
   local supervision_modes_param = {
     supervision_mode = "uci.supervision.global.mode",
     supervision_enabled = "uci.supervision.global.enabled",
@@ -353,7 +354,7 @@ if supervision_support then
     supervision_mode = gVIES(supervision_modes),
     supervision_enabled = vB,
   }
-  local supervision_modes_content = post_helper.handleQuery(supervision_modes_param, supervision_modes_valid)
+  supervision_modes_content = post_helper.handleQuery(supervision_modes_param, supervision_modes_valid)
 end
 
   ngx.print('\
