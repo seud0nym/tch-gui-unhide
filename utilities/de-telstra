@@ -40,7 +40,7 @@ else
 fi
 
 # Options
-VARIANT=$(uci -q get env.var.variant_friendly_name)
+VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
 HOST='u'
 DOMAIN='u'
@@ -120,73 +120,45 @@ do
           esac
       fi
       exit;;
-  ?) cat <<EOH | less -E -~
+  ?) cat <<EOH
 Syntax: $0 <options>
 Optional parameters:
  -h u|d|s|<hostname>
-    where u            Leave hostname unchanged (Default)
+    where u            Leave hostname unchanged
           d            Set the hostname to $VARIANT
           s            Set the hostname to $VARIANT-$MAC_HEX
           <hostname>   Use the specified hostname
  -d u|g|<domainname>
-    where u            Leave domain name unchanged (Default)
+    where u            Leave domain name unchanged
           g            Set the domain name to gateway
           <domainname> Set the domain name to <domainname>
  -n u|a|c|g|f|o|<n.n.n.n>
-    where u            Leave DNS servers unchanged (Default)
-          a            Automatically use the DNS servers from the ISP (device default)
+    where u            Leave DNS servers unchanged
+          a            Automatically use the DNS servers from the ISP
           c            Set the DNS servers to Cloudflare
           g            Set the DNS servers to Google
           f            Set the DNS servers to OpenDNS Family Shield
           o            Set the DNS servers to OpenDNS
           <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
- -a u|y|n
-    where u            Leave ALGs unchanged (Default)
-          y            Enable ALGs (device default)
-          n            Disable ALGs (except SIP if telephony enabled)
- -c u|y|n
-    where u            Leave Content Sharing unchanged (Default)
-          y            Enable Content Sharing (device default)
-          n            Disable Content Sharing
- -f u|y|n
-    where u            Leave File Sharing unchanged (Default)
-          y            Enable File Sharing (device default)
-          n            Disable File Sharing
- -p u|y|n
-    where u            Leave power saving unchanged (Default)
-          y            Enable power saving (device default)
-          n            Disable power saving
- -r u|y|n
-    where u            Leave Printer Sharing unchanged (Default)
-          y            Enable Printer Sharing (device default)
-          n            Disable Printer Sharing
- -t u|y|n
-    where u            Leave Telephony (mmpbx) unchanged (Default)
-          y            Enable the telephony service (device default)
-          n            Disable the telephony service
- -e u|y|n
-    where u            Leave DECT Emission Mode unchanged (Default)
-          y            Enable DECT Emission Mode (device default)
-          n            Disable DECT Emission Mode
- -u u|y|n
-    where u            Leave UPnP unchanged (Default)
-          y            Enable the UPnP service (device default)
-          n            Disable the UPnP service
- -m u|y|n              
-    where u            Leave MultiAP unchanged (Default)
-          y            Enable MultiAP (device default)
-          n            Disable MultiAP
-                       NOTE: -m option is only applicable to devices with MultiAP installed
- -w u|y|n              
-    where u            Leave WPS unchanged on non-Guest and non-Backhaul SSIDs (Default)
-          y            Enable WPS on non-Guest and non-Backhaul SSIDs (device default)
-          n            Disable WPS on non-Guest and non-Backhaul SSIDs
- -o                    Configures opkg
+ -a u|y|n              ALGs:               u=Unchanged y=Enable n=Disable (except SIP if telephony enabled)
+ -c u|y|n              Content Sharing:    u=unchanged y=Enable n=Disable
+ -f u|y|n              File Sharing:       u=unchanged y=Enable n=Disable
+ -p u|y|n              Power Saving:       u=unchanged y=Enable n=Disable
+ -r u|y|n              Printer Sharing:    u=unchanged y=Enable n=Disable
+ -t u|y|n              Telephony:          u=unchanged y=Enable n=Disable
+ -e u|y|n              DECT Emission Mode: u=unchanged y=Enable n=Disable
+ -u u|y|n              UPnP Service:       u=unchanged y=Enable n=Disable
+ -m u|y|n              MultiAP (EasyMesh): u=unchanged y=Enable n=Disable
+ -w u|y|n              WPS on non-Guest and non-Backhaul SSIDs: u=unchanged y=Enable n=Disable
  -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un -wn
  -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn
  -R                    Reset to device defaults
                         (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -ty -ey -uy -wy)
+ -o                    Configures opkg
  -U                    Check for and download the latest version from GitHub
+
+NOTE #1: Default for all optional parameters is u (unchanged)
+NOTE #2: -m option is only applicable to devices with MultiAP installed
 EOH
       exit;;
  esac
