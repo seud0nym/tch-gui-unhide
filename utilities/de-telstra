@@ -279,6 +279,19 @@ else
   uci commit wireless
 fi
 
+if [ $(uci show firewall | grep 192.168.20.1 | wc -l) -eq 0 ]
+then
+  echo [$SCRIPT]: - Telstra AIR firewall entries already removed
+else
+  echo [$SCRIPT]: - Deleting Telstra AIR firewall entries
+  while [ $(uci show firewall | grep 192.168.20.1 | wc -l) -gt 0 ]
+  do
+    uci delete $(uci show firewall | grep 192.168.20.1 | head -n1 | cut -d. -f1-2)
+    SRV_fw=$(( $SRV_fw + 1 ))
+  done
+  uci commit firewall
+fi
+
 for s in $(uci -q get system.ntp.server | tr " " "$IFS")
 do 
   echo $s | grep -q -i telstra
