@@ -84,7 +84,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - Modified **Time of Day** Wireless Control tab to allow selection of access point
 
 ### Additional (new) GUI Features
-- **Gateway** card now has current device status for CPU usage and free RAM
+- **Gateway** card now has current device status for CPU usage, free RAM and temperature
 - **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
 - **Traffic monitor** tab in Diagnostics
 - **Time of Day** card shows the Wireless Control rule count
