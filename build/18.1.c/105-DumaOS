@@ -1,0 +1,16 @@
+if [ "$VERSION" != "18.1.c.0462" ]
+then
+  if [ "$(uci get dumaos.tr69.dumaos_enabled)" = '1' ]
+  then
+    echo [$SCRIPT]: Add DumaOS button
+    sed \
+      -e "/id=\"basicview\"/i\            html[#html + 1] = '<a href=\"desktop/index.html#com.netdumasoftware.desktop\" class=\"btn\" id=\"dumaos\">'" \
+      -e "/id=\"basicview\"/i\            html[#html + 1] = T\"DumaOS\"" \
+      -e "/id=\"basicview\"/i\            html[#html + 1] = '</a>'" \
+      -e '/<div class="header span12">/a <script>if(window.self !== window.top){$("div.header").hide();}</script>\\' \
+      -i /www/docroot/gateway.lp
+  else
+    echo [$SCRIPT]: DumaOS button NOT added - DumaOS is disabled
+  fi
+fi
+

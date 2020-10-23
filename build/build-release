@@ -2,14 +2,14 @@
 
 ./build
 
-common=$(find ../utilities/ -type f | grep -v -E '(README|dumaos|wifi-booster)' | tr "$IFS" " ")
+common=$(find ../utilities/ -type f | grep -v -E '(README|dumaos)' | tr "$IFS" " ")
 
 for f in $(ls ../tch-gui-unhide-*)
 do
   echo $f | grep -q 'tch-gui-unhide-18.1.c.05'
   if [ $? -eq 0 ]
   then
-    dumaos="../utilities/dumaos-beta"
+    dumaos="../utilities/dumaos"
   else
     dumaos=""
   fi

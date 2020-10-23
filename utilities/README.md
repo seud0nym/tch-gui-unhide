@@ -98,8 +98,8 @@ This script accepts the following options:
 ```
 Note that the options to disable/enable EasyMesh are only applicable to devices with multiap installed.
 
-## dumaos-beta
-Enables or disables the DumaOS beta on a DJA0231 running the 18.1.c.0514 or later firmware. It also disables or enables reboot on core dump, because if DumaOS gets into trouble, the router will just continally reboot.
+## dumaos
+Enables or disables DumaOS on a DJA0231 running the 18.1.c.0514 or later firmware, or a DJA0230 running 18.1.c.0549 or later. It also disables or enables reboot on core dump, because if DumaOS gets into trouble, the router will just continally reboot.
 
 This script supports 1 parameter: `-on` or `-off`
 - -on

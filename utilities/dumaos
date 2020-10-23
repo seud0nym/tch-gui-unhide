@@ -1,3 +1,5 @@
+#!/bin/sh
+
 ENABLED="$(uci -q get dumaos.tr69.dumaos_enabled)"
 if [ -f /etc/init.d/dumaos -a ! -z "$ENABLED" ]
 then
@@ -14,9 +16,9 @@ then
   then
     if [ "$ENABLED" = "0" ]
     then
-      echo "Currently DISABLED - re-run script with -on option to enable"
+      echo "DumaOS currently DISABLED - re-run script with -on option to enable"
 	else 
-      echo "Currently ENABLED - re-run script with -off option to disable"
+      echo "DumaOS currently ENABLED - re-run script with -off option to disable"
 	fi
   else
     case "$SETTING" in
@@ -47,5 +49,5 @@ then
     esac
   fi
  else
-  echo "DumaOS beta not found?"
+  echo "DumaOS not found?"
  fi
