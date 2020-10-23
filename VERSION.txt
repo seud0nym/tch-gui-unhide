@@ -1,3 +1,30 @@
+2020.10.23
+==========
+* de-telstra: Remove band steering configuration added by Telstra Air script
+* de-telstra: Remove Tesltra Air firewall rules
+* de-telstra: No longer disables SSH WAN access (because it is not on by default, and user may have configured it manually)
+* de-telstra: Disable or enable WPS on non-Guest and non-Backhaul SSIDs
+* de-telstra: Set SAMBA and DLNA hostnames to hostname (replacing Telstra-Gateway or Telstra-Modem)
+* de-telstra: Removed TLS on DJA0230
+* tch-gui-unhide: Added sensor temperatures to gateway card
+* tch-gui-unhide: Sort SSIDs on Wireless card with Guests last
+* tch-gui-unhide: Can exclude or include cards based on full *modal* filename (may not work for all cards)
+* tch-gui-unhide: -nA option includes all excluded cards
+* tch-gui-unhide: Reverted to display subnet mask on LAN card
+* tch-gui-unhide: Get IP address from lease if blank in Devices list
+* tch-gui-unhide: Removed sorting of devices by IP, because sort happens before getting missing IP addresses from lease, so devices do not appear in IP order
+* tch-gui-unhide: getRandomKey function not part of standard post_helper in 17.2.0284
+* tch-gui-unhide: Bytes up/downloaded not displaying correctly on Broadband card
+* tch-gui-unhide: Telstra theme fixes for 17.2.0284
+* tch-gui-unhide: Fixed setting of firewall forwarding rule when NAT enabled/disabled
+* tch-gui-unhide: Removed voice connection mode (applicable to Italian ISP TIM only) from Broadband modal
+* tch-gui-unhide: Added support for FW 18.1.c.0549
+* tch-gui-unhide: New -f option to enable/disable/leave unchanged firmware update in GUI (because it also does RTFD)
+* tch-gui-unhide: Included DumaOS button in all applicable versions (if DumaOS enabled)
+* tch-gui-unhide-xtra.minidlna: Added interface configuration
+* reset-to-factory-defaults-with-root: Added option to backup overlay to USB before RTFD
+* dumaos: Renamed (from dumaos-beta)
+
 2020.10.09
 ==========
 * tch-gui-unhide: Auto-refreshing device status on gateway card broke 17.2.0284

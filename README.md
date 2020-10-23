@@ -31,7 +31,7 @@ So, I set out to enable whatever hidden features were included with the firmware
 
 ## What GUI features are unlocked?
 - Configuration export/import, and the export file name is changed from *config.bin* to *VARIANT-SERIAL-VERSION@yymmdd.bin* (i.e. it includes the hardware type, serial number, firmware version and the current date)
-- Firmware update from the GUI
+- Optionally enables firmware update through the GUI (**BEWARE*! This functionality also does a reset to factory defaults, and you will lose root!**)
 - The SMS tab is enabled on the **Mobile** screen
 - You can disable/enable the radios from the **Wi-Fi** card (without opening the screen), and the status of Guest SSIDs is displayed
 - You can edit the host names on the **Device** screen
@@ -165,6 +165,12 @@ The script accepts the following options:
 - -i y|n
     - Show (*y*) or hide (*n*) the card icons.
     - The default is the current setting, or *-in* for the light theme and *-iy* for the night theme.
+- -h d|s|n
+    - Set the browser tabs title to VARIANT-MAC_ADDRESS (s), VARIANT (d) or HOSTNAME (n) 
+    - Default is current setting or VARIANT-MAC_ADDRESS if not previously applied
+- -f u|y|n
+    - Enable (y) or Disable (n) Firmware upgrade in the web GUI
+    - Default is to leave unchanged (u)
 - -l
     - Keep the Telstra landing page
 - -T
