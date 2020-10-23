@@ -17,7 +17,8 @@ update_cards() {
     s)  MODAL="system-modal.lp";;
     t)  MODAL="tod-modal.lp";;
     x)  MODAL="xdsl-low-modal.lp";;
-    A)  for PARAM in c m n p q r s t x; do update_cards $1 $PARAM; done;;
+    A)  for PARAM in c m n p q r s t x; do update_cards $1 $PARAM; done
+        if [ $1 = I ]; then MODAL="ALL"; fi;;
     *)  if [ ! -z "$2" -a -f "/www/docroot/modals/$2" ]
         then
           MODAL=$2
@@ -125,6 +126,7 @@ do
       echo "                    You can also specify the full name of a modal file (e.g. -x mmpbx-info-modal.lp). Be aware that this may not work for all cards."
       echo " -n c|m|n|p|q|r|s|t|x|A : "
       echo "                  Include specific cards that were previously excluded (use -n multiple times to specify multiple cards or use -nA)"
+      echo "                    -nA will also include any cards excluded by specifying the full modal name. -nA overrides all -x parameters."
       echo " -u             : Check for and download any updates to $FILENAME"
       if [ $WRAPPER = y ]; then
       echo " -U             : Download the latest release, including utility scripts (will overwrite all existing script versions)."

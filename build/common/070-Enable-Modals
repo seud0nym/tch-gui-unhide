@@ -75,13 +75,17 @@ do
       uci add_list web.$RULE.roles='nobody'
       SRV_nginx=$(( $SRV_nginx + 2 ))
     fi
-    echo $CARDS | grep -q "I$MODAL"
+    echo $CARDS | grep -q "\(I$MODAL\|IALL\)"
     if [ $? -eq 0 ]
     then
-      echo [$SCRIPT]: Enabling card display for $MODAL 
-      uci -q delete web.$RULE.roles
-      uci add_list web.$RULE.roles='admin'
-      SRV_nginx=$(( $SRV_nginx + 2 ))
+      uci get web.$RULE.roles | grep -q 'admin'
+      if [ $? -eq 1 ]
+      then
+        echo [$SCRIPT]: Enabling card display for $MODAL 
+        uci -q delete web.$RULE.roles
+        uci add_list web.$RULE.roles='admin'
+        SRV_nginx=$(( $SRV_nginx + 2 ))
+      fi
     fi
   fi
 done
