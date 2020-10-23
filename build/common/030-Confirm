@@ -8,11 +8,6 @@ if [ "$(uci get system.config.export_plaintext)" = "1" -a "$(uci get system.conf
 else
   FIX_CFG_PORT=y
 fi
-if [ "$(uci get web.uidefault.upgradefw)" = "1" -a "$(uci get web.uidefault.upgradefw_role)" = "admin" ]; then
-  FIX_FW_UPG=n
-else
-  FIX_FW_UPG=y
-fi
 echo "$(uci get web.parentalblock.roles)" | grep -q "admin"
 if [ $? -eq 0 ]
 then
@@ -31,6 +26,8 @@ echo "[$SCRIPT]:  - Enable unsigned configuration export/import in the web GUI"
 fi
 if [ $FIX_FW_UPG = y ]; then
 echo "[$SCRIPT]:  - Enable firmware upgrade in the web GUI"
+elif [ $FIX_FW_UPG = n ]; then
+echo "[$SCRIPT]:  - DISABLE firmware upgrade in the web GUI"
 fi
 if [ $FIX_PARENT_BLK = y ]; then
 echo "[$SCRIPT]:  - Ensure admin role can administer the parental block"

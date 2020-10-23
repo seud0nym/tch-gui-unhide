@@ -1,6 +1,7 @@
 RESTORE=n
 WRAPPER=n
 YES=n
+FIX_FW_UPG='u'
 
 FILENAME=$(basename $0)
 
@@ -31,11 +32,12 @@ update_cards() {
   fi
 }
 
-while getopts Wt:s:Tryun:x:i:c:h:l option
+while getopts Wt:s:Tryun:x:i:c:h:lf: option
 do
  case "${option}" in
    W) WRAPPER=y;;
    l) KEEP_LP=y;;
+   f) case "${OPTARG}" in y|Y) FIX_FW_UPG='y';; n|N) FIX_FW_UPG='n';; u|U) FIX_FW_UPG='u';; *) FIX_FW_UPG='u'; echo 'WARNING: -f valid options are y, n, or u';; esac;;
    t) case "$(echo ${OPTARG} | tr "GNOPLT" "gnoplt" | sed 's/\(.\)\(.*\)/\1/')" in
         g) THEME=night; COLOR=green; KEEP_LP=n; echo WARNING: -tg deprecated. Use -tn -cg in future;; 
         n) THEME=night; COLOR=blue; KEEP_LP=n;;
@@ -118,8 +120,7 @@ do
       echo " -l             : Keep the Telstra landing page"
       echo " -T             : Apply theme ONLY - bypass all other processing"
       echo " -h d|s|n       : Set the browser tabs title to $VARIANT-$MAC (s), $VARIANT (d) or $HOSTNAME (n) (Default is current setting or $VARIANT-$MAC if not previously applied)"
-      echo " -r             : Restore changed GUI files to their original state (config changes are NOT restored)"
-      echo " -y             : Bypass confirmation prompt (answers 'y')"
+      echo " -f u|y|n       : Firmware upgrade in the web GUI - u=Leave unchanged (Default) y=Enable n=Disable"
       echo " -x c|m|n|p|q|r|s|t|x|A :"
       echo "                  Exclude specific cards (use -x multiple times to specify multiple cards or use -xA for all of the following cards):"
       echo "                    c=Content Sharing m=Management n=NAT Helpers p=Printer Sharing q=QoS r=Relay Setup s=System Extras t=Time of Day x=xDSL config"
@@ -127,6 +128,8 @@ do
       echo " -n c|m|n|p|q|r|s|t|x|A : "
       echo "                  Include specific cards that were previously excluded (use -n multiple times to specify multiple cards or use -nA)"
       echo "                    -nA will also include any cards excluded by specifying the full modal name. -nA overrides all -x parameters."
+      echo " -y             : Bypass confirmation prompt (answers 'y')"
+      echo " -r             : Restore changed GUI files to their original state (config changes are NOT restored)"
       echo " -u             : Check for and download any updates to $FILENAME"
       if [ $WRAPPER = y ]; then
       echo " -U             : Download the latest release, including utility scripts (will overwrite all existing script versions)."
