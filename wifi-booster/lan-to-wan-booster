@@ -241,6 +241,9 @@ if [ "$(uci -q get dropbear.wan.enable)" != 1 -o $FORCE = y ]
 then
   echo Enabling SSH WAN access
   uci set dropbear.wan.enable='1'
+  uci set dropbear.wan.PasswordAuth='on'
+  uci set dropbear.wan.RootPasswordAuth='on'
+  uci set dropbear.wan.RootLogin='1'
   uci commit dropbear
   /etc/init.d/dropbear reload
 else
