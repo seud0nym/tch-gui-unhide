@@ -113,16 +113,20 @@ do
       fi
       exit;;
    ?) echo "Optional parameters:"
-      echo " -t l|n|t       : Set a light (l), night (n), or default Telstra (t) theme (Default is current setting, or Telstra if no theme has been applied)"
-      echo " -c b|o|g|p|m   : Set the theme highlight colour (Default is current setting, or (m) for light theme or (b) for night theme)"
+      echo " -t l|n|t       : Set a light (l), night (n), or default Telstra (t) theme"
+      echo "                    (Default is current setting, or Telstra if no theme has been applied)"
+      echo " -c b|o|g|p|m   : Set the theme highlight colour"
       echo "                    b=blue o=orange g=green p=purple m=monochrome"
-      echo " -i y|n         : Show (y) or hide (n) the card icons (Default is current setting, or n for light theme and y for night theme)"
+      echo "                    (Default is current setting, or (m) for light theme or (b) for night theme)"
+      echo " -i y|n         : Show (y) or hide (n) the card icons"
+      echo " -                  (Default is current setting, or n for light theme and y for night theme)"
       echo " -l             : Keep the Telstra landing page"
       echo " -T             : Apply theme ONLY - bypass all other processing"
-      echo " -h d|s|n       : Set the browser tabs title to $VARIANT-$MAC (s), $VARIANT (d) or $HOSTNAME (n) (Default is current setting or $VARIANT-$MAC if not previously applied)"
+      echo " -h d|s|n       : Set the browser tabs title to $VARIANT-$MAC (s), $VARIANT (d) or $HOSTNAME (n)"
+      echo "                    (Default is current setting or $VARIANT-$MAC if not previously applied)"
       echo " -f u|y|n       : Firmware upgrade in the web GUI - u=Leave unchanged (Default) y=Enable n=Disable"
       echo " -x c|m|n|p|q|r|s|t|x|A :"
-      echo "                  Exclude specific cards (use -x multiple times to specify multiple cards or use -xA for all of the following cards):"
+      echo "                  Exclude specific cards. Use -x multiple times to specify multiple cards or use -xA for all of these cards:"
       echo "                    c=Content Sharing m=Management n=NAT Helpers p=Printer Sharing q=QoS r=Relay Setup s=System Extras t=Time of Day x=xDSL config"
       echo "                    You can also specify the full name of a modal file (e.g. -x mmpbx-info-modal.lp). Be aware that this may not work for all cards."
       echo " -n c|m|n|p|q|r|s|t|x|A : "
@@ -136,8 +140,8 @@ do
       echo "                    When specifying the -U option, it must be the ONLY parameter specifed."
       fi
       echo 
-      echo "NOTE: Theme (-t) and excluded/included cards (-x/-n) do not need to be re-specified when re-running the script: the"
-      echo "      state will be 'remembered' between executions (unless you execute with the -r option, which will remove all state information)"
+      echo "NOTE: Theme (-t) and excluded/included cards (-x/-n) do not need to be re-specified when re-running the script: current state"
+      echo "      will be 'remembered' between executions (unless you execute with the -r option, which will remove all state information)"
       echo
       exit;;
  esac
