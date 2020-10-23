@@ -3,4 +3,8 @@ elif [ "$THEME" = "Telstra" ]; then
   sed \
     -e '$ a .card_bg:after{z-index:-20;}' \
     -i /www/docroot/css/gw.css
-  cp -p /rom/www/docroot/img/logo.gif /www/docroot/img/logo.gif
+  cmp -s /rom/www/docroot/img/logo.gif /www/docroot/img/logo.gif
+  if [ $? -ne 0 ]
+  then
+    cp -p /rom/www/docroot/img/logo.gif /www/docroot/img/logo.gif
+  fi
