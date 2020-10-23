@@ -111,10 +111,10 @@ Some hidden screens included on the device are not enabled, mainly because they 
     Pi-hole-VM fe80::1:22:3300:444
 ```
 
-### Firmware Version 18.1.c.0514 Specific
-- If run this script on the DJA0231 with the 18.1.c.0514 firmware, it will also add a button to access the pre-release version of DumaOS, but only if DumaOS has been enabled. To add this button, execute the [`dumaos-beta`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos-beta) script with the `-on` parameter to enable DumaOS before running the `tch-gui-unhide` script.
+### Firmware Version 18.1.c.0514 (and later) Specific
+- If you run this script on the 18.1.c.0514 or later firmware, it can also add a button to access DumaOS (Telstra Game Optimiser), but only if DumaOS has been enabled. To add this button, execute the [`dumaos`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos) script with the `-on` parameter to enable DumaOS *before* running the `tch-gui-unhide` script.
 
-*PLEASE NOTE: Previous versions of the script (release 2020.08.03 and before) also automatically enabled the beta version of DumaOS on the DJA0231. To get this functionality, run the [`dumaos-beta`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos-beta) utility script.*
+*PLEASE NOTE: Previous versions of the script (release 2020.08.03 and before) also automatically enabled the beta version of DumaOS on the DJA0231. To get this functionality, run the [`dumaos`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos) utility script.*
 
 ## What does it actually do?
 All configuration changes are applied using the *uci* command interface to update the configuration files.
