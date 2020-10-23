@@ -1,0 +1,293 @@
+#!/bin/sh
+
+# Make sure that we are running on Telstra firmware
+if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]
+then
+  echo "ERROR! This script is intended for devices with Telstra firmware. Exiting"
+  exit 1
+fi
+
+if [ ! -f /etc/config/multiap ]
+then
+  echo "ERROR! This script is intended for devices with MultiAP installed. Exiting"
+  exit 1
+fi
+
+FORCE='n'
+LAN_IP_ADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)"
+LAN_GATEWAY='192.168.0.1'
+LAN_DNS=''
+MULTIAP_LOGGING_LEVEL=2
+YES='n'
+
+if [ "$(echo $LAN_IP_ADDR | cut -d. -f1-3)" != "192.168.0" ]; then
+  LAN_IP_ADDR="192.168.0.2"
+fi
+
+ACTION="DISABLE"
+SET_TO_0_1="0"
+SET_TO_ABLED="disabled"
+
+IPv4PATTERN="([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
+
+while getopts fg:i:l:n:ry option
+do
+  case "${option}" in
+    f)  FORCE='y';;
+    g)  if [ $ACTION = DISABLE ]; then
+          LAN_GATEWAY="$OPTARG"
+        fi;;
+    i)  if [ $ACTION = DISABLE ]; then
+          LAN_IP_ADDR="$OPTARG"
+        fi;;
+    l)  if [ $ACTION = DISABLE -a "$OPTARG" -ge 0 -a "$OPTARG" -le 9 ]; then
+          MULTIAP_LOGGING_LEVEL="$OPTARG"
+        else
+          if [ $ACTION = DISABLE ]; then
+            echo Ignored invalid logging level $OPTARG
+          fi
+        fi;;
+    n)  if [ $ACTION = DISABLE ]; then
+          if [ -z "$LAN_DNS" ]; then
+            LAN_DNS="$OPTARG"
+          else
+            LAN_DNS="$LAN_DNS$IFS$OPTARG"
+          fi
+        fi;;
+    r)  ACTION="ENABLE"; SET_TO_0_1="1"; SET_TO_ABLED="server"; LAN_IP_ADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)";;
+    y)  YES='y';;
+    *)  echo "Syntax: $0 <options>"
+        echo "Optional parameters:"
+        echo " -i n.n.n.n  Set LAN IP address to n.n.n.n (default is -i$LAN_IP_ADDR but ignored if -d specified)"
+        echo " -g n.n.n.n  Set LAN Gateway IP address to n.n.n.n (default is -g192.168.0.1 but ignored if -d specified)"
+        echo " -n n.n.n.n  Set LAN DNS Server IP address to n.n.n.n (specify multiple times for multiple DNS servers. Default is -n1.1.1.1 -n1.0.0.1 but ignored if -d specified)"
+        echo " -l 0-9      Set MultiAP logging level (0=off 2=Default 9=very verbose)"
+        echo " -f          Force settings to be reapplied"
+        echo " -y          Skip the confirmation prompt"
+        echo " -r          Revert the settings to the defaults, except IP address (Should be the only option specified)"
+        exit;;
+  esac
+done
+
+echo "$LAN_IP_ADDR" | grep -q -E $IPv4PATTERN
+if [ $? -eq 1 ]; then 
+  echo ERROR! Invalid LAN IP address: $LAN_IP_ADDR
+  exit
+fi
+echo "$LAN_GATEWAY" | grep -q -E $IPv4PATTERN
+if [ $? -eq 1 ]; then 
+  echo ERROR! Invalid LAN Gateway IP address: $LAN_GATEWAY
+  exit
+fi
+if [ "$(echo $LAN_IP_ADDR | cut -d. -f1-3)" != "$(echo $LAN_GATEWAY | cut -d. -f1-3)" ]; then
+  echo ERROR! LAN IP address $LAN_IP_ADDR must be in the same subnet as the Gateway: $LAN_GATEWAY
+  exit
+fi
+if [ -z "$LAN_DNS" ]
+then
+  LAN_DNS="1.1.1.1${IFS}1.0.0.1"
+else
+  for DNS in $LAN_DNS
+  do
+    echo "$DNS" | grep -q -E $IPv4PATTERN
+    if [ $? -eq 1 ]; then 
+      echo ERROR! Invalid DNS Server IP address: $DNS
+      exit
+    fi
+  done
+fi
+if [ "$MULTIAP_LOGGING_LEVEL" -lt 0 -o "$MULTIAP_LOGGING_LEVEL" -gt 9 ]; then
+  echo ERROR! MultiAP logging level must be between 0 and 9
+  exit
+fi
+
+echo About to:
+echo " - $ACTION MultiAP Controller"
+echo " - Set MultiAP logging level to $MULTIAP_LOGGING_LEVEL"
+echo " - $ACTION WAN Sensing"
+echo " - $ACTION WAN Supervision"
+echo " - $ACTION 4G Mobile Backup"
+echo " - $ACTION IPv4 and IPv6 DHCP servers"
+echo " - $ACTION the intercept daemon"
+echo " - $ACTION the Backhaul SSID"
+echo " - $ACTION NAT"
+if [ $ACTION = DISABLE ]; then
+echo " - Set LAN IP address to $LAN_IP_ADDR"
+echo " - Set LAN Gateway IP address to $LAN_GATEWAY"
+echo " - Set LAN DNS to $(echo $LAN_DNS | tr \"$IFS\" ' ')"
+else
+echo " - Leave LAN IP address as $LAN_IP_ADDR"
+echo " - Unset LAN Gateway IP address"
+echo " - Unset LAN DNS"
+fi
+if [ $FORCE = y ]
+then
+  echo "The above settings will be re-applied, even if already set"
+else
+  echo "The above settings will only be applied if they have not already been applied"
+fi
+echo 
+echo If you wish to proceed, enter y otherwise just press [Enter] to stop.
+if [ $YES = y ]; then
+  REPLY=y
+else
+  read
+fi
+if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
+  exit
+fi
+
+echo Stop MultiAP agent whilst we reconfigure
+/etc/init.d/multiap_agent stop
+
+if [ "$(uci -q get multiap.controller.enabled)" != $SET_TO_0_1 -o $FORCE = y ]
+then
+  echo $ACTION MultiAP controller
+  uci set multiap.controller.enabled="$SET_TO_0_1"
+  echo "Set MultiAP logging level to $MULTIAP_LOGGING_LEVEL"
+  uci set multiap.logging.library="$MULTIAP_LOGGING_LEVEL"
+  uci set multiap.logging.ieee1905="$MULTIAP_LOGGING_LEVEL"
+  uci set multiap.logging.agent="$MULTIAP_LOGGING_LEVEL"
+  uci set multiap.logging.vendor_ipc="$MULTIAP_LOGGING_LEVEL"
+  uci commit multiap
+  /etc/init.d/multiap_controller restart
+else
+  echo The MultiAP controller is already ${ACTION}D
+fi
+
+if [ "$(uci -q get wansensing.global.enable)" != $SET_TO_0_1 -o $FORCE = y ]
+then
+  echo $ACTION WAN Sensing
+  uci set wansensing.global.autofailover="$SET_TO_0_1"
+  uci set wansensing.global.enable="$SET_TO_0_1"
+  uci commit wansensing
+  /etc/init.d/wansensing restart
+else 
+  echo WAN Sensing is already ${ACTION}D
+fi
+
+if [ "$(uci -q get supervision.global.enabled)" != $SET_TO_0_1 -o $FORCE = y ]
+then
+  echo $ACTION WAN Supervision
+  uci set supervision.global.enabled="$SET_TO_0_1"
+  uci commit supervision
+  /etc/init.d/supervision reload
+else 
+  echo WAN Supervision is already ${ACTION}D
+fi
+
+if [ "$(uci -q get mobiled.@device[0].enabled)" != $SET_TO_0_1 -o $FORCE = y ]
+then
+  echo $ACTION 4G Mobile Backup
+  uci set mobiled.device_defaults.enabled="$SET_TO_0_1"
+  uci set mobiled.@device[0].enabled="$SET_TO_0_1"
+  uci commit mobiled
+  /etc/init.d/mobiled reload
+  uci set ltedoctor.config.enabled="$SET_TO_0_1"
+  /etc/init.d/lte-doctor-logger restart
+else 
+  echo 4G Mobile Backup is already ${ACTION}D
+fi
+
+if [ "$(uci -q get dhcp.lan.dhcpv4)" != $SET_TO_ABLED -o "$(uci -q get dhcp.lan.dhcpv6)" != $SET_TO_ABLED -o "$(uci -q get dhcp.lan.ra)" != $SET_TO_ABLED -o $FORCE = y ]
+then
+  echo $ACTION IPv4 and IPv6 DHCP servers
+  uci set dhcp.lan.dhcpv4="$SET_TO_ABLED"
+  uci set dhcp.lan.dhcpv6="$SET_TO_ABLED"
+  uci set dhcp.lan.ra="$SET_TO_ABLED"
+  uci commit dhcp
+  /etc/init.d/dnsmasq restart
+  /etc/init.d/odhcpd reload
+else 
+  echo IPv4 and IPv6 DHCP servers are already ${ACTION}D
+fi
+
+if [ "$(uci -q get intercept.config.enabled)" != $SET_TO_0_1 -o $FORCE = y ]
+then
+  echo $ACTION intercept daemon
+  uci set intercept.config.enabled="$SET_TO_0_1"
+  uci commit intercept
+  /etc/init.d/intercept reload
+else 
+  echo The intercept daemon is already ${ACTION}D
+fi
+
+if [ "$(uci -q get wireless.ap6.state)" != $SET_TO_0_1 -o $FORCE = y ]
+then
+  echo $ACTION Backhaul SSID
+  uci set wireless.ap6.state="$SET_TO_0_1"
+  uci commit wireless
+  /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"
+else
+  echo The Backhaul SSID is already ${ACTION}D
+fi
+
+ZONE="$(uci show firewall | grep "@zone\[.*\].name='wan'" | cut -d. -f1-2)"
+if [ !-z "$ZONE" -a "$(uci -q get $ZONE.masq)" != $SET_TO_0_1 ]
+then
+  echo $ACTION NAT
+  uci set $ZONE.masq="$SET_TO_0_1"
+  uci set $ZONE.conntrack='1'
+  FWDIDX="$(uci show firewall | grep -E "@forwarding\[.*\].dest='lan'" | cut -d[ -f2 | cut -d] -f1)"
+  if [ ! -z "$FWDIDX" ]
+  then
+    FWDSRC="$(uci -q get firewall.@forwarding[$FWDIDX].src)"
+    if [ "$FWDSRC" != "wan" ]
+    then
+      FWDIDX=""
+    fi
+  fi
+  if [ -z "$FWDIDX" ]
+  then
+    FWDCFG="$(uci add firewall forwarding)"
+    uci set firewall.@forwarding[-1].src='wan'
+    uci set firewall.@forwarding[-1].dest='lan'
+    uci set firewall.@forwarding[-1].name='for_w2l'
+    FWDIDX="-1"
+  fi
+  if [ $SET_TO_0_1 = 0 ]
+  then
+    uci set firewall.@forwarding[$FWDIDX].enabled='1'
+  else
+    uci set firewall.@forwarding[$FWDIDX].enabled='0'
+  fi
+  uci commit firewall
+  /etc/init.d/firewall reload
+else
+  echo NAT is already ${ACTION}D
+fi
+
+if [ $ACTION = DISABLE ]
+then
+  echo "Setting LAN IP address to $LAN_IP_ADDR"
+  uci set network.lan.ipaddr="$LAN_IP_ADDR"
+  echo "Setting LAN Gateway IP address to $LAN_GATEWAY"
+  uci set network.lan.gateway="$LAN_GATEWAY"
+  echo "Setting LAN DNS..."
+  uci -q delete network.lan.dns
+  for DNS in $LAN_DNS
+  do
+    echo " -> Adding $DNS"
+    uci add_list network.lan.dns="$DNS"
+  done
+else  
+  if [ "$(uci -q get network.lan.proto)" = "dhcp" ]
+  then
+    echo "Setting LAN IP address to $LAN_IP_ADDR"
+    uci set network.lan.proto='static'
+    uci set network.lan.ipaddr="$LAN_IP_ADDR"
+  else 
+    echo "Unsetting LAN Gateway IP address"
+    uci -q delete network.lan.gateway
+    echo "Unsetting LAN DNS"
+    uci -q delete network.lan.dns
+  fi
+fi
+uci commit network
+echo Apply network changes
+/etc/init.d/network reload
+
+echo Restart MultiAP agent
+/etc/init.d/multiap_agent start
+
+echo Done
