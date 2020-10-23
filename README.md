@@ -31,7 +31,7 @@ So, I set out to enable whatever hidden features were included with the firmware
 
 ## What GUI features are unlocked?
 - Configuration export/import, and the export file name is changed from *config.bin* to *VARIANT-SERIAL-VERSION@yymmdd.bin* (i.e. it includes the hardware type, serial number, firmware version and the current date)
-- Optionally enables firmware update through the GUI (**BEWARE*! This functionality also does a reset to factory defaults, and you will lose root!**)
+- Optionally enables firmware update through the GUI (**BEWARE! This functionality also does a reset to factory defaults, and you will lose root!**)
 - The SMS tab is enabled on the **Mobile** screen
 - You can disable/enable the radios from the **Wi-Fi** card (without opening the screen), and the status of Guest SSIDs is displayed
 - You can edit the host names on the **Device** screen
