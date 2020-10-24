@@ -3,7 +3,7 @@ if [ $THEME_ONLY = n ]; then
   SRV_transformer=0
   for s in $(ls tch-gui-unhide-xtra.* 2>/dev/null)
   do
-    echo [$SCRIPT]: Executing extra feature script for $(echo $s | cut -d. -f2-)
+    echo -n [$SCRIPT]: Executing extra feature script for $(echo $s | cut -d. -f2-):
     . $s
   done
 

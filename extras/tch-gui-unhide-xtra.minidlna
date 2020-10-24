@@ -1,7 +1,11 @@
 #!/bin/sh
 
+# The tch-gui-unhide-xtra scripts should output a single line to indicate success or failure
+# as the calling script has left a hanging echo -n. Include a leading space for clarity.
+
 if [ -f /etc/init.d/minidlna ]
 then
+  echo " Replacing dlnad with minidlna..."
   if [ "$(uci get dlnad.config.enabled)" = "1" ]
   then
     # Shut down dlnad
@@ -46,8 +50,74 @@ MAP
     SRV_transformer=$(( $SRV_transformer + 1 ))
   fi
 
+  # Create the mount hotplug to restart minidlna when USB added/removed
+  if [ ! -f /etc/hotplug.d/mount/00-minidlna ]
+  then
+    cat<<"PLUG" > /etc/hotplug.d/mount/00-minidlna
+#!/bin/sh
+
+# script triggered by mountd
+# mountd provides environment variables ACTION, DEVICE, NAME
+# f.e. ACTION=add DEVICE=sda1 NAME=USB-A1
+
+# Source UCI and CS functions
+. $IPKG_INSTROOT/lib/functions/contentsharing.sh
+
+# minidlna_log <msg>
+# Send <msg> to the logger with tag 'hotplug.d-mount-minidlna'.
+#
+minidlna_log () {
+  local msg="${1}"
+  logger -t hotplug.d-mount-minidlna "${msg}"
+}
+
+# minidlna_init
+#
+minidlna_init () {
+  minidlna_log "ACTION=${ACTION} DEVICE=${DEVICE} NAME=${NAME}"
+}
+
+# Start of execution
+
+if [ "${ACTION}" == "add" ]; then
+  minidlna_init
+
+  if cs_is_dlna_running ; then
+    minidlna_log "Added disk ${disk} ... reload"
+    cs_reload_dlna
+  else
+    minidlna_log "Added disk ${disk} ... restart"
+    cs_restart_dlna
+  fi
+fi
+
+if [ "${ACTION}" == "remove" ]; then
+  minidlna_init
+
+  if cs_is_dlna_running ; then
+    minidlna_log "Removed disk ${disk} ... reload"
+    cs_reload_dlna
+  else
+    minidlna_log "Removed disk ${disk} ... restart"
+    cs_restart_dlna
+  fi
+fi
+PLUG
+    chmod +x /etc/hotplug.d/mount/00-minidlna
+  fi
+
+  # Update /lib/functions/contentsharing.sh
+  sed \
+    -e 's|/etc/init.d/minidlna-procd|/etc/init.d/minidlna|' \
+    -e 's|/var/run/minidlna_d.pid|/var/run/minidlna/minidlna.pid|' \
+    -i /lib/functions/contentsharing.sh
+
   # Update the card
-  sed -e 's/dlnad/minidlna/' -e 's/"DLNA/"MiniDLNA/' -i /www/cards/012_contentsharing.lp
+  sed \
+    -e 's/dlnad/minidlna/' \
+    -e 's/"DLNA/"MiniDLNA/' \
+    -i /www/cards/012_contentsharing.lp
+
   # Update the modal
   sed \
     -e 's/dlnad/minidlna/' \
@@ -125,6 +195,7 @@ MAP
     -e '/^            tinsert(html, "<\/fieldset>")/d' \
     /rom/www/docroot/modals/contentsharing-modal.lp > /www/docroot/modals/contentsharing-modal.lp
 else
+  echo " SKIPPED because minidlna not installed"
   if [ -f /usr/share/transformer/commitapply/uci_minidlna.ca ]
   then
     rm /usr/share/transformer/commitapply/uci_minidlna.ca
@@ -134,5 +205,14 @@ else
   then
     rm /usr/share/transformer/mappings/uci/minidlna.map
     SRV_transformer=$(( $SRV_transformer + 1 ))
+  fi
+  if [ -f /etc/hotplug.d/mount/00-minidlna ]
+  then
+    rm /etc/hotplug.d/mount/00-minidlna
+  fi
+  cmp -s /rom/lib/functions/contentsharing.sh /lib/functions/contentsharing.sh
+  if [ $? -ne 0 ]
+  then
+    cp -p /rom/lib/functions/contentsharing.sh /lib/functions/contentsharing.sh
   fi
 fi
