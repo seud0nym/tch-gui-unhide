@@ -1,0 +1,281 @@
+#!/bin/sh
+
+echo -n "Working"
+CARDS=""
+for RULE in $(uci show web | grep '=card' | cut -d= -f1)
+do
+  echo -n "."
+  CARD=$(uci -q get ${RULE}.card)
+  MODAL=$(uci -q get ${RULE}.modal)
+  HIDDEN=$(uci -q get ${RULE}.hide)
+  if [ "${CARD#*_}" = "lte.lp" ]
+  then
+    TITLE="Mobile"
+  else
+    TITLE=$(grep createCardHeader /www/cards/$CARD | sed -e 's/\(.*createCardHeader[^"]*"\)\([^"]*\)\(".*\)/\2/')
+  fi
+  SEQ=${CARD%%_*}
+  if [ -z "$CARDS" ]
+  then
+    CARDS="$HIDDEN|$SEQ|$HIDDEN|$CARD|$MODAL|$TITLE|"
+  else
+    CARDS="$CARDS$IFS$HIDDEN|$SEQ|$HIDDEN|$CARD|$MODAL|$TITLE|"
+  fi
+done
+
+if [ -z "$CARDS" ]
+then
+  echo
+  echo "ERROR: No card configurations found!"
+  echo "Have you run tch-gui-unhide yet? You must execute tch-gui-unhide BEFORE configuring card sequence and visibility."
+  exit
+fi
+
+MESSAGE=""
+while [ true ]
+do
+  clear
+  echo "tch-gui-unhide-cards"
+  echo
+  echo "$MESSAGE"
+  echo
+  MESSAGE=""
+  I=0
+  for CARD in $(echo "$CARDS" | tr ' ' ';' | sort)
+  do
+    I=$(( $I + 1 ))
+    HIDDEN=$(echo "$CARD" | cut -d'|' -f1)
+    TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
+    if [ $HIDDEN -eq 1 ]
+    then
+      TITLE="($TITLE)"
+    fi
+    printf "%2d %-18s" $I "$TITLE"
+    if [ $(( $I % 4 )) -eq 0 ]
+    then
+      echo
+    fi
+  done
+  if [ $(( $I % 4 )) -ne 0 ]
+  then
+    echo
+  fi
+  echo
+  echo "NOTE: Titles in () indicate hidden cards. They will always appear above after the last visible card." 
+  echo "NOTE: 'CWMP' card is only visible if CWMP has not been disabled"
+  echo "NOTE: 'xDSL Config' card is only visible on DSL connections"
+  echo
+  echo -n "Enter a card number, or a to apply changes, d for default sequence, s for suggested sequence, u to undo changes, or q to quit: "
+  read FROM
+  echo
+  case "$FROM" in
+    a)  for CARD in $(echo "$CARDS" | tr ' ' ';' | sort)
+        do
+          HIDDEN=$(echo "$CARD" | cut -d'|' -f1)
+          SEQ=$(echo "$CARD" | cut -d'|' -f2)
+          FILE="/www/cards/$(echo "$CARD" | cut -d'|' -f4)"
+          MODAL=$(echo "$CARD" | cut -d'|' -f5)
+          NEW_FILE="/www/cards/${SEQ}_${FILE#*_}"
+          RULE="card_$(basename ${FILE#*_} .lp)"
+          if [ "$FILE" != "$NEW_FILE" ]
+          then
+            echo "Renaming $FILE to $NEW_FILE"
+            mv "$FILE" "$NEW_FILE"
+          fi
+          uci set web.$RULE=card
+          uci set web.$RULE.card="$(basename $NEW_FILE)"
+          uci set web.$RULE.modal="$MODAL"
+          uci set web.$RULE.hide="$HIDDEN"
+        done
+        echo "Applying updated configuration"
+        uci commit web
+        /etc/init.d/nginx restart
+        echo "Done!!"
+        break;;
+    d)  TMP=""
+        for CARD in $(echo "$CARDS" | tr ' ' ';')
+        do
+          HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
+          FILE=$(echo "$CARD" | cut -d'|' -f4)
+          MODAL=$(echo "$CARD" | cut -d'|' -f5)
+          TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
+          HIDE=$HIDDEN
+          case "${FILE#*_}" in
+            broadband.lp) SEQ="002";;
+            contentsharing.lp) SEQ="012";;
+            cwmpconf.lp) SEQ="090";;
+            Devices.lp) SEQ="006";;
+            diagnostics.lp) SEQ="009";;
+            firewall.lp) SEQ="008";;
+            fon.lp) SEQ="010";;
+            gateway.lp) SEQ="001";;
+            internet.lp) SEQ="003";;
+            iproutes.lp) SEQ="015";;
+            LAN.lp) SEQ="005";;
+            lte.lp) SEQ="003";;
+            natalghelper.lp) SEQ="092";;
+            parental.lp) SEQ="013";;
+            printersharing.lp) SEQ="012";;
+            qos.lp) SEQ="008";;
+            relaysetup.lp) SEQ="018";;
+            system.lp) SEQ="091";;
+            telephony.lp) SEQ="008";;
+            tod.lp) SEQ="015";;
+            usermgr.lp) SEQ="011";;
+            wanservices.lp) SEQ="007";;
+            wireless_boosters.lp) SEQ="004";;
+            wireless.lp) SEQ="004";;
+            xdsl.lp) SEQ="093";;
+            *) SEQ=$(basename $FILE | cut -c1-3);;
+          esac
+          if [ -z "$TMP" ]
+          then
+            TMP="0|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+          else
+            TMP="$TMP${IFS}0|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+          fi
+        done
+        CARDS="$TMP"
+        unset TMP;;
+    q)  break;;
+    s)  TMP=""
+        for CARD in $(echo "$CARDS" | tr ' ' ';')
+        do
+          HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
+          FILE=$(echo "$CARD" | cut -d'|' -f4)
+          MODAL=$(echo "$CARD" | cut -d'|' -f5)
+          TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
+          HIDE=$HIDDEN
+          case "${FILE#*_}" in
+            broadband.lp) SEQ="002";;
+            contentsharing.lp) SEQ="019";;
+            cwmpconf.lp) SEQ="025"; if [ ! -f /etc/init.d/cwmpd ]; then HIDE=1; fi;;
+            Devices.lp) SEQ="010";;
+            diagnostics.lp) SEQ="023";;
+            firewall.lp) SEQ="016";;
+            fon.lp) SEQ="005";;
+            gateway.lp) SEQ="001";;
+            internet.lp) SEQ="003";;
+            iproutes.lp) SEQ="013";;
+            LAN.lp) SEQ="008";;
+            lte.lp) SEQ="004";;
+            natalghelper.lp) SEQ="017";;
+            nfc.lp) SEQ="009";;
+            parental.lp) SEQ="021";;
+            printersharing.lp) SEQ="020"; HIDE="1";;
+            qos.lp) SEQ="018";;
+            relaysetup.lp) SEQ="015"; HIDE="1";;
+            system.lp) SEQ="014";;
+            telephony.lp) SEQ="011";;
+            tod.lp) SEQ="022";;
+            usermgr.lp) SEQ="026"; HIDE="1";;
+            wanservices.lp) SEQ="012";;
+            wireless_boosters.lp) SEQ="007";;
+            wireless.lp) SEQ="006";;
+            xdsl.lp) SEQ="024";;
+            *) SEQ=$(basename $FILE | cut -c1-3);;
+          esac
+          if [ -z "$TMP" ]
+          then
+            TMP="$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+          else
+            TMP="$TMP$IFS$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+          fi
+        done
+        CARDS="$TMP"
+        unset TMP;;
+    u)  TMP=""
+        for CARD in $(echo "$CARDS" | tr ' ' ';')
+        do
+          HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
+          FILE=$(echo "$CARD" | cut -d'|' -f4)
+          MODAL=$(echo "$CARD" | cut -d'|' -f5)
+          TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
+          SEQ=$(basename $FILE | cut -c1-3)
+          if [ -z "$TMP" ]
+          then
+            TMP="$HIDDEN|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+          else
+            TMP="$TMP$IFS$HIDDEN|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+          fi
+        done
+        CARDS="$TMP"
+        unset TMP;;
+    *)  if [ "$FROM" -ge 1 -a "$FROM" -le "$I" ]
+        then
+          printf "For card #$FROM, enter h to hide, v to make visible, or new position number: "
+          read TO
+          if [ "$TO" = "h" -o "$TO" = "v" ]
+          then
+            if [ "$TO" = "h" ]
+            then
+              TO=1
+            else
+              TO=0
+            fi
+            TMP=""
+            I=0
+            for CARD in $(echo "$CARDS" | tr ' ' ';' | sort)
+            do
+              I=$(( $I + 1 ))
+              SEQ=$(echo "$CARD" | cut -d'|' -f2)
+              HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
+              FILE=$(echo "$CARD" | cut -d'|' -f4)
+              MODAL=$(echo "$CARD" | cut -d'|' -f5)
+              TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
+              if [ $I -eq $FROM ]
+              then
+                HIDE=$TO
+              else
+                HIDE=$(echo "$CARD" | cut -d'|' -f1)
+              fi
+              if [ -z "$TMP" ]
+              then
+                TMP="$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+              else
+                TMP="$TMP$IFS$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+              fi
+            done
+            CARDS="$TMP"
+            unset TMP
+          elif [ "$TO" -ge 1 -a "$TO" -le "$I" -a "$TO" -ne "$FROM" ]
+          then
+            TMP=""
+            I=0
+            for CARD in $(echo "$CARDS" | tr ' ' ';' | sort)
+            do
+              I=$(( $I + 1 ))
+              HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
+              FILE=$(echo "$CARD" | cut -d'|' -f4)
+              MODAL=$(echo "$CARD" | cut -d'|' -f5)
+              TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
+              HIDE=$(echo "$CARD" | cut -d'|' -f1)
+              if [ $I -eq $FROM ]
+              then
+                SEQ=$(printf "%03d" $(( $TO )))
+              elif [ $FROM -lt $TO -a $I -gt $FROM -a $I -le $TO ]
+              then
+                SEQ=$(printf "%03d" $(( $I - 1 )))
+              elif [ $FROM -gt $TO -a $I -ge $TO -a $I -lt $FROM ]
+              then
+                SEQ=$(printf "%03d" $(( $I + 1 )))
+              else
+                SEQ=$(printf "%03d" $I)
+              fi
+              if [ -z "$TMP" ]
+              then
+                TMP="$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+              else
+                TMP="$TMP$IFS$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+              fi
+            done
+            CARDS="$TMP"
+            unset TMP
+          else
+            MESSAGE="ERROR: Options are 'h' to hide a card, 'v' to make a card visible, or a number between 1 and $I!"
+          fi
+        else
+          MESSAGE="ERROR: Please select a card number between 1 and $I (but not $FROM)!"
+        fi;;
+  esac
+done

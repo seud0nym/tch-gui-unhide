@@ -40,9 +40,6 @@ if [ -f /www/docroot/landingpage.lp ]; then
 echo "[$SCRIPT]:  - The Telstra Landing Page will be $(echo $KEEP_LP | sed -e 's/y/left UNCHANGED/' -e 's/n/themed and de-branded/')"
 fi
 echo "[$SCRIPT]:  - The browser tabs titles will be set to $TITLE"
-if [ ! -z "$CARDS" ]; then
-echo "[$SCRIPT]:  - Cards:$(echo $CARDS | sed -e 's/-modal.lp//g' -e 's/I/ Include /g' -e 's/X/ Exclude /g')"
-fi
 
 echo [$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop.
 if [ $YES = y ]; then

@@ -17,7 +17,7 @@ sed \
   -e 's|<a href="%s" target="_self">|<a href="#" data-remote="%s">|' \
   /www/docroot/traffic.lp > /www/docroot/modals/diagnostics-traffic-modal.lp
 
-if [ -f /etc/init.d/cwmpd -a "$(uci get cwmpd.cwmpd_config.state)" = "1" ]
+if [ -f /etc/init.d/cwmpd ]
 then
   CWMP=enabled
 else
@@ -41,52 +41,31 @@ do
     RULE=$(basename $f .lp | sed -e 's/-//g')
   else
     CREATE_RULE=n
-    RULE=$(uci show web | grep "/modals/$MODAL" | cut -d. -f2)
+    RULE=$(uci show web | grep "/modals/$MODAL" | grep -v card_ | cut -d. -f2)
   fi
   if [ "$RULE" = "cwmpconfmodal" -a "$CWMP" = "disabled" ]
   then
     echo [$SCRIPT]: CWMP is disabled so disabling $f
     uci -q delete web.$RULE
-    SRV_nginx=$(( $SRV_nginx + 1 ))
+    uci -q set web.card_cwmpconf.hide='1'
+    SRV_nginx=$(( $SRV_nginx + 2 ))
     continue
   fi
   if [ $CREATE_RULE = y ]
   then
+    echo [$SCRIPT]: Enabling $MODAL
     uci add_list web.ruleset_main.rules=$RULE
     uci set web.$RULE=rule
     uci set web.$RULE.target=/modals/$MODAL
     uci set web.$RULE.normally_hidden='1'
-    echo $CARDS | grep -q "X$MODAL"
-    if [ $? -eq 0 ]
-    then
-      echo [$SCRIPT]: Enabling $MODAL, but disabling card display
-      uci add_list web.$RULE.roles='nobody'
-    else
-      echo [$SCRIPT]: Enabling $MODAL
-      uci add_list web.$RULE.roles='admin'
-    fi
+    uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 4 ))
-  else
-    echo $CARDS | grep -q "X$MODAL"
-    if [ $? -eq 0 ]
-    then
-      echo [$SCRIPT]: Disabling card display for $MODAL 
-      uci -q delete web.$RULE.roles
-      uci add_list web.$RULE.roles='nobody'
-      SRV_nginx=$(( $SRV_nginx + 2 ))
-    fi
-    echo $CARDS | grep -q "\(I$MODAL\|IALL\)"
-    if [ $? -eq 0 ]
-    then
-      uci get web.$RULE.roles | grep -q 'admin'
-      if [ $? -eq 1 ]
-      then
-        echo [$SCRIPT]: Enabling card display for $MODAL 
-        uci -q delete web.$RULE.roles
-        uci add_list web.$RULE.roles='admin'
-        SRV_nginx=$(( $SRV_nginx + 2 ))
-      fi
-    fi
+  elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]
+  then
+    echo [$SCRIPT]: Enabling $MODAL 
+    uci -q delete web.$RULE.roles
+    uci add_list web.$RULE.roles='admin'
+    SRV_nginx=$(( $SRV_nginx + 2 ))
   fi
 done
 # These were incorrectly enabled in release 2020.08.08 and earlier

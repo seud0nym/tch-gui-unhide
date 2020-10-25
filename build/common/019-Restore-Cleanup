@@ -1,5 +1,5 @@
     do
-      if [ ! -f "/rom$f" ]; then
+      if [ ! -f "/rom$f" -a -f "$f" ]; then
         if [ "$1" = "V" ]; then
           echo [$SCRIPT]: Removing $f
         fi
@@ -16,6 +16,11 @@ if [ $RESTORE = y ]; then
     echo [$SCRIPT]: Removing config entry web.$s
     uci -q delete web.$s
     uci -q del_list web.ruleset_main.rules="$s"
+  done
+  for s in $(uci show web | grep '=card' | cut -d= -f1)
+  do
+    echo [$SCRIPT]: Removing config entry $s
+    uci -q delete $s
   done
   RULES=$(uci get web.ruleset_main.rules)
   for s in $(echo $RULES | tr " " "\n" | sort -u)

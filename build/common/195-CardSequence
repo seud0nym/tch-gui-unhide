@@ -1,0 +1,12 @@
+echo [$SCRIPT]: Sequencing cards
+for RULE in $(uci show web | grep '=card' | cut -d= -f1)
+do
+  CARD=$(uci -q get ${RULE}.card)
+  FILE=$(ls /www/cards/ | grep "..._${CARD#*_}")
+  if [ "$CARD" != "$FILE" ]
+  then
+    echo "[$SCRIPT]:  - Renaming $FILE to $CARD"
+    mv /www/cards/$FILE /www/cards/$CARD
+  fi
+done
+

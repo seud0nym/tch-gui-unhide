@@ -5,34 +5,7 @@ FIX_FW_UPG='u'
 
 FILENAME=$(basename $0)
 
-CARDS=""
-update_cards() {
-  MODAL=""
-  case "$2" in
-    c)  MODAL="contentsharing-modal.lp";;
-    m)  MODAL="usermgr-modal.lp";;
-    n)  MODAL="nat-alg-helper-modal.lp";;
-    p)  MODAL="printersharing-modal.lp";;
-    q)  MODAL="qos-queue-modal.lp";;
-    r)  MODAL="relay-modal.lp";;
-    s)  MODAL="system-modal.lp";;
-    t)  MODAL="tod-modal.lp";;
-    x)  MODAL="xdsl-low-modal.lp";;
-    A)  for PARAM in c m n p q r s t x; do update_cards $1 $PARAM; done
-        if [ $1 = I ]; then MODAL="ALL"; fi;;
-    *)  if [ ! -z "$2" -a -f "/www/docroot/modals/$2" ]
-        then
-          MODAL=$2
-        else
-          echo "[$SCRIPT]: WARNING - Ignored unknown card include/exclude option $2"
-        fi;;
-  esac
-  if [ ! -z "$MODAL" ]; then
-    CARDS=${1}${MODAL}$(echo $CARDS | sed -e "s/[IX]$MODAL//")
-  fi
-}
-
-while getopts Wt:s:Tryun:x:i:c:h:lf: option
+while getopts Wt:s:Tryui:c:h:lf: option
 do
  case "${option}" in
    W) WRAPPER=y;;
@@ -61,8 +34,6 @@ do
         *) TITLE="$VARIANT-$MAC";;
       esac;;
    r) RESTORE=y;;
-   n) update_cards 'I' $OPTARG;;
-   x) update_cards 'X' $OPTARG;;
    y) YES=y;;
    u) RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME | sed 's/\r//')
       if [ $? -ne 0 ]
@@ -125,13 +96,6 @@ do
       echo " -h d|s|n       : Set the browser tabs title to $VARIANT-$MAC (s), $VARIANT (d) or $HOSTNAME (n)"
       echo "                    (Default is current setting or $VARIANT-$MAC if not previously applied)"
       echo " -f u|y|n       : Firmware upgrade in the web GUI - u=Leave unchanged (Default) y=Enable n=Disable"
-      echo " -x c|m|n|p|q|r|s|t|x|A :"
-      echo "                  Exclude specific cards. Use -x multiple times to specify multiple cards or use -xA for all of these cards:"
-      echo "                    c=Content Sharing m=Management n=NAT Helpers p=Printer Sharing q=QoS r=Relay Setup s=System Extras t=Time of Day x=xDSL config"
-      echo "                    You can also specify the full name of a modal file (e.g. -x mmpbx-info-modal.lp). Be aware that this may not work for all cards."
-      echo " -n c|m|n|p|q|r|s|t|x|A : "
-      echo "                  Include specific cards that were previously excluded (use -n multiple times to specify multiple cards or use -nA)"
-      echo "                    -nA will also include any cards excluded by specifying the full modal name. -nA overrides all -x parameters."
       echo " -y             : Bypass confirmation prompt (answers 'y')"
       echo " -r             : Restore changed GUI files to their original state (config changes are NOT restored)"
       echo " -u             : Check for and download any updates to $FILENAME"
@@ -140,8 +104,9 @@ do
       echo "                    When specifying the -U option, it must be the ONLY parameter specifed."
       fi
       echo 
-      echo "NOTE: Theme (-t) and excluded/included cards (-x/-n) do not need to be re-specified when re-running the script: current state"
-      echo "      will be 'remembered' between executions (unless you execute with the -r option, which will remove all state information)"
+      echo "NOTE #1: Theme (-t) does not need to be re-specified when re-running the script: current state will be 'remembered'"
+      echo "         between executions (unless you execute with the -r option, which will remove all state information)"
+      echo "NOTE #2: Use tch-gui-unhide-cards to set card order and visibility"
       echo
       exit;;
  esac

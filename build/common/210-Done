@@ -3,6 +3,9 @@ echo "* Done!! You should clear your browser cache of images and *"
 echo "* files, otherwise you won't see the theme changes.        *"
 echo "************************************************************"
 echo
-echo "++ TIP: Bookmark http://$(uci get network.lan.ipaddr)/gateway.lp to bypass the"
-echo "++      Telstra Basic web GUI..."
+echo "++ TIP #1: Bookmark http://$(uci get network.lan.ipaddr)/gateway.lp"
+echo "++         to bypass the Telstra Basic web GUI..."
+echo
+echo "++ TIP #2: Use the tch-gui-unhide-cards script to"
+echo "++         change card order and visibility"
 echo

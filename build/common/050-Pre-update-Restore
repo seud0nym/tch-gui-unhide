@@ -1,3 +1,35 @@
+echo [$SCRIPT]: Ensuring card sequence and visibility is up to date
+for CARDFILE in $(find /www/cards/ -maxdepth 1 -type f ! -name '*fon*' | sort)
+do
+  CARD="${CARDFILE#*_}"
+  CARDRULE="card_$(basename $CARD .lp)"
+  MODAL=$(grep createCardHeader $CARDFILE | grep -o "modals/.*\.lp")
+  HIDDEN=$(uci -q get web.${CARDRULE}.hide)
+  if [ -z "$MODAL" ]
+  then
+    MODAL=$(grep '\(modalPath\|modal_link\)' $CARDFILE | grep -o "modals/.*\.lp" | head -n1)
+  fi
+  MODALRULE=$(uci show web | grep $MODAL | grep -v card_ | cut -d. -f2)
+  if [ ! -z "$MODALRULE" -a "$(uci -q get web.$MODALRULE.roles)" != "admin" ]
+  then
+    echo "[$SCRIPT]:  - Converting $CARD card visibility from modal-based visibility"
+    HIDDEN=1
+    uci -q delete web.$MODALRULE.roles
+    uci add_list web.$MODALRULE.roles='admin'
+    SRV_nginx=$(( $SRV_nginx + 2 ))
+  fi
+  if [ -z "$HIDDEN" ]
+  then
+    HIDDEN=0
+  fi
+  uci set web.${CARDRULE}=card
+  uci set web.${CARDRULE}.card="$(basename $CARDFILE)"
+  uci set web.${CARDRULE}.modal="$MODALRULE"
+  uci set web.${CARDRULE}.hide="$HIDDEN"
+  SRV_nginx=$(( $SRV_nginx + 4 ))
+done
+
+# Do the restore
 restore_www
 
 # Always remove Telstra AIR card
