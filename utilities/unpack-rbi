@@ -1,0 +1,45 @@
+#!/bin/sh
+
+if [ -z "$1" ]
+then
+  echo "ERROR: You must specify the source .rbi file as the first parameter."
+  echo "If you do not specify a target file or directory as the second parameter, the file will be written to the /tmp directory with the same name but with an extension of .bin"
+  exit
+fi
+
+echo "$1" | grep -q -E '\.rbi$'
+if [ $? -eq 1 ]
+then
+  echo "ERROR: Can only unpack files ending in .rbi"
+  exit
+fi
+
+if [ -z "$2" ]
+then
+  target="/tmp/$(basename $1 .rbi).bin"
+else
+  if [ -d "$2" ]
+  then
+    if [ "$2" = '.' ]
+    then
+      target="$(basename $1 .rbi).bin"
+    else
+      target="$(echo $2 | sed -e 's,/*$,,')/$(basename $1 .rbi).bin"
+    fi
+  elif [ -f "$2" ]
+  then
+    target="$2"
+  else
+    echo "ERROR: $2 is not a directory or a file!"
+    exit
+  fi
+fi
+
+echo "About to unpack $1 to $target"
+echo -n "Enter y to continue, or anything else to abort: "
+read CONFIRM
+
+if [ "$CONFIRM" = "y" ]
+then
+  cat "$1" | (bli_parser && echo "Please wait..." && (bli_unseal | dd bs=4 skip=1 seek=1 of="$target"))
+fi
