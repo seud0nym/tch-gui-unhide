@@ -1,5 +1,0 @@
-fi
-sed \
-  -e "$ a .status-icon{color:#$RGB_STATUS_ICON;}" \
-  -i /www/docroot/css/gw.css
-

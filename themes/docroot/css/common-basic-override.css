@@ -1,0 +1,7 @@
+/* Only applicable to light and night themes (not Telstra theme) */
+body{font-family:Roboto,Noto,sans-serif;background-image:none;}
+.navbar+.container{margin-top:130px;}
+.navbar-fixed-top .container{background-image:url(/img/logo.gif);background-repeat:no-repeat;background-size:180px;height:75px;margin-top:30px;}
+.navbar-fixed-top .navbar-inner{box-shadow:none;}
+.navbar-inner{box-shadow:none;}
+.navbar-inverse .navbar-inner{background-image:none;border-width:0px;}

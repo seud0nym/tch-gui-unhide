@@ -1,0 +1,30 @@
+a{color:var(--RGB_NAV);}
+body{background-color:#fff;}
+.btn{color:#000}
+.btn.btn-primary{color:#fff}
+.btn-primary,.button:hover,.btn:hover,.smallcard .header .settings,.smallcard .header .settings:hover{background-color:var(--RGB_GRAD_TO);background-image:-moz-linear-gradient(top,var(--RGB_GRAD_FROM),var(--RGB_GRAD_TO));background-image:-webkit-gradient(linear,00,0100%,from(var(--RGB_GRAD_FROM)),to(var(--RGB_GRAD_TO)));background-image:-webkit-linear-gradient(top,var(--RGB_GRAD_FROM),var(--RGB_GRAD_TO));background-image:-o-linear-gradient(top,var(--RGB_GRAD_FROM),var(--RGB_GRAD_TO));background-image:linear-gradient(tobottom,var(--RGB_GRAD_FROM),var(--RGB_GRAD_TO));border-color:var(--RGB_GRAD_TO);text-shadow:unset;}
+.btn:hover{-webkit-box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(12,208,246,1);-moz-box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(12,208,246,1);box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(0,0,0,1);}
+.button:hover:hover,.button:hover:focus,.button:hover:active,.button:hover.active,.button:hover.disabled,.button:hover[disabled],.btn:hover:hover,.btn:hover:focus,.btn:hover:active,.btn:hover.active,.btn:hover.disabled,.btn:hover[disabled],.smallcard .header .settings:hover:hover,.smallcard .header .settings:hover:focus,.smallcard .header .settings:hover:active,.smallcard .header .settings:hover.active,.smallcard .header .settings:hover.disabled,.smallcard .header .settings:hover[disabled]{background-color:var(--RGB_GRAD_FROM);color:#fff}
+.card_bg:after{color:var(--RGB_SYM);}
+.header img{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/logo.gif) no-repeat;width:180px;height:70px;padding-left:180px;background-size:180px;}
+.header .btn{background-color:var(--RGB_BTN);color:#fff;}
+.modal-backdrop{background-color:#fff;}
+.modal-header{color:var(--RGB_HDR_TXT);}
+.nav-tabs>.active>a, .nav-tabs>.active>a:hover, .nav-tabs>.active>a:focus{background-color:#00B1EB;color:#fff}
+.smallcard{background-color:#eee;color:rgba(64,64,64,0.75);}
+.smallcard .header{background-color:var(--RGB_HDR);color:var(--RGB_TXT);}
+.smallcard .subinfos{color:rgba(64,64,64,0.75);}
+.switchOn{background-color:#00a540;}
+.networkmap{background-color:#dadada;padding-top:20px;}
+.networkmap .right,.networkmap .left,.networkmap .longleft{background-color:#f89406;color:#fff}
+.networkmap .right{background-image:url("/img/light/tipright.png") !important;}
+.networkmap .left{background-image:url("/img//light/tipleft.png") !important;}
+.networkmap .longleft{background-image:url("/img/light/tiplongleft.png") !important;}
+.diag-traffic{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/Profit-01-WF.png) no-repeat;width:32px;height:32px;padding-left:32px;}
+.diag-dsl{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/bandwidth-px-png.png) no-repeat;width:32px;height:32px;padding-left:32px;}
+.diag-ping{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/pocket-32-black.png) no-repeat;width:32px;height:32px;padding-left:32px;}
+.diag-logviewer{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/log-viewer.png) no-repeat;width:32px;height:32px;padding-left:32px;}
+.diag-connections{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/Data-Sync-WF.png) no-repeat;width:32px;height:32px;padding-left:32px;}
+.diag-connection{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/connection-established.png) no-repeat;width:32px;height:32px;padding-left:32px;}
+.diag-network{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/network_sans-32.png) no-repeat;width:32px;height:32px;padding-left:32px;}
+.diag-tcpdump{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/tcp-dump.png) no-repeat;width:32px;height:32px;padding-left:32px;}

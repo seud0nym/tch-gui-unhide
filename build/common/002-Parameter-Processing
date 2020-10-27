@@ -2,6 +2,7 @@ RESTORE=n
 WRAPPER=n
 YES=n
 FIX_FW_UPG='u'
+THEME_ONLY='n'
 
 FILENAME=$(basename $0)
 
@@ -9,21 +10,22 @@ while getopts Wt:s:Tryui:c:h:lf: option
 do
  case "${option}" in
    W) WRAPPER=y;;
-   l) KEEP_LP=y;;
+   l) KEEPLP=y;;
    f) case "${OPTARG}" in y|Y) FIX_FW_UPG='y';; n|N) FIX_FW_UPG='n';; u|U) FIX_FW_UPG='u';; *) FIX_FW_UPG='u'; echo 'WARNING: -f valid options are y, n, or u';; esac;;
    t) case "$(echo ${OPTARG} | tr "GNOPLT" "gnoplt" | sed 's/\(.\)\(.*\)/\1/')" in
-        g) THEME=night; COLOR=green; KEEP_LP=n; echo WARNING: -tg deprecated. Use -tn -cg in future;; 
-        n) THEME=night; COLOR=blue; KEEP_LP=n;;
-        o) THEME=night; COLOR=orange; KEEP_LP=n; echo WARNING: -to deprecated. Use -tn -co in future;; 
-        p) THEME=night; COLOR=purple; KEEP_LP=n; echo WARNING: -tp deprecated. Use -tn -cp in future;; 
-        l) THEME=light; COLOR=monochrome; KEEP_LP=n;;
-        *) THEME=Telstra; COLOR=blue; KEEP_LP=y;;
+        g) THEME=night; COLOR=green; KEEPLP=n; echo WARNING: -tg deprecated. Use -tn -cg in future;; 
+        n) THEME=night; COLOR=blue; KEEPLP=n;;
+        o) THEME=night; COLOR=orange; KEEPLP=n; echo WARNING: -to deprecated. Use -tn -co in future;; 
+        p) THEME=night; COLOR=purple; KEEPLP=n; echo WARNING: -tp deprecated. Use -tn -cp in future;; 
+        l) THEME=light; COLOR=monochrome; KEEPLP=n;;
+        *) THEME=telstra; COLOR=blue; KEEPLP=y;;
       esac;;
-   c) case "$(echo ${OPTARG} | tr "BGMOP" "bgmop" | sed 's/\(.\)\(.*\)/\1/')" in
+   c) case "$(echo ${OPTARG} | tr "BGMOPR" "bgmopr" | sed 's/\(.\)\(.*\)/\1/')" in
         b) COLOR=blue;; 
         g) COLOR=green;; 
         o) COLOR=orange;; 
         p) COLOR=purple;; 
+        r) COLOR=red;; 
         *) COLOR=monochrome;;
       esac;;
    i) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then ICONS=visible; else ICONS=hidden; fi;;
@@ -84,13 +86,13 @@ do
       fi
       exit;;
    ?) echo "Optional parameters:"
-      echo " -t l|n|t       : Set a light (l), night (n), or default Telstra (t) theme"
+      echo " -t l|n|t       : Set a light (l), night (n), or Telstra-branded (t) theme"
       echo "                    (Default is current setting, or Telstra if no theme has been applied)"
-      echo " -c b|o|g|p|m   : Set the theme highlight colour"
-      echo "                    b=blue o=orange g=green p=purple m=monochrome"
+      echo " -c b|o|g|p|r|m : Set the theme highlight colour"
+      echo "                    b=blue o=orange g=green p=purple r=red m=monochrome"
       echo "                    (Default is current setting, or (m) for light theme or (b) for night theme)"
       echo " -i y|n         : Show (y) or hide (n) the card icons"
-      echo " -                  (Default is current setting, or n for light theme and y for night theme)"
+      echo " -                  (Default is current setting, or (n) for light theme and (y) for night theme)"
       echo " -l             : Keep the Telstra landing page"
       echo " -T             : Apply theme ONLY - bypass all other processing"
       echo " -h d|s|n       : Set the browser tabs title to $VARIANT-$MAC (s), $VARIANT (d) or $HOSTNAME (n)"

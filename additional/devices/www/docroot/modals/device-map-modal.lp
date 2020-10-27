@@ -6,23 +6,6 @@ gettext.textdomain('webui-core')
 local lp = require("web.lp")
 local ui_helper = require("web.ui_helper")
 ngx.print( ui_helper.createHeader(T"Devices", false, true) ); ngx.print('\
-<style>\
-#device-modal>div.modal-body>div.container{width:1060px !important;} \
-#hide-unhide-non-connected-device{display:none;}\
-.networkmap .device{width:auto;text-align:center;}\
-.networkmap .devicelist{-webkit-border-radius:10px;-moz-border-radius:10px;border-radius:10px;border:1px solid #DADADA;padding:0.625em;text-align:center;}\
-.networkmap .interface-name{color:#004D9D;font-size:1.25em;margin-bottom:10px;}\
-.networkmap .table td{border-top:none;border-color:#004D9D;padding-top:0px;padding-bottom:0px;width:12.5%;}.networkmap .table td .tooltip-inner{text-align:left;}\
-.networkmap .apinfo{font-size:0.775em;color:#002856;line-height:normal;text-align:left;border:solid 8px transparant;display:inline-block;vertical-align:middle;position:absolute;}\
-.networkmap .deviceinfo{font-size:0.775em;color:#002856;line-height:normal;text-align:left;border:solid 8px transparant;display:inline-block;vertical-align:middle;position:absolute;}\
-.networkmap .showdeviceinfo{font-size:0.775em;color:#002856;line-height:normal;text-align:left;border:solid 8px transparant;vertical-align:middle;}\
-.networkmap .right{background:#bce4fa no-repeat left bottom url("/img/tipright.png");padding:8px 8px 8px 12px;margin-left:5px;}\
-.networkmap .left{background:#bce4fa no-repeat right bottom url("/img/tipleft.png");padding:8px 12px 8px 8px;margin-left:20px;left:30%;}\
-.networkmap .longleft{background:#bce4fa no-repeat right bottom url("/img/tiplongleft.png");padding:8px 12px 8px 8px;margin-left:20px;left:26%;}\
-.networkmap .hoveronly{display:none;}\
-.networkmap .showinfo{display:inline-block;}\
-.networkmap .device:hover .deviceinfo.hoveronly{display:inline-block;}\
-</style>\
 <div class="modal-body">\
 ');  
   lp.setpath("/www/snippets/")

@@ -1,7 +1,7 @@
 sed \
   -e '$ a .card_bg:after{font-size:110px;bottom:-5px;}' \
   -i /www/docroot/css/gw.css
-if [ -f /www/docroot/landingpage.lp -a "$KEEP_LP" = "n" ]
+if [ -f /www/docroot/landingpage.lp -a "$KEEPLP" = "n" ]
 then
   echo [$SCRIPT]: Theming and de-branding landing page
   sed \
@@ -23,15 +23,15 @@ then
     -e 's/.visible-desktop{display:inherit/.visible-desktop{display:none/' \
     -i /www/docroot/css/responsive.css
   sed \
-    -e '/<head>/a <link rel="shortcut icon" type="image/x-icon" href="/img/favicon.ico"/>\\' \
     -e "s,<title>');  ngx.print( T\"Login\" ); ngx.print('</title>,<title>$TITLE Login</title>," \
-    -e 's,<img src="/img/TELSTRA_LOGO.png" style="width:57px;height:65px;">,<img src="/img/logo.gif" style="width:240px;margin-bottom:60px;">,' \
+    -e 's,<img src="/img/TELSTRA_LOGO.png" style="width:57px;height:65px;">,<img class="lp-logo" style="width:240px;margin-bottom:60px;">,' \
     -e 's/Firmware Number/Firmware Version/' \
     -e 's/Modem Make Model/Model/' \
     -e 's/height:60%;min-height:400px;/height:30%;min-height:350px;width:100%;/' \
     -e 's/"-webkit-border-radius: 20px;-moz-border-radius: 20px;border-radius: 20px;width:50%;"/"display:block;margin-bottom:2px;width:220px;"/' \
     -e 's/"erroruserpass alert alert-error hide"/"erroruserpass alert alert-error hide" style="width:212px;margin:auto;padding:10px;"/' \
     -e 's/buttonborder linear-mobile" style="width:50%/linear-mobile" style="width:65px/' \
+    -e "/<\/head>\\\/i '); local lp = require(\"web.lp\"); lp.include(\"../snippets/theme-basic.lp\"); ngx.print('\\\\" \
     /rom/www/docroot/landingpage.lp>/www/docroot/landingpage.lp
   # Have to restart if changing landing page
   SRV_nginx=$(( $SRV_nginx + 1 ))

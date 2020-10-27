@@ -1,0 +1,6 @@
+# Fix directory permissions after tar extracts
+chmod +x /www /www/docroot /www/docroot/css /www/docroot/css/telstra /www/docroot/css/light /www/docroot/css/night /www/docroot/img /www/docroot/img/telstra /www/docroot/img/light /www/docroot/img/night /www/snippets
+
+echo [$SCRIPT]: Persisting theme settings
+echo -n "THEME=$THEME COLOR=$COLOR ICONS=$ICONS KEEPLP=$KEEPLP" > /tmp/tch-gui-unhide-theme
+

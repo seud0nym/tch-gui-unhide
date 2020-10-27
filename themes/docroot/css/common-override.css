@@ -1,0 +1,11 @@
+/* Common to light, night, and Telstra themes */
+u{text-decoration:none;}
+.card_bg:after{visibility:var(--ICONS);}
+.card_bg.mirror:after{transform:matrix(-1,0,0,1,0,0);}
+.header .btn{margin-left:5px;}
+.simple-desc{display:block;}
+.smallcard .content{font-size:14px;height:125px;}
+.smallcard .subinfos{font-size:14px;}
+#tod>tbody>tr.additional-edit>td:nth-child(1)>fieldset>div:nth-child(3)>div.controls>label.checkbox{padding-left:0px;}
+#tod>tbody>tr.additional-edit>td:nth-child(1)>fieldset>div:nth-child(3)>div.controls>label.checkbox>input[type="checkbox"]{margin-left:2px;width:20px;}
+.status-icon{color:var(--RGB_STATUS_ICON);}

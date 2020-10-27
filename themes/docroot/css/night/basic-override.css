@@ -1,0 +1,17 @@
+body{background-color:#353c42;color:#fff;}
+legend{color:#fff;}
+.btn{background-color:#005c32;background-image:none;color:#fff;text-shadow:none;}
+.btn-primary:hover,.btn-primary:focus,.btn-primary:active,.btn-primary.active,.btn-primary.disabled,.btn-primary[disabled]{background-color:#005c32;color:#fff}
+.btn:hover .caret{border-top-color:#000;}
+.caret{border-top-color:#fff;}
+.container>.row{background-color:#272c30;border-color:#272330;}
+.lp-logo{display:block;-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/night/logo.gif) no-repeat;width:240px;height:93px;padding-left:240px;background-size:240px;}
+.menubar .menu-item a .menu-icon.selected,.menubar .menu-item a:hover .menu-icon{background-color:#3d8dbb;}
+.menubar .menu-item a{color:#0088cc;}
+.navbar-inverse .navbar-inner{background-color:#353c42;color:#fff;}
+.networkmap .devicelist{border-color:#024b96;}
+.networkmap .right,.networkmap .left,.networkmap .longleft{background-color:#fff;color:#000}
+.networkmap .right{background-image:url("/img/night/tipright.png") !important;}
+.networkmap .left{background-image:url("/img//night/tipleft.png") !important;}
+.networkmap .longleft{background-image:url("/img/night/tiplongleft.png") !important;}
+.table-striped tbody>tr:nth-child(odd)>td,.table-striped tbody>tr:nth-child(odd)>th {background-color:#353c42;}

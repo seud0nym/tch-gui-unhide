@@ -31,32 +31,36 @@ case "$(grep 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'
   *)          TITLE="$VARIANT-$MAC";;
 esac
 
-KEEP_LP=n
-grep -q 'body{background-color:#353c42;' /www/docroot/css/gw.css
-if [ $? -eq 0 ]; then
-  THEME=night
-else
-  grep -q 'body{background-color:#fff;' /www/docroot/css/gw.css
+if [ -f /tmp/tch-gui-unhide-theme ]; then
+  . /tmp/tch-gui-unhide-theme
+fi
+if [ -z "$THEME" ]; then
+  KEEPLP=n
+  grep -q 'body{background-color:#353c42;' /www/docroot/css/gw.css
   if [ $? -eq 0 ]; then
-    THEME=light
+    THEME=night
   else
-    THEME=Telstra
-    grep -q 'body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color' /www/docroot/css/gw-telstra.css
-    if [ $? -eq 1 ]; then
-      KEEP_LP=y
+    grep -q 'body{background-color:#fff;' /www/docroot/css/gw.css
+    if [ $? -eq 0 ]; then
+      THEME=light
+    else
+      THEME=Telstra
+      grep -q 'body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color' /www/docroot/css/gw-telstra.css
+      if [ $? -eq 1 ]; then
+        KEEPLP=y
+      fi
     fi
   fi
+  case "$(grep '.smallcard .header{background-color:#......;}' /www/docroot/css/gw.css  | cut -d# -f2 | cut -d\; -f1)" in
+    "005c32") COLOR=green;;
+    "662e91") COLOR=purple;;
+    "f36523") COLOR=orange;;
+    "008fd5") COLOR=blue;;
+    "272c30") COLOR=monochrome;;
+    *) if [ $THEME = light ]; then COLOR=monochrome; else COLOR=blue; fi;;
+  esac
+  ICONS="$(grep '.card_bg:after{visibility:' /www/docroot/css/gw.css | cut -d: -f3 | cut -d\; -f1)"
 fi
-case "$(grep '.smallcard .header{background-color:#......;}' /www/docroot/css/gw.css  | cut -d# -f2 | cut -d\; -f1)" in
-  "005c32") COLOR=green;;
-  "662e91") COLOR=purple;;
-  "f36523") COLOR=orange;;
-  "008fd5") COLOR=blue;;
-  "272c30") COLOR=monochrome;;
-  *)        if [ $THEME = light ]; then COLOR=monochrome; else COLOR=blue; fi;;
-esac
-ICONS="$(grep '.card_bg:after{visibility:' /www/docroot/css/gw.css | cut -d: -f3 | cut -d\; -f1)"
-THEME_ONLY=n
 
 # Keep count of changes so we know whether to restart services
 SRV_dnsmasq=0

@@ -1,0 +1,5 @@
+:root {
+  --RGB_TXT: #fff;
+  --RGB_HDR_TXT: var(--RGB_HDR);
+  --RGB_STATUS_ICON: var(--RGB_HDR);
+}

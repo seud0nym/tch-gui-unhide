@@ -25,12 +25,9 @@ do
     cd $DIR
   fi
 done
-echo "  echo [\$SCRIPT]: Deploy new and modified light theme images" > ../additional/light.b64
-echo "  echo $(tar --owner=root --group=root --mode=644 --transform='s|images/light|www/docroot/img|' -czf - ../images/light/* | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> ../additional/light.b64
-echo "  echo [\$SCRIPT]: Deploy new and modified night theme images" > ../additional/night.b64
-echo "  echo $(tar --owner=root --group=root --mode=644 --transform='s|images/night|www/docroot/img|' -czf - ../images/night/* | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> ../additional/night.b64
-echo "  echo [\$SCRIPT]: Deploy new and modified diagnostics images for Telstra theme" > ../additional/telstra.b64
-echo "  echo $(tar --exclude=logo.gif --exclude=tip* --owner=root --group=root --mode=644 --transform='s|images/light|www/docroot/img|' -czf - ../images/light/* | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> ../additional/telstra.b64
+echo "echo [\$SCRIPT]: Deploy theme files" > ../additional/theme.b64
+echo "echo $(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -czf - -C ../themes . | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> ../additional/theme.b64
+echo "" >> ../additional/theme.b64
 
 for f in $(find . -mindepth 2 -type d | cut -c3- | tr '/' '-')
 do
@@ -64,17 +61,11 @@ do
           sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/$b.b64 >> $TARGET
         done
       else
-        sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
-        if [ $FILENAME = "170-Light-Theme" ]
+        if [ $FILENAME = "165-Themes" ]
         then
-          sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/light.b64 >> $TARGET
-        elif [ $FILENAME = "175-Telstra-Theme" ]
-        then
-          sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/telstra.b64 >> $TARGET
-        elif [ $FILENAME = "180-Night-Theme" ]
-        then
-          sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/night.b64 >> $TARGET
+          sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/theme.b64 >> $TARGET
         fi
+        sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
       fi
     fi
   done

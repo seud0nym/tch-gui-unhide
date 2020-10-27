@@ -1,0 +1,9 @@
+body{background-color:#fff;}
+.container>.row{background-color:#dadada;border-color:#dadada;}
+.navbar-inverse .navbar-inner{background-color:#fff;}
+.lp-logo{display:block;-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/logo.gif) no-repeat;width:240px;height:93px;padding-left:240px;background-size:240px;}
+.networkmap .devicelist{border-color:#094f9c;}
+.networkmap .right,.networkmap .left,.networkmap .longleft{background-color:#f89406;color:#fff}
+.networkmap .right{background-image:url("/img/light/tipright.png") !important;}
+.networkmap .left{background-image:url("/img//light/tipleft.png") !important;}
+.networkmap .longleft{background-image:url("/img/light/tiplongleft.png") !important;}

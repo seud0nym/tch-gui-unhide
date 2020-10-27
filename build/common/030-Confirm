@@ -37,7 +37,7 @@ echo "[$SCRIPT]:  - Unhide various cards and tabs contained in the stock GUI tha
 echo "[$SCRIPT]:  - Add new cards and screens, and modified cards and screens from the Ansuel tch-nginx-gui"
 echo "[$SCRIPT]:  - The GUI screens will be prettied up a bit and the $THEME theme applied with $COLOR highlights and $ICONS card icons"
 if [ -f /www/docroot/landingpage.lp ]; then
-echo "[$SCRIPT]:  - The Telstra Landing Page will be $(echo $KEEP_LP | sed -e 's/y/left UNCHANGED/' -e 's/n/themed and de-branded/')"
+echo "[$SCRIPT]:  - The Telstra Landing Page will be $(echo $KEEPLP | sed -e 's/y/left UNCHANGED/' -e 's/n/themed and de-branded/')"
 fi
 echo "[$SCRIPT]:  - The browser tabs titles will be set to $TITLE"
 
