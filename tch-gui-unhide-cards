@@ -1,5 +1,15 @@
 #!/bin/sh
 
+if [ "action$1" = "action-?" ]
+then
+  echo "Optional parameters:"
+  echo " -s       : Apply the suggested card sequence and exit"
+  echo " -d       : Apply the default card sequence and exit"
+  echo
+  echo "When no parameters as specified, you can interactively re-sequence cards and change their visibility."
+  exit
+fi
+
 echo -n "Working"
 CARDS=""
 for RULE in $(uci show web | grep '=card' | cut -d= -f1)
@@ -22,12 +32,166 @@ do
     CARDS="$CARDS$IFS$HIDDEN|$SEQ|$HIDDEN|$CARD|$MODAL|$TITLE|"
   fi
 done
+echo
 
 if [ -z "$CARDS" ]
 then
-  echo
   echo "ERROR: No card configurations found!"
   echo "Have you run tch-gui-unhide yet? You must execute tch-gui-unhide BEFORE configuring card sequence and visibility."
+  exit
+fi
+
+apply_changes() {
+    for CARD in $(echo "$CARDS" | tr ' ' ';' | sort)
+    do
+      HIDDEN=$(echo "$CARD" | cut -d'|' -f1)
+      SEQ=$(echo "$CARD" | cut -d'|' -f2)
+      FILE="/www/cards/$(echo "$CARD" | cut -d'|' -f4)"
+      MODAL=$(echo "$CARD" | cut -d'|' -f5)
+      NEW_FILE="/www/cards/${SEQ}_${FILE#*_}"
+      RULE="card_$(basename ${FILE#*_} .lp)"
+      if [ "$FILE" != "$NEW_FILE" ]
+      then
+        echo "Renaming $FILE to $NEW_FILE"
+        mv "$FILE" "$NEW_FILE"
+      fi
+      uci set web.$RULE=card
+      uci set web.$RULE.card="$(basename $NEW_FILE)"
+      uci set web.$RULE.modal="$MODAL"
+      uci set web.$RULE.hide="$HIDDEN"
+    done
+    echo "Applying updated configuration"
+    uci commit web
+    /etc/init.d/nginx restart
+    echo "Done!!"
+}
+
+apply_defaults() {
+  TMP=""
+  for CARD in $(echo "$CARDS" | tr ' ' ';')
+  do
+    HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
+    FILE=$(echo "$CARD" | cut -d'|' -f4)
+    MODAL=$(echo "$CARD" | cut -d'|' -f5)
+    TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
+    HIDE=$HIDDEN
+    case "${FILE#*_}" in
+      broadband.lp) SEQ="002";;
+      contentsharing.lp) SEQ="012";;
+      cwmpconf.lp) SEQ="090";;
+      Devices.lp) SEQ="006";;
+      diagnostics.lp) SEQ="009";;
+      firewall.lp) SEQ="008";;
+      fon.lp) SEQ="010";;
+      gateway.lp) SEQ="001";;
+      internet.lp) SEQ="003";;
+      iproutes.lp) SEQ="015";;
+      LAN.lp) SEQ="005";;
+      lte.lp) SEQ="003";;
+      natalghelper.lp) SEQ="092";;
+      parental.lp) SEQ="013";;
+      printersharing.lp) SEQ="012";;
+      qos.lp) SEQ="008";;
+      relaysetup.lp) SEQ="018";;
+      system.lp) SEQ="091";;
+      telephony.lp) SEQ="008";;
+      tod.lp) SEQ="015";;
+      usermgr.lp) SEQ="011";;
+      wanservices.lp) SEQ="007";;
+      wireless_boosters.lp) SEQ="004";;
+      wireless.lp) SEQ="004";;
+      xdsl.lp) SEQ="093";;
+      *) SEQ=$(basename $FILE | cut -c1-3);;
+    esac
+    if [ -z "$TMP" ]
+    then
+      TMP="0|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+    else
+      TMP="$TMP${IFS}0|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+    fi
+  done
+  CARDS="$TMP"
+  unset TMP
+}
+
+apply_suggested() {
+  TMP=""
+  for CARD in $(echo "$CARDS" | tr ' ' ';')
+  do
+    HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
+    FILE=$(echo "$CARD" | cut -d'|' -f4)
+    MODAL=$(echo "$CARD" | cut -d'|' -f5)
+    TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
+    HIDE=$HIDDEN
+    case "${FILE#*_}" in
+      broadband.lp) SEQ="002";;
+      contentsharing.lp) SEQ="019";;
+      cwmpconf.lp) SEQ="025"; if [ ! -f /etc/init.d/cwmpd ]; then HIDE=1; fi;;
+      Devices.lp) SEQ="010";;
+      diagnostics.lp) SEQ="023";;
+      firewall.lp) SEQ="016";;
+      fon.lp) SEQ="005";;
+      gateway.lp) SEQ="001";;
+      internet.lp) SEQ="003";;
+      iproutes.lp) SEQ="013";;
+      LAN.lp) SEQ="008";;
+      lte.lp) SEQ="004";;
+      natalghelper.lp) SEQ="017";;
+      nfc.lp) SEQ="009";;
+      parental.lp) SEQ="021";;
+      printersharing.lp) SEQ="020"; HIDE="1";;
+      qos.lp) SEQ="018";;
+      relaysetup.lp) SEQ="015"; HIDE="1";;
+      system.lp) SEQ="014";;
+      telephony.lp) SEQ="011";;
+      tod.lp) SEQ="022";;
+      usermgr.lp) SEQ="026"; HIDE="1";;
+      wanservices.lp) SEQ="012";;
+      wireless_boosters.lp) SEQ="007";;
+      wireless.lp) SEQ="006";;
+      xdsl.lp) SEQ="024";;
+      *) SEQ=$(basename $FILE | cut -c1-3);;
+    esac
+    if [ -z "$TMP" ]
+    then
+      TMP="$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+    else
+      TMP="$TMP$IFS$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+    fi
+  done
+  CARDS="$TMP"
+  unset TMP
+}
+
+undo_changes() {
+  TMP=""
+  for CARD in $(echo "$CARDS" | tr ' ' ';')
+  do
+    HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
+    FILE=$(echo "$CARD" | cut -d'|' -f4)
+    MODAL=$(echo "$CARD" | cut -d'|' -f5)
+    TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
+    SEQ=$(basename $FILE | cut -c1-3)
+    if [ -z "$TMP" ]
+    then
+      TMP="$HIDDEN|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+    else
+      TMP="$TMP$IFS$HIDDEN|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+    fi
+  done
+  CARDS="$TMP"
+  unset TMP
+}
+
+if [ "action$1" = "action-s" ]
+then
+  apply_suggested
+  apply_changes
+  exit
+elif [ "action$1" = "action-d" ]
+then
+  apply_defaults
+  apply_changes
   exit
 fi
 
@@ -69,138 +233,12 @@ do
   read FROM
   echo
   case "$FROM" in
-    a)  for CARD in $(echo "$CARDS" | tr ' ' ';' | sort)
-        do
-          HIDDEN=$(echo "$CARD" | cut -d'|' -f1)
-          SEQ=$(echo "$CARD" | cut -d'|' -f2)
-          FILE="/www/cards/$(echo "$CARD" | cut -d'|' -f4)"
-          MODAL=$(echo "$CARD" | cut -d'|' -f5)
-          NEW_FILE="/www/cards/${SEQ}_${FILE#*_}"
-          RULE="card_$(basename ${FILE#*_} .lp)"
-          if [ "$FILE" != "$NEW_FILE" ]
-          then
-            echo "Renaming $FILE to $NEW_FILE"
-            mv "$FILE" "$NEW_FILE"
-          fi
-          uci set web.$RULE=card
-          uci set web.$RULE.card="$(basename $NEW_FILE)"
-          uci set web.$RULE.modal="$MODAL"
-          uci set web.$RULE.hide="$HIDDEN"
-        done
-        echo "Applying updated configuration"
-        uci commit web
-        /etc/init.d/nginx restart
-        echo "Done!!"
+    a)  apply_changes
         break;;
-    d)  TMP=""
-        for CARD in $(echo "$CARDS" | tr ' ' ';')
-        do
-          HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
-          FILE=$(echo "$CARD" | cut -d'|' -f4)
-          MODAL=$(echo "$CARD" | cut -d'|' -f5)
-          TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
-          HIDE=$HIDDEN
-          case "${FILE#*_}" in
-            broadband.lp) SEQ="002";;
-            contentsharing.lp) SEQ="012";;
-            cwmpconf.lp) SEQ="090";;
-            Devices.lp) SEQ="006";;
-            diagnostics.lp) SEQ="009";;
-            firewall.lp) SEQ="008";;
-            fon.lp) SEQ="010";;
-            gateway.lp) SEQ="001";;
-            internet.lp) SEQ="003";;
-            iproutes.lp) SEQ="015";;
-            LAN.lp) SEQ="005";;
-            lte.lp) SEQ="003";;
-            natalghelper.lp) SEQ="092";;
-            parental.lp) SEQ="013";;
-            printersharing.lp) SEQ="012";;
-            qos.lp) SEQ="008";;
-            relaysetup.lp) SEQ="018";;
-            system.lp) SEQ="091";;
-            telephony.lp) SEQ="008";;
-            tod.lp) SEQ="015";;
-            usermgr.lp) SEQ="011";;
-            wanservices.lp) SEQ="007";;
-            wireless_boosters.lp) SEQ="004";;
-            wireless.lp) SEQ="004";;
-            xdsl.lp) SEQ="093";;
-            *) SEQ=$(basename $FILE | cut -c1-3);;
-          esac
-          if [ -z "$TMP" ]
-          then
-            TMP="0|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
-          else
-            TMP="$TMP${IFS}0|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
-          fi
-        done
-        CARDS="$TMP"
-        unset TMP;;
+    d)  apply_defaults;;
     q)  break;;
-    s)  TMP=""
-        for CARD in $(echo "$CARDS" | tr ' ' ';')
-        do
-          HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
-          FILE=$(echo "$CARD" | cut -d'|' -f4)
-          MODAL=$(echo "$CARD" | cut -d'|' -f5)
-          TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
-          HIDE=$HIDDEN
-          case "${FILE#*_}" in
-            broadband.lp) SEQ="002";;
-            contentsharing.lp) SEQ="019";;
-            cwmpconf.lp) SEQ="025"; if [ ! -f /etc/init.d/cwmpd ]; then HIDE=1; fi;;
-            Devices.lp) SEQ="010";;
-            diagnostics.lp) SEQ="023";;
-            firewall.lp) SEQ="016";;
-            fon.lp) SEQ="005";;
-            gateway.lp) SEQ="001";;
-            internet.lp) SEQ="003";;
-            iproutes.lp) SEQ="013";;
-            LAN.lp) SEQ="008";;
-            lte.lp) SEQ="004";;
-            natalghelper.lp) SEQ="017";;
-            nfc.lp) SEQ="009";;
-            parental.lp) SEQ="021";;
-            printersharing.lp) SEQ="020"; HIDE="1";;
-            qos.lp) SEQ="018";;
-            relaysetup.lp) SEQ="015"; HIDE="1";;
-            system.lp) SEQ="014";;
-            telephony.lp) SEQ="011";;
-            tod.lp) SEQ="022";;
-            usermgr.lp) SEQ="026"; HIDE="1";;
-            wanservices.lp) SEQ="012";;
-            wireless_boosters.lp) SEQ="007";;
-            wireless.lp) SEQ="006";;
-            xdsl.lp) SEQ="024";;
-            *) SEQ=$(basename $FILE | cut -c1-3);;
-          esac
-          if [ -z "$TMP" ]
-          then
-            TMP="$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
-          else
-            TMP="$TMP$IFS$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
-          fi
-        done
-        CARDS="$TMP"
-        unset TMP;;
-    u)  TMP=""
-        for CARD in $(echo "$CARDS" | tr ' ' ';')
-        do
-          HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
-          FILE=$(echo "$CARD" | cut -d'|' -f4)
-          MODAL=$(echo "$CARD" | cut -d'|' -f5)
-          TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
-          SEQ=$(basename $FILE | cut -c1-3)
-          if [ -z "$TMP" ]
-          then
-            TMP="$HIDDEN|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
-          else
-            TMP="$TMP$IFS$HIDDEN|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
-          fi
-        done
-        CARDS="$TMP"
-        unset TMP;;
+    s)  apply_suggested;;
+    u)  undo_changes;;
     *)  if [ "$FROM" -ge 1 -a "$FROM" -le "$I" ]
         then
           printf "For card #$FROM, enter h to hide, v to make visible, or new position number: "
