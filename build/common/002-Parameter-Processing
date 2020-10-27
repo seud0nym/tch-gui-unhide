@@ -92,7 +92,7 @@ do
       echo "                    b=blue o=orange g=green p=purple r=red m=monochrome"
       echo "                    (Default is current setting, or (m) for light theme or (b) for night theme)"
       echo " -i y|n         : Show (y) or hide (n) the card icons"
-      echo " -                  (Default is current setting, or (n) for light theme and (y) for night theme)"
+      echo "                    (Default is current setting, or (n) for light theme and (y) for night theme)"
       echo " -l             : Keep the Telstra landing page"
       echo " -T             : Apply theme ONLY - bypass all other processing"
       echo " -h d|s|n       : Set the browser tabs title to $VARIANT-$MAC (s), $VARIANT (d) or $HOSTNAME (n)"
