@@ -41,7 +41,7 @@ else
   if settings["COLOR"] == "monochrome" then
     html[#html+1] = format(stylesheet, settings["THEME"], "/colour-monochrome.css")
   end
-  html[#html+1] = format(stylesheet, settings["THEME"], "/advanced-override.css")
 end
+html[#html+1] = format(stylesheet, settings["THEME"], "/advanced-override.css")
 
 ngx.print(html)
