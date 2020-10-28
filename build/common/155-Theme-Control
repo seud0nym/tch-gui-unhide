@@ -32,10 +32,14 @@ sed \
   -e '/SAVE/a \      theme_settings["THEME"] = theme_name' \
   -e '/SAVE/a \      theme_settings["COLOR"] = theme_colour' \
   -e '/SAVE/a \      theme_settings["ICONS"] = card_icons' \
-  -e '/SAVE/a \      local file = io.open("/tmp/tch-gui-unhide-theme", "w")' \
-  -e '/SAVE/a \      file:write("THEME=" .. theme_settings["THEME"] .. "; COLOR=" .. theme_settings["COLOR"] .. "; ICONS=" .. theme_settings["ICONS"] .. "; KEEPLP=" .. theme_settings["KEEPLP"] .. ";")' \
-  -e '/SAVE/a \      file:close()' \
-  -e '/SAVE/a \      message_helper.pushMessage("Theme change will be visible when you close this window.", "info")' \
+  -e '/SAVE/a \      local file, err_msg = io.open("/tmp/tch-gui-unhide-theme", "w")' \
+  -e '/SAVE/a \      if file then' \
+  -e '/SAVE/a \        file:write("THEME=" .. theme_settings["THEME"] .. "; COLOR=" .. theme_settings["COLOR"] .. "; ICONS=" .. theme_settings["ICONS"] .. "; KEEPLP=" .. theme_settings["KEEPLP"] .. ";")' \
+  -e '/SAVE/a \        file:close()' \
+  -e '/SAVE/a \        message_helper.pushMessage("Theme change will be visible when you close this window.", "info")' \
+  -e '/SAVE/a \      else' \
+  -e '/SAVE/a \        message_helper.pushMessage("Faied to persist theme preferences: " .. err_msg, "danger")' \
+  -e '/SAVE/a \      end' \
   -e '/SAVE/a \    end' \
   -e "/<\/fieldset><\/form>/ i \</fieldset>\\\\" \
   -e "/<\/fieldset><\/form>/ i \<fieldset>\\\\" \

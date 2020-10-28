@@ -3,4 +3,5 @@ chmod +x /www /www/docroot /www/docroot/css /www/docroot/css/telstra /www/docroo
 
 echo [$SCRIPT]: Persisting theme settings
 echo -n "THEME=$THEME COLOR=$COLOR ICONS=$ICONS KEEPLP=$KEEPLP" > /tmp/tch-gui-unhide-theme
+chown nobody:nogroup /tmp/tch-gui-unhide-theme
 
