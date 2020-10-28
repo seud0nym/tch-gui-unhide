@@ -1,5 +1,5 @@
 sed \
-  -e '$ a .card_bg:after{font-size:110px;bottom:-5px;}' \
+  -e '$ a .card_bg:after{font-size:110px;bottom:-5px;z-index:-20;}' \
   -i /www/docroot/css/gw.css
 if [ -f /www/docroot/landingpage.lp -a "$KEEPLP" = "n" ]
 then
