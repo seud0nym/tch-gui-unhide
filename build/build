@@ -54,7 +54,11 @@ do
       DIRECTORY="$(echo $s | cut -d/ -f2-)"
       if [ $FILENAME = "060-Additional" ]
       then
-        echo "sed -e \"s/\(current_year); ngx.print('\)/\\\1 \[tch-gui-unhide $(date +%Y.%m.%d)\]/\" -i /www/docroot/gateway.lp" >> $TARGET
+        echo "for l in \$(grep -l -r 'current_year); ngx.print(' /www)" >> $TARGET
+        echo "do" >> $TARGET
+        echo "  echo $SEQUENCE@$(date +%H:%M:%S): Adding to tch-gui-unhide version to copyright in \$l" >> $TARGET
+        echo "  sed -e \"s/\(current_year); ngx.print('\)/\\\1 \[tch-gui-unhide $(date +%Y.%m.%d)\]/\" -i \$l" >> $TARGET
+        echo "done" >> $TARGET
         echo >> $TARGET
         for b in $(cat "$DIRECTORY/$FILENAME")
         do
