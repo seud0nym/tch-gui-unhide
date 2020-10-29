@@ -27,12 +27,12 @@ local html = {}
 
 html[#html+1] = format(stylesheet, "icons-" .. settings["ICONS"], ".css")
 html[#html+1] = format(stylesheet, "common-override", ".css")
-html[#html+1] = format(stylesheet, "common-basic-override", ".css")
 
 if settings["THEME"] == "telstra" then
   html[#html+1] = format(favicon, "telstra/")
   html[#html+1] = format(stylesheet, "telstra", "/colour-text.css")
 else
+  html[#html+1] = format(stylesheet, "common-basic-override", ".css")
   html[#html+1] = format(favicon, "")
   if settings["COLOR"] ~= "monochrome" then
     html[#html+1] = format(stylesheet, "colour-" .. settings["COLOR"], ".css")

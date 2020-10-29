@@ -6,7 +6,7 @@ body{background-color:#fff;}
 .btn:hover{-webkit-box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(12,208,246,1);-moz-box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(12,208,246,1);box-shadow:inset 0px 1px 0px rgba(255,255,255,.5),0px 0px 5px rgba(0,0,0,1);}
 .button:hover:hover,.button:hover:focus,.button:hover:active,.button:hover.active,.button:hover.disabled,.button:hover[disabled],.btn:hover:hover,.btn:hover:focus,.btn:hover:active,.btn:hover.active,.btn:hover.disabled,.btn:hover[disabled],.smallcard .header .settings:hover:hover,.smallcard .header .settings:hover:focus,.smallcard .header .settings:hover:active,.smallcard .header .settings:hover.active,.smallcard .header .settings:hover.disabled,.smallcard .header .settings:hover[disabled]{background-color:var(--RGB_GRAD_FROM);color:#fff}
 .card_bg:after{color:var(--RGB_SYM);}
-.header img{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/logo.gif) no-repeat;width:180px;height:70px;padding-left:180px;background-size:180px;}
+.header img,.logo-technicolor{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/logo.gif) no-repeat;width:180px;height:70px;padding-left:180px;background-size:180px;}
 .header .btn{background-color:var(--RGB_BTN);color:#fff;}
 .modal-backdrop{background-color:#fff;}
 .modal-header{color:var(--RGB_HDR_TXT);}
