@@ -32,16 +32,16 @@ local light_map = {
     Enabled = "green",
 }
 local syslog_state_map = {
-    Disabled = T"syslog Disabled",
-    Enabled = T"syslog Enabled",
+    Disabled = T"syslog disabled",
+    Enabled = T"syslog enabled",
 }
 local sshlan_state_map = {
-    Disabled = T"SSH LAN Disabled",
-    Enabled = T"SSH LAN Enabled",
+    Disabled = T"SSH LAN disabled",
+    Enabled = T"SSH LAN enabled",
 }
 local sshwan_state_map = {
-    Disabled = T"SSH WAN Disabled",
-    Enabled = T"SSH WAN Enabled",
+    Disabled = T"SSH WAN disabled",
+    Enabled = T"SSH WAN enabled",
 }
 
 if session:hasAccess("/modals/system-modal.lp") then
@@ -53,10 +53,11 @@ if session:hasAccess("/modals/system-modal.lp") then
     <div class="content card_bg" data-bg-text="&#xf085;">\
         ');  
         local html = {
-            ui_helper.createSimpleLight(nil, syslog_state_map[syslog_present], { light = { class = light_map[syslog_present] } })
+            ui_helper.createSimpleLight(nil, T"Themes enabled", { light = { class = "green" } })
         }
         tinsert(html, ui_helper.createSimpleLight(nil, sshlan_state_map[sshlan_enabled], { light = { class = light_map[sshlan_enabled] } }) )
         tinsert(html, ui_helper.createSimpleLight(nil, sshwan_state_map[sshwan_enabled], { light = { class = light_map[sshwan_enabled] } }) )
+        tinsert(html, ui_helper.createSimpleLight(nil, syslog_state_map[syslog_present], { light = { class = light_map[syslog_present] } }) )
         ngx.print(html)
     ngx.print('\
     </div>\
