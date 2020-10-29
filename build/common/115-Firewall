@@ -11,6 +11,7 @@ sed \
   -e '/subinfos/i \      fw_status = "Firewall enabled"' \
   -e '/subinfos/i \    else' \
   -e '/subinfos/i \      fw_status = "Firewall disabled"' \
+  -e '/subinfos/i \      content["enabled"] = "4"' \
   -e '/subinfos/i \    end' \
   -e '/subinfos/i \    ngx.print(ui_helper.createSimpleLight(content.enabled, fw_status))' \
   -e "/subinfos/i \    ngx.print('\\\\" \
