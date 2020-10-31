@@ -40,7 +40,7 @@ local dos_content, dos_helpmessage = post_helper.handleQuery(dos_Params, dos_val
 			local html = {}
 			html[#html + 1] = '<legend>' .. T"Settings" .. '</legend>'
 			html[#html + 1] = ui_helper.createSwitch(T"Enabled", "dos_enable", dos_content["dos_enable"])
-			html[#html + 1] = ui_helper.createSwitch(T"RpFilter", "dos_rpfilter", dos_content["dos_rpfilter"])
+			html[#html + 1] = ui_helper.createSwitch(T"Reverse Path Filter", "dos_rpfilter", dos_content["dos_rpfilter"])
 			ngx.print(html)
         ngx.print('\
     </fieldset>\
