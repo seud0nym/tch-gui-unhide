@@ -22,7 +22,9 @@ then
 fi
 SCRIPT=$(basename $0 | sed "s/-$TARGET_VERSION//")
 
-VARIANT=$(uci get env.var.variant_friendly_name | sed -e 's/TLS//')
+DFLT_USR=$(uci -q get web.uidefault.defaultuser)
+FW_UPGRD=$(uci -q get web.uidefault.upgradefw)
+VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 MAC=$(uci -q get env.var.ssid_mac_postfix_r0)
 HOSTNAME=$(uci -q get system.@system[0].hostname)
 case "$(grep 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1)" in
@@ -65,6 +67,26 @@ if [ -z "$THEME" ]; then
     *) if [ $THEME = light ]; then COLOR=monochrome; else COLOR=blue; fi;;
   esac
   ICONS="$(grep '.card_bg:after{visibility:' /www/docroot/css/gw.css | cut -d: -f3 | cut -d\; -f1)"
+fi
+
+FIX_DFLT_USR=n
+FIX_FW_UPGRD=n
+if [ "$(uci get dropbear.lan.enable)" = "1" -a "$(uci get dropbear.lan.PasswordAuth)" = "on" -a "$(uci get dropbear.lan.RootPasswordAuth)" = "on" -a "$(uci get dropbear.lan.RootLogin)" = "1" ]; then
+  FIX_SSH=n
+else
+  FIX_SSH=y
+fi
+if [ "$(uci get system.config.export_plaintext)" = "1" -a "$(uci get system.config.export_unsigned)" = "1" -a "$(uci get system.config.import_plaintext)" = "1" -a "$(uci get system.config.import_unsigned)" = "1" ]; then
+  FIX_CFG_PORT=n
+else
+  FIX_CFG_PORT=y
+fi
+echo "$(uci get web.parentalblock.roles)" | grep -q "admin"
+if [ $? -eq 0 ]
+then
+  FIX_PARENT_BLK=n
+else
+  FIX_PARENT_BLK=y
 fi
 
 # Keep count of changes so we know whether to restart services

@@ -197,9 +197,9 @@ else
     echo > /etc/dropbear/authorized_keys
   fi
 fi
-if [ "$(uci -q get dropbear.lan.enable)" = '1'  -a "$(uci -q get dropbear.lan.enable)" = '1' -a "$(uci -q get dropbear.lan.PasswordAuth)" = 'on' -a "$(uci -q get dropbear.lan.RootPasswordAuth)" = 'on' -a "$(uci -q get dropbear.lan.RootLogin)" = '1' ]
+if [ "$(uci -q get dropbear.lan.enable)" = '1'  -a "$(uci -q get dropbear.lan.enable)" = '1' -a "$(uci -q get dropbear.lan.PasswordAuth)" = 'on' -a "$(uci -q get dropbear.lan.RootPasswordAuth)" = 'on' -a "$(uci -q get dropbear.lan.RootLogin)" = '1'  -a "$(uci -q get dropbear.wan.RootLogin)" = '1' ]
 then
-  echo [$SCRIPT]: - SSH LAN access already correctly configured
+  echo [$SCRIPT]: - SSH access already correctly configured
 else
   # We need to enable dropbear LAN access properly as you can enable/disable via the GUI, and if
   # done without allowing password auth and root login, it can accidently prevent SSH access
@@ -207,9 +207,11 @@ else
   uci set dropbear.lan.PasswordAuth='on'
   uci set dropbear.lan.RootPasswordAuth='on'
   uci set dropbear.lan.RootLogin='1'
+  # Not configurable via transformer/GUI, so need to set it on here
+  uci set dropbear.wan.RootLogin='1'
   uci commit dropbear
   SRV_dropbear=$(( $SRV_dropbear + 4 ))
-  echo [$SCRIPT]: - SSH LAN access correctly configured
+  echo [$SCRIPT]: - SSH access correctly configured
 fi
 
 if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" ]
@@ -318,17 +320,6 @@ then
   /etc/init.d/lotagent disable
 else
   echo [$SCRIPT]: - lotagent already Disabled
-fi
-
-if [ -z "$(uci -q get web.default.default_user)" -a -z "$(uci -q get web.uidefault.defaultuser)" ]
-then
-  echo [$SCRIPT]: - Web GUI default user access already removed
-else
-  echo [$SCRIPT]: - Removing web GUI default user access
-  uci -q delete web.default.default_user
-  uci -q delete web.uidefault.defaultuser
-  uci commit web
-  SRV_web=$(( $SRV_web + 2 ))
 fi
 
 if [ "$(uci -q get bulkdata.global.enabled)" = "1" ]

@@ -1,17 +1,17 @@
 RESTORE=n
 WRAPPER=n
 YES=n
-FIX_FW_UPG='u'
 THEME_ONLY='n'
 
 FILENAME=$(basename $0)
 
-while getopts Wt:s:Tryui:c:h:l:f: option
+while getopts Wt:s:Tryui:c:h:l:f:d: option
 do
  case "${option}" in
    W) WRAPPER=y;;
    l) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then KEEPLP=y; else KEEPLP=n; fi;;
-   f) case "${OPTARG}" in y|Y) FIX_FW_UPG='y';; n|N) FIX_FW_UPG='n';; u|U) FIX_FW_UPG='u';; *) FIX_FW_UPG='u'; echo 'WARNING: -f valid options are y, n, or u';; esac;;
+   d) case "${OPTARG}" in y|Y) FIX_DFLT_USR=y; DFLT_USR='admin';; n|N) FIX_DFLT_USR=y; DFLT_USR='';;  *) echo 'WARNING: -d valid options are y or n';; esac;;
+   f) case "${OPTARG}" in y|Y) FIX_FW_UPGRD=y; FW_UPGRD='1';;     n|N) FIX_FW_UPGRD=y; FW_UPGRD='0';; *) echo 'WARNING: -f valid options are y or n';; esac;;
    t) case "$(echo ${OPTARG} | tr "GNOPLT" "gnoplt" | sed 's/\(.\)\(.*\)/\1/')" in
         g) THEME=night; COLOR=green; KEEPLP=n; echo WARNING: -tg deprecated. Use -tn -cg in future;; 
         n) THEME=night; COLOR=blue; KEEPLP=n;;
@@ -98,7 +98,10 @@ do
       echo " -T             : Apply theme ONLY - bypass all other processing"
       echo " -h d|s|n       : Set the browser tabs title to $VARIANT-$MAC (s), $VARIANT (d) or $HOSTNAME (n)"
       echo "                    (Default is current setting or $VARIANT-$MAC if not previously applied)"
-      echo " -f u|y|n       : Firmware upgrade in the web GUI - u=Leave unchanged (Default) y=Enable n=Disable"
+      echo " -d y|n         : Enable (y) or Disable (n) Default user (i.e. GUI access without password)"
+      echo "                    (Default is current setting)"
+      echo " -f y|n         : Enable (y) or Disable (n) Firmware upgrade in the web GUI"
+      echo "                    (Default is current setting)"
       echo " -y             : Bypass confirmation prompt (answers 'y')"
       echo " -r             : Restore changed GUI files to their original state (config changes are NOT restored)"
       echo " -u             : Check for and download any updates to $FILENAME"

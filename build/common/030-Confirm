@@ -1,22 +1,3 @@
-if [ "$(uci get dropbear.lan.enable)" = "1" -a "$(uci get dropbear.lan.PasswordAuth)" = "on" -a "$(uci get dropbear.lan.RootPasswordAuth)" = "on" -a "$(uci get dropbear.lan.RootLogin)" = "1" ]; then
-  FIX_SSH=n
-else
-  FIX_SSH=y
-fi
-if [ "$(uci get system.config.export_plaintext)" = "1" -a "$(uci get system.config.export_unsigned)" = "1" -a "$(uci get system.config.import_plaintext)" = "1" -a "$(uci get system.config.import_unsigned)" = "1" ]; then
-  FIX_CFG_PORT=n
-else
-  FIX_CFG_PORT=y
-fi
-echo "$(uci get web.parentalblock.roles)" | grep -q "admin"
-if [ $? -eq 0 ]
-then
-  FIX_PARENT_BLK=n
-else
-  FIX_PARENT_BLK=y
-fi
-
-
 echo "[$SCRIPT]: This script will perform the following actions:"
 if [ $FIX_SSH = y ]; then
 echo "[$SCRIPT]:  - Properly enable SSH access over LAN"
@@ -24,10 +5,19 @@ fi
 if [ $FIX_CFG_PORT = y ]; then
 echo "[$SCRIPT]:  - Enable unsigned configuration export/import in the web GUI"
 fi
-if [ $FIX_FW_UPG = y ]; then
+if [ $FIX_FW_UPGRD = y ]; then
+if [ "$FW_UPGRD" = "1" ]; then
 echo "[$SCRIPT]:  - Enable firmware upgrade in the web GUI"
-elif [ $FIX_FW_UPG = n ]; then
+else
 echo "[$SCRIPT]:  - DISABLE firmware upgrade in the web GUI"
+fi
+fi
+if [ $FIX_DFLT_USR = y ]; then
+if [ "$DFLT_USR" = "admin" ]; then
+echo "[$SCRIPT]:  - ENABLE the default user in the web GUI (i.e. GUI access without password)"
+else
+echo "[$SCRIPT]:  - Disable the default user in the web GUI"
+fi
 fi
 if [ $FIX_PARENT_BLK = y ]; then
 echo "[$SCRIPT]:  - Ensure admin role can administer the parental block"
