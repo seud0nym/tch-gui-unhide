@@ -47,12 +47,6 @@ if [ $FIX_DFLT_USR = y ]; then
   uci commit web
   SRV_web=$(( $SRV_web + 2 ))
 fi
-# de-tesltra incorrectly deleted web.default.default_user
-if [ "$(uci -q delete web.default.default_user)" = "" ]; then
-  uci set web.default.default_user='usr_admin'
-  uci commit web
-  SRV_web=$(( $SRV_web + 1 ))
-fi
 
 if [ $FIX_PARENT_BLK = y ]; then
   echo [$SCRIPT]: Ensuring admin role can administer the parental block
