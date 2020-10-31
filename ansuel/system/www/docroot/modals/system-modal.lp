@@ -121,8 +121,8 @@ local syslog_valid = {
 local syslog_params, syslog_helpmsg = post_helper.handleQuery(syslog_params, syslog_valid)
 
 local authentication_choices = {
-  {"on", T"Password (NOT Recommended)"},
-  {"off", T"Certificate"},
+  {"on", T"Certificate or Password"},
+  {"off", T"Certificate (Recommended)"},
 }
 
 local ssh_wan_enable = untaint(proxy.get("uci.dropbear.dropbear.@wan.enable")[1].value)
