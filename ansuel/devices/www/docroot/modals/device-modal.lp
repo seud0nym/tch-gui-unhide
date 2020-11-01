@@ -154,7 +154,7 @@ end
 ngx.print( ui_helper.createHeader(T"Devices", false, true) ); ngx.print('\
 <div class="modal-body update">\
 ');  lp.include("tabs-devices.lp")   ngx.print('\
-  <form class="form-horizontal" method="post" action="modals/device-modal.lp">\
+  <form class="form-horizontal" method="post" action="modals/device-modal.lp?sort=');  ngx.print(sortcol); ngx.print('">\
     ');  
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('\
