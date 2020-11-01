@@ -4,6 +4,9 @@
           echo [$SCRIPT]: Removing $f
         fi
         rm -f "$f"
+        if [ $d = "usr/share/transformer" ]; then
+          SRV_transformer=$(( $SRV_transformer + 1 ))
+        fi
       fi
     done
   done
@@ -11,7 +14,7 @@
 
 if [ $RESTORE = y ]; then
   restore_www V
-  for d in /www/docroot/css/light /www/docroot/css/night /www/docroot/css/telstra /www/docroot/img/light /www/docroot/img/night
+  for d in /www/docroot/css/light /www/docroot/css/night /www/docroot/css/telstra /www/docroot/img/light /www/docroot/img/night /www/docroot/css/Telstra
   do
     if [ -d "$d" ]
     then
@@ -26,11 +29,13 @@ if [ $RESTORE = y ]; then
     echo [$SCRIPT]: Removing config entry web.$s
     uci -q delete web.$s
     uci -q del_list web.ruleset_main.rules="$s"
+    SRV_nginx=$(( $SRV_nginx + 2 ))
   done
   for s in $(uci show web | grep '=card' | cut -d= -f1)
   do
     echo [$SCRIPT]: Removing config entry $s
     uci -q delete $s
+    SRV_nginx=$(( $SRV_nginx + 1 ))
   done
   RULES=$(uci get web.ruleset_main.rules)
   for s in $(echo $RULES | tr " " "\n" | sort -u)
@@ -40,17 +45,19 @@ if [ $RESTORE = y ]; then
       echo [$SCRIPT]: Removing config entry web.$s
       uci -q delete web.$s
       uci -q del_list web.ruleset_main.rules="$s"
+      SRV_nginx=$(( $SRV_nginx + 2 ))
     else
       ROLE=$(uci -q get web.$s.roles)
       if [ ! -z "$ROLE" -a "$ROLE" = "nobody" ]; then
         echo [$SCRIPT]: Resetting admin role on config entry web.$s.roles
         uci -q delete web.$s.roles
         uci add_list web.$s.roles="admin"
-      fi
+        SRV_nginx=$(( $SRV_nginx + 2 ))
+    fi
     fi
   done
   uci commit web
-  /etc/init.d/nginx restart
+  apply_service_changes
   echo "************************************************************"
   echo "* Restore complete. You should clear your browser cache of *"
   echo "* images and files to make sure you can see the changes.   *"

@@ -1,6 +1,6 @@
 restore_www() {
-  for d in $(echo cards docroot lua snippets | tr " " "$IFS")
+  for d in www/cards www/docroot www/lua www/snippets usr/share/transformer
   do
-    echo [$SCRIPT]: Restoring /www/$d
-    for s in $(find /rom/www/$d -type f | grep -v -E \(/rom/www/docroot/help\))
+    echo [$SCRIPT]: Restoring /$d
+    for s in $(find /rom/$d -type f | grep -v -E \(/rom/www/docroot/help\))
     do

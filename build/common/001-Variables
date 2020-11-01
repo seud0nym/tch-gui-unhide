@@ -46,7 +46,7 @@ if [ -z "$THEME" ]; then
     if [ $? -eq 0 ]; then
       THEME=light
     else
-      THEME=Telstra
+      THEME=telstra
       grep -q 'body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color' /www/docroot/css/gw-telstra.css
       if [ $? -eq 1 ]; then
         grep -q 'T"Boost Your Wi-Fi"' /www/snippets/tabs-home.lp
@@ -94,4 +94,18 @@ SRV_dnsmasq=0
 SRV_dropbear=0
 SRV_nginx=0
 SRV_system=0
+SRV_transformer=0
+
+apply_service_changes() {
+  if [ $SRV_transformer -gt 0 ]; then
+    # Need to stop watchdog whilst we restart transformer, because if it does not find /var/run/transformer.pid, it will reboot the system!
+    /etc/init.d/watchdog-tch stop
+    /etc/init.d/transformer restart
+    /etc/init.d/watchdog-tch start
+  fi
+  [ $SRV_dnsmasq -gt 0 ] && /etc/init.d/dnsmasq reload
+  [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear restart
+  [ $SRV_system -gt 0 ] && /etc/init.d/system reload
+  [ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
+}
 
