@@ -11,7 +11,7 @@ input,button,select,textarea{font-family:Roboto,Noto,sans-serif;}
 .nav-list>li>a,.nav-list .nav-header{text-shadow:none;}
 .smallcard{border:0px;font-family:Roboto,Noto,sans-serif;font-size:14px;font-weight:400;}
 .smallcard .header{background-image:none;border-bottom:0px;font-size:20px;font-weight:400;text-shadow:none;}
-
+[class^="icon-"],[class*=" icon-"]{display:inline-block;width:18px;}
 #device-modal>div.modal-body>div.container{width:1060px !important;}
 #hide-unhide-non-connected-device{display:none;}
 .networkmap .device{width:auto;text-align:center;}
