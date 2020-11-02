@@ -30,7 +30,7 @@ if Syslog[1].value ~= "" or Syslog[2].value ~= "" then
   end
 end
 
-local current_theme = content_helper.readfile("/tmp/tch-gui-unhide-theme","line")
+local current_theme = content_helper.readfile("/usr/tch-gui-unhide.theme","line")
 local theme_settings = {}
 for k, v in string.gmatch(current_theme, "(%w+)=(%w+)") do
   theme_settings[k] = string.untaint(v)
@@ -63,7 +63,7 @@ if ngx.var.request_method == "POST" then
       theme_settings["THEME"] = theme_name
       theme_settings["COLOR"] = theme_colour
       theme_settings["ICONS"] = card_icons
-      local file, err_msg = io.open("/tmp/tch-gui-unhide-theme", "w")
+      local file, err_msg = io.open("/usr/tch-gui-unhide.theme", "w")
       if file then
         file:write("THEME=" .. theme_settings["THEME"] .. "; COLOR=" .. theme_settings["COLOR"] .. "; ICONS=" .. theme_settings["ICONS"] .. "; KEEPLP=" .. theme_settings["KEEPLP"] .. ";")
         file:close()

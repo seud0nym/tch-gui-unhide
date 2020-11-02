@@ -33,8 +33,8 @@ case "$(grep 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'
   *)          TITLE="$VARIANT-$MAC";;
 esac
 
-if [ -f /tmp/tch-gui-unhide-theme ]; then
-  . /tmp/tch-gui-unhide-theme
+if [ -f /usr/tch-gui-unhide.theme ]; then
+  . /usr/tch-gui-unhide.theme
 fi
 if [ -z "$THEME" ]; then
   KEEPLP=n

@@ -4,7 +4,7 @@ gettext.textdomain('webui-core')
 
 local content_helper = require("web.content_helper")
 local format = string.format
-local theme_prefs_file = "/tmp/tch-gui-unhide-theme"
+local theme_prefs_file = "/usr/tch-gui-unhide.theme"
 local theme_default = "THEME=telstra; COLOR=blue; ICONS=visible; KEEPLP=n;"
 local favicon = '<link href="/img/%sfavicon.ico" rel="shortcut icon" type="image/x-icon"/>'
 local stylesheet = '<link href="/css/%s%s" rel="stylesheet">'
