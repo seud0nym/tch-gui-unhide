@@ -787,7 +787,21 @@ echo [$SCRIPT]: Applying required service changes...
 [ $SRV_upnp -gt 0 ]     && /etc/init.d/miniupnpd-tch restart > /dev/null 2>&1
 
 echo [$SCRIPT]: Removing packages that are no longer required
-opkg --force-removal-of-dependent-packages remove conf-cwmpd cwmpd autoreset-tch mappings-fon geolocation-tch hotspotd webui-fon tls-thor wifi-doctor-agent conf-wifi-doctor-agent libbcmairiq conf-airiq
+opkg --force-removal-of-dependent-packages remove conf-cwmpd cwmpd autoreset-tch geolocation-tch hotspotd webui-fon tls-thor wifi-doctor-agent conf-wifi-doctor-agent libbcmairiq conf-airiq
+# Previous versions also removed mappings-fon package, but this causes errors to be logged by transformer, so this code undoes the package removal
+for f in /rom/usr/lib/opkg/info/mappings-fon.*
+do
+  if [ ! -f ${f##/rom} ]; then
+    cp -p $f ${f##/rom}
+  fi
+done
+for f in $(cat /rom/usr/lib/opkg/info/mappings-fon.list)
+do
+  if [ ! -f $f ]; then
+    cp -p /rom$f $f
+  fi
+done
+
 
 echo [$SCRIPT]: Cleaning up broken links in /etc/rc.d
 find /etc/rc.d -type l ! -exec test -e {} \; -exec rm {} \;
