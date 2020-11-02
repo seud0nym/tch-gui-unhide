@@ -8,6 +8,7 @@ sed \
   -e "s|\(content = {\)|\1'<span class=\"simple-desc\">',\n'<i class=\"icon-calendar status-icon\">\&nbsp;</i>',\nformat(N(\"<strong>%s cron rule</strong> active\",\"<strong>%s cron rules</strong> active\"), counts.cron,counts.cron),\n'</span>',\n'<span class=\"simple-desc\">',\n'<i class=\"icon-play-sign status-icon\">\&nbsp;</i>',\nformat(N(\"<strong>%s init script</strong> active\",\"<strong>%s init scripts</strong> active\"), counts.init,counts.init),\n'</span>',|" \
   -e "s|light,'<br/>'|light,'<p class=\"subinfos\">'|" \
   -e "/                }/i \                    '</p>'," \
+  -e "s|usermgr-modal|system-cron-modal|" \
   -i /www/cards/011_usermgr.lp
 
 for f in /www/docroot/modals/assistance-modal.lp /www/docroot/modals/usermgr-modal.lp
@@ -21,8 +22,8 @@ do
 done
 
 sed \
-  -e '/usermgr-modal.lp/a \    {"system-cron-modal.lp", T"Cron Management"},' \
-  -e '/usermgr-modal.lp/a \    {"system-init-modal.lp", T"Init Management"},' \
+  -e '/usermgr-modal.lp/i \    {"system-cron-modal.lp", T"Cron Viewer"},' \
+  -e '/usermgr-modal.lp/i \    {"system-init-modal.lp", T"Init Management"},' \
   -e 's/"logviewer-modal.lp", T"Log Viewer"/"assistance-modal.lp", T"Remote Assistance"/' \
   -e '/log-routingtable-modal.lp/,/log-connections-modal.lp/d' \
   -i /www/snippets/tabs-management.lp

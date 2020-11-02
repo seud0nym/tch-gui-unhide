@@ -74,10 +74,11 @@ local cron_columns = {
   },
 }
 
+-- TODO: Failed to make edits/adds/deletes work reliably, so turn off until fixed
 local cron_options = {
-  canEdit = true,
-  canAdd = true,
-  canDelete = true,
+  canEdit = false,
+  canAdd = false,
+  canDelete = false,
   tableid = "crontable",
   basepath = "rpc.system.cron.entries.",
 }
@@ -91,6 +92,7 @@ cron_options.onAdd = function(index, content)
     return nil
   end
 
+
   local tbl = {
     minute = content.minute or "*",
     hour = content.hour or "*",
@@ -101,7 +103,8 @@ cron_options.onAdd = function(index, content)
   }
 
   for key,value in pairs(tbl) do
-    proxy.set(string.format("%s%s.%s",cron_options.basepath,index,key),value)
+    local path = string.format("%s%s.%s",cron_options.basepath,index,key)
+    proxy.set(path,value)
   end
 
   proxy.set("rpc.system.cron.editCronRuleNumber",index)
