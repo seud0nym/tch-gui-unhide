@@ -30,49 +30,9 @@ if Syslog[1].value ~= "" or Syslog[2].value ~= "" then
   end
 end
 
-local current_theme = content_helper.readfile("/usr/tch-gui-unhide.theme","line")
-local theme_settings = {}
-for k, v in string.gmatch(current_theme, "(%w+)=(%w+)") do
-  theme_settings[k] = string.untaint(v)
-end
-local theme_names = {
-    {"light", T"Light"},
-    {"night", T"Night"},
-    {"telstra", T"Telstra Branding"},
-}
-local theme_colours = {
-    {"blue", T"Blue"},
-    {"green", T"Green"},
-    {"orange", T"Orange"},
-    {"purple", T"Purple"},
-    {"red", T"Red"},
-    {"monochrome", T"Monochrome"},
-}
-local card_icons_options = {
-    {"visible", T"Visible"},
-    {"hidden", T"Hidden"},
-}
-
 if ngx.var.request_method == "POST" then
   local vars = ngx.req.get_post_args()
   if vars["action"] == "SAVE" then
-    local theme_name = string.untaint(vars["theme_name"])
-    local theme_colour = string.untaint(vars["theme_colour"])
-    local card_icons = string.untaint(vars["card_icons"])
-    if theme_name ~= theme_settings["THEME"] or theme_colour ~= theme_settings["COLOR"] or card_icons ~= theme_settings["ICONS"] then
-      theme_settings["THEME"] = theme_name
-      theme_settings["COLOR"] = theme_colour
-      theme_settings["ICONS"] = card_icons
-      local file, err_msg = io.open("/usr/tch-gui-unhide.theme", "w")
-      if file then
-        file:write("THEME=" .. theme_settings["THEME"] .. "; COLOR=" .. theme_settings["COLOR"] .. "; ICONS=" .. theme_settings["ICONS"] .. "; KEEPLP=" .. theme_settings["KEEPLP"] .. ";")
-        file:close()
-        message_helper.pushMessage("Theme change will be visible when you close this window.", "info")
-      else
-        message_helper.pushMessage("Faied to persist theme preferences: " .. err_msg, "error")
-      end
-    end
-
     syslog_present = vars["syslog_present"]
     syslog_filter_sw = vars["syslog_filter_sw"]
     proxy.set("uci.system.system.@system[0].log_ip","")
@@ -313,16 +273,6 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
       html[#html + 1] = ui_helper.createInputSelect(T"WAN Root Authentication", "ssh_wan_root_pwd_auth", authentication_choices, ssh_params["ssh_wan_root_pwd_auth"], ssh_wan_input, ssh_helpmsg["ssh_wan_root_pwd_auth"])
       html[#html + 1] = ui_helper.createInputText(T"WAN SSH Port", "ssh_wan_port", ssh_params["ssh_wan_port"], port_attributes, ssh_helpmsg["ssh_wan_port"])
       html[#html + 1] = ui_helper.createInputText(T"Allowed Client IP", "ssh_wan_src_ip", ssh_params["ssh_wan_src_ip"], src_ip_attributes, ssh_helpmsg["ssh_wan_src_ip"])
-      ngx.print(html)
-      ngx.print('\
-</fieldset>\
-<fieldset>\
-  <legend>');  ngx.print( T"Theme" ); ngx.print('</legend>\
-    ');
-      local html = {}
-      html[#html + 1] = ui_helper.createInputSelect(T"Theme", "theme_name", theme_names, theme_settings["THEME"])
-      html[#html + 1] = ui_helper.createInputSelect(T"Colour", "theme_colour", theme_colours, theme_settings["COLOR"])
-      html[#html + 1] = ui_helper.createInputSelect(T"Card Icons", "card_icons", card_icons_options, theme_settings["ICONS"])
       ngx.print(html)
       ngx.print('\
 </fieldset>\

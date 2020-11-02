@@ -18,30 +18,30 @@ local Syslog = proxy.get("uci.system.system.@system[0].log_ip", "uci.system.syst
 local SSH_lan = proxy.get("uci.dropbear.dropbear.@lan.enable")
 local SSH_wan = proxy.get("uci.dropbear.dropbear.@wan.enable")
 if Syslog and (Syslog[1].value ~= "" or Syslog[2].value ~= "") then
-    syslog_present = "Enabled"
+  syslog_present = "Enabled"
 end
 if SSH_lan and (SSH_lan[1].value == "1") then
-    sshlan_enabled = "Enabled"
+  sshlan_enabled = "Enabled"
 end
 if SSH_wan and (SSH_wan[1].value == "1") then
-    sshwan_enabled = "Enabled"
+  sshwan_enabled = "Enabled"
 end
 
 local light_map = {
-    Disabled = "off",
-    Enabled = "green",
+  Disabled = "off",
+  Enabled = "green",
 }
 local syslog_state_map = {
-    Disabled = T"syslog disabled",
-    Enabled = T"syslog enabled",
+  Disabled = T"syslog disabled",
+  Enabled = T"syslog enabled",
 }
 local sshlan_state_map = {
-    Disabled = T"SSH LAN disabled",
-    Enabled = T"SSH LAN enabled",
+  Disabled = T"SSH LAN disabled",
+  Enabled = T"SSH LAN enabled",
 }
 local sshwan_state_map = {
-    Disabled = T"SSH WAN disabled",
-    Enabled = T"SSH WAN enabled",
+  Disabled = T"SSH WAN disabled",
+  Enabled = T"SSH WAN enabled",
 }
 
 if session:hasAccess("/modals/system-modal.lp") then
@@ -53,11 +53,10 @@ if session:hasAccess("/modals/system-modal.lp") then
     <div class="content card_bg" data-bg-text="&#xf085;">\
         ');  
         local html = {
-            ui_helper.createSimpleLight(nil, T"Themes enabled", { light = { class = "green" } })
+          ui_helper.createSimpleLight(nil, syslog_state_map[syslog_present], { light = { class = light_map[syslog_present] } })
         }
         tinsert(html, ui_helper.createSimpleLight(nil, sshlan_state_map[sshlan_enabled], { light = { class = light_map[sshlan_enabled] } }) )
         tinsert(html, ui_helper.createSimpleLight(nil, sshwan_state_map[sshwan_enabled], { light = { class = light_map[sshwan_enabled] } }) )
-        tinsert(html, ui_helper.createSimpleLight(nil, syslog_state_map[syslog_present], { light = { class = light_map[syslog_present] } }) )
         ngx.print(html)
     ngx.print('\
     </div>\

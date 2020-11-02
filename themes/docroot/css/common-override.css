@@ -3,7 +3,7 @@ u{text-decoration:none;}
 .card_bg:after{visibility:var(--ICONS);}
 .card_bg.mirror:after{transform:matrix(-1,0,0,1,0,0);}
 .header .btn{margin-left:5px;}
-.simple-desc{display:block;}
+.simple-desc{display:block;padding-top:3px;}
 .smallcard .content{font-size:14px;height:125px;}
 .smallcard .subinfos{font-size:14px;}
 #tod>tbody>tr.additional-edit>td:nth-child(1)>fieldset>div:nth-child(3)>div.controls>label.checkbox{padding-left:0px;}
