@@ -24,7 +24,7 @@ local dos_content, dos_helpmessage = post_helper.handleQuery(dos_Params, dos_val
 
   ngx.print('\
 \
-');  ngx.print(ui_helper.createHeader(T"Dos Protect Option", false, false))   ngx.print('\
+');  ngx.print(ui_helper.createHeader(T"DoS Protect Option", false, false))   ngx.print('\
 <div class="modal-body update">\
 ');  
     local lp = require("web.lp")
