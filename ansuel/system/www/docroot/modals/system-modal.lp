@@ -128,7 +128,6 @@ local authentication_choices = {
 local ssh_wan_enable = untaint(proxy.get("uci.dropbear.dropbear.@wan.enable")[1].value)
 local ssh_wan_port = untaint(proxy.get("uci.dropbear.dropbear.@wan.Port")[1].value)
 local ssh_wan_src_ip = untaint(proxy.get("uci.dropbear.dropbear.@wan.AllowedClientIPs")[1].value)
-ngx.log(ngx.ALERT, "SSH @wan.enable = "..ssh_wan_enable.." ssh_wan_port = "..ssh_wan_port)
 local ssh_params = {
   ssh_lan_enable = "uci.dropbear.dropbear.@lan.enable",
   ssh_lan_pwd_auth = "uci.dropbear.dropbear.@lan.PasswordAuth",
@@ -162,13 +161,11 @@ for _, v in ipairs(firewall_rules_path) do
   if (v["name"] == "SSH-wan" or v["name"] == "SSH_wan") then
     ssh_wan_fw_rule_index = v["paramindex"]
     create_ssh_wan_fw_rule = false
-    ngx.log(ngx.ALERT, "SSH-wan firewall rule found @ "..ssh_wan_fw_rule_index.." src_ip = "..ssh_wan_src_ip)
     break
   end
 end
 if ssh_wan_fw_rule_index == "" then
   ssh_wan_fw_rule_index="@rule["..firewall_rules_count.."]"
-  ngx.log(ngx.ALERT, "SSH-wan firewall rule NOT FOUND index set to "..ssh_wan_fw_rule_index)
 end
 
 
@@ -178,8 +175,6 @@ if ngx.var.request_method == "POST" then
     local ssh_wan_enable_new = untaint(vars["ssh_wan_enable"])
     local ssh_wan_port_new = untaint(vars["ssh_wan_port"])
     local ssh_wan_src_ip_new = untaint(vars["ssh_wan_src_ip"])
-    ngx.log(ngx.ALERT, "ssh_wan_enable     = "..ssh_wan_enable.." ssh_wan_port     = "..ssh_wan_port.." ssh_wan_src_ip     = "..ssh_wan_src_ip)
-    ngx.log(ngx.ALERT, "ssh_wan_enable_new = "..ssh_wan_enable_new.." ssh_wan_port_new = "..ssh_wan_port_new.." ssh_wan_src_ip_new = "..ssh_wan_src_ip_new)
     if ssh_wan_enable_new ~= ssh_wan_enable or ssh_wan_port_new ~= ssh_wan_port or ssh_wan_src_ip ~= ssh_wan_src_ip_new then
       local target
       if ssh_wan_enable_new == "1" then
