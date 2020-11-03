@@ -27,3 +27,4 @@ input,button,select,textarea{font-family:Roboto,Noto,sans-serif;}
 .networkmap .hoveronly{display:none;}
 .networkmap .showinfo{display:inline-block;}
 .networkmap .device:hover .deviceinfo.hoveronly{display:inline-block;}
+#devices>tbody>tr>td:nth-child(2),#devices>tbody>tr>td:nth-child(6),#devices>tbody>tr>td:nth-child(7),#devices>tbody>tr>td:nth-child(8){white-space: nowrap;}
