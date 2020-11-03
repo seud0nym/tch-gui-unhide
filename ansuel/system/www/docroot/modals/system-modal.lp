@@ -80,6 +80,29 @@ local syslog_valid = {
 }
 local syslog_params, syslog_helpmsg = post_helper.handleQuery(syslog_params, syslog_valid)
 
+local proto_choices = {
+  {"TCP", T"TCP"},
+  {"UDP", T"UDP"},
+}
+
+local iperf_available = proxy.get("uci.iperf.iperf.enable")
+local iperf_params
+local iperf_valid
+local iperf_helpmsg
+if iperf_available then
+  iperf_params = {
+    iperf_enable = "uci.iperf.iperf.enable",
+    iperf_port = "uci.iperf.iperf.dest_port",
+    iperf_proto = "uci.iperf.iperf.proto",
+  }
+  iperf_valid = {
+    iperf_enable = vB,
+    iperf_port = vSIP,
+    iperf_proto = gVIES(proto_choices),
+  }
+  iperf_params, iperf_helpmsg = post_helper.handleQuery(iperf_params, iperf_valid)
+end
+
 local authentication_choices = {
   {"on", T"Certificate or Password"},
   {"off", T"Certificate (Recommended)"},
@@ -284,6 +307,38 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print(html)
     ngx.print('\
 </fieldset>\
+');
+if iperf_available then
+  ngx.print('\
+  <fieldset>\
+    <legend>');  ngx.print( T"iperf" ); ngx.print('</legend>\
+      ');
+      local iperf_input = {
+        group = {
+          class ="monitor-iperf_enable monitor-1",
+        },
+      }
+      local port_attributes = {
+        group = {
+          class ="monitor-iperf_enable monitor-1",
+        },
+        input = {
+          type = "number",
+          min = "1",
+          max = "65535",
+          style = "width:70px",
+        }
+      }
+      local html = {}
+      html[#html + 1] = ui_helper.createSwitch(T"iperf Server", "iperf_enable", iperf_params["iperf_enable"], switch_class_enable)
+      html[#html + 1] = ui_helper.createInputText(T"Port", "iperf_port", iperf_params["iperf_port"], port_attributes, ssh_helpmsg["iperf_port"])
+      html[#html + 1] = ui_helper.createInputSelect(T"Protocol", "iperf_proto", proto_choices, iperf_params["iperf_proto"], iperf_input, ssh_helpmsg["iperf_proto"])
+      ngx.print(html)
+      ngx.print('\
+  </fieldset>\
+  ');
+end;
+ngx.print('\
 <fieldset>\
   <legend>');  ngx.print( T"System Log" ); ngx.print('</legend>\
     ');

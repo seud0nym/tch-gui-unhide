@@ -12,11 +12,13 @@ local modalPath = "/modals/system-modal.lp"
 local syslog_present = "Disabled"
 local sshlan_enabled = "Disabled"
 local sshwan_enabled = "Disabled"
+local iperf_enabled = "Disabled"
 local tinsert = table.insert
 
 local Syslog = proxy.get("uci.system.system.@system[0].log_ip", "uci.system.system.@system[0].log_filter_ip")
 local SSH_lan = proxy.get("uci.dropbear.dropbear.@lan.enable")
 local SSH_wan = proxy.get("uci.dropbear.dropbear.@wan.enable")
+local iperf = proxy.get("uci.iperf.iperf.enable")
 if Syslog and (Syslog[1].value ~= "" or Syslog[2].value ~= "") then
   syslog_present = "Enabled"
 end
@@ -25,6 +27,9 @@ if SSH_lan and (SSH_lan[1].value == "1") then
 end
 if SSH_wan and (SSH_wan[1].value == "1") then
   sshwan_enabled = "Enabled"
+end
+if iperf and (iperf[1].value == "1") then
+  iperf_enabled = "Enabled"
 end
 
 local light_map = {
@@ -43,6 +48,10 @@ local sshwan_state_map = {
   Disabled = T"SSH WAN disabled",
   Enabled = T"SSH WAN enabled",
 }
+local iperf_state_map = {
+  Disabled = T"iperf disabled",
+  Enabled = T"iperf enabled",
+}
 
 if session:hasAccess("/modals/system-modal.lp") then
     local modal_link = format("class=\"modal-link\" data-toggle=\"modal\" data-remote=\"%s\" data-id=\"device-modal\"",modalPath)
@@ -57,6 +66,9 @@ if session:hasAccess("/modals/system-modal.lp") then
         }
         tinsert(html, ui_helper.createSimpleLight(nil, sshlan_state_map[sshlan_enabled], { light = { class = light_map[sshlan_enabled] } }) )
         tinsert(html, ui_helper.createSimpleLight(nil, sshwan_state_map[sshwan_enabled], { light = { class = light_map[sshwan_enabled] } }) )
+        if iperf then
+          tinsert(html, ui_helper.createSimpleLight(nil, iperf_state_map[iperf_enabled], { light = { class = light_map[iperf_enabled] } }) )
+        end
         ngx.print(html)
     ngx.print('\
     </div>\

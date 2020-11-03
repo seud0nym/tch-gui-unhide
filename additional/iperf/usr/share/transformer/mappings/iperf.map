@@ -1,0 +1,16 @@
+local config_iperf = "iperf"
+
+-- uci.iperf
+mapper("uci_1to1").registerConfigMap(config_iperf)
+
+-- uci.iperf.config
+local iperf_config = {
+  config = config_iperf,
+  section = "iperf",
+  type = "iperf",
+  options = {
+    "proto", "dest_port", "enable"
+  }
+}
+
+mapper("uci_1to1").registerSimpleMap(iperf_config) 

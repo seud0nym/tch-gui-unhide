@@ -54,12 +54,6 @@ do
       DIRECTORY="$(echo $s | cut -d/ -f2-)"
       if [ $FILENAME = "060-Additional" ]
       then
-        echo "for l in \$(grep -l -r 'current_year); ngx.print(' /www)" >> $TARGET
-        echo "do" >> $TARGET
-        echo "  echo $SEQUENCE@$(date +%H:%M:%S): Adding to tch-gui-unhide version to copyright in \$l" >> $TARGET
-        echo "  sed -e \"s/\(current_year); ngx.print('\)/\\\1 \[tch-gui-unhide $(date +%Y.%m.%d)\]/\" -i \$l" >> $TARGET
-        echo "done" >> $TARGET
-        echo >> $TARGET
         for b in $(cat "$DIRECTORY/$FILENAME")
         do
           sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/$b.b64 >> $TARGET
@@ -68,6 +62,14 @@ do
         if [ $FILENAME = "165-Themes" ]
         then
           sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/themes.b64 >> $TARGET
+        elif [ $FILENAME = "200-Services" ]
+        then
+          echo "for l in \$(grep -l -r 'current_year); ngx.print(' /www)" >> $TARGET
+          echo "do" >> $TARGET
+          echo "  echo $SEQUENCE@$(date +%H:%M:%S): Adding tch-gui-unhide version to copyright in \$l" >> $TARGET
+          echo "  sed -e \"s/\(current_year); ngx.print('\)/\\\1 \[tch-gui-unhide $(date +%Y.%m.%d)\]/\" -i \$l" >> $TARGET
+          echo "done" >> $TARGET
+          echo >> $TARGET
         fi
         sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
       fi
