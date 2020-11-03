@@ -121,6 +121,9 @@ This script supports 2 optional parameters:
 ## set-optimal-bank-plan
 Again, it does what it says. It is a copy of the commands from https://hack-technicolor.readthedocs.io/en/stable/Hacking/PostRoot/#bank-planning, with a confirmation prompt.
 
+## set-web-admin-password
+Allows you to set or reset the web admin password. Specify the new password as the first parameter.
+
 ## show-bank-plan
 A pretty version of `find /proc/banktable -type f -print -exec cat {} ';'`, with a final analysis to show whether the bank plan is optimal, or not.
 
@@ -137,11 +140,14 @@ Example output:
 
 Bank Plan is OPTIMAL
 ```
-## set-web-admin-password
-Allows you to set or reset the web admin password. Specify the new password as the first parameter.
+## transformer-cli
+Version 17 firmwares do not include `/usr/bin/transformer-cli`, which is very useful for working out what is returned in the various GUI scripts.
+
+## unpack-rbi
+Unpacks the *.rbi* file passed as the first parameter. The second parameter is optional, and is either a filename or directory to which the *.rbi* file will be unpacked. If the filename or directory is specified, the file will be written to the /tmp directory with the same name but with an extension of *.bin*.
 
 # How to download and execute these scripts
-If you download the tch-gui-unhide release archive, the scripts are included.
+If you download a tch-gui-unhide release archive, the scripts applicable to that firmware version are included.
 
 You can also download the latest version individually:
 

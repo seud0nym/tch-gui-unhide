@@ -2,18 +2,26 @@
 
 ./build
 
-common=$(find ../utilities/ -type f | grep -v -E '(README|dumaos)' | tr "$IFS" " ")
+common=$(find ../utilities/ -type f | grep -v -E '(README|dumaos|transformer)' | sed -e 's,^\.\./,,' | tr "$IFS" " ")
 
-for f in $(ls ../tch-gui-unhide-*)
+echo Cleaning up..
+rm ../*.tar.gz *.tar.gz 2>/dev/null
+
+for f in $(ls ../tch-gui-unhide-1* | sed -e 's,^\.\./,,')
 do
-  echo $f | grep -q 'tch-gui-unhide-18.1.c.05'
-  if [ $? -eq 0 ]
+  dumaos=""
+  transformer=""
+  if [ ${f%%[0-9][0-9]} = "tch-gui-unhide-18.1.c.05" ]
   then
-    dumaos="../utilities/dumaos"
-  else
-    dumaos=""
+    dumaos="utilities/dumaos"
+  fi
+  if [ "${f%%[0-9][0-9][0-9]}" = "tch-gui-unhide-17.2.0" ]
+  then
+    transformer="utilities/transformer-cli"
   fi
 
-  echo Writing $TARGET...
-  tar --xform='s,utilities/,,' --owner=root --group=root --mode=755 -czvf "$(echo $f | sed -e 's/tch-gui-unhide-//').tar.gz" ../tch-gui-unhide $f $common $dumaos
+  echo Writing "../${f##tch-gui-unhide-}.tar.gz"...
+  tar --xform='s,utilities/,,' --owner=root --group=root --mode=755 -czf "../${f##tch-gui-unhide-}.tar.gz" -C .. tch-gui-unhide $f tch-gui-unhide-cards $common $dumaos $transformer
 done
+
+echo Done.
