@@ -1,22 +1,3 @@
-echo [$SCRIPT]: Importing Traffic Monitor into Diagnostics
-sed \
-  -e '/lp.include("header.lp")/,/lp.include("message.lp")/d' \
-  -e '/^local attributes/i \    ngx.print(ui_helper.createHeader(T"Diagnostics", false, false, nil, nil) )' \
-  -e '/"tabs-services/i <div class="modal-body update">\\' \
-  -e '/^<div class="container toplevel">/d' \
-  -e '/^<div class="row">/d' \
-  -e '/^<div class="span11">/d' \
-  -e '/^<fieldset>/,/^\\/d' \
-  -e '/^<\/script>/a <\/script>\\' \
-  -e '/^<\/script>/a <\/div>\\' \
-  -e '/^<\/script>/,/^\\/d' \
-  -e 's|tabs-services|tabs-diagnostics|' \
-  -e 's|lp.include("footer.lp")|ngx.print(ui_helper.createFooter())|' \
-  -e 's|800px;|900px;margin:0 auto;|' \
-  -e 's|traffic.lp|modals/diagnostics-traffic-modal.lp|' \
-  -e 's|<a href="%s" target="_self">|<a href="#" data-remote="%s">|' \
-  /www/docroot/traffic.lp > /www/docroot/modals/diagnostics-traffic-modal.lp
-
 if [ -f /etc/init.d/cwmpd ]
 then
   CWMP=enabled
@@ -68,17 +49,27 @@ do
     SRV_nginx=$(( $SRV_nginx + 2 ))
   fi
 done
-# These were incorrectly enabled in release 2020.08.08 and earlier
-uci -q delete web.mmpbxsipdevicemodal
-uci -q delete web.mmpbxstatisticsmodal
 uci commit web
 
-# Modify management card to allow it to be suppressed
-sed -e 's/^if assistant then/if admin and assistant then/' -i /www/cards/011_usermgr.lp
-
-echo [$SCRIPT]: Display Telephony tabs even when mmpbx disabled
-sed \
- -e '/if mmpbx_state == "1" then/d' \
- -e '/elseif session:hasAccess/,/end/d' \
- -i /www/snippets/tabs-voice.lp
+echo [$SCRIPT]: Processing any additional cards
+for CARDFILE in $(find /www/cards/ -maxdepth 1 -type f | sort)
+do
+  CARD="$(basename $CARDFILE)"
+  CARDRULE=$(uci show web | grep "card_.*$CARD" | cut -d. -f2)
+  if [ -z "$CARDRULE" ]
+  then
+    CARDRULE="card_$(basename ${CARDFILE#*_} .lp)"
+    MODAL=$(grep createCardHeader $CARDFILE | grep -o "modals/.*\.lp")
+    if [ -z "$MODAL" ]
+    then
+      MODAL=$(grep '\(modalPath\|modal_link\)' $CARDFILE | grep -o "modals/.*\.lp" | head -n1)
+    fi
+    MODALRULE=$(uci show web | grep $MODAL | grep -v card_ | cut -d. -f2 | head -n1)
+    uci set web.${CARDRULE}=card
+    uci set web.${CARDRULE}.card="$CARD"
+    uci set web.${CARDRULE}.modal="$MODALRULE"
+    uci set web.${CARDRULE}.hide='0'
+    SRV_nginx=$(( $SRV_nginx + 4 ))
+  fi
+done
 

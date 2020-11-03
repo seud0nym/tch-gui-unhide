@@ -1,0 +1,19 @@
+echo [$SCRIPT]: Importing Traffic Monitor into Diagnostics
+sed \
+  -e '/lp.include("header.lp")/,/lp.include("message.lp")/d' \
+  -e '/^local attributes/i \    ngx.print(ui_helper.createHeader(T"Diagnostics", false, false, nil, nil) )' \
+  -e '/"tabs-services/i <div class="modal-body update">\\' \
+  -e '/^<div class="container toplevel">/d' \
+  -e '/^<div class="row">/d' \
+  -e '/^<div class="span11">/d' \
+  -e '/^<fieldset>/,/^\\/d' \
+  -e '/^<\/script>/a <\/script>\\' \
+  -e '/^<\/script>/a <\/div>\\' \
+  -e '/^<\/script>/,/^\\/d' \
+  -e 's|tabs-services|tabs-diagnostics|' \
+  -e 's|lp.include("footer.lp")|ngx.print(ui_helper.createFooter())|' \
+  -e 's|800px;|900px;margin:0 auto;|' \
+  -e 's|traffic.lp|modals/diagnostics-traffic-modal.lp|' \
+  -e 's|<a href="%s" target="_self">|<a href="#" data-remote="%s">|' \
+  /www/docroot/traffic.lp > /www/docroot/modals/diagnostics-traffic-modal.lp
+

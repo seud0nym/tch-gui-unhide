@@ -9,6 +9,7 @@ sed \
   -e "s|light,'<br/>'|light,'<p class=\"subinfos\" style=\"font-size:x-small;line-height:normal;\">'|" \
   -e "/                }/i \                    '</p>'," \
   -e "s|usermgr-modal|theme-modal|" \
+  -e 's|^if assistant then|if admin and assistant then|' \
   -i /www/cards/011_usermgr.lp
 
 for f in /www/docroot/modals/assistance-modal.lp /www/docroot/modals/usermgr-modal.lp
