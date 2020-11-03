@@ -21,13 +21,5 @@ do
     -i $f
 done
 
-sed \
-  -e '/usermgr-modal.lp/i \    {"theme-modal.lp", T"Theme"},' \
-  -e '/usermgr-modal.lp/i \    {"system-cron-modal.lp", T"Cron Viewer"},' \
-  -e '/usermgr-modal.lp/i \    {"system-init-modal.lp", T"Init Management"},' \
-  -e 's/"logviewer-modal.lp", T"Log Viewer"/"assistance-modal.lp", T"Remote Assistance"/' \
-  -e '/log-routingtable-modal.lp/,/log-connections-modal.lp/d' \
-  -i /www/snippets/tabs-management.lp
-
 SRV_transformer=$(( $SRV_transformer + 2 ))
 

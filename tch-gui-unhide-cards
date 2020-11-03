@@ -1,20 +1,27 @@
 #!/bin/sh
 
-if [ "action$1" = "action-?" ]
-then
-  echo "Optional parameters:"
-  echo " -s       : Apply the suggested card sequence and exit"
-  echo " -d       : Apply the default card sequence and exit"
-  echo
-  echo "When no parameters as specified, you can interactively re-sequence cards and change their visibility."
-  exit
-fi
+BATCH=""
+QUIET="n"
+while getopts sdq option
+do
+  case "${option}" in
+    s|d)  BATCH="${option}";;
+    q)    QUIET="y";;
+    *)    echo "Optional parameters:"
+          echo " -s       : Apply the suggested card sequence and exit"
+          echo " -d       : Apply the default card sequence and exit"
+          echo
+          echo "If BOTH parameters are specified, only the LAST will be applied."
+          echo "When no parameters as specified, you can interactively re-sequence cards and change their visibility."
+          exit
+  esac
+done
 
-echo -n "Working"
+[ $QUIET = n ] && echo -n "Working"
 CARDS=""
 for RULE in $(uci show web | grep '=card' | cut -d= -f1)
 do
-  echo -n "."
+  [ $QUIET = n ] && echo -n "."
   CARD=$(uci -q get ${RULE}.card)
   MODAL=$(uci -q get ${RULE}.modal)
   HIDDEN=$(uci -q get ${RULE}.hide)
@@ -32,7 +39,7 @@ do
     CARDS="$CARDS$IFS$HIDDEN|$SEQ|$HIDDEN|$CARD|$MODAL|$TITLE|"
   fi
 done
-echo
+[ $QUIET = n ] && echo
 
 if [ -z "$CARDS" ]
 then
@@ -52,7 +59,7 @@ apply_changes() {
       RULE="card_$(basename ${FILE#*_} .lp)"
       if [ "$FILE" != "$NEW_FILE" ]
       then
-        echo "Renaming $FILE to $NEW_FILE"
+        [ $QUIET = n ] && echo "Renaming $FILE to $NEW_FILE"
         mv "$FILE" "$NEW_FILE"
       fi
       uci set web.$RULE=card
@@ -60,10 +67,10 @@ apply_changes() {
       uci set web.$RULE.modal="$MODAL"
       uci set web.$RULE.hide="$HIDDEN"
     done
-    echo "Applying updated configuration"
+    [ $QUIET = n ] && echo "Applying updated configuration"
     uci commit web
     /etc/init.d/nginx restart
-    echo "Done!!"
+    [ $QUIET = n ] && echo "Done!!"
 }
 
 apply_defaults() {
@@ -87,7 +94,7 @@ apply_defaults() {
       internet.lp) SEQ="003";;
       iproutes.lp) SEQ="015";;
       LAN.lp) SEQ="005";;
-      lte.lp) SEQ="003";;
+      lte.lp) if [ "$(uci -q get version.@version[0].marketing_version)" = '17.2' ]; then SEQ="010"; else SEQ="003"; fi;;
       natalghelper.lp) SEQ="092";;
       parental.lp) SEQ="013";;
       printersharing.lp) SEQ="012";;

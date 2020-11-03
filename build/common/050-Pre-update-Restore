@@ -9,7 +9,7 @@ do
   then
     MODAL=$(grep '\(modalPath\|modal_link\)' $CARDFILE | grep -o "modals/.*\.lp" | head -n1)
   fi
-  MODALRULE=$(uci show web | grep $MODAL | grep -v card_ | cut -d. -f2)
+  MODALRULE=$(uci show web | grep $MODAL | grep -v card_ | cut -d. -f2 | head -n1)
   if [ ! -z "$MODALRULE" -a "$(uci -q get web.$MODALRULE.roles)" != "admin" ]
   then
     echo "[$SCRIPT]:  - Converting $CARD card visibility from modal-based visibility"

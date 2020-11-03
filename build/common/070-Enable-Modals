@@ -41,7 +41,7 @@ do
     RULE=$(basename $f .lp | sed -e 's/-//g')
   else
     CREATE_RULE=n
-    RULE=$(uci show web | grep "/modals/$MODAL" | grep -v card_ | cut -d. -f2)
+    RULE=$(uci show web | grep "/modals/$MODAL" | grep -v card_ | cut -d. -f2 | head -n1)
   fi
   if [ "$RULE" = "cwmpconfmodal" -a "$CWMP" = "disabled" ]
   then

@@ -48,7 +48,7 @@ if [ -z "$THEME" ]; then
     else
       THEME=telstra
       grep -q 'body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color' /www/docroot/css/gw-telstra.css
-      if [ $? -eq 1 ]; then
+      if [ $? -eq 1 -a -f /www/snippets/tabs-home.lp ]; then
         grep -q 'T"Boost Your Wi-Fi"' /www/snippets/tabs-home.lp
         if [ $? -eq 1 ]; then
           KEEPLP=y

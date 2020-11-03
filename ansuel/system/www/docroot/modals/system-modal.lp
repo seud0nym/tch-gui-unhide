@@ -87,7 +87,7 @@ local authentication_choices = {
 
 local ssh_wan_enable = untaint(proxy.get("uci.dropbear.dropbear.@wan.enable")[1].value)
 local ssh_wan_port = untaint(proxy.get("uci.dropbear.dropbear.@wan.Port")[1].value)
-local ssh_wan_src_ip = untaint(proxy.get("uci.dropbear.dropbear.@wan.AllowedClientIPs")[1].value)
+local ssh_wan_src_ip = proxy.get("uci.dropbear.dropbear.@wan.AllowedClientIPs")
 local ssh_params = {
   ssh_lan_enable = "uci.dropbear.dropbear.@lan.enable",
   ssh_lan_pwd_auth = "uci.dropbear.dropbear.@lan.PasswordAuth",
@@ -96,7 +96,6 @@ local ssh_params = {
   ssh_wan_port = "uci.dropbear.dropbear.@wan.Port",
   ssh_wan_pwd_auth = "uci.dropbear.dropbear.@wan.PasswordAuth",
   ssh_wan_root_pwd_auth = "uci.dropbear.dropbear.@wan.RootPasswordAuth",
-  ssh_wan_src_ip = "uci.dropbear.dropbear.@wan.AllowedClientIPs",
 }
 local ssh_valid = {
   ssh_lan_enable = vB,
@@ -106,8 +105,11 @@ local ssh_valid = {
   ssh_wan_port = vSIP,
   ssh_wan_pwd_auth = gVIES(authentication_choices),
   ssh_wan_root_pwd_auth = gVIES(authentication_choices),
-  ssh_wan_src_ip = gOV(vSII)
 }
+if ssh_wan_src_ip then
+  ssh_params["ssh_wan_src_ip"] = "uci.dropbear.dropbear.@wan.AllowedClientIPs"
+  ssh_valid["ssh_wan_src_ip"] = gOV(vSII)
+end
 local ssh_params, ssh_helpmsg = post_helper.handleQuery(ssh_params, ssh_valid)
 
 -- go through rules to find SSH-wan anonymous section name
@@ -128,14 +130,13 @@ if ssh_wan_fw_rule_index == "" then
   ssh_wan_fw_rule_index="@rule["..firewall_rules_count.."]"
 end
 
-
 if ngx.var.request_method == "POST" then
   local vars = ngx.req.get_post_args()
   if vars["action"] == "SAVE" then
     local ssh_wan_enable_new = untaint(vars["ssh_wan_enable"])
     local ssh_wan_port_new = untaint(vars["ssh_wan_port"])
     local ssh_wan_src_ip_new = untaint(vars["ssh_wan_src_ip"])
-    if ssh_wan_enable_new ~= ssh_wan_enable or ssh_wan_port_new ~= ssh_wan_port or ssh_wan_src_ip ~= ssh_wan_src_ip_new then
+    if ssh_wan_enable_new ~= ssh_wan_enable or ssh_wan_port_new ~= ssh_wan_port or not ssh_wan_src_ip or untaint(ssh_wan_src_ip[1].value) ~= ssh_wan_src_ip_new then
       local target
       if ssh_wan_enable_new == "1" then
         target = "ACCEPT"
@@ -145,10 +146,15 @@ if ngx.var.request_method == "POST" then
       end
       if create_ssh_wan_fw_rule then
         local key = proxy.add("uci.firewall.rule.")
+        if tonumber(key) then -- FW 17.2 support
+          ssh_wan_fw_rule_index = format("%s", key)
+        end
         proxy.set("uci.firewall.rule."..ssh_wan_fw_rule_index..".name", "SSH-wan")
         proxy.set("uci.firewall.rule."..ssh_wan_fw_rule_index..".src", "wan")
       end
-      proxy.set("uci.firewall.rule."..ssh_wan_fw_rule_index..".src_ip", ssh_wan_src_ip_new)
+      if ssh_wan_src_ip then
+        proxy.set("uci.firewall.rule."..ssh_wan_fw_rule_index..".src_ip", ssh_wan_src_ip_new)
+      end
       proxy.set("uci.firewall.rule."..ssh_wan_fw_rule_index..".dest_port", ssh_wan_port_new)
       proxy.set("uci.firewall.rule."..ssh_wan_fw_rule_index..".target", target)
       proxy.apply()
@@ -265,16 +271,18 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
       }
     }
     local html = {}
-      html[#html + 1] = ui_helper.createSwitch(T"LAN", "ssh_lan_enable", ssh_params["ssh_lan_enable"], switch_class_enable)
-      html[#html + 1] = ui_helper.createInputSelect(T"LAN User Authentication", "ssh_lan_pwd_auth", authentication_choices, ssh_params["ssh_lan_pwd_auth"], ssh_lan_input, ssh_helpmsg["ssh_lan_pwd_auth"])
-      html[#html + 1] = ui_helper.createInputSelect(T"LAN Root Authentication", "ssh_lan_root_pwd_auth", authentication_choices, ssh_params["ssh_lan_root_pwd_auth"], ssh_lan_input, ssh_helpmsg["ssh_lan_root_pwd_auth"])
-      html[#html + 1] = ui_helper.createSwitch(T"WAN", "ssh_wan_enable", ssh_params["ssh_wan_enable"], switch_class_enable)
-      html[#html + 1] = ui_helper.createInputSelect(T"WAN User Authentication", "ssh_wan_pwd_auth", authentication_choices, ssh_params["ssh_wan_pwd_auth"], ssh_wan_input, ssh_helpmsg["ssh_wan_pwd_auth"])
-      html[#html + 1] = ui_helper.createInputSelect(T"WAN Root Authentication", "ssh_wan_root_pwd_auth", authentication_choices, ssh_params["ssh_wan_root_pwd_auth"], ssh_wan_input, ssh_helpmsg["ssh_wan_root_pwd_auth"])
-      html[#html + 1] = ui_helper.createInputText(T"WAN SSH Port", "ssh_wan_port", ssh_params["ssh_wan_port"], port_attributes, ssh_helpmsg["ssh_wan_port"])
+    html[#html + 1] = ui_helper.createSwitch(T"LAN", "ssh_lan_enable", ssh_params["ssh_lan_enable"], switch_class_enable)
+    html[#html + 1] = ui_helper.createInputSelect(T"LAN User Authentication", "ssh_lan_pwd_auth", authentication_choices, ssh_params["ssh_lan_pwd_auth"], ssh_lan_input, ssh_helpmsg["ssh_lan_pwd_auth"])
+    html[#html + 1] = ui_helper.createInputSelect(T"LAN Root Authentication", "ssh_lan_root_pwd_auth", authentication_choices, ssh_params["ssh_lan_root_pwd_auth"], ssh_lan_input, ssh_helpmsg["ssh_lan_root_pwd_auth"])
+    html[#html + 1] = ui_helper.createSwitch(T"WAN", "ssh_wan_enable", ssh_params["ssh_wan_enable"], switch_class_enable)
+    html[#html + 1] = ui_helper.createInputSelect(T"WAN User Authentication", "ssh_wan_pwd_auth", authentication_choices, ssh_params["ssh_wan_pwd_auth"], ssh_wan_input, ssh_helpmsg["ssh_wan_pwd_auth"])
+    html[#html + 1] = ui_helper.createInputSelect(T"WAN Root Authentication", "ssh_wan_root_pwd_auth", authentication_choices, ssh_params["ssh_wan_root_pwd_auth"], ssh_wan_input, ssh_helpmsg["ssh_wan_root_pwd_auth"])
+    html[#html + 1] = ui_helper.createInputText(T"WAN SSH Port", "ssh_wan_port", ssh_params["ssh_wan_port"], port_attributes, ssh_helpmsg["ssh_wan_port"])
+    if ssh_wan_src_ip then
       html[#html + 1] = ui_helper.createInputText(T"Allowed Client IP", "ssh_wan_src_ip", ssh_params["ssh_wan_src_ip"], src_ip_attributes, ssh_helpmsg["ssh_wan_src_ip"])
-      ngx.print(html)
-      ngx.print('\
+    end
+    ngx.print(html)
+    ngx.print('\
 </fieldset>\
 <fieldset>\
   <legend>');  ngx.print( T"System Log" ); ngx.print('</legend>\
