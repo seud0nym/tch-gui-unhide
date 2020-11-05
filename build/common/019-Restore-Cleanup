@@ -1,7 +1,7 @@
     do
       if [ ! -f "/rom$f" -a -f "$f" ]; then
         if [ "$1" = "V" ]; then
-          echo [$SCRIPT]: Removing $f
+          echo [$SCRIPT]: Removing file $f
         fi
         rm -f "$f"
         if [ $d = "usr/share/transformer" ]; then

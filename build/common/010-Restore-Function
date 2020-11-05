@@ -1,6 +1,6 @@
 restore_www() {
   for d in www/cards www/docroot www/lua www/snippets usr/share/transformer
   do
-    echo [$SCRIPT]: Restoring /$d
+    echo [$SCRIPT]: Restoring directory /$d
     for s in $(find /rom/$d -type f | grep -v -E \(/rom/www/docroot/help\))
     do

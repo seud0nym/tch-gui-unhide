@@ -1,7 +1,7 @@
       cmp -s "$s" "$t"
       if [ $? -ne 0 ]; then
         if [ "$1" = "V" ]; then
-          echo [$SCRIPT]: Restoring $t
+          echo [$SCRIPT]: Restoring file $t
         fi
         cp -f -p "$s" "$t"
         if [ $d = "usr/share/transformer" ]; then
