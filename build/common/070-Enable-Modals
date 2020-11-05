@@ -22,7 +22,7 @@ do
     RULE=$(basename $f .lp | sed -e 's/-//g')
   else
     CREATE_RULE=n
-    RULE=$(uci show web | grep "/modals/$MODAL" | grep -v card_ | cut -d. -f2 | head -n1)
+    RULE=$(uci show web | grep "/modals/$MODAL" | grep -m 1 -v card_ | cut -d. -f2)
   fi
   if [ "$RULE" = "cwmpconfmodal" -a "$CWMP" = "disabled" ]
   then
@@ -55,16 +55,16 @@ echo [$SCRIPT]: Processing any additional cards
 for CARDFILE in $(find /www/cards/ -maxdepth 1 -type f | sort)
 do
   CARD="$(basename $CARDFILE)"
-  CARDRULE=$(uci show web | grep "card_.*$CARD" | cut -d. -f2)
-  if [ -z "$CARDRULE" ]
+  CARDRULE=$(uci show web | grep "^web\.card_.*${CARDFILE#*_}" | cut -d. -f2)
+  if [ -z "$CARDRULE" -o -z "$(uci -q get web.${CARDRULE}.modal)" ]
   then
     CARDRULE="card_$(basename ${CARDFILE#*_} .lp)"
     MODAL=$(grep createCardHeader $CARDFILE | grep -o "modals/.*\.lp")
     if [ -z "$MODAL" ]
     then
-      MODAL=$(grep '\(modalPath\|modal_link\)' $CARDFILE | grep -o "modals/.*\.lp" | head -n1)
+      MODAL=$(grep '\(modalPath\|modal_link\)' $CARDFILE | grep -m 1 -o "modals/.*\.lp")
     fi
-    MODALRULE=$(uci show web | grep $MODAL | grep -v card_ | cut -d. -f2 | head -n1)
+    MODALRULE=$(uci show web | grep $MODAL | grep -m 1 -v card_ | cut -d. -f2)
     uci set web.${CARDRULE}=card
     uci set web.${CARDRULE}.card="$CARD"
     uci set web.${CARDRULE}.modal="$MODALRULE"
