@@ -1,4 +1,5 @@
 echo [$SCRIPT]: Ensuring card sequence and visibility is up to date
+ALLCARDRULES="$(uci show web | grep =card)"
 for CARDFILE in $(find /www/cards/ -maxdepth 1 -type f ! -name '*fon*' | sort)
 do
   CARD="${CARDFILE#*_}"
@@ -7,9 +8,9 @@ do
   HIDDEN=$(uci -q get web.${CARDRULE}.hide)
   if [ -z "$MODAL" ]
   then
-    MODAL=$(grep '\(modalPath\|modal_link\)' $CARDFILE | grep -o "modals/.*\.lp" | head -n1)
+    MODAL=$(grep '\(modalPath\|modal_link\)' $CARDFILE | grep -m 1 -o "modals/.*\.lp")
   fi
-  MODALRULE=$(uci show web | grep $MODAL | grep -v card_ | cut -d. -f2 | head -n1)
+  MODALRULE=$(uci show web | grep $MODAL | grep -m 1 -v card_ | cut -d. -f2)
   if [ ! -z "$MODALRULE" -a "$(uci -q get web.$MODALRULE.roles)" != "admin" ]
   then
     echo "[$SCRIPT]:  - Converting $CARD card visibility from modal-based visibility"

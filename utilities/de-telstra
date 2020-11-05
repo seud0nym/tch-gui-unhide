@@ -289,7 +289,7 @@ else
   echo [$SCRIPT]: - Deleting Telstra AIR firewall entries
   while [ $(uci show firewall | grep 192.168.20.1 | wc -l) -gt 0 ]
   do
-    uci delete $(uci show firewall | grep 192.168.20.1 | head -n1 | cut -d. -f1-2)
+    uci delete $(uci show firewall | grep -m 1 192.168.20.1 | cut -d. -f1-2)
     SRV_fw=$(( $SRV_fw + 1 ))
   done
   uci commit firewall
