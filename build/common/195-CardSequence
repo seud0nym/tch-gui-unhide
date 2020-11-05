@@ -10,3 +10,8 @@ do
   fi
 done
 
+if [ -z "$ALLCARDRULES" -a -f tch-gui-unhide-cards ]
+then
+  ./tch-gui-unhide-cards -s -a -q
+fi
+

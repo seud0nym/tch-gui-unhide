@@ -2,11 +2,15 @@
 
 BATCH=""
 QUIET="n"
-while getopts sdq option
+VERBOSE="n"
+HIDE_EXTRA="1"
+while getopts sdqva option
 do
   case "${option}" in
+    a)    HIDE_EXTRA="0";;
     s|d)  BATCH="${option}";;
     q)    QUIET="y";;
+    v)    VERBOSE="y";;
     *)    echo "Optional parameters:"
           echo " -s       : Apply the suggested card sequence and exit"
           echo " -d       : Apply the default card sequence and exit"
@@ -146,9 +150,9 @@ apply_suggested() {
       natalghelper.lp) SEQ="017";;
       nfc.lp) SEQ="009";;
       parental.lp) SEQ="021";;
-      printersharing.lp) SEQ="020"; HIDE="1";;
+      printersharing.lp) SEQ="020"; HIDE="$HIDE_EXTRA";;
       qos.lp) SEQ="018";;
-      relaysetup.lp) SEQ="015"; HIDE="1";;
+      relaysetup.lp) SEQ="015"; HIDE="HIDE_EXTRA";;
       system.lp) SEQ="014";;
       telephony.lp) SEQ="011";;
       tod.lp) SEQ="022";;
@@ -230,6 +234,17 @@ do
   if [ $(( $I % 4 )) -ne 0 ]
   then
     echo
+  fi
+  if [ $VERBOSE = y ]
+  then
+    echo
+    I=0
+    for CARD in $(echo "$CARDS" | tr ' ' ';' | sort)
+    do
+      I=$(( $I + 1 ))
+      printf "%2d " $I
+      echo $CARD | tr ';' ' ' | tr '|' '\t'
+    done
   fi
   echo
   echo "NOTE: Titles in () indicate hidden cards. They will always appear above after the last visible card." 
