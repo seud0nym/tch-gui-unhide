@@ -6,7 +6,8 @@ BKUP=""
 FIRMWARE=""
 REBOOT="Y"
 IPADDR=""
-while getopts bf:I:in option
+CWMP=""
+while getopts bf:I:inc option
 do
  case "${option}" in
   b)  BKUP="Y";;
@@ -21,19 +22,22 @@ do
       fi;;
   i)  IPADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)";;
   n)  REBOOT="N";;
-  ?)  echo "Optional parameters:"
+  c)  CWMP="uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop;";;
+  *)  echo "Optional parameters:"
       echo " -f filename     : Flash 'filename' into the mounted bank ($BOOTED) after reset and before reboot"
       echo " -b              : Make a full backup of your booted bank configuration (requires attached USB device)"
       echo " -I n.n.n.n      : Use IP address n.n.n.n after reset and reboot"
       echo " -i              : Keep existing IP address [$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)] after reset and reboot"
+      echo " -c              : Disable CWMPD configuration during first boot after reset"
       echo " -n              : Do NOT reboot"
       exit;;
  esac
 done
 
+USB="$(ls /mnt/usb | head -n1)"
+
 if [ ! -z "$BKUP" ]
 then
-  USB="$(ls /mnt/usb | head -n1)"
   if [ -z "$USB" ]
   then
     echo "WARNING: Backup requested, but no attached USB device found!"
@@ -47,18 +51,32 @@ else
   echo "NOTE:    NO backup requested"
 fi
 
+RBI=n
 if [ ! -z "$FIRMWARE" ]
 then
   if [ -f "$FIRMWARE" ]
   then
     if [ "$ACTIVE" = "bank_1" -a "$BOOTED" = "bank_2" ]
     then
-      echo "NOTE:    $FIRMWARE will be flashed into $BOOTED after reset"
-      echo "$FIRMWARE" | grep -q -E '\.bin$'
-      if [ $? -eq 1 ]
+      echo "$FIRMWARE" | grep -q -E '\.rbi$'
+      if [ $? -eq 0 ]
       then
-        echo "WARNING: Flash image files normally end with '.bin'."
-        echo "         Are you REALLY sure you wish to proceed?"
+        RBI=y
+        if [ -z "$USB" ]
+        then
+          echo "NOTE:    $FIRMWARE will be unpacked to /tmp before flashing. Do you have enough space?"
+        else
+          echo "NOTE:    $FIRMWARE will be unpacked to /mnt/usb/$USB before flashing. Do you have enough space?"
+        fi
+        echo "NOTE:    $(basename $FIRMWARE .rbi).bin will be flashed into $BOOTED after reset"
+      else
+        echo "$FIRMWARE" | grep -q -E '\.bin$'
+        if [ $? -eq 1 ]
+        then
+          echo "WARNING: Flash image files normally end with '.bin'."
+          echo "         Are you REALLY sure you wish to proceed?"
+        fi
+        echo "NOTE:    $FIRMWARE will be flashed into $BOOTED after reset"
       fi
     else 
       echo "WARNING: Bank plan is NOT optimal! Active bank is $ACTIVE and booted bank is $BOOTED!"
@@ -70,25 +88,53 @@ then
   fi
 fi
 
-if [ "$REBOOT" = "Y" ]
-then
-  echo "WARNING: Device will be rebooted!"
-fi
 echo "NOTE:    root access will be preserved. root password will be reset to root"
 if [ -z "$IPADDR" ]
 then
   LANCONFIG=""
 else
   echo "NOTE:    IP address will be set to '$IPADDR'"
-  LANCONFIG="uci set network.lan.ipaddr='$IPADDR' 
-uci commit network 
-/etc/init.d/network reload"
+  LANCONFIG="uci set network.lan.ipaddr='$IPADDR';uci commit network;/etc/init.d/network reload;"
 fi
-echo "ACTION:  Enter y to continue, or anything else to exit now"
+if [ ! -z "$CWMP" ]
+then
+  echo "NOTE:    CWMP will be STOPPED during the reboot (first boot only)"
+fi
+if [ "$REBOOT" = "Y" ]
+then
+  echo "WARNING: Device will be rebooted!"
+fi
+echo -n "ACTION:  Enter y to continue, or anything else to exit now "
 read
 if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]
 then
   exit
+fi
+
+if [ $RBI = y ]
+then
+  if [ -z "$USB" ]
+  then
+    target="/tmp/$(basename $FIRMWARE .rbi).bin"
+  else
+    target="/mnt/usb/$USB/$(basename $FIRMWARE .rbi).bin"
+  fi
+  echo "About to unpack $FIRMWARE to $target"
+  echo -n "Enter y to continue, or anything else to abort: "
+  read CONFIRM
+
+  if [ "$CONFIRM" = "y" ]
+  then
+    if [ -f "$target" ]
+    then
+      echo "Removing existing $target before extracting $FIRMWARE"
+      rm $target
+    fi
+    cat "$FIRMWARE" | (bli_parser && echo "Unpacking $FIRMWARE. Please wait... (This will take a while)" && (bli_unseal | dd bs=4 skip=1 seek=1 of="$target"))
+    FIRMWARE="$target"
+  else
+    exit
+  fi
 fi
 
 if [ ! -z "$USB" -a ! -z "$SOURCE" -a ! -z "$TARGET" ]
@@ -96,6 +142,7 @@ then
   tar -C /overlay -czf $TARGET $SOURCE
 fi
 
+echo "Resetting..."
 rm -rf /overlay/`cat /proc/banktable/booted`
 mkdir -p /overlay/`cat /proc/banktable/booted`/etc
 chmod 755 /overlay/`cat /proc/banktable/booted` /overlay/`cat /proc/banktable/booted`/etc
@@ -118,7 +165,7 @@ uci set dropbear.afg.RootLogin='1'
 uci commit dropbear
 /etc/init.d/dropbear enable
 /etc/init.d/dropbear restart
-$LANCONFIG
+$CWMP$LANCONFIG
 rm /overlay/\$(cat /proc/banktable/booted)/etc/rc.local
 " > /overlay/`cat /proc/banktable/booted`/etc/rc.local
 chmod +x /overlay/`cat /proc/banktable/booted`/etc/rc.local
