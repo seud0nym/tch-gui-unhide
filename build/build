@@ -66,7 +66,7 @@ do
         then
           echo "for l in \$(grep -l -r 'current_year); ngx.print(' /www)" >> $TARGET
           echo "do" >> $TARGET
-          echo "  echo $SEQUENCE@$(date +%H:%M:%S): Adding tch-gui-unhide version to copyright in \$l" >> $TARGET
+          echo "  echo $SEQUENCE@\$(date +%H:%M:%S): Adding tch-gui-unhide version to copyright in \$l" >> $TARGET
           echo "  sed -e \"s/\(current_year); ngx.print('\)/\\\1 \[tch-gui-unhide $(date +%Y.%m.%d)\]/\" -i \$l" >> $TARGET
           echo "done" >> $TARGET
           echo >> $TARGET
