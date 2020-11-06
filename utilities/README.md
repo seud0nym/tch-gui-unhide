@@ -112,9 +112,19 @@ If you enable DumaOS *after* running the `tch-gui-unhide` script, you will need 
 ## reset-to-factory-defaults-with-root
 It does what it says. It is a copy of the commands from https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access (without the backup - you need to do that manually and move it off the device), with a confirmation prompt and immediate reboot.
 
-This script supports 2 optional parameters:
+This script also supports the following optional parameters:
 - -f filename
-    - Flash 'filename' into the mounted bank after reset and before reboot
+  - Flash 'filename' into the mounted bank after reset and before reboot
+  - 'filename" can either be an unpacked file (.bin) or a .rbi file. 
+  - A .rbi file will be unpacked to either USB drive (by default) or /tmp before flashing.
+- -b
+  - Make a full backup of your booted bank configuration (requires attached USB device)
+- -i
+  - Keep the existing LAN IP address after reset and reboot
+- -I n.n.n.n
+  - Use LAN IP address n.n.n.n after reset and reboot
+- -c
+  - Disable CWMPD configuration during first boot after reset
 - -n
     - Do NOT reboot.
 
