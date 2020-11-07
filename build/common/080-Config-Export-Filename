@@ -1,4 +1,10 @@
 SERIAL=$(uci get env.var.serial)
 echo [$SCRIPT]: Change config export filename from config.bin to $VARIANT-$SERIAL-$VERSION@YYMMDD.bin
-sed -e "s/=config.bin/=$VARIANT-$SERIAL-$VERSION@\" .. os.date(\"%Y%m%d\") .. \".bin/" -i /www/docroot/modals/gateway-modal.lp
+echo [$SCRIPT]: Add reset/upgrade warnings
+sed \
+  -e "s/=config.bin/=$VARIANT-$SERIAL-$VERSION@\" .. os.date(\"%Y%m%d\") .. \".bin/" \
+  -e '/local basic =/i local lose_root_warning = { alert = { class = "alert-info", style = "margin-bottom:5px;" }, }' \
+  -e '/T"Reset"/i \    html[#html + 1] = ui_helper.createAlertBlock(T"<b>WARNING!</b> Using the <b><i class=\\"icon-bolt\\" style=\\"width:auto;\\">\&nbsp;</i> Reset</b> button will cause loss of root access! Use the <i>reset-to-factory-defaults-with-root</i> utility script from the command line to factory reset and still retain root access.", lose_root_warning)' \
+  -e '/T"Upgrade"/i \          html[#html + 1] = ui_helper.createAlertBlock(T"<b>WARNING!</b> Upgrading firmware using this method will cause loss of root access! Use the <i>reset-to-factory-defaults-with-root</i> utility script with the -f option from the command line to upgrade to the firmware and still retain root access.", lose_root_warning)' \
+  -i /www/docroot/modals/gateway-modal.lp
 
