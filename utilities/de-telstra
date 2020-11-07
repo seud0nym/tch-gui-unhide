@@ -785,6 +785,8 @@ echo [$SCRIPT]: Applying required service changes...
 [ $SRV_mobiled -gt 0 ]  && /etc/init.d/mobiled restart > /dev/null 2>&1
 [ $SRV_multiap -gt 0 ]  && { /etc/init.d/multiap_controller restart; /etc/init.d/multiap_agent restart; } > /dev/null 2>&1
 [ $SRV_upnp -gt 0 ]     && /etc/init.d/miniupnpd-tch restart > /dev/null 2>&1
+[ "$PRNTR_NOW" = "0" -o "$PRNTR" = "0" ] && /etc/init.d/cupsd stop
+[ "$PRNTR_NOW" = "0" -a "$PRNTR" = "1" ] && /etc/init.d/cupsd restart
 
 echo [$SCRIPT]: Removing packages that are no longer required
 opkg --force-removal-of-dependent-packages remove conf-cwmpd cwmpd autoreset-tch geolocation-tch hotspotd webui-fon tls-thor wifi-doctor-agent conf-wifi-doctor-agent libbcmairiq conf-airiq
