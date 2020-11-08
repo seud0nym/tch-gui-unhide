@@ -28,13 +28,13 @@ local function initHelperFunction(name,type)
     return nil, "Invalid init process name"
   end
   local command = string.format("/etc/init.d/%s %s",name,type)
-  os.execute("logger rpc.system.init: "..command)
+  os.execute("logger rpc.gui.init: "..command)
   os.execute(command.."|logger")
 end
 
-local SYSTEM_INIT_ = {
+local GUI_INIT_ = {
   objectType = {
-    name = "rpc.system.init.",
+    name = "rpc.gui.init.",
     access = "readOnly",
     minEntries = 1,
     maxEntries = 1,
@@ -67,7 +67,7 @@ local SYSTEM_INIT_ = {
   }
 }
 
-SYSTEM_INIT_.get = {
+GUI_INIT_.get = {
   enable = "0",
   disable = "0",
   toggle = "0",
@@ -76,7 +76,7 @@ SYSTEM_INIT_.get = {
   restart = "0"
 }
 
-SYSTEM_INIT_.set = {
+GUI_INIT_.set = {
   enable = function(mapping, param, value)
     return initHelperFunction(value,"enable")
   end,
@@ -101,11 +101,11 @@ SYSTEM_INIT_.set = {
   end,
 }
 
-register(SYSTEM_INIT_)
+register(GUI_INIT_)
 
-local SYSTEM_INIT_i_ = {
+local GUI_INIT_i_ = {
   objectType = {
-    name = "rpc.system.init.files.@.",
+    name = "rpc.gui.init.files.@.",
     access = "readOnly",
     numEntriesParameter = "InitNumberOfEntries",
     minEntries = 0,
@@ -131,7 +131,7 @@ local SYSTEM_INIT_i_ = {
   }
 }
 
-SYSTEM_INIT_i_.entries = function(mapping)
+GUI_INIT_i_.entries = function(mapping)
   local res = {}
   for file in pairs(initTable) do
     res[#res+1] = file
@@ -139,7 +139,7 @@ SYSTEM_INIT_i_.entries = function(mapping)
   return res
 end
 
-SYSTEM_INIT_i_.get = {
+GUI_INIT_i_.get = {
   name = function(mapping, param, key)
     return key
   end,
@@ -154,4 +154,4 @@ SYSTEM_INIT_i_.get = {
   end,
 }
 
-register(SYSTEM_INIT_i_)
+register(GUI_INIT_i_)

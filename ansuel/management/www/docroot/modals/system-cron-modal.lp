@@ -80,7 +80,7 @@ local cron_options = {
   canAdd = false,
   canDelete = false,
   tableid = "crontable",
-  basepath = "rpc.system.cron.entries.",
+  basepath = "rpc.gui.cron.entries.",
 }
 
 cron_options.onAdd = function(index, content)
@@ -107,11 +107,11 @@ cron_options.onAdd = function(index, content)
     proxy.set(path,value)
   end
 
-  proxy.set("rpc.system.cron.editCronRuleNumber",index)
+  proxy.set("rpc.gui.cron.editCronRuleNumber",index)
 end
 
 cron_options.onModify = function(index, content)
-  proxy.set("rpc.system.cron.editCronRuleNumber",index)
+  proxy.set("rpc.gui.cron.editCronRuleNumber",index)
 end
 
 local cron_data, cron_helpmsg = post_helper.handleTableQuery(cron_columns, cron_options, nil, nil, cron_valid)
@@ -130,14 +130,10 @@ local cron_data, cron_helpmsg = post_helper.handleTableQuery(cron_columns, cron_
   <form class="form-horizontal" method="post" action="modals/system-cron-modal.lp">\
   </form>\
   <fieldset id="system-cron-tab">\
-  <fieldset>\
-  <legend>');  ngx.print( T"Cron Management" ); ngx.print('</legend>')
-  ngx.print(ui_helper.createTable(cron_columns, cron_data, cron_options, nil, cron_helpmsg))
-  ngx.print('\
+    <legend>');  ngx.print( T"Cron Tab Viewer" ); ngx.print('</legend>')
+    ngx.print(ui_helper.createTable(cron_columns, cron_data, cron_options, nil, cron_helpmsg))
+    ngx.print('\
   </fieldset>\
-  </fiedlset>\
-  </div>\
-  <script>\
-  </script>\
+</div>\
 ');  ngx.print(ui_helper.createFooter() ); ngx.print('\
 '); 

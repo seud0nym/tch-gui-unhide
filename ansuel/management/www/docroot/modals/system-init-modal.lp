@@ -9,7 +9,7 @@ local post_helper = require("web.post_helper")
 
 local function sendcmd(cmd,name)
   ngx.log(ngx.INFO, "Calling "..name.." "..cmd)
-	proxy.set("rpc.system.init."..cmd, name)
+	proxy.set("rpc.gui.init."..cmd, name)
   proxy.apply()
 end
 
@@ -97,7 +97,7 @@ local init_options = {
 	canAdd = false,
 	canDelete = false,
 	tableid = "inittable",
-	basepath = "rpc.system.init.files.",
+	basepath = "rpc.gui.init.files.",
 	sorted = sortcol,
 }
 
@@ -144,7 +144,6 @@ local init_data, sipnet_helpmsg = post_helper.handleTableQuery(init_columns, ini
   <form class="form-horizontal" method="post" action="modals/system-init-modal.lp?sort=');  ngx.print(sortcol); ngx.print('">\
   </form>\
   <fieldset id="system-init-tab">\
-	<fieldset>\
 	<legend>');  ngx.print( T"Init Management" ); ngx.print('</legend>')
 
 	local alert_warn = {
@@ -153,11 +152,10 @@ local init_data, sipnet_helpmsg = post_helper.handleTableQuery(init_columns, ini
 		},
 	}
 
-	ngx.print(ui_helper.createAlertBlock(T"Don't randomly disable or restart Init Process. Some Init are crucial for the correct boot of the device.",alert_warn))
+	ngx.print(ui_helper.createAlertBlock(T"Do NOT randomly disable or restart Init Processes. Some are crucial for the correct booting of the device.",alert_warn))
 	ngx.print(ui_helper.createTable(init_columns, init_data, init_options))
 
 	ngx.print('\
-	</fieldset>\
   </fieldset>\
   </div>\
   <script>\

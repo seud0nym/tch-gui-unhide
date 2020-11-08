@@ -101,9 +101,9 @@ local function updateLineToFile()
   cron_cache.reload = true
 end
 
-local SYSTEM_CRON_ = {
+local GUI_CRON_ = {
   objectType = {
-    name = "rpc.system.cron.",
+    name = "rpc.gui.cron.",
     access = "readOnly",
     minEntries = 1,
     maxEntries = 1,
@@ -116,21 +116,21 @@ local SYSTEM_CRON_ = {
   }
 }
 
-SYSTEM_CRON_.get = {
+GUI_CRON_.get = {
   editCronRuleNumber = ""
 }
 
-SYSTEM_CRON_.set = {
+GUI_CRON_.set = {
   editCronRuleNumber = function(mapping,param,value,key)
     return updateLineToFile()
   end
 }
 
-register(SYSTEM_CRON_)
+register(GUI_CRON_)
 
-local SYSTEM_CRON_i_ = {
+local GUI_CRON_i_ = {
   objectType = {
-    name = "rpc.system.cron.entries.{i}.",
+    name = "rpc.gui.cron.entries.{i}.",
     access = "readWrite",
     numEntriesParameter = "CronNumberOfEntries",
     minEntries = 0,
@@ -164,7 +164,7 @@ local SYSTEM_CRON_i_ = {
   }
 }
 
-SYSTEM_CRON_i_.entries = function(mapping)
+GUI_CRON_i_.entries = function(mapping)
   local res = {}
   for key in pairs(checkCron()) do
     res[#res+1]=key
@@ -172,7 +172,7 @@ SYSTEM_CRON_i_.entries = function(mapping)
   return res
 end
 
-SYSTEM_CRON_i_.get = {
+GUI_CRON_i_.get = {
   command = function(mapping, param, key)
     local cronTbl = checkCron()
     return cronTbl[key].command or ""
@@ -199,7 +199,7 @@ SYSTEM_CRON_i_.get = {
   end,
 }
 
-SYSTEM_CRON_i_.set = {
+GUI_CRON_i_.set = {
   minute = function(mapping,param,value,key)
     if not value:match("[0-9-%*-%-]+") then
       return nil, "Invalid set must be range of number or *"
@@ -235,7 +235,7 @@ SYSTEM_CRON_i_.set = {
   end,
 }
 
-SYSTEM_CRON_i_.add = function(mapping)
+GUI_CRON_i_.add = function(mapping)
   local function getRandomKey()
     local bytes
     local key = ("%02X"):rep(16)
@@ -267,9 +267,9 @@ SYSTEM_CRON_i_.add = function(mapping)
   return random
 end
 
-SYSTEM_CRON_i_.delete = function(mapping, key)
+GUI_CRON_i_.delete = function(mapping, key)
   removeCron(key)
   return true
 end
 
-register(SYSTEM_CRON_i_)
+register(GUI_CRON_i_)
