@@ -1,0 +1,20 @@
+local GUI_ = {
+  objectType = {
+    name = "rpc.gui.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      UnhideVersion = {
+        access = "readOnly",
+        type = "string"
+      }
+    }
+  }
+}
+
+GUI_.get = {
+  UnhideVersion = ""
+}
+
+register(GUI_)

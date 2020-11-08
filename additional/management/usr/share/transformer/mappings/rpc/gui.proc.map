@@ -1,0 +1,131 @@
+local procTable = {}
+local cmd = "/usr/bin/top -b -n 1"
+local top = io.popen(cmd,'r')
+local k = 0
+for proc in top:lines() do
+  if not proc:find(cmd,1,true) then
+    local pid, ppid, user, stat, vsz, vszpct, cpu = proc:match("([0-9]+) +([0-9]+) +([^ ]+) +(....) +([0-9]+) +([0-9]+)%% +([0-9]+)%%")
+    if tonumber(pid) then
+      k = k + 1
+      procTable[string.format("%03d",k)] = {
+        process = pid,
+        parent = ppid,
+        user = user,
+        state = stat,
+        virtual_memory_size = vsz,
+        virtual_memory_percent = vszpct,
+        cpu = cpu,
+        command = proc:sub(43),
+      }
+    end
+  end
+end
+top:close()
+
+local GUI_PROC_ = {
+  objectType = {
+    name = "rpc.gui.proc.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      filter = {
+        access = "readWrite",
+        type = "string"
+      }
+    }
+  }
+}
+
+GUI_PROC_.get = {
+  filter = ""
+}
+
+GUI_PROC_.set = {
+  filter = function(mapping,param,value,key)
+  end
+}
+
+register(GUI_PROC_)
+
+
+local GUI_PROC_i_ = {
+  objectType = {
+    name = "rpc.gui.proc.processes.@.",
+    access = "readOnly",
+    numEntriesParameter = "ProcNumberOfEntries",
+    minEntries = 0,
+    maxEntries = 999,
+    parameters = {
+      process = {
+        access = "readOnly",
+        type = "unsignedInt",
+      },
+      parent = {
+        access = "readOnly",
+        type = "unsignedInt",
+      },
+      user = {
+        access = "readOnly",
+        type = "string",
+      },
+      state = {
+        access = "readOnly",
+        type = "string",
+      },
+      virtual_memory_size = {
+        access = "readOnly",
+        type = "unsignedInt",
+      },
+      virtual_memory_percent = {
+        access = "readOnly",
+        type = "unsignedInt",
+      },
+      cpu = {
+        access = "readOnly",
+        type = "unsignedInt",
+      },
+      command = {
+        access = "readOnly",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_PROC_i_.entries = function(mapping)
+  local res = {}
+  for proc in pairs(procTable) do
+    res[#res+1] = proc
+  end
+  return res
+end
+
+GUI_PROC_i_.get = {
+  process = function(mapping, param, key)
+    return procTable[key].process or 0
+  end,
+  parent = function(mapping, param, key)
+    return procTable[key].parent or 0
+  end,
+  user = function(mapping, param, key)
+    return procTable[key].user or ""
+  end,
+  state = function(mapping, param, key)
+    return procTable[key].state or ""
+  end,
+  virtual_memory_size = function(mapping, param, key)
+    return procTable[key].virtual_memory_size or 0
+  end,
+  virtual_memory_percent = function(mapping, param, key)
+    return procTable[key].virtual_memory_percent or 0
+  end,
+  cpu = function(mapping, param, key)
+    return procTable[key].cpu or 0
+  end,
+  command = function(mapping, param, key)
+    return procTable[key].command or ""
+  end,
+}
+
+register(GUI_PROC_i_)

@@ -29,3 +29,6 @@ input,button,select,textarea{font-family:Roboto,Noto,sans-serif;}
 .networkmap .device:hover .deviceinfo.hoveronly{display:inline-block;}
 #devices>tbody>tr>td:nth-child(2),#devices>tbody>tr>td:nth-child(6),#devices>tbody>tr>td:nth-child(7),#devices>tbody>tr>td:nth-child(8){white-space:nowrap;}
 #helper>tbody>tr>td{text-transform:uppercase;}
+#proctable>tbody>tr>td:nth-child(1),#proctable>tbody>tr>td:nth-child(2),#proctable>tbody>tr>td:nth-child(5),#proctable>tbody>tr>td:nth-child(6),#proctable>tbody>tr>td:nth-child(7){text-align:right;}
+#proctable>tbody>tr>td:nth-child(6):after,#proctable>tbody>tr>td:nth-child(7):after{content:"%";}
+#proctable>thead>tr>th{white-space:nowrap;}

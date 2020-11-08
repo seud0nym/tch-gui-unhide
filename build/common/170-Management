@@ -1,17 +1,3 @@
-echo [$SCRIPT]: Fixing management card tabs
-sed \
-  -e '/local assistant/a \local counts = {' \
-  -e '/local assistant/a \  cron = "rpc.system.cron.CronNumberOfEntries",' \
-  -e '/local assistant/a \  init = "rpc.system.init.InitNumberOfEntries",' \
-  -e '/local assistant/a \}' \
-  -e '/local assistant/a \content_helper.getExactContent(counts)' \
-  -e "s|\(content = {\)|\1'<span class=\"simple-desc\">',\n'<i class=\"icon-tint status-icon\">\&nbsp;</i>',\nT\"Theme enabled\",\n'</span>',\n'<span class=\"simple-desc\">',\n'<i class=\"icon-calendar status-icon\">\&nbsp;</i>',\nformat(N(\"<strong>%s cron rule</strong> active\",\"<strong>%s cron rules</strong> active\"), counts.cron,counts.cron),\n'</span>',\n'<span class=\"simple-desc\">',\n'<i class=\"icon-play-sign status-icon\">\&nbsp;</i>',\nformat(N(\"<strong>%s init script</strong> active\",\"<strong>%s init scripts</strong> active\"), counts.init,counts.init),\n'</span>',|" \
-  -e "s|light,'<br/>'|light,'<p class=\"subinfos\" style=\"font-size:x-small;line-height:normal;\">'|" \
-  -e "/                }/i \                    '</p>'," \
-  -e "s|usermgr-modal|theme-modal|" \
-  -e 's|^if assistant then|if admin and assistant then|' \
-  -i /www/cards/011_usermgr.lp
-
 for f in /www/docroot/modals/assistance-modal.lp /www/docroot/modals/usermgr-modal.lp
 do
   sed \

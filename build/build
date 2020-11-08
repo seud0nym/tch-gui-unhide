@@ -9,6 +9,7 @@ echo Building Base64 tar images...
 mkdir /tmp/additional
 tar --exclude README.md --exclude '*.b64'  -cf - -C ../ansuel/ .  | tar -xf - -C /tmp/additional/
 tar --exclude README.md --exclude '*.b64'  -cf - -C ../additional/ .  | tar -xf - -C /tmp/additional/
+sed -e "s/UnhideVersion = \"\"/UnhideVersion = \"$(date +%Y.%m.%d@%H:%M:%S)\"/" -i $(find /tmp/additional -name gui.map)
 for d in $(ls /tmp/additional)
 do
   if [ -d /tmp/additional/$d ]
@@ -79,4 +80,4 @@ done
 
 echo Cleaning up..
 rm -rf /tmp/additional ../additional/*.b64
-echo Done.
+echo Build Complete @ $(date +%H:%M:%S) for version $(date +%Y.%m.%d)
