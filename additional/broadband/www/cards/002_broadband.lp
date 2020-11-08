@@ -97,7 +97,7 @@ end
 <div class="span3">\
   <div class="smallcard">\
     ');  ngx.print( ui_helper.createCardHeader(T"Broadband", modalPath, nil, nil, nil) ); ngx.print('\
-    <div class="content card_bg" data-bg-text="&#xf0b2;">\
+    <div class="content card_bg mirror" data-bg-text="&#xf0c1;">\
     ');  ngx.print( ui_helper.createSimpleLight(nil, WS_state_map, { light = { class = WS_light_map[WS_State] } }) ); ngx.print('\
     ');  
       local html = {}
