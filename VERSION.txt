@@ -1,7 +1,29 @@
+2020.11.08
+==========
+* tch-gui-unhide: Re-worked theme processing to allow theme to be changed within GUI (from Management card)
+* tch-gui-unhide: Added red theme variation
+* tch-gui-unhide: Changed keep landing page option to require y/n otherwise could not de-brand landing page after initially keeping Telstra branding
+* tch-gui-unhide: Use red status light for disabled firewall
+* tch-gui-unhide: Fixed setting of firewall rule when SSH WAN access enabled/disabled
+* tch-gui-unhide: Fixed NAT ALG errors - GUI no longer changes helper names to uppercase which caused the helper to fail
+* tch-gui-unhide: Added extra configuration for SSH WAN access: port/authentication type/allowed client IP
+* tch-gui-unhide: Added GUI support to enable/disable iperf (FW 18.1.c only)
+* tch-gui-unhide: Added IPv6 info to Internet and LAN cards
+* tch-gui-unhide: Added modified Cron viewer and Init Script management from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www to Management screen
+* tch-gui-unhide: Added Process viewer to Management screen
+* tch-gui-unhide: Added reset/upgrade warnings to gateway screen
+* tch-gui-unhide: Moved card visibility and sequencing into new tch-gui-unhide-cards script
+* tch-gui-unhide-cards: Initial release
+* de-telstra: Moved GUI default user settings into optional parameter on tch-gui-unhide
+* de-telstra: Fixed transformer errors caused by package removal
+* reset-to-factory-defaults-with-root: Optionally disable CWMP during first boot after restore
+* reset-to-factory-defaults-with-root: Allow .rbi file to be specified for flashing, and automatically unpack
+* transformer-cli: Added stock version of /usr/bin/transformer-cli from FW 18 to FW 17 releases
+
 2020.10.23
 ==========
 * de-telstra: Remove band steering configuration added by Telstra Air script
-* de-telstra: Remove Tesltra Air firewall rules
+* de-telstra: Remove Telstra Air firewall rules
 * de-telstra: No longer disables SSH WAN access (because it is not on by default, and user may have configured it manually)
 * de-telstra: Disable or enable WPS on non-Guest and non-Backhaul SSIDs
 * de-telstra: Set SAMBA and DLNA hostnames to hostname (replacing Telstra-Gateway or Telstra-Modem)

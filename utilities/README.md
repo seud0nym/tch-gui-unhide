@@ -82,7 +82,7 @@ This script accepts the following options:
     where u            Leave UPnP unchanged (Default)
           y            Enable the UPnP service
           n            Disable the UPnP service
- -m u|y|n"
+ -m u|y|n
     where u            Leave EasyMesh (multiap) unchanged (Default)
           y            Enable EasyMesh (multiap) (device default)
           n            Disable EasyMesh (multiap)

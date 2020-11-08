@@ -5,19 +5,20 @@ These scripts can be applied to various Telstra branded Technicolor devices to u
 Skip any of these steps that you have already done.
 1. Root your device (see https://hack-technicolor.rtfd.io) and ensure it is running a supported firmware version.
 2. [Download](https://github.com/seud0nym/tch-gui-unhide/releases/latest) the latest release for your firmware.
-3. Download any [extra feature scripts](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras) for opkg packages you have installed. 
-4. Copy the downloaded file(s) into the /root or /tmp directory of your device, or onto your USB stick (I normally use a USB stick so that the scripts are not lost if the device is reset, otherwise I use /root so the scripts are in the root user home directory).
-5. Change to the directory containing the release, aand extract the files using the command: `tar -xzvf <filename>`
-6. Set the optimal bank plan. Run `./show-bank-plan` to see if your bank plan is optimal,and if not, execute: `./set-optimal-bank-plan` (*WARNING: This will reboot your device*)
-7. Harden root access and disable un-needed services with the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script. Run `./de-telstra -?` to see available options, or for some sensible settings, just execute: `./de-telstra -A`
-8. Change the root password by executing: `passwd`
+3. Copy the downloaded file(s) into the /root or /tmp directory of your device, or onto your USB stick (I normally use a USB stick so that the scripts are not lost if the device is reset, otherwise I use /root so the scripts are in the root user home directory).
+4. Change to the directory containing the release, aand extract the files using the command: `tar -xzvf <filename>`
+5. Set the optimal bank plan. Run `./show-bank-plan` to see if your bank plan is optimal,and if not, execute: `./set-optimal-bank-plan` (*WARNING: This will reboot your device*)
+6. Harden root access and disable un-needed services with the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script. Run `./de-telstra -?` to see available options, or for some sensible settings, just execute: `./de-telstra -A`
+7. Change the root password by executing: `passwd`
+8. Optionally, download any [extra feature scripts](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras) you want to install into the same directory as the scripts. 
 9. If you are running FW 17.2.0468 or later, optionally create your *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* files in the same directory as the scripts. (See [**Firmware Versions 0468 and Later**](https://github.com/seud0nym/tch-gui-unhide#firmware-versions-0468-and-later))
 10. Apply the GUI changes. Run `./tch-gui-unhide -?` to see available options, or just execute: `./tch-gui-unhide`
-11. Clear cached images and files from your browser to see the changes.
+11. Optionally run `./tch-gui-unhide-cards` to change card sequence and visibility
+12. Clear cached images and files from your browser to see the changes.
 
 #### NOTES:
 - If you reset your device, *or* restore it to a state before you applied the scripts, *or* upgrade the firmware, you will need to run `de-telstra` and `tch-gui-unhide` again!
-- To change the GUI theme, run `./tch-gui-unhide -T` with your theme options, and only the theme will be applied without re-applying all the other changes that the script usually makes.
+- To change the GUI theme, run `./tch-gui-unhide -T` with your theme options, and only the theme will be applied without re-applying all the other changes that the script usually makes. Alternatively, you can change the theme from within the GUI (under **Management**).
 - You can revert to the Telstra GUI with the command: `./tch-gui-unhide -r`
 
 Read on for the long version...
@@ -75,6 +76,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - Modified **System Extras** card to show:
     - SSH LAN status
     - SSH WAN status
+    - Can now switch active bank from the screen
 - Modified **QoS** card
 - Modified **Telephony** Global tab to allow:
     - Add/delete SIP providers (up to maximum of 2)
@@ -82,16 +84,24 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - Added the **Telephony** Codecs tab
 - Greater control over the **Wi-Fi** output power
 - Modified **Time of Day** Wireless Control tab to allow selection of access point
+- **Management** of Init scripts and view cron rules
 
 ### Additional (new) GUI Features
 - **Gateway** card now has current device status for CPU usage, free RAM and temperature
+- **Internet** and **LAN** cards now show IPv6 information
 - **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
 - **Traffic monitor** tab in Diagnostics
 - **Time of Day** card shows the Wireless Control rule count
+- **System Extras** now allows:
+    - Configure WAN SSH access
+    - Change the web GUI theme
+- **Management** screen allows the theme to be changed from within the GUI
 
 ## What else does it do?
 - Properly enables SSH LAN access (because if you don't and then disable it through the GUI, you can lose SSH access).
 - Modernises the GUI a little bit with a light theme by default, or optionally with a dark (night) theme. See Themes below.
+- Optionally enables or disables default user access (i.e. no login required to access the Web interface)
+- Allows you to change the sequence of the cards and their visibility. See Cards below.
 
 *PLEASE NOTE: Previous versions of the script (release 2020.08.16 and before) also set the hostname and domain. This functionality has been moved to the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) utility script.*
 
@@ -157,10 +167,10 @@ It is recommended that you apply whatever hardening (such as the [`de-telstra`](
 ```
 The script accepts the following options:
 - -t l|n|t
-    - Set a light (*-tl*), night (*-tn*), or default Tesltra (*-tt*) theme
+    - Set a light (*-tl*), night (*-tn*), or default Telstra (*-tt*) theme
     - The default is the current setting, or Telstra if no theme has been applied.
-- -c b|o|g|p|m
-    - Set the theme highlight colour: *-cb*=blue *-co*=orange *-cg*=green *-cp*=purple *-cm*=monochrome
+- -c b|o|g|p|r|m
+    - Set the theme highlight colour: *-cb*=blue *-co*=orange *-cg*=green *-cp*=purple *-cr*=red *-cm*=monochrome
     - The default is the current setting, or *-cm* for the light theme or *-cb* for the night theme.
 - -i y|n
     - Show (*y*) or hide (*n*) the card icons.
@@ -168,19 +178,17 @@ The script accepts the following options:
 - -h d|s|n
     - Set the browser tabs title to VARIANT-MAC_ADDRESS (s), VARIANT (d) or HOSTNAME (n) 
     - Default is current setting or VARIANT-MAC_ADDRESS if not previously applied
-- -f u|y|n
+- -d y|n
+    - Enable (y) or Disable (n) the default user (i.e. no login required to access the Web interface)
+    - Default is the current setting
+- -f y|n
     - Enable (y) or Disable (n) Firmware upgrade in the web GUI
-    - Default is to leave unchanged (u)
-- -l
-    - Keep the Telstra landing page
+    - Default is the current setting
+- -l y|n
+    - Keep the Telstra landing page (y) or de-brand the landing page (n)
+    - Default is current setting, or (n) if no theme has been applied
 - -T
     - Apply the theme settings *ONLY*. All other processing is bypassed.
-- -x *c*|*m*|*n*|*p*|*q*|*r*|*s*|*t*|*x*|*A*
-    - Exclude specific cards: *-xc*=Content Sharing *-xm*=Management *-xn*=NAT Helpers *-xp*=Printer Sharing *-xq*=QoS *-xr*=Relay Setup *-xs*=System Extras *-xt*=Time of Day *-xx*=xDSL config *-xA*=ALL
-    - Use the *-x* option multiple times to specify multiple cards, or use *-xA* for all of the above cards.
-- -n *c*|*m*|*n*|*p*|*q*|*r*|*s*|*t*|*x*|*A*
-    - Include specific cards that were previously excluded.
-    - Use the *-n* option multiple times to specify multiple cards, or use *-nA* for all cards.
 - -y
     - Allows you to skip the initial prompt to confirm execution, and automatically responds with **y**.
 - -r
@@ -192,7 +200,7 @@ The script accepts the following options:
 - -?
     - Displays usage information
 
-NOTE: The theme (-t) and excluded/included cards (-x/-n) options do not need to be re-specified when re-running the script: state will be 'remembered' between executions (unless you execute with the -r option, which will remove all state information).
+NOTE: The theme options (-t, -c and -i) do not need to be re-specified when re-running the script: state will be 'remembered' between executions (unless you execute with the -r option, which will remove all state information).
 
 The `tch-gui-unhide` script is a short-cut to the actual script for your firmware, which is named `tch-gui-unhide-<version>` (e.g. `tch-gui-unhide-18.1.c.0462`). If you get a "Platform script not found" error running this script, download the correct release for your firmware configuration.
 
@@ -206,12 +214,64 @@ To see the updated logo and icons and to correctly apply the updated style sheet
 ## Other Important Things To Note
 - The script changes will not persist a reset or restore. If you factory reset your device, or restore to it a state before you applied the script, or upgrade/install firmware, you will need to run the script again!
 
+# Cards
+The `tch-gui-unhide-cards` is an iteractive script that allows you to re-order and change the visibility of the cards. When you execute it, it will display the current card configuration. Follow the on-screen prompts to re-order and hide/show cards.
+
+**NOTE:** You must execute `tch-gui-unhide` *BEFORE* running `tch-gui-unhide-cards`!
+
+The screen will look something like this:
+```
+tch-gui-unhide-cards
+
+ 1 DJA0231            2 Broadband          3 Internet Access    4 Mobile
+ 5 Wi-Fi              6 Wi-Fi Boosters     7 Local Network      8 Devices
+ 9 WAN Services      10 Telephony         11 Firewall          12 QoS
+13 Diagnostics       14 Management        15 Content Sharing   16 Printer Sharing
+17 Parental Controls 18 IP Routing        19 Time of Day       20 CWMP
+21 System Extras     22 NAT Helpers       23 xDSL Config       24 (Relay Setup)
+
+NOTE: Titles in () indicate hidden cards. They will always appear above after the last visible card.
+NOTE: 'CWMP' card is only visible if CWMP has not been disabled
+NOTE: 'xDSL Config' card is only visible on DSL connections
+
+Enter a card number, or a to apply changes, d for default sequence, s for suggested sequence, u to undo changes, or q to quit:
+```
+
+This screen displays the cards in the currently configured sequence. Any hidden cards are shown after all visible cards, with their titles in brackets.
+
+When this screen is displayed, you have the following options available:
+- *Card number*
+    - Enter a card number (between 1 and 24) to access a sub-menu that offers the following options:
+        - h
+            - Hide the selected card
+        - u
+            - Unhide the selected card (make it visible)
+        - Card number
+            - Move the card to the specified position
+    - e.g. 
+        - To move the *Diagnostics* card to the last position, you would enter *13*, and then *23*. 
+        - To hide the *Printer Sharing* card, you would enter *16* and then *h*.
+    - To exit from the sub-menu without making a change, just press Enter.
+- *a*
+    - Applies the changes you have made.
+- *d*
+    - Re-orders the cards into the stock sequence. All cards are also made visible.
+- *s*
+    - Re-orders the cards into a suggested sequence, and hides some rarely used cards.
+- *u*
+    - Reverts any changes that you have not yet applied during this execution.
+- *q*
+    - Quits the scripts without making any changes.
+
+## Other Important Things To Note
+- Script changes will not persist a reset or restore. If you factory reset your device, or restore to it a state before you applied a script, or upgrade/install firmware, you will need to run the script again!
+
 # Themes
-*PLEASE NOTE: Previous releases of this script had additional scripts to switch between the light and dark themes. This release includes multiple themes in the single script.*
+*PLEASE NOTE: Previous releases of the tch-gui-unhide script had additional scripts to switch between the light and dark themes. This release includes multiple themes in the single script.*
 
 By default, the script will keep a "Telstra" theme, very similar to the default Telstra theme.
 
-You can switch to a "dark" (or "night") theme by re-running the script with the `-T`, `-t`, `-c` and `-i` parameters
+You can switch to a "dark" (or "night") theme by re-running the script with the `-T`, `-t`, `-c` and `-i` parameters:
 
 - The `-T` parameter bypasses all processing except the application of the theme. Without this option, the entire script will be re-applied with the selected theme.
 - The `-t` parameter has 3 options: `-tl` for the light theme, or `-tn` for the night theme, or `-tt` for the Telstra theme.
@@ -221,7 +281,7 @@ You can switch to a "dark" (or "night") theme by re-running the script with the 
 
 When you re-run the script without specifying a theme, it will default to the previously select theme, or the "Telstra" theme when run the first time or immediately after running the script with the `-r` option to revert all GUI changes.
 
-After applying a theme, you will need to clear cached images and files from your browser to see the changes.
+You can also change the theme, colour variation and icon visibility from within the GUI (in the *Management* screen).
 
 # Thanks
 This would not have been possible without the following resources:
