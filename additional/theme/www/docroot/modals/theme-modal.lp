@@ -45,6 +45,7 @@ if ngx.var.request_method == "POST" then
       if file then
         file:write("THEME=" .. theme_settings["THEME"] .. "; COLOR=" .. theme_settings["COLOR"] .. "; ICONS=" .. theme_settings["ICONS"] .. "; KEEPLP=" .. theme_settings["KEEPLP"] .. ";")
         file:close()
+        message_helper.pushMessage("Changes successfully saved.", "success")
         message_helper.pushMessage("Theme change will be visible when you close this window.", "info")
       else
         message_helper.pushMessage("Failed to persist theme preferences: " .. err_msg, "error")
@@ -77,5 +78,18 @@ ngx.print('\
       </fieldset>\
     </form>\
   </div>\
+  <script>\
+  $(document).ready(function () {\
+    $("#theme_name").change(function () {\
+      if ($(this).val() == "telstra") {\
+        $("#theme_colour").val("blue");\
+        $("#theme_colour").prop("disabled", true);\
+      }\
+      else {\
+        $("#theme_colour").prop("disabled", false);\
+      }\
+    });\
+  });\
+  </script>\
 ');  ngx.print( ui_helper.createFooter() ); ngx.print('\
 ');
