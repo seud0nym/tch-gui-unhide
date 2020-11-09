@@ -1,3 +1,10 @@
+2020.11.09
+==========
+* tch-gui-unhide: Fixed bug that caused the version number to be repeated multiple times in Copyright footer when run with -T switch
+* tch-gui-unhide: Fixed bug when selecting Telstra Branding theme from the GUI
+* tch-gui-unhide-cards: Fixed "SH BAD NUMBER" error
+* tch-gui-unhide-cards: Added check for unhandled parameters
+
 2020.11.08
 ==========
 * tch-gui-unhide: Re-worked theme processing to allow theme to be changed within GUI (from Management card)
