@@ -4,22 +4,32 @@ BATCH=""
 QUIET="n"
 VERBOSE="n"
 HIDE_EXTRA="1"
+OPTS=0
 while getopts sdqva option
 do
+  OPTS=$(( $OPTS + 1 ))
   case "${option}" in
     a)    HIDE_EXTRA="0";;
     s|d)  BATCH="${option}";;
     q)    QUIET="y";;
     v)    VERBOSE="y";;
-    *)    echo "Optional parameters:"
-          echo " -s       : Apply the suggested card sequence and exit"
-          echo " -d       : Apply the default card sequence and exit"
-          echo
-          echo "If BOTH parameters are specified, only the LAST will be applied."
-          echo "When no parameters as specified, you can interactively re-sequence cards and change their visibility."
-          exit
+    *)    OPTS=$(( $OPTS - 1 ));;
   esac
 done
+
+if [ $# -ne $OPTS ]
+then
+  echo
+  echo "Optional parameters:"
+  echo " -s       : Apply the suggested card sequence and exit"
+  echo " -d       : Apply the default card sequence and exit"
+  echo
+  echo "If BOTH parameters are specified, only the LAST will be applied."
+  echo
+  echo "When NO parameters are specified, you can interactively re-sequence cards and change their visibility."
+  echo
+  exit
+fi
 
 [ $QUIET = n ] && echo -n "Working"
 CARDS=""
