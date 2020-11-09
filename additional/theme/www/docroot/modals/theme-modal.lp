@@ -35,7 +35,7 @@ if ngx.var.request_method == "POST" then
   local vars = ngx.req.get_post_args()
   if vars["action"] == "SAVE" then
     local theme_name = untaint(vars["theme_name"])
-    local theme_colour = untaint(vars["theme_colour"])
+    local theme_colour = untaint(vars["theme_colour"]) or "blue"
     local card_icons = untaint(vars["card_icons"])
     if theme_name ~= theme_settings["THEME"] or theme_colour ~= theme_settings["COLOR"] or card_icons ~= theme_settings["ICONS"] then
       theme_settings["THEME"] = theme_name
@@ -80,6 +80,10 @@ ngx.print('\
   </div>\
   <script>\
   $(document).ready(function () {\
+    if ($("#theme_name").val() == "telstra") {\
+      $("#theme_colour").val("blue");\
+      $("#theme_colour").prop("disabled", true);\
+    }\
     $("#theme_name").change(function () {\
       if ($(this).val() == "telstra") {\
         $("#theme_colour").val("blue");\
