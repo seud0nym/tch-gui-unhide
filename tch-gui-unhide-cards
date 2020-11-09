@@ -35,6 +35,10 @@ do
   else
     TITLE=$(grep createCardHeader /www/cards/$CARD | sed -e 's/\(.*createCardHeader[^"]*"\)\([^"]*\)\(".*\)/\2/')
   fi
+  if [ "$HIDDEN" != "0" -a "$HIDDEN" != "1" ]
+  then
+    HIDDEN=0
+  fi
   SEQ=${CARD%%_*}
   if [ -z "$CARDS" ]
   then
@@ -152,7 +156,7 @@ apply_suggested() {
       parental.lp) SEQ="021";;
       printersharing.lp) SEQ="020"; HIDE="$HIDE_EXTRA";;
       qos.lp) SEQ="018";;
-      relaysetup.lp) SEQ="015"; HIDE="HIDE_EXTRA";;
+      relaysetup.lp) SEQ="015"; HIDE="$HIDE_EXTRA";;
       system.lp) SEQ="014";;
       telephony.lp) SEQ="011";;
       tod.lp) SEQ="022";;
@@ -221,7 +225,7 @@ do
     I=$(( $I + 1 ))
     HIDDEN=$(echo "$CARD" | cut -d'|' -f1)
     TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
-    if [ $HIDDEN -eq 1 ]
+    if [ $HIDDEN = "1" ]
     then
       TITLE="($TITLE)"
     fi

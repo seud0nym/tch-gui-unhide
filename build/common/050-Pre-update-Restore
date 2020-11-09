@@ -19,7 +19,7 @@ do
     uci add_list web.$MODALRULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 2 ))
   fi
-  if [ -z "$HIDDEN" ]
+  if [ -z "$HIDDEN" -o \( "$HIDDEN" != "0" -a "$HIDDEN" != "1" \) ]
   then
     HIDDEN=0
   fi
@@ -29,6 +29,7 @@ do
   uci set web.${CARDRULE}.hide="$HIDDEN"
   SRV_nginx=$(( $SRV_nginx + 4 ))
 done
+uci commit web
 
 # Do the restore
 restore_www
