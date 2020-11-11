@@ -35,12 +35,3 @@ uci commit web
 restore_www
 echo [$SCRIPT]: Pre-update restore completed
 
-FON=$(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | wc -l)
-if [ $FON -eq 0 ]
-then
-  echo [$SCRIPT]: Telstra Air and Fon SSIDs not found - Removing card
-  rm /www/cards/010_fon.lp
-else
-  echo [$SCRIPT]: Telstra Air and Fon SSIDs FOUND - Leaving card installed
-fi
-

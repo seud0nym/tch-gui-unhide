@@ -1,18 +1,37 @@
 if [ -f /etc/init.d/cwmpd ]
 then
-  CWMP=enabled
+  echo [$SCRIPT]: CWMP found - Leaving in GUI
 else
-  CWMP=disabled
+  echo [$SCRIPT]: CWMP not found - Removing from GUI
+  rm /www/cards/090_cwmpconf.lp
+  rm /www/docroot/modals/cwmpconf-modal.lp
+  uci -q delete web.cwmpconfmodal
+  uci -q del_list web.ruleset_main.rules=cwmpconfmodal
+  uci -q delete web.card_cwmpconf
+fi
+
+if [ $(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | wc -l) -eq 0 ]
+then
+  echo [$SCRIPT]: Telstra Air and Fon SSIDs not found - Removing from GUI
+  rm /www/cards/010_fon.lp
+  rm /www/docroot/modals/fon-modal.lp
+  uci -q delete web.fon
+  uci -q delete web.fonmodal
+  uci -q del_list web.ruleset_main.rules=fon
+  uci -q del_list web.ruleset_main.rules=fonmodal
+  uci -q delete web.card_fon
+else
+  echo [$SCRIPT]: Telstra Air and Fon SSIDs FOUND - Leaving in GUI
 fi
 
 # Check all modals are enabled, except:
 #  - diagnostics-airiq-modal.lp (requires Flash player)
-#  - fon-modal.lp (Telstra Air)
 #  - mmpbx-sipdevice-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
 #  - mmpbx-statistics-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
 #  - speedservice-modal.lp
 #  - wireless-qrcode-modal.lp (fails with a nil password index error)
-for f in $(ls /www/docroot/modals | grep -E -v \(diagnostics-airiq-modal.lp\|fon-modal.lp\|mmpbx-sipdevice-modal.lp\|mmpbx-statistics-modal.lp\|speedservice-modal.lp\|wireless-qrcode-modal.lp\) )
+echo [$SCRIPT]: Checking modal visibility
+for f in $(ls /www/docroot/modals | grep -E -v \(diagnostics-airiq-modal.lp\|mmpbx-sipdevice-modal.lp\|mmpbx-statistics-modal.lp\|speedservice-modal.lp\|wireless-qrcode-modal.lp\) )
 do
   MODAL=$(basename $f)
   uci show web | grep -q "/modals/$MODAL"
@@ -23,14 +42,6 @@ do
   else
     CREATE_RULE=n
     RULE=$(uci show web | grep "/modals/$MODAL" | grep -m 1 -v card_ | cut -d. -f2)
-  fi
-  if [ "$RULE" = "cwmpconfmodal" -a "$CWMP" = "disabled" ]
-  then
-    echo [$SCRIPT]: CWMP is disabled so disabling $f
-    uci -q delete web.$RULE
-    uci -q set web.card_cwmpconf.hide='1'
-    SRV_nginx=$(( $SRV_nginx + 2 ))
-    continue
   fi
   if [ $CREATE_RULE = y ]
   then
