@@ -28,9 +28,10 @@ VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 MAC=$(uci -q get env.var.ssid_mac_postfix_r0)
 HOSTNAME=$(uci -q get system.@system[0].hostname)
 case "$(grep 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1)" in
-  $VARIANT)   TITLE="$VARIANT";;
-  $HOSTNAME)  TITLE="$HOSTNAME";;
-  *)          TITLE="$VARIANT-$MAC";;
+  $VARIANT) TITLE="$VARIANT";;
+  $HOSTNAME) TITLE="$HOSTNAME";;
+  $VARIANT-$MAC) TITLE="$VARIANT-$MAC";;
+  *) TITLE="";;
 esac
 
 if [ -f /usr/tch-gui-unhide.theme ]; then
@@ -71,17 +72,17 @@ fi
 
 FIX_DFLT_USR=n
 FIX_FW_UPGRD=n
-if [ "$(uci get dropbear.lan.enable)" = "1" -a "$(uci get dropbear.lan.PasswordAuth)" = "on" -a "$(uci get dropbear.lan.RootPasswordAuth)" = "on" -a "$(uci get dropbear.lan.RootLogin)" = "1" ]; then
+if [ "$(uci -q get dropbear.lan.enable)" = "1" -a "$(uci -q get dropbear.lan.PasswordAuth)" = "on" -a "$(uci -q get dropbear.lan.RootPasswordAuth)" = "on" -a "$(uci -q get dropbear.lan.RootLogin)" = "1" ]; then
   FIX_SSH=n
 else
   FIX_SSH=y
 fi
-if [ "$(uci get system.config.export_plaintext)" = "1" -a "$(uci get system.config.export_unsigned)" = "1" -a "$(uci get system.config.import_plaintext)" = "1" -a "$(uci get system.config.import_unsigned)" = "1" ]; then
+if [ "$(uci -q get system.config.export_plaintext)" = "1" -a "$(uci -q get system.config.export_unsigned)" = "1" -a "$(uci -q get system.config.import_plaintext)" = "1" -a "$(uci -q get system.config.import_unsigned)" = "1" ]; then
   FIX_CFG_PORT=n
 else
   FIX_CFG_PORT=y
 fi
-echo "$(uci get web.parentalblock.roles)" | grep -q "admin"
+echo "$(uci -q get web.parentalblock.roles)" | grep -q "admin"
 if [ $? -eq 0 ]
 then
   FIX_PARENT_BLK=n

@@ -1,9 +1,15 @@
-echo [$SCRIPT]: Change the title in browser tabs to $TITLE
-for f in /www/docroot/gateway.lp /www/lua/hni_helper.lua /www/snippets/header.lp
-do
-    sed -e "s,title>.*</title,title>$TITLE</title," -i $f
-done
-sed -e "s,<title>');  ngx.print( T\"Change password\" ); ngx.print('</title>,<title>$TITLE - Change Password</title>," -i /www/docroot/password.lp
+if [ -z "$TITLE" ]
+then
+  echo [$SCRIPT]: Leaving browser tabs title unchanged
+else
+  echo [$SCRIPT]: Change the title in browser tabs to $TITLE
+  for f in /www/docroot/gateway.lp /www/lua/hni_helper.lua /www/snippets/header.lp
+  do
+      sed -e "s,title>.*</title,title>$TITLE</title," -i $f
+  done
+  sed -e "s,<title>');  ngx.print( T\"Change password\" ); ngx.print('</title>,<title>$TITLE - Change Password</title>," -i /www/docroot/password.lp
+fi
 
+echo [$SCRIPT]: Change the Gateway card title to $VARIANT
 sed -e "s/Gateway/$VARIANT/g" -i /www/cards/001_gateway.lp
 
