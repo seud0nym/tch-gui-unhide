@@ -1,6 +1,6 @@
 echo [$SCRIPT]: Ensuring card sequence and visibility is up to date
 ALLCARDRULES="$(uci show web | grep =card)"
-for CARDFILE in $(find /www/cards/ -maxdepth 1 -type f ! -name '*fon*' | sort)
+for CARDFILE in $(find /www/cards/ -maxdepth 1 -type f | sort)
 do
   CARD="${CARDFILE#*_}"
   CARDRULE="card_$(basename $CARD .lp)"
@@ -33,10 +33,14 @@ uci commit web
 
 # Do the restore
 restore_www
+echo [$SCRIPT]: Pre-update restore completed
 
-# Always remove Telstra AIR card
-if [ -f /www/cards/010_fon.lp ]
+FON=$(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | wc -l)
+if [ $FON -eq 0 ]
 then
+  echo [$SCRIPT]: Telstra Air and Fon SSIDs not found - Removing card
   rm /www/cards/010_fon.lp
+else
+  echo [$SCRIPT]: Telstra Air and Fon SSIDs FOUND - Leaving card installed
 fi
 
