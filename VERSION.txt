@@ -1,3 +1,9 @@
+2020.11.11
+==========
+* tch-gui-unhide: Allow specific text for browser tabs
+* tch-gui-unhide: Do not remove Telstra Air card if SSIDs exist
+* tch-gui-unhide: Collapse Telstra Air SSIDs to single line on card if they exist
+
 2020.11.09
 ==========
 * tch-gui-unhide: Fixed bug that caused the version number to be repeated multiple times in Copyright footer when run with -T switch

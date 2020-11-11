@@ -168,29 +168,29 @@ It is recommended that you apply whatever hardening (such as the [`de-telstra`](
 The script accepts the following options:
 - -t l|n|t
     - Set a light (*-tl*), night (*-tn*), or default Telstra (*-tt*) theme
-    - The default is the current setting, or Telstra if no theme has been applied.
+    - The default is the current setting, or Telstra if no theme has been applied
 - -c b|o|g|p|r|m
     - Set the theme highlight colour: *-cb*=blue *-co*=orange *-cg*=green *-cp*=purple *-cr*=red *-cm*=monochrome
-    - The default is the current setting, or *-cm* for the light theme or *-cb* for the night theme.
+    - The default is the current setting, or *-cm* for the light theme or *-cb* for the night theme
 - -i y|n
     - Show (*y*) or hide (*n*) the card icons.
-    - The default is the current setting, or *-in* for the light theme and *-iy* for the night theme.
-- -h d|s|n
-    - Set the browser tabs title to VARIANT-MAC_ADDRESS (s), VARIANT (d) or HOSTNAME (n) 
-    - Default is current setting or VARIANT-MAC_ADDRESS if not previously applied
+    - The default is the current setting, or *-in* for the light theme and *-iy* for the night theme
+- -h d|s|n|"text"
+    - Set the browser tabs title to VARIANT (d), VARIANT-MAC_ADDRESS (s), HOSTNAME (n) or ("text") the specified "text".
+    - Default is the current setting
 - -d y|n
     - Enable (y) or Disable (n) the default user (i.e. no login required to access the Web interface)
-    - Default is the current setting
+    - The default is the current setting
 - -f y|n
     - Enable (y) or Disable (n) Firmware upgrade in the web GUI
-    - Default is the current setting
+    - The default is the current setting
 - -l y|n
     - Keep the Telstra landing page (y) or de-brand the landing page (n)
-    - Default is current setting, or (n) if no theme has been applied
+    - The default is current setting, or (n) if no theme has been applied
 - -T
     - Apply the theme settings *ONLY*. All other processing is bypassed.
 - -y
-    - Allows you to skip the initial prompt to confirm execution, and automatically responds with **y**.
+    - Allows you to skip the initial prompt to confirm execution, and automatically responds with **y**
 - -r
     - Allows you to revert the *GUI* changes. Configuration changes are **NOT** undone!
 - -u
