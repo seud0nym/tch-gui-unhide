@@ -122,7 +122,6 @@ PLUG
   sed \
     -e 's/dlnad/minidlna/' \
     -e 's/"DLNA/"MiniDLNA/' \
-    -e 's/getValidateCheckboxSwitch()/validateBoolean/' \
     -e '/^local gVCS/a local gVIES = post_helper.getValidateInEnumSelect' \
     -e '/^local dlna_available/i \local root_containers = {' \
     -e '/^local dlna_available/i \    {".", T"Use standard container"},' \
@@ -175,15 +174,9 @@ PLUG
     -e '/dlna_friendly_name = valid_empty_string,/a\    dlna_inotify = gVCS,' \
     -e '/dlna_friendly_name = valid_empty_string,/a\    dlna_root_container=gVIES(root_containers),' \
     -e '/dlna_friendly_name = valid_empty_string,/a\    dlna_interface=gVIES(intfs),' \
-    -e 's/\(local help_link = \)\(.*\)/\1nil/' \
-    -e '/T"General status"/d' \
     -e 's/local advancedhide/local info_attr/' \
     -e '/class = "advanced show"/d' \
     -e 's/span = { class = "span4" }/alert = { class = "alert-info" }/' \
-    -e 's/createCheckboxSwitch/createSwitch/' \
-    -e '/"File Server Enabled"/i\                tinsert(html, "<fieldset><legend>" .. T"File Server Status" .. "<\/legend>")' \
-    -e '/"File Server descript/a\                tinsert(html, "<\/fieldset>")' \
-    -e '/DLNA Enabled"/i\                tinsert(html, "<fieldset><legend>" .. T"DLNA Server Status" .. "<\/legend>")' \
     -e '/DLNA name: ",/a\                tinsert(html, ui_helper.createInputSelect(T"Interface:", "dlna_interface", intfs, content["dlna_interface"], advanced))' \
     -e '/DLNA name: ",/a\                tinsert(html, ui_helper.createInputSelect(T"Root Container:", "dlna_root_container", root_containers, content["dlna_root_container"], advanced))' \
     -e '/DLNA name: ",/a\                tinsert(html, format("<label class=\\"control-label\\">%s</label><div class=\\"controls\\">", T"Media Directories: "))' \
@@ -193,7 +186,7 @@ PLUG
     -e '/DLNA name: ",/a\                tinsert(html, "<\/div>")' \
     -e '/DLNA name: ",/a\                tinsert(html, "<\/fieldset>")' \
     -e '/^            tinsert(html, "<\/fieldset>")/d' \
-    /rom/www/docroot/modals/contentsharing-modal.lp > /www/docroot/modals/contentsharing-modal.lp
+    -i /www/docroot/modals/contentsharing-modal.lp
 else
   echo " SKIPPED because minidlna not installed"
   if [ -f /usr/share/transformer/commitapply/uci_minidlna.ca ]

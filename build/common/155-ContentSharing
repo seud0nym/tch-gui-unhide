@@ -1,0 +1,11 @@
+echo [$SCRIPT]: Make Content Sharing Screen nicer
+sed \
+  -e 's/getValidateCheckboxSwitch()/validateBoolean/' \
+  -e 's/<form class/<form id="content-sharing-modal" class/' \
+  -e 's/createCheckboxSwitch/createSwitch/' \
+  -e '/T"General status"/d' \
+  -e '/"File Server Enabled"/i\                tinsert(html, "<fieldset><legend>" .. T"File Server Status" .. "<\/legend>")' \
+  -e '/"File Server descript/a\                tinsert(html, "<\/fieldset>")' \
+  -e '/DLNA Enabled"/i\                tinsert(html, "<fieldset><legend>" .. T"DLNA Server Status" .. "<\/legend>")' \
+  -i /www/docroot/modals/contentsharing-modal.lp
+
