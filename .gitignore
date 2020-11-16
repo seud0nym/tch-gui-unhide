@@ -2,3 +2,4 @@ authorized_keys
 *.b64
 *.tar.gz
 build/deploy
+wifi-booster/wl.txt

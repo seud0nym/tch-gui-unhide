@@ -1,3 +1,9 @@
+2020.11.16
+==========
+* tch-gui-unhide: Moved prettifying of content sharing screen from tch-gui-unhide-xtra.minidlna
+* tch-gui-unhide-xtra.minidlna: Moved prettifying of content sharing screen to tch-gui-unhide
+* tch-gui-unhide-xtra.samba36-server: Initial release to add SMBv2 support
+
 2020.11.11
 ==========
 * tch-gui-unhide: Allow specific text for browser tabs
