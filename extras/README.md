@@ -3,6 +3,8 @@ This is where extra functionality scripts can be found. These are not incorporat
 
 ## tch-gui-unhide-xtra.minidlna
 Replaces the stock DLNA server management in the GUI so that it supports OpenWRT minidlna.
+#### Download
+https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.minidlna
 #### Prerequisites 
 Install minidlna using the opkg command: `opkg install minidlna`
 #### Changes External to the GUI
@@ -12,6 +14,8 @@ Creates the the following transformer UCI mappings and commit/apply scripts to s
 
 ## tch-gui-unhide-xtra.samba36-server
 Correctly configures OpenWRT SAMBA 3.6 and adds ability to change the password via the GUI.
+#### Download
+https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.samba36-server
 #### Prerequisites
 Install SAMBA v3.6 using the opkg command: `opkg --force-overwrite install samba36-server`
 #### Changes External to the GUI
@@ -38,4 +42,4 @@ After you have the script on your device, you may need to make it executable, wh
 chmod +x <scriptname>
 ```
 
-These scripts will be automatically run by `tch-gui-unhide` if they exist in the directory when it is executed.
+These scripts will be automatically run by `tch-gui-unhide` if they exist in the directory when it is executed. They are **NOT** intended to be executed outside of `tch-gui-unhide`.
