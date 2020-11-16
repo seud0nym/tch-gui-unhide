@@ -1,5 +1,5 @@
 restore_www() {
-  for d in www/cards www/docroot www/lua www/snippets usr/share/transformer
+  for d in www/cards www/docroot www/lua www/snippets usr/share/transformer/commitapply usr/share/transformer/mappings/rpc usr/share/transformer/mappings/uci
   do
     echo [$SCRIPT]: Restoring directory /$d
     for s in $(find /rom/$d -type f | grep -v -E \(/rom/www/docroot/help\))
