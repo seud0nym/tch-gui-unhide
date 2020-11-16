@@ -3,12 +3,23 @@ This is where extra functionality scripts can be found. These are not incorporat
 
 ## tch-gui-unhide-xtra.minidlna
 Replaces the stock DLNA server management in the GUI so that it supports OpenWRT minidlna.
-#### Requires
+#### Prerequisites 
 Install minidlna using the opkg command: `opkg install minidlna`
 #### Changes External to the GUI
 Creates the the following transformer UCI mappings and commit/apply scripts to support the GUI changes:
 - /usr/share/transformer/commitapply/uci_minidlna.ca
 - /usr/share/transformer/mappings/uci/minidlna.map
+
+## tch-gui-unhide-xtra.samba36-server
+Correctly configures OpenWRT SAMBA 3.6 and adds ability to change the password via the GUI.
+#### Prerequisites
+Install SAMBA v3.6 using the opkg command: `opkg --force-overwrite install samba36-server`
+#### Changes External to the GUI
+- Configures SAMBA to use SMBv2 by default
+- Creates the samba user and group, with NO password (change the password in the GUII or with the `smbpasswd` command)
+- Adds the ability to set share users via UCI and transformer
+- Adds /usr/share/transformer/mappings/rpc/gui.samba.map to allow setting of password via the GUI
+- Configures the default USB share to require the samba user
 
 # How to download and execute these scripts
 Download the scripts that you wish to execute into the same directory as `tch-gui-unhide`.
