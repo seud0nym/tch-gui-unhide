@@ -46,8 +46,8 @@ sed \
   -e 's/T"Enable"/T"Enabled"/' \
   -e 's/, readonly="true"/ /' \
   -e 's/unique/readonly/' \
+  -e 's/string.upper/string.lower/' \
   -e '/attr = { input = { class="span1"/i \    readonly = true,' \
   -e '/^local hlp_attributes/i \table.insert(hlp_columns, table.remove(hlp_columns, 1))' \
-  -e '/string.upper/d' \
   -i /www/docroot/modals/nat-alg-helper-modal.lp
 
