@@ -1,5 +1,6 @@
 local lfs = require("lfs")
 
+local initModified = 0
 local initTable = {}
 
 local function getFromInit(file,type)
@@ -7,15 +8,6 @@ local function getFromInit(file,type)
   local res = comm:read()
   comm:close()
   return res and res:match("[0-9]+") or ""
-end
-
-for file in lfs.dir("/etc/init.d/") do
-  if not file:match("^%..*") then
-    initTable[file] = {
-      start = getFromInit(file,"START"),
-      stop = getFromInit(file,"STOP"),
-    }
-  end
 end
 
 local function getState(file)
@@ -31,6 +23,31 @@ local function initHelperFunction(name,type)
   os.execute("logger rpc.gui.init: "..command)
   os.execute(command.."|logger")
 end
+
+local function populate()
+  local res = {}
+  local modified = lfs.attributes("/etc/init.d", 'modification')
+
+  if initModified ~= modified then
+    initModified = modified
+    initTable = {}
+    for file in lfs.dir("/etc/init.d/") do
+      if not file:match("^%..*") then
+        initTable[file] = {
+          start = getFromInit(file,"START"),
+          stop = getFromInit(file,"STOP"),
+        }
+      end
+    end
+  end
+  
+  for file in pairs(initTable) do
+    res[#res+1] = file
+  end
+  return res
+end
+
+populate()
 
 local GUI_INIT_ = {
   objectType = {
@@ -132,11 +149,7 @@ local GUI_INIT_i_ = {
 }
 
 GUI_INIT_i_.entries = function(mapping)
-  local res = {}
-  for file in pairs(initTable) do
-    res[#res+1] = file
-  end
-  return res
+  return populate()
 end
 
 GUI_INIT_i_.get = {
