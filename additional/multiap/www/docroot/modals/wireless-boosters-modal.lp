@@ -15,15 +15,16 @@ local mapParams = {
   agent_enabled = "uci.multiap.agent.enabled",
   controller_enabled = "uci.multiap.controller.enabled",
   state5g = "uci.wireless.wifi-device.@radio_5G.state",
-  ap6iface = "uci.wireless.wifi-ap.@ap6.iface",
   ap6state = "uci.wireless.wifi-ap.@ap6.state",
   wl1_2ssid = "uci.wireless.wifi-iface.@wl1_2.ssid",
+  wl1_2state = "uci.wireless.wifi-iface.@wl1_2.state",
 }
 
 local mapValid = {
   agent_enabled = post_helper.validateBoolean,
   controller_enabled = post_helper.validateBoolean,
   ap6state = post_helper.validateBoolean,
+  wl1_2state = post_helper.validateBoolean,
 }
 
 local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
@@ -42,11 +43,15 @@ local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
       html[#html+1] = ui_helper.createSwitch(T"Agent", "agent_enabled", content["agent_enabled"], attributes)
       html[#html+1] = "</fieldset>"
       html[#html+1] = "<fieldset><legend>" .. T"Wireless Backhaul" .. "</legend>"
-      html[#html+1] = ui_helper.createSwitch(T"SSID " .. content["wl1_2ssid"], "ap6state", content["ap6state"], attributes)
+      html[#html+1] = ui_helper.createSwitch(T"SSID " .. content["wl1_2ssid"], "wl1_2state", content["wl1_2state"], attributes)
+      html[#html+1] = ui_helper.createSimpleInputHidden("ap6state", content["ap6state"])
       html[#html+1] = "</fieldset>"
       ngx.print(html)
       ngx.print('\
   </form>\
 </div>\
 ');  ngx.print(ui_helper.createFooter())   ngx.print('\
+<script>\
+$("#wl1_2state").change(function() { $("input[name=ap6state]").val(this.value); });\
+</script>\
 '); 
