@@ -33,11 +33,11 @@ if admin and assistant then
     '</span>',
     '<span class="simple-desc">',
       '<i class="icon-calendar status-icon">&nbsp;</i>',
-      format(N("<strong>%s cron rule</strong> active","<strong>%s cron rules</strong> active"), counts.cron,counts.cron),
+      format(N("<strong>%s scheduled task</strong> active","<strong>%s scheduled tasks</strong> active"), counts.cron,counts.cron),
     '</span>',
     '<span class="simple-desc">',
       '<i class="icon-play-sign status-icon">&nbsp;</i>',
-      format(N("<strong>%s init script</strong> active","<strong>%s init scripts</strong> active"), counts.init,counts.init),
+      format(N("<strong>%s init script</strong> found","<strong>%s init scripts</strong> found"), counts.init,counts.init),
     '</span>',
   }
   if assistant:enabled() then

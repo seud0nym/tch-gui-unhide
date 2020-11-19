@@ -8,7 +8,7 @@ local ipairs, string = ipairs, string
 local items = {
   {"theme-modal.lp", T"Theme"},
   {"system-proc-modal.lp", T"Process Viewer"},
-  {"system-cron-modal.lp", T"Cron Viewer"},
+  {"system-cron-modal.lp", T"Scheduled Tasks"},
   {"system-init-modal.lp", T"Init Management"},
   {"usermgr-modal.lp", T"User Manager"},
   {"assistance-modal.lp", T"Remote Assistance"},

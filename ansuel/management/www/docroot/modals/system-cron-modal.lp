@@ -74,11 +74,10 @@ local cron_columns = {
   },
 }
 
--- TODO: Failed to make edits/adds/deletes work reliably, so turn off until fixed
 local cron_options = {
-  canEdit = false,
-  canAdd = false,
-  canDelete = false,
+  canEdit = true,
+  canAdd = true,
+  canDelete = true,
   tableid = "crontable",
   basepath = "rpc.gui.cron.entries.",
 }
@@ -107,7 +106,7 @@ cron_options.onAdd = function(index, content)
     proxy.set(path,value)
   end
 
-  proxy.set("rpc.gui.cron.editCronRuleNumber",index)
+  proxy.set("rpc.gui.cron.editCronRuleNumber",tostring(index))
 end
 
 cron_options.onModify = function(index, content)
@@ -130,8 +129,14 @@ local cron_data, cron_helpmsg = post_helper.handleTableQuery(cron_columns, cron_
   <form class="form-horizontal" method="post" action="modals/system-cron-modal.lp">\
   </form>\
   <fieldset id="system-cron-tab">\
-    <legend>');  ngx.print( T"Cron Tab Viewer" ); ngx.print('</legend>')
-    ngx.print(ui_helper.createTable(cron_columns, cron_data, cron_options, nil, cron_helpmsg))
+    <legend>');  ngx.print( T"Scheduled Tasks" ); ngx.print('</legend>')
+    local alert_warn = {
+      alert = {
+        class = "alert alert-warn"
+      },
+    }
+    ngx.print(ui_helper.createAlertBlock(T"WARNING: Deleting a scheduled task will happen IMMEDIATELY when you click the button!",alert_warn))
+      ngx.print(ui_helper.createTable(cron_columns, cron_data, cron_options, nil, cron_helpmsg))
     ngx.print('\
   </fieldset>\
 </div>\

@@ -17,7 +17,6 @@ local function checkCron()
   end
 
   local f = io.open(cronfile,"r")
-
   for line in f:lines() do
     if line ~= "" then
       local minute, hour, day, month, week, command = line:match("([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) (.*)")
@@ -31,13 +30,12 @@ local function checkCron()
       }
     end
   end
-
   f:close()
 
-  cron_cache.reload = nil
-  cron_cache.refresh = nil
   cron_cache.tbl = res
   cron_cache.time_check = time
+  cron_cache.refresh = nil
+  cron_cache.reload = nil
 
   return res
 end
@@ -51,24 +49,8 @@ local function writeLine(fd,tbl)
   fd:write(tbl.command.."\n")
 end
 
-local function removeCron(line)
-  checkCron()
-
-  cron_cache.tbl[line] = nil
-
-  local f = io.open(cronfile,"w+")
-
-  for line in pairs(cron_cache.tbl) do
-    f:write(line.."\n")
-  end
-
-  cron_cache.reload = true
-
-  f:close()
-end
-
 local function editCron(param, value, key)
-  local cronTbl = checkCron()
+  checkCron()
 
   cron_cache.tbl[key][param] = value
   if not cron_cache.refresh then
@@ -76,29 +58,6 @@ local function editCron(param, value, key)
   end
 
   return true
-end
-
-local function updateLineToFile()
-  local cronTbl = checkCron()
-  local line = cron_cache.refresh
-
-  if not cronTbl[line] then
-    return nil, "Line not present"
-  end
-
-  local f = io.open(cronfile,"w+")
-
-  for l in pairs(cronTbl) do
-    if l == line then
-      writeLine(f,cronTbl[line])
-    else
-      f:write(l.."\n")
-    end
-  end
-
-  f:close()
-
-  cron_cache.reload = true
 end
 
 local GUI_CRON_ = {
@@ -122,7 +81,27 @@ GUI_CRON_.get = {
 
 GUI_CRON_.set = {
   editCronRuleNumber = function(mapping,param,value,key)
-    return updateLineToFile()
+    local cronTbl = checkCron()
+    local line = cron_cache.refresh
+  
+    if not cronTbl[line] then
+      return nil, "Line not present"
+    end
+  
+    local f = io.open(cronfile,"w+")
+    for l in pairs(cronTbl) do
+      if l == line then
+        writeLine(f,cronTbl[line])
+      else
+        f:write(l.."\n")
+      end
+    end
+    f:close()
+    os.execute("/etc/init.d/cron restart")
+  
+    cron_cache.reload = true
+  
+    return true
   end
 }
 
@@ -267,8 +246,20 @@ GUI_CRON_i_.add = function(mapping)
   return random
 end
 
-GUI_CRON_i_.delete = function(mapping, key)
-  removeCron(key)
+GUI_CRON_i_.delete = function(mapping, line)
+  checkCron()
+
+  cron_cache.tbl[line] = nil
+
+  local f = io.open(cronfile,"w+")
+  for line in pairs(cron_cache.tbl) do
+    f:write(line.."\n")
+  end
+  f:close()
+  os.execute("/etc/init.d/cron restart")
+
+  cron_cache.reload = true
+
   return true
 end
 
