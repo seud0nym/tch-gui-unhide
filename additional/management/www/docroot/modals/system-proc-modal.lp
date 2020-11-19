@@ -76,7 +76,10 @@ local proc_data, proc_helpmsg = post_helper.handleTableQuery(proc_columns, proc_
   lp.include("tabs-management.lp")
   ngx.print('\
 ');  
-  ngx.print('\
+-- dummy form so that refresh button knows which page to reload, keep it
+ngx.print('\
+<form class="form-horizontal" method="post" action="modals/system-proc-modal.lp">\
+</form>\
   <fieldset id="system-proc-tab">\
     <legend>');  ngx.print( T"Processes" ); ngx.print('</legend>')
     ngx.print(ui_helper.createTable(proc_columns, proc_data, proc_options, nil, proc_helpmsg))
