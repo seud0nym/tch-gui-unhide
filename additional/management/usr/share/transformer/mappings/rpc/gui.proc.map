@@ -1,26 +1,5 @@
 local procTable = {}
 local cmd = "/usr/bin/top -b -n 1"
-local top = io.popen(cmd,'r')
-local k = 0
-for proc in top:lines() do
-  if not proc:find(cmd,1,true) then
-    local pid, ppid, user, stat, vsz, vszpct, cpu = proc:match("([0-9]+) +([0-9]+) +([^ ]+) +(....) +([0-9]+) +([0-9]+)%% +([0-9]+)%%")
-    if tonumber(pid) then
-      k = k + 1
-      procTable[string.format("%03d",k)] = {
-        process = pid,
-        parent = ppid,
-        user = user,
-        state = stat,
-        virtual_memory_size = vsz,
-        virtual_memory_percent = vszpct,
-        cpu = cpu,
-        command = proc:sub(43),
-      }
-    end
-  end
-end
-top:close()
 
 local GUI_PROC_ = {
   objectType = {
@@ -94,6 +73,31 @@ local GUI_PROC_i_ = {
 }
 
 GUI_PROC_i_.entries = function(mapping)
+  local k = #procTable
+  for i=0, k do procTable[i]=nil end
+  k = 0
+
+  local top = io.popen(cmd,'r')
+  for proc in top:lines() do
+    if not proc:find(cmd,1,true) then
+      local pid, ppid, user, stat, vsz, vszpct, cpu = proc:match("([0-9]+) +([0-9]+) +([^ ]+) +(....) +([0-9]+) +([0-9]+)%% +([0-9]+)%%")
+      if tonumber(pid) then
+        k = k + 1
+        procTable[string.format("%03d",k)] = {
+          process = pid,
+          parent = ppid,
+          user = user,
+          state = stat,
+          virtual_memory_size = vsz,
+          virtual_memory_percent = vszpct,
+          cpu = cpu,
+          command = proc:sub(43),
+        }
+      end
+    end
+  end
+  top:close()
+
   local res = {}
   for proc in pairs(procTable) do
     res[#res+1] = proc
