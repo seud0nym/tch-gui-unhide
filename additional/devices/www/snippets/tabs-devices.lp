@@ -20,16 +20,17 @@ local html = {}
 
 local uri = ngx.var.uri
 if ngx.var.args and string.len(ngx.var.args) > 0 then
-    uri = uri .. "?" .. ngx.var.args
+  uri = uri .. "?" .. ngx.var.args
 end
 
 for _,v in ipairs(items) do
-    local active = ""
-    if uri == ("/modals/" .. v[1]) then
-        active = "active"
-    end
+  local active = ""
+  local modal = "/modals/" .. v[1]
+  if string.sub(uri,1,string.len(modal)) == modal then
+    active = "active"
+  end
 
-    html[#html+1] = string.format('<li class="%s"><a href="#" data-remote="/modals/%s">%s</a></li>', active, v[1], v[2])
+  html[#html+1] = string.format('<li class="%s"><a href="#" data-remote="/modals/%s">%s</a></li>', active, v[1], v[2])
 end
 ngx.print(html)
 
