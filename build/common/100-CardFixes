@@ -63,26 +63,47 @@ echo [$SCRIPT]: Add DHCPv6 Server status and prefix to LAN card
 sed \
   -e '/local dhcpState$/a local dhcp6State_text = ""' \
   -e '/local dhcpState$/a local dhcp6State' \
+  -e '/local dhcpState$/a local slaacState_text = ""' \
+  -e '/local dhcpState$/a local slaacState' \
   -e '/local dhcpState$/a local ipv6State_text' \
+  -e '/@lan.dhcpv4/a \    ipv6State = "uci.network.interface.@lan.ipv6",' \
   -e '/@lan.dhcpv4/a \    dhcpv6State = "uci.dhcp.dhcp.@lan.dhcpv6",' \
+  -e '/@lan.dhcpv4/a \    slaacState = "uci.dhcp.dhcp.@lan.ra",' \
   -e '/@lan.netmask/a \    ipv6prefix = "rpc.network.interface.@wan6.ip6prefix",' \
   -e 's/localdevIP = "uci/localdevIP = "rpc/' \
   -e 's/dhcpState/dhcp4State/g' \
   -e 's/DHCP enabled/DHCPv4 enabled/' \
   -e 's/DHCP disabled/DHCPv4 disabled/' \
-  -e '/getExactContent/a if mapParams["dhcpv6State"] == "" or mapParams["dhcpv6State"] == "server" then' \
+  -e '/getExactContent/a \if mapParams["ipv6State"] == "1" then' \
+  -e '/getExactContent/a \  if mapParams["dhcpv6State"] == "" or mapParams["dhcpv6State"] == "server" then' \
   -e '/getExactContent/a \    dhcp6State_text = T"DHCPv6 enabled"' \
   -e '/getExactContent/a \    dhcp6State = "1"' \
-  -e '/getExactContent/a else' \
+  -e '/getExactContent/a \  else' \
   -e '/getExactContent/a \    dhcp6State_text = T"DHCPv6 disabled"' \
   -e '/getExactContent/a \    dhcp6State = "0"' \
-  -e '/getExactContent/a end' \
-  -e '/getExactContent/a if mapParams["ipv6prefix"] == "" then' \
+  -e '/getExactContent/a \  end' \
+  -e '/getExactContent/a \  if mapParams["slaacState"] == "" or mapParams["slaacState"] == "server" then' \
+  -e '/getExactContent/a \    slaacState_text = T"SLAAC + RA enabled"' \
+  -e '/getExactContent/a \    slaacState = "1"' \
+  -e '/getExactContent/a \  else' \
+  -e '/getExactContent/a \    slaacState_text = T"SLAAC + RA disabled"' \
+  -e '/getExactContent/a \    slaacState = "0"' \
+  -e '/getExactContent/a \  end' \
+  -e '/getExactContent/a \else' \
+  -e '/getExactContent/a \    dhcp6State_text = T"IPv6 disabled"' \
+  -e '/getExactContent/a \    dhcp6State = "0"' \
+  -e '/getExactContent/a \end' \
+  -e '/getExactContent/a \if mapParams["ipv6prefix"] == "" then' \
   -e '/getExactContent/a \    ipv6State_text = T""' \
-  -e '/getExactContent/a else' \
+  -e '/getExactContent/a \else' \
   -e '/getExactContent/a \    ipv6State_text = T"Prefix is "' \
-  -e '/getExactContent/a end' \
-  -e '/createSimpleLight/a \            ui_helper.createSimpleLight(dhcp6State, dhcp6State_text),' \
+  -e '/getExactContent/a \end' \
+  -e '/createSimpleLight/a \            ui_helper.createSimpleLight(dhcp6State, dhcp6State_text)' \
+  -e '/createSimpleLight/a \        )' \
+  -e '/createSimpleLight/a \        if mapParams["ipv6State"] == "1" then' \
+  -e '/createSimpleLight/a \            ngx.print(ui_helper.createSimpleLight(slaacState, slaacState_text))' \
+  -e '/createSimpleLight/a \        end' \
+  -e '/createSimpleLight/a \        ngx.print(' \
   -e 's/and netmask/<br>Subnet Mask/' \
   -e "/<\/p>/i \            '<br>'," \
   -e "/<\/p>/i \            format(T'%s <nobr><strong>%s</strong></nobr>', ipv6State_text, mapParams[\"ipv6prefix\"])," \
