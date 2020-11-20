@@ -15,7 +15,7 @@ if admin and assistant then
   local content_helper = require("web.content_helper")
 
   local counts = {
-    cron = "rpc.gui.cron.CronNumberOfEntries",
+    cron = "rpc.gui.cron.active",
     init = "rpc.gui.init.InitNumberOfEntries",
     proc = "rpc.gui.proc.ProcNumberOfEntries",
   }

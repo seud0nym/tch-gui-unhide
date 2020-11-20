@@ -22,6 +22,7 @@ local function validateCronTimes(value, object, key)
 end
 
 local cron_valid = {
+  enabled = post_helper.validateBoolean,
   minute = validateCronTimes,
   hour = validateCronTimes,
   day = validateCronTimes,
@@ -72,6 +73,14 @@ local cron_columns = {
     param = "command",
     type = "text",
   },
+  { --[7]
+    header = T"Enabled",
+    name = "enabled",
+    param = "enabled",
+    type = "switch",
+    default = "1",
+    attr = { switch = { ["data-placement"] = "left" }},
+  },
 }
 
 local cron_options = {
@@ -91,8 +100,8 @@ cron_options.onAdd = function(index, content)
     return nil
   end
 
-
   local tbl = {
+    enabled = content.enabled or "1",
     minute = content.minute or "*",
     hour = content.hour or "*",
     day = content.day or "*",
@@ -135,10 +144,16 @@ local cron_data, cron_helpmsg = post_helper.handleTableQuery(cron_columns, cron_
         class = "alert alert-warn"
       },
     }
-    ngx.print(ui_helper.createAlertBlock(T"WARNING: Deleting a scheduled task will happen IMMEDIATELY when you click the button!",alert_warn))
-      ngx.print(ui_helper.createTable(cron_columns, cron_data, cron_options, nil, cron_helpmsg))
+    ngx.print(ui_helper.createAlertBlock(T"WARNING: When you click the <i class='icon-remove-sign icon-large'/> button, the scheduled task will be deleted IMMEDIATELY!",alert_warn))
+    ngx.print(ui_helper.createTable(cron_columns, cron_data, cron_options, nil, cron_helpmsg))
     ngx.print('\
   </fieldset>\
 </div>\
 ');  ngx.print(ui_helper.createFooter() ); ngx.print('\
+<script>\
+var thermal = $("#crontable td:contains(/usr/bin/thermalProtection)").siblings(":last"); \
+thermal.children(".btn-table-edit").hide(); \
+thermal.children(".btn-table-delete").hide(); \
+$("#crontable td:contains(/sbin/trafficmon.lua)").siblings(":last").children(".btn-table-delete").hide(); \
+</script>\
 '); 

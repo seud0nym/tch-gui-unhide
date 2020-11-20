@@ -1,6 +1,7 @@
 local cronfile = "/etc/crontabs/root"
 
 local cron_cache = {
+  active, -- count of enabled tasks
   tbl,
   time_check, -- time tbl was refreshed
   refresh, -- line to refresh in the file
@@ -8,6 +9,7 @@ local cron_cache = {
 }
 
 local function checkCron()
+  local active = 0
   local res = {}
   local time = os.time()
 
@@ -19,8 +21,15 @@ local function checkCron()
   local f = io.open(cronfile,"r")
   for line in f:lines() do
     if line ~= "" then
-      local minute, hour, day, month, week, command = line:match("([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) (.*)")
+      local enabled, minute, hour, day, month, week, command = line:match("([# ]*)([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) (.*)")
+      if enabled:gsub("%s","") == "#" then
+        enabled = "0"
+      else
+        active = active + 1
+        enabled = "1"
+      end
       res[line] = {
+        enabled = enabled,
         minute = minute,
         hour = hour,
         day = day,
@@ -32,6 +41,7 @@ local function checkCron()
   end
   f:close()
 
+  cron_cache.active = tostring(active)
   cron_cache.tbl = res
   cron_cache.time_check = time
   cron_cache.refresh = nil
@@ -41,6 +51,9 @@ local function checkCron()
 end
 
 local function writeLine(fd,tbl)
+  if (tbl.enabled == "0") then
+    fd:write("#")
+  end
   fd:write(tbl.minute.." ")
   fd:write(tbl.hour.." ")
   fd:write(tbl.day.." ")
@@ -67,16 +80,24 @@ local GUI_CRON_ = {
     minEntries = 1,
     maxEntries = 1,
     parameters = {
+      active = {
+        access = "readOnly",
+        type = "int"
+      },
       editCronRuleNumber = {
         access = "readWrite",
         type = "string"
-      }
+      },
     }
   }
 }
 
 GUI_CRON_.get = {
-  editCronRuleNumber = ""
+  editCronRuleNumber = "",
+  active = function() 
+    checkCron()
+    return cron_cache.active
+  end
 }
 
 GUI_CRON_.set = {
@@ -138,6 +159,10 @@ local GUI_CRON_i_ = {
       week = {
         access = "readWrite",
         type = "string",
+      },
+      enabled = {
+        access = "readWrite",
+        type = "boolean",
       }
     }
   }
@@ -176,6 +201,10 @@ GUI_CRON_i_.get = {
     local cronTbl = checkCron()
     return cronTbl[key].week or ""
   end,
+  enabled = function(mapping, param, key)
+    local cronTbl = checkCron()
+    return cronTbl[key].enabled or "1"
+  end,
 }
 
 GUI_CRON_i_.set = {
@@ -212,6 +241,9 @@ GUI_CRON_i_.set = {
   command = function(mapping,param,value,key)
     return editCron(param,value,key)
   end,
+  enabled = function(mapping,param,value,key)
+    return editCron(param,value,key)
+  end,
 }
 
 GUI_CRON_i_.add = function(mapping)
@@ -229,6 +261,7 @@ GUI_CRON_i_.add = function(mapping)
   local random = getRandomKey()
 
   local tbl = {
+    enabled = "0",
     minute = "*",
     hour = "*",
     day = "*",
