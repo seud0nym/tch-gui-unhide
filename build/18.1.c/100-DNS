@@ -26,13 +26,24 @@ then
   done
 fi
 
-echo [$SCRIPT]: Added switch to enable/disable DHCPv6 Server 
+echo [$SCRIPT]: Added switch to enable/disable DHCPv6 Server and SLAAC
 sed \
  -e '/"\.dhcpv4"/a \    dhcpv6State = "uci.dhcp.dhcp.@" .. cur_dhcp_intf .. ".dhcpv6",' \
+ -e '/"\.dhcpv4"/a \    slaacState = "uci.dhcp.dhcp.@" .. cur_dhcp_intf .. ".ra",' \
  -e 's/dhcpv4Stateselect/dhcpStateselect/' \
  -e 's/DHCP Server/DHCPv4 Server/' \
- -e '/Lease time/a \                 ,ui_helper.createSwitch(T"DHCPv6 Server", "dhcpv6State", content["dhcpv6State"],switchDHCP)' \
+ -e 's/\(ui_helper.createSwitch(T"IPv6 state", "localIPv6", content\["localIPv6"\]\)/\1, switch_class_enable/' \
+ -e '/local stdattributes/i \              local switch_class_enable = {' \
+ -e '/local stdattributes/i \                input = {' \
+ -e '/local stdattributes/i \                  class = "monitor-changes",' \
+ -e '/local stdattributes/i \                }' \
+ -e '/local stdattributes/i \              }' \
+ -e '/Lease time/a \                 ,[[<div class="monitor-localIPv6 monitor-1 monitor-hidden-localIPv6">]]' \
+ -e '/Lease time/a \                 ,ui_helper.createSwitch(T"DHCPv6 Server", "dhcpv6State", content["dhcpv6State"], switchDHCP)' \
+ -e '/Lease time/a \                 ,ui_helper.createSwitch(T"SLAAC + RA", "slaacState", content["slaacState"], switchDHCP)' \
+ -e '/Lease time/a \                 ,[[</div>]]' \
  -e '/gVIES(/a \    dhcpv6State = gVIES(dhcpStateselect),' \
+ -e '/gVIES(/a \    slaacState = gVIES(dhcpStateselect),' \
  -i /www/docroot/modals/ethernet-modal.lp
 
  
