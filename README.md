@@ -11,7 +11,7 @@ Skip any of these steps that you have already done.
 6. Harden root access and disable un-needed services with the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script. Run `./de-telstra -?` to see available options, or for some sensible settings, just execute: `./de-telstra -A`
 7. Change the root password by executing: `passwd`
 8. Optionally, download any [extra feature scripts](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras) you want to install into the same directory as the scripts. 
-9. If you are running FW 17.2.0468 or later, optionally create your *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* files in the same directory as the scripts. (See [**Firmware Versions 0468 and Later**](https://github.com/seud0nym/tch-gui-unhide#firmware-versions-0468-and-later))
+9. )ptionally create your *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* files in the same directory as the scripts. (See [**Custom DNS Servers**](https://github.com/seud0nym/tch-gui-unhide#custom-dns-servers))
 10. Apply the GUI changes. Run `./tch-gui-unhide -?` to see available options, or just execute: `./tch-gui-unhide`
 11. Optionally run `./tch-gui-unhide-cards` to change card sequence and visibility
 12. Clear cached images and files from your browser to see the changes.
@@ -84,18 +84,19 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - Added the **Telephony** Codecs tab
 - Greater control over the **Wi-Fi** output power
 - Modified **Time of Day** Wireless Control tab to allow selection of access point
-- **Management** of Init scripts and view cron rules
+- **Management** of Init scripts and cron tasks schedules
 
 ### Additional (new) GUI Features
 - **Gateway** card now has current device status for CPU usage, free RAM and temperature
 - **Internet** and **LAN** cards now show IPv6 information
+- **Local Network** allows enabling/disabling of DHCPv6 and SLAAC
 - **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
 - **Traffic monitor** tab in Diagnostics
 - **Time of Day** card shows the Wireless Control rule count
 - **System Extras** now allows:
     - Configure WAN SSH access
     - Change the web GUI theme
-- **Management** screen allows the theme to be changed from within the GUI
+- **Management** screen allows the theme to be changed from within the GUI, and viewing of running processes
 
 ## What else does it do?
 - Properly enables SSH LAN access (because if you don't and then disable it through the GUI, you can lose SSH access).
@@ -160,7 +161,7 @@ The best location for the scripts on your device is on a USB stick, so that if y
 #### Harden your root access
 It is recommended that you apply whatever hardening (such as the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script) and other configuration changes you want to make *before* executing the script, as some features are enabled or disabled depending on the current configuration of the target device.
 
-### Third, optionally create customisation files (FW versions 0468 and later only)
+### Third, optionally create customisation files
 - Create your *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* files in the same directory as the scripts, as specified above.
 
 ### Last, execute the script
