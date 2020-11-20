@@ -1,3 +1,17 @@
+2020.11.20
+==========
+* tch-gui-unhide: Fixed NAT ALG screen so that it repairs already broken helpers
+* tch-gui-unhide: Fixed editing of cron tab
+* tch-gui-unhide: Fixed Init Management - did not refresh when init scripts added or removed
+* tch-gui-unhide: Fixed Process viewer - did not update and refresh button not working
+* tch-gui-unhide: Fixed tab highlighting after sorting on Devices and Management screens
+* tch-gui-unhide: Fixed inconsistent enabling/disabling of backhaul SSID
+* tch-gui-unhide: Fixed Local Network card so that DHCPv6 server not shown as enabled when IPv6 disabled 
+* tch-gui-unhide: Added ability to enable/disable cron tasks
+* tch-gui-unhide: Added ability to enable/disable SLAAC
+* tch-gui-unhide: Backported Local Network modal from 17.2.0468 into 17.2.0284
+* de-telstra: Inconsistent enabling/disabling of backhaul SSID
+
 2020.11.16
 ==========
 * tch-gui-unhide: Moved prettifying of content sharing screen from tch-gui-unhide-xtra.minidlna
@@ -95,9 +109,9 @@
 2020.10.02
 ==========
 * de-telstra: Optionally configures opkg so that you can install additional packages on the device
-* tch-gui-unhide: Added abililty to disable/enable the firewall
+* tch-gui-unhide: Added ability to disable/enable the firewall
 * tch-gui-unhide: Allow enabling/disabling of Internet IPv6 pings
-* tch-gui-unhide: Added abililty to sort device list by column headings
+* tch-gui-unhide: Added ability to sort device list by column headings
 * tch-gui-unhide: Replaced ugly host map with the nicer network map from the basic view
 * tch-gui-unhide: Added support for extra feature scripts that rely on additional packages being installed, and/or that make changes outside of the /www directory
 * tch-gui-unhide: Added WAN Supervision to Internet DHCP Routed Mode snippet

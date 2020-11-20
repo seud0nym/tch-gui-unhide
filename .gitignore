@@ -1,4 +1,4 @@
-authorized_keys
+.personal/*
 *.b64
 *.tar.gz
 build/deploy

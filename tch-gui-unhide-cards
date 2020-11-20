@@ -162,7 +162,7 @@ apply_suggested() {
       LAN.lp) SEQ="008";;
       lte.lp) SEQ="004";;
       natalghelper.lp) SEQ="017";;
-      nfc.lp) SEQ="009";;
+      nfc.lp) SEQ="004";;
       parental.lp) SEQ="021";;
       printersharing.lp) SEQ="020"; HIDE="$HIDE_EXTRA";;
       qos.lp) SEQ="018";;

@@ -105,7 +105,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 
 *PLEASE NOTE: Previous versions of the script (release 2020.08.16 and before) also set the hostname and domain. This functionality has been moved to the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) utility script.*
 
-### Firmware Versions 0468 and Later
+### Custom DNS Servers
 - If a file called *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* is found in the directory from which the script is invoked, the contents will be added to the list of DNS Servers on the **Local Network** screen.
 
     The contents of these file are simply the hostname and IP address, which are separated by a space. Multiple servers may be added, each on its own line.
@@ -120,6 +120,9 @@ Some hidden screens included on the device are not enabled, mainly because they 
     Pi-hole fe80::aaaa:bbbb:cccc:dddd
     Pi-hole-VM fe80::1:22:3300:444
 ```
+
+### Firmware Versions 0468 and Later
+*PLEASE NOTE: Since release 2020.11.20, Custom DNS Servers (above) can now be specified for all supported releases, including FW 17.2.0284.*
 
 ### Firmware Version 18.1.c.0514 (and later) Specific
 - If you run this script on the 18.1.c.0514 or later firmware, it can also add a button to access DumaOS (Telstra Game Optimiser), but only if DumaOS has been enabled. To add this button, execute the [`dumaos`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos) script with the `-on` parameter to enable DumaOS *before* running the `tch-gui-unhide` script.
