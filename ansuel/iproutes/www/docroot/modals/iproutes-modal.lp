@@ -244,7 +244,7 @@ end
 local dns_data, dns_helpmsg = post_helper.handleTableQuery(dns_columns, dns_options, dns_filer,nil,dns_valid)
   ngx.print('\
 \
-');  ngx.print(ui_helper.createHeader(T"IP Extras", false, true))   ngx.print('\
+');  ngx.print(ui_helper.createHeader(T"IP Routing", false, true))   ngx.print('\
 \
 <div class="modal-body update">\
 ');
