@@ -32,3 +32,4 @@ input,button,select,textarea{font-family:Roboto,Noto,sans-serif;}
 #proctable>tbody>tr>td:nth-child(1),#proctable>tbody>tr>td:nth-child(2),#proctable>tbody>tr>td:nth-child(5),#proctable>tbody>tr>td:nth-child(6),#proctable>tbody>tr>td:nth-child(7){text-align:right;}
 #proctable>tbody>tr>td:nth-child(6):after,#proctable>tbody>tr>td:nth-child(7):after{content:"%";}
 #proctable>thead>tr>th{white-space:nowrap;}
+#dnsServer,#ipv4_dns_sec,#dns_v6_pri,#dns_v6_sec{width:190px;}
