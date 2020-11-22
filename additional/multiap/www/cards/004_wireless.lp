@@ -37,7 +37,7 @@ for _, v in ipairs(proxy.getPN("rpc.wireless.ssid.", true)) do
   if values then
     local ssid = values[2].value
     if ssid:sub(1,3) ~= "BH-" then
-      if ssid == "Fon WiFi" or ssid == "Fon WiFi-5G" or ssid == "Telstra Air" then
+      if ssid == "Fon WiFi" or ssid == "Fon WiFi-5G" or ssid == "Telstra Air" or ssid == "Telstra Air-5G" then
         fon_count = fon_count + 1
         if values[3].value == 1 and fon_state == 0 then
           fon_state = 1
