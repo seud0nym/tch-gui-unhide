@@ -9,6 +9,8 @@ local tonumber = tonumber
 local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
 local content_helper = require("web.content_helper")
+local proxy = require("datamodel")
+local content_helper = require("web.content_helper")
 
 -- wan status data
 local wan_data = {
@@ -62,11 +64,11 @@ if content_wan.wwan_ipaddr:len() ~= 0 or content_wan.wwan_ip6addr:len() ~= 0 the
   wan_intf = "wwan"
 end
 local content_rpc = {
-  uptime = "rpc.network.interface.@" .. wan_intf .. ".uptime",
   tx_bytes = "rpc.network.interface.@" .. wan_intf .. ".tx_bytes",
   rx_bytes = "rpc.network.interface.@" .. wan_intf .. ".rx_bytes",
 }
 content_helper.getExactContent(content_rpc)
+content_rpc["uptime"] = content_helper.readfile("/proc/uptime","number",floor)
 
 local function bytes2string(s_bytes)
   if s_bytes=="" then
