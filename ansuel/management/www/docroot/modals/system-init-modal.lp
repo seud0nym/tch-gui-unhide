@@ -174,28 +174,32 @@ local init_data, sipnet_helpmsg = post_helper.handleTableQuery(init_columns, ini
     }\
   }\
   function postAction(action) {\
-		var t = $(".modal form"), e = t.serializeArray();\
-		e.push({\
-			name: "action",\
-			value: action\
-		}, {\
-			name: "fromModal",\
-			value: "YES"\
-		}, {\
-			name: "CSRFtoken",\
-			value: $("meta[name=CSRFtoken]").attr("content")\
-		});\
-		tch.loadModal(t = t.attr("action"), e, function () {\
-			var t = $(".error");\
-			0 < t.length && ($("#modal-no-change").hide(), $("#modal-changes").show());\
-			var e = $(".modal-action-advanced:first").is(":visible");\
-			0 < t.closest(".advanced").length && !e && r(),\
-			$(\'.error input:not([type="hidden"])\').first().trigger("focus")\
-		})\
-		return false;\
+    var busy_msg = $(".loading-wrapper");\
+    busy_msg.removeClass("hide");\
+    busy_msg[0].scrollIntoView();\
+    $(".modal-body").scrollLeft(0);\
+    var t = $(".modal form"), e = t.serializeArray();\
+    e.push({\
+      name: "action",\
+      value: action\
+    }, {\
+      name: "fromModal",\
+      value: "YES"\
+    }, {\
+      name: "CSRFtoken",\
+      value: $("meta[name=CSRFtoken]").attr("content")\
+    });\
+    tch.loadModal(t = t.attr("action"), e, function () {\
+      var t = $(".error");\
+      0 < t.length && ($("#modal-no-change").hide(), $("#modal-changes").show());\
+      var e = $(".modal-action-advanced:first").is(":visible");\
+      0 < t.closest(".advanced").length && !e && r(),\
+      $(\'.error input:not([type="hidden"])\').first().trigger("focus")\
+    })\
+    return false;\
 	}\
 	$(".btn-disable").on("click", function(){\
-		postAction("disable_"+$(this).data("name"));\
+    postAction("disable_"+$(this).data("name"));\
 	});\
 	$(".btn-enable").on("click", function(){\
 		postAction("enable_"+$(this).data("name"));\

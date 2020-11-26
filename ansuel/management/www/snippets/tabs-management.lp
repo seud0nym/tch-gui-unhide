@@ -29,6 +29,8 @@ if ngx.var.args and string.len(ngx.var.args) > 0 then
   uri = uri .. "?" .. ngx.var.args
 end
 
+
+
 for _,v in ipairs(tabs) do
   local active = ""
   local modal = "/modals/" .. v[1]
@@ -42,4 +44,17 @@ ngx.print(html)
 
 ngx.print('\
 </ul>\
+<div class="loading-wrapper hide"><img src="/img/spinner.gif" /></div>\
+<script>\
+  $(function(){\
+    function waiting_action(self) {\
+      var msg_dst = $(self);\
+      var busy_msg = $(".loading-wrapper");\
+      msg_dst.after(busy_msg);\
+      busy_msg.removeClass("hide");\
+      busy_msg[0].scrollIntoView();\
+      $(".modal-body").scrollLeft(0);\
+    };\
+  });\
+</script>\
 ');
