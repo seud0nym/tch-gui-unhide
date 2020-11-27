@@ -39,7 +39,7 @@ ngx.print('\
     if session:hasAccess("/modals/tod_wireless-modal.lp") then
        ngx.print(
         '<span class="simple-desc">',
-        '<i class="icon-rss status-icon">&nbsp;</i>',
+        '<i class="icon-lock status-icon">&nbsp;</i>',
         format(N("<strong %s>%d Wireless Control</strong> rule defined",
                  "<strong %s>%d Wireless Control</strong> rules defined", rulecount_wifi),
               'class="modal-link" data-toggle="modal" data-remote="/modals/tod_wireless-modal.lp" data-id="tod-modal"',
