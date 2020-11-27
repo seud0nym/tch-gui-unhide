@@ -76,6 +76,7 @@ local headerAttr = {
   </div>\
 </div>\
 <script>\
+var funcID;\
 function secondsToTime(uptime) {\
   var d = Math.floor(uptime / 86400);\
   var h = Math.floor(uptime / 3600) % 24;\
@@ -97,10 +98,10 @@ function updateGatewayCard(){\
     $("#gateway-card-temps").html(data["temps"]);\
   }, "json")\
   .fail(function(response){\
-    if (response.status == 403) { window.location.href="/gateway.lp?r="+Date.now(); }\
+    if(response.status == 403){clearInterval(funcID);window.location.href="/gateway.lp?r="+Date.now();}\
   });\
 }\
-$().ready(function(){setInterval(updateGatewayCard,1000);});\
+$().ready(function(){funcID=setInterval(updateGatewayCard,1000);});\
 </script>\
 ');  
 end
