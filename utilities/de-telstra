@@ -17,6 +17,7 @@ SRV_cwmp=0
 SRV_dhcp=0
 SRV_dlna=0
 SRV_dropbear=0
+SRV_dumaos=0
 SRV_fw=0
 SRV_hostapd=0
 SRV_hotspot=0
@@ -31,6 +32,13 @@ SRV_system=0
 SRV_watchdog=0
 SRV_web=0
 SRV_upnp=0
+
+if [ -f /etc/init.d/dumaos ]
+then
+  SRV_dumaos=0
+else
+  SRV_dumaos=-1
+fi
 
 if [ -f /etc/config/multiap ]
 then
@@ -56,8 +64,9 @@ SAMBA='u'
 UPNP='u'
 OPKG='n'
 WPS='u'
+DUMAOS='u'
 
-while getopts a:c:d:e:f:h:m:n:op:r:t:u:w:ARSU option
+while getopts a:c:d:e:f:g:h:m:n:op:r:t:u:w:ARSU option
 do
  case "${option}" in
   a)  case "${OPTARG}" in y|Y) ALG='1';; n|N) ALG='0';; u|U) ALG='u';; *) ALG='u'; echo 'WARNING: -a valid options are y, n, or u';; esac;;
@@ -65,6 +74,7 @@ do
   d)  case "${OPTARG}" in g|G) DOMAIN='gateway';; u|U) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
   e)  case "${OPTARG}" in y|Y) DECT='1';; n|N) DECT='0';; u|U) DECT='u';; *) DECT='u'; echo 'WARNING: -e valid options are y, n, or u';; esac;;
   f)  case "${OPTARG}" in y|Y) SAMBA='1';; n|N) SAMBA='0';; u|U) SAMBA='u';; *) SAMBA='u'; echo 'WARNING: -f valid options are y, n, or u';; esac;;
+  g)  case "${OPTARG}" in y|Y) DUMAOS='1';; n|N) DUMAOS='0';; u|U) DUMAOS='u';; *) DUMAOS='u'; echo 'WARNING: -g valid options are y, n, or u';; esac;;
   h)  HOST=${OPTARG};;
   m)  case "${OPTARG}" in y|Y) MULTIAP='1';; n|N) MULTIAP='0';; u|U) MULTIAP='u';; *) MULTIAP='u'; echo 'WARNING: -m valid options are y, n, or u';; esac;;
   n)  NS=${OPTARG};;
@@ -140,15 +150,16 @@ Optional parameters:
           f            Set the DNS servers to OpenDNS Family Shield
           o            Set the DNS servers to OpenDNS
           <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
- -a u|y|n              ALGs:               u=Unchanged y=Enable n=Disable (except SIP if telephony enabled)
- -c u|y|n              Content Sharing:    u=unchanged y=Enable n=Disable
- -f u|y|n              File Sharing:       u=unchanged y=Enable n=Disable
- -p u|y|n              Power Saving:       u=unchanged y=Enable n=Disable
- -r u|y|n              Printer Sharing:    u=unchanged y=Enable n=Disable
- -t u|y|n              Telephony:          u=unchanged y=Enable n=Disable
- -e u|y|n              DECT Emission Mode: u=unchanged y=Enable n=Disable
- -u u|y|n              UPnP Service:       u=unchanged y=Enable n=Disable
- -m u|y|n              MultiAP (EasyMesh): u=unchanged y=Enable n=Disable
+ -a u|y|n              NAT Helpers:             u=Unchanged y=Enable n=Disable (except SIP if telephony enabled)
+ -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
+ -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
+ -p u|y|n              Power Saving:            u=unchanged y=Enable n=Disable
+ -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
+ -t u|y|n              Telephony:               u=unchanged y=Enable n=Disable
+ -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
+ -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
+ -m u|y|n            * MultiAP (EasyMesh):      u=unchanged y=Enable n=Disable
+ -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
  -w u|y|n              WPS on non-Guest and non-Backhaul SSIDs: u=unchanged y=Enable n=Disable
  -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un -wn
  -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn
@@ -158,7 +169,7 @@ Optional parameters:
  -U                    Check for and download the latest version from GitHub
 
 NOTE #1: Default for all optional parameters is u (unchanged)
-NOTE #2: -m option is only applicable to devices with MultiAP installed
+NOTE #2: Options marked with * are only applicable if the service is installed
 EOH
       exit;;
  esac
@@ -659,6 +670,20 @@ else
   echo [$SCRIPT]: UPnP $(status2text $UPNP)
 fi
 
+if [ $SRV_dumaos -ge 0 ]
+then
+  DUMAOS_NOW="$(uci -q get dumaos.tr69.dumaos_enabled)"
+  if [ "$DUMAOS" = "u" -o "$DUMAOS_NOW" = "$DUMAOS" ]
+  then
+    echo [$SCRIPT]: DumaOS unchanged \[$(status2text $DUMAOS_NOW)\]
+  else
+    uci set dumaos.tr69.dumaos_enabled="$DUMAOS"
+    uci commit dumaos
+    SRV_dumaos=$(( $SRV_dumaos + 1 ))
+  echo [$SCRIPT]: DumaOS $(status2text $DUMAOS)
+  fi
+fi
+
 if [ $SRV_multiap -ge 0 ]
 then
   AGENT_NOW="$(uci -q get multiap.agent.enabled)"
@@ -788,8 +813,9 @@ echo [$SCRIPT]: Applying required service changes...
 [ $SRV_mobiled -gt 0 ]  && /etc/init.d/mobiled restart > /dev/null 2>&1
 [ $SRV_multiap -gt 0 ]  && { /etc/init.d/multiap_controller restart; /etc/init.d/multiap_agent restart; } > /dev/null 2>&1
 [ $SRV_upnp -gt 0 ]     && /etc/init.d/miniupnpd-tch restart > /dev/null 2>&1
-[ "$PRNTR_NOW" = "0" -o "$PRNTR" = "0" ] && /etc/init.d/cupsd stop
-[ "$PRNTR_NOW" = "0" -a "$PRNTR" = "1" ] && /etc/init.d/cupsd restart
+[ $SRV_dumaos -gt 0 ]   && /etc/init.d/dumaos restart > /dev/null 2>&1
+[ "$PRNTR_NOW" = "0" -o "$PRNTR" = "0" ] && /etc/init.d/cupsd stop > /dev/null 2>&1
+[ "$PRNTR_NOW" = "0" -a "$PRNTR" = "1" ] && /etc/init.d/cupsd restart > /dev/null 2>&1
 
 echo [$SCRIPT]: Removing packages that are no longer required
 opkg --force-removal-of-dependent-packages remove conf-cwmpd cwmpd autoreset-tch geolocation-tch hotspotd webui-fon tls-thor wifi-doctor-agent conf-wifi-doctor-agent libbcmairiq conf-airiq
