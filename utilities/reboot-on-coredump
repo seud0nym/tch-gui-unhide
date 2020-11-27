@@ -1,0 +1,40 @@
+#!/bin/sh
+
+ENABLED="$(uci -q get system.@coredump[0].reboot)"
+while getopts onff option
+do
+  case "${option}" in
+    o) SETTING="";;
+    n) SETTING=on;;
+    f) SETTING=off;;
+    ?) echo "Parameters: -on|-off";;
+  esac
+done
+if [ -z "$SETTING" ]
+then
+  if [ "$ENABLED" = "0" ]
+  then
+    echo "Reboot on core dump currently DISABLED - re-run script with -on option to enable"
+else 
+    echo "Reboot on core dump currently ENABLED - re-run script with -off option to disable"
+fi
+else
+  case "$SETTING" in
+    on)
+        if [ "$ENABLED" = "0" ]
+        then
+          uci set system.@coredump[0].reboot='1'
+          uci commit system
+        else
+          echo Already enabled!!
+        fi;;
+    off)
+        if [ "$ENABLED" = "1" ]
+        then
+          uci set system.@coredump[0].reboot='0'
+          uci commit system
+        else
+          echo Already disabled!!
+        fi;;
+  esac
+fi
