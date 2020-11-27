@@ -80,7 +80,7 @@ GUI_PROC_i_.entries = function(mapping)
   local top = io.popen(cmd,'r')
   for proc in top:lines() do
     if not proc:find(cmd,1,true) then
-      local pid, ppid, user, stat, vsz, vszpct, cpu = proc:match("([0-9]+) +([0-9]+) +([^ ]+) +(....) +([0-9]+) +([0-9]+)%% +([0-9]+)%%")
+      local pid, ppid, user, stat, vsz, vszpct, cpu = proc:match("([0-9]+) +([0-9]+) +([^ ]+) +(....) +([0-9]+[m]*) +([0-9]+)%% +([0-9]+)%%")
       if tonumber(pid) then
         k = k + 1
         procTable[string.format("%03d",k)] = {
