@@ -33,3 +33,7 @@ input,button,select,textarea{font-family:Roboto,Noto,sans-serif;}
 #proctable>tbody>tr>td:nth-child(6):after,#proctable>tbody>tr>td:nth-child(7):after{content:"%";}
 #proctable>thead>tr>th{white-space:nowrap;}
 #dnsServer,#ipv4_dns_sec,#dns_v6_pri,#dns_v6_sec{width:190px;}
+#sipnet>tbody>tr>td:nth-child(3) input,#sipnet>tbody>tr>td:nth-child(5) input,#sipnet>tbody>tr>td:nth-child(6) input{width:60px;}
+#sipnet>tbody>tr>td:nth-child(7) input{width:66px;}
+#sipnet>tbody>tr>td:nth-child(8) select{width:100px;}
+#devices>tbody>tr>td:nth-child(2) input{width:200px;}
