@@ -26,8 +26,10 @@ Optionally, it can also:
 - Disable or enable UPnP
 - Disable or enable power saving
 - Disable or enable MultiAP (EasyMesh) if it is installed on the device
+- Disable or enable DumaOS (Telstra Game Optimiser) if it is installed on the device
 - Disable or enable WPS on non-Guest and non-Backhaul SSIDs 
 - Configure the opkg package manager so that you can install additional packages on the device
+- Stop and disable all services associated with optional features for a minimal memory configuration
 
 It does NOT remove the hidden BH-xxxxxx SSID from the DJA0230 or DJA0231, as this is not related to Telstra AIR. It is the wireless backhaul for EasyMesh.
 
@@ -86,6 +88,10 @@ This script accepts the following options:
     where u            Leave EasyMesh (multiap) unchanged (Default)
           y            Enable EasyMesh (multiap) (device default)
           n            Disable EasyMesh (multiap)
+ -g u|y|n
+    where u            Leave DumaOS (Telstra Game Optimiser) unchanged (Default)
+          y            Enable DumaOS (Telstra Game Optimiser)
+          n            Disable DumaOS (Telstra Game Optimiser) (device default)
  -w u|y|n              
     where u            Leave WPS unchanged on non-Guest and non-Backhaul SSIDs (Default)
           y            Enable WPS on non-Guest and non-Backhaul SSIDs (device default)
@@ -96,7 +102,7 @@ This script accepts the following options:
  -R                    Reset to device defaults (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -ty -ey -uy -wy)
  -U                    Check for and download the latest version from GitHub
 ```
-Note that the options to disable/enable EasyMesh are only applicable to devices with multiap installed.
+Note that the options to disable/enable EasyMesh and DumaOS are only applicable to devices with those services installed.
 
 ## dumaos
 Enables or disables DumaOS on a DJA0231 running the 18.1.c.0514 or later firmware, or a DJA0230 running 18.1.c.0549 or later. It also disables or enables reboot on core dump, because if DumaOS gets into trouble, the router will just continally reboot.
@@ -108,6 +114,15 @@ This script supports 1 parameter: `-on` or `-off`
     - Disables DumaOS and enables reboot on core dump, then stops the DumaOS service.
 
 If you enable DumaOS *after* running the `tch-gui-unhide` script, you will need to re-run `tch-gui-unhide` to enable the button to access DumaOS. Similarly, if you disable DumaOS, you will need to re-run `tch-gui-unhide` to remove the button. 
+
+## reboot-on-coredump
+Enables or disables reboot on core dump. If you have a process that is continually crashing and core dumping, use this script to disable reboot on coredump.
+
+This script supports 1 parameter: `-on` or `-off`
+- -on
+    - Enables DumaOS and disables reboot on core dump, then starts the DumaOS service.
+- -off
+    - Disables DumaOS and enables reboot on core dump, then stops the DumaOS service.
 
 ## reset-to-factory-defaults-with-root
 It does what it says. It is a copy of the commands from https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access (without the backup - you need to do that manually and move it off the device), with a confirmation prompt and immediate reboot.
