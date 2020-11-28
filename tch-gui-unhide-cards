@@ -5,15 +5,15 @@ QUIET="n"
 VERBOSE="n"
 HIDE_EXTRA="1"
 OPTS=0
-while getopts sdqva option
+while getopts sdqvaM option
 do
   OPTS=$(( $OPTS + 1 ))
   case "${option}" in
-    a)    HIDE_EXTRA="0";;
-    s|d)  BATCH="${option}";;
-    q)    QUIET="y";;
-    v)    VERBOSE="y";;
-    *)    OPTS=$(( $OPTS - 1 ));;
+    a)     HIDE_EXTRA="0";;
+    s|d|M) BATCH="${option}";;
+    q)     QUIET="y";;
+    v)     VERBOSE="y";;
+    *)     OPTS=$(( $OPTS - 1 ));;
   esac
 done
 
@@ -139,6 +139,41 @@ apply_defaults() {
   unset TMP
 }
 
+apply_minimal() {
+  TMP=""
+  for CARD in $(echo "$CARDS" | tr ' ' ';')
+  do
+    HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
+    FILE=$(echo "$CARD" | cut -d'|' -f4)
+    MODAL=$(echo "$CARD" | cut -d'|' -f5)
+    TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
+    HIDE=$HIDDEN
+    case "${FILE#*_}" in
+      contentsharing.lp) [ "$(uci -q get dlnad.config.enabled)" != "1" -a "$(uci -q get samba.samba.filesharing)" != "1" ] && HIDE=1;;
+      cwmpconf.lp) [ ! -f /etc/init.d/cwmpd ] && HIDE=1;;
+      natalghelper.lp) HIDE=1;;
+      parental.lp) HIDE=1;;
+      printersharing.lp) [ "$(uci -q get printersharing.config.enabled)" != "1" ] && HIDE=1;;
+      qos.lp) HIDE=1;;
+      relaysetup.lp) HIDE=1;;
+      telephony.lp) [ "$(uci -q get mmpbx.global.enabled)" != "1" ] && HIDE=1;;
+      tod.lp) HIDE=1;;
+      system.lp) HIDE=1;;
+      wanservices.lp) [ "$(uci -q get firewall.dmzredirects.enabled)" != "1" -a "$(uci -q get ddns.myddns_ipv4.enabled)" != "1" -a "$(uci -q get ddns.myddns_ipv6.enabled)" != "1" -a "$(uci -q get upnpd.config.enable_natpmp)" != "1" -a "$(uci -q get upnpd.config.enable_upnp)" != "1" ] && HIDE=1;;
+      wireless_boosters.lp) [ "$(uci -q get multiap.agent.enabled)" != "1" -a "$(uci -q get multiap.controller.enabled)" != "1" ] && HIDE=1;;
+      *) SEQ=$(basename $FILE | cut -c1-3);;
+    esac
+    if [ -z "$TMP" ]
+    then
+      TMP="$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+    else
+      TMP="$TMP$IFS$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+    fi
+  done
+  CARDS="$TMP"
+  unset TMP
+}
+
 apply_suggested() {
   TMP=""
   for CARD in $(echo "$CARDS" | tr ' ' ';')
@@ -218,6 +253,12 @@ then
   apply_defaults
   apply_changes
   exit
+elif [ "action$1" = "action-M" ]
+then
+  apply_suggested
+  apply_minimal
+  apply_changes
+  exit
 fi
 
 MESSAGE=""
@@ -265,13 +306,22 @@ do
   echo "NOTE: 'CWMP' card is only visible if CWMP has not been disabled"
   echo "NOTE: 'xDSL Config' card is only visible on DSL connections"
   echo
-  echo -n "Enter a card number, or a to apply changes, d for default sequence, s for suggested sequence, u to undo changes, or q to quit: "
+  echo "OPTIONS: A single card number between 1 and $I"
+  echo "         d = order cards by the default sequence"
+  echo "         m = hide all optional feature cards"
+  echo "         s = order cards by a suggested sequence"
+  echo "         u = undo changes"
+  echo "         a = apply changes and quit"
+  echo "         q = quit without applying changes"
+  echo
+  echo -n "Enter one of 1-$I/d/m/s/u/a/q: "
   read FROM
   echo
   case "$FROM" in
     a)  apply_changes
         break;;
     d)  apply_defaults;;
+    m)  apply_minimal;;
     q)  break;;
     s)  apply_suggested;;
     u)  undo_changes;;
