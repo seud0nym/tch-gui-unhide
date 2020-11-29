@@ -11,7 +11,7 @@ Skip any of these steps that you have already done.
 6. Harden root access and disable un-needed services with the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script. Run `./de-telstra -?` to see available options, or for some sensible settings, just execute: `./de-telstra -A`
 7. Change the root password by executing: `passwd`
 8. Optionally, download any [extra feature scripts](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras) you want to install into the same directory as the scripts. 
-9. )ptionally create your *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* files in the same directory as the scripts. (See [**Custom DNS Servers**](https://github.com/seud0nym/tch-gui-unhide#custom-dns-servers))
+9. Optionally create your *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* files in the same directory as the scripts. (See [**Custom DNS Servers**](https://github.com/seud0nym/tch-gui-unhide#custom-dns-servers))
 10. Apply the GUI changes. Run `./tch-gui-unhide -?` to see available options, or just execute: `./tch-gui-unhide`
 11. Optionally run `./tch-gui-unhide-cards` to change card sequence and visibility
 12. Clear cached images and files from your browser to see the changes.
@@ -238,7 +238,15 @@ NOTE: Titles in () indicate hidden cards. They will always appear above after th
 NOTE: 'CWMP' card is only visible if CWMP has not been disabled
 NOTE: 'xDSL Config' card is only visible on DSL connections
 
-Enter a card number, or a to apply changes, d for default sequence, s for suggested sequence, u to undo changes, or q to quit:
+OPTIONS: A single card number between 1 and 24
+         d = order cards by the default sequence
+         m = hide all optional feature cards
+         s = order cards by a suggested sequence
+         u = undo changes
+         a = apply changes and quit
+         q = quit without applying changes
+
+Enter one of 1-24/d/m/s/u/a/q:
 ```
 
 This screen displays the cards in the currently configured sequence. Any hidden cards are shown after all visible cards, with their titles in brackets.
@@ -256,14 +264,16 @@ When this screen is displayed, you have the following options available:
         - To move the *Diagnostics* card to the last position, you would enter *13*, and then *23*. 
         - To hide the *Printer Sharing* card, you would enter *16* and then *h*.
     - To exit from the sub-menu without making a change, just press Enter.
-- *a*
-    - Applies the changes you have made.
 - *d*
     - Re-orders the cards into the stock sequence. All cards are also made visible.
+- *m*
+    - A minimal card list that hides all optional feature cards.
 - *s*
     - Re-orders the cards into a suggested sequence, and hides some rarely used cards.
 - *u*
     - Reverts any changes that you have not yet applied during this execution.
+- *a*
+    - Applies the changes you have made.
 - *q*
     - Quits the scripts without making any changes.
 

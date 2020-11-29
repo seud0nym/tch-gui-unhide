@@ -1,5 +1,5 @@
 #!/bin/sh
-echo 000@$(date +%H:%M:%S): Built for version 18.1.c.0462 - Release 2020.11.29
+echo 000@$(date +%H:%M:%S): Built for version 18.1.c.0585 - Release 2020.11.29
 # Make sure that we are running on Telstra firmware
 if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]
 then

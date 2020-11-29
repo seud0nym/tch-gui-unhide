@@ -1,3 +1,15 @@
+2020.11.29
+==========
+* tch-gui-unhide: Added support for FW 18.1.c.0585
+* tch-gui-unhide: Missed Telstra Air-5G when consolidating Telstra Air/Fon SSIDs on Wi-Fi card
+* tch-gui-unhide: Daily usage estimate on Broadband card wrong after WAN reset
+* tch-gui-unhide: Added wait spinner to init management when action selected
+* tch-gui-unhide: Added filtering to process viewer and init management
+* tch-gui-unhide-cards: Added option to only show a minimal set of cards, hiding all optional features
+* de-telstra: Added option to enable/disable DumaOS
+* de-telstra: Added -M option for minimal memory configuration, which is equivalent to specifying n on all u/y/n options (except power saving and WPS), plus all services associated with those options are stopped and disabled
+* reboot-on-coredump: New script to enable/disable reboot on coredump
+
 2020.11.20
 ==========
 * tch-gui-unhide: Fixed NAT ALG screen so that it repairs already broken helpers
