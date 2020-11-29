@@ -33,7 +33,7 @@ sed \
   -e 's/:170px/:150px/' \
   -i /www/docroot/css/responsive.css
 
-for f in $(grep -l -r '</head>\\' /www | grep -v '\(airiq\|help\|landingpage\)')
+for f in $(grep -l -r '</head>\\' /www 2>/dev/null | grep -v '\(airiq\|help\|landingpage\)')
 do
   grep -q 'lp.include("../snippets/theme' $f
   if [ $? -eq 1 ]; then
