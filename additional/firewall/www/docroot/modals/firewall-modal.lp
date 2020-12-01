@@ -121,6 +121,13 @@ local fwrule_columns = {
     attr = { switch = { ["data-placement"] = "right" }}
   },
   {
+    header = T"Name",
+    name = "name",
+    param = "name",
+    type = "text",
+    attr = { input = { class="span1", style="width:75px" } },
+  },
+  {
     header = T"Action",
     name = "target",
     param = "target",
@@ -152,7 +159,7 @@ local fwrule_columns = {
     name = "src_ip",
     param = "src_ip",
     type = "text",
-    attr = { input = { class="span2", maxlength="18" } },
+    attr = { input = { class="span2", maxlength="18", style="width:130px" } },
   },
   {
     header = T"Src port",
@@ -175,7 +182,7 @@ local fwrule_columns = {
     name = "dest_ip",
     param = "dest_ip",
     type = "text",
-    attr = { input = { class="span2", maxlength="18" }, autocomplete = hosts_ac },
+    attr = { input = { class="span2", maxlength="18", style="width:130px" }, autocomplete = hosts_ac },
   },
   {
     header = T"Dst port",
@@ -216,7 +223,7 @@ local function rulesDuplicateCheck(basepath,tableid,columns)
     end
     if sucess then
       -- specify column range to check for duplicates
-      local startIndex, endIndex= 3,9
+      local startIndex, endIndex= 4,10
       local fullpath = nil
       if postdata.action =="TABLE-MODIFY" then
         local index = tonumber(postdata.index)
@@ -358,6 +365,13 @@ local fwrule_v6_columns = {
     attr = { switch = { ["data-placement"] = "right" }}
   },
   {
+    header = T"Name",
+    name = "name_v6",
+    param = "name",
+    type = "text",
+    attr = { input = { class="span1", style="width:75px" } },
+  },
+  {
     header = T"Action",
     name = "target_v6",
     param = "target",
@@ -389,7 +403,7 @@ local fwrule_v6_columns = {
     name = "src_ip_v6",
     param = "src_ip",
     type = "text",
-    attr = { input = { class="span2", maxlength="39"} },
+    attr = { input = { class="span2", maxlength="39", style="width:130px" } },
   },
   {
     header = T"Src port",
@@ -412,7 +426,7 @@ local fwrule_v6_columns = {
     name = "dest_ip_v6",
     param = "dest_ip",
     type = "text",
-    attr = { input = { class="span2", maxlength="39"}, autocomplete = hosts_ac_v6 },
+    attr = { input = { class="span2", maxlength="39", style="width:130px" }, autocomplete = hosts_ac_v6 },
   },
   {
     header = T"Dst port",
