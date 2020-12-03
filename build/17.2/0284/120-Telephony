@@ -3,6 +3,7 @@ sed \
  -e '/mmpbx-contacts/d' \
  -e '/T"Service"/i \       {"mmpbx-inoutgoingmap-modal.lp", T"In\/Outgoing Map"},' \
  -e '/T"Service"/a \       {"mmpbx-codec-modal.lp", T"Codecs"},' \
+ -e '/T"Service"/a \       {"mmpbx-dial-plan-modal.lp", T"Dial Plans"},' \
  -e '/T"DECT"/a    \       {"mmpbx-contacts-modal.lp", T"Phone Book"},' \
  -i /www/snippets/tabs-voice.lp
 # Default telephony tab is DECT!!! 
