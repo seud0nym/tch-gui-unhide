@@ -5,7 +5,7 @@ gettext.textdomain('webui-core')
 
 local lp = require("web.lp")
 local ui_helper = require("web.ui_helper")
-ngx.print( ui_helper.createHeader(T"Devices", false, true) ); ngx.print('\
+ngx.print( ui_helper.createHeader(T"Devices", false, true, 5) ); ngx.print('\
 <div class="modal-body">\
 ');  
   lp.setpath("/www/snippets/")

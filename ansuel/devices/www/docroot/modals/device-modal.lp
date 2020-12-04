@@ -151,7 +151,7 @@ for k, v in pairs (devices_data) do
     end
 end
 
-ngx.print( ui_helper.createHeader(T"Devices", false, true) ); ngx.print('\
+ngx.print( ui_helper.createHeader(T"Devices", false, true, 5) ); ngx.print('\
 <div class="modal-body update">\
 ');  lp.include("tabs-devices.lp")   ngx.print('\
   <form class="form-horizontal" method="post" action="modals/device-modal.lp?sort=');  ngx.print(sortcol); ngx.print('">\

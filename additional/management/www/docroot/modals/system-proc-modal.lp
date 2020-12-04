@@ -68,7 +68,7 @@ local proc_options = {
 local proc_data, proc_helpmsg = post_helper.handleTableQuery(proc_columns, proc_options, nil, nil, nil)
 
   ngx.print('\
-');  ngx.print(ui_helper.createHeader(T"Management", false, true) ); ngx.print('\
+');  ngx.print(ui_helper.createHeader(T"Management", false, true, 5) ); ngx.print('\
 <div class="modal-body update">\
 ');  
   local lp = require("web.lp")
