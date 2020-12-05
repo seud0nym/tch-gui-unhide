@@ -399,10 +399,14 @@ ngx.print('\
 ');
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
-lp.include("tabs-wireless.lp")
+if ngx.var.args == "tod" then
+  lp.include("tabs-tod.lp")
+else
+  lp.include("tabs-wireless.lp")
+end
 ngx.print('\
   <form class="form-horizontal" method="post" action="/modals/tod_wireless-modal.lp">\
-    <legend>');  ngx.print( T"Time of Day Wireless Control" ); ngx.print('</legend>\
+    <legend>');  ngx.print( T"Wireless Access Control" ); ngx.print('</legend>\
     ');  ngx.print(ui_helper.createTable(tod_columns, tod_data, tod_options, nil, tod_helpmsg)); ngx.print('\
     ');  if ngx.var.request_method == "POST" and (ngx.req.get_post_args().action == "TABLE-NEW" or ngx.req.get_post_args().action == "TABLE-EDIT") then  ngx.print('\
       <script type="text/javascript">\

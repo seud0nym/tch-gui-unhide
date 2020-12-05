@@ -1,0 +1,10 @@
+echo [$SCRIPT]: Fix Time of Day tabs
+sed \
+  -e 's/T"Time of day access control"/T"Device Access Control"/' \
+  -e "/update\">\\\/a ');" \
+  -e '/update">\\/a local lp = require("web.lp")' \
+  -e '/update">\\/a lp.setpath("/www/snippets/")' \
+  -e '/update">\\/a lp.include("tabs-tod.lp")' \
+  -e "/update\">\\\/a ngx.print('\\\\" \
+  -i /www/docroot/modals/tod-modal.lp
+

@@ -42,7 +42,7 @@ ngx.print('\
         '<i class="icon-lock status-icon">&nbsp;</i>',
         format(N("<strong %s>%d Wireless Control</strong> rule defined",
                  "<strong %s>%d Wireless Control</strong> rules defined", rulecount_wifi),
-              'class="modal-link" data-toggle="modal" data-remote="/modals/tod_wireless-modal.lp" data-id="tod-modal"',
+              'class="modal-link" data-toggle="modal" data-remote="/modals/tod_wireless-modal.lp?tod" data-id="tod-modal"',
               rulecount_wifi),
         '</span>')
     end

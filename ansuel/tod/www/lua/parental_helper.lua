@@ -518,7 +518,7 @@ function M.compareTodRule(oldTODRules, newTODRule)
       end
     end
     if overlap then
-      return nil, T"Overlap contents are not allowed"
+      return nil, T"The new rule could not be added because a pre-existing rule for the device already exists in an overlapping time window."
     end
   end
   return true
