@@ -38,7 +38,7 @@ if [ $RESTORE = y ]; then
     SRV_nginx=$(( $SRV_nginx + 1 ))
   done
   RULES=$(uci get web.ruleset_main.rules)
-  for s in $(echo $RULES | tr " " "\n" | sort -u)
+  for s in $(echo $RULES | tr " " "\n" | grep -v dumaos | sort -u)
   do
     TARGET=$(uci -q get web.$s.target)
     if [ ! -z "$TARGET" -a ":$TARGET" != ":/" -a ! -f /www/docroot$TARGET -a ! -f /www$TARGET -a ! -f /www/docroot/ajax$TARGET ]; then
@@ -53,7 +53,7 @@ if [ $RESTORE = y ]; then
         uci -q delete web.$s.roles
         uci add_list web.$s.roles="admin"
         SRV_nginx=$(( $SRV_nginx + 2 ))
-    fi
+      fi
     fi
   done
   uci commit web
