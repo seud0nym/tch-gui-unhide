@@ -134,11 +134,47 @@ end
         html[#html+1] = ui_helper.createSimpleLight("1", "Mobile connected")
       end
       if tonumber(content_rpc.rx_bytes) and tonumber(content_rpc.tx_bytes) and tonumber(content_rpc.uptime) then
-        html[#html+1] = format('<span class="simple-desc"><i class="icon-cloud-upload icon-small status-icon"></i> <span id="broadband-card-upload">%s</span> <i class="icon-cloud-download icon-small status-icon"></i> <span id="broadband-card-download">%s</span> <span id="broadband-card-daily-average">%s</span>/<i>d</i></span>', bytes2string(content_rpc.tx_bytes), bytes2string(content_rpc.rx_bytes), bytes2string((content_rpc.rx_bytes+content_rpc.tx_bytes)/(content_rpc.uptime/86400)))
+        html[#html+1] = format('<span class="simple-desc"><i class="icon-cloud-upload icon-small status-icon"></i> <span id="broadband-card-upload">%s</span> <i class="icon-cloud-download icon-small status-icon"></i> <span id="broadband-card-download">%s</span> <span id="broadband-card-daily-average">%s</span>/<i>d</i></span>', 
+          bytes2string(content_rpc.tx_bytes), bytes2string(content_rpc.rx_bytes), bytes2string((content_rpc.rx_bytes+content_rpc.tx_bytes)/(content_rpc.uptime/86400)))
       end
       ngx.print(html)
       ngx.print('\
     </div>\
   </div>\
 </div>\
+<script>\
+var bbFuncID;\
+function bytes2string(bytes) {\
+  if (bytes == "") {\
+    return "0<small>B</small>";\
+  } else {\
+    var kb = bytes/1024;\
+    var mb = kb/1024;\
+    var gb = mb/1024;\
+    if (gb >= 1) {\
+      return gb.toFixed(2) + "<small>GB</small>";\
+    } else if (mb >= 1) {\
+      return mb.toFixed(2) + "<small>MB</small>";\
+    } else if (kb >= 1) {\
+      return kb.toFixed(2) + "<small>KB</small>";\
+    } else {\
+      return bytes.toFixed(2) + "<small>B</small>";\
+    }\
+  }\
+}\
+function updateBroadbandCard(){\
+  $.post("/ajax/broadband-status.lua", [tch.elementCSRFtoken()], function(data){\
+    var tx = Number(data["tx_bytes"]);\
+    var rx = Number(data["rx_bytes"]);\
+    var avg = (rx+tx)/(Number(data["uptime"])/86400);\
+    $("#broadband-card-upload").html(bytes2string(tx));\
+    $("#broadband-card-download").html(bytes2string(rx));\
+    $("#broadband-card-daily-average").html(bytes2string(avg));\
+  }, "json")\
+  .fail(function(response){\
+    if(response.status == 403){clearInterval(bbFuncID);}\
+  });\
+}\
+$().ready(function(){bbFuncID=setInterval(updateBroadbandCard,15000);});\
+</script>\
 '); 

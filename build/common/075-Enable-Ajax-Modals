@@ -1,10 +1,20 @@
 if [ "$(uci -q get web.gatewaystatusajax)" != "rule" ]
 then
-  echo [$SCRIPT]: Enabling gateway status
+  echo [$SCRIPT]: Enabling gateway status updates
   uci add_list web.ruleset_main.rules='gatewaystatusajax'
   uci set web.gatewaystatusajax='rule'
   uci set web.gatewaystatusajax.target='/ajax/gateway-status.lua'
   uci add_list web.gatewaystatusajax.roles='admin'
+  uci commit web
+  SRV_nginx=$(( $SRV_nginx + 4 ))
+fi
+if [ "$(uci -q get web.broadbandstatusajax)" != "rule" ]
+then
+  echo [$SCRIPT]: Enabling upload/download status updates
+  uci add_list web.ruleset_main.rules='broadbandstatusajax'
+  uci set web.broadbandstatusajax='rule'
+  uci set web.broadbandstatusajax.target='/ajax/broadband-status.lua'
+  uci add_list web.broadbandstatusajax.roles='admin'
   uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
 fi
