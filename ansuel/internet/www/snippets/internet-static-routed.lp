@@ -199,6 +199,26 @@ local dnsValid = {
 
 local dnsData, dnsHelpMsg = post_helper.handleTableQuery(dnsColumns, dnsOptions, nil, nil, dnsValid)
 
+local supervision_support = proxy.get("uci.supervision.global.enabled")
+local supervision_modes = {
+  { "BFD", T"BFD" },
+  { "DNS", T"DNS" },
+  { "Disabled", T"Disabled" },
+}
+local supervision_modes_content
+
+if supervision_support then
+  local supervision_modes_param = {
+    supervision_mode = "uci.supervision.global.mode",
+    supervision_enabled = "uci.supervision.global.enabled",
+  }
+  local supervision_modes_valid = {
+    supervision_mode = post_helper.getValidateInEnumSelect(supervision_modes),
+    supervision_enabled = post_helper.validateBoolean,
+  }
+  supervision_modes_content = post_helper.handleQuery(supervision_modes_param, supervision_modes_valid)
+end
+
 ---
 --- TRIGGERED DURING POST OPERATION ON IP ADDRESS
 ---    1) GRABS POST ACTION AND ARGUMENTS FROM POST
@@ -267,6 +287,10 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
         -- UI CONTROLS LIST
         -- ARGUMENT 2 MUST MUST MATCH PARAMETER NAME FROM mapParams OR ERRORS WILL OCCUR DURING INTERFACE UPDATES
         html[#html + 1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
+        if supervision_support then
+          html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision", "supervision_mode", supervision_modes, supervision_modes_content["supervision_mode"])
+          html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled", "supervision_enabled", supervision_modes_content["supervision_enabled"])
+        end
         html[#html + 1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac", content["uci_wan_mac"], nil, helpmsg["uci_wan_mac"])
         html[#html+1] = ui_helper.createInputText(T"IP Address", "wanIpAddrParam", content["wanIpAddrParam"], wanIPClass, helpmsg["wanIpAddrParam"])
         html[#html+1] = ui_helper.createInputText(T"Subnet Mask", "wanNetmaskParam", content["wanNetmaskParam"], wanNetmaskClass, helpmsg["wanNetmaskParam"])
