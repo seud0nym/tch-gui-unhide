@@ -46,6 +46,7 @@ function M.getIpv6Content()
 				content.ip6addr = "rpc.network.interface.@wan.ip6addr"
 				if notEmpty(content.ip6addr) then
 					content.ip6prefix = "rpc.network.interface.@wan.ip6prefix"
+					content.dnsv6 = "rpc.network.interface.@wan6.dnsservers"
 					break
 				end
 			end

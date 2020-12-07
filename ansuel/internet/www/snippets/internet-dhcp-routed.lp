@@ -1,7 +1,6 @@
 --pretranslated: do not change this file
  
 -- Enable localization
--- NG-84683; NG-89573
 gettext.textdomain('webui-core')
 
 local proxy = require("datamodel")
@@ -49,40 +48,40 @@ local gOV = post_helper.getOptionalValidation
 local vNES = post_helper.validateNonEmptyString
 
 local dns_options = {
-    tableid = "dns_servers",
-    basepath = "uci.network.interface.@wan.dns.@.",
-    createMsg = T"Add new DNS server",
-    minEntries = 0,
-    maxEntries = 3,
+  tableid = "dns_servers",
+  basepath = "uci.network.interface.@wan.dns.@.",
+  createMsg = T"Add new DNS server",
+  minEntries = 0,
+  maxEntries = 3,
 }
 
 local dns_columns = {
-    {
-        header = T"DNS IP",
-        name = "dns_server",
-        param = "value",
-        type = "text",
-    }
+  {
+    header = T"DNS IP",
+    name = "dns_server",
+    param = "value",
+    type = "text",
+  }
 }
 
 local dns_valid = {
-    dns_server = gOV(vSII)
+  dns_server = gOV(vSII)
 }
 
 local dns_data, dns_helpmsg = post_helper.handleTableQuery(dns_columns, dns_options, nil, nil, dns_valid)
 session:store("dns_data",dns_data)
 
 local function get_dhcp_state(wan_auto, ipaddr)
-    -- Figure out interface state
-    if wan_auto ~= "0" then
-        if ipaddr:len() > 0 then
-            return "connected"
-        else
-            return "connecting"
-        end
+  -- Figure out interface state
+  if wan_auto ~= "0" then
+    if ipaddr:len() > 0 then
+      return "connected"
     else
-        return "disabled"
+      return "connecting"
     end
+  else
+    return "disabled"
+  end
 end
 
 local function split(str, ang)
@@ -205,18 +204,18 @@ local function IPv6andUsername(value, object, key)
 end
 
 local mapValid = {
-    uci_wan_auto = vB,
-    uci_wan_masq = validateNat,
-	uci_wan_ipv6 = IPv6andUsername,
-    uci_wan_mac = gOV(post_helper.validateStringIsMAC),
-    uci_wan_peerdns = vB,
-	uci_wan_vendorid = gOV(post_helper.validateNonEmptyString),
+  uci_wan_auto = vB,
+  uci_wan_masq = validateNat,
+  uci_wan_ipv6 = IPv6andUsername,
+  uci_wan_mac = gOV(post_helper.validateStringIsMAC),
+  uci_wan_peerdns = vB,
+  uci_wan_vendorid = gOV(post_helper.validateNonEmptyString),
 }
 
 local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
 -- default value
 if content["uci_wan_auto"] ~= "0" then
-    content["uci_wan_auto"] = "1"
+  content["uci_wan_auto"] = "1"
 end
 
 local wan_ppp_ll_intf = proxy.get("rpc.network.interface.@wan.ppp.ll_intf")
@@ -262,11 +261,11 @@ end
 
 -- Non-configurable data
 local cs = {
-    ipaddr = "rpc.network.interface.@wan.ipaddr",
-    nexthop = "rpc.network.interface.@wan.nexthop",
-    dns = "rpc.network.interface.@wan.dnsservers",
-    ipv6_gua = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
-    dns_loopback = "rpc.network.interface.@loopback.dnsservers", -- Added to include static dns servers configured on loopback interface (for TI custo)
+  ipaddr = "rpc.network.interface.@wan.ipaddr",
+  nexthop = "rpc.network.interface.@wan.nexthop",
+  dns = "rpc.network.interface.@wan.dnsservers",
+  ipv6_gua = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
+  dns_loopback = "rpc.network.interface.@loopback.dnsservers", -- Added to include static dns servers configured on loopback interface (for TI custo)
 }
 
 local internethelper = require("internethelper")
@@ -276,38 +275,38 @@ for v6Key, v6Value in pairs(internethelper.getIpv6Content()) do
 end
 
 local dhcp_lease = {
-        uptime = "rpc.system.uptime",
-        connect_time = "uci.network.interface.@wan.connect_time",
-        lease = "uci.network.interface.@wan.lease",
-        lease_expires = "uci.network.interface.@wan.lease_expires",
+  uptime = "rpc.system.uptime",
+  connect_time = "uci.network.interface.@wan.connect_time",
+  lease = "uci.network.interface.@wan.lease",
+  lease_expires = "uci.network.interface.@wan.lease_expires",
 }
 
 function getLeaseTime(uptime, lease, expires)
-    local leaseobtained = os.date("%F %T", os.time() - (tonumber(uptime) - (tonumber(expires ~="" and expires or 0) - tonumber(lease ~="" and lease or 0))))
-    local leaseexpires = os.date("%F %T", os.time() + (tonumber(expires ~="" and expires or 0) - tonumber(uptime)))
-    return leaseobtained, leaseexpires
+  local leaseobtained = os.date("%F %T", os.time() - (tonumber(uptime) - (tonumber(expires ~="" and expires or 0) - tonumber(lease ~="" and lease or 0))))
+  local leaseexpires = os.date("%F %T", os.time() + (tonumber(expires ~="" and expires or 0) - tonumber(uptime)))
+  return leaseobtained, leaseexpires
 end
 
 ajax_helper.handleAjaxQuery(cs, function(c)
-    -- this will add the HTML for the light
-    local ds = get_dhcp_state(content["uci_wan_auto"], c["ipaddr"])
-    local dnstab = split(proxy.get("rpc.network.interface.@loopback.dnsservers")[1].value, "[^%,]+")
-    local dnsv4, dnsv6 = dns_filter(dnstab)
-    ajax_attr_light.light.class = dhcp_light_map[ds]
-    c.wan_status = ui_helper.createSimpleLight(nil, dhcp_state_map[ds], ajax_attr_light)
-	if proxy.get("uci.network.interface.@wan.auto")[1].value == "1" then
-          c.dns = content_helper.getMergedList(proxy.get("rpc.network.interface.@wan.dnsservers")[1].value, dnsv4)
-        else
-		c.dns = dnsv4
-	end
-    local ipv6_enabled = proxy.get("uci.network.interface.@wan.ipv6")
-    if ipv6_enabled and ipv6_enabled[1].value == "1" then
-		c.dnsv6 = dnsv6
-	end
-	if ds == "connected" then
-        content_helper.getExactContent(dhcp_lease)
-        c["leaseobtained"], c["leaseexpires"] = getLeaseTime(dhcp_lease["uptime"],  dhcp_lease["lease"], dhcp_lease["lease_expires"])
-    end
+  -- this will add the HTML for the light
+  local ds = get_dhcp_state(content["uci_wan_auto"], c["ipaddr"])
+  local dnstab = split(proxy.get("rpc.network.interface.@loopback.dnsservers")[1].value, "[^%,]+")
+  local dnsv4, dnsv6 = dns_filter(dnstab)
+  ajax_attr_light.light.class = dhcp_light_map[ds]
+  c.wan_status = ui_helper.createSimpleLight(nil, dhcp_state_map[ds], ajax_attr_light)
+  if proxy.get("uci.network.interface.@wan.auto")[1].value ~= "0" then
+    c.dns = content_helper.getMergedList(proxy.get("rpc.network.interface.@wan.dnsservers")[1].value, dnsv4)
+  else
+    c.dns = dnsv4
+  end
+  local ipv6_enabled = proxy.get("uci.network.interface.@wan.ipv6")
+  if ipv6_enabled and ipv6_enabled[1].value == "1" then
+    c.dnsv6 = content_helper.getMergedList(proxy.get("rpc.network.interface.@wan6.dnsservers")[1].value, dnsv6)
+  end
+  if ds == "connected" then
+    content_helper.getExactContent(dhcp_lease)
+    c["leaseobtained"], c["leaseexpires"] = getLeaseTime(dhcp_lease["uptime"],  dhcp_lease["lease"], dhcp_lease["lease_expires"])
+  end
 end)
 -- will stop in handleAjaxQuery if it is an actual AJAX query
 content_helper.getExactContent(cs)
@@ -321,10 +320,10 @@ end
 
 -- account for inconsistencies in DNS display format by removing extra spaces
 if cs["dns"] and cs["dns"]:len() > 0 then
-    cs["dns"] = cs["dns"]:gsub("%s+", "")
+  cs["dns"] = cs["dns"]:gsub("%s+", "")
 end
 if cs["dnsv6"] and cs["dnsv6"]:len() > 0 then
-    cs["dnsv6"] = cs["dnsv6"]:gsub("%s+", "")
+  cs["dnsv6"] = cs["dnsv6"]:gsub("%s+", "")
 end
 
 dhcp_state = get_dhcp_state(content["uci_wan_auto"], cs["ipaddr"])
