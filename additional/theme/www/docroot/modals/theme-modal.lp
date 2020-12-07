@@ -16,7 +16,8 @@ end
 local theme_names = {
     {"light", T"Light"},
     {"night", T"Night"},
-    {"telstra", T"Telstra Branding"},
+    {"telstra", T"Telstra Branding (Classic)"},
+    {"telstramodern", T"Telstra Branding (Modern)"},
 }
 local theme_colours = {
     {"blue", T"Blue"},
@@ -80,12 +81,12 @@ ngx.print('\
   </div>\
   <script>\
   $(document).ready(function () {\
-    if ($("#theme_name").val() == "telstra") {\
+    if ($("#theme_name").val().startsWith("telstra")) {\
       $("#theme_colour").val("blue");\
       $("#theme_colour").prop("disabled", true);\
     }\
     $("#theme_name").change(function () {\
-      if ($(this).val() == "telstra") {\
+      if ($(this).val().startsWith("telstra")) {\
         $("#theme_colour").val("blue");\
         $("#theme_colour").prop("disabled", true);\
       }\

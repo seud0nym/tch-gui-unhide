@@ -1,11 +1,24 @@
 /* Common to light, night, and Telstra themes */
-u{text-decoration:none;}
+.bbstats{margin:0px 0px -6px 20px;}
 .card_bg:after{visibility:var(--ICONS);}
 .card_bg.mirror:after{transform:matrix(-1,0,0,1,0,0);}
 .header .btn{margin-left:5px;}
 .simple-desc{display:block;padding-top:3px;}
 .smallcard .content{font-size:14px;height:125px;}
 .smallcard .subinfos{font-size:14px;}
+.status-icon{color:var(--RGB_STATUS_ICON);}
+#device-modal>div.modal-body>div.container{width:1060px !important;}
+#devices>tbody>tr>td:nth-child(2) input{width:200px;}
+#devices>tbody>tr>td:nth-child(2),#devices>tbody>tr>td:nth-child(6),#devices>tbody>tr>td:nth-child(7),#devices>tbody>tr>td:nth-child(8){white-space:nowrap;}
+#dnsServer,#ipv4_dns_sec,#dns_v6_pri,#dns_v6_sec{width:190px;}
+#helper>tbody>tr>td{text-transform:uppercase;}
+#hide-unhide-non-connected-device{display:none;}
+#proctable>tbody>tr>td:nth-child(1),#proctable>tbody>tr>td:nth-child(2),#proctable>tbody>tr>td:nth-child(5),#proctable>tbody>tr>td:nth-child(6),#proctable>tbody>tr>td:nth-child(7){text-align:right;}
+#proctable>tbody>tr>td:nth-child(6):after,#proctable>tbody>tr>td:nth-child(7):after{content:"%";}
+#proctable>thead>tr>th{white-space:nowrap;}
+#sipnet>tbody>tr>td:nth-child(3) input,#sipnet>tbody>tr>td:nth-child(5) input,#sipnet>tbody>tr>td:nth-child(6) input{width:60px;}
+#sipnet>tbody>tr>td:nth-child(7) input{width:66px;}
+#sipnet>tbody>tr>td:nth-child(8) select{width:100px;}
 #tod>tbody>tr.additional-edit>td:nth-child(1)>fieldset>div:nth-child(3)>div.controls>label.checkbox{padding-left:0px;}
 #tod>tbody>tr.additional-edit>td:nth-child(1)>fieldset>div:nth-child(3)>div.controls>label.checkbox>input[type="checkbox"]{margin-left:2px;width:20px;}
-.status-icon{color:var(--RGB_STATUS_ICON);}
+u{text-decoration:none;}

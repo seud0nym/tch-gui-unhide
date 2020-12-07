@@ -28,7 +28,7 @@ local html = {}
 html[#html+1] = format(stylesheet, "icons-" .. settings["ICONS"], ".css")
 html[#html+1] = format(stylesheet, "common-override", ".css")
 
-if settings["THEME"] == "telstra" then
+if settings["THEME"]:find("^telstra") then
   html[#html+1] = format(favicon, "telstra/")
   html[#html+1] = format(stylesheet, "telstra", "/colour-text.css")
 else

@@ -12,12 +12,13 @@ do
    l) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then KEEPLP=y; else KEEPLP=n; fi;;
    d) case "${OPTARG}" in y|Y) FIX_DFLT_USR=y; DFLT_USR='admin';; n|N) FIX_DFLT_USR=y; DFLT_USR='';;  *) echo 'WARNING: -d valid options are y or n';; esac;;
    f) case "${OPTARG}" in y|Y) FIX_FW_UPGRD=y; FW_UPGRD='1';;     n|N) FIX_FW_UPGRD=y; FW_UPGRD='0';; *) echo 'WARNING: -f valid options are y or n';; esac;;
-   t) case "$(echo ${OPTARG} | tr "GNOPLT" "gnoplt" | sed 's/\(.\)\(.*\)/\1/')" in
+   t) case "${OPTARG}" in
         g) THEME=night; COLOR=green; KEEPLP=n; echo WARNING: -tg deprecated. Use -tn -cg in future;; 
-        n) THEME=night; COLOR=blue; KEEPLP=n;;
         o) THEME=night; COLOR=orange; KEEPLP=n; echo WARNING: -to deprecated. Use -tn -co in future;; 
         p) THEME=night; COLOR=purple; KEEPLP=n; echo WARNING: -tp deprecated. Use -tn -cp in future;; 
         l) THEME=light; COLOR=monochrome; KEEPLP=n;;
+        m) THEME=telstramodern; COLOR=blue; KEEPLP=y;;
+        n) THEME=night; COLOR=blue; KEEPLP=n;;
         *) THEME=telstra; COLOR=blue; KEEPLP=y;;
       esac;;
    c) case "$(echo ${OPTARG} | tr "BGMOPR" "bgmopr" | sed 's/\(.\)\(.*\)/\1/')" in
@@ -87,8 +88,8 @@ do
       fi
       exit;;
    ?) echo "Optional parameters:"
-      echo " -t l|n|t       : Set a light (l), night (n), or Telstra-branded (t) theme"
-      echo "                    (Default is current setting, or Telstra if no theme has been applied)"
+      echo " -t l|n|t|m     : Set a light (l), night (n), or Telstra-branded Classic (t) or Modern (m) theme"
+      echo "                    (Default is current setting, or Telstra Classic if no theme has been applied)"
       echo " -c b|o|g|p|r|m : Set the theme highlight colour"
       echo "                    b=blue o=orange g=green p=purple r=red m=monochrome"
       echo "                    (Default is current setting, or (m) for light theme or (b) for night theme)"
