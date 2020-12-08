@@ -10,3 +10,6 @@ sed \
   -e '/"Serial Number"/i \    html[#html + 1] = ui_helper.createLabel(T"tch-gui-unhide Version", content["unhide_version"], basic)' \
   -i /www/docroot/modals/gateway-modal.lp
 
+echo [$SCRIPT]: Fix uptime on basic Broadband tab
+sed -e 's/days > 1/days > 0/' -i /www/docroot/broadband.lp
+
