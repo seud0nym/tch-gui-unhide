@@ -10,5 +10,8 @@ sed \
 
 echo [$SCRIPT]: Restart Time of Day processing after updates applied 
 sed -e 's|reload$|reload; /etc/init.d/tod restart;|' -i /usr/share/transformer/commitapply/uci_tod.ca
+<<<<<<< HEAD
 SRV_transformer=$(( $SRV_transformer + 1 ))
+=======
+>>>>>>> 1a80866f7e3d46d5e8ce0b85ff77b6081f8b953b
 
