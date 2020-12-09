@@ -4,6 +4,7 @@ then
   uci add_list web.ruleset_main.rules='gatewaystatusajax'
   uci set web.gatewaystatusajax='rule'
   uci set web.gatewaystatusajax.target='/ajax/gateway-status.lua'
+  uci set web.gatewaystatusajax.normally_hidden='1'
   uci add_list web.gatewaystatusajax.roles='admin'
   uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
@@ -14,7 +15,19 @@ then
   uci add_list web.ruleset_main.rules='broadbandstatusajax'
   uci set web.broadbandstatusajax='rule'
   uci set web.broadbandstatusajax.target='/ajax/broadband-status.lua'
+  uci set web.broadbandstatusajax.normally_hidden='1'
   uci add_list web.broadbandstatusajax.roles='admin'
+  uci commit web
+  SRV_nginx=$(( $SRV_nginx + 4 ))
+fi
+if [ "$(uci -q get web.ssidstatusajax)" != "rule" ]
+then
+  echo [$SCRIPT]: Enabling SSID status updates
+  uci add_list web.ruleset_main.rules='ssidstatusajax'
+  uci set web.ssidstatusajax='rule'
+  uci set web.ssidstatusajax.target='/ajax/ssid-status.lua'
+  uci set web.ssidstatusajax.normally_hidden='1'
+  uci add_list web.ssidstatusajax.roles='admin'
   uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
 fi
