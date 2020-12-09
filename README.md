@@ -23,8 +23,6 @@ Skip any of these steps that you have already done.
 
 Read on for the long version...
 
-*PLEASE NOTE: Previous versions of the `tch-gui-unhide` script (release 2020.08.03 and before) also applied most of the hardening recommendations from https://hack-technicolor.readthedocs.io/en/stable/Hardening/. These have now been moved to a separate utility script ([`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra)).*
-
 ## Why not just use https://github.com/Ansuel/tch-nginx-gui?
 When I first acquired root access to my DJA0231, I applied tch-nginx-gui because I had used it for some time on my Technicolor TG800vac, and found it very good. However, on the DJA0231, I encountered various problems after reboots, such as loss of customised SSID's and IP addresses, loss of root in one instance, the admin password got reset to Telstra default, and so on.
 
@@ -88,23 +86,26 @@ Some hidden screens included on the device are not enabled, mainly because they 
 
 ### Additional (new) GUI Features
 - **Gateway** card now has current device status for CPU usage, free RAM and temperature
-- **Internet** and **LAN** cards now show IPv6 information
+- **Broadband** card shows current upload/download volume, and average per day
+- **Internet Access** and **LAN** cards now show IPv6 information
+- **Internet Access** screen allows you to specify a static IPv6 address (in static connection mode)
 - **Local Network** allows enabling/disabling of DHCPv6 and SLAAC
+- **WiFi** card auto-updates to reflect SSID status (e.g. when Time of Day Wireless Access Controls rules enable or disable SSIDs)
 - **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
 - **Traffic monitor** tab in Diagnostics
-- **Time of Day** card shows the Wireless Control rule count
+- **Time of Day** card shows the Wireless Control rule count, and correctly applies changes so that they work reliably
 - **System Extras** now allows:
     - Configure WAN SSH access
     - Change the web GUI theme
 - **Management** screen allows the theme to be changed from within the GUI, and viewing of running processes
+- **Firewall** cards shows whether IPv4 and IPv6 pings are allowed, and the screen allows you to specify src and/or dest zone for user defined rules, and therefore create incoming, outgoing and forwarding rules in either direction (stock GUI only creates lan->wan forwarding rules)
+- **Telephony** screen now has a Dial Plans tab to edit the dial plans
 
 ## What else does it do?
 - Properly enables SSH LAN access (because if you don't and then disable it through the GUI, you can lose SSH access).
-- Modernises the GUI a little bit with a light theme by default, or optionally with a dark (night) theme. See Themes below.
+- Modernises the GUI a little bit with a choice of light, dark (night) or Telstra (Classic or Modern) theme. See Themes below.
 - Optionally enables or disables default user access (i.e. no login required to access the Web interface)
 - Allows you to change the sequence of the cards and their visibility. See Cards below.
-
-*PLEASE NOTE: Previous versions of the script (release 2020.08.16 and before) also set the hostname and domain. This functionality has been moved to the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) utility script.*
 
 ### Custom DNS Servers
 - If a file called *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* is found in the directory from which the script is invoked, the contents will be added to the list of DNS Servers on the **Local Network** screen.
@@ -116,7 +117,6 @@ Some hidden screens included on the device are not enabled, mainly because they 
     Pi-hole 192.168.0.168
     Pi-hole-VM 192.168.0.192
 ```
-
 ```
     Pi-hole fe80::aaaa:bbbb:cccc:dddd
     Pi-hole-VM fe80::1:22:3300:444
@@ -128,12 +128,10 @@ Some hidden screens included on the device are not enabled, mainly because they 
 ### Firmware Version 18.1.c.0514 (and later) Specific
 - If you run this script on the 18.1.c.0514 or later firmware, it can also add a button to access DumaOS (Telstra Game Optimiser), but only if DumaOS has been enabled. To add this button, execute the [`dumaos`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos) script with the `-on` parameter to enable DumaOS *before* running the `tch-gui-unhide` script.
 
-*PLEASE NOTE: Previous versions of the script (release 2020.08.03 and before) also automatically enabled the beta version of DumaOS on the DJA0231. To get this functionality, run the [`dumaos`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos) utility script.*
-
 ## What does it actually do?
 All configuration changes are applied using the *uci* command interface to update the configuration files.
 
-GUI changes are implemented by making edits on the existing files.
+GUI changes are implemented by making edits on the existing files, or adding new/replacement files.
 
 No new executables are added to the system outside of the GUI changes.
 
@@ -281,8 +279,6 @@ When this screen is displayed, you have the following options available:
 - Script changes will not persist a reset or restore. If you factory reset your device, or restore to it a state before you applied a script, or upgrade/install firmware, you will need to run the script again!
 
 # Themes
-*PLEASE NOTE: Previous releases of the tch-gui-unhide script had additional scripts to switch between the light and dark themes. This release includes multiple themes in the single script.*
-
 By default, the script will keep a "Telstra" theme, very similar to the default Telstra theme.
 
 You can switch to a "dark" (or "night") theme by re-running the script with the `-T`, `-t`, `-c` and `-i` parameters:
