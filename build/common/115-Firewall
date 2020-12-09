@@ -3,6 +3,7 @@ sed \
   -e '/"rpc.network.firewall.mode"/i \    enabled = "rpc.network.firewall.enable",' \
   -e '/"rpc.network.firewall.mode"/i \    ping_ipv4 = "rpc.network.firewall.internetpingipv4",' \
   -e '/"rpc.network.firewall.mode"/i \    ping_ipv6 = "rpc.network.firewall.internetpingipv6",' \
+  -e '/"rpc.network.firewall.mode"/i \    ipv6State = "uci.network.interface.@wan.ipv6",' \
   -e 's/T"low"/T"Low"/' \
   -e 's/T"normal"/T"Normal"/' \
   -e 's/T"high"/T"High"/' \
@@ -18,19 +19,21 @@ sed \
   -e '/subinfos/i \    ngx.print(ui_helper.createSimpleLight(content.enabled, fw_status))' \
   -e '/subinfos/i \    if content.enabled == "1" then' \
   -e '/subinfos/i \      local ping_ipv4_status' \
-  -e '/subinfos/i \      local ping_ipv6_status' \
   -e '/subinfos/i \      if content.ping_ipv4 == "1" then' \
   -e '/subinfos/i \        ping_ipv4_status = "Answer IPv4 Ping enabled"' \
   -e '/subinfos/i \      else' \
   -e '/subinfos/i \        ping_ipv4_status = "Answer IPv4 Ping disabled"' \
   -e '/subinfos/i \      end' \
-  -e '/subinfos/i \      if content.ping_ipv6 == "1" then' \
-  -e '/subinfos/i \        ping_ipv6_status = "Answer IPv6 Ping enabled"' \
-  -e '/subinfos/i \      else' \
-  -e '/subinfos/i \        ping_ipv6_status = "Answer IPv6 Ping disabled"' \
-  -e '/subinfos/i \      end' \
   -e '/subinfos/i \      ngx.print(ui_helper.createSimpleLight(content.ping_ipv4, ping_ipv4_status))' \
-  -e '/subinfos/i \      ngx.print(ui_helper.createSimpleLight(content.ping_ipv6, ping_ipv6_status))' \
+  -e '/subinfos/i \      if content["ipv6State"] == "1" then' \
+  -e '/subinfos/i \        local ping_ipv6_status' \
+  -e '/subinfos/i \        if content.ping_ipv6 == "1" then' \
+  -e '/subinfos/i \          ping_ipv6_status = "Answer IPv6 Ping enabled"' \
+  -e '/subinfos/i \        else' \
+  -e '/subinfos/i \          ping_ipv6_status = "Answer IPv6 Ping disabled"' \
+  -e '/subinfos/i \        end' \
+  -e '/subinfos/i \        ngx.print(ui_helper.createSimpleLight(content.ping_ipv6, ping_ipv6_status))' \
+  -e '/subinfos/i \      end' \
   -e '/subinfos/i \    end' \
   -e "/subinfos/i \    ngx.print('\\\\" \
   -i /www/cards/008_firewall.lp
