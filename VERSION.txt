@@ -1,6 +1,23 @@
+2020.12.09
+==========
+* tch-gui-unhide: Added modified firewall modal so that you can specify src and/or dest zone for user defined rules, and therefore create incoming, outgoing and forwarding rules in either direction (stock GUI only creates lan->wan forwarding rules)
+* tch-gui-unhide: Added new tab to telephony to edit dial plans
+* tch-gui-unhide: Added autorefresh to device list and process viewer
+* tch-gui-unhide: Added background update of upload/download volumes on Broadband card
+* tch-gui-unhide: Added background update of SSID status on Wireless card
+* tch-gui-unhide: Added WAN Supervision to Internet Static Routed Mode snippet
+* tch-gui-unhide: Added ability to set static IPv6 address
+* tch-gui-unhide: Added FW version to copyright
+* tch-gui-unhide: Fixed restore processing to prevent it from deleting DumaOS web configuration
+* tch-gui-unhide: Fixed Time of Day tabs 
+* tch-gui-unhide: Restart Time of Day processing after updates applied to ensure changes are processed [#14]
+* tch-gui-unhide: Fixed Telstra Classic theme, and added Telstra Modern theme [#15]
+* tch-gui-unhide: Fixed Internet Access modal in PPPoE connection mode which always showed Connecting even when connected [#14]
+* tch-gui-unhide: Fixed uptime in basic view when uptime between 24 and 48 hours (showed no days instead of 1 day) [#16]
+
 2020.11.29
 ==========
-* tch-gui-unhide: Added support for FW 18.1.c.0585
+* tch-gui-unhide: Added support for FW 18.1.c.0585 [#13]
 * tch-gui-unhide: Missed Telstra Air-5G when consolidating Telstra Air/Fon SSIDs on Wi-Fi card
 * tch-gui-unhide: Daily usage estimate on Broadband card wrong after WAN reset
 * tch-gui-unhide: Added wait spinner to init management when action selected

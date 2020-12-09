@@ -170,9 +170,9 @@ It is recommended that you apply whatever hardening (such as the [`de-telstra`](
 ./tch-gui-unhide <options>
 ```
 The script accepts the following options:
-- -t l|n|t
-    - Set a light (*-tl*), night (*-tn*), or default Telstra (*-tt*) theme
-    - The default is the current setting, or Telstra if no theme has been applied
+- -t l|n|t|m
+    - Set a light (*-tl*), night (*-tn*), or default Telstra Classic (*-tt*) or Telstra Modern (*-tm*) theme
+    - The default is the current setting, or Telstra Classic if no theme has been applied
 - -c b|o|g|p|r|m
     - Set the theme highlight colour: *-cb*=blue *-co*=orange *-cg*=green *-cp*=purple *-cr*=red *-cm*=monochrome
     - The default is the current setting, or *-cm* for the light theme or *-cb* for the night theme
@@ -288,7 +288,7 @@ By default, the script will keep a "Telstra" theme, very similar to the default 
 You can switch to a "dark" (or "night") theme by re-running the script with the `-T`, `-t`, `-c` and `-i` parameters:
 
 - The `-T` parameter bypasses all processing except the application of the theme. Without this option, the entire script will be re-applied with the selected theme.
-- The `-t` parameter has 3 options: `-tl` for the light theme, or `-tn` for the night theme, or `-tt` for the Telstra theme.
+- The `-t` parameter has 3 options: `-tl` for the light theme, or `-tn` for the night theme, `-tt` for the Telstra Classic theme, or `-tm` for the Telstra Modern theme.
 - The `-c` parameter specifies a highlight colour for the selected theme. There are 5 choices: blue (`-cb`), orange (`-co`), green (`-cg`), purple (`-cp`) or monochrome (`-cm`). If no theme has been previously applied, the default colour for the light theme is monochrome, and blue for the night theme.
 - The `-i` parameter controls whether or not the background icons on the cards will be displayed. `-iy` makes the icons visible; `-in` hides them. If no theme has been previously applied, the default is no icons for the light theme, and icons visible for the night theme.
 - The `-l` parameter turns off theming and de-branding of the Telstra landing page (DJA0231).
