@@ -341,8 +341,18 @@ ajax_helper.handleAjaxQuery(content_rpc, function(c)
 	c.byte =  format("%s %s [B] %s %s [B]", iconUp, mapPPPstats.bytesS, iconDown, mapPPPstats.bytesR)
 	c.unknown = format("%s %s [Pkt]", iconDown, mapPPPstats.unknownR)
 end)
-
+-- will stop in handleAjaxQuery if it is an actual AJAX query
 content_helper.getExactContent(content_rpc)
+
+if content_rpc.ipaddr == "" then
+  content_rpc.ipaddr = proxy.get("rpc.network.interface.@wan.ipaddr")[1].value
+end
+if content_rpc.nexthop == "" then
+  content_rpc.nexthop = proxy.get("rpc.network.interface.@wan.nexthop")[1].value
+end
+if content_rpc.dns == "" then
+  content_rpc.dns = proxy.get("rpc.network.interface.@wan.dnsservers")[1].value
+end
 
 local dnstab = split(content_rpc.dns, "[^%,]+")
 local dnsv4, dnsv6 = dns_filter(dnstab)
