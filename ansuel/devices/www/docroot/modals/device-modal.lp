@@ -10,7 +10,7 @@ local string, ngx, os = string, ngx, os
 local tonumber = tonumber
 local floor = math.floor
 local concat = table.concat
-local format, match = string.format, string.match
+local format, match, lower = string.format, string.match, string.lower
 local content_helper = require("web.content_helper")
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
@@ -89,6 +89,60 @@ if (getargs.sort) then
 else
   sortcol = "FriendlyName"
 end
+local sortfunc
+if sortcol == "FriendlyName" then
+  sortfunc = function(a, b)
+    return lower(a.FriendlyName or "") < lower(b.FriendlyName or "")
+  end
+elseif sortcol == "IPv4" then
+  local ipv4ToNumber = function(a)
+    local ipv4 
+    if (a.IPv4 == "") then
+      ipv4 = a.DhcpLeaseIP
+    else
+      ipv4 = a.IPv4
+    end
+    local bits = {ipv4:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")}
+    if #bits == 4 then
+      return tonumber(format("%03d%03d%03d%03d", bits[1], bits[2], bits[3], bits[4]))
+    else
+      return 0
+    end
+  end
+  sortfunc = function(a, b)
+    return ipv4ToNumber(a) < ipv4ToNumber(b)
+  end
+elseif sortcol == "IPv6" then
+  local ipv6ToString = function(a)
+    local emptyIdx = 0
+    local bits = {}
+    for bit in string.gmatch(a, "(%w*):*") do
+      if bit == "" then
+        emptyIdx = #bits+1
+      end
+      bits[#bits+1] = ('0'):rep(4-#bit)..bit
+    end
+    if emptyIdx > 0 then
+      for i = emptyIdx+1,8,1 do
+        bits[emptyIdx] = bits[emptyIdx] .. "0000"
+      end
+    end
+    local retval = ""
+    for _,b in ipairs(bits) do
+      if retval == "" then
+        retval = b
+      else
+        retval = retval .. b
+      end
+    end
+    return retval
+  end
+  sortfunc = function(a, b)
+    return ipv6ToString(a.IPv6) < ipv6ToString(b.IPv6)
+  end
+else
+  sortfunc = sortcol
+end
 
 local device_valid = {}
 local devices_options = {
@@ -97,7 +151,7 @@ local devices_options = {
   canDelete = false,
   tableid = "devices",
   basepath = "rpc.hosts.host.",
-  sorted = sortcol,
+  sorted = sortfunc,
 }
 
 local devices_filter = function(data)
@@ -172,6 +226,8 @@ for(var i=0;i<hdrs.length;i++){\
   var sort="";\
   switch(text){\
     case "Hostname":sort="FriendlyName";break;\
+    case "IPv4":sort="IPv4";break;\
+    case "IPv6":sort="IPv6";break;\
     case "MAC":sort="MACAddress";break;\
     case "Interface":sort="L2Interface";break;\
     case "Connected":sort="ConnectedTime";break;\
