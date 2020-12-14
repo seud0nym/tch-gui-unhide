@@ -205,7 +205,15 @@ for k, v in pairs (devices_data) do
     end
 end
 
-ngx.print( ui_helper.createHeader(T"Devices", false, true, 5) ); ngx.print('\
+local interval = 5
+if ngx.var.request_method == "POST" and ngx.var.content_type and match(ngx.var.content_type, "application/x%-www%-form%-urlencoded") then
+  local action = ngx.req.get_post_args().action
+  if action == "TABLE-EDIT" then
+    interval = nil
+  end
+end
+
+ngx.print( ui_helper.createHeader(T"Devices", false, true, interval) ); ngx.print('\
 <div class="modal-body update">\
 ');  lp.include("tabs-devices.lp")   ngx.print('\
   <form class="form-horizontal" method="post" action="modals/device-modal.lp?sort=');  ngx.print(sortcol); ngx.print('">\
