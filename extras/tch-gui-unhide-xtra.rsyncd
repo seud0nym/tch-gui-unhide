@@ -1,0 +1,124 @@
+#!/bin/sh
+
+# The tch-gui-unhide-xtra scripts should output a single line to indicate success or failure
+# as the calling script has left a hanging echo -n. Include a leading space for clarity.
+
+if [ -f /etc/init.d/rsyncd ]
+then
+  echo " Adding rsyncd support..."
+
+  # Create the UCI transformer mapping
+  if [ ! -f /usr/share/transformer/mappings/rpc/gui.rsync.map ]
+  then
+    cat <<MAP > /usr/share/transformer/mappings/rpc/gui.rsync.map
+local lfs = require("lfs")
+
+local init_cmd = "/etc/init.d/rsyncd"
+local pid_file_cmd = "grep 'pid file' /etc/rsyncd.conf"
+local status_cmd = init_cmd .. " enabled"
+local start_cmd = init_cmd .. " restart|logger; " .. init_cmd .. " enable"
+local stop_cmd = init_cmd .. " stop|logger; " .. init_cmd .. " disable"
+
+local function isRunning()
+  local cfg = io.popen(pid_file_cmd, 'r')
+  local line = cfg:read()
+  cfg:close()
+  local pid_file = line:match("pid *file *= *([^ ]*)")
+  local pid_file_exists = lfs.attributes(pid_file, 'mode')
+  if pid_file_exists then
+    return true
+  else
+    return false
+  end
+end
+
+local GUI_RSYNC_ = {
+  objectType = {
+    name = "rpc.gui.rsync.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      enable = {
+        access = "readWrite",
+        type = "boolean",
+      }
+    }
+  }
+}
+
+GUI_RSYNC_.get = {
+  enable = function()
+    local enabled = os.execute(status_cmd)
+    if isRunning() and enabled == 0 then
+      return "1"
+    else
+      return "0"
+    end
+  end
+}
+
+GUI_RSYNC_.set = {
+  enable = function(mapping,param,value,key)
+    if value == "1" then
+      os.execute(start_cmd)
+    else
+      os.execute(stop_cmd)
+    end
+  end
+}
+
+register(GUI_RSYNC_)
+MAP
+    SRV_transformer=$(( $SRV_transformer + 1 ))
+  fi
+
+  grep -q '\[usb\]' /etc/rsyncd.conf
+  # Add the usb module
+  if [ $? -ne 0 ]; then
+    echo "">> /etc/rsyncd.conf
+    echo "[usb]" >> /etc/rsyncd.conf
+    echo "path = /tmp/run/mountd/sda1" >> /etc/rsyncd.conf
+    echo "read only = no" >> /etc/rsyncd.conf
+  fi
+
+  # Update the card
+  sed \
+    -e '/local iperf_enabled/i local rsync_enabled = "Disabled"' \
+    -e '/uci.iperf.iperf.enable/a local rsync = proxy.get("rpc.gui.rsync.enable")' \
+    -e '/uci.iperf.iperf.enable/a if rsync and (rsync[1].value == "1") then' \
+    -e '/uci.iperf.iperf.enable/a   rsync_enabled = "Enabled"' \
+    -e '/uci.iperf.iperf.enable/a end' \
+    -e '/local iperf_state_map/i local rsync_state_map = {' \
+    -e '/local iperf_state_map/i   Disabled = T"rsyncd disabled",' \
+    -e '/local iperf_state_map/i   Enabled = T"rsyncd enabled",' \
+    -e '/local iperf_state_map/i }' \
+    -e '/ngx.print(html)/i tinsert(html, ui_helper.createSimpleLight(nil, rsync_state_map[rsync_enabled], { light = { class = light_map[rsync_enabled] } }) )' \
+    -i /www/cards/091_system.lp
+
+  # Update the modal
+  sed \
+    -e '/local iperf_available/i \local rsync_params = {' \
+    -e '/local iperf_available/i \  rsync_enable = "rpc.gui.rsync.enable",' \
+    -e '/local iperf_available/i \}' \
+    -e '/local iperf_available/i \local rsync_valid = {' \
+    -e '/local iperf_available/i \  rsync_enable = vB,' \
+    -e '/local iperf_available/i \}' \
+    -e '/local iperf_available/i \rsync_params, rsync_helpmsg = post_helper.handleQuery(rsync_params, rsync_valid)' \
+    -e "/<\/form>/i \</fieldset>\\\\" \
+    -e "/<\/form>/i \<fieldset>\\\\" \
+    -e "/<\/form>/i \  <legend>');  ngx.print( T\"rsync\" ); ngx.print('</legend>\\\\" \
+    -e "/<\/form>/i \    ');" \
+    -e "/<\/form>/i \      local html = {}" \
+    -e "/<\/form>/i \      html[#html + 1] = ui_helper.createSwitch(T\"rsync Daemon\", \"rsync_enable\", rsync_params[\"rsync_enable\"])" \
+    -e "/<\/form>/i \      ngx.print(html)" \
+    -e "/<\/form>/i \      ngx.print('\\\\" \
+    -i /www/docroot/modals/system-modal.lp
+else
+  echo " SKIPPED because rsyncd not installed"
+  if [ -f /usr/share/transformer/mappings/rpc/gui.rsync.map ]
+  then
+    rm /usr/share/transformer/mappings/rpc/gui.rsync.map
+    SRV_transformer=$(( $SRV_transformer + 1 ))
+  fi
+fi

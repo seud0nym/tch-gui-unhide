@@ -14,6 +14,16 @@ Creates the the following transformer UCI mappings and commit/apply scripts to s
 - /usr/share/transformer/commitapply/uci_minidlna.ca
 - /usr/share/transformer/mappings/uci/minidlna.map
 
+## tch-gui-unhide-xtra.rsyncd
+Adds the ability to enable and enable the rsync daemon from the GUI.
+#### Download
+https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.rsyncd
+#### Prerequisites 
+Install rsyncd using the opkg command: `opkg install rsync rsyncd`
+#### Changes External to the GUI
+- Adds /usr/share/transformer/mappings/rpc/gui.rsync.map to allow enabling/disabling of daemon via the GUI
+- Adds the *usb* module to /etc/rsyncd.conf to allow read/write access to the USB via rsync (e.g. `rsync 192.168.0.1::usb`)
+
 ## tch-gui-unhide-xtra.samba36-server
 Correctly configures OpenWRT SAMBA 3.6 and adds ability to change the password via the GUI.
 #### Download
