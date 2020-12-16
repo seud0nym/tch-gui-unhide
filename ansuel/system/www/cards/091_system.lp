@@ -61,11 +61,10 @@ if session:hasAccess("/modals/system-modal.lp") then
     ');  ngx.print( ui_helper.createCardHeader(T"System Extras", modalPath) ); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf085;">\
         ');  
-        local html = {
-          ui_helper.createSimpleLight(nil, syslog_state_map[syslog_present], { light = { class = light_map[syslog_present] } })
-        }
+        local html = {}
         tinsert(html, ui_helper.createSimpleLight(nil, sshlan_state_map[sshlan_enabled], { light = { class = light_map[sshlan_enabled] } }) )
         tinsert(html, ui_helper.createSimpleLight(nil, sshwan_state_map[sshwan_enabled], { light = { class = light_map[sshwan_enabled] } }) )
+        tinsert(html, ui_helper.createSimpleLight(nil, syslog_state_map[syslog_present], { light = { class = light_map[syslog_present] } }) )
         if iperf then
           tinsert(html, ui_helper.createSimpleLight(nil, iperf_state_map[iperf_enabled], { light = { class = light_map[iperf_enabled] } }) )
         end

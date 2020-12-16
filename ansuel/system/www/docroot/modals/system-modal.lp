@@ -159,7 +159,7 @@ if ngx.var.request_method == "POST" then
     local ssh_wan_enable_new = untaint(vars["ssh_wan_enable"])
     local ssh_wan_port_new = untaint(vars["ssh_wan_port"])
     local ssh_wan_src_ip_new = untaint(vars["ssh_wan_src_ip"])
-    if ssh_wan_enable_new ~= ssh_wan_enable or ssh_wan_port_new ~= ssh_wan_port or not ssh_wan_src_ip or untaint(ssh_wan_src_ip[1].value) ~= ssh_wan_src_ip_new then
+    if ssh_wan_enable_new ~= ssh_wan_enable or ssh_wan_port_new ~= ssh_wan_port or (not ssh_wan_src_ip and ssh_wan_src_ip_new ~= "") or untaint(ssh_wan_src_ip[1].value) ~= ssh_wan_src_ip_new then
       local target
       if ssh_wan_enable_new == "1" then
         target = "ACCEPT"
@@ -221,91 +221,149 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
 <form class="form-horizontal" method="post" action="modals/system-modal.lp">\
 <fieldset>\
   <legend>');  ngx.print( T"Advanced Reboot" ); ngx.print('</legend>\
-    ');
-    local bootp_alert = {
-      alert = {
-        class = "alert-info hide",
-        id = "bootp-msg"
-      }
+  ');
+  local bootp_alert = {
+    alert = {
+      class = "alert-info hide",
+      id = "bootp-msg"
     }
-    local bootp = {
-      group = {
-        class = "wait-for-reboot"
-      },
-      button = {
-        id = "btn-system-bootp",
-        class = "custom-handler"
-      }
+  }
+  local bootp = {
+    group = {
+      class = "wait-for-reboot"
+    },
+    button = {
+      id = "btn-system-bootp",
+      class = "custom-handler"
     }
-	  local switchover_alert = {
-      alert = {
-        class = "alert-info hide",
-        id = "switchover-msg"
-      }
+  }
+  local switchover_alert = {
+    alert = {
+      class = "alert-info hide",
+      id = "switchover-msg"
     }
-    local switchover = {
-      group = {
-        class = "wait-for-reboot"
-      },
-      button = {
-        id = "btn-system-switchover",
-        class = "custom-handler"
-      }
+  }
+  local switchover = {
+    group = {
+      class = "wait-for-reboot"
+    },
+    button = {
+      id = "btn-system-switchover",
+      class = "custom-handler"
     }
-    local html = {}
-    html[#html + 1] = ui_helper.createButton(T"LAN Update", T"BOOTP", "icon-exchange", bootp)
-    html[#html + 1] = ui_helper.createAlertBlock(T"Entering BOOTP, please wait...", bootp_alert)
-    html[#html + 1] = ui_helper.createButton(T"SwitchBank", T"Switchover", "icon-exchange", switchover)
-    html[#html + 1] = ui_helper.createAlertBlock(T"Switching bank, please wait...", switchover_alert)
-    ngx.print(html)
-    ngx.print('\
+  }
+  local html = {}
+  html[#html + 1] = ui_helper.createButton(T"LAN Update", T"BOOTP", "icon-exchange", bootp)
+  html[#html + 1] = ui_helper.createAlertBlock(T"Entering BOOTP, please wait...", bootp_alert)
+  html[#html + 1] = ui_helper.createButton(T"SwitchBank", T"Switchover", "icon-exchange", switchover)
+  html[#html + 1] = ui_helper.createAlertBlock(T"Switching bank, please wait...", switchover_alert)
+  ngx.print(html)
+  ngx.print('\
 </fieldset>\
 <fieldset>\
   <legend>');  ngx.print( T"SSH Access" ); ngx.print('</legend>\
-    ');
-    local ssh_lan_input = {
-      group = {
-        class ="monitor-ssh_lan_enable monitor-1",
-      },
+  ');
+  local ssh_lan_input = {
+    group = {
+      class ="monitor-ssh_lan_enable monitor-1",
+    },
+  }
+  local ssh_wan_input = {
+    group = {
+      class ="monitor-ssh_wan_enable monitor-1",
+    },
+  }
+  local port_attributes = {
+    group = {
+      class ="monitor-ssh_wan_enable monitor-1",
+    },
+    input = {
+      type = "number",
+      min = "1",
+      max = "65535",
+      style = "width:70px",
     }
-    local ssh_wan_input = {
-      group = {
-        class ="monitor-ssh_wan_enable monitor-1",
-      },
+  }
+  local src_ip_attributes = {
+    group = {
+      class ="monitor-ssh_wan_enable monitor-1",
+    },
+    input = {
+      maxlength= "45",
+      class = "span5",
     }
-    local port_attributes = {
-      group = {
-        class ="monitor-ssh_wan_enable monitor-1",
-      },
-      input = {
-        type = "number",
-        min = "1",
-        max = "65535",
-        style = "width:70px",
-      }
+  }
+  local html = {}
+  html[#html + 1] = ui_helper.createSwitch(T"LAN", "ssh_lan_enable", ssh_params["ssh_lan_enable"], switch_class_enable)
+  html[#html + 1] = ui_helper.createInputSelect(T"LAN User Authentication", "ssh_lan_pwd_auth", authentication_choices, ssh_params["ssh_lan_pwd_auth"], ssh_lan_input, ssh_helpmsg["ssh_lan_pwd_auth"])
+  html[#html + 1] = ui_helper.createInputSelect(T"LAN Root Authentication", "ssh_lan_root_pwd_auth", authentication_choices, ssh_params["ssh_lan_root_pwd_auth"], ssh_lan_input, ssh_helpmsg["ssh_lan_root_pwd_auth"])
+  html[#html + 1] = ui_helper.createSwitch(T"WAN", "ssh_wan_enable", ssh_params["ssh_wan_enable"], switch_class_enable)
+  html[#html + 1] = ui_helper.createInputSelect(T"WAN User Authentication", "ssh_wan_pwd_auth", authentication_choices, ssh_params["ssh_wan_pwd_auth"], ssh_wan_input, ssh_helpmsg["ssh_wan_pwd_auth"])
+  html[#html + 1] = ui_helper.createInputSelect(T"WAN Root Authentication", "ssh_wan_root_pwd_auth", authentication_choices, ssh_params["ssh_wan_root_pwd_auth"], ssh_wan_input, ssh_helpmsg["ssh_wan_root_pwd_auth"])
+  html[#html + 1] = ui_helper.createInputText(T"WAN SSH Port", "ssh_wan_port", ssh_params["ssh_wan_port"], port_attributes, ssh_helpmsg["ssh_wan_port"])
+  if ssh_wan_src_ip then
+    html[#html + 1] = ui_helper.createInputText(T"Allowed Client IP", "ssh_wan_src_ip", ssh_params["ssh_wan_src_ip"], src_ip_attributes, ssh_helpmsg["ssh_wan_src_ip"])
+  end
+  ngx.print(html)
+  ngx.print('\
+</fieldset>\
+<fieldset>\
+  <legend>');  ngx.print( T"System Log" ); ngx.print('</legend>\
+  ');
+  local html = {}
+  html[#html + 1] = ui_helper.createSwitch(T"Enable Syslog", "syslog_present", syslog_present, switch_class_enable)
+  local switch_class_filter = {
+    group = {
+      class ="monitor-syslog_present monitor-1",
+    },
+    input = {
+      class = "monitor-changes",
     }
-    local src_ip_attributes = {
-      group = {
-        class ="monitor-ssh_wan_enable monitor-1",
+  }
+  local Sysloginput = {
+    group = {
+      class ="monitor-syslog_present monitor-1",
+    },
+    input = {
+      maxlength= "15",
+      class = "span2",
+    },
+  }
+  local Sysloginputip_fltr = {
+    group = {
+      class ="monitor-syslog_present monitor-1 monitor-syslog_filter_sw monitor-1",
+    },
+    input = {
+      maxlength= "15",
+      class = "span2",
+    },
+  }
+  local Sysloginputip_fltr_fltr = {
+    group = {
+      class ="monitor-syslog_present monitor-1 monitor-syslog_filter_sw monitor-1",
+    },
+    input = {
+      maxlength= "50",
+      class = "span5",
       },
-      input = {
-        maxlength= "45",
-        class = "span5",
-      }
-    }
-    local html = {}
-    html[#html + 1] = ui_helper.createSwitch(T"LAN", "ssh_lan_enable", ssh_params["ssh_lan_enable"], switch_class_enable)
-    html[#html + 1] = ui_helper.createInputSelect(T"LAN User Authentication", "ssh_lan_pwd_auth", authentication_choices, ssh_params["ssh_lan_pwd_auth"], ssh_lan_input, ssh_helpmsg["ssh_lan_pwd_auth"])
-    html[#html + 1] = ui_helper.createInputSelect(T"LAN Root Authentication", "ssh_lan_root_pwd_auth", authentication_choices, ssh_params["ssh_lan_root_pwd_auth"], ssh_lan_input, ssh_helpmsg["ssh_lan_root_pwd_auth"])
-    html[#html + 1] = ui_helper.createSwitch(T"WAN", "ssh_wan_enable", ssh_params["ssh_wan_enable"], switch_class_enable)
-    html[#html + 1] = ui_helper.createInputSelect(T"WAN User Authentication", "ssh_wan_pwd_auth", authentication_choices, ssh_params["ssh_wan_pwd_auth"], ssh_wan_input, ssh_helpmsg["ssh_wan_pwd_auth"])
-    html[#html + 1] = ui_helper.createInputSelect(T"WAN Root Authentication", "ssh_wan_root_pwd_auth", authentication_choices, ssh_params["ssh_wan_root_pwd_auth"], ssh_wan_input, ssh_helpmsg["ssh_wan_root_pwd_auth"])
-    html[#html + 1] = ui_helper.createInputText(T"WAN SSH Port", "ssh_wan_port", ssh_params["ssh_wan_port"], port_attributes, ssh_helpmsg["ssh_wan_port"])
-    if ssh_wan_src_ip then
-      html[#html + 1] = ui_helper.createInputText(T"Allowed Client IP", "ssh_wan_src_ip", ssh_params["ssh_wan_src_ip"], src_ip_attributes, ssh_helpmsg["ssh_wan_src_ip"])
-    end
-    ngx.print(html)
-    ngx.print('\
+  }
+  local filter_warning = {
+    alert = {
+      class = "alert-info monitor-syslog_present monitor-1 monitor-syslog_filter_sw monitor-1"
+    },
+  }
+  html[#html+1] = [[<div class="monitor-syslog_filter_sw monitor-0 monitor-hide-syslog_filter_sw">]]
+  html[#html+1] = ui_helper.createInputText(T"Server IP", "syslog_ip", syslog_params["syslog_ip"], Sysloginput, syslog_helpmsg["syslog_ip"])
+  html[#html+1] = [[</div>]]
+  html[#html+1] = ui_helper.createInputText(T"Server IP", "syslog_filter_ip", syslog_params["syslog_filter_ip"], Sysloginputip_fltr, syslog_helpmsg["syslog_filter_ip"])
+  html[#html+1] = ui_helper.createSwitch(T"Enable Filter", "syslog_filter_sw", syslog_filter_sw, switch_class_filter)
+  html[#html + 1] = ui_helper.createAlertBlock(T"Every filter is a regular expression string; Start with '!' to invert selection", filter_warning)
+  html[#html + 1] = format('<div class="control-group"><label class="control-label monitor-syslog_present monitor-1 monitor-syslog_filter_sw monitor-1">%s</label><div class="controls">', T"Syslog Filters")
+  html[#html+1] = ui_helper.createTable(filter_columns, filter_data, filter_options, Sysloginputip_fltr_fltr, filter_helpmsg)
+  html[#html + 1] = '</div></div>'
+  html[#html+1] = ui_helper.createInputText(T"Server Port", "syslog_port", syslog_params["syslog_port"], Sysloginput, syslog_helpmsg["syslog_port"])
+  ngx.print(html)
+  ngx.print('\
 </fieldset>\
 ');
 if iperf_available then
@@ -339,64 +397,7 @@ if iperf_available then
   ');
 end;
 ngx.print('\
-<fieldset>\
-  <legend>');  ngx.print( T"System Log" ); ngx.print('</legend>\
-    ');
-      local html = {}
-      html[#html + 1] = ui_helper.createSwitch(T"Enable Syslog", "syslog_present", syslog_present, switch_class_enable)
-      local switch_class_filter = {
-        group = {
-          class ="monitor-syslog_present monitor-1",
-        },
-        input = {
-          class = "monitor-changes",
-        }
-      }
-      local Sysloginput = {
-        group = {
-          class ="monitor-syslog_present monitor-1",
-        },
-        input = {
-          maxlength= "15",
-          class = "span2",
-        },
-      }
-      local Sysloginputip_fltr = {
-        group = {
-          class ="monitor-syslog_present monitor-1 monitor-syslog_filter_sw monitor-1",
-        },
-        input = {
-          maxlength= "15",
-          class = "span2",
-        },
-      }
-      local Sysloginputip_fltr_fltr = {
-        group = {
-          class ="monitor-syslog_present monitor-1 monitor-syslog_filter_sw monitor-1",
-        },
-        input = {
-          maxlength= "50",
-          class = "span5",
-         },
-      }
-      local filter_warning = {
-        alert = {
-          class = "alert-info monitor-syslog_present monitor-1 monitor-syslog_filter_sw monitor-1"
-        },
-      }
-      html[#html+1] = [[<div class="monitor-syslog_filter_sw monitor-0 monitor-hide-syslog_filter_sw">]]
-      html[#html+1] = ui_helper.createInputText(T"Server IP", "syslog_ip", syslog_params["syslog_ip"], Sysloginput, syslog_helpmsg["syslog_ip"])
-      html[#html+1] = [[</div>]]
-      html[#html+1] = ui_helper.createInputText(T"Server IP", "syslog_filter_ip", syslog_params["syslog_filter_ip"], Sysloginputip_fltr, syslog_helpmsg["syslog_filter_ip"])
-      html[#html+1] = ui_helper.createSwitch(T"Enable Filter", "syslog_filter_sw", syslog_filter_sw, switch_class_filter)
-      html[#html + 1] = ui_helper.createAlertBlock(T"Every filter is a regular expression string; Start with '!' to invert selection", filter_warning)
-      html[#html + 1] = format('<div class="control-group"><label class="control-label monitor-syslog_present monitor-1 monitor-syslog_filter_sw monitor-1">%s</label><div class="controls">', T"Syslog Filters")
-      html[#html+1] = ui_helper.createTable(filter_columns, filter_data, filter_options, Sysloginputip_fltr_fltr, filter_helpmsg)
-      html[#html + 1] = '</div></div>'
-      html[#html+1] = ui_helper.createInputText(T"Server Port", "syslog_port", syslog_params["syslog_port"], Sysloginput, syslog_helpmsg["syslog_port"])
-      ngx.print(html)
-      ngx.print('\
-</fieldset></form>\
+</form>\
 </div>\
 <script>\
 (function() {\
