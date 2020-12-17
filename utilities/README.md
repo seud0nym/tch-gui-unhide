@@ -120,9 +120,9 @@ Enables or disables reboot on core dump. If you have a process that is continual
 
 This script supports 1 parameter: `-on` or `-off`
 - -on
-    - Enables DumaOS and disables reboot on core dump, then starts the DumaOS service.
+    - Enables reboot on core dump.
 - -off
-    - Disables DumaOS and enables reboot on core dump, then stops the DumaOS service.
+    - Disables reboot on core dump.
 
 ## reset-to-factory-defaults-with-root
 It does what it says. It is a copy of the commands from https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access (without the backup - you need to do that manually and move it off the device), with a confirmation prompt and immediate reboot.
