@@ -3,17 +3,58 @@
 -- Enable localization
 gettext.textdomain('webui-core')
 
-local ui_helper = require("web.ui_helper")
+local proxy = require("datamodel")
+local content_helper = require("web.content_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
+local ui_helper = require("web.ui_helper")
 local string, ngx, os = string, ngx, os
 local tonumber = tonumber
 local floor = math.floor
 local concat = table.concat
 local format, match, lower = string.format, string.match, string.lower
-local content_helper = require("web.content_helper")
+
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
+
+local agentSTA = {}
+local multiap = proxy.getPN("Device.Services.X_TELSTRA_MultiAP.Agent.",true)
+if multiap then
+  for _, agent in ipairs(multiap) do
+    local agentname = format("%s", proxy.get(agent["path"] .. "Alias")[1].value)
+    if agentname ~= "" then
+      local BSSID2GHz = format("%s", proxy.get(agent["path"] .. "BSSID2GHZ")[1].value)
+      local staPath = agent["path"] .. "STA."
+      local staInfo = proxy.get(staPath)
+      local staList = content_helper.convertResultToObject(staPath, staInfo)
+      local newdevices_data = {}
+      for _, sta_v in ipairs(staList) do
+        local staMAC = string.lower(sta_v.MACAddress)
+        local wifiBand = sta_v.BSSID == BSSID2GHz and " - 2.4GHz" or " - 5GHz"
+        agentSTA[staMAC] = agentname .. wifiBand
+      end
+    end
+  end
+end
+
+local function getInterfaceType(data)
+  if match(data["L2Interface"], "^wl0") then
+    return "Wireless - 2.4GHz"
+  elseif match(data["L2Interface"], "^wl1") then
+    return "Wireless - 5GHz"
+  elseif match(data["L2Interface"], "eth*") then
+    local agentWiFiBand = agentSTA[data["MACAddress"]]
+    if agentWiFiBand then
+      return agentWiFiBand
+    else  
+      return format("Ethernet - %s",data["Port"])
+    end
+  elseif match(data["L2Interface"], "moca*") then
+    return "MoCA"
+  else
+    return data["L2Interface"]
+  end
+end
 
 local devices_columns = {
   {--[1]
@@ -140,6 +181,10 @@ elseif sortcol == "IPv6" then
   sortfunc = function(a, b)
     return ipv6ToString(a.IPv6) < ipv6ToString(b.IPv6)
   end
+elseif sortcol == "InterfaceType" then
+  sortfunc = function(a, b)
+    return getInterfaceType(a) < getInterfaceType(b)
+  end
 else
   sortfunc = sortcol
 end
@@ -158,15 +203,7 @@ local devices_filter = function(data)
   if data["L2Interface"] == "" then
     return false
   end
-  if match(data["L2Interface"], "^wl0") then
-    data["InterfaceType"] = "Wireless - 2.4GHz"
-  elseif match(data["L2Interface"], "^wl1") then
-    data["InterfaceType"] = "Wireless - 5GHz"
-  elseif match(data["L2Interface"], "eth*") then
-    data["InterfaceType"] = format("Ethernet - %s",data["Port"])
-  elseif match(data["L2Interface"], "moca*") then
-    data["InterfaceType"] = "MoCA"
-  end
+  data["InterfaceType"] = getInterfaceType(data)
   if data["IPv4"] == "" or data["IPv6"] == "" then
     if data["DhcpLeaseIP"] ~= "" then
       local chunks = {data["DhcpLeaseIP"]:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")}
@@ -237,7 +274,7 @@ for(var i=0;i<hdrs.length;i++){\
     case "IPv4":sort="IPv4";break;\
     case "IPv6":sort="IPv6";break;\
     case "MAC":sort="MACAddress";break;\
-    case "Interface":sort="L2Interface";break;\
+    case "Interface":sort="InterfaceType";break;\
     case "Connected":sort="ConnectedTime";break;\
     default:sort="";break;\
   }\
