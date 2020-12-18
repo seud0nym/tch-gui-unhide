@@ -13,6 +13,7 @@ then
 fi
 
 FORCE='n'
+IPv6='n'
 WAN_DHCP='n'
 WAN_IP_ADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)"
 WAN_GATEWAY="$(echo $WAN_IP_ADDR | cut -d. -f1-3).1"
@@ -27,7 +28,7 @@ REBOOT='y'
 
 IPv4PATTERN="([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
 
-while getopts dfg:i:l:m:n:p:rs:w:y option
+while getopts dfg:i:l:m:n:p:rs:w:y6 option
 do
   case "${option}" in
     d)  WAN_DHCP='y';;
@@ -49,6 +50,7 @@ do
     s)  SSID="$OPTARG";;
     w)  WAN_IP_ADDR="$OPTARG";;
     y)  YES='y';;
+    6)  IPv6='y';;
     *)  echo "Syntax: $0 <options>"
         echo "Optional parameters:"
         echo " -i n.n.n.n  Set LAN IP address to n.n.n.n (default is -i$LAN_IP_ADDR)"
@@ -57,6 +59,7 @@ do
         echo " -w n.n.n.n  Set WAN IP address to n.n.n.n (default is -w$WAN_IP_ADDR, but IGNORED if you specify -d)"
         echo " -g n.n.n.n  Set WAN Gateway IP address to n.n.n.n (default is -g$WAN_GATEWAY, but IGNORED if you specify -d)"
         echo " -m n.n.n.n  Set WAN Subnet Mask to n.n.n.n (default is -m$WAN_MASK, but IGNORED if you specify -d)"
+        echo " -6          Configure WAN for IPv6"
         echo " -s <SSID>   Set new LAN management wireless SSID to <SSID> (default is -s$SSID)"
         echo " -p <PWD>    Set new LAN management wireless password to <PWD> (default is -p$PWD)"
         echo " -l 0-9      Set MultiAP logging level (0=off 2=Default 9=very verbose)"
@@ -270,7 +273,7 @@ else
   echo LAN IP address is already set to $LAN_IP_ADDR
 fi
 
-if [ "$WAN_DHCP" = 'y' -a "$(uci -q get network.wan.proto)" != "dhcp" -o $FORCE = y ]
+if [ \( "$WAN_DHCP" = 'y' -a "$(uci -q get network.wan.proto)" != "dhcp" \) -o $FORCE = y ]
 then
   echo Setting WAN IP connection type to DHCP
   uci set network.config.wan_mode='dhcp'
@@ -306,6 +309,15 @@ then
   uci set wireless.wl1_2.network='wan'
 else
   echo LAN ports and wireless devices already moved to WAN bridge
+fi
+
+if [ \( "$IPv6" = "y" -a "$(uci -q get network.wan6.auto)" != "1" \) -o $FORCE = y ]
+then
+  echo Configuring WAN for IPv6
+  uci set network.wan6.auto='1'
+  uci set network.wan6.proto='dhcpv6'
+  uci set network.wan6.forceprefix='0'
+  uci set network.wan6.ifname='@wan'
 fi
 
 if [ "$(uci -q get mcastsnooping.wan.igmp_snooping)" != "1" -o $FORCE = y ]
