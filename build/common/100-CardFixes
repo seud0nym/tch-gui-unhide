@@ -47,7 +47,8 @@ do
   fi
   sed \
     -e '/network.interface.@wan.ipaddr/a \    ip6addr = "rpc.network.interface.@wan6.ip6addr",' \
-    -e "/${table}\[\"ipaddr\"\])/a \          format(T' <nobr><strong>%s</strong></nobr>', ${table}[\"ip6addr\"])," \
+    -e "/${table}\[\"ipaddr\"\])/a \          format(T' <strong style=\"letter-spacing:-1px\">%s</strong>', ${table}[\"ip6addr\"])," \
+    -e "s/<strong>/<strong style=\"letter-spacing:-1px\">/g" \
     -i $f
 done
 
@@ -106,8 +107,9 @@ sed \
   -e '/createSimpleLight/a \        ngx.print(' \
   -e 's/and netmask/<br>Subnet Mask/' \
   -e "/<\/p>/i \            '<br>'," \
-  -e "/<\/p>/i \            format(T'%s <nobr><strong>%s</strong></nobr>', ipv6State_text, mapParams[\"ipv6prefix\"])," \
+  -e "/<\/p>/i \            format(T'%s <nobr><strong style=\"letter-spacing:-1px\">%s</strong></nobr>', ipv6State_text, mapParams[\"ipv6prefix\"])," \
   -e '/^\\$/d' \
+  -e "s/<strong>/<strong style=\"letter-spacing:-1px\">/g" \
   -i /www/cards/005_LAN.lp
 
 echo [$SCRIPT]: Fix bug in relay setup card 
