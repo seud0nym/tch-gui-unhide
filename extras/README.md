@@ -13,6 +13,11 @@ Install minidlna using the opkg command: `opkg install minidlna`
 Creates the the following transformer UCI mappings and commit/apply scripts to support the GUI changes:
 - /usr/share/transformer/commitapply/uci_minidlna.ca
 - /usr/share/transformer/mappings/uci/minidlna.map
+#### Removal Instructions
+1. Do not delete `tch-gui-unhide-xtra.minidlna`
+2. Remove minidlna: `opkg remove minidlna`
+3. Re-run `tch-gui-unhide` to remove the GUI changes, and the additional transformer mappings
+4. Now you can delete `tch-gui-unhide-xtra.minidlna`
 
 ## tch-gui-unhide-xtra.rsyncd
 Adds the ability to enable and enable the rsync daemon from the GUI.
@@ -22,7 +27,14 @@ https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-
 Install rsyncd using the opkg command: `opkg install rsync rsyncd`
 #### Changes External to the GUI
 - Adds /usr/share/transformer/mappings/rpc/gui.rsync.map to allow enabling/disabling of daemon via the GUI
-- Adds the *usb* module to /etc/rsyncd.conf to allow read/write access to the USB via rsync (e.g. `rsync 192.168.0.1::usb`)
+- Adds the *home* module to /etc/rsyncd.conf to allow read/write access to the /root directory via rsync (e.g. `rsync 192.168.0.1::home`)
+- Adds the *tmp* module to /etc/rsyncd.conf to allow read/write access to the /tmp directory via rsync (e.g. `rsync 192.168.0.1::tmp`)
+- Adds the *usb* module to /etc/rsyncd.conf to allow read/write access to the USB device via rsync (e.g. `rsync 192.168.0.1::usb`)
+#### Removal Instructions
+1. Do not delete `tch-gui-unhide-xtra.rsyncd`
+2. Remove rsyncd: `opkg remove rsync rsyncd`
+3. Re-run `tch-gui-unhide` to remove the GUI changes, and the additional transformer mappings
+4. Now you can delete `tch-gui-unhide-xtra.rsyncd`
 
 ## tch-gui-unhide-xtra.samba36-server
 Correctly configures OpenWRT SAMBA 3.6 and adds ability to change the password via the GUI.
@@ -36,6 +48,11 @@ Install SAMBA v3.6 using the opkg command: `opkg --force-overwrite install samba
 - Adds the ability to set share users via UCI and transformer
 - Adds /usr/share/transformer/mappings/rpc/gui.samba.map to allow setting of password via the GUI
 - Configures the default USB share to require the samba user
+#### Removal Instructions
+1. Do **not** delete tch-gui-unhide-xtra.samba36-server
+2. Remove samba36-server: `opkg remove samba36-server`
+3. Re-run `tch-gui-unhide` to correctly restore the default version of SAMBA on the device and remove the GUI changes, the custom configuration and the additional transformer mappings
+4. Now you can delete `tch-gui-unhide-xtra.samba36-server`
 
 # How to download and execute these scripts
 Download the scripts that you wish to execute into the same directory as `tch-gui-unhide`.

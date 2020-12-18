@@ -188,7 +188,14 @@ PLUG
     -e '/^            tinsert(html, "<\/fieldset>")/d' \
     -i /www/docroot/modals/contentsharing-modal.lp
 else
-  echo " SKIPPED because minidlna not installed"
+  cmp -s /rom/lib/functions/contentsharing.sh /lib/functions/contentsharing.sh
+  if [ $? -ne 0 ]
+  then
+    echo " minidlna removed - Restoring default content sharing functions"
+    cp -p /rom/lib/functions/contentsharing.sh /lib/functions/contentsharing.sh
+  else
+    echo " SKIPPED because minidlna not installed"
+  fi
   if [ -f /usr/share/transformer/commitapply/uci_minidlna.ca ]
   then
     rm /usr/share/transformer/commitapply/uci_minidlna.ca
@@ -202,10 +209,5 @@ else
   if [ -f /etc/hotplug.d/mount/00-minidlna ]
   then
     rm /etc/hotplug.d/mount/00-minidlna
-  fi
-  cmp -s /rom/lib/functions/contentsharing.sh /lib/functions/contentsharing.sh
-  if [ $? -ne 0 ]
-  then
-    cp -p /rom/lib/functions/contentsharing.sh /lib/functions/contentsharing.sh
   fi
 fi

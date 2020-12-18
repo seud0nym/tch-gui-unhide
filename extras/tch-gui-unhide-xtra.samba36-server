@@ -108,9 +108,9 @@ MAP
     -e '/ui_helper.createInputText(T"File Server description:/a \                tinsert(html, ui_helper.createInputPassword(T"Share Password", "samba_password", "********", advanced))' \
     -i /www/docroot/modals/contentsharing-modal.lp
 else
-  echo " SKIPPED because samba36-server not installed"
   grep -q "^samba:" /etc/samba/smbpasswd
   if [ $? -eq 0 ]; then
+    echo " samba36-server removed - Restoring default samba installation"
     /etc/init.d/samba stop
 
     for p in $(ps | grep -E '/usr/sbin/.mbd' | grep -v grep | cut -c1-5); do
@@ -159,5 +159,7 @@ else
     /etc/init.d/samba start
     /etc/init.d/samba-nmbd enable
     /etc/init.d/samba-nmbd start
+  else
+    echo " SKIPPED because samba36-server not installed"
   fi
 fi
