@@ -72,7 +72,9 @@ if admin and assistant then
     tinsert(content, '</p>')
   else
     state = "0"
+    tinsert(content, '<span class="modal-link" data-toggle="modal" data-remote="/modals/assistance-modal.lp" data-id="assistance-modal">')
     tinsert(content, ui_helper.createSimpleLight(state, T"Remote assistance disabled"))
+    tinsert(content, '</span>')
   end
   ngx.print('\
 <div class="span3">\
