@@ -124,6 +124,7 @@ local devices_columns = {
 }
 
 local getargs = ngx.req.get_uri_args()
+
 local sortcol
 if (getargs.sort) then
   sortcol = getargs.sort:untaint()
@@ -183,10 +184,29 @@ elseif sortcol == "IPv6" then
   end
 elseif sortcol == "InterfaceType" then
   sortfunc = function(a, b)
-    return getInterfaceType(a) < getInterfaceType(b)
+    local aIface = getInterfaceType(a)
+    local bIface = getInterfaceType(b)
+    if aIface == bIface then
+      return lower(a.FriendlyName or "") < lower(b.FriendlyName or "")
+    else 
+      return aIface < bIface
+    end
   end
 else
   sortfunc = sortcol
+end
+
+local connected
+local connectedAction
+if (getargs.connected) then
+  connected = getargs.connected:untaint()
+else
+  connected = "Active"
+end
+if connected == "Active" then
+  connectedAction = "All"
+else
+  connectedAction = "Active"
 end
 
 local device_valid = {}
@@ -200,7 +220,7 @@ local devices_options = {
 }
 
 local devices_filter = function(data)
-  if data["L2Interface"] == "" then
+  if data["L2Interface"] == "" or (connected == "Active" and data["State"] == "0") then
     return false
   end
   data["InterfaceType"] = getInterfaceType(data)
@@ -253,7 +273,7 @@ end
 ngx.print( ui_helper.createHeader(T"Devices", false, true, interval) ); ngx.print('\
 <div class="modal-body update">\
 ');  lp.include("tabs-devices.lp")   ngx.print('\
-  <form class="form-horizontal" method="post" action="modals/device-modal.lp?sort=');  ngx.print(sortcol); ngx.print('">\
+  <form class="form-horizontal" method="post" action="modals/device-modal.lp?sort='); ngx.print(sortcol); ngx.print('&connected='); ngx.print(connected); ngx.print('">\
     ');  
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('\
@@ -269,7 +289,10 @@ var hdrs = document.getElementsByTagName("th");\
 for(var i=0;i<hdrs.length;i++){\
   var text=hdrs[i].innerText;\
   var sort="";\
+  var title="";\
+  var connected="'); ngx.print(connected); ngx.print('";\
   switch(text){\
+    case "Status":sort="'); ngx.print(sortcol); ngx.print('";connected="'); ngx.print(connectedAction); ngx.print('";title="Show '); ngx.print(connectedAction); ngx.print('";break;\
     case "Hostname":sort="FriendlyName";break;\
     case "IPv4":sort="IPv4";break;\
     case "IPv6":sort="IPv6";break;\
@@ -279,7 +302,10 @@ for(var i=0;i<hdrs.length;i++){\
     default:sort="";break;\
   }\
   if (sort!="") {\
-    hdrs[i].innerHTML=\'<a href="#" data-remote="modals/device-modal.lp?sort=\'+sort+\'">\'+text+\'</a>\';\
+    if (title=="") {\
+      title="Sort by "+text;\
+    }\
+    hdrs[i].innerHTML=\'<a href="#" title="\'+title+\'" data-remote="modals/device-modal.lp?sort=\'+sort+\'&connected=\'+connected+\'">\'+text+\'</a>\';\
     hdrs[i].setAttribute("class", "nav");\
   }\
 }\
