@@ -8,6 +8,7 @@ then
     -e 's#<div class="row">#<div>#' \
     -e 's#lp.include("tabs-home.lp")#lp.include("tabs-boosters.lp")#' \
     -e 's#lp.include("footer.lp")#ngx.print(ui_helper.createFooter())#' \
+    -e 's#/booster.lp#/modals/wireless-boosters-boosters-modal.lp#' \
     /www/docroot/booster.lp > /www/docroot/modals/wireless-boosters-boosters-modal.lp
 fi
 if [ -f /www/docroot/boosterstatus.lp ]
