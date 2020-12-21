@@ -7,18 +7,20 @@ end
 -- Enable localization
 gettext.textdomain('webui-voice')
 
-datamodel = require ("datamodel")
-ui_helper = require ("web.ui_helper")
-content_helper = require ("web.content_helper")
+local datamodel = require ("datamodel")
+local ui_helper = require ("web.ui_helper")
+local content_helper = require ("web.content_helper")
+local format = string.format
 
 local session = ngx.ctx.session
 if session:hasAccess("/modals/mmpbx-info-modal.lp") then
   local currentuserrole = session.getrole()
 
-  local sipprofile_path = "uci.mmpbxrvsipnet.profile."
-  local sipprofile_ubus_path = "rpc.mmpbx.profile.@"
+  local sipprofile_uci_path = "uci.mmpbxrvsipnet.profile."
+  local sipprofile_rpc_path = "rpc.mmpbx.profile.@"
+  local sipprofile_stats_path = "rpc.mmpbx.profilestatistics.@"
 
-  local sipprofile_content = content_helper.getMatchedContent (sipprofile_path)
+  local sipprofile_content = content_helper.getMatchedContent (sipprofile_uci_path)
 
   local mmpbx_state, error = datamodel.get("uci.mmpbx.mmpbx.@global.enabled")
   if mmpbx_state then
@@ -75,11 +77,15 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
       local reg_num = {["0"] = 0,["1"] = 0,["2"] = 0}
       local reg_state = {"1","2","0"}
       for name, value in pairs (sipprofile_info) do
-        local res = datamodel.get (sipprofile_ubus_path..name..".sipRegisterState")
+        local res = datamodel.get (sipprofile_rpc_path..name..".sipRegisterState")
           if (type(res) == "table") then
             if (res[1].value == "Registered") then
               reg_num["1"] = reg_num["1"] + 1
               ngx.print (ui_helper.createSimpleLight("1", value .. T" registered"))
+              local incoming = datamodel.get (sipprofile_stats_path..name..".incomingCalls")[1].value
+              local incomingConnected = datamodel.get (sipprofile_stats_path..name..".incomingCallsConnected")[1].value
+              local outgoing = datamodel.get (sipprofile_stats_path..name..".outgoingCalls")[1].value
+              ngx.print(format('<p class="subinfos">Calls: %s <small>IN</small> %s <small>MISSED</small> %s <small>OUT</small></p>', incomingConnected, incoming-incomingConnected, outgoing))
             elseif (res[1].value == "Registering") then
               reg_num["2"] = reg_num["2"] + 1
               ngx.print (ui_helper.createSimpleLight("2", value .. T" registering"))
