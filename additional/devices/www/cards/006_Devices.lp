@@ -18,13 +18,10 @@ local devices_data = {
 content_helper.getExactContent(devices_data)
 
 local nAgtDevices = 0
-local multiap = proxy.getPN("Device.Services.X_TELSTRA_MultiAP.Agent.",true)
-if multiap then
-  for _, agent in ipairs(multiap) do
-    local agentname = format("%s", proxy.get(agent["path"] .. "Alias")[1].value)
-    if agentname ~= "" then
-      nAgtDevices = nAgtDevices + tonumber(format("%s", proxy.get(agent["path"] .. "AssociatedDeviceNumberOfEntries")[1].value))
-    end
+local agents = proxy.get("Device.Services.X_TELSTRA_MultiAP.Controller.MultiAPAgentNumberOfEntries")
+if agents and tonumber(agents[1].value) > 0 then
+  for i = 1,tonumber(agents[1].value),1 do
+    nAgtDevices = nAgtDevices + tonumber(format("%s", proxy.get("Device.Services.X_TELSTRA_MultiAP.Agent." .. i .. ".AssociatedDeviceNumberOfEntries")[1].value))
   end
 end
 
