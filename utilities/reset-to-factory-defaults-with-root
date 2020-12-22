@@ -139,6 +139,7 @@ fi
 
 if [ ! -z "$USB" -a ! -z "$SOURCE" -a ! -z "$TARGET" ]
 then
+  echo "Backing up $SOURCE to $TARGET ..."
   tar -C /overlay -czf $TARGET $SOURCE
 fi
 
