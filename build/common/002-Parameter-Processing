@@ -5,7 +5,7 @@ THEME_ONLY='n'
 
 FILENAME=$(basename $0)
 
-while getopts Wt:s:Tryui:c:h:l:f:d: option
+while getopts :Wt:s:Tryui:c:h:l:f:d: option
 do
  case "${option}" in
    W) WRAPPER=y;;

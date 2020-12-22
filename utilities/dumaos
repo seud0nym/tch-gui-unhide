@@ -3,7 +3,7 @@
 ENABLED="$(uci -q get dumaos.tr69.dumaos_enabled)"
 if [ -f /etc/init.d/dumaos -a ! -z "$ENABLED" ]
 then
-  while getopts onff option
+  while getopts :onff option
   do
    case "${option}" in
      o) SETTING="";;

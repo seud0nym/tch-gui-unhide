@@ -67,7 +67,7 @@ WPS='u'
 DUMAOS='u'
 LITE='n'
 
-while getopts a:c:d:e:f:g:h:m:n:op:r:t:u:w:AMRSU option
+while getopts :a:c:d:e:f:g:h:m:n:op:r:t:u:w:AMRSU option
 do
  case "${option}" in
   a)  case "${OPTARG}" in y|Y) ALG='1';; n|N) ALG='0';; u|U) ALG='u';; *) ALG='u'; echo 'WARNING: -a valid options are y, n, or u';; esac;;

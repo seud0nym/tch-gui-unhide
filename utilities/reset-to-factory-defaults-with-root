@@ -7,7 +7,7 @@ FIRMWARE=""
 REBOOT="Y"
 IPADDR=""
 CWMP=""
-while getopts bf:I:inc option
+while getopts :bf:I:inc option
 do
  case "${option}" in
   b)  BKUP="Y";;

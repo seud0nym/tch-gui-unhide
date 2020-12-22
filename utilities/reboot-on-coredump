@@ -1,7 +1,7 @@
 #!/bin/sh
 
 ENABLED="$(uci -q get system.@coredump[0].reboot)"
-while getopts onff option
+while getopts :onff option
 do
   case "${option}" in
     o) SETTING="";;
