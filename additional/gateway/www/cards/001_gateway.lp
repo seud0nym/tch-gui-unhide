@@ -102,6 +102,15 @@ function updateGatewayCard(){\
   });\
 }\
 $().ready(function(){funcID=setInterval(updateGatewayCard,1000);});\
+var modalLoaded=false;\
+$(document).bind("DOMSubtreeModified",function(){\
+  if(!modalLoaded){\
+    if($(".modal").length>0){\
+      modalLoaded=true;\
+      clearInterval(funcID);\
+    }\
+  }\
+});\
 </script>\
 ');  
 end
