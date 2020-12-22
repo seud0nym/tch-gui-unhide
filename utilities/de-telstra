@@ -47,44 +47,53 @@ else
   SRV_multiap=-1
 fi
 
+PACKAGES_TO_REMOVE=""
+
 # Options
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
-HOST='u'
-DOMAIN='u'
-NS='u'
 ALG='u'
-DLNAD='u'
-MMPBX='u'
 DECT='u'
+DLNAD='u'
+DOMAIN='u'
+DUMAOS='u'
+HOST='u'
+LITE='n'
+MMPBX='u'
 MULTIAP='u'
+NS='u'
+OPKG='n'
 POWER='u' 
 PRNTR='u'
 SAMBA='u'
 UPNP='u'
-OPKG='n'
 WPS='u'
-DUMAOS='u'
-LITE='n'
+# Overrides
+AIR='n'
+CWMP='n'
+KEYS='n'
+MONITORING='n'
+NTP='n'
 
-while getopts :a:c:d:e:f:g:h:m:n:op:r:t:u:w:AMRSU option
+while getopts :a:c:d:e:f:g:h:k:m:n:op:r:t:u:w:AMRSU option
 do
  case "${option}" in
-  a)  case "${OPTARG}" in y|Y) ALG='1';; n|N) ALG='0';; u|U) ALG='u';; *) ALG='u'; echo 'WARNING: -a valid options are y, n, or u';; esac;;
-  c)  case "${OPTARG}" in y|Y) DLNAD='1';; n|N) DLNAD='0';; u|U) DLNAD='u';; *) DLNAD='u'; echo 'WARNING: -c valid options are y, n, or u';; esac;;
-  d)  case "${OPTARG}" in g|G) DOMAIN='gateway';; u|U) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
-  e)  case "${OPTARG}" in y|Y) DECT='1';; n|N) DECT='0';; u|U) DECT='u';; *) DECT='u'; echo 'WARNING: -e valid options are y, n, or u';; esac;;
-  f)  case "${OPTARG}" in y|Y) SAMBA='1';; n|N) SAMBA='0';; u|U) SAMBA='u';; *) SAMBA='u'; echo 'WARNING: -f valid options are y, n, or u';; esac;;
-  g)  case "${OPTARG}" in y|Y) DUMAOS='1';; n|N) DUMAOS='0';; u|U) DUMAOS='u';; *) DUMAOS='u'; echo 'WARNING: -g valid options are y, n, or u';; esac;;
+  a)  case "${OPTARG}" in y) ALG='1';; n) ALG='0';; u) ALG='u';; *) ALG='u'; echo 'ERROR: -a valid options are y, n, or u'; exit 1;; esac;;
+  c)  case "${OPTARG}" in y) DLNAD='1';; n) DLNAD='0';; u) DLNAD='u';; *) DLNAD='u'; echo 'ERROR: -c valid options are y, n, or u'; exit 1;; esac;;
+  d)  case "${OPTARG}" in g|G) DOMAIN='gateway';; u) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
+  e)  case "${OPTARG}" in y) DECT='1';; n) DECT='0';; u) DECT='u';; *) DECT='u'; echo 'ERROR: -e valid options are y, n, or u'; exit 1;; esac;;
+  f)  case "${OPTARG}" in y) SAMBA='1';; n) SAMBA='0';; u) SAMBA='u';; *) SAMBA='u'; echo 'ERROR: -f valid options are y, n, or u'; exit 1;; esac;;
+  g)  case "${OPTARG}" in y) DUMAOS='1';; n) DUMAOS='0';; u) DUMAOS='u';; *) DUMAOS='u'; echo 'ERROR: -g valid options are y, n, or u'; exit 1;; esac;;
   h)  HOST=${OPTARG};;
-  m)  case "${OPTARG}" in y|Y) MULTIAP='1';; n|N) MULTIAP='0';; u|U) MULTIAP='u';; *) MULTIAP='u'; echo 'WARNING: -m valid options are y, n, or u';; esac;;
+  k)  case "${OPTARG}" in k) KEYS='y';; c) CWMP='y';; m) MONITORING='y';; a) AIR='y';; n) NTP='y';; T) KEYS='y'; CWMP='y'; MONITORING='y'; AIR='y'; NTP='y';; *) echo "ERROR: Unknown override option $OPTARG"; exit 1;; esac;;
+  m)  case "${OPTARG}" in y) MULTIAP='1';; n) MULTIAP='0';; u) MULTIAP='u';; *) MULTIAP='u'; echo 'ERROR: -m valid options are y, n, or u'; exit 1;; esac;;
   n)  NS=${OPTARG};;
   o)  OPKG='y';;
-  p)  case "${OPTARG}" in y|Y) POWER='y';; n|N) POWER='n';; u|U) POWER='u';; *) POWER='u'; echo 'WARNING: -p valid options are y, n, or u';; esac;;
-  r)  case "${OPTARG}" in y|Y) PRNTR='1';; n|N) PRNTR='0';; u|U) PRNTR='u';; *) PRNTR='u'; echo 'WARNING: -r valid options are y, n, or u';; esac;;
-  t)  case "${OPTARG}" in y|Y) MMPBX='1';; n|N) MMPBX='0';; u|U) MMPBX='u';; *) MMPBX='u'; echo 'WARNING: -t valid options are y, n, or u';; esac;;
-  u)  case "${OPTARG}" in y|Y) UPNP='1';; n|N) UPNP='0';; u|U) UPNP='u';; *) UPNP='u'; echo 'WARNING: -u valid options are y, n, or u';; esac;;
-  w)  case "${OPTARG}" in y|Y) WPS='1';; n|N) WPS='0';; u|U) WPS='u';; *) WPS='u'; echo 'WARNING: -w valid options are y, n, or u';; esac;;
+  p)  case "${OPTARG}" in y) POWER='y';; n) POWER='n';; u) POWER='u';; *) POWER='u'; echo 'ERROR: -p valid options are y, n, or u'; exit 1;; esac;;
+  r)  case "${OPTARG}" in y) PRNTR='1';; n) PRNTR='0';; u) PRNTR='u';; *) PRNTR='u'; echo 'ERROR: -r valid options are y, n, or u'; exit 1;; esac;;
+  t)  case "${OPTARG}" in y) MMPBX='1';; n) MMPBX='0';; u) MMPBX='u';; *) MMPBX='u'; echo 'ERROR: -t valid options are y, n, or u'; exit 1;; esac;;
+  u)  case "${OPTARG}" in y) UPNP='1';; n) UPNP='0';; u) UPNP='u';; *) UPNP='u'; echo 'ERROR: -u valid options are y, n, or u'; exit 1;; esac;;
+  w)  case "${OPTARG}" in y) WPS='1';; n) WPS='0';; u) WPS='u';; *) WPS='u'; echo 'ERROR: -w valid options are y, n, or u'; exit 1;; esac;;
   A)  HOST='d'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; PRNTR='0'; UPNP='0'; WPS='0';;
   M)  LITE='y'; ALG='0'; DECT='0'; DLNAD='0'; DUMAOS='0'; MMPBX='0'; MULTIAP='0'; PRNTR='0'; SAMBA='0'; UPNP='0'; WPS='0';;
   R)  LITE='R'; HOST='mymodem'; DOMAIN='modem'; NS='a'; ALG='1'; DLNAD='1'; DUMAOS='0'; SAMBA='1'; MULTIAP='1'; POWER='y'; PRNTR='1'; MMPBX='1'; DECT='1'; UPNP='1';;
@@ -135,6 +144,13 @@ do
   ?) cat <<EOH
 Syntax: $0 <options>
 Optional parameters:
+ -k a|c|k|m|n          Override default hardening configuration:
+    where a            - Keep Telstra AIR enabled
+          c            - Keep CWMP installed
+          k            - Keep default public authorized keys
+          m            - Keep Telstra monitoring and data collection enabled
+          n            - Keep Telstra NTP servers
+          T            - Keep all default Telstra configuration (Equivalent to: -ka -kc -kk -km -kn) 
  -h u|d|s|<hostname>
     where u            Leave hostname unchanged
           d            Set the hostname to $VARIANT
@@ -190,31 +206,210 @@ status2text() {
 
 echo [$SCRIPT]: Applying default hardening rules...
 
-if [ -f authorized_keys ]
+if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" ]
 then
-  cmp -s authorized_keys /etc/dropbear/authorized_keys
-  if [ $? -eq 1 ]
+  if [ "$CWMP" = 'n' ]
   then
-    echo [$SCRIPT]: - Found authorized_keys - replacing /etc/dropbear/authorized_keys
-    cp authorized_keys /etc/dropbear/authorized_keys
-    chmod 600 /etc/dropbear/authorized_keys
-    chown root:root /etc/dropbear/authorized_keys
-    SRV_dropbear=$(( $SRV_dropbear + 1 ))
+    echo [$SCRIPT]: - Disabling CWMP
+    uci set cwmpd.cwmpd_config.state='0'
+    uci commit cwmpd
+    SRV_cwmp=$(( $SRV_cwmp + 1 ))
+    uci -q delete firewall.cwmpd
+    uci commit firewall
+    SRV_fw=$(( $SRV_fw + 1 ))
+    uci -q del_list watchdog.@watchdog[0].pidfile='/var/run/cwmpd.pid'
+    uci -q del_list watchdog.@watchdog[0].pidfile='/var/run/cwmpevents.pid'
+    uci commit watchdog
+    SRV_watchdog=$(( $SRV_watchdog + 2 ))
+    PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE conf-cwmpd cwmpd"
   else
-    echo [$SCRIPT]: - /etc/dropbear/authorized_keys already replaced
+    echo [$SCRIPT]: - OVERRIDE! CWMP NOT Disabled
   fi
 else
-  if [ -z "$(cat /etc/dropbear/authorized_keys)" ]
+  echo [$SCRIPT]: - CWMP already Disabled
+fi
+
+if [ -z "$(uci -q get autoreset.vsparc_enabled)" -a -z "$(uci -q get autoreset.thor_enabled)" -a -z "$(uci -q get wifi_doctor_agent.acs)" -a -z "$(uci -q get wifi_doctor_agent.config)" -a -z "$(uci -q get wifi_doctor_agent.as_config)" ]
+then
+  echo [$SCRIPT]: - Telstra monitoring already Disabled
+else
+  if [ "$MONITORING" = 'n' ]
   then
-    echo [$SCRIPT]: - All public keys already removed from /etc/dropbear/authorized_keys
+    echo [$SCRIPT]: - Disabling Telstra monitoring
+    uci -q delete autoreset.vsparc_enabled
+    uci -q delete autoreset.thor_enabled
+    uci commit autoreset
+    SRV_monitor=$(( $SRV_monitor + 2 ))
+    uci -q delete wifi_doctor_agent.acs
+    uci -q delete wifi_doctor_agent.config
+    uci -q delete wifi_doctor_agent.as_config
+    uci commit wifi_doctor_agent
+    SRV_monitor=$(( $SRV_monitor + 3 ))
+    PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE libbcmairiq conf-airiq autoreset-tch tls-thor wifi-doctor-agent conf-wifi-doctor-agent"
   else
-    echo [$SCRIPT]: - Removing all public keys from /etc/dropbear/authorized_keys
-    echo > /etc/dropbear/authorized_keys
+    echo [$SCRIPT]: - OVERRIDE! Telstra monitoring NOT Disabled
+  fi
+fi
+
+if [ -z "$(uci -q get dhcp.hotspot)" -a -z "$(uci -q get dhcp.fonopen)" -a -z "$(uci -q get network.fonopen)" -a -z "$(uci -q get web.fon)" -a -z "$(uci -q show web.ruleset_main.rules | grep '\bfon\b')" -a -z "$(uci -q show qos.reclassify_1.srcif | grep '\bfonopen\b')" -a -z "$(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\))" -a -z "$(uci -q get wireless.bs2)" -a -z "$(uci -q get wireless.bs3)" ]
+then
+  echo [$SCRIPT]: - Telstra AIR already removed
+else
+  if [ "$AIR" = 'n' ]
+  then
+    echo [$SCRIPT]: - Removing Telstra Air
+    SRV_hotspot=$(( $SRV_hotspot + 1 ))
+    uci -q delete dhcp.hotspot
+    uci -q delete dhcp.fonopen
+    uci commit dhcp
+    SRV_dhcp=$(( $SRV_dhcp + 2 ))
+    uci -q delete network.fonopen
+    uci commit network
+    SRV_network=$(( $SRV_network + 2 ))
+    uci -q delete web.fon
+    uci -q del_list web.ruleset_main.rules='fon'
+    uci commit web
+    SRV_web=$(( $SRV_web + 2 ))
+    uci -q del_list qos.reclassify_1.srcif='fonopen'
+    uci commit qos
+    SRV_qos=$(( $SRV_qos + 1 ))
+    for wl in $(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | cut -d. -f2)
+    do
+      ap=$(uci show wireless | grep iface=\'$wl\' | cut -d. -f2)
+      echo [$SCRIPT]: - Removing SSID $wl \(AP=$ap\)
+      uci delete wireless.$wl
+      uci delete wireless.$ap
+      SRV_network=$(( $SRV_network + 2 ))
+    done
+    echo [$SCRIPT]: - Removing Telstra Air Band Steering configuration
+    uci -q delete wireless.bs2
+    uci -q delete wireless.bs3
+    SRV_network=$(( $SRV_network + 2 ))
+    uci commit wireless
+    PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE hotspotd webui-fon"
+  else
+    echo [$SCRIPT]: - OVERRIDE! Telstra AIR NOT Removed
+  fi
+fi
+
+if [ "$AIR" = 'n' ]
+then
+  if [ $(uci show firewall | grep 192.168.20.1 | wc -l) -eq 0 ]
+  then
+    echo [$SCRIPT]: - Telstra AIR firewall entries already removed
+  else
+    echo [$SCRIPT]: - Deleting Telstra AIR firewall entries
+    while [ $(uci show firewall | grep 192.168.20.1 | wc -l) -gt 0 ]
+    do
+      uci delete $(uci show firewall | grep -m 1 192.168.20.1 | cut -d. -f1-2)
+      SRV_fw=$(( $SRV_fw + 1 ))
+    done
+    uci commit firewall
+  fi
+fi
+
+if [ "$NTP" = 'n' ]
+then
+  for s in $(uci -q get system.ntp.server | tr " " "$IFS")
+  do 
+    echo $s | grep -q -i telstra
+    if [ $? -eq 0 ]
+    then
+      echo [$SCRIPT]: - Removing Telstra NTP server $s
+      uci del_list system.ntp.server="$s"
+      SRV_ntp=$(( $SRV_ntp + 1 ))
+    fi
+  done
+  if [ $SRV_ntp -eq 0 ]
+  then
+    echo [$SCRIPT]: - Telstra NTP servers already removed
+  else
+    uci commit system
+  fi
+else
+  echo [$SCRIPT]: - OVERRIDE! Telstra NTP servers NOT Removed
+fi
+
+if [ "$MONITORING" = 'n' ]
+then
+  /etc/init.d/lotagent enabled
+  if [ $? -eq 0 ]
+  then
+    echo [$SCRIPT]: - Disabling lotagent \(Telstra logging?\)
+    /etc/init.d/lotagent stop
+    /etc/init.d/lotagent disable
+  else
+    echo [$SCRIPT]: - lotagent already Disabled
+  fi
+
+  if [ "$(uci -q get bulkdata.global.enabled)" = "1" ]
+  then
+    echo [$SCRIPT]: - Disabling bulkdata collection \(More logging?\)
+    uci set bulkdata.global.enabled='0'
+    uci set bulkdata.profile_1.enabled='0'
+    uci commit bulkdata
+    SRV_bulkdata=$(( $SRV_bulkdata + 1 ))
+  else
+    echo [$SCRIPT]: - bulkdata collection already disabled
+  fi
+  grep -q bulkdata /etc/crontabs/root
+  if [ $? -eq 1 ]
+  then
+    echo [$SCRIPT]: - Removing bulkdata cron job
+    sed -e '/bulkdata/d' -i /etc/crontabs/root
+  else
+    echo [$SCRIPT]: - bulkdata cron job already removed
+  fi
+else
+  echo [$SCRIPT]: - OVERRIDE! Telstra logging and data collection NOT Removed
+fi
+
+if [ -f authorized_keys ]
+then
+  if [ "$KEYS" = 'n' ]
+  then
+    cmp -s authorized_keys /etc/dropbear/authorized_keys
+    if [ $? -eq 1 ]
+    then
+      echo [$SCRIPT]: - Found authorized_keys - replacing /etc/dropbear/authorized_keys
+      cp authorized_keys /etc/dropbear/authorized_keys
+      chmod 600 /etc/dropbear/authorized_keys
+      chown root:root /etc/dropbear/authorized_keys
+      SRV_dropbear=$(( $SRV_dropbear + 1 ))
+    else
+      echo [$SCRIPT]: - /etc/dropbear/authorized_keys already replaced
+    fi
+  else
+    echo [$SCRIPT]: - OVERRIDE! Existing public keys in /etc/dropbear/authorized_keys NOT removed
+    grep -q "$(head -n 1 authorized_keys)" /etc/dropbear/authorized_keys
+    if [ $? -eq 1 ]
+    then
+      echo [$SCRIPT]: - OVERRIDE! First key in authorized_keys not found in /etc/dropbear/authorized_keys - Appending entire file
+      cat authorized_keys >> /etc/dropbear/authorized_keys
+      chmod 600 /etc/dropbear/authorized_keys
+      chown root:root /etc/dropbear/authorized_keys
+      SRV_dropbear=$(( $SRV_dropbear + 1 ))
+    else
+      echo [$SCRIPT]: - OVERRIDE! First key in authorized_keys found in /etc/dropbear/authorized_keys - Assuming all keys already added
+    fi
+  fi
+else
+  if [ "$KEYS" = 'n' ]
+  then
+    if [ -z "$(cat /etc/dropbear/authorized_keys)" ]
+    then
+      echo [$SCRIPT]: - All public keys already removed from /etc/dropbear/authorized_keys
+    else
+      echo [$SCRIPT]: - Removing all public keys from /etc/dropbear/authorized_keys
+      echo > /etc/dropbear/authorized_keys
+    fi
+  else
+    echo [$SCRIPT]: - OVERRIDE! Public keys not removed from /etc/dropbear/authorized_keys
   fi
 fi
 if [ "$(uci -q get dropbear.lan.enable)" = '1'  -a "$(uci -q get dropbear.lan.enable)" = '1' -a "$(uci -q get dropbear.lan.PasswordAuth)" = 'on' -a "$(uci -q get dropbear.lan.RootPasswordAuth)" = 'on' -a "$(uci -q get dropbear.lan.RootLogin)" = '1'  -a "$(uci -q get dropbear.wan.RootLogin)" = '1' ]
 then
-  echo [$SCRIPT]: - SSH access already correctly configured
+  echo [$SCRIPT]: SSH access already correctly configured
 else
   # We need to enable dropbear LAN access properly as you can enable/disable via the GUI, and if
   # done without allowing password auth and root login, it can accidently prevent SSH access
@@ -226,135 +421,10 @@ else
   uci set dropbear.wan.RootLogin='1'
   uci commit dropbear
   SRV_dropbear=$(( $SRV_dropbear + 4 ))
-  echo [$SCRIPT]: - SSH access correctly configured
+  echo [$SCRIPT]: SSH access correctly configured
 fi
 
-if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" ]
-then
-  echo [$SCRIPT]: - Disabling CWMP
-  uci set cwmpd.cwmpd_config.state='0'
-  uci commit cwmpd
-  SRV_cwmp=$(( $SRV_cwmp + 1 ))
-  uci -q delete firewall.cwmpd
-  uci commit firewall
-  SRV_fw=$(( $SRV_fw + 1 ))
-  uci -q del_list watchdog.@watchdog[0].pidfile='/var/run/cwmpd.pid'
-  uci -q del_list watchdog.@watchdog[0].pidfile='/var/run/cwmpevents.pid'
-  uci commit watchdog
-  SRV_watchdog=$(( $SRV_watchdog + 2 ))
-else
-  echo [$SCRIPT]: - CWMP already Disabled
-fi
-
-if [ -z "$(uci -q get autoreset.vsparc_enabled)" -a -z "$(uci -q get autoreset.thor_enabled)" -a -z "$(uci -q get wifi_doctor_agent.acs)" -a -z "$(uci -q get wifi_doctor_agent.config)" -a -z "$(uci -q get wifi_doctor_agent.as_config)" ]
-then
-  echo [$SCRIPT]: - Telstra monitoring already Disabled
-else
-  echo [$SCRIPT]: - Disabling Telstra monitoring
-  uci -q delete autoreset.vsparc_enabled
-  uci -q delete autoreset.thor_enabled
-  uci commit autoreset
-  SRV_monitor=$(( $SRV_monitor + 2 ))
-  uci -q delete wifi_doctor_agent.acs
-  uci -q delete wifi_doctor_agent.config
-  uci -q delete wifi_doctor_agent.as_config
-  uci commit wifi_doctor_agent
-  SRV_monitor=$(( $SRV_monitor + 3 ))
-fi
-
-if [ -z "$(uci -q get dhcp.hotspot)" -a -z "$(uci -q get dhcp.fonopen)" -a -z "$(uci -q get network.fonopen)" -a -z "$(uci -q get web.fon)" -a -z "$(uci -q show web.ruleset_main.rules | grep '\bfon\b')" -a -z "$(uci -q show qos.reclassify_1.srcif | grep '\bfonopen\b')" -a -z "$(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\))" -a -z "$(uci -q get wireless.bs2)" -a -z "$(uci -q get wireless.bs3)" ]
-then
-  echo [$SCRIPT]: - Telstra AIR already removed
-else
-  echo [$SCRIPT]: - Removing Telstra Air
-  SRV_hotspot=$(( $SRV_hotspot + 1 ))
-  uci -q delete dhcp.hotspot
-  uci -q delete dhcp.fonopen
-  uci commit dhcp
-  SRV_dhcp=$(( $SRV_dhcp + 2 ))
-  uci -q delete network.fonopen
-  uci commit network
-  SRV_network=$(( $SRV_network + 2 ))
-  uci -q delete web.fon
-  uci -q del_list web.ruleset_main.rules='fon'
-  uci commit web
-  SRV_web=$(( $SRV_web + 2 ))
-  uci -q del_list qos.reclassify_1.srcif='fonopen'
-  uci commit qos
-  SRV_qos=$(( $SRV_qos + 1 ))
-  for wl in $(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | cut -d. -f2)
-  do
-    ap=$(uci show wireless | grep iface=\'$wl\' | cut -d. -f2)
-    echo [$SCRIPT]: - Removing SSID $wl \(AP=$ap\)
-    uci delete wireless.$wl
-    uci delete wireless.$ap
-    SRV_network=$(( $SRV_network + 2 ))
-  done
-  echo [$SCRIPT]: - Removing Telstra Air Band Steering configuration
-  uci -q delete wireless.bs2
-  uci -q delete wireless.bs3
-  SRV_network=$(( $SRV_network + 2 ))
-  uci commit wireless
-fi
-
-if [ $(uci show firewall | grep 192.168.20.1 | wc -l) -eq 0 ]
-then
-  echo [$SCRIPT]: - Telstra AIR firewall entries already removed
-else
-  echo [$SCRIPT]: - Deleting Telstra AIR firewall entries
-  while [ $(uci show firewall | grep 192.168.20.1 | wc -l) -gt 0 ]
-  do
-    uci delete $(uci show firewall | grep -m 1 192.168.20.1 | cut -d. -f1-2)
-    SRV_fw=$(( $SRV_fw + 1 ))
-  done
-  uci commit firewall
-fi
-
-for s in $(uci -q get system.ntp.server | tr " " "$IFS")
-do 
-  echo $s | grep -q -i telstra
-  if [ $? -eq 0 ]
-  then
-    echo [$SCRIPT]: - Removing Telstra NTP server $s
-    uci del_list system.ntp.server="$s"
-    SRV_ntp=$(( $SRV_ntp + 1 ))
-  fi
-done
-if [ $SRV_ntp -eq 0 ]
-then
-  echo [$SCRIPT]: - Telstra NTP servers already removed
-else
-  uci commit system
-fi
-
-/etc/init.d/lotagent enabled
-if [ $? -eq 0 ]
-then
-  echo [$SCRIPT]: - Disabling lotagent \(Telstra logging?\)
-  /etc/init.d/lotagent stop
-  /etc/init.d/lotagent disable
-else
-  echo [$SCRIPT]: - lotagent already Disabled
-fi
-
-if [ "$(uci -q get bulkdata.global.enabled)" = "1" ]
-then
-  echo [$SCRIPT]: - Disabling bulkdata collection \(More logging?\)
-  uci set bulkdata.global.enabled='0'
-  uci set bulkdata.profile_1.enabled='0'
-  uci commit bulkdata
-  SRV_bulkdata=$(( $SRV_bulkdata + 1 ))
-else
-  echo [$SCRIPT]: - bulkdata collection already disabled
-fi
-grep -q bulkdata /etc/crontabs/root
-if [ $? -eq 1 ]
-then
-  echo [$SCRIPT]: - Removing bulkdata cron job
-  sed -e '/bulkdata/d' -i /etc/crontabs/root
-else
-  echo [$SCRIPT]: - bulkdata cron job already removed
-fi
+# End of hardening
 
 CURRENT_HOSTNAME="$(uci -q get system.@system[0].hostname)"
 if [ "$HOST" = "u" ]
@@ -399,20 +469,39 @@ HOSTNAME="$(uci -q get system.@system[0].hostname)"
 SERIAL="$(uci get env.var.serial)"
 DLNA_NAME="$(uci -q get dlnad.config.friendly_name)"
 SAMBA_NAME="$(uci -q get samba.samba.name)"
-if [ "$DLNA_NAME" = 'Telstra Modem' -o "$DLNA_NAME" = 'Telstra Gateway' -o \( "$DLNA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "$HOSTNAME" \) ]
+if [ "$HOSTNAME" = "mymodem" ]
 then
-  echo [$SCRIPT]: Changing DLNAD friendly name from $DLNA_NAME to $HOSTNAME
-  uci set dlnad.config.friendly_name="$HOSTNAME"
-  uci commit dlnad
-  SRV_dlna=$(( $SRV_dlna + 1 ))
-fi
-if [ "$SAMBA_NAME" = 'Telstra-Modem' -o "$SAMBA_NAME" = 'Telstra-Gateway' -o \( "$SAMBA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "$HOSTNAME" \) ]
-then
-  echo [$SCRIPT]: Changing SAMBA host name from $SAMBA_NAME to $HOSTNAME
-  uci set samba.samba.name="$HOSTNAME"
-  uci set samba.samba.description="Technicolor $VARIANT - $SERIAL"
-  uci commit samba
-  SRV_samba=$(( $SRV_samba + 1 ))
+  if [ "$DLNA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "mymodem" ]
+  then
+    echo [$SCRIPT]: Changing DLNAD friendly name from $DLNA_NAME to Telstra Gateway
+    uci set dlnad.config.friendly_name="Telstra Gateway"
+    uci commit dlnad
+    SRV_dlna=$(( $SRV_dlna + 1 ))
+  fi
+  if [ "$SAMBA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "mymodem" ]
+  then
+    echo [$SCRIPT]: Changing SAMBA host name from $SAMBA_NAME to Telstra-Gateway
+    uci set samba.samba.name="Telstra-Gateway"
+    uci set samba.samba.description="Technicolor $VARIANT - $SERIAL"
+    uci commit samba
+    SRV_samba=$(( $SRV_samba + 1 ))
+  fi
+else
+  if [ "$DLNA_NAME" = 'Telstra Modem' -o "$DLNA_NAME" = 'Telstra Gateway' -o \( "$DLNA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "$HOSTNAME" \) ]
+  then
+    echo [$SCRIPT]: Changing DLNAD friendly name from $DLNA_NAME to $HOSTNAME
+    uci set dlnad.config.friendly_name="$HOSTNAME"
+    uci commit dlnad
+    SRV_dlna=$(( $SRV_dlna + 1 ))
+  fi
+  if [ "$SAMBA_NAME" = 'Telstra-Modem' -o "$SAMBA_NAME" = 'Telstra-Gateway' -o \( "$SAMBA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "$HOSTNAME" \) ]
+  then
+    echo [$SCRIPT]: Changing SAMBA host name from $SAMBA_NAME to $HOSTNAME
+    uci set samba.samba.name="$HOSTNAME"
+    uci set samba.samba.description="Technicolor $VARIANT - $SERIAL"
+    uci commit samba
+    SRV_samba=$(( $SRV_samba + 1 ))
+  fi
 fi
 
 DOMAIN_NOW="$(uci -q get dhcp.main.domain)"
@@ -843,8 +932,11 @@ then
   { /etc/init.d/xl2tpd disable; /etc/init.d/xl2tpd stop; } > /dev/null 2>&1
 fi
 
-echo [$SCRIPT]: Removing packages that are no longer required
-opkg --force-removal-of-dependent-packages remove conf-cwmpd cwmpd autoreset-tch geolocation-tch hotspotd webui-fon tls-thor wifi-doctor-agent conf-wifi-doctor-agent libbcmairiq conf-airiq
+if [ ! -z "$PACKAGES_TO_REMOVE" ]
+then
+  echo [$SCRIPT]: Removing packages that are no longer required \($PACKAGES_TO_REMOVE\)
+  opkg --force-removal-of-dependent-packages remove $PACKAGES_TO_REMOVE
+fi
 # Previous versions also removed mappings-fon package, but this causes errors to be logged by transformer, so this code undoes the package removal
 for f in /rom/usr/lib/opkg/info/mappings-fon.*
 do

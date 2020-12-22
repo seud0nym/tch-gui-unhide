@@ -35,6 +35,13 @@ It does NOT remove the hidden BH-xxxxxx SSID from the DJA0230 or DJA0231, as thi
 
 This script accepts the following options:
 ```
+ -k a|c|k|m|n          Override default hardening configuration:
+    where a            - Keep Telstra AIR enabled
+          c            - Keep CWMP installed
+          k            - Keep default public authorized keys
+          m            - Keep Telstra monitoring and data collection enabled
+          n            - Keep Telstra NTP servers
+          T            - Keep all default Telstra configuration (Equivalent to: -ka -kc -kk -km -kn)
  -h u|d|s|<hostname>
     where u            Leave hostname unchanged (Default)
           d            Set the hostname to the hardware variant (e.g.DJA0231 or TG800vac)
