@@ -176,7 +176,7 @@ Bank Plan is OPTIMAL
 Version 17 firmwares do not include `/usr/bin/transformer-cli`, which is very useful for working out what is returned in the various GUI scripts.
 
 ## unpack-rbi
-Unpacks the *.rbi* file passed as the first parameter. The second parameter is optional, and is either a filename or directory to which the *.rbi* file will be unpacked. If the filename or directory is specified, the file will be written to the /tmp directory with the same name but with an extension of *.bin*.
+Unpacks the *.rbi* file passed as the first parameter. The second parameter is optional, and is either a filename or directory to which the *.rbi* file will be unpacked. If the filename or directory is not specified, the file will be written to the /tmp directory with the same name but with an extension of *.bin*.
 
 # How to download and execute these scripts
 If you download a tch-gui-unhide release archive, the scripts applicable to that firmware version are included.
