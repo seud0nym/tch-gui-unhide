@@ -2,6 +2,7 @@
 .bbstats{margin:0px 0px -6px 20px;}
 .card_bg:after{visibility:var(--ICONS);}
 .card_bg.mirror:after{transform:matrix(-1,0,0,1,0,0);}
+.copyright{margin-bottom:0px;}
 .header .btn{margin-left:5px;}
 .simple-desc{display:block;padding-top:3px;}
 .smallcard .content{font-size:14px;height:125px;}
