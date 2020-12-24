@@ -46,5 +46,10 @@ sed \
   -e 's/string.upper/string.lower/' \
   -e '/attr = { input = { class="span1"/i \    readonly = true,' \
   -e '/^local hlp_attributes/i \table.insert(hlp_columns, table.remove(hlp_columns, 1))' \
+  -e '/return true/i \  if object["enable"] == "" then' \
+  -e '/return true/i \    object["enable"] = "1"' \
+  -e '/return true/i \  end' \
+  -e '/return true/i \  object["helper"] = string.lower(object["helper"])' \
+  -e '/--Look for the enable set to nothing/,/^end/d' \
   -i /www/docroot/modals/nat-alg-helper-modal.lp
 
