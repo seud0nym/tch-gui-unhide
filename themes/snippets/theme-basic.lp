@@ -4,24 +4,16 @@ gettext.textdomain('webui-core')
 
 local content_helper = require("web.content_helper")
 local format = string.format
-local theme_prefs_file = "/usr/tch-gui-unhide.theme"
-local theme_default = "THEME=telstra; COLOR=blue; ICONS=visible; KEEPLP=n;"
 local favicon = '<link href="/img/%sfavicon.ico" rel="shortcut icon" type="image/x-icon"/>'
 local stylesheet = '<link href="/css/%s%s" rel="stylesheet">'
 
-local theme = content_helper.readfile(theme_prefs_file,"line")
-if not theme or theme == "" then
-  ngx.log(ngx.ALERT, "Theme preferences file " .. theme_prefs_file .. " not found! Creating default: " .. theme_default)
-  theme = theme_default
-  local file = io.open(theme_prefs_file, "w")
-  file:write(theme_default)
-  file:close()
-end
-
-local settings = {}
-for k, v in string.gmatch(theme, "(%w+)=(%w+)") do
-  settings[k] = v
-end
+local settings = {
+  THEME = "rpc.gui.theme.THEME",
+  COLOR = "rpc.gui.theme.COLOR",
+  ICONS = "rpc.gui.theme.ICONS",
+  KEEPLP = "rpc.gui.theme.KEEPLP",
+}
+content_helper.getExactContent(settings)
 
 local html = {}
 

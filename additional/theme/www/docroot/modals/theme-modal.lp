@@ -5,14 +5,11 @@ gettext.textdomain('webui-core')
 
 local content_helper = require("web.content_helper")
 local message_helper = require("web.uimessage_helper")
+local post_helper = require("web.post_helper")
 local ui_helper = require("web.ui_helper")
 local gmatch, untaint = string.gmatch, string.untaint
+local gVIES = post_helper.getValidateInEnumSelect
 
-local current_theme = content_helper.readfile("/usr/tch-gui-unhide.theme","line")
-local theme_settings = {}
-for k, v in gmatch(current_theme, "(%w+)=(%w+)") do
-  theme_settings[k] = untaint(v)
-end
 local theme_names = {
     {"light", T"Light"},
     {"night", T"Night"},
@@ -32,28 +29,19 @@ local card_icons_options = {
     {"hidden", T"Hidden"},
 }
 
-if ngx.var.request_method == "POST" then
-  local vars = ngx.req.get_post_args()
-  if vars["action"] == "SAVE" then
-    local theme_name = untaint(vars["theme_name"])
-    local theme_colour = untaint(vars["theme_colour"]) or "blue"
-    local card_icons = untaint(vars["card_icons"])
-    if theme_name ~= theme_settings["THEME"] or theme_colour ~= theme_settings["COLOR"] or card_icons ~= theme_settings["ICONS"] then
-      theme_settings["THEME"] = theme_name
-      theme_settings["COLOR"] = theme_colour
-      theme_settings["ICONS"] = card_icons
-      local file, err_msg = io.open("/usr/tch-gui-unhide.theme", "w")
-      if file then
-        file:write("THEME=" .. theme_settings["THEME"] .. "; COLOR=" .. theme_settings["COLOR"] .. "; ICONS=" .. theme_settings["ICONS"] .. "; KEEPLP=" .. theme_settings["KEEPLP"] .. ";")
-        file:close()
-        message_helper.pushMessage("Changes successfully saved.", "success")
-        message_helper.pushMessage("Theme change will be visible when you close this window.", "info")
-      else
-        message_helper.pushMessage("Failed to persist theme preferences: " .. err_msg, "error")
-      end
-    end
-  end
-end
+local mapParams = {
+  theme_name = "rpc.gui.theme.THEME",
+  theme_colour = "rpc.gui.theme.COLOR",
+  card_icons = "rpc.gui.theme.ICONS",
+}
+local mapValid = {
+  theme_name = gVIES(theme_names),
+  theme_colour = gVIES(theme_colours),
+  card_icons = gVIES(card_icons_options),
+}
+local theme_settings, helpmsg = post_helper.handleQuery(mapParams, mapValid)
+
+message_helper.pushMessage("Successful theme changes will be visible <b>after</b> you save and close this window.", "info")
 
 ngx.print('\
 ');  ngx.print(ui_helper.createHeader(T"Management", false, false))   ngx.print('\
@@ -71,9 +59,9 @@ ngx.print('\
         <legend>');  ngx.print( T"Theme Selection" ); ngx.print('</legend>\
         ');
           local html = {}
-          html[#html + 1] = ui_helper.createInputSelect(T"Base Theme", "theme_name", theme_names, theme_settings["THEME"])
-          html[#html + 1] = ui_helper.createInputSelect(T"Highlight Colour", "theme_colour", theme_colours, theme_settings["COLOR"])
-          html[#html + 1] = ui_helper.createInputSelect(T"Card Icons", "card_icons", card_icons_options, theme_settings["ICONS"])
+          html[#html + 1] = ui_helper.createInputSelect(T"Base Theme", "theme_name", theme_names, theme_settings["theme_name"], nil, helpmsg["theme_name"])
+          html[#html + 1] = ui_helper.createInputSelect(T"Highlight Colour", "theme_colour", theme_colours, theme_settings["theme_colour"], nil, helpmsg["theme_colour"])
+          html[#html + 1] = ui_helper.createInputSelect(T"Card Icons", "card_icons", card_icons_options, theme_settings["card_icons"], nil, helpmsg["card_icons"])
           ngx.print(html)
           ngx.print('\
       </fieldset>\

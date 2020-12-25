@@ -1,0 +1,123 @@
+local lfs = require("lfs")
+
+local theme_prefs_file = "/usr/tch-gui-unhide.theme"
+local theme_default = "THEME=telstra; COLOR=blue; ICONS=visible; KEEPLP=n;"
+local theme_cache = {
+  preferences,
+  lastModified, -- time preferences was refreshed
+}
+
+local function getPreferences()
+  local prefs = {}
+  local time = lfs.attributes(theme_prefs_file, "modification")
+
+  -- Use the theme_cache for subsequent request
+  if theme_cache.preferences and time == theme_cache.lastModified then
+    return theme_cache.preferences
+  end
+
+  local theme
+
+  if time then
+    local file = io.open(theme_prefs_file, "r")
+    if file then
+      theme = file:read()
+      file:close()
+    end
+  end
+  
+  if not theme or theme == "" then
+    theme = theme_default
+    local file = io.open(theme_prefs_file, "w")
+    file:write(theme_default)
+    file:close()
+    time = lfs.attributes(theme_prefs_file, "modification")
+  end
+
+  for k, v in string.gmatch(theme, "(%w+)=(%w+)") do
+    prefs[k] = v
+  end
+
+  theme_cache.preferences = prefs
+  theme_cache.lastModified = time
+  theme_cache.reload = nil
+
+  return prefs
+end
+
+local function setPreference(key, value)
+  local theme_settings = getPreferences()
+  theme_settings[key] = value
+  local file, err_msg = io.open(theme_prefs_file, "w")
+  if file then
+    file:write("THEME=" .. theme_settings["THEME"] .. "; COLOR=" .. theme_settings["COLOR"] .. "; ICONS=" .. theme_settings["ICONS"] .. "; KEEPLP=" .. theme_settings["KEEPLP"] .. ";")
+    file:close()
+    return true
+  else
+    return nil, "Failed to persist theme preferences: " .. err_msg, "error"
+  end
+end
+
+local GUI_THEME_ = {
+  objectType = {
+    name = "rpc.gui.theme.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      THEME = {
+        access = "readWrite",
+        type = "string"
+      },
+      COLOR = {
+        access = "readWrite",
+        type = "string"
+      },
+      ICONS = {
+        access = "readWrite",
+        type = "string"
+      },
+      KEEPLP = {
+        access = "readWrite",
+        type = "string"
+      },
+    }
+  }
+}
+
+GUI_THEME_.get = function(mapping, paramname, key)
+  return getPreferences()[paramname]
+end
+
+GUI_THEME_.set = {
+  THEME = function(mapping,param,value,key)
+    if value == "light" or value == "night" or value == "telstra" or value == "telstramodern" then
+      return setPreference("THEME", value)
+    else
+      return nil, "Invalid theme '" .. value .. "'"
+    end
+  end,
+  COLOR = function(mapping,param,value,key)
+    if value == "blue" or value == "green" or value == "orange" or value == "purple" or value == "red" or value == "monochrome" then
+      return setPreference("COLOR", value)
+    else
+      return nil, "Invalid color '" .. value .. "'"
+    end
+  end,
+  ICONS = function(mapping,param,value,key)
+    if value == "visible" or value == "hidden" then
+      return setPreference("ICONS", value)
+    else
+      return nil, "Icons can only be either 'hidden' or 'visible'"
+    end
+  end,
+  KEEPLP = function(mapping,param,value,key)
+    if value == "n" or value == "y" then
+      return setPreference("KEEPLP", value)
+    else
+      return nil, "Keep Landing Page can only set to 'y' or 'n'"
+    end
+  end,
+}
+
+register(GUI_THEME_)
