@@ -21,7 +21,10 @@ local nAgtDevices = 0
 local agents = proxy.get("Device.Services.X_TELSTRA_MultiAP.Controller.MultiAPAgentNumberOfEntries")
 if agents and tonumber(agents[1].value) > 0 then
   for i = 1,tonumber(agents[1].value),1 do
-    nAgtDevices = nAgtDevices + tonumber(format("%s", proxy.get("Device.Services.X_TELSTRA_MultiAP.Agent." .. i .. ".AssociatedDeviceNumberOfEntries")[1].value))
+    local devices = tonumber(format("%s", proxy.get("Device.Services.X_TELSTRA_MultiAP.Agent." .. i .. ".AssociatedDeviceNumberOfEntries")[1].value) or 0)
+    if devices then
+      nAgtDevices = nAgtDevices + devices
+    end
   end
 end
 
