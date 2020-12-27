@@ -406,7 +406,11 @@ echo Restart EasyMesh agent
 
 if [ "$REBOOT" = "y" ]
 then
-  echo Please wait for device to reboot...
+  echo Attempting to reboot...
+  echo "#######################################################"
+  echo "# NOTE: If the reboot fails with 'Input/output error' #" 
+  echo "#       you can just manually power cycle the device  #"
+  echo "#######################################################"
   reboot
 fi
 
