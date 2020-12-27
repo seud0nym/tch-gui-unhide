@@ -47,7 +47,7 @@ do
   fi
   sed \
     -e '/network.interface.@wan.ipaddr/a \    ip6addr = "rpc.network.interface.@wan6.ip6addr",' \
-    -e "/${table}\[\"ipaddr\"\])/a \          format(T' <strong style=\"letter-spacing:-1px\">%s</strong>', ${table}[\"ip6addr\"])," \
+    -e "/${table}\[\"ipaddr\"\])/a \          format(T'<br><strong style=\"letter-spacing:-1px\">%s</strong>', ${table}[\"ip6addr\"])," \
     -e "s/<strong>/<strong style=\"letter-spacing:-1px\">/g" \
     -i $f
 done
