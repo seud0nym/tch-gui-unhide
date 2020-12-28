@@ -135,6 +135,7 @@ local mapParams = {
   wanIpAddrParam    = wanIpAddrPath_uci,
   wanNetmaskParam   = wanNetmaskPath_uci,
   wanGatewayParam   = wanGatewayPath_uci,
+  uci_wan_auto = "uci.network.interface.@wan.auto",
   uci_wan_masq = "uci.firewall.zone."..zonenum..".masq",
   uci_wan_mac = "uci.network.interface.@wan.macaddr",
   uci_wan_ipv6 = "uci.network.interface.@wan.ipv6",
@@ -150,18 +151,20 @@ local mapParams = {
 local gAV = post_helper.getAndValidation
 local nEIPV = post_helper.getAndValidation(post_helper.validateNonEmptyString,post_helper.advancedIPValidation)
 local gOV = post_helper.getOptionalValidation
+local vIAS6 = gOV(post_helper.validateIPAndSubnet(6))
 local vSIIP6 = gOV(post_helper.validateStringIsIPv6)
 local mapValid = {
   wanIpAddrParam    = gAV(nEIPV, post_helper.reservedIPValidation),
   wanNetmaskParam   = post_helper.validateIPv4Netmask,
   wanGatewayParam   = gAV(nEIPV, post_helper.reservedIPValidation),
-  uci_wan_masq      = validateNat,
+  uci_wan_auto = post_helper.validateBoolean,
+  uci_wan_masq = validateNat,
   uci_wan_mac = gOV(post_helper.validateStringIsMAC),
   uci_wan6_proto = post_helper.validateNonEmptyString,
   uci_wan_ipv6 = validateIPv6, 
-  uci_wan6_addr = vSIIP6,
+  uci_wan6_addr = vIAS6,
   uci_wan6_gw = vSIIP6,
-  uci_wan6_prefix = gOV(post_helper.validateIPAndSubnet(6)),
+  uci_wan6_prefix = vIAS6,
 }
 
 --- GRAB CURRENT DATA AND HELP MESSAGES FROM POST HANDLER
@@ -247,28 +250,42 @@ end
 ---    4) IF FIELD VALIDATION PASSES, TELL TRANSFORMER (THROUGH PROXY) TO PHYSICALLY UPDATE VALUE
 ---    5) UNDERLYING HARDWARE SHOULD GET CONFIGURED AUTOMATICALLY
 if ngx.req.get_method() == "POST" then
-    local postContent = ngx.req.get_post_args()
-    local actionVal   = postContent["action"]
-    
-    local ipVal       = postContent["wanIpAddrParam"]
-    local netmaskVal  = postContent["wanNetmaskParam"]
-    local gatewayVal  = postContent["wanGatewayParam"]    
-	
-    if actionVal == "wanIpAddrParam" then
-        content["wanIpAddrParam"] = ipVal
-        proxy.set(wanIpAddrPath_uci,ipVal)
-        proxy.apply()
+  local postContent = ngx.req.get_post_args()
+  local actionVal   = postContent["action"]
+  local doit = false
+  
+  local ipVal       = postContent["wanIpAddrParam"]
+  local netmaskVal  = postContent["wanNetmaskParam"]
+  local gatewayVal  = postContent["wanGatewayParam"]    
+
+  if actionVal == "wanIpAddrParam" then
+      content["wanIpAddrParam"] = ipVal
+      proxy.set(wanIpAddrPath_uci,ipVal)
+      doit = true
+  end
+  if actionVal == "wanNetmaskParam" then
+      content["wanNetmaskParam"] = netmaskVal
+      proxy.set(wanNetmaskPath_uci,netmaskVal)
+      doit = true
+  end
+  if actionVal == "wanGatewayParam" then
+      content["wanGatewayParam"] = gatewayVal
+      proxy.set(wanGatewayPath_uci,gatewayVal)
+      doit = true
+  end
+
+  if content.uci_wan_ipv6 == "1" then
+    local ipv4Auto = proxy.get("uci.network.interface.@wan.auto")[1].value
+    local ipv6Auto = proxy.get("uci.network.interface.@wan6.auto")[1].value
+    if ipv6Auto ~= ipv4Auto then
+      proxy.set("uci.network.interface.@wan6.auto", ipv4Auto)
+      doit = true
     end
-    if actionVal == "wanNetmaskParam" then
-        content["wanNetmaskParam"] = netmaskVal
-        proxy.set(wanNetmaskPath_uci,netmaskVal)
-        proxy.apply()
-    end
-    if actionVal == "wanGatewayParam" then
-        content["wanGatewayParam"] = gatewayVal
-        proxy.set(wanGatewayPath_uci,gatewayVal)
-        proxy.apply()
-    end
+  end
+
+  if doit then
+    proxy.apply()
+  end
 end
     
   ngx.print('\
@@ -317,14 +334,15 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     
         -- UI CONTROLS LIST
         -- ARGUMENT 2 MUST MUST MATCH PARAMETER NAME FROM mapParams OR ERRORS WILL OCCUR DURING INTERFACE UPDATES
-        html[#html + 1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
+        html[#html+1] = ui_helper.createSwitch(T"Enabled", "uci_wan_auto", content["uci_wan_auto"])
+        html[#html+1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
         html[#html+1] = ui_helper.createSwitch(T"IPv6", "uci_wan_ipv6", content.uci_wan_ipv6, switch_class_enable)
         html[#html+1] = ui_helper.createSimpleInputHidden("uci_wan6_proto", content.uci_wan6_proto)
         if supervision_support then
           html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision", "supervision_mode", supervision_modes, supervision_modes_content["supervision_mode"])
           html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled", "supervision_enabled", supervision_modes_content["supervision_enabled"])
         end
-        html[#html + 1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac", content["uci_wan_mac"], nil, helpmsg["uci_wan_mac"])
+        html[#html+1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac", content["uci_wan_mac"], nil, helpmsg["uci_wan_mac"])
         html[#html+1] = ui_helper.createInputText(T"IPv4 Address", "wanIpAddrParam", content["wanIpAddrParam"], wanIPClass, helpmsg["wanIpAddrParam"])
         html[#html+1] = ui_helper.createInputText(T"IPv4 Subnet Mask", "wanNetmaskParam", content["wanNetmaskParam"], wanNetmaskClass, helpmsg["wanNetmaskParam"])
         html[#html+1] = ui_helper.createInputText(T"IPv4 Gateway", "wanGatewayParam", content["wanGatewayParam"], wanGatewayClass, helpmsg["wanGatewayParam"])
@@ -332,9 +350,9 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
 	        ajax_attr.span.id = "loopbackdns"
           html[#html+1] = ui_helper.createLabel(T"IPv4 DNS Servers", content_dns.loopbackdns,ajax_attr)
         end
-        html[#html + 1] = ui_helper.createInputText(T"IPv6 Address", "uci_wan6_addr", content["uci_wan6_addr"], ipv6_input, helpmsg["uci_wan6_addr"])
-        html[#html + 1] = ui_helper.createInputText(T"IPv6 Gateway", "uci_wan6_gw", content["uci_wan6_gw"], ipv6_input, helpmsg["uci_wan6_gw"])
-        html[#html + 1] = ui_helper.createInputText(T"IPv6 LAN Prefix", "uci_wan6_prefix", content["uci_wan6_prefix"], ipv6_input, helpmsg["uci_wan6_prefix"])
+        html[#html+1] = ui_helper.createInputText(T"IPv6 Address (CIDR)", "uci_wan6_addr", content["uci_wan6_addr"], ipv6_input, helpmsg["uci_wan6_addr"])
+        html[#html+1] = ui_helper.createInputText(T"IPv6 Gateway", "uci_wan6_gw", content["uci_wan6_gw"], ipv6_input, helpmsg["uci_wan6_gw"])
+        html[#html+1] = ui_helper.createInputText(T"IPv6 LAN Prefix (CIDR)", "uci_wan6_prefix", content["uci_wan6_prefix"], ipv6_input, helpmsg["uci_wan6_prefix"])
 
         ngx.print(html)
       ngx.print('\
