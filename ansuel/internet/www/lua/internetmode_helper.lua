@@ -22,6 +22,8 @@ return {
         },
         operations = {
             { "uci.network.interface.@wan.proto", "dhcp"},
+            { "uci.network.interface.@wan6.proto", "dhcpv6"},
+            { "uci.network.interface.@wan6.ifname", wan_ifname},
             { "uci.network.config.wan_mode", "dhcp"},
             { "uci.network.interface.@lan.ifname", gsub(gsub(ifnames, wan_ifname, ""), "%s$", "")},
         },
@@ -67,6 +69,8 @@ return {
         },
         operations = {
             { "uci.network.interface.@wan.proto", "static"},
+            { "uci.network.interface.@wan6.proto", "static"},
+            { "uci.network.interface.@wan6.ifname", wan_ifname},
             { "uci.network.config.wan_mode", "static"},
             { "uci.network.interface.@lan.ifname", gsub(gsub(ifnames, wan_ifname, ""), "%s$", "")},
         },

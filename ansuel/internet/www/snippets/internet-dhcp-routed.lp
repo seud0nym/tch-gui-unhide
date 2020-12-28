@@ -356,6 +356,17 @@ if supervision_support then
   supervision_modes_content = post_helper.handleQuery(supervision_modes_param, supervision_modes_valid)
 end
 
+if ngx.req.get_method() == "POST" then
+  if content.uci_wan_ipv6 == "1" then
+    local ipv4Auto = proxy.get("uci.network.interface.@wan.auto")[1].value
+    local ipv6Auto = proxy.get("uci.network.interface.@wan6.auto")[1].value
+    if ipv6Auto ~= ipv4Auto then
+      proxy.set("uci.network.interface.@wan6.auto", ipv4Auto)
+      proxy.apply()
+    end
+  end
+end
+    
   ngx.print('\
 <fieldset>\
 ');  
