@@ -35,7 +35,10 @@ case "$(grep 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'
 esac
 
 if [ -f /usr/tch-gui-unhide.theme ]; then
-  . /usr/tch-gui-unhide.theme
+  mv /usr/tch-gui-unhide.theme /etc/tch-gui-unhide.theme
+fi
+if [ -f /etc/tch-gui-unhide.theme ]; then
+  . /etc/tch-gui-unhide.theme
 fi
 if [ -z "$THEME" ]; then
   KEEPLP=n

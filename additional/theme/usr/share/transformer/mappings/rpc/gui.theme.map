@@ -1,6 +1,6 @@
 local lfs = require("lfs")
 
-local theme_prefs_file = "/usr/tch-gui-unhide.theme"
+local theme_prefs_file = "/etc/tch-gui-unhide.theme"
 local theme_default = "THEME=telstra; COLOR=blue; ICONS=visible; KEEPLP=n;"
 local theme_cache = {
   preferences,
