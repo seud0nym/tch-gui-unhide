@@ -1,3 +1,25 @@
+2020.12.29
+==========
+* ALL: Fixed "Illegal option -?" message when using -? to determine script optional parameters
+* tch-gui-unhide: Fixed bug where Internet access modal was not displaying IP, Gateway and DNS addresses for PPPoE [#17]
+* tch-gui-unhide: Fixed bug that displayed NAT ALG helpers as disabled when they were enabled
+* tch-gui-unhide: Fixed bug that occassionally prevented theme changes from GUI (permission denied error)
+* tch-gui-unhide: Fixed static IPv6 address assignment - requires CIDR notation but input field did not allow it
+* tch-gui-unhide: Ensure wan6 auto, proto and ifname settings match wan
+* tch-gui-unhide: Enabled direct tab links from Management and Telephony cards
+* tch-gui-unhide: Device card now correctly counts booster-attached WiFi devices in wireless count, not ethernet count
+* tch-gui-unhide: Device modal shows booster-attached WiFi device interface correctly
+* tch-gui-unhide: Device modal now does case-insenstive device name sort, and added sorting by IPv4 and IPv6
+* tch-gui-unhide: Device modal can now toggle between Active Only and All connected devices by clicking Status heading
+* tch-gui-unhide: Disable refresh whilst editing device name
+* tch-gui-unhide: Squish IP addresses to fit IPv6 addresses on Internet Access and Local Network cards
+* tch-gui-unhide: Fixed bug when saving changes on Boosters tab that caused screen dis-arrangement
+* tch-gui-unhide: Added call stats to Telephony card
+* tch-gui-unhide: Stop background refresh of Gateway card when any modal is loaded
+* tch-gui-unhide: Moved theme settings file to more sensible location
+* tch-gui-unhide-xtra.rsyncd: Initial release to add rsyncd support to GUI
+* de-telstra: Added ability to override hardening and retain Telstra configuration for: CWMP, SSH keys, Telstra AIR, Telstra NTP servers, and/or Telstra monitoring and data collection
+
 2020.12.09
 ==========
 * tch-gui-unhide: Added modified firewall modal so that you can specify src and/or dest zone for user defined rules, and therefore create incoming, outgoing and forwarding rules in either direction (stock GUI only creates lan->wan forwarding rules)
