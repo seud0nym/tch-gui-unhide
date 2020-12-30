@@ -32,6 +32,11 @@ then
     -e 's/"erroruserpass alert alert-error hide"/"erroruserpass alert alert-error hide" style="width:212px;margin:auto;padding:10px;"/' \
     -e 's/buttonborder linear-mobile" style="width:50%/linear-mobile" style="width:65px/' \
     -e "/<\/head>\\\/i '); local lp = require(\"web.lp\"); lp.include(\"../snippets/theme-basic.lp\"); ngx.print('\\\\" \
+    -e '/uci.versioncusto.override.fwversion_override/a \  unhide_version = "rpc.gui.UnhideVersion",' \
+    -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         </tr>\\\\" \
+    -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <tr>\\\\" \
+    -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <td style=\"text-align:right;font-weight: 900;color:#808080;\">tch-gui-unhide</td>\\\\" \
+    -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <td style=\"text-align:left;color:#808080;\">');  ngx.print( cui[\"unhide_version\"] ); ngx.print('</td>\\\\" \
     /rom/www/docroot/landingpage.lp>/www/docroot/landingpage.lp
   # Have to restart if changing landing page
   SRV_nginx=$(( $SRV_nginx + 1 ))
