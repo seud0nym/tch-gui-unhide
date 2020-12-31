@@ -469,16 +469,16 @@ HOSTNAME="$(uci -q get system.@system[0].hostname)"
 SERIAL="$(uci get env.var.serial)"
 DLNA_NAME="$(uci -q get dlnad.config.friendly_name)"
 SAMBA_NAME="$(uci -q get samba.samba.name)"
-if [ "$HOSTNAME" = "mymodem" ]
+if [ "$HOSTNAME" = "mymodem" -o "$HOSTNAME" = "mygateway" ]
 then
-  if [ "$DLNA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "mymodem" ]
+  if [ "$DLNA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "$HOSTNAME" ]
   then
     echo [$SCRIPT]: Changing DLNAD friendly name from $DLNA_NAME to Telstra Gateway
     uci set dlnad.config.friendly_name="Telstra Gateway"
     uci commit dlnad
     SRV_dlna=$(( $SRV_dlna + 1 ))
   fi
-  if [ "$SAMBA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "mymodem" ]
+  if [ "$SAMBA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "$HOSTNAME" ]
   then
     echo [$SCRIPT]: Changing SAMBA host name from $SAMBA_NAME to Telstra-Gateway
     uci set samba.samba.name="Telstra-Gateway"
