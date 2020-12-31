@@ -1,6 +1,12 @@
 #!/bin/sh
 
-./build
+if [ "$(date +%Y.%m.%d)" != "$(head -n 1 ../VERSION.txt)" ]
+then
+  echo "ERROR: First line of VERSION.txt does not match new version number!!!"
+  exit 1
+fi
+
+. ./build
 
 common=$(find ../utilities/ -type f | grep -v -E '(README|dumaos|transformer)' | sed -e 's,^\.\./,,' | tr "$IFS" " ")
 

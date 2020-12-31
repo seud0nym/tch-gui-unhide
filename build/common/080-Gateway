@@ -10,6 +10,17 @@ sed \
   -e '/"Serial Number"/i \    html[#html + 1] = ui_helper.createLabel(T"tch-gui-unhide Version", content["unhide_version"], basic)' \
   -i /www/docroot/modals/gateway-modal.lp
 
+echo [$SCRIPT]: Add update available button
+sed \
+  -e '/uci.version.version.@version\[0\].timestamp/a\    updatable = "rpc.gui.UpdateAvailable",' \
+  -e '/isBridgedMode/i\        if cui.updatable == "1" then' \
+  -e "/isBridgedMode/i\          html[#html + 1] = '<a href=\"https://github.com/seud0nym/tch-gui-unhide/releases/latest\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"btn\">'" \
+  -e "/isBridgedMode/i\          html[#html + 1] = '<i class=\"icon-info-sign orange\">&nbsp;</i><small>'" \
+  -e "/isBridgedMode/i\          html[#html + 1] = T\"Update Available\"" \
+  -e "/isBridgedMode/i\          html[#html + 1] = '</small></a>'" \
+  -e '/isBridgedMode/i\        end' \
+  -i /www/docroot/gateway.lp
+
 echo [$SCRIPT]: Fix uptime on basic Broadband tab
 sed -e 's/days > 1/days > 0/' -i /www/docroot/broadband.lp
 

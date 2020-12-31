@@ -1,3 +1,29 @@
+local release_version_cmd = "curl -q -s -k -L -r0-9 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/VERSION.txt"
+local current_version = "" -- Set by build script
+local current_version_date = string.match(current_version, "([0-9.]+)@.*")
+local release_version = {
+  date,
+  lastRetrieved
+}
+
+local function getReleaseVersionDate()
+  local time = os.time()
+  
+  if release_version.lastRetrieved and ( time - release_version.lastRetrieved ) < 600 then
+    return release_version.date
+  end
+
+  release_version.lastRetrieved = time
+
+  local curl = io.popen(release_version_cmd,'r')
+  for v in curl:lines() do
+    release_version.date = v
+  end
+  curl:close()
+
+  return release_version.date
+end
+
 local GUI_ = {
   objectType = {
     name = "rpc.gui.",
@@ -8,13 +34,27 @@ local GUI_ = {
       UnhideVersion = {
         access = "readOnly",
         type = "string"
-      }
+      },
+      UpdateAvailable = {
+        access = "readOnly",
+        type = "int"
+      },
     }
   }
 }
 
 GUI_.get = {
-  UnhideVersion = ""
+  UnhideVersion = function()
+    return current_version
+  end,
+  UpdateAvailable = function() 
+    local release_version_date = getReleaseVersionDate()
+    if release_version_date and release_version_date > current_version_date then
+      return "1"
+    else
+      return "0"
+    end
+  end
 }
 
 register(GUI_)
