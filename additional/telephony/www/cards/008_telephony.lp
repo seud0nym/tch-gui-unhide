@@ -84,10 +84,20 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
               ngx.print('<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-profile-modal.lp" data-id="mmpbx-profile-modal">')
               ngx.print (ui_helper.createSimpleLight("1", value .. T" registered"))
               ngx.print ('</span>')
-              local incoming = datamodel.get (sipprofile_stats_path..name..".incomingCalls")[1].value
-              local incomingConnected = datamodel.get (sipprofile_stats_path..name..".incomingCallsConnected")[1].value
-              local outgoing = datamodel.get (sipprofile_stats_path..name..".outgoingCalls")[1].value
-              ngx.print(format('<p class="subinfos modal-link" data-toggle="modal" data-remote="/modals/mmpbx-log-modal.lp" data-id="mmpbx-log-modal">Calls: %s <small>IN</small> %s <small>MISSED</small> %s <small>OUT</small></p>', incomingConnected, incoming-incomingConnected, outgoing))
+              local incoming = datamodel.get(sipprofile_stats_path..name..".incomingCalls")
+              local incomingConnected = datamodel.get(sipprofile_stats_path..name..".incomingCallsConnected")
+              local outgoing = datamodel.get(sipprofile_stats_path..name..".outgoingCalls")
+              local callsIn = 0
+              local callsMissed = 0
+              local callsOut = 0
+              if incoming and incoming[1] and incomingConnected and incomingConnected[1] then
+                callsIn = incomingConnected[1].value
+                callsMissed = incoming[1].value - callsIn
+              end
+              if outgoing and outgoing[1] then
+                callsOut = outgoing[1].value
+              end
+              ngx.print(format('<p class="subinfos modal-link" data-toggle="modal" data-remote="/modals/mmpbx-log-modal.lp" data-id="mmpbx-log-modal">Calls: %s <small>IN</small> %s <small>MISSED</small> %s <small>OUT</small></p>', callsIn, callsMissed, callsOut))
             elseif (res[1].value == "Registering") then
               reg_num["2"] = reg_num["2"] + 1
               ngx.print('<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-profile-modal.lp" data-id="mmpbx-profile-modal">')
@@ -97,16 +107,16 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
           end
           reg_num["0"] = reg_num["0"] + 1
       end
+      if emission_state == "1" or emission_state == "0" then
+        ngx.print ('<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-dect-modal.lp" data-id="mmpbx-dect-modal">')
+        ngx.print (ui_helper.createSimpleLight(emission_state, emission_info, attributes))
+        ngx.print ('</span>')
+      end
       reg_num["0"] = reg_num["0"] - reg_num["1"] - reg_num["2"]
       if (reg_num["0"] ~= 0) then
           ngx.print('<p class="subinfos modal-link" data-toggle="modal" data-remote="/modals/mmpbx-profile-modal.lp" data-id="mmpbx-profile-modal">')
           ngx.print(string.format(T'%d %s<br />', reg_num["0"], reg_info["0"]))
           ngx.print('</p>')
-      end
-      if emission_state == "1" or emission_state == "0" then
-        ngx.print ('<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-dect-modal.lp" data-id="mmpbx-dect-modal">')
-        ngx.print (ui_helper.createSimpleLight(emission_state, emission_info, attributes))
-        ngx.print ('</span>')
       end
     %>
     </div>
