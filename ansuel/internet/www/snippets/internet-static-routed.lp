@@ -242,6 +242,10 @@ if supervision_support then
   supervision_modes_content = post_helper.handleQuery(supervision_modes_param, supervision_modes_valid)
 end
 
+if content.uci_wan_auto ~= "0" then
+  content.uci_wan_auto = "1"
+end
+
 ---
 --- TRIGGERED DURING POST OPERATION ON IP ADDRESS
 ---    1) GRABS POST ACTION AND ARGUMENTS FROM POST
@@ -253,34 +257,49 @@ if ngx.req.get_method() == "POST" then
   local postContent = ngx.req.get_post_args()
   local actionVal   = postContent["action"]
   local doit = false
-  
+  local ipv6auto = proxy.get("uci.network.interface.@wan6.auto")[1].value
+
   local ipVal       = postContent["wanIpAddrParam"]
   local netmaskVal  = postContent["wanNetmaskParam"]
   local gatewayVal  = postContent["wanGatewayParam"]    
 
   if actionVal == "wanIpAddrParam" then
-      content["wanIpAddrParam"] = ipVal
-      proxy.set(wanIpAddrPath_uci,ipVal)
-      doit = true
+    content["wanIpAddrParam"] = ipVal
+    proxy.set(wanIpAddrPath_uci,ipVal)
+    doit = true
   end
   if actionVal == "wanNetmaskParam" then
-      content["wanNetmaskParam"] = netmaskVal
-      proxy.set(wanNetmaskPath_uci,netmaskVal)
-      doit = true
+    content["wanNetmaskParam"] = netmaskVal
+    proxy.set(wanNetmaskPath_uci,netmaskVal)
+    doit = true
   end
   if actionVal == "wanGatewayParam" then
-      content["wanGatewayParam"] = gatewayVal
-      proxy.set(wanGatewayPath_uci,gatewayVal)
-      doit = true
+    content["wanGatewayParam"] = gatewayVal
+    proxy.set(wanGatewayPath_uci,gatewayVal)
+    doit = true
   end
 
   if content.uci_wan_ipv6 == "1" then
-    local ipv4Auto = proxy.get("uci.network.interface.@wan.auto")[1].value
-    local ipv6Auto = proxy.get("uci.network.interface.@wan6.auto")[1].value
-    if ipv6Auto ~= ipv4Auto then
-      proxy.set("uci.network.interface.@wan6.auto", ipv4Auto)
+    local ipv4ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
+    local ipv6ifname = proxy.get("uci.network.interface.@wan6.ifname")[1].value
+    local ipv4proto = proxy.get("uci.network.interface.@wan.proto")[1].value
+    local ipv6proto = proxy.get("uci.network.interface.@wan6.proto")[1].value
+
+    if ipv6auto ~= content.uci_wan_auto then
+      proxy.set("uci.network.interface.@wan6.auto", content.uci_wan_auto)
       doit = true
     end
+    if ipv6ifname ~= ipv4ifname then
+      proxy.set("uci.network.interface.@wan6.ifname", ipv4ifname)
+      doit = true
+    end
+    if ipv6proto ~= ipv4proto then
+      proxy.set("uci.network.interface.@wan6.proto", ipv4proto)
+      doit = true
+    end
+  elseif ipv6auto ~= "0" then
+    proxy.set("uci.network.interface.@wan6.auto", "0")
+    doit = true
   end
 
   if doit then
@@ -334,7 +353,7 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     
         -- UI CONTROLS LIST
         -- ARGUMENT 2 MUST MUST MATCH PARAMETER NAME FROM mapParams OR ERRORS WILL OCCUR DURING INTERFACE UPDATES
-        html[#html+1] = ui_helper.createSwitch(T"Enabled", "uci_wan_auto", content["uci_wan_auto"])
+        html[#html+1] = ui_helper.createSwitch(T"Enabled", "uci_wan_auto", content.uci_wan_auto)
         html[#html+1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
         html[#html+1] = ui_helper.createSwitch(T"IPv6", "uci_wan_ipv6", content.uci_wan_ipv6, switch_class_enable)
         html[#html+1] = ui_helper.createSimpleInputHidden("uci_wan6_proto", content.uci_wan6_proto)

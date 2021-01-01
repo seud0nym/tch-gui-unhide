@@ -412,6 +412,38 @@ if content.uci_wan_auto ~= "0" then
   content.uci_wan_auto = "1"
 end
 
+if ngx.req.get_method() == "POST" then
+  local doit = false
+  local ipv6auto = proxy.get("uci.network.interface.@wan6.auto")[1].value
+
+  if content.uci_wan_ipv6 == "1" then
+    local ipv4ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
+    local ipv6ifname = proxy.get("uci.network.interface.@wan6.ifname")[1].value
+    local ipv4proto = proxy.get("uci.network.interface.@wan.proto")[1].value
+    local ipv6proto = proxy.get("uci.network.interface.@wan6.proto")[1].value
+
+    if ipv6auto ~= content.uci_wan_auto then
+      proxy.set("uci.network.interface.@wan6.auto", content.uci_wan_auto)
+      doit = true
+    end
+    if ipv6ifname ~= ipv4ifname then
+      proxy.set("uci.network.interface.@wan6.ifname", ipv4ifname)
+      doit = true
+    end
+    if ipv6proto ~= ipv4proto then
+      proxy.set("uci.network.interface.@wan6.proto", ipv4proto)
+      doit = true
+    end
+  elseif ipv6auto ~= "0" then
+    proxy.set("uci.network.interface.@wan6.auto", "0")
+    doit = true
+  end
+
+  if doit then
+    proxy.apply()
+  end
+end
+
   ngx.print('\
 \
 <fieldset>\
