@@ -1,9 +1,12 @@
 #!/bin/sh
 
-if [ "$(date +%Y.%m.%d)" != "$(head -n 1 ../VERSION.txt)" ]
+version="$(head -n 1 ../VERSION.txt)"
+if [ "$(date +%Y.%m.%d)" != "$version" ]
 then
   echo "ERROR: First line of VERSION.txt does not match new version number!!!"
   exit 1
+else
+  echo Building Release $version
 fi
 
 . ./build

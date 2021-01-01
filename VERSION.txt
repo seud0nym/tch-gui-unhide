@@ -1,3 +1,11 @@
+2021.01.01
+==========
+* tch-gui-unhide: Fixed bug that caused Telephony card to crash when no call statistics recorded [#18]
+* tch-gui-unhide: Added button to indicate when a new version is available
+* tch-gui-unhide: Added tch-gui-unhide release version to landing page (18.1.c only)
+* tch-gui-unhide: Allow setup of wan connection when in bridge mode (https://github.com/Ansuel/tch-nginx-gui/commit/1903e3578b8557076c8b4681d8078c20c996a7d4)
+* tch-gui-unhide: Ensure wan6 auto, proto and ifname settings match wan on save
+
 2020.12.29
 ==========
 * ALL: Fixed "Illegal option -?" message when using -? to determine script optional parameters
