@@ -30,6 +30,8 @@ else
 	wan_ppp_ll_intf = ""
 end
 
+local wan_mode = proxy.get("uci.network.config.wan_mode")[1].value
+
 if not wan_ppp_over_atm then
    for k,v in ipairs(mode_options) do
        if v[1] == "pppoa" then
@@ -68,6 +70,9 @@ if not tabdata.current.ajax then
 			["data-value"] = "SWITCH_MODE",
 		}
 	}
+    if wan_mode == "bridge" then
+        mode_current = "bridge"
+    end
 	html[#html+1] = '<fieldset id="conn_mode" class="advanced hide">'
 	html[#html+1] = '<legend>' .. T"Connection mode" .. '</legend>'
 	html[#html+1] = ui_helper.createInputRadio(T"Mode", "newmode", mode_options, mode_current, mode_attributes)
@@ -79,6 +84,11 @@ if not tabdata.current.ajax then
 end
 
 lp.setpath("/www/snippets/")
+
+if wan_mode == "bridge" and tabdata.current.name ~= "bridge" then
+    lp.include("internet-bridged.lp")
+end
+
 lp.include(tabdata.current.view)
 
 if not tabdata.current.ajax then
