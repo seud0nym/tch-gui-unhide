@@ -316,7 +316,7 @@ then
   echo Configuring WAN for IPv6
   uci set network.wan6.auto='1'
   uci set network.wan6.proto='dhcpv6'
-  uci set network.wan6.forceprefix='0'
+  uci set network.wan6.reqprefix='no'
   uci set network.wan6.ifname='@wan'
 fi
 
