@@ -20,6 +20,17 @@ then
   uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
 fi
+if [ "$(uci -q get web.internetstatusajax)" != "rule" ]
+then
+  echo [$SCRIPT]: Enabling upload/download status updates
+  uci add_list web.ruleset_main.rules='internetstatusajax'
+  uci set web.internetstatusajax='rule'
+  uci set web.internetstatusajax.target='/ajax/internet-status.lua'
+  uci set web.internetstatusajax.normally_hidden='1'
+  uci add_list web.internetstatusajax.roles='admin'
+  uci commit web
+  SRV_nginx=$(( $SRV_nginx + 4 ))
+fi
 if [ "$(uci -q get web.ssidstatusajax)" != "rule" ]
 then
   echo [$SCRIPT]: Enabling SSID status updates

@@ -21,37 +21,6 @@ do
   sed -e "s|\(^local temp1_input = {\)|\1$elements|" -i $f
 done
 
-echo [$SCRIPT]: Fix Internet card bug and bridge detection, and hide if no WAN interface defined
-sed \
-  -e '/local proxy = require("datamodel")/a local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")' \
-  -e '/local proxy = require("datamodel")/a if wan_ifname and wan_ifname ~= "" then' \
-  -e '$ a end' \
-  -e '/^local untaint_mt/a local dyntab_helper = require("web.dyntab_helper")' \
-  -e 's/\(^local mode_active =\)\( "".*\)/\1 dyntab_helper.process(imh).current.name/' \
-  -e '/^local mode_active = "default"/d' \
-  -e '/mode_active = "uci.network.config.wan_mode"/,/wan_proto = "uci.network.interface.@wan.proto"/d' \
-  -e 's/if content_mode.mode_active ~= "" then/if mode_active == "" then/' \
-  -e "/-- Get current mode by 'wan_mode'/,/--'wan_mode' not there, then get @wan.proto/d" \
-  -e 's/mode_active = content_mode.wan_proto/mode_active = mode_default/' \
-  -i /www/cards/003_internet.lp
-
-echo [$SCRIPT]: Add IPv6 address to Internet card if assigned
-for f in $(ls /www/cards/snippets/003_internet_* | grep -E '(dhcp|pppoe|static)')
-do
-  prefix="$(echo $f | grep -o -E '(dhcp|ppp|static)')"
-  if [ $prefix = "ppp" ]
-  then
-    table=content_rpc
-  else
-    table=cs
-  fi
-  sed \
-    -e '/network.interface.@wan.ipaddr/a \    ip6addr = "rpc.network.interface.@wan6.ip6addr",' \
-    -e "/${table}\[\"ipaddr\"\])/a \          format(T'<br><strong style=\"letter-spacing:-1px\">%s</strong>', ${table}[\"ip6addr\"])," \
-    -e "s/<strong>/<strong style=\"letter-spacing:-1px\">/g" \
-    -i $f
-done
-
 echo [$SCRIPT]: Hide Mobile card if no devices found
 sed \
   -e '/require("web.lte-utils")/a local result = utils.getContent("rpc.mobiled.DeviceNumberOfEntries")' \
