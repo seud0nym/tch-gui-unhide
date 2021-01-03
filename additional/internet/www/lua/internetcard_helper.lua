@@ -11,7 +11,7 @@ function M.getInternetCardHTML(mode_active)
   }
   content_helper.getExactContent(content_mode)
   
-  local mobile_ip
+  local mobile_ip = ""
   if content_mode.wwan_up == "1" then
     local content_mobile = {
       ipaddr = "rpc.network.interface.@wwan.ipaddr",
@@ -21,14 +21,11 @@ function M.getInternetCardHTML(mode_active)
     if content_mobile.ipaddr ~= "" then
       mobile_ip = content_mobile.ipaddr
     elseif content_mobile.ip6addr ~= "" then
-      mobile_ip = content_mobile.ip6addr
-      local count = 0
-      mobile_ip = mobile_ip:gsub("(:)", function(str)
-        count = count + 1
-        if count == 3 then
-          return "- :"
-        end
-      end)
+      if #content_mobile.ip6addr <= 28 then
+        mobile_ip = content_mobile.ip6addr
+      else
+        mobile_ip = format('<span style="font-size:12px">%s</span>', content_mobile.ip6addr)
+      end
     end
   end
   
