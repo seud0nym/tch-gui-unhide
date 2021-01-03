@@ -6,13 +6,13 @@ local format = string.format
 local M = {}
 
 function M.getInternetCardHTML(mode_active) 
-  local content_mode = {
+  local mobile_status = {
     wwan_up = "rpc.network.interface.@wwan.up",
   }
-  content_helper.getExactContent(content_mode)
+  content_helper.getExactContent(mobile_status)
   
-  local mobile_ip = ""
-  if content_mode.wwan_up == "1" then
+  local mobile_ip
+  if mobile_status.wwan_up == "1" then
     local content_mobile = {
       ipaddr = "rpc.network.interface.@wwan.ipaddr",
       ip6addr = "rpc.network.interface.@wwan.ip6addr",
@@ -32,10 +32,10 @@ function M.getInternetCardHTML(mode_active)
   local html = {}
 
   if mode_active == "bridge" then
-    local bridge_mode = {
+    local cs = {
       variant = "env.var.variant_friendly_name",
     }
-    content_helper.getExactContent(bridge_mode)
+    content_helper.getExactContent(cs)
 
     html[#html+1] = '<p class="subinfos">'
     html[#html+1] = T'Gateway is in bridge mode'
@@ -94,7 +94,7 @@ function M.getInternetCardHTML(mode_active)
     local ppp_state_map = {
       disabled = T"PPP disabled",
       disconnecting = T"PPP disconnecting",
-      connected = T"PPP connected",
+      connected = T"PPP on",
       connecting = T"PPP connecting",
       disconnected = T"PPP disconnected",
       error = T"PPP error",
@@ -145,31 +145,43 @@ function M.getInternetCardHTML(mode_active)
       ip6addr = "rpc.network.interface.@wan6.ip6addr",
     }
     content_helper.getExactContent(cs)
-    local static_state = "disabled"
-    local static_state_map = {
-        disabled = T"Static disabled",
-        connected = T"Static on",
-    }
-    local static_light_map = {
-      disabled = "off",
-      connected = "green",
-    }
-    if cs["uci_wan_auto"] ~= "0" and cs["ipaddr"]:len() > 0 then
-      cs["uci_wan_auto"] = "1"
-      static_state = "connected"
+    if cs["uci_wan_auto"] ~= "0" then
+      local wan_data = {
+        wan_ifname        = "uci.network.interface.@wan.ifname",
+        dsl0_enabled      = "uci.xdsl.xdsl.@dsl0.enabled",
+        dsl_status        = "sys.class.xdsl.@line0.Status",
+        ethwan_status     = "sys.eth.port.@eth4.status",
+      }
+      content_helper.getExactContent(wan_data)
+      if wan_data["wan_ifname"] and (wan_data["wan_ifname"] == "ptm0" or wan_data["wan_ifname"] == "atmwan") then
+        if wan_data["dsl_status"] == "Up" then
+          html[#html+1] = ui_helper.createSimpleLight("1", "Static on")
+        elseif wan_data["dsl_status"] == "NoSignal" then
+          html[#html+1] = ui_helper.createSimpleLight("4", "Static disconnected")
+        elseif wan_data["dsl0_enabled"] == "0" then
+          html[#html+1] = ui_helper.createSimpleLight("0", "Static disabled")
+        else
+          html[#html+1] = ui_helper.createSimpleLight("2", "Static connecting")
+        end
+      end
+      if wan_data["wan_ifname"] and string.find(wan_data["wan_ifname"],"eth") then
+        if wan_data["ethwan_status"] == "up" then
+          html[#html+1] = ui_helper.createSimpleLight("1", "Static on")
+        else
+          html[#html+1] = ui_helper.createSimpleLight("4", "Static disconnected")
+        end
+      end
+    else
+      html[#html+1] = ui_helper.createSimpleLight("0", "Static disabled")
     end
-    html[#html+1] = ui_helper.createSimpleLight(nil, static_state_map[static_state], { light = { class = static_light_map[static_state] } })
-    if static_state == "connected" then
-      html[#html+1] = '<p class="subinfos">'
-      html[#html+1] = format(T'WAN IP is <strong style="letter-spacing:-1px">%s</strong>', cs["ipaddr"])
-      html[#html+1] = format(T'<br><strong style="letter-spacing:-1px">%s</strong>', cs["ip6addr"])
-      html[#html+1] = '</p>'
-    end
-
+    html[#html+1] = '<p class="subinfos">'
+    html[#html+1] = format(T'WAN IP is <strong style="letter-spacing:-1px">%s</strong>', cs["ipaddr"])
+    html[#html+1] = format(T'<br><strong style="letter-spacing:-1px">%s</strong>', cs["ip6addr"])
+    html[#html+1] = '</p>'
   end
 
   if mobile_ip then
-    html[#html+1] = ui_helper.createSimpleLight(content_mode["wwan_up"], "Mobile Internet connected")
+    html[#html+1] = ui_helper.createSimpleLight(mobile_status["wwan_up"], "Mobile Internet connected")
     html[#html+1] = '<p class="subinfos">'
     html[#html+1] = format(T'WAN IP is <strong style="letter-spacing:-1px">%s</strong>', mobile_ip)
     html[#html+1] = '</p>'
