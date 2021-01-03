@@ -138,7 +138,7 @@ local mapParams = {
   uci_wan_auto = "uci.network.interface.@wan.auto",
   uci_wan_masq = "uci.firewall.zone."..zonenum..".masq",
   uci_wan_mac = "uci.network.interface.@wan.macaddr",
-  uci_wan_ipv6 = "uci.network.interface.@wan.ipv6",
+	uci_wan6_auto = "uci.network.interface.@wan6.auto",
   uci_wan6_proto = "uci.network.interface.@wan6.proto",
   uci_wan6_addr = "uci.network.interface.@wan6.ip6addr",
   uci_wan6_gw = "uci.network.interface.@wan6.ip6gw",
@@ -161,7 +161,7 @@ local mapValid = {
   uci_wan_masq = validateNat,
   uci_wan_mac = gOV(post_helper.validateStringIsMAC),
   uci_wan6_proto = post_helper.validateNonEmptyString,
-  uci_wan_ipv6 = validateIPv6, 
+  uci_wan6_auto = validateIPv6, 
   uci_wan6_addr = vIAS6,
   uci_wan6_gw = vSIIP6,
   uci_wan6_prefix = vIAS6,
@@ -196,35 +196,35 @@ content_dns.loopbackdns = content_helper.getMergedList(content_dns.wandns, dnsv4
 
 local ipv4pattern = "^(((([1]?\\d)?\\d|2[0-4]\\d|25[0-5])\\.){3}(([1]?\\d)?\\d|2[0-4]\\d|25[0-5]))$"
 local dnsColumns = {
-    {
-       header = T"DNS IP Address",
-       name   = "wanDnsParam",                          -- MAP THIS PARAMETER AGAINST dnsValid TABLE
-       param  = "value",                                -- APPENDED TO basepath OF dnsOptions TABLE
-       type   = "text",
-       attr   = { input = { class="span2", maxlength="15", pattern = ipv4pattern } },
-    },
+  {
+    header = T"DNS IP Address",
+    name   = "wanDnsParam",                          -- MAP THIS PARAMETER AGAINST dnsValid TABLE
+    param  = "value",                                -- APPENDED TO basepath OF dnsOptions TABLE
+    type   = "text",
+    attr   = { input = { class="span2", maxlength="15", pattern = ipv4pattern } },
+  },
 }
 
 local dnsOptions = {
-    tableid    = "dnsserver",
-    basepath   = "uci.network.interface.@wan.dns.@.",
-    createMsg  = T"Add New DNS",
-    minEntries = 1,
-    maxEntries = 4,                                     -- ADJUST LIMIT AS SEEN FIT
-    sorted = function(a, b)
-        return tonumber(a.paramindex) < tonumber(b.paramindex)
-    end
+  tableid    = "dnsserver",
+  basepath   = "uci.network.interface.@wan.dns.@.",
+  createMsg  = T"Add New DNS",
+  minEntries = 1,
+  maxEntries = 4,                                     -- ADJUST LIMIT AS SEEN FIT
+  sorted = function(a, b)
+    return tonumber(a.paramindex) < tonumber(b.paramindex)
+  end
 }
 
 local dnsValid = {
-    wanDnsParam =  post_helper.advancedIPValidation,
+  wanDnsParam =  post_helper.advancedIPValidation,
 }
 
 local dnsData, dnsHelpMsg = post_helper.handleTableQuery(dnsColumns, dnsOptions, nil, nil, dnsValid)
 
 local supervision_support = proxy.get("uci.supervision.global.enabled")
 local supervision_modes = {
-  { "BFD", T"BFD" },
+  { "BFD", T"Bidirectional Forward Detection" },
   { "DNS", T"DNS" },
   { "Disabled", T"Disabled" },
 }
@@ -257,7 +257,6 @@ if ngx.req.get_method() == "POST" then
   local postContent = ngx.req.get_post_args()
   local actionVal   = postContent["action"]
   local doit = false
-  local ipv6auto = proxy.get("uci.network.interface.@wan6.auto")[1].value
 
   local ipVal       = postContent["wanIpAddrParam"]
   local netmaskVal  = postContent["wanNetmaskParam"]
@@ -279,16 +278,12 @@ if ngx.req.get_method() == "POST" then
     doit = true
   end
 
-  if content.uci_wan_ipv6 == "1" then
+  if content.uci_wan6_auto == "1" then
     local ipv4ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
     local ipv6ifname = proxy.get("uci.network.interface.@wan6.ifname")[1].value
     local ipv4proto = proxy.get("uci.network.interface.@wan.proto")[1].value
     local ipv6proto = proxy.get("uci.network.interface.@wan6.proto")[1].value
 
-    if ipv6auto ~= content.uci_wan_auto then
-      proxy.set("uci.network.interface.@wan6.auto", content.uci_wan_auto)
-      doit = true
-    end
     if ipv6ifname ~= ipv4ifname then
       proxy.set("uci.network.interface.@wan6.ifname", ipv4ifname)
       doit = true
@@ -297,9 +292,6 @@ if ngx.req.get_method() == "POST" then
       proxy.set("uci.network.interface.@wan6.proto", ipv4proto)
       doit = true
     end
-  elseif ipv6auto ~= "0" then
-    proxy.set("uci.network.interface.@wan6.auto", "0")
-    doit = true
   end
 
   if doit then
@@ -347,15 +339,15 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
         }
         local ipv6_input = {
           group = {
-            class ="monitor-uci_wan_ipv6 monitor-1",
+            class ="monitor-uci_wan6_auto monitor-1",
           },
         }
     
         -- UI CONTROLS LIST
         -- ARGUMENT 2 MUST MUST MATCH PARAMETER NAME FROM mapParams OR ERRORS WILL OCCUR DURING INTERFACE UPDATES
-        html[#html+1] = ui_helper.createSwitch(T"Enabled", "uci_wan_auto", content.uci_wan_auto)
+        html[#html+1] = ui_helper.createSwitch(T"IPv4 Enabled on Boot", "uci_wan_auto", content.uci_wan_auto)
         html[#html+1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
-        html[#html+1] = ui_helper.createSwitch(T"IPv6", "uci_wan_ipv6", content.uci_wan_ipv6, switch_class_enable)
+        html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled on Boot", "uci_wan6_auto", content.uci_wan6_auto, switch_class_enable)
         html[#html+1] = ui_helper.createSimpleInputHidden("uci_wan6_proto", content.uci_wan6_proto)
         if supervision_support then
           html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision", "supervision_mode", supervision_modes, supervision_modes_content["supervision_mode"])
@@ -393,7 +385,7 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
 </fieldset>    \
 \
 <script language ="javascript">\
-$("#uci_wan_ipv6").change(function() {\
+$("#uci_wan6_auto").change(function() {\
   if (this.value == "1") {\
     $("input[name=uci_wan6_proto]").val("static");\
   } else {\

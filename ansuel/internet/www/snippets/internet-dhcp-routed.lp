@@ -168,7 +168,8 @@ end
 local mapParams = {
   uci_wan_auto = "uci.network.interface.@wan.auto",
   uci_wan_masq = "uci.firewall.zone."..zonenum..".masq",
-	uci_wan_ipv6 = "uci.network.interface.@wan.ipv6",
+	uci_wan6_auto = "uci.network.interface.@wan6.auto",
+	uci_wan6_reqprefix = "uci.network.interface.@wan6.reqprefix",
   uci_wan_mac = "uci.network.interface.@wan.macaddr",
   uci_wan_peerdns = "uci.network.interface.@wan.peerdns",
 	uci_wan_vendorid = "uci.network.interface.@wan.vendorid",
@@ -177,21 +178,23 @@ local mapParams = {
 -- Shortcuts to validation helpers to make lines shorter
 local vB = post_helper.validateBoolean
 
+local reqprefix_values = {
+  { "auto", T"Automatic" },
+  { "no", T"No" },
+}
+
 local function IPv6andUsername(value, object, key)
 	local valid, msg = vB(value)
-	
 	if valid then
 	local ipv6_realm = proxy.get("uci.env.var.ppp_realm_ipv6")
 	local ipv4_realm = proxy.get("uci.env.var.ppp_realm_ipv4")
 		if value == "1" then
-			proxy.set("uci.network.interface.@wan6.auto", "1")
 			if ipv6_realm then
 				proxy.set("uci.network.interface.@wan.username", ipv6_realm[1].value)
 			end
 			proxy.set("uci.network.device.@waneth4.ipv6", "1")
 			proxy.set("uci.network.device.@wanptm0.ipv6", "1")			
 		else
-			proxy.set("uci.network.interface.@wan6.auto", "0")
 			if ipv4_realm then
 				proxy.set("uci.network.interface.@wan.username", ipv4_realm[1].value)
 			end
@@ -206,7 +209,8 @@ end
 local mapValid = {
   uci_wan_auto = vB,
   uci_wan_masq = validateNat,
-  uci_wan_ipv6 = IPv6andUsername,
+  uci_wan6_auto = IPv6andUsername,
+	uci_wan6_reqprefix = gVIES(reqprefix_values),
   uci_wan_mac = gOV(post_helper.validateStringIsMAC),
   uci_wan_peerdns = vB,
   uci_wan_vendorid = gOV(post_helper.validateNonEmptyString),
@@ -216,6 +220,9 @@ local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
 -- default value
 if content["uci_wan_auto"] ~= "0" then
   content["uci_wan_auto"] = "1"
+end
+if content["uci_wan6_auto"] ~= "0" then
+  content["uci_wan6_auto"] = "1"
 end
 
 local wan_ppp_ll_intf = proxy.get("rpc.network.interface.@wan.ppp.ll_intf")
@@ -338,7 +345,7 @@ end
 
 local supervision_support = proxy.get("uci.supervision.global.enabled")
 local supervision_modes = {
-  { "BFD", T"BFD" },
+  { "BFD", T"Bidirectional Forward Detection" },
   { "DNS", T"DNS" },
   { "Disabled", T"Disabled" },
 }
@@ -359,32 +366,27 @@ end
 if content.uci_wan_auto ~= "0" then
   content.uci_wan_auto = "1"
 end
+if content.uci_wan6_auto ~= "0" then
+  content.uci_wan6_auto = "1"
+end
 
 if ngx.req.get_method() == "POST" then
   local doit = false
-  local ipv6auto = proxy.get("uci.network.interface.@wan6.auto")[1].value
 
-  if content.uci_wan_ipv6 == "1" then
+  if content.uci_wan6_auto == "1" then
     local ipv4ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
     local ipv6ifname = proxy.get("uci.network.interface.@wan6.ifname")[1].value
     local ipv4proto = proxy.get("uci.network.interface.@wan.proto")[1].value
     local ipv6proto = proxy.get("uci.network.interface.@wan6.proto")[1].value
 
-    if ipv6auto ~= content.uci_wan_auto then
-      proxy.set("uci.network.interface.@wan6.auto", content.uci_wan_auto)
-      doit = true
-    end
     if ipv6ifname ~= ipv4ifname then
       proxy.set("uci.network.interface.@wan6.ifname", ipv4ifname)
       doit = true
     end
-    if ipv6proto ~= ipv4proto then
-      proxy.set("uci.network.interface.@wan6.proto", ipv4proto)
+    if ipv6proto ~= "dhcpv6" and ipv4proto == "dhcp" then
+      proxy.set("uci.network.interface.@wan6.proto", "dhcpv6")
       doit = true
     end
-  elseif ipv6auto ~= "0" then
-    proxy.set("uci.network.interface.@wan6.auto", "0")
-    doit = true
   end
 
   if doit then
@@ -402,9 +404,10 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     local html = {}
     ajax_attr_light.light.class = dhcp_light_map[dhcp_state]
     html[#html+1] = ui_helper.createLight(T"Status", nil, dhcp_state_map[dhcp_state], ajax_attr_light)
-    html[#html+1] = ui_helper.createSwitch(T"Enabled", "uci_wan_auto", content.uci_wan_auto)
+    html[#html+1] = ui_helper.createSwitch(T"IPv4 Enabled on Boot", "uci_wan_auto", content.uci_wan_auto)
     html[#html+1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
-    html[#html+1] = ui_helper.createSwitch(T"IPv6", "uci_wan_ipv6", content.uci_wan_ipv6)
+    html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled on Boot", "uci_wan6_auto", content.uci_wan6_auto)
+    html[#html+1] = ui_helper.createInputSelect(T"IPv6 Prefix Request", "uci_wan6_reqprefix", reqprefix_values, content.uci_wan6_reqprefix)
     if supervision_support then
       html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision", "supervision_mode", supervision_modes, supervision_modes_content["supervision_mode"])
       html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled", "supervision_enabled", supervision_modes_content["supervision_enabled"])
