@@ -572,6 +572,7 @@ ngx.print(ui_helper.createAlertBlock(T("WARNING: Setting Enabled to OFF causes t
     ngx.print(html)
   ngx.print('\
 </fieldset>\
+<div class="monitor-fw_level monitor-user">\
 <legend>');  ngx.print( T"IPv4 Firewall Rules" ); ngx.print('</legend>\
 ');
     ngx.print(ui_helper.createTable(fwrule_columns, fwrule_data, fwrule_options, nil, fwrule_helpmsg))
@@ -580,7 +581,7 @@ ngx.print(ui_helper.createAlertBlock(T("WARNING: Setting Enabled to OFF causes t
 ');
     ngx.print(ui_helper.createTable(fwrule_v6_columns, fwrule_v6_data, fwrule_v6_options, nil, fwrule_v6_helpmsg))
   ngx.print('\
-</fieldset>\
+</div>\
 </form>\
 </div>\
 ');  ngx.print(ui_helper.createFooter())   ngx.print('\
