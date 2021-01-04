@@ -408,6 +408,27 @@ if content_uci["wan_domain"] ~= "" then
 end
 
 local ppp_status = get_ppp_state(content.uci_wan_auto, format("%s", content_rpc.wan_ppp_state), format("%s", content_rpc.wan_ppp_error), content_rpc.ipaddr) -- use format to untaint
+
+local supervision_support = proxy.get("uci.supervision.global.enabled")
+local supervision_modes = {
+  { "BFD", T"Bidirectional Forward Detection" },
+  { "DNS", T"DNS" },
+  { "Disabled", T"Disabled" },
+}
+local supervision_modes_content
+
+if supervision_support then
+  local supervision_modes_param = {
+    supervision_mode = "uci.supervision.global.mode",
+    supervision_enabled = "uci.supervision.global.enabled",
+  }
+  local supervision_modes_valid = {
+    supervision_mode = post_helper.getValidateInEnumSelect(supervision_modes),
+    supervision_enabled = post_helper.validateBoolean,
+  }
+  supervision_modes_content = post_helper.handleQuery(supervision_modes_param, supervision_modes_valid)
+end
+
 if content.uci_wan_auto ~= "0" then
   content.uci_wan_auto = "1"
 end
@@ -466,6 +487,11 @@ end
 html[#html + 1] = ui_helper.createSwitch(T"Enabled", "uci_wan_auto", content.uci_wan_auto)
 html[#html + 1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
 html[#html + 1] = ui_helper.createSwitch(T"IPv6", "uci_wan_ipv6", content.uci_wan_ipv6)
+-- Supervision
+if supervision_support then
+  html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision", "supervision_mode", supervision_modes, supervision_modes_content["supervision_mode"])
+  html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled", "supervision_enabled", supervision_modes_content["supervision_enabled"])
+end
 -- PPP username
 local class_username = {
   input = {
