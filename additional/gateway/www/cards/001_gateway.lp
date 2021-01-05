@@ -98,7 +98,7 @@ function updateGatewayCard(){\
     $("#gateway-card-temps").html(data["temps"]);\
   }, "json")\
   .fail(function(response){\
-    if(response.status == 403){clearInterval(funcID);window.location.href="/gateway.lp?r="+Date.now();}\
+    if(response.status==403){clearInterval(funcID);window.location.href="/gateway.lp?r="+Date.now();}\
   });\
 }\
 $().ready(function(){funcID=setInterval(updateGatewayCard,1000);});\

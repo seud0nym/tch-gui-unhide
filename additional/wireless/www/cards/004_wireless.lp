@@ -71,7 +71,7 @@ function updateWirelessCard(){\
     }\
   }, "json")\
   .fail(function(response){\
-    if(response.status == 403){clearInterval(ssidFuncID);}\
+    if(response.status==403||response.status==404){clearInterval(ssidFuncID);}\
   });\
 }\
 $().ready(function(){ssidFuncID=setInterval(updateWirelessCard,20000);});\

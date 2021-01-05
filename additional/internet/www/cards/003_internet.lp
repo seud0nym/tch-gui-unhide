@@ -55,7 +55,7 @@ if wan_ifname and wan_ifname ~= "" then
       $("#internet-card-content").html(data["html"]);\
     }, "json")\
     .fail(function(response){\
-      if(response.status == 403){clearInterval(iFuncID);}\
+      if(response.status==403||response.status==404){clearInterval(iFuncID);}\
     });\
   }\
   $().ready(function(){iFuncID=setInterval(updateInternetCard,20000);});\

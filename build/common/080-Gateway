@@ -4,7 +4,7 @@ echo [$SCRIPT]: Add reset/upgrade warnings
 sed \
   -e "s/=config.bin/=$VARIANT-$SERIAL-$VERSION@\" .. os.date(\"%Y%m%d\") .. \".bin/" \
   -e '/local basic =/i local lose_root_warning = { alert = { class = "alert-info", style = "margin-bottom:5px;" }, }' \
-  -e '/T"Reset"/i \    html[#html + 1] = ui_helper.createAlertBlock(T"<b>WARNING!</b> Using the <b><i class=\\"icon-bolt\\" style=\\"width:auto;\\">\&nbsp;</i> Reset</b> button will cause loss of root access! Use the <i>reset-to-factory-defaults-with-root</i> utility script from the command line to factory reset and still retain root access.", lose_root_warning)' \
+  -e '/T"Reset"/i \    html[#html + 1] = ui_helper.createAlertBlock(T"<b>WARNING!</b> Using the <b><i class=\\"icon-bolt\\" style=\\"width:auto;\\">\</i> Reset</b> button will cause loss of root access! Use the <i>reset-to-factory-defaults-with-root</i> utility script from the command line to factory reset and still retain root access.", lose_root_warning)' \
   -e '/T"Upgrade"/i \          html[#html + 1] = ui_helper.createAlertBlock(T"<b>WARNING!</b> Upgrading firmware using this method may cause loss of root access! Use the <i>reset-to-factory-defaults-with-root</i> utility script with the -f option from the command line to upgrade to the firmware and still retain root access.", lose_root_warning)' \
   -e '/"uci.versioncusto.override.fwversion_override"/a \   unhide_version = "rpc.gui.UnhideVersion",' \
   -e '/"Serial Number"/i \    html[#html + 1] = ui_helper.createLabel(T"tch-gui-unhide Version", content["unhide_version"], basic)' \
@@ -15,7 +15,7 @@ sed \
   -e '/uci.version.version.@version\[0\].timestamp/a\    updatable = "rpc.gui.UpdateAvailable",' \
   -e '/isBridgedMode/i\        if cui.updatable == "1" then' \
   -e "/isBridgedMode/i\          html[#html + 1] = '<a href=\"https://github.com/seud0nym/tch-gui-unhide/releases/latest\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"btn\">'" \
-  -e "/isBridgedMode/i\          html[#html + 1] = '<i class=\"icon-info-sign orange\">&nbsp;</i><small>'" \
+  -e "/isBridgedMode/i\          html[#html + 1] = '<i class=\"icon-info-sign orange\"></i><small>'" \
   -e "/isBridgedMode/i\          html[#html + 1] = T\"Update Available\"" \
   -e "/isBridgedMode/i\          html[#html + 1] = '</small></a>'" \
   -e '/isBridgedMode/i\        end' \
