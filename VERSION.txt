@@ -1,3 +1,13 @@
+2021.01.06
+==========
+* tch-gui-unhide: Added auto refresh to Broadband card
+* tch-gui-unhide: Added auto refresh to Internet card
+* tch-gui-unhide: Added auto refresh to Devices card, and show booster-connected Wi-Fi devices separately
+* tch-gui-unhide: Added WAN Supervision to Internet PPPoE Mode snippet
+* tch-gui-unhide: Fix formatting on Mobile card
+* tch-gui-unhide: Static and DHCP Internet modals incorrectly used wan network interface "ipv6" setting to determine IPv6 status (setting only relevant to PPP connection method)
+* tch-gui-unhide: Hide custom firewall rules if User Defined firewall level not selected
+
 2021.01.01
 ==========
 * tch-gui-unhide: Fixed bug that caused Telephony card to crash when no call statistics recorded [#18]
