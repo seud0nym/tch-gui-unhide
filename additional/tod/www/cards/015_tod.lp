@@ -30,7 +30,7 @@ ngx.print('\
   ')
     ngx.print(
       '<span class="simple-desc">',
-        '<i class="icon-lock status-icon">&nbsp;</i>',
+        '<i class="icon-lock status-icon"></i>',
         format(N("<strong %s>%d Access Control</strong> rule defined",
                  "<strong %s>%d Access Control</strong> rules defined", rulecount),
               'class="modal-link" data-toggle="modal" data-remote="/modals/tod-modal.lp" data-id="tod-modal"',
@@ -39,7 +39,7 @@ ngx.print('\
     if session:hasAccess("/modals/tod_wireless-modal.lp") then
        ngx.print(
         '<span class="simple-desc">',
-        '<i class="icon-lock status-icon">&nbsp;</i>',
+        '<i class="icon-lock status-icon"></i>',
         format(N("<strong %s>%d Wireless Control</strong> rule defined",
                  "<strong %s>%d Wireless Control</strong> rules defined", rulecount_wifi),
               'class="modal-link" data-toggle="modal" data-remote="/modals/tod_wireless-modal.lp?tod" data-id="tod-modal"',
