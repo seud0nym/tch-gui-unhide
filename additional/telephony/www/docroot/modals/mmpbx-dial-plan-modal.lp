@@ -246,8 +246,8 @@ local entry_columns = {
           end
           local entry_options = {
             canEdit = true,
-            canAdd = false,
-            canDelete = false,
+            canAdd = true,
+            canDelete = true,
             tableid = name.."-dialplanentries",
             basepath = "uci.mmpbx.dial_plan_entry.",
             sorted = "pattern",
