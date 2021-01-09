@@ -1,0 +1,5 @@
+echo [$SCRIPT]: Add Network Operators to Mobile tabs
+sed \
+ -e '/{"lte-doctor.lp", T"Diagnostics"},/a \	{"lte-operators.lp", T"Network Operators"},' \
+ -i /www/snippets/tabs-mobiled.lp
+
