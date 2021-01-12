@@ -70,14 +70,28 @@ local sipnet_columns = {
     attr = { input = { class="span2" }},
   },
   {
-    header = T"Primary Registrar",
+    header = T"Primary<br>Registrar",
     name = "primaryRegistrar",
     param = "primary_registrar",
     type = "text",
     attr = { input = { class="span2" } },
   },
   {
-    header = T"Primary RegistrarPort",
+    header = T"Domain Name",
+    name = "domainName",
+    param = "domain_name",
+    type = "text",
+    attr = { input = { class="span2" } },
+  },
+  {
+    header = T"Realm",
+    name = "realm",
+    param = "realm",
+    type = "text",
+    attr = { input = { class="span2" } },
+  },
+  {
+    header = T"Primary<br>RegistrarPort",
     name = "primaryRegistrarPort",
     param = "primary_registrar_port",
     type = "text",
@@ -92,7 +106,7 @@ local sipnet_columns = {
     attr = { input = { class="span2" } },
   },
   {
-    header = T"Primary ProxyPort",
+    header = T"Primary<br>ProxyPort",
     name = "primaryProxyPort",
     param = "primary_proxy_port",
     type = "text",
@@ -100,16 +114,15 @@ local sipnet_columns = {
     attr = { input = { class="span1" } },
   },
   {
-    header = T"Local Port",
+    header = T"Local<br>Port",
     name = "localPort",
     param = "local_port",
     type = "text",
     unique = true,
-    default = "5070",
     attr = { input = { class="span1" } },
   },
   {
-    header = T"Expire Time",
+    header = T"Expire<br>Time",
     name = "regExpire",
     param = "reg_expire",
     type = "text",
@@ -133,6 +146,8 @@ local gOr = post_helper.getOrValidation
 local sipnet_valid = {
   primaryRegistrarPort = post_helper.validateStringIsPort,
   primaryRegistrar = gOr(post_helper.validateStringIsIP,post_helper.validateStringIsDomainName),
+  domainName = gOV(gOr(post_helper.validateStringIsIP,post_helper.validateStringIsDomainName)),
+  realm = gOV(gOr(post_helper.validateStringIsIP,post_helper.validateStringIsDomainName)),
   primaryProxy = gOV(gOr(post_helper.validateStringIsIP,post_helper.validateStringIsDomainName)),
   primaryProxyPort = post_helper.getValidateNumberInRange(0,65535),
   regExpire = post_helper.validateRegExpire,
@@ -301,19 +316,6 @@ if ngx.var.args and string.len(ngx.var.args) > 0 then
     uri = uri .. "?" .. ngx.var.args
 end
 
-if ngx.req.get_method() == "POST" then
-    local args = ngx.req.get_post_args()
-    local action = args["action"]
-
-    if action == "emission_on" then
-        proxy.set("rpc.mmpbx.dectemission.state","1")
-    end
-    if action == "emission_off" then
-        proxy.set("rpc.mmpbx.dectemission.state","0")
-    end
-    proxy.apply()
-end
-
 ngx.print(ui_helper.createHeader(T"Telephony", false, true));
 ngx.print('\
 <div class="modal-body update">\
@@ -325,18 +327,6 @@ ngx.print('\
   <form class="form-horizontal" method="post" action="');ngx.print(uri); ngx.print('">'); ngx.print(
     ui_helper.createMessages(uimessage_helper.popMessages()));
 	local html = {}
-	local emission_on_class = {
-		button = {
-			["data-name"] = "action",
-			["data-value"] = "emission_on",
-		}
-	}
-	local emission_off_class = {
-		button = {
-			["data-name"] = "action",
-			["data-value"] = "emission_off",
-		}
-	}
 	
 	html[#html+1] = '<fieldset id="mmpbx-global-tab">'
 	html[#html+1] =     '<legend>' .. T"Global Information" .. '</legend>'
@@ -345,7 +335,8 @@ ngx.print('\
 	if content and content["mmpbx_enabled"] == "1" then
 		html[#html+1] = '<fieldset>'
 		html[#html+1] = '<legend>' .. T"SIP Network" .. '</legend>'
-		html[#html+1] =  ui_helper.createTable(sipnet_columns, sipnet_data, sipnet_options, nil, sipnet_helpmsg)
+    html[#html+1] =  ui_helper.createTable(sipnet_columns, sipnet_data, sipnet_options, nil, sipnet_helpmsg)
+    html[#html+1] = '<p><strong>Warning:</strong> A second SIP Network will probably not work. <a target="_blank" href="https://hack-technicolor.readthedocs.io/en/stable/Unlock/#unlocking-the-option-to-setup-a-second-sip-network">Click here</a> for more information.</p>'
 		html[#html+1] = '</fieldset>'
 	end
 	ngx.print (html)
