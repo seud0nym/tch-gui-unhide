@@ -144,6 +144,13 @@ else
 
     SRV_transformer=$(( $SRV_transformer + 1 ))
 
+    sed \
+      -e '/users = samba/d' \
+      -e '/uci -P /var/state set samba.\${sharename}.users=samba/d' \
+      -e 's/guest ok = no/guest ok = yes/' \
+      -e 's/guest_ok=no/guest_ok=yes/' \
+      -i /lib/functions/contentsharing.sh
+
     for f in /var/etc/smb.auto/USB-*.conf; do
       sharename=$(head -n 1 $f | tr -d '[]')
       sed -e 's/guest ok = no/guest ok = yes/' -i $f

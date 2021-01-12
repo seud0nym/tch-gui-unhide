@@ -188,11 +188,14 @@ PLUG
     -e '/^            tinsert(html, "<\/fieldset>")/d' \
     -i /www/docroot/modals/contentsharing-modal.lp
 else
-  cmp -s /rom/lib/functions/contentsharing.sh /lib/functions/contentsharing.sh
+  grep -q '/var/run/minidlna_d.pid' /lib/functions/contentsharing.sh
   if [ $? -ne 0 ]
   then
     echo " minidlna removed - Restoring default content sharing functions"
-    cp -p /rom/lib/functions/contentsharing.sh /lib/functions/contentsharing.sh
+    sed \
+      -e 's|/etc/init.d/minidlna |/etc/init.d/minidlna-procd |' \
+      -e 's|/var/run/minidlna/minidlna.pid|/var/run/minidlna_d.pid|' \
+      -i /lib/functions/contentsharing.sh
   else
     echo " SKIPPED because minidlna not installed"
   fi
