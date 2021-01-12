@@ -5,13 +5,29 @@ THEME_ONLY='n'
 
 FILENAME=$(basename $0)
 
-while getopts :Wt:s:Tryui:c:h:l:f:d: option
+while getopts :c:d:f:h:i:l:p:rt:uyTW option
 do
  case "${option}" in
-   W) WRAPPER=y;;
-   l) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then KEEPLP=y; else KEEPLP=n; fi;;
+   c) case "$(echo ${OPTARG} | tr "BGMOPR" "bgmopr" | sed 's/\(.\)\(.*\)/\1/')" in
+        b) COLOR=blue;; 
+        g) COLOR=green;; 
+        o) COLOR=orange;; 
+        p) COLOR=purple;; 
+        r) COLOR=red;; 
+        *) COLOR=monochrome;;
+      esac;;
    d) case "${OPTARG}" in y|Y) FIX_DFLT_USR=y; DFLT_USR='admin';; n|N) FIX_DFLT_USR=y; DFLT_USR='';;  *) echo 'WARNING: -d valid options are y or n';; esac;;
    f) case "${OPTARG}" in y|Y) FIX_FW_UPGRD=y; FW_UPGRD='1';;     n|N) FIX_FW_UPGRD=y; FW_UPGRD='0';; *) echo 'WARNING: -f valid options are y or n';; esac;;
+   h) case "${OPTARG}" in
+        d) TITLE="$VARIANT";;
+        n) TITLE="$HOSTNAME";;
+        s) TITLE="$VARIANT-$MAC";;
+        *) TITLE="$OPTARG";;
+      esac;;
+   i) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then ICONS=visible; else ICONS=hidden; fi;;
+   l) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then KEEPLP=y; else KEEPLP=n; fi;;
+   p) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then SIP_PWDS=y; else SIP_PWDS=n; fi;;
+   r) RESTORE=y;;
    t) case "${OPTARG}" in
         g) THEME=night; COLOR=green; KEEPLP=n; echo WARNING: -tg deprecated. Use -tn -cg in future;; 
         o) THEME=night; COLOR=orange; KEEPLP=n; echo WARNING: -to deprecated. Use -tn -co in future;; 
@@ -21,24 +37,6 @@ do
         n) THEME=night; COLOR=blue; KEEPLP=n;;
         *) THEME=telstra; COLOR=blue; KEEPLP=y;;
       esac;;
-   c) case "$(echo ${OPTARG} | tr "BGMOPR" "bgmopr" | sed 's/\(.\)\(.*\)/\1/')" in
-        b) COLOR=blue;; 
-        g) COLOR=green;; 
-        o) COLOR=orange;; 
-        p) COLOR=purple;; 
-        r) COLOR=red;; 
-        *) COLOR=monochrome;;
-      esac;;
-   i) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then ICONS=visible; else ICONS=hidden; fi;;
-   T) THEME_ONLY=y;;
-   h) case "${OPTARG}" in
-        d) TITLE="$VARIANT";;
-        n) TITLE="$HOSTNAME";;
-        s) TITLE="$VARIANT-$MAC";;
-        *) TITLE="$OPTARG";;
-      esac;;
-   r) RESTORE=y;;
-   y) YES=y;;
    u) RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME | sed 's/\r//')
       if [ $? -ne 0 ]
       then
@@ -87,6 +85,9 @@ do
         esac
       fi
       exit;;
+   y) YES=y;;
+   T) THEME_ONLY=y;;
+   W) WRAPPER=y;;
    ?) echo "Optional parameters:"
       echo " -t l|n|t|m     : Set a light (l), night (n), or Telstra-branded Classic (t) or Modern (m) theme"
       echo "                    (Default is current setting, or Telstra Classic if no theme has been applied)"
@@ -104,6 +105,8 @@ do
       echo "                    (Default is current setting)"
       echo " -f y|n         : Enable (y) or Disable (n) Firmware upgrade in the web GUI"
       echo "                    (Default is current setting)"
+      echo " -p y|n         : Use decrypted text (y) or masked password (n) field for SIP Profile passwords"
+      echo "                    (Default is current setting i.e (n) by default)"
       echo " -y             : Bypass confirmation prompt (answers 'y')"
       echo " -r             : Restore changed GUI files to their original state (config changes are NOT restored)"
       echo " -u             : Check for and download any updates to $FILENAME"

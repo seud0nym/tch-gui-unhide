@@ -32,6 +32,9 @@ fi
 if [ ! -z "$TITLE" ]; then
 echo "[$SCRIPT]:  - The browser tabs titles will be set to $TITLE"
 fi
+if [ "$SIP_PWDS" = y ]; then
+echo "[$SCRIPT]:  - SIP Profile passwords will be decrypted and displayed in text fields rather than password fields"
+fi
 
 echo [$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop.
 if [ $YES = y ]; then

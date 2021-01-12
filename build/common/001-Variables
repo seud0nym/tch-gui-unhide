@@ -73,6 +73,13 @@ if [ -z "$THEME" ]; then
   ICONS="$(grep '.card_bg:after{visibility:' /www/docroot/css/gw.css | cut -d: -f3 | cut -d\; -f1)"
 fi
 
+grep -q 'rpc.gui.pwd.@' /www/docroot/modals/mmpbx-profile-modal.lp
+if [ $? -eq 0 ]; then
+  SIP_PWDS=y
+else
+  SIP_PWDS=n
+fi
+
 FIX_DFLT_USR=n
 FIX_FW_UPGRD=n
 if [ "$(uci -q get dropbear.lan.enable)" = "1" -a "$(uci -q get dropbear.lan.PasswordAuth)" = "on" -a "$(uci -q get dropbear.lan.RootPasswordAuth)" = "on" -a "$(uci -q get dropbear.lan.RootLogin)" = "1" ]; then
@@ -86,8 +93,7 @@ else
   FIX_CFG_PORT=y
 fi
 echo "$(uci -q get web.parentalblock.roles)" | grep -q "admin"
-if [ $? -eq 0 ]
-then
+if [ $? -eq 0 ]; then
   FIX_PARENT_BLK=n
 else
   FIX_PARENT_BLK=y

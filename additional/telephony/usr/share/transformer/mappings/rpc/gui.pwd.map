@@ -1,0 +1,38 @@
+local crypto = require("tch.simplecrypto")
+local uci_helper = mapper("ucihelper")
+
+local GUI_PWD_ = {
+  objectType = {
+    name = "rpc.gui.pwd.@.",
+    access = "readOnly",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      password = {
+        access = "readOnly",
+        type = "string"
+      },
+    }
+  }
+}
+
+GUI_PWD_.entries = function(mapping)
+  local result = {}
+  for s,t in pairs(uci_helper.getall_from_uci({config = "mmpbxrvsipnet"})) do
+    if t[".type"] == "profile" then
+      result[#result + 1] = s
+    end
+  end
+  return result
+end
+
+GUI_PWD_.get = function(mapping, paramname, key)
+  local data = uci_helper.get_from_uci({config="mmpbxrvsipnet", sectionname=key, option="password"})
+  if data and #data >= 72 and string.match(data,"^$%d%d$%d%d%$") then
+    return crypto.decrypt(data)
+  else
+    return data
+  end
+end
+
+register(GUI_PWD_)

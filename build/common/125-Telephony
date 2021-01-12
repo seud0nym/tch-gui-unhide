@@ -4,3 +4,16 @@ sed \
  -e '/elseif session:hasAccess/,/end/d' \
  -i /www/snippets/tabs-voice.lp
 
+if [ $SIP_PWDS = y ]; then
+  echo [$SCRIPT]: Always display decrypted SIP passwords
+  sed \
+  -e '/local mask_password/d' \
+  -e '/if password == mask_password then/,/end/d' \
+  -e '/v\[scns\["password"\]\] = mask_password/d' \
+  -e '/ipairs(v)/a if sip_columns[j].name == "password" then' \
+  -e '/ipairs(v)/a   w = proxy.get("rpc.gui.pwd.@" .. v[scns["profile"]] .. ".password")[1].value' \
+  -e '/ipairs(v)/a   sip_columns[j].type = "text"' \
+  -e '/ipairs(v)/a end' \
+  -i /www/docroot/modals/mmpbx-profile-modal.lp
+fi
+

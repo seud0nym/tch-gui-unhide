@@ -18,10 +18,15 @@
 #proctable>tbody>tr>td:nth-child(1),#proctable>tbody>tr>td:nth-child(2),#proctable>tbody>tr>td:nth-child(5),#proctable>tbody>tr>td:nth-child(6),#proctable>tbody>tr>td:nth-child(7){text-align:right;}
 #proctable>tbody>tr>td:nth-child(6):after,#proctable>tbody>tr>td:nth-child(7):after{content:"%";}
 #proctable>thead>tr>th{white-space:nowrap;}
-#sipnet>tbody>tr>td:nth-child(3) input,#sipnet>tbody>tr>td:nth-child(5) input,#sipnet>tbody>tr>td:nth-child(6) input{width:60px;}
-#sipnet>tbody>tr>td:nth-child(7) input{width:66px;}
-#sipnet>tbody>tr>td:nth-child(8) select{width:100px;}
 #tod>tbody>tr.additional-edit>td:nth-child(1)>fieldset>div:nth-child(3)>div.controls>label.checkbox{padding-left:0px;}
 #tod>tbody>tr.additional-edit>td:nth-child(1)>fieldset>div:nth-child(3)>div.controls>label.checkbox>input[type="checkbox"]{margin-left:2px;width:20px;}
 u{text-decoration:none;}
 [class^="icon-"],[class*=" icon-"]{display:inline-block;width:18px;}
+@media screen and (min-width: 1200px){
+    #sipnet .span2{width:120px;}
+    #sipnet>tbody>tr>td:nth-child(5) input,#sipnet>tbody>tr>td:nth-child(7) input,#sipnet>tbody>tr>td:nth-child(8) input,#sipnet>tbody>tr>td:nth-child(9) input{width:40px;}
+    #sipnet>tbody>tr>td:nth-child(10) select{width:80px;}
+    #sipProfileTable>tbody>tr>td:nth-child(3) input,#sipProfileTable>tbody>tr>td:nth-child(4) input{width:95px;}
+    #sipProfileTable>tbody>tr>td:nth-child(5) input{width:150px;}
+    #sipProfileTable>tbody>tr>td:nth-child(6) input{width:95px;}
+}
