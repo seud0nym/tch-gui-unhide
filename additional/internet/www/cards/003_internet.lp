@@ -58,7 +58,7 @@ if wan_ifname and wan_ifname ~= "" then
       if(response.status==403||response.status==404){clearInterval(iFuncID);}\
     });\
   }\
-  $().ready(function(){iFuncID=setInterval(updateInternetCard,20000);});\
+  $().ready(function(){iFuncID=setInterval(updateInternetCard,20000);window.intervalIDs.push(iFuncID);});\
   </script>\
   '); 
 end

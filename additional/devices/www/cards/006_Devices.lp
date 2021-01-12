@@ -31,7 +31,7 @@ function updateDevicesCard(){\
     if(response.status==403||response.status==404){clearInterval(dFuncID);}\
   });\
 }\
-$().ready(function(){dFuncID=setInterval(updateDevicesCard,3000);});\
+$().ready(function(){dFuncID=setInterval(updateDevicesCard,3000);window.intervalIDs.push(dFuncID);});\
 </script>\
 ');  
 end

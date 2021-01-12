@@ -11,6 +11,7 @@ sed \
   -i /www/docroot/modals/gateway-modal.lp
 
 echo [$SCRIPT]: Add update available button
+echo [$SCRIPT]: Add auto-refresh management
 sed \
   -e '/uci.version.version.@version\[0\].timestamp/a\    updatable = "rpc.gui.UpdateAvailable",' \
   -e '/isBridgedMode/i\        if cui.updatable == "1" then' \
@@ -19,6 +20,23 @@ sed \
   -e "/isBridgedMode/i\          html[#html + 1] = T\"Update Available\"" \
   -e "/isBridgedMode/i\          html[#html + 1] = '</small></a>'" \
   -e '/isBridgedMode/i\        end' \
+  -e '/<title>/a \<script>\\' \
+  -e '/<title>/a \window.intervalIDs=new Array();\\' \
+  -e '/<title>/a \function clearRegisteredIntervals(){\\' \
+  -e '/<title>/a \  for(let i=0;i<window.intervalIDs.length;i++){\\' \
+  -e '/<title>/a \    clearInterval(window.intervalIDs[i]);\\' \
+  -e '/<title>/a \  }\\' \
+  -e '/<title>/a \}\\' \
+  -e '/<title>/a \var modalLoaded=false;\\' \
+  -e '/<title>/a \$(document).bind("DOMSubtreeModified",function(){\\' \
+  -e '/<title>/a \  if(!modalLoaded){\\' \
+  -e '/<title>/a \    if($(".modal").length>0){\\' \
+  -e '/<title>/a \      modalLoaded=true;\\' \
+  -e '/<title>/a \      clearRegisteredIntervals();\\' \
+  -e '/<title>/a \    }\\' \
+  -e '/<title>/a \  }\\' \
+  -e '/<title>/a \});\\' \
+  -e '/<title>/a \</script>\\' \
   -i /www/docroot/gateway.lp
 
 echo [$SCRIPT]: Fix uptime on basic Broadband tab

@@ -74,6 +74,6 @@ function updateWirelessCard(){\
     if(response.status==403||response.status==404){clearInterval(ssidFuncID);}\
   });\
 }\
-$().ready(function(){ssidFuncID=setInterval(updateWirelessCard,20000);});\
+$().ready(function(){ssidFuncID=setInterval(updateWirelessCard,20000);window.intervalIDs.push(ssidFuncID);});\
 </script>\
 '); 

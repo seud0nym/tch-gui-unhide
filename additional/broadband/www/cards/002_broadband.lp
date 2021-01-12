@@ -70,6 +70,6 @@ function updateBroadbandCard(){\
     if(response.status==403||response.status==404){clearInterval(bbFuncID);}\
   });\
 }\
-$().ready(function(){bbFuncID=setInterval(updateBroadbandCard,15000);});\
+$().ready(function(){bbFuncID=setInterval(updateBroadbandCard,15000);window.intervalIDs.push(bbFuncID);});\
 </script>\
 '); 

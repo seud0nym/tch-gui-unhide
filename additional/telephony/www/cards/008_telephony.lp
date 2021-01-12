@@ -79,7 +79,7 @@ $(".header input#mmpbx_enable").on("change",function(){$("#waiting").removeClass
       if(response.status==403||response.status==404){clearInterval(tFuncID);}
     });
   }
-  $().ready(function(){tFuncID=setInterval(updateTelephonyCard,3000);});
+  $().ready(function(){tFuncID=setInterval(updateTelephonyCard,3000);window.intervalIDs.push(tFuncID);});
 <% end %>
 </script>
 <%

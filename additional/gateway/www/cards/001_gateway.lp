@@ -101,16 +101,7 @@ function updateGatewayCard(){\
     if(response.status==403){clearInterval(funcID);window.location.href="/gateway.lp?r="+Date.now();}\
   });\
 }\
-$().ready(function(){funcID=setInterval(updateGatewayCard,1000);});\
-var modalLoaded=false;\
-$(document).bind("DOMSubtreeModified",function(){\
-  if(!modalLoaded){\
-    if($(".modal").length>0){\
-      modalLoaded=true;\
-      clearInterval(funcID);\
-    }\
-  }\
-});\
+$().ready(function(){funcID=setInterval(updateGatewayCard,1000);window.intervalIDs.push(funcID);});\
 </script>\
 ');  
 end
