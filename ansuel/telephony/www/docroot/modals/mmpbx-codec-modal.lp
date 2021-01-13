@@ -123,33 +123,30 @@ ngx.print('\
 ngx.print('\
   <form class="form-horizontal" method="post" action="'); ngx.print( uri ); ngx.print('">\
     '); ngx.print ( ui_helper.createMessages(uimessage_helper.popMessages()) ); ngx.print('\
-    <fieldset>\
-      <legend>'); ngx.print( T"Enable Pos" ); ngx.print('</legend>\
     ')
-      local Posswitch = {
-                  values = {on = "true", off = "false"},
-                  }
-      local html = {}
-      html[#html+1] = ui_helper.createSwitch(T"Pos on FXS1", "posfxs1", content["posfxs1"],Posswitch)
-      html[#html+1] = ui_helper.createSwitch(T"Pos on FXS2", "posfxs2", content["posfxs2"],Posswitch)
-      
-      ngx.print(html)
-    
+    html = {}
+    html[#html+1] = '<fieldset>'
+    html[#html+1] =   '<legend>' .. T"Codec Assignment on FXS1" .. '</legend>'
+    html[#html+1] =   ui_helper.createTable(codec_columns, codec_data_FXS1, codec_options[1], nil, codec_helpmsg_FXS1)
+    html[#html+1] = '</fieldset>'
+    html[#html+1] = '<fieldset>'
+    html[#html+1] =   '<legend>' .. T"Codec Assignment on FXS2" .. '</legend>'
+    html[#html+1] =   ui_helper.createTable(codec_columns, codec_data_FXS2, codec_options[2], nil, codec_helpmsg_FXS2)
+    html[#html+1] = '</fieldset>'
+    ngx.print(html)
     ngx.print('\
+    <fieldset>\
+      <legend>'); ngx.print( T"Enable Point of Sale Capability" ); ngx.print('</legend>\
+      ')
+      local Posswitch = {
+        values = {on = "true", off = "false"},
+      }
+      local html = {}
+      html[#html+1] = ui_helper.createSwitch(T"PoS Device on FXS1", "posfxs1", content["posfxs1"],Posswitch)
+      html[#html+1] = ui_helper.createSwitch(T"PoS Device on FXS2", "posfxs2", content["posfxs2"],Posswitch)
+      ngx.print(html)
+      ngx.print('\
     </fieldset>\
-  ')
-  html = {}
-  html[#html+1] = '<fieldset>'
-  html[#html+1] =   '<legend>' .. T"Codec Assignment on FXS1" .. '</legend>'
-  html[#html+1] =   ui_helper.createTable(codec_columns, codec_data_FXS1, codec_options[1], nil, codec_helpmsg_FXS1)
-  html[#html+1] = '</fieldset>'
-  html[#html+1] = '<fieldset>'
-  html[#html+1] =   '<legend>' .. T"Codec Assignment on FXS2" .. '</legend>'
-  html[#html+1] =   ui_helper.createTable(codec_columns, codec_data_FXS2, codec_options[2], nil, codec_helpmsg_FXS2)
-  html[#html+1] = '</fieldset>'
-  ngx.print(html)
-  ngx.print('\
   </form>\
- </div>\
-\
+</div>\
 '); ngx.print( ui_helper.createFooter() );

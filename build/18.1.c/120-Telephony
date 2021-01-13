@@ -21,9 +21,3 @@ else
     -i /www/cards/008_telephony.lp
 fi
 
-if [ "$(uci -q get mmpbxbrcmfxsdev.@device[1])" != "device" ]
-then
-  # only 1 FXS device
-  sed -e '/fxs2/d' -e '/FXS2/d' -i /www/docroot/modals/mmpbx-codec-modal.lp
-fi
-
