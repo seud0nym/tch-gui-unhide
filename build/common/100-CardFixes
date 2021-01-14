@@ -108,3 +108,40 @@ echo [$SCRIPT]: Enable cards in Bridge Mode
 # https://www.crc.id.au/hacking-the-technicolor-tg799vac-and-unlocking-features/#mozTocId685948
 sed -e '/if info.bridged then/,/end/d' -i /www/lua/cards_limiter.lua
 
+echo [$SCRIPT]: Show individual helper status on NAT Helpers card
+sed \
+  -e '/local enabled/,/local disabled/d' \
+  -e '/ipairs/i \  local htmlLeft = {}' \
+  -e '/ipairs/i \  local htmlRight = {}' \
+  -e '/ipairs/i \  local attributes = {' \
+  -e '/ipairs/i \    span = { style = "display:inline-block;font-size:smaller;letter-spacing:-1px;vertical-align:unset;" },' \
+  -e '/ipairs/i \  }' \
+  -e '/if v.enable/,/end/d' \
+  -e '/loopback/a \          local state = v.enable' \
+  -e '/loopback/a \          local text' \
+  -e '/loopback/a \          if state ~= "0" then' \
+  -e '/loopback/a \              text =" enabled"' \
+  -e '/loopback/a \              state = "1"' \
+  -e '/loopback/a \          else' \
+  -e '/loopback/a \              text = " disabled"' \
+  -e '/loopback/a \          end' \
+  -e '/loopback/a \          if #htmlRight >= #htmlLeft then' \
+  -e '/loopback/a \              htmlLeft[#htmlLeft+1] = ui_helper.createSimpleLight(state, string.upper(v.helper), attributes) .. text' \
+  -e '/loopback/a \          else' \
+  -e '/loopback/a \              htmlRight[#htmlRight+1] = ui_helper.createSimpleLight(state, string.upper(v.helper), attributes) .. text' \
+  -e '/loopback/a \          end' \
+  -e '/divtable/,/div>/d' \
+  -e '/card_bg/a \            <div style="display:flex;flex-direction:row;">\\' \
+  -e '/card_bg/a \              <div style="width:50%">\\' \
+  -e "/card_bg/a \                ');" \
+  -e '/card_bg/a \                ngx.print(htmlLeft);' \
+  -e "/card_bg/a \                ngx.print('\\\\" \
+  -e '/card_bg/a \              </div>\\' \
+  -e '/card_bg/a \              <div style="width:50%">\\' \
+  -e "/card_bg/a \                ');" \
+  -e '/card_bg/a \                ngx.print(htmlRight);' \
+  -e "/card_bg/a \                ngx.print('\\\\" \
+  -e '/card_bg/a \              </div>\\' \
+  -e '/card_bg/a \            </div>\\' \
+  -i /www/cards/092_natalghelper.lp
+
