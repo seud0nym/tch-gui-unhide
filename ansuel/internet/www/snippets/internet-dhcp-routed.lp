@@ -169,7 +169,7 @@ local mapParams = {
   uci_wan_auto = "uci.network.interface.@wan.auto",
   uci_wan_masq = "uci.firewall.zone."..zonenum..".masq",
 	uci_wan6_auto = "uci.network.interface.@wan6.auto",
-	uci_wan6_reqprefix = "uci.network.interface.@wan6.reqprefix",
+	uci_wan6_forceprefix = "uci.network.interface.@wan6.forceprefix",
   uci_wan_mac = "uci.network.interface.@wan.macaddr",
   uci_wan_peerdns = "uci.network.interface.@wan.peerdns",
 	uci_wan_vendorid = "uci.network.interface.@wan.vendorid",
@@ -177,11 +177,6 @@ local mapParams = {
 
 -- Shortcuts to validation helpers to make lines shorter
 local vB = post_helper.validateBoolean
-
-local reqprefix_values = {
-  { "auto", T"Automatic" },
-  { "no", T"No" },
-}
 
 local function IPv6andUsername(value, object, key)
 	local valid, msg = vB(value)
@@ -210,7 +205,7 @@ local mapValid = {
   uci_wan_auto = vB,
   uci_wan_masq = validateNat,
   uci_wan6_auto = IPv6andUsername,
-	uci_wan6_reqprefix = gVIES(reqprefix_values),
+	uci_wan6_forceprefix =vB,
   uci_wan_mac = gOV(post_helper.validateStringIsMAC),
   uci_wan_peerdns = vB,
   uci_wan_vendorid = gOV(post_helper.validateNonEmptyString),
@@ -407,7 +402,7 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     html[#html+1] = ui_helper.createSwitch(T"IPv4 Enabled on Boot", "uci_wan_auto", content.uci_wan_auto)
     html[#html+1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
     html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled on Boot", "uci_wan6_auto", content.uci_wan6_auto)
-    html[#html+1] = ui_helper.createInputSelect(T"IPv6 Prefix Request", "uci_wan6_reqprefix", reqprefix_values, content.uci_wan6_reqprefix)
+    html[#html+1] = ui_helper.createSwitch(T"IPv6 Force Prefix", "uci_wan6_forceprefix", content.uci_wan6_forceprefix)
     if supervision_support then
       html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision", "supervision_mode", supervision_modes, supervision_modes_content["supervision_mode"])
       html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled", "supervision_enabled", supervision_modes_content["supervision_enabled"])
