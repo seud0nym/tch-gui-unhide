@@ -19,13 +19,6 @@ local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
 local message_helper = require("web.uimessage_helper")
-local ajax_helper = require("web.ajax_helper")
-
-local ajax_attr = {
-    span = {
-      ["data-ajaxrefresh"] = "5",
-    }
-}
 
 local firewall_zone = proxy.get("uci.firewall.zone.")
 local firewall_zone_path = content_helper.convertResultToObject("uci.firewall.zone.",firewall_zone)
@@ -172,56 +165,6 @@ local mapValid = {
 --- HELP MESSAGES APPEAR NEXT TO CONTROLS (EXAMPLE INVALID VALUE ERRORS FOR TEXT FIELDS)
 local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
 
----
---- DNS CONFIGURATION TABLE ITEMS
----
-local content_dns = {
-  wandns = "rpc.network.interface.@wan.dnsservers";
-  loopbackdns = "rpc.network.interface.@loopback.dnsservers";
-}
-						
-ajax_helper.handleAjaxQuery(content_dns, function(c)
-    -- this will add the HTML for the light
-	local dnstab = split(c.loopbackdns, "[^%,]+")
-	local dnsv4, dnsv6 = dns_filter(dnstab)
-	c.loopbackdns = content_helper.getMergedList(proxy.get("rpc.network.interface.@wan.dnsservers")[1].value, dnsv4)
-end)
-
-content_helper.getExactContent(content_dns)
-
-
-local dnstab = split(content_dns.loopbackdns, "[^%,]+")
-local dnsv4, dnsv6 = dns_filter(dnstab)
-content_dns.loopbackdns = content_helper.getMergedList(content_dns.wandns, dnsv4)
-
-local ipv4pattern = "^(((([1]?\\d)?\\d|2[0-4]\\d|25[0-5])\\.){3}(([1]?\\d)?\\d|2[0-4]\\d|25[0-5]))$"
-local dnsColumns = {
-  {
-    header = T"DNS IP Address",
-    name   = "wanDnsParam",                          -- MAP THIS PARAMETER AGAINST dnsValid TABLE
-    param  = "value",                                -- APPENDED TO basepath OF dnsOptions TABLE
-    type   = "text",
-    attr   = { input = { class="span2", maxlength="15", pattern = ipv4pattern } },
-  },
-}
-
-local dnsOptions = {
-  tableid    = "dnsserver",
-  basepath   = "uci.network.interface.@wan.dns.@.",
-  createMsg  = T"Add New DNS",
-  minEntries = 1,
-  maxEntries = 4,                                     -- ADJUST LIMIT AS SEEN FIT
-  sorted = function(a, b)
-    return tonumber(a.paramindex) < tonumber(b.paramindex)
-  end
-}
-
-local dnsValid = {
-  wanDnsParam =  post_helper.advancedIPValidation,
-}
-
-local dnsData, dnsHelpMsg = post_helper.handleTableQuery(dnsColumns, dnsOptions, nil, nil, dnsValid)
-
 local supervision_support = proxy.get("uci.supervision.global.enabled")
 local supervision_modes = {
   { "BFD", T"Bidirectional Forward Detection" },
@@ -310,96 +253,79 @@ end
 ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   ngx.print('\
 <fieldset>\
-    <legend>');  ngx.print( T"Static Connection" ); ngx.print('</legend>\
-    ');  
-        local html = {}
+  <legend>');  ngx.print( T"Static Connection" ); ngx.print('</legend>\
+  ');  
+  local html = {}
 
-        local wanIPClass = {}
-        wanIPClass["input"] = {
-            ["data-for"] = "wanIpAddrParam",
-            ["pattern"] = ipv4pattern
-        }
+  local wanIPClass = {}
+  wanIPClass["input"] = {
+      ["data-for"] = "wanIpAddrParam",
+      ["pattern"] = ipv4pattern
+  }
 
-        local wanNetmaskClass = {}
-        wanNetmaskClass["input"] = {
-            ["data-for"] = "wanNetmaskParam",
-            ["pattern"] = ipv4pattern
-        }
+  local wanNetmaskClass = {}
+  wanNetmaskClass["input"] = {
+      ["data-for"] = "wanNetmaskParam",
+      ["pattern"] = ipv4pattern
+  }
 
-        local wanGatewayClass = {}
-        wanGatewayClass["input"] = {
-            ["data-for"] = "wanGatewayParam",
-            ["pattern"] = ipv4pattern
-        }
+  local wanGatewayClass = {}
+  wanGatewayClass["input"] = {
+      ["data-for"] = "wanGatewayParam",
+      ["pattern"] = ipv4pattern
+  }
 
-        local switch_class_enable = {
-          input = {
-            class = "monitor-changes",
-          }
-        }
-        local ipv6_input = {
-          group = {
-            class ="monitor-uci_wan6_auto monitor-1",
-          },
-        }
-    
-        -- UI CONTROLS LIST
-        -- ARGUMENT 2 MUST MUST MATCH PARAMETER NAME FROM mapParams OR ERRORS WILL OCCUR DURING INTERFACE UPDATES
-        html[#html+1] = ui_helper.createSwitch(T"IPv4 Enabled on Boot", "uci_wan_auto", content.uci_wan_auto)
-        html[#html+1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
-        html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled on Boot", "uci_wan6_auto", content.uci_wan6_auto, switch_class_enable)
-        html[#html+1] = ui_helper.createSimpleInputHidden("uci_wan6_proto", content.uci_wan6_proto)
-        if supervision_support then
-          html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision", "supervision_mode", supervision_modes, supervision_modes_content["supervision_mode"])
-          html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled", "supervision_enabled", supervision_modes_content["supervision_enabled"])
-        end
-        html[#html+1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac", content["uci_wan_mac"], nil, helpmsg["uci_wan_mac"])
-        html[#html+1] = ui_helper.createInputText(T"IPv4 Address", "wanIpAddrParam", content["wanIpAddrParam"], wanIPClass, helpmsg["wanIpAddrParam"])
-        html[#html+1] = ui_helper.createInputText(T"IPv4 Subnet Mask", "wanNetmaskParam", content["wanNetmaskParam"], wanNetmaskClass, helpmsg["wanNetmaskParam"])
-        html[#html+1] = ui_helper.createInputText(T"IPv4 Gateway", "wanGatewayParam", content["wanGatewayParam"], wanGatewayClass, helpmsg["wanGatewayParam"])
-        if dns_loopback ~= "" then
-	        ajax_attr.span.id = "loopbackdns"
-          html[#html+1] = ui_helper.createLabel(T"IPv4 DNS Servers", content_dns.loopbackdns,ajax_attr)
-        end
-        html[#html+1] = ui_helper.createInputText(T"IPv6 Address (CIDR)", "uci_wan6_addr", content["uci_wan6_addr"], ipv6_input, helpmsg["uci_wan6_addr"])
-        html[#html+1] = ui_helper.createInputText(T"IPv6 Gateway", "uci_wan6_gw", content["uci_wan6_gw"], ipv6_input, helpmsg["uci_wan6_gw"])
-        html[#html+1] = ui_helper.createInputText(T"IPv6 LAN Prefix (CIDR)", "uci_wan6_prefix", content["uci_wan6_prefix"], ipv6_input, helpmsg["uci_wan6_prefix"])
+  local switch_class_enable = {
+    input = {
+      class = "monitor-changes",
+    }
+  }
+  local ipv6_input = {
+    group = {
+      class ="monitor-uci_wan6_auto monitor-1",
+    },
+  }
 
-        ngx.print(html)
-      ngx.print('\
+  -- UI CONTROLS LIST
+  -- ARGUMENT 2 MUST MUST MATCH PARAMETER NAME FROM mapParams OR ERRORS WILL OCCUR DURING INTERFACE UPDATES
+  html[#html+1] = ui_helper.createSwitch(T"IPv4 Enabled on Boot", "uci_wan_auto", content.uci_wan_auto)
+  html[#html+1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
+  html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled on Boot", "uci_wan6_auto", content.uci_wan6_auto, switch_class_enable)
+  html[#html+1] = ui_helper.createSimpleInputHidden("uci_wan6_proto", content.uci_wan6_proto)
+  if supervision_support then
+    html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision", "supervision_mode", supervision_modes, supervision_modes_content["supervision_mode"])
+    html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled", "supervision_enabled", supervision_modes_content["supervision_enabled"])
+  end
+  html[#html+1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac", content["uci_wan_mac"], nil, helpmsg["uci_wan_mac"])
+  html[#html+1] = ui_helper.createInputText(T"IPv4 Address", "wanIpAddrParam", content["wanIpAddrParam"], wanIPClass, helpmsg["wanIpAddrParam"])
+  html[#html+1] = ui_helper.createInputText(T"IPv4 Subnet Mask", "wanNetmaskParam", content["wanNetmaskParam"], wanNetmaskClass, helpmsg["wanNetmaskParam"])
+  html[#html+1] = ui_helper.createInputText(T"IPv4 Gateway", "wanGatewayParam", content["wanGatewayParam"], wanGatewayClass, helpmsg["wanGatewayParam"])
+  html[#html+1] = ui_helper.createInputText(T"IPv6 Address (CIDR)", "uci_wan6_addr", content["uci_wan6_addr"], ipv6_input, helpmsg["uci_wan6_addr"])
+  html[#html+1] = ui_helper.createInputText(T"IPv6 Gateway", "uci_wan6_gw", content["uci_wan6_gw"], ipv6_input, helpmsg["uci_wan6_gw"])
+  html[#html+1] = ui_helper.createInputText(T"IPv6 LAN Prefix (CIDR)", "uci_wan6_prefix", content["uci_wan6_prefix"], ipv6_input, helpmsg["uci_wan6_prefix"])
+
+  ngx.print(html)
+  ngx.print('\
 </fieldset>\
 ');  
---- IN THIS SECTION, TABLE OF DNS SERVERS IS CREATED.  
---- HARD LIMITS ARE SET THROUGH "minEntries" AND "maxEntries" FIELDS OF THE "dnsOptions" TABLE
+  require("web.lp").include("internet-dns-servers.lp")
   ngx.print('\
-<fieldset>\
-    <legend>');  ngx.print( T"Domain Name Server Configuration"  ); ngx.print('</legend>\
-    ');  
-        local html2 = {}
-        
-        -- UI CONTROLS LIST
-        html2[#html2+1] = ui_helper.createTable(dnsColumns, dnsData, dnsOptions, nil, dnsHelpMsg)        
-        
-        ngx.print(html2)
-      ngx.print('\
-</fieldset>    \
-\
 <script language ="javascript">\
-$("#uci_wan6_auto").change(function() {\
-  if (this.value == "1") {\
-    $("input[name=uci_wan6_proto]").val("static");\
-  } else {\
-    $("input[name=uci_wan6_proto]").val("dhcpv6");\
-    $("#uci_wan6_addr").val("");\
-    $("#uci_wan6_gw").val("");\
-    $("#uci_wan6_prefix").val("");\
-  }\
-});\
-$(document).ready(function(){\
-  if ( $.trim($("#wanIpAddrParam").val()).length <=0 || $.trim($("#wanNetmaskParam").val()).length <=0 || $.trim($("#wanGatewayParam").val()).length <=0) {\
-    $(\'#modal-no-change\').hide();\
-    $(\'#modal-changes\').show();\
-  }\
-});\
+  $("#uci_wan6_auto").change(function() {\
+    if (this.value == "1") {\
+      $("input[name=uci_wan6_proto]").val("static");\
+    } else {\
+      $("input[name=uci_wan6_proto]").val("dhcpv6");\
+      $("#uci_wan6_addr").val("");\
+      $("#uci_wan6_gw").val("");\
+      $("#uci_wan6_prefix").val("");\
+    }\
+  });\
+  $(document).ready(function(){\
+    if ( $.trim($("#wanIpAddrParam").val()).length <=0 || $.trim($("#wanNetmaskParam").val()).length <=0 || $.trim($("#wanGatewayParam").val()).length <=0) {\
+      $(\'#modal-no-change\').hide();\
+      $(\'#modal-changes\').show();\
+    }\
+  });\
 </script>\
 '); 

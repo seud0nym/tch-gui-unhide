@@ -173,6 +173,7 @@ local mapParams = {
   uci_wan_mac = "uci.network.interface.@wan.macaddr",
   uci_wan_peerdns = "uci.network.interface.@wan.peerdns",
 	uci_wan_vendorid = "uci.network.interface.@wan.vendorid",
+  uci_wan6_peerdns = "uci.network.interface.@wan6.peerdns",
 }
 
 -- Shortcuts to validation helpers to make lines shorter
@@ -209,6 +210,7 @@ local mapValid = {
   uci_wan_mac = gOV(post_helper.validateStringIsMAC),
   uci_wan_peerdns = vB,
   uci_wan_vendorid = gOV(post_helper.validateNonEmptyString),
+  uci_wan6_peerdns = vB,
 }
 
 local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
@@ -364,6 +366,12 @@ end
 if content.uci_wan6_auto ~= "0" then
   content.uci_wan6_auto = "1"
 end
+if content["uci_wan_peerdns"] == "" then
+  content["uci_wan_peerdns"] = "1"
+end
+if content["uci_wan6_peerdns"] == "" then
+  content["uci_wan6_peerdns"] = "1"
+end
 
 if ngx.req.get_method() == "POST" then
   local doit = false
@@ -396,56 +404,62 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   ngx.print('\
 <legend>');  ngx.print( T"DHCP connection" ); ngx.print('</legend>\
 ');  
-    local html = {}
-    ajax_attr_light.light.class = dhcp_light_map[dhcp_state]
-    html[#html+1] = ui_helper.createLight(T"Status", nil, dhcp_state_map[dhcp_state], ajax_attr_light)
-    html[#html+1] = ui_helper.createSwitch(T"IPv4 Enabled on Boot", "uci_wan_auto", content.uci_wan_auto)
-    html[#html+1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
-    html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled on Boot", "uci_wan6_auto", content.uci_wan6_auto)
-    html[#html+1] = ui_helper.createSwitch(T"IPv6 Force Prefix", "uci_wan6_forceprefix", content.uci_wan6_forceprefix)
-    if supervision_support then
-      html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision", "supervision_mode", supervision_modes, supervision_modes_content["supervision_mode"])
-      html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled", "supervision_enabled", supervision_modes_content["supervision_enabled"])
-    end
-    html[#html+1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac", content["uci_wan_mac"], nil, helpmsg["uci_wan_mac"])
-	  html[#html+1] = ui_helper.createInputText(T"VendorID","uci_wan_vendorid", content["uci_wan_vendorid"], nil, helpmsg["uci_wan_vendorid"])
-    ajax_attr.span.id = "leaseobtained"
-    html[#html+1] = ui_helper.createLabel(T"Lease obtained", cs["leaseobtained"], ajax_attr)
-    ajax_attr.span.id = "leaseexpires"
-    html[#html+1] = ui_helper.createLabel(T"Lease expires", cs["leaseexpires"], ajax_attr)
-    ajax_attr.span.id = "ipaddr"
-    html[#html+1] = ui_helper.createLabel(T"IPv4 address", cs["ipaddr"], ajax_attr)
-    ajax_attr.span.id = "nexthop"
-    html[#html+1] = ui_helper.createLabel(T"Gateway", cs["nexthop"], ajax_attr)
-    ajax_attr.span.id = "dns"
-    html[#html+1] = ui_helper.createLabel(T"DNS servers", cs["dns"],ajax_attr)
-	  local ipv6_enabled = proxy.get("uci.network.interface.@wan.ipv6")
-		if cs["ip6addr"] and cs["ip6addr"]:len() > 0 then
-			ajax_attr.span.id = "ip6addr"
-			html[#html+1] = ui_helper.createLabel(T"IPv6 address", cs["ip6addr"], ajax_attr)
-		end
-		if cs["ipv6_gua"] and cs["ipv6_gua"]:len() > 0 then
-			ajax_attr.span.id = "ipv6_gua"
-			html[#html+1] = ui_helper.createLabel(T"IPv6 GUA", cs["ipv6_gua"], ajax_attr)
-		end
-		if cs["ip6prefix"] and cs["ip6prefix"]:len() > 0 then
-			ajax_attr.span.id = "ip6prefix"
-			html[#html+1] = ui_helper.createLabel(T"IPv6 Prefix", cs["ip6prefix"], ajax_attr)
-		end
-		if cs["dnsv6"] and cs["dnsv6"]:len() > 0 then
-			-- make sure auto-refresh updates control with ONLY DNSv6 servers
-			ajax_attr.span.id = "dnsv6"
-			html[#html+1] = ui_helper.createLabel(T"IPv6 DNS", cs["dnsv6"], ajax_attr)
-		end
-    if content["uci_wan_peerdns"] == "" then
-        content["uci_wan_peerdns"] = "1"
-    end
-    html[#html+1] = ui_helper.createSwitch(T"Auto Discover DNS", "uci_wan_peerdns", content["uci_wan_peerdns"])
-    html[#html+1] = format('<label class="control-label">%s</label><div class="controls">', T"DNS servers")
-    html[#html+1] = ui_helper.createTable(dns_columns, dns_data, dns_options, nil, dns_helpmsg)
+  local switch_class_enable = {
+    input = {
+      class = "monitor-changes",
+    }
+  }
+  local ipv6_input = {
+    group = {
+      class ="monitor-uci_wan6_auto monitor-1",
+    },
+  }
+  local html = {}
+  ajax_attr_light.light.class = dhcp_light_map[dhcp_state]
+  html[#html+1] = ui_helper.createLight(T"Status", nil, dhcp_state_map[dhcp_state], ajax_attr_light)
+  html[#html+1] = ui_helper.createSwitch(T"IPv4 Enabled on Boot", "uci_wan_auto", content.uci_wan_auto)
+  html[#html+1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
+  html[#html+1] = ui_helper.createSwitch(T"Auto-discover IPv4 DNS", "uci_wan_peerdns", content["uci_wan_peerdns"])
+  html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled on Boot", "uci_wan6_auto", content.uci_wan6_auto, switch_class_enable)
+  html[#html+1] = ui_helper.createSwitch(T"IPv6 Force Prefix", "uci_wan6_forceprefix", content.uci_wan6_forceprefix, ipv6_input)
+  html[#html+1] = ui_helper.createSwitch(T"Auto-discover IPv6 DNS", "uci_wan6_peerdns", content["uci_wan6_peerdns"], ipv6_input)
+  if supervision_support then
+    html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision", "supervision_mode", supervision_modes, supervision_modes_content["supervision_mode"])
+    html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled", "supervision_enabled", supervision_modes_content["supervision_enabled"])
+  end
+  html[#html+1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac", content["uci_wan_mac"], nil, helpmsg["uci_wan_mac"])
+  html[#html+1] = ui_helper.createInputText(T"VendorID","uci_wan_vendorid", content["uci_wan_vendorid"], nil, helpmsg["uci_wan_vendorid"])
+  ajax_attr.span.id = "leaseobtained"
+  html[#html+1] = ui_helper.createLabel(T"Lease obtained", cs["leaseobtained"], ajax_attr)
+  ajax_attr.span.id = "leaseexpires"
+  html[#html+1] = ui_helper.createLabel(T"Lease expires", cs["leaseexpires"], ajax_attr)
+  ajax_attr.span.id = "ipaddr"
+  html[#html+1] = ui_helper.createLabel(T"IPv4 address", cs["ipaddr"], ajax_attr)
+  ajax_attr.span.id = "nexthop"
+  html[#html+1] = ui_helper.createLabel(T"Gateway", cs["nexthop"], ajax_attr)
+  ajax_attr.span.id = "dns"
+  html[#html+1] = ui_helper.createLabel(T"IPv4 DNS servers", cs["dns"],ajax_attr)
+  local ipv6_enabled = proxy.get("uci.network.interface.@wan.ipv6")
+  if cs["ip6addr"] and cs["ip6addr"]:len() > 0 then
+    ajax_attr.span.id = "ip6addr"
+    html[#html+1] = ui_helper.createLabel(T"IPv6 address", cs["ip6addr"], ajax_attr)
+  end
+  if cs["ipv6_gua"] and cs["ipv6_gua"]:len() > 0 then
+    ajax_attr.span.id = "ipv6_gua"
+    html[#html+1] = ui_helper.createLabel(T"IPv6 GUA", cs["ipv6_gua"], ajax_attr)
+  end
+  if cs["ip6prefix"] and cs["ip6prefix"]:len() > 0 then
+    ajax_attr.span.id = "ip6prefix"
+    html[#html+1] = ui_helper.createLabel(T"IPv6 Prefix", cs["ip6prefix"], ajax_attr)
+  end
+  if cs["dnsv6"] and cs["dnsv6"]:len() > 0 then
+    -- make sure auto-refresh updates control with ONLY DNSv6 servers
+    ajax_attr.span.id = "dnsv6"
+    html[#html+1] = ui_helper.createLabel(T"IPv6 DNS Servers", cs["dnsv6"], ajax_attr)
+  end
 
-    ngx.print(html)
+  ngx.print(html)
   ngx.print('\
-\
 </fieldset>\
-'); 
+');  
+  require("web.lp").include("internet-dns-servers.lp")

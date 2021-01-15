@@ -168,9 +168,10 @@ local mapParams = {
   uci_wan_username = "uci.network.interface.@wan.username",
   uci_wan_password = "uci.network.interface.@wan.password",
   uci_wan_masq = "uci.firewall.zone."..zonenum..".masq",
-  uci_wan_ipv6 = "uci.network.interface.@wan.ipv6",
+  uci_wan6_auto = "uci.network.interface.@wan.ipv6", -- use uci_wan6_auto param name instead of more consistent uci_wan_ipv6 for consistency with dhcp/static, and because internet-dns-servers.lp uses it to show/hide IPv6 DNS Servers table
   uci_wan_mac = "uci.network.interface.@wan.macaddr",
   uci_wan_peerdns = "uci.network.interface.@wan.peerdns",
+  uci_wan6_peerdns = "uci.network.interface.@wan6.peerdns",
 }
 
 local mapPPPstats = {
@@ -285,9 +286,10 @@ local mapValid = {
   uci_wan_username = gCV(isWanEnabled, validateUsername, gOV(validateUsername)),
   uci_wan_password = gCV(isWanEnabled, gVP(vNES), gVP()),
   uci_wan_masq = validateNat,
-  uci_wan_ipv6 = IPv6andUsername,
+  uci_wan6_auto = IPv6andUsername,
   uci_wan_mac = gOV(post_helper.validateStringIsMAC),
   uci_wan_peerdns = vB,
+  uci_wan6_peerdns = vB,
 }
 
 local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
@@ -432,12 +434,18 @@ end
 if content.uci_wan_auto ~= "0" then
   content.uci_wan_auto = "1"
 end
+if content["uci_wan_peerdns"] == "" then
+  content["uci_wan_peerdns"] = "1"
+end
+if content["uci_wan6_peerdns"] == "" then
+  content["uci_wan6_peerdns"] = "1"
+end
 
 if ngx.req.get_method() == "POST" then
   local doit = false
   local ipv6auto = proxy.get("uci.network.interface.@wan6.auto")[1].value
 
-  if content.uci_wan_ipv6 == "1" then
+  if content.uci_wan6_auto == "1" then
     local ipv4ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
     local ipv6ifname = proxy.get("uci.network.interface.@wan6.ifname")[1].value
     local ipv4proto = proxy.get("uci.network.interface.@wan.proto")[1].value
@@ -466,14 +474,22 @@ if ngx.req.get_method() == "POST" then
 end
 
   ngx.print('\
-\
 <fieldset>\
 ');
 ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   ngx.print('\
 <legend>');  ngx.print( T"PPP connection" ); ngx.print('</legend>\
-\
 ');
+local switch_class_enable = {
+  input = {
+    class = "monitor-changes",
+  }
+}
+local ipv6_input = {
+  group = {
+    class ="monitor-uci_wan6_auto monitor-1",
+  },
+}
 local html = {}
 -- Label that shows PPP status
 ajax_attr_light.light.class = ppp_light_map[ppp_status]
@@ -486,7 +502,9 @@ end
 -- Switch PPP on/off
 html[#html + 1] = ui_helper.createSwitch(T"Enabled", "uci_wan_auto", content.uci_wan_auto)
 html[#html + 1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
-html[#html + 1] = ui_helper.createSwitch(T"IPv6", "uci_wan_ipv6", content.uci_wan_ipv6)
+html[#html+1] = ui_helper.createSwitch(T"Auto-discover IPv4 DNS", "uci_wan_peerdns", content["uci_wan_peerdns"])
+html[#html + 1] = ui_helper.createSwitch(T"IPv6", "uci_wan6_auto", content.uci_wan6_auto, switch_class_enable)
+html[#html+1] = ui_helper.createSwitch(T"Auto-discover IPv6 DNS", "uci_wan6_peerdns", content["uci_wan6_peerdns"], ipv6_input)
 -- Supervision
 if supervision_support then
   html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision", "supervision_mode", supervision_modes, supervision_modes_content["supervision_mode"])
@@ -520,14 +538,7 @@ end
 ajax_attr.span.id = "concentrator_mac"
 html[#html+1] = ui_helper.createLabel(T"Concentrator MAC", content_rpc["concentrator_mac"], ajax_attr)
 ajax_attr.span.id = "dns"
-html[#html+1] = ui_helper.createLabel(T"DNS servers", content_rpc["dns"], ajax_attr)
-if content["uci_wan_peerdns"] == "" then
-    content["uci_wan_peerdns"] = "1"
-end
-html[#html+1] = ui_helper.createSwitch(T"Auto Discover DNS", "uci_wan_peerdns", content["uci_wan_peerdns"])
-html[#html+1] = format('<label class="control-label">%s</label><div class="controls">', T"DNS servers")
-html[#html+1] = ui_helper.createTable(dns_columns, dns_data, dns_options, nil, dns_helpmsg)
-html[#html+1] = '</div>'
+html[#html+1] = ui_helper.createLabel(T"IPv4 DNS servers", content_rpc["dns"], ajax_attr)
 if content_rpc["ip6addr"] and content_rpc["ip6addr"]:len() > 0 then
   ajax_attr.span.id = "ip6addr"
   html[#html+1] = ui_helper.createLabel(T"IPv6 Address", content_rpc["ip6addr"], ajax_attr)
@@ -542,7 +553,7 @@ if content_rpc["ip6prefix"] and content_rpc["ip6prefix"]:len() > 0 then
 end
 if content_rpc["dnsv6"] and content_rpc["dnsv6"]:len() > 0 then
   ajax_attr.span.id = "dnsv6"
-  html[#html+1] = ui_helper.createLabel(T"IPv6 DNS", content_rpc["dnsv6"],ajax_attr)
+  html[#html+1] = ui_helper.createLabel(T"IPv6 DNS Servers", content_rpc["dnsv6"],ajax_attr)
 end
   -- ATM VP/VC
 if wan_ppp_over_atm then
@@ -558,6 +569,8 @@ end
 
 ngx.print(html)
 ngx.print('</fieldset>');
+
+require("web.lp").include("internet-dns-servers.lp")
 
 if (ppp_status == "connected") then
   ngx.print('<fieldset>\
