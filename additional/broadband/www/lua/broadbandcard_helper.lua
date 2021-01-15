@@ -93,7 +93,7 @@ function M.getBroadbandCardHTML()
     html[#html+1] = ui_helper.createSimpleLight("1", "Mobile Internet connected")
   end
   if tonumber(content_rpc.rx_bytes) and tonumber(content_rpc.tx_bytes) and tonumber(uptime) then
-    html[#html+1] = format('<span class="simple-desc"><i class="icon-cloud-upload icon-small status-icon"></i> <span id="broadband-card-upload">%s</span> <i class="icon-cloud-download icon-small status-icon"></i> <span id="broadband-card-download">%s</span> <span id="broadband-card-daily-average">%s</span>/<i>d</i></span>', 
+    html[#html+1] = format('<span class="simple-desc" style="padding-top:10px"><i class="icon-cloud-upload icon-small status-icon"></i> <span id="broadband-card-upload">%s</span> <i class="icon-cloud-download icon-small status-icon"></i> <span id="broadband-card-download">%s</span> <span id="broadband-card-daily-average">%s</span>/<i>d</i></span>', 
       bytes2string(content_rpc.tx_bytes), bytes2string(content_rpc.rx_bytes), bytes2string((content_rpc.rx_bytes+content_rpc.tx_bytes)/(uptime/86400)))
   end
 

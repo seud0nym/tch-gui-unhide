@@ -12,26 +12,31 @@ local bbch = require("broadbandcard_helper")
 local wan_data = {
   wans_enable = "uci.wansensing.global.enable",
   wans_l2type = "uci.wansensing.global.l2type",
+  wans_l3type = "uci.wansensing.global.l3type",
 }
 content_helper.getExactContent(wan_data)
 
 local WS_en = wan_data.wans_enable
-local WS_mode = wan_data.wans_l2type
-if WS_mode == "" then
-  WS_mode = "NONE"
+local WS_L2 = wan_data.wans_l2type
+local WS_L3 = wan_data.wans_l3type
+if WS_L2 == "" then
+  WS_L2 = "NONE"
 end
 local WS_State
 if WS_en == "1" then
-   if WS_mode == "NONE" then
-      WS_State = "None"
-      WS_state_map = T"WAN Sensing L2: None"
-   else
-      WS_State = "Enabled"
-      WS_state_map = format(T"WAN Sensing L2: %s",WS_mode)
-   end
+  WS_Text = T"WAN Sensing enabled"
+  if WS_L2 == "" then
+    WS_L2 = "None"
+    WS_State = "None"
+  else
+    WS_State = "Enabled"
+  end
+  if WS_L3 == "" then
+    WS_L3 = "None"
+  end
 else
+   WS_Text = T"WAN Sensing disabled"
    WS_State = "Disabled"
-   WS_state_map = T"WAN Sensing: Disabled"
 end
 
 local WS_light_map = {
@@ -53,7 +58,12 @@ local html = bbch.getBroadbandCardHTML()
   <div class="smallcard">\
     ');  ngx.print( ui_helper.createCardHeader(T"Broadband", modalPath, nil, nil, nil) ); ngx.print('\
     <div class="content card_bg mirror" data-bg-text="&#xf0c1;">\
-    ');  ngx.print( ui_helper.createSimpleLight(nil, WS_state_map, { light = { class = WS_light_map[WS_State] } }) ); ngx.print('\
+    ');  
+      ngx.print( ui_helper.createSimpleLight(nil, WS_Text, { light = { class = WS_light_map[WS_State] } }) )
+      if WS_en == "1" then
+        ngx.print( format('<p class="subinfos">L2: <strong>%s</strong> L3: <strong>%s</strong></p>', WS_L2, WS_L3) )
+      end
+      ngx.print('\
       <div id="broadband-card-content">\
       ');  ngx.print(html); ngx.print('\
       </div>\
