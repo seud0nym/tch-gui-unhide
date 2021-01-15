@@ -1,7 +1,7 @@
 local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
 local untaint_mt = require("web.taint").untaint_mt
-local format = string.format
+local format, gsub = string.format, string.gsub
 
 local M = {}
 
@@ -12,24 +12,47 @@ function M.getInternetCardHTML(mode_active)
   content_helper.getExactContent(mobile_status)
   
   local mobile_ip
+  local mobile_dns
   if mobile_status.wwan_up == "1" then
     local content_mobile = {
       ipaddr = "rpc.network.interface.@wwan.ipaddr",
       ip6addr = "rpc.network.interface.@wwan.ip6addr",
+      dns = "rpc.network.interface.@wwan.dnsservers",
     }
     content_helper.getExactContent(content_mobile)
     if content_mobile.ipaddr ~= "" then
       mobile_ip = content_mobile.ipaddr
+      mobile_dns = content_mobile.dns
     elseif content_mobile.ip6addr ~= "" then
       if #content_mobile.ip6addr <= 28 then
         mobile_ip = content_mobile.ip6addr
+        mobile_dns = gsub(content_mobile.dns,",",", ")
       else
         mobile_ip = format('<span style="font-size:12px">%s</span>', content_mobile.ip6addr)
+        mobile_dns = format('<span style="font-size:12px">%s</span>', gsub(content_mobile.dns,",",", "))
       end
     end
   end
   
   local html = {}
+
+  local function addIPs(ipaddr, ip6addr, dnsv4, dnsv6)
+    html[#html+1] = '<p class="subinfos" style="margin-bottom:4px;">'
+    html[#html+1] = format(T'WAN IP: <strong style="letter-spacing:-1px">%s</strong>', ipaddr)
+    if ip6addr and ip6addr ~= "" then
+      html[#html+1] = format(T'<br><strong style="letter-spacing:-1px">%s</strong>', ip6addr)
+    end
+    html[#html+1] = '</p>'
+    html[#html+1] = '<p class="subinfos"">'
+    html[#html+1] = format(T'DNS: <strong style="letter-spacing:-1px">%s</strong>', gsub(gsub(dnsv4, "^%s*(.-)%s*$", "%1"),",",", "))
+    if dnsv6 and dnsv6 ~= "" then
+      if dnsv4 and dnsv4 ~= "" then
+        html[#html+1] = '<br>'
+      end  
+      html[#html+1] = format(T'<strong style="letter-spacing:-1px">%s</strong>', gsub(dnsv6,",",", "))
+    end
+    html[#html+1] = '</p>'
+  end
 
   if mode_active == "bridge" then
     local cs = {
@@ -46,6 +69,8 @@ function M.getInternetCardHTML(mode_active)
       uci_wan_auto = "uci.network.interface.@wan.auto",
       ipaddr = "rpc.network.interface.@wan.ipaddr",
       ip6addr = "rpc.network.interface.@wan6.ip6addr",
+      dnsv4 = "rpc.network.interface.@wan.dnsservers",
+      dnsv6 = "rpc.network.interface.@wan6.dnsservers",
     }
     content_helper.getExactContent(cs)
     local dhcp_state = "connecting"
@@ -72,10 +97,7 @@ function M.getInternetCardHTML(mode_active)
 
     html[#html+1] = ui_helper.createSimpleLight(nil, dhcp_state_map[dhcp_state], { light = { class = dhcp_light_map[dhcp_state] } })
     if dhcp_state == "connected" then
-      html[#html+1] = '<p class="subinfos">'
-      html[#html+1] = format(T'WAN IP is <strong style="letter-spacing:-1px">%s</strong>', cs["ipaddr"])
-      html[#html+1] = format(T'<br><strong style="letter-spacing:-1px">%s</strong>', cs["ip6addr"])
-      html[#html+1] = '</p>'
+      addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
     end
 
   elseif mode_active == "pppoe" then
@@ -89,6 +111,8 @@ function M.getInternetCardHTML(mode_active)
       wan_ppp_error = "rpc.network.interface.@wan.ppp.error",
       ipaddr = "rpc.network.interface.@wan.ipaddr",
       ip6addr = "rpc.network.interface.@wan6.ip6addr",
+      dnsv4 = "rpc.network.interface.@wan.dnsservers",
+      dnsv6 = "rpc.network.interface.@wan6.dnsservers",
     }
     content_helper.getExactContent(content_rpc)
     local ppp_state_map = {
@@ -132,10 +156,7 @@ function M.getInternetCardHTML(mode_active)
     end
     html[#html+1] = ui_helper.createSimpleLight(nil, ppp_state_map[ppp_status], { light = { class = ppp_light_map[ppp_status] } })
     if ppp_status == "connected" then
-      html[#html+1] = '<p class="subinfos">'
-      html[#html+1] = format(T'WAN IP is <strong style="letter-spacing:-1px">%s</strong>', content_rpc["ipaddr"])
-      html[#html+1] = format(T'<br><strong style="letter-spacing:-1px">%s</strong>', content_rpc["ip6addr"])
-      html[#html+1] = '</p>'
+      addIPs(content_rpc["ipaddr"], content_rpc["ip6addr"], content_rpc["dnsv4"], content_rpc["dnsv6"])
     end
 
   elseif mode_active == "static" then
@@ -143,6 +164,8 @@ function M.getInternetCardHTML(mode_active)
       uci_wan_auto = "uci.network.interface.@wan.auto",
       ipaddr = "rpc.network.interface.@wan.ipaddr",
       ip6addr = "rpc.network.interface.@wan6.ip6addr",
+      dnsv4 = "rpc.network.interface.@wan.dnsservers",
+      dnsv6 = "rpc.network.interface.@wan6.dnsservers",
     }
     content_helper.getExactContent(cs)
     if cs["uci_wan_auto"] ~= "0" then
@@ -174,17 +197,12 @@ function M.getInternetCardHTML(mode_active)
     else
       html[#html+1] = ui_helper.createSimpleLight("0", "Static disabled")
     end
-    html[#html+1] = '<p class="subinfos">'
-    html[#html+1] = format(T'WAN IP is <strong style="letter-spacing:-1px">%s</strong>', cs["ipaddr"])
-    html[#html+1] = format(T'<br><strong style="letter-spacing:-1px">%s</strong>', cs["ip6addr"])
-    html[#html+1] = '</p>'
+    addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
   end
 
   if mobile_ip then
     html[#html+1] = ui_helper.createSimpleLight(mobile_status["wwan_up"], "Mobile Internet connected")
-    html[#html+1] = '<p class="subinfos">'
-    html[#html+1] = format(T'WAN IP is <strong style="letter-spacing:-1px">%s</strong>', mobile_ip)
-    html[#html+1] = '</p>'
+    addIPs(mobile_ip, nil, mobile_dns, nil)
   end
 
   return html

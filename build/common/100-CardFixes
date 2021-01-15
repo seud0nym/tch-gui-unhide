@@ -67,7 +67,7 @@ sed \
   -e '/getExactContent/a \if mapParams["ipv6prefix"] == "" then' \
   -e '/getExactContent/a \    ipv6State_text = T""' \
   -e '/getExactContent/a \else' \
-  -e '/getExactContent/a \    ipv6State_text = T"Prefix is "' \
+  -e '/getExactContent/a \    ipv6State_text = T"Prefix: "' \
   -e '/getExactContent/a \end' \
   -e '/createSimpleLight/a \            ui_helper.createSimpleLight(dhcp6State, dhcp6State_text)' \
   -e '/createSimpleLight/a \        )' \
@@ -75,7 +75,8 @@ sed \
   -e '/createSimpleLight/a \            ngx.print(ui_helper.createSimpleLight(slaacState, slaacState_text))' \
   -e '/createSimpleLight/a \        end' \
   -e '/createSimpleLight/a \        ngx.print(' \
-  -e 's/and netmask/<br>Subnet Mask/' \
+  -e 's/and netmask is/<br>Subnet Mask:/' \
+  -e "s/IP is/IP:/" \
   -e "/<\/p>/i \            '<br>'," \
   -e "/<\/p>/i \            format(T'%s <nobr><strong style=\"letter-spacing:-1px\">%s</strong></nobr>', ipv6State_text, mapParams[\"ipv6prefix\"])," \
   -e '/^\\$/d' \
