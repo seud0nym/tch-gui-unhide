@@ -45,7 +45,7 @@ function M.getInternetCardHTML(mode_active)
     html[#html+1] = '</p>'
     html[#html+1] = '<p class="subinfos"">'
     html[#html+1] = format(T'DNS: <strong style="letter-spacing:-1px">%s</strong>', gsub(gsub(dnsv4, "^%s*(.-)%s*$", "%1"),",",", "))
-    if dnsv6 and dnsv6 ~= "" then
+    if ip6addr and ip6addr ~= "" and dnsv6 and dnsv6 ~= "" then
       if dnsv4 and dnsv4 ~= "" then
         html[#html+1] = '<br>'
       end  
@@ -54,6 +54,7 @@ function M.getInternetCardHTML(mode_active)
     html[#html+1] = '</p>'
   end
 
+  -- BRIDGE
   if mode_active == "bridge" then
     local cs = {
       variant = "env.var.variant_friendly_name",
@@ -63,7 +64,7 @@ function M.getInternetCardHTML(mode_active)
     html[#html+1] = '<p class="subinfos">'
     html[#html+1] = T'Gateway is in bridge mode'
     html[#html+1] = '</p>'
-
+  -- DHCP
   elseif mode_active == "dhcp" then
     local cs = {
       uci_wan_auto = "uci.network.interface.@wan.auto",
@@ -99,7 +100,7 @@ function M.getInternetCardHTML(mode_active)
     if dhcp_state == "connected" then
       addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
     end
-
+  -- PPOE
   elseif mode_active == "pppoe" then
     local content_uci = {
       wan_proto = "uci.network.interface.@wan.proto",
@@ -158,7 +159,7 @@ function M.getInternetCardHTML(mode_active)
     if ppp_status == "connected" then
       addIPs(content_rpc["ipaddr"], content_rpc["ip6addr"], content_rpc["dnsv4"], content_rpc["dnsv6"])
     end
-
+  -- STATIC
   elseif mode_active == "static" then
     local cs = {
       uci_wan_auto = "uci.network.interface.@wan.auto",
@@ -190,6 +191,7 @@ function M.getInternetCardHTML(mode_active)
       if wan_data["wan_ifname"] and string.find(wan_data["wan_ifname"],"eth") then
         if wan_data["ethwan_status"] == "up" then
           html[#html+1] = ui_helper.createSimpleLight("1", "Static on")
+          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
         else
           html[#html+1] = ui_helper.createSimpleLight("4", "Static disconnected")
         end
@@ -197,7 +199,6 @@ function M.getInternetCardHTML(mode_active)
     else
       html[#html+1] = ui_helper.createSimpleLight("0", "Static disabled")
     end
-    addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
   end
 
   if mobile_ip then
