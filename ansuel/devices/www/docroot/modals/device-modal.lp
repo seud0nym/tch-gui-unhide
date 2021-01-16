@@ -278,7 +278,6 @@ ngx.print( ui_helper.createHeader(T"Devices", false, true, interval) ); ngx.prin
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('\
     <fieldset>\
-      <legend>');  ngx.print( T"Devices" ); ngx.print('</legend>\
       ');  ngx.print( ui_helper.createTable(devices_columns, devices_data, devices_options, nil, devices_helpmsg) ); ngx.print('\
     </fieldset>\
   </form>\
