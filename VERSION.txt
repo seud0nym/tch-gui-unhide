@@ -1,3 +1,21 @@
+2021.01.16
+==========
+* tch-gui-unhide: Added Network Operators to Mobile tabs to add/edit MCC/MNC values
+* tch-gui-unhide: Added auto refresh to Telephony card
+* tch-gui-unhide: Stop all auto-refreshes when any modal opened
+* tch-gui-unhide: Fixed icon display issue on Telstra Classic theme [#19]
+* tch-gui-unhide: Allowed add/delete of dial plan entries
+* tch-gui-unhide: Clarified PoS on Telephony Codecs tab
+* tch-gui-unhide: Allow entry of SIP Domain Name and Realm
+* tch-gui-unhide: Optionally use a decrypted text field (instead of masked password field) for SIP Profile passwords
+* tch-gui-unhide: Allow assignment of IPv6 address to router via DHCP without LAN prefix
+* tch-gui-unhide: Show individual helper status on NAT Helpers card
+* tch-gui-unhide: Moved WAN Sensing L3 status from Internet Access card to Broadband card with L2 status
+* tch-gui-unhide: Added DNS Server IPs to Internet card [#20]
+* tch-gui-unhide: Standardised IPv4 and IPv6 DNS settings across DHCP/PPPoE/Static Internet Access modal snippets, plus added ability to enable/disable auto-discovery of ISP IPv6 DNS servers
+* tch-gui-unhide-xtra.minidlna: Correctly restore /lib/functions/contentsharing.sh after minidlna opkg removed
+* tch-gui-unhide-xtra.samba36-server: Correctly restore /lib/functions/contentsharing.sh after samba36-server opkg removed
+
 2021.01.06
 ==========
 * tch-gui-unhide: Added auto refresh to Broadband card
@@ -21,13 +39,13 @@
 * ALL: Fixed "Illegal option -?" message when using -? to determine script optional parameters
 * tch-gui-unhide: Fixed bug where Internet access modal was not displaying IP, Gateway and DNS addresses for PPPoE [#17]
 * tch-gui-unhide: Fixed bug that displayed NAT ALG helpers as disabled when they were enabled
-* tch-gui-unhide: Fixed bug that occassionally prevented theme changes from GUI (permission denied error)
+* tch-gui-unhide: Fixed bug that occasionally prevented theme changes from GUI (permission denied error)
 * tch-gui-unhide: Fixed static IPv6 address assignment - requires CIDR notation but input field did not allow it
 * tch-gui-unhide: Ensure wan6 auto, proto and ifname settings match wan
 * tch-gui-unhide: Enabled direct tab links from Management and Telephony cards
 * tch-gui-unhide: Device card now correctly counts booster-attached WiFi devices in wireless count, not ethernet count
 * tch-gui-unhide: Device modal shows booster-attached WiFi device interface correctly
-* tch-gui-unhide: Device modal now does case-insenstive device name sort, and added sorting by IPv4 and IPv6
+* tch-gui-unhide: Device modal now does case-insensitive device name sort, and added sorting by IPv4 and IPv6
 * tch-gui-unhide: Device modal can now toggle between Active Only and All connected devices by clicking Status heading
 * tch-gui-unhide: Disable refresh whilst editing device name
 * tch-gui-unhide: Squish IP addresses to fit IPv6 addresses on Internet Access and Local Network cards
@@ -42,7 +60,7 @@
 ==========
 * tch-gui-unhide: Added modified firewall modal so that you can specify src and/or dest zone for user defined rules, and therefore create incoming, outgoing and forwarding rules in either direction (stock GUI only creates lan->wan forwarding rules)
 * tch-gui-unhide: Added new tab to telephony to edit dial plans
-* tch-gui-unhide: Added autorefresh to device list and process viewer
+* tch-gui-unhide: Added auto-refresh to device list and process viewer
 * tch-gui-unhide: Added background update of upload/download volumes on Broadband card
 * tch-gui-unhide: Added background update of SSID status on Wireless card
 * tch-gui-unhide: Added WAN Supervision to Internet Static Routed Mode snippet
@@ -74,12 +92,12 @@
 * tch-gui-unhide: Fixed Init Management - did not refresh when init scripts added or removed
 * tch-gui-unhide: Fixed Process viewer - did not update and refresh button not working
 * tch-gui-unhide: Fixed tab highlighting after sorting on Devices and Management screens
-* tch-gui-unhide: Fixed inconsistent enabling/disabling of backhaul SSID
+* tch-gui-unhide: Fixed inconsistent enabling/disabling of back-haul SSID
 * tch-gui-unhide: Fixed Local Network card so that DHCPv6 server not shown as enabled when IPv6 disabled 
 * tch-gui-unhide: Added ability to enable/disable cron tasks
 * tch-gui-unhide: Added ability to enable/disable SLAAC
-* tch-gui-unhide: Backported Local Network modal from 17.2.0468 into 17.2.0284
-* de-telstra: Inconsistent enabling/disabling of backhaul SSID
+* tch-gui-unhide: Back-ported Local Network modal from 17.2.0468 into 17.2.0284
+* de-telstra: Inconsistent enabling/disabling of back-haul SSID
 
 2020.11.16
 ==========
@@ -127,8 +145,8 @@
 * de-telstra: Remove band steering configuration added by Telstra Air script
 * de-telstra: Remove Telstra Air firewall rules
 * de-telstra: No longer disables SSH WAN access (because it is not on by default, and user may have configured it manually)
-* de-telstra: Disable or enable WPS on non-Guest and non-Backhaul SSIDs
-* de-telstra: Set SAMBA and DLNA hostnames to hostname (replacing Telstra-Gateway or Telstra-Modem)
+* de-telstra: Disable or enable WPS on non-Guest and non-Back-haul SSIDs
+* de-telstra: Set SAMBA and DLNA host names to hostname (replacing Telstra-Gateway or Telstra-Modem)
 * de-telstra: Removed TLS on DJA0230
 * tch-gui-unhide: Added sensor temperatures to gateway card
 * tch-gui-unhide: Sort SSIDs on Wireless card with Guests last
@@ -195,11 +213,11 @@
 * tch-gui-unhide: Only show xDSL Config card if WAN interface is DSL
 * tch-gui-unhide: Hide Mobile card if no devices found
 * tch-gui-unhide: Only show WAN Services card if WAN interface defined
-* tch-gui-unhide: Adding favicon accidently replaced the <head> tag
+* tch-gui-unhide: Adding favicon accidentally replaced the <head> tag
 * tch-gui-unhide: Added Telephony Codecs tab from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www
 * de-telstra: Disable bulkdata (Telstra data collection)
 * de-telstra: Disable or enable DECT Emission Mode and fixed some display message bugs
-* de-telstra: Set SAMBA and DLNA hostnames to hostname (replacing Telstra-Modem)
+* de-telstra: Set SAMBA and DLNA host names to hostname (replacing Telstra-Modem)
 * de-telstra: Power settings for Ethernet eee and autogreeen were not persisted between reboots
 
 2020.09.17

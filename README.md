@@ -6,7 +6,7 @@ Skip any of these steps that you have already done.
 1. Root your device (see https://hack-technicolor.rtfd.io) and ensure it is running a supported firmware version.
 2. [Download](https://github.com/seud0nym/tch-gui-unhide/releases/latest) the latest release for your firmware.
 3. Copy the downloaded file(s) into the /root or /tmp directory of your device, or onto your USB stick (I normally use a USB stick so that the scripts are not lost if the device is reset, otherwise I use /root so the scripts are in the root user home directory).
-4. Change to the directory containing the release, aand extract the files using the command: `tar -xzvf <filename>`
+4. Change to the directory containing the release, and extract the files using the command: `tar -xzvf <filename>`
 5. Set the optimal bank plan. Run `./show-bank-plan` to see if your bank plan is optimal,and if not, execute: `./set-optimal-bank-plan` (*WARNING: This will reboot your device*)
 6. Harden root access and disable un-needed services with the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script. Run `./de-telstra -?` to see available options, or for some sensible settings, just execute: `./de-telstra -A`
 7. Change the root password by executing: `passwd`
@@ -88,10 +88,11 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - **Gateway** card now has current device status for CPU usage, free RAM and temperature
 - **Broadband** card shows current upload/download volume, and average per day
 - **Internet Access** and **LAN** cards now show IPv6 information
-- **Internet Access** screen allows you to specify a static IPv6 address (in static connection mode)
+- **Internet Access** screen allows you to specify the WAN Supervision mode, both IPv4 and IPv6 custom DNS Servers, and to set a static IPv6 address (in static connection mode)
 - **Local Network** allows enabling/disabling of DHCPv6 and SLAAC
 - **WiFi** card auto-updates to reflect SSID status (e.g. when Time of Day Wireless Access Controls rules enable or disable SSIDs)
 - **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
+- **Devices** card auto-refreshes, and also shows separately  the count of WiFi devices connected via a WiFi Booster (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
 - **Traffic monitor** tab in Diagnostics
 - **Time of Day** card shows the Wireless Control rule count, and correctly applies changes so that they work reliably
 - **System Extras** now allows:
@@ -99,13 +100,16 @@ Some hidden screens included on the device are not enabled, mainly because they 
     - Change the web GUI theme
 - **Management** screen allows the theme to be changed from within the GUI, and viewing of running processes
 - **Firewall** cards shows whether IPv4 and IPv6 pings are allowed, and the screen allows you to specify src and/or dest zone for user defined rules, and therefore create incoming, outgoing and forwarding rules in either direction (stock GUI only creates lan->wan forwarding rules)
-- **Telephony** screen now has a Dial Plans tab to edit the dial plans
+- **Telephony** card shows call statistics (number of calls in, missed and out)
+- **Telephony** screen now has a Dial Plans tab to edit the dial plans, and you can optionally show the decrypted SIP passwords on the Profiles tab
+- **Mobile** screen now has a Network Operators tab to modify the allowed Mobile Country Code (MCC) and Mobile Network Code (MNC) combinations
 
 ## What else does it do?
 - Properly enables SSH LAN access (because if you don't and then disable it through the GUI, you can lose SSH access).
 - Modernises the GUI a little bit with a choice of light, dark (night) or Telstra (Classic or Modern) theme. See Themes below.
-- Optionally enables or disables default user access (i.e. no login required to access the Web interface)
+- Optionally enables or disables default user access (i.e. no login required to access the Web interface).
 - Allows you to change the sequence of the cards and their visibility. See Cards below.
+- Optionally uses a decrypted text field (instead of masked password field) for SIP Profile passwords.
 
 ### Custom DNS Servers
 - If a file called *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* is found in the directory from which the script is invoked, the contents will be added to the list of DNS Servers on the **Local Network** screen.
@@ -154,7 +158,7 @@ The above command will only work if run from a supported firmware version, with 
 
 Alternatively, you can download the release for your firmware version to your computer and then upload it up to your device using WinSCP or equivalent. Run the `tar -xzvf <filename>` command to extract the release files.
 
-The best location for the scripts on your device is on a USB stick, so that if you need to reset or re-apply the firmware, the scripts will still be available without needing to uplpad them to the device again. Otherwise, I normally put them in the /root directory (the root user home directory) so they are available as soon as you log in without changing to another directory. /tmp is also suitable.
+The best location for the scripts on your device is on a USB stick, so that if you need to reset or re-apply the firmware, the scripts will still be available without needing to upload them to the device again. Otherwise, I normally put them in the /root directory (the root user home directory) so they are available as soon as you log in without changing to another directory. /tmp is also suitable.
 
 #### Harden your root access
 It is recommended that you apply whatever hardening (such as the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script) and other configuration changes you want to make *before* executing the script, as some features are enabled or disabled depending on the current configuration of the target device.
@@ -189,6 +193,9 @@ The script accepts the following options:
 - -l y|n
     - Keep the Telstra landing page (y) or de-brand the landing page (n)
     - The default is current setting, or (n) if no theme has been applied
+- -p y|n
+    - Use decrypted text field (y) or masked password field (n) for SIP Profile passwords
+    - The default is current setting (i.e. (n) by default)
 - -T
     - Apply the theme settings *ONLY*. All other processing is bypassed.
 - -y
@@ -206,7 +213,7 @@ NOTE: The theme options (-t, -c and -i) do not need to be re-specified when re-r
 
 The `tch-gui-unhide` script is a short-cut to the actual script for your firmware, which is named `tch-gui-unhide-<version>` (e.g. `tch-gui-unhide-18.1.c.0462`). If you get a "Platform script not found" error running this script, download the correct release for your firmware configuration.
 
-The firmware version will be checked during execution. If it does not match the target version, you will be prompted to exit or force execution. This is **YOUR** decision to proceeed.
+The firmware version will be checked during execution. If it does not match the target version, you will be prompted to exit or force execution. This is **YOUR** decision to proceed.
 
 The script will restart and reload services for which it has modified configuration. Subsequent executions will not re-apply configuration already set correctly, and therefore will not restart services unnecessarily.
 
@@ -217,7 +224,7 @@ To see the updated logo and icons and to correctly apply the updated style sheet
 - The script changes will not persist a reset or restore. If you factory reset your device, or restore to it a state before you applied the script, or upgrade/install firmware, you will need to run the script again!
 
 # Cards
-The `tch-gui-unhide-cards` is an iteractive script that allows you to re-order and change the visibility of the cards. When you execute it, it will display the current card configuration. Follow the on-screen prompts to re-order and hide/show cards.
+The `tch-gui-unhide-cards` is an interactive script that allows you to re-order and change the visibility of the cards. When you execute it, it will display the current card configuration. Follow the on-screen prompts to re-order and hide/show cards.
 
 **NOTE:** You must execute `tch-gui-unhide` *BEFORE* running `tch-gui-unhide-cards`!
 
