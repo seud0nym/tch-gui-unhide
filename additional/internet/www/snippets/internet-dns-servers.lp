@@ -5,6 +5,7 @@ gettext.textdomain('webui-core')
 
 local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
+local proxy = require("datamodel")
 
 local ipv4pattern = "^(((([1]?\\d)?\\d|2[0-4]\\d|25[0-5])\\.){3}(([1]?\\d)?\\d|2[0-4]\\d|25[0-5]))$"
 local ipv4DNScolumns = {
@@ -64,15 +65,18 @@ local ipv6_input = {
   },
 }
 
-local ipv4DNSdata, ipv4DNShelpmsg = post_helper.handleTableQuery(ipv4DNScolumns, ipv4DNSoptions, nil, nil, ipv4DNSvalid)
-local ipv6DNSdata, ipv6DNShelpmsg = post_helper.handleTableQuery(ipv6DNScolumns, ipv6DNSoptions, nil, nil, ipv6DNSvalid)
+local ipv6auto = proxy.get("uci.network.interface.@wan6.auto")[1].value
 
 ngx.print('\
 <fieldset>\
   <legend>');  ngx.print( T"Domain Name Server Configuration"  ); ngx.print('</legend>\
   ');  
+  local ipv4DNSdata, ipv4DNShelpmsg = post_helper.handleTableQuery(ipv4DNScolumns, ipv4DNSoptions, nil, nil, ipv4DNSvalid)
   ngx.print(ui_helper.createTable(ipv4DNScolumns, ipv4DNSdata, ipv4DNSoptions, nil, ipv4DNShelpmsg))
-  ngx.print(ui_helper.createTable(ipv6DNScolumns, ipv6DNSdata, ipv6DNSoptions, ipv6_input, ipv6DNShelpmsg))
+  if ipv6auto ~= "0" then
+    local ipv6DNSdata, ipv6DNShelpmsg = post_helper.handleTableQuery(ipv6DNScolumns, ipv6DNSoptions, nil, nil, ipv6DNSvalid)
+    ngx.print(ui_helper.createTable(ipv6DNScolumns, ipv6DNSdata, ipv6DNSoptions, ipv6_input, ipv6DNShelpmsg))
+  end
   ngx.print('\
 </fieldset>\
 ');

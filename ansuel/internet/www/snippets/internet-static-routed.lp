@@ -221,7 +221,7 @@ if ngx.req.get_method() == "POST" then
     doit = true
   end
 
-  if content.uci_wan6_auto == "1" then
+  if content.uci_wan6_auto ~= "0" then
     local ipv4ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
     local ipv6ifname = proxy.get("uci.network.interface.@wan6.ifname")[1].value
     local ipv4proto = proxy.get("uci.network.interface.@wan.proto")[1].value
