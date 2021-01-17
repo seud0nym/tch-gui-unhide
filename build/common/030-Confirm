@@ -22,6 +22,11 @@ fi
 if [ $FIX_PARENT_BLK = y ]; then
 echo "[$SCRIPT]:  - Ensure admin role can administer the parental block"
 fi
+if [ -z "$INSTALLED_RELEASE" ]; then
+echo "[$SCRIPT]:  - Install tch-gui-unhide release $RELEASE"
+else
+echo "[$SCRIPT]:  - Replace tch-gui-unhide release $INSTALLED_RELEASE with $RELEASE"
+fi
 echo "[$SCRIPT]:  - Allow editing of various settings that are not exposed in the stock GUI"
 echo "[$SCRIPT]:  - Unhide various cards and tabs contained in the stock GUI that are normally hidden"
 echo "[$SCRIPT]:  - Add new cards and screens, and modified cards and screens from the Ansuel tch-nginx-gui"
@@ -34,6 +39,11 @@ echo "[$SCRIPT]:  - The browser tabs titles will be set to $TITLE"
 fi
 if [ "$SIP_PWDS" = y ]; then
 echo "[$SCRIPT]:  - SIP Profile passwords will be decrypted and displayed in text fields rather than password fields"
+fi
+if [ "$UPDATE_BTN" = y ]; then
+echo "[$SCRIPT]:  - New release checking is ENABLED and 'Update Available' will be shown in GUI when new version released"
+else
+echo "[$SCRIPT]:  - New release checking is DISABLED! 'Update Available' will NOT be shown in GUI when new version released"
 fi
 
 echo [$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop.

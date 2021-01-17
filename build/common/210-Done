@@ -9,3 +9,10 @@ echo
 echo "++ TIP #2: Use the tch-gui-unhide-cards script to"
 echo "++         change card order and visibility"
 echo
+if [ "$UPDATE_BTN" = n ]; then
+  echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+  echo "++ WARNING! The Update Available notification is DISABLED! +"
+  echo "++          You must check for updates manually.           +"
+  echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+  echo
+fi

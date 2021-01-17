@@ -11,16 +11,23 @@ sed \
   -e '/Global Information/d' \
   -i /www/docroot/modals/gateway-modal.lp
 
-echo [$SCRIPT]: Add update available button
+if [ "$UPDATE_BTN" = y ]; then
+  echo [$SCRIPT]: Add update available button
+  sed \
+    -e '/uci.version.version.@version\[0\].timestamp/a\    updatable = "rpc.gui.UpdateAvailable",' \
+    -e '/isBridgedMode/i\        if cui.updatable == "1" then' \
+    -e "/isBridgedMode/i\          html[#html + 1] = '<a href=\"https://github.com/seud0nym/tch-gui-unhide/releases/latest\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"btn\">'" \
+    -e "/isBridgedMode/i\          html[#html + 1] = '<i class=\"icon-info-sign orange\"></i>&nbsp;<small>'" \
+    -e "/isBridgedMode/i\          html[#html + 1] = T\"Update Available\"" \
+    -e "/isBridgedMode/i\          html[#html + 1] = '</small></a>'" \
+    -e '/isBridgedMode/i\        end' \
+    -i /www/docroot/gateway.lp
+else
+  echo [$SCRIPT]: Update available button will NOT be shown in GUI
+fi
+
 echo [$SCRIPT]: Add auto-refresh management
 sed \
-  -e '/uci.version.version.@version\[0\].timestamp/a\    updatable = "rpc.gui.UpdateAvailable",' \
-  -e '/isBridgedMode/i\        if cui.updatable == "1" then' \
-  -e "/isBridgedMode/i\          html[#html + 1] = '<a href=\"https://github.com/seud0nym/tch-gui-unhide/releases/latest\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"btn\">'" \
-  -e "/isBridgedMode/i\          html[#html + 1] = '<i class=\"icon-info-sign orange\"></i><small>'" \
-  -e "/isBridgedMode/i\          html[#html + 1] = T\"Update Available\"" \
-  -e "/isBridgedMode/i\          html[#html + 1] = '</small></a>'" \
-  -e '/isBridgedMode/i\        end' \
   -e '/<title>/a \<script>\\' \
   -e '/<title>/a \window.intervalIDs=new Array();\\' \
   -e '/<title>/a \function clearRegisteredIntervals(){\\' \

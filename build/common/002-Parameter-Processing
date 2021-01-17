@@ -5,7 +5,7 @@ THEME_ONLY='n'
 
 FILENAME=$(basename $0)
 
-while getopts :c:d:f:h:i:l:p:rt:uyTW option
+while getopts :c:d:f:h:i:l:p:rt:uv:yTVW option
 do
  case "${option}" in
    c) case "$(echo ${OPTARG} | tr "BGMOPR" "bgmopr" | sed 's/\(.\)\(.*\)/\1/')" in
@@ -37,10 +37,10 @@ do
         n) THEME=night; COLOR=blue; KEEPLP=n;;
         *) THEME=telstra; COLOR=blue; KEEPLP=y;;
       esac;;
-   u) RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME | sed 's/\r//')
+   u) RESULT=$(curl -m 5 -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME | sed 's/\r//')
       if [ $? -ne 0 ]
       then
-        echo "[tch-gui-unhide] GitHub check of $FILENAME failed with an unknown error. Do you have an internet connection?"
+        echo "002@$(date +%H:%M:%S): GitHub check of $FILENAME failed with an unknown error. Do you have an internet connection?"
         return 5
       else 
         STATUS=$(echo $RESULT | grep '^HTTP' | cut -d' ' -f2)
@@ -64,7 +64,7 @@ do
                   SIZE=$(ls -l $FILENAME | tr -s ' ' | cut -d' ' -f5)
                   if [ $SIZE -eq $LENGTH ]
                   then
-                  echo "[tch-gui-unhide] Size of $FILENAME matches GitHub version - No update required"
+                  echo "002@$(date +%H:%M:%S): Size of $FILENAME matches GitHub version - No update required"
                   return 0
                   fi
                 fi
@@ -72,48 +72,71 @@ do
                 if [ $? -eq 0 ]
                 then
                   chmod +x $FILENAME
-                  echo "[tch-gui-unhide] Successfully updated $FILENAME."
+                  echo "002@$(date +%H:%M:%S): Successfully updated $FILENAME."
                   return 0
                 else
-                  echo "[tch-gui-unhide] Failed to download updated version of $FILENAME."
+                  echo "002@$(date +%H:%M:%S): Failed to download updated version of $FILENAME."
                   return 2
                 fi;;
-          404)  echo "[tch-gui-unhide] Platform script $FILENAME not found!!!"
+          404)  echo "002@$(date +%H:%M:%S): Platform script $FILENAME not found!!!"
                 return 4;;
-          *)    echo "[tch-gui-unhide] GitHub check of $FILENAME returned $STATUS"
+          *)    echo "002@$(date +%H:%M:%S): GitHub check of $FILENAME returned $STATUS"
                 return 5;;
         esac
       fi
       exit;;
+   v) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then UPDATE_BTN=y; else UPDATE_BTN=n; fi;;
    y) YES=y;;
    T) THEME_ONLY=y;;
+   V) LATEST_RELEASE=$(curl -m 1 -q -s -k -L -r0-9 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/VERSION.txt)
+      echo "002@$(date +%H:%M:%S): This Release       $RELEASE"
+      if [ -z "$INSTALLED_RELEASE" ]; then
+        echo "002@$(date +%H:%M:%S): Installed Release  NOT INSTALLED"
+      else
+        echo "002@$(date +%H:%M:%S): Installed Release  $INSTALLED_RELEASE"
+      fi
+      if [ -z "$LATEST_RELEASE" ]; then
+        echo "002@$(date +%H:%M:%S): Latest Release     UNKNOWN (No internet access?)"
+      else
+        echo "002@$(date +%H:%M:%S): Latest Release     $LATEST_RELEASE"
+      fi
+      exit;;      
    W) WRAPPER=y;;
    ?) echo "Optional parameters:"
-      echo " -t l|n|t|m     : Set a light (l), night (n), or Telstra-branded Classic (t) or Modern (m) theme"
-      echo "                    (Default is current setting, or Telstra Classic if no theme has been applied)"
+      echo " Control Options:"
+      echo " -d y|n         : Enable (y) or Disable (n) Default user (i.e. GUI access without password)"
+      echo "                    (Default is current setting)"
+      echo " -f y|n         : Enable (y) or Disable (n) firmware upgrade in the web GUI"
+      echo "                    (Default is current setting)"
+      echo " -p y|n         : Use decrypted text (y) or masked password (n) field for SIP Profile passwords"
+      echo "                    (Default is current setting i.e (n) by default)"
+      echo " -v y|n         : Enable (y) check for new releases and show 'Update Available' button in GUI, or Disable (n)"
+      echo "                    (Default is current setting or (y) for first time installs)"
+      echo " Theme Options:"
       echo " -c b|o|g|p|r|m : Set the theme highlight colour"
       echo "                    b=blue o=orange g=green p=purple r=red m=monochrome"
       echo "                    (Default is current setting, or (m) for light theme or (b) for night theme)"
+      echo " -h d|s|n|\"txt\" : Set the browser tabs title (Default is current setting)"
+      echo "                    (d)=$VARIANT (s)=$VARIANT-$MAC (n)=$HOSTNAME (\"txt\")=Specified \"txt\""
       echo " -i y|n         : Show (y) or hide (n) the card icons"
       echo "                    (Default is current setting, or (n) for light theme and (y) for night theme)"
       echo " -l y|n         : Keep the Telstra landing page (y) or de-brand the landing page (n)"
       echo "                    (Default is current setting, or (n) if no theme has been applied)"
+      echo " -t l|n|t|m     : Set a light (l), night (n), or Telstra-branded Classic (t) or Modern (m) theme"
+      echo "                    (Default is current setting, or Telstra Classic if no theme has been applied)"
       echo " -T             : Apply theme ONLY - bypass all other processing"
-      echo " -h d|s|n|\"txt\" : Set the browser tabs title (Default is current setting)"
-      echo "                    (d)=$VARIANT (s)=$VARIANT-$MAC (n)=$HOSTNAME (\"txt\")=Specified \"txt\""
-      echo " -d y|n         : Enable (y) or Disable (n) Default user (i.e. GUI access without password)"
-      echo "                    (Default is current setting)"
-      echo " -f y|n         : Enable (y) or Disable (n) Firmware upgrade in the web GUI"
-      echo "                    (Default is current setting)"
-      echo " -p y|n         : Use decrypted text (y) or masked password (n) field for SIP Profile passwords"
-      echo "                    (Default is current setting i.e (n) by default)"
-      echo " -y             : Bypass confirmation prompt (answers 'y')"
-      echo " -r             : Restore changed GUI files to their original state (config changes are NOT restored)"
-      echo " -u             : Check for and download any updates to $FILENAME"
+      echo " Update Options:"
+      echo " -u             : Check for and download any changes to this script (may be newer than latest release version)"
+      echo "                    When specifying the -u option, it must be the ONLY parameter specifed."
       if [ $WRAPPER = y ]; then
       echo " -U             : Download the latest release, including utility scripts (will overwrite all existing script versions)."
       echo "                    When specifying the -U option, it must be the ONLY parameter specifed."
       fi
+      echo " Miscellaneous Options:"
+      echo " -r             : Restore changed GUI files to their original state (config changes are NOT restored)"
+      echo "                    When specifying the -r option, it must be the ONLY parameter specifed."
+      echo " -y             : Bypass confirmation prompt (answers 'y')"
+      echo " -V             : Show the release number of this script, the current installed release, and the latest available release on GitHub"
       echo 
       echo "NOTE #1: Theme (-t) does not need to be re-specified when re-running the script: current state will be 'remembered'"
       echo "         between executions (unless you execute with the -r option, which will remove all state information)"
