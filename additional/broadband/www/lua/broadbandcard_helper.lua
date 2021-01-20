@@ -3,6 +3,7 @@ local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local floor = math.floor
+local find = string.find
 local format = string.format
 local tonumber = tonumber
 
@@ -62,7 +63,7 @@ function M.getBroadbandCardHTML()
   local uptime = content_helper.readfile("/proc/uptime","number",floor)
 
   local html = {}
-  if wan_data["wan_ifname"] and (wan_data["wan_ifname"] == "ptm0" or wan_data["wan_ifname"] == "atmwan") then
+  if wan_data["wan_ifname"] and (find(wan_data["wan_ifname"],"ptm0") or find(wan_data["wan_ifname"],"atm")) then
     if wan_data["dsl_status"] == "Up" then
       html[#html+1] = ui_helper.createSimpleLight("1", "DSL connected")
       -- After disabling broadband the page immediately refreshes. At this time the state is still up but the line
@@ -82,7 +83,7 @@ function M.getBroadbandCardHTML()
       html[#html+1] = ui_helper.createSimpleLight("2", "DSL connecting")
     end
   end
-  if wan_data["wan_ifname"] and string.find(wan_data["wan_ifname"],"eth") then
+  if wan_data["wan_ifname"] and find(wan_data["wan_ifname"],"eth") then
     if wan_data["ethwan_status"] == "up" then
       html[#html+1] = ui_helper.createSimpleLight("1", "Ethernet connected")
     else

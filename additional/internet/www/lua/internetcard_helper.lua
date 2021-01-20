@@ -1,7 +1,7 @@
 local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
 local untaint_mt = require("web.taint").untaint_mt
-local format, gsub = string.format, string.gsub
+local find, format, gsub = string.find, string.format, string.gsub
 
 local M = {}
 
@@ -177,7 +177,7 @@ function M.getInternetCardHTML(mode_active)
         ethwan_status     = "sys.eth.port.@eth4.status",
       }
       content_helper.getExactContent(wan_data)
-      if wan_data["wan_ifname"] and (wan_data["wan_ifname"] == "ptm0" or wan_data["wan_ifname"] == "atmwan") then
+      if wan_data["wan_ifname"] and (find(wan_data["wan_ifname"],"ptm0") or find(wan_data["wan_ifname"],"atm")) then
         if wan_data["dsl_status"] == "Up" then
           html[#html+1] = ui_helper.createSimpleLight("1", "Static on")
         elseif wan_data["dsl_status"] == "NoSignal" then
@@ -188,7 +188,7 @@ function M.getInternetCardHTML(mode_active)
           html[#html+1] = ui_helper.createSimpleLight("2", "Static connecting")
         end
       end
-      if wan_data["wan_ifname"] and string.find(wan_data["wan_ifname"],"eth") then
+      if wan_data["wan_ifname"] and find(wan_data["wan_ifname"],"eth") then
         if wan_data["ethwan_status"] == "up" then
           html[#html+1] = ui_helper.createSimpleLight("1", "Static on")
           addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
