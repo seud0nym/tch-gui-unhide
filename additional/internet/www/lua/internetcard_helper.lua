@@ -180,6 +180,7 @@ function M.getInternetCardHTML(mode_active)
       if wan_data["wan_ifname"] and (find(wan_data["wan_ifname"],"ptm0") or find(wan_data["wan_ifname"],"atm")) then
         if wan_data["dsl_status"] == "Up" then
           html[#html+1] = ui_helper.createSimpleLight("1", "Static on")
+          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
         elseif wan_data["dsl_status"] == "NoSignal" then
           html[#html+1] = ui_helper.createSimpleLight("4", "Static disconnected")
         elseif wan_data["dsl0_enabled"] == "0" then
