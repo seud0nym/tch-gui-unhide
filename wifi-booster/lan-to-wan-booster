@@ -273,7 +273,7 @@ else
   echo LAN IP address is already set to $LAN_IP_ADDR
 fi
 
-if [ \( "$WAN_DHCP" = 'y' -a "$(uci -q get network.wan.proto)" != "dhcp" \) -o $FORCE = y ]
+if [ \( "$WAN_DHCP" = 'y' -o $FORCE = y ]
 then
   echo Setting WAN IP connection type to DHCP
   uci set network.config.wan_mode='dhcp'
