@@ -37,13 +37,13 @@ function M.getInternetCardHTML(mode_active)
   local html = {}
 
   local function addIPs(ipaddr, ip6addr, dnsv4, dnsv6)
-    html[#html+1] = '<p class="subinfos" style="margin-bottom:4px;">'
+    html[#html+1] = '<p class="subinfos" style="margin-bottom:4px;line-height:17px;">'
     html[#html+1] = format(T'WAN IP: <strong style="letter-spacing:-1px">%s</strong>', ipaddr)
     if ip6addr and ip6addr ~= "" then
       html[#html+1] = format(T'<br><strong style="letter-spacing:-1px">%s</strong>', ip6addr)
     end
     html[#html+1] = '</p>'
-    html[#html+1] = '<p class="subinfos"">'
+    html[#html+1] = '<p class="subinfos" style="line-height:17px;">'
     html[#html+1] = format(T'DNS: <strong style="letter-spacing:-1px">%s</strong>', gsub(gsub(dnsv4, "^%s*(.-)%s*$", "%1"),",",", "))
     if ip6addr and ip6addr ~= "" and dnsv6 and dnsv6 ~= "" then
       if dnsv4 and dnsv4 ~= "" then
