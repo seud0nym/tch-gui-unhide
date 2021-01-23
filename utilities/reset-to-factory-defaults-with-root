@@ -102,7 +102,16 @@ then
 fi
 if [ "$REBOOT" = "Y" ]
 then
-  echo "WARNING: Device will be rebooted!"
+  echo "WARNING: Device will attempt to reboot!"
+fi
+echo 
+echo "WARNING: You are resetting to factory defaults!"
+echo "         Any customisation or settings you have changed will be lost!"
+echo
+grep -q 'tch-gui-unhide' /www/docroot/gateway.lp
+if [ $? -eq 0 ]; then
+  echo "NOTE:    You will also need to re-run tch-gui-unhide after rebooting!"
+  echo
 fi
 echo -n "ACTION:  Enter y to continue, or anything else to exit now "
 read
