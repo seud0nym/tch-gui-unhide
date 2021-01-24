@@ -49,7 +49,7 @@ This script will automate the following functions:
 
 ### Primary Device (Controller) Configuration
 On the primary device, you must manually configure the following items:
-1. Reserve the static lease for the "Booster" device if you are using DHCP or if the IP address falls within your DHCP range.
+1. Reserve the static lease for the "Booster" device if the IP address falls within your DHCP range.
 2. Disable the Backhaul SSID, unless you have a "real" Telstra Smart Wi-Fi Booster. It is only used for wireless backhaul, and these scripts configure wired backhaul only.
 
 ### Notes
