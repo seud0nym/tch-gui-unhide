@@ -58,9 +58,9 @@ do
     y)  YES='y';;
     *)  echo "Syntax: $0 <options>"
         echo "Optional parameters:"
-        echo " -i n.n.n.n  Set LAN IP address to n.n.n.n (default is -i$LAN_IP_ADDR but ignored if -d specified)"
-        echo " -g n.n.n.n  Set LAN Gateway IP address to n.n.n.n (default is -g192.168.0.1 but ignored if -d specified)"
-        echo " -n n.n.n.n  Set LAN DNS Server IP address to n.n.n.n (specify multiple times for multiple DNS servers. Default is -n1.1.1.1 -n1.0.0.1 but ignored if -d specified)"
+        echo " -i n.n.n.n  Set LAN IP address to n.n.n.n (default is -i$LAN_IP_ADDR)"
+        echo " -g n.n.n.n  Set LAN Gateway IP address to n.n.n.n (default is -g192.168.0.1)"
+        echo " -n n.n.n.n  Set LAN DNS Server IP address to n.n.n.n (specify multiple times for multiple DNS servers. Default is -n1.1.1.1 -n1.0.0.1)"
         echo " -l 0-9      Set MultiAP logging level (0=off 2=Default 9=very verbose)"
         echo " -f          Force settings to be reapplied"
         echo " -y          Skip the confirmation prompt"
