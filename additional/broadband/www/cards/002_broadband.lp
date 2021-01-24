@@ -26,13 +26,13 @@ local WS_State
 if WS_en == "1" then
   WS_Text = T"WAN Sensing enabled"
   if WS_L2 == "" then
-    WS_L2 = "None"
+    WS_L2 = "NONE"
     WS_State = "None"
   else
     WS_State = "Enabled"
   end
   if WS_L3 == "" then
-    WS_L3 = "None"
+    WS_L3 = "NONE"
   end
 else
    WS_Text = T"WAN Sensing disabled"
