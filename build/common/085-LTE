@@ -1,5 +1,54 @@
+echo [$SCRIPT]: Tidy up Mobile Configuration screen and add Device Capabilities
+sed \
+  -e 's/getValidateCheckboxSwitch\(\)/validateBoolean/' \
+  -e 's/createCheckboxSwitch/createSwitch/' \
+  -e '/local function get_session_info_section/i \local function get_device_capabilities_section(page, html)' \
+  -e '/local function get_session_info_section/i \	local section = {}' \
+  -e '/local function get_session_info_section/i \	if page.device.capabilities.arfcn_selection_support ~= "" then' \
+  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"ARFCN Selection Support" .. ":", page.device.capabilities.arfcn_selection_support))' \
+  -e '/local function get_session_info_section/i \	end' \
+  -e '/local function get_session_info_section/i \	if page.device.capabilities.band_selection_support ~= "" then' \
+  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Band Selection Support" .. ":", page.device.capabilities.band_selection_support))' \
+  -e '/local function get_session_info_section/i \	end' \
+  -e '/local function get_session_info_section/i \	if page.device.capabilities.manual_plmn_selection ~= "" then' \
+  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Manual PLMN Selection" .. ":", page.device.capabilities.manual_plmn_selection))' \
+  -e '/local function get_session_info_section/i \	end' \
+  -e '/local function get_session_info_section/i \	if page.device.capabilities.strongest_cell_selection ~= "" then' \
+  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Strongest Cell Selection" .. ":", page.device.capabilities.strongest_cell_selection))' \
+  -e '/local function get_session_info_section/i \	end' \
+  -e '/local function get_session_info_section/i \	if page.device.capabilities.supported_modes ~= "" then' \
+  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Supported Modes" .. ":", page.device.capabilities.supported_modes))' \
+  -e '/local function get_session_info_section/i \	end' \
+  -e '/local function get_session_info_section/i \	if page.device.capabilities.supported_bands_cdma ~= "" then' \
+  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Supported CDMA Bands" .. ":", page.device.capabilities.supported_bands_cdma))' \
+  -e '/local function get_session_info_section/i \	end' \
+  -e '/local function get_session_info_section/i \	if page.device.capabilities.supported_bands_gsm ~= "" then' \
+  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Supported GSM Bands" .. ":", page.device.capabilities.supported_bands_gsm))' \
+  -e '/local function get_session_info_section/i \	end' \
+  -e '/local function get_session_info_section/i \	if page.device.capabilities.supported_bands_lte ~= "" then' \
+  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Supported LTE Bands" .. ":", page.device.capabilities.supported_bands_lte))' \
+  -e '/local function get_session_info_section/i \	end' \
+  -e '/local function get_session_info_section/i \	if page.device.capabilities.max_data_sessions ~= "" then' \
+  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Max Data Sessions" .. ":", page.device.capabilities.max_data_sessions))' \
+  -e '/local function get_session_info_section/i \	end' \
+  -e '/local function get_session_info_section/i \	if page.device.capabilities.sms_reading ~= "" then' \
+  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"SMS Reading" .. ":", page.device.capabilities.sms_reading))' \
+  -e '/local function get_session_info_section/i \	end' \
+  -e '/local function get_session_info_section/i \	if page.device.capabilities.sms_sending ~= "" then' \
+  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"SMS Sending" .. ":", page.device.capabilities.sms_sending))' \
+  -e '/local function get_session_info_section/i \	end' \
+  -e '/local function get_session_info_section/i \	if utils.Len(section) > 0 then' \
+  -e '/local function get_session_info_section/i \		tinsert(html, "<fieldset><legend>" .. T"Device Capabilities" .. "</legend>")' \
+  -e '/local function get_session_info_section/i \		tinsert(html, section)' \
+  -e '/local function get_session_info_section/i \		tinsert(html, "</fieldset>")' \
+  -e '/local function get_session_info_section/i \	end' \
+  -e '/local function get_session_info_section/i \end' \
+  -e '/local function get_session_info_section/i \\' \
+  -e '/^\s*get_device_info_section/a get_device_capabilities_section(page, html)' \
+  -i /www/docroot/modals/lte-modal.lp
+
 echo [$SCRIPT]: Add Network Operators to Mobile tabs
 sed \
- -e '/{"lte-doctor.lp", T"Diagnostics"},/a \	{"lte-operators.lp", T"Network Operators"},' \
- -i /www/snippets/tabs-mobiled.lp
+  -e '/{"lte-doctor.lp", T"Diagnostics"},/a \	{"lte-operators.lp", T"Network Operators"},' \
+  -i /www/snippets/tabs-mobiled.lp
 
