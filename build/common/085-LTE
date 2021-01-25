@@ -1,6 +1,6 @@
 echo [$SCRIPT]: Tidy up Mobile Configuration screen and add Device Capabilities
 sed \
-  -e 's/getValidateCheckboxSwitch\(\)/validateBoolean/' \
+  -e 's/getValidateCheckboxSwitch()/validateBoolean/' \
   -e 's/createCheckboxSwitch/createSwitch/' \
   -e '/local function get_session_info_section/i \local function get_device_capabilities_section(page, html)' \
   -e '/local function get_session_info_section/i \	local section = {}' \
