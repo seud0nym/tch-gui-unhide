@@ -9,8 +9,11 @@ local post_helper = require("web.post_helper")
 local uimessage_helper = require("web.uimessage_helper")
 local proxy = require("datamodel")
 local table, ipairs = table, ipairs
-local format, gmatch = string.format, string.gmatch
+local find, format, gmatch, match = string.find, string.format, string.gmatch, string.match
 local concat = table.concat
+
+local lp = require("web.lp")
+lp.setpath("/www/snippets/")
 
 local uci_classgroup_content = {
   wan_queues = "uci.qos.classgroup.@TO_WAN.classes",
@@ -41,6 +44,7 @@ local gVIC = post_helper.getValidateInCheckboxgroup
 local gVIES = post_helper.getValidateInEnumSelect
 local vPN = post_helper.validatePositiveNum
 local gOV = post_helper.getOptionalValidation
+local gVCS = post_helper.getValidateCheckboxSwitch
 
 local policy_options = {
   {"sp", T"Strict Priority"},
@@ -53,15 +57,8 @@ for id=0,15,1 do
   trafficid_options[#trafficid_options+1] = { tostring(id), tostring(id) }
 end
 
-local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
-if wan_ifname == "atmwan" then
-  wan_ifname = "atm_8_35"
-elseif wan_ifname ~= "eth4" and string.find(wan_ifname, "eth4") then
-  wan_ifname = "eth4"
-end
-
 local mapParams = {
-  wan_queues_enabled = "uci.qos.device.@" .. wan_ifname:untaint() .. ".enable",
+  wan_queues_enabled = "uci.qos.device.@wan.enable",
   wan_queues_policy = "uci.qos.classgroup.@TO_WAN.policy",
   wan_queues_default = "uci.qos.classgroup.@TO_WAN.default",
   lan_queues_enabled = "uci.qos.interface.@lan.enable",
@@ -82,31 +79,6 @@ local mapValid = {
 	wlan_queues_default = gVIES(wlan_queue_options),
 }
 
-if not proxy.get(mapParams.wan_queues_enabled) then
-  proxy.set(mapParams.wan_queues_enabled, "0")
-  proxy.apply()
-end
-
-local ethports = {}
-local ethport_count = 0
-for index = 0, 5 do
-  local ethport = "eth" .. index
-	local path = "uci.qos.device.@" .. ethport .. ".enable"
-	local portname = T"Port" .. " " .. index+1
-	if index == 5 then
-		portname = T"Virtual Port" .. " Wifi 5Ghz"
-	end
-    if proxy.get(path) and not ( index == 4 ) then
-      ethport_count = ethport_count + 1
-      table.insert(ethports, {ethport, portname})
-  		mapParams[ethport] = path
-    end
-end
-
-for i = 0, ethport_count do
-  mapValid["eth" .. i] = gOV(vB)
-end
-
 local function isChecked(key, checked)
 	if string.untaint(checked) == "" then
 		return false
@@ -116,93 +88,131 @@ local function isChecked(key, checked)
 			return true
 		end
 	end
-    return false
+  return false
 end
 
-local function validateEthports(value, object, key)
-  local getValidateEthports = gVIC(ethports)
-  local ok, msg = getValidateEthports(value, object, key)
+local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
+local wandevices = {}
+local wandevice
+for wandevice in gmatch(wan_ifname, "([^%s]+)") do
+  local portname
+  if wandevice == "atmwan" or wandevice == "wanatmwan" or wandevice == "atm_8_35" then
+    wandevice = "atm_8_35"
+    portname = "aDSL WAN"
+  elseif wandevice == "wanptm0" or wandevice == "ptm0" then
+    wandevice = "ptm0"
+    portname = "vDSL WAN"
+  elseif wandevice == "eth4" then
+    portname = "WAN Port"
+  else 
+    portname = "Port" .. " " .. match(wandevice, "%d") + 1
+  end
+  local path = format("uci.qos.device.@%s.enable", wandevice)
+  if proxy.get(path) then
+    table.insert(wandevices, {wandevice, portname})
+    mapParams[wandevice] = path
+    mapValid[wandevice] = gOV(vB)
+  end
+end
 
+local function validateWanDevice(value, object, key)
+  local getValidateEthports = gVIC(wandevices)
+  local ok, msg = getValidateEthports(value, object, key)
   if not ok then
     return ok, msg
   end
-
-  for k,v in ipairs(ethports) do
+  for k,v in ipairs(wandevices) do
     object[v[1]] = nil
     object[v[1]] = isChecked(v[1], value) and "1" or "0"
   end
+  return true
+end
 
+local lan_ifname = proxy.get("uci.network.interface.@lan.ifname")[1].value
+local lanports = {}
+local lanport
+for lanport in gmatch(lan_ifname, "([^%s]+)") do
+  local path = format("uci.qos.device.@%s.enable", lanport)
+	local portname = "LAN Port" .. " " .. match(lanport, "%d") + 1
+  if proxy.get(path) then
+    table.insert(lanports, {lanport, portname})
+    mapParams[lanport] = path
+    mapValid[lanport] = gOV(vB)
+  end
+end
+
+local function validateLanPort(value, object, key)
+  local getValidateEthports = gVIC(lanports)
+  local ok, msg = getValidateEthports(value, object, key)
+  if not ok then
+    return ok, msg
+  end
+  for k,v in ipairs(lanports) do
+    object[v[1]] = nil
+    object[v[1]] = isChecked(v[1], value) and "1" or "0"
+  end
   return true
 end
 
 local wldevices = {}
-local wldevice_count = 0
-for index = 0, 3 do
+for index = 0, 1 do
   local wldevice = "wl" .. index
 	local path = "uci.qos.device.@" .. wldevice .. ".enable"
 	local wlname = "uci.wireless.wifi-iface.@"..wldevice..".ssid"
-	if index == 2 then
-		wldevice = "wlnet_b_24" --cover guest wifi
-		path = "uci.qos.interface.@" .. wldevice .. ".enable"
-		wlname = "uci.wireless.wifi-iface.@wl0_1.ssid"
-	elseif index == 3 then
-		wldevice = "wlnet_b_5"
-		path = "uci.qos.interface.@" .. wldevice .. ".enable"
-		wlname = "uci.wireless.wifi-iface.@wl1_1.ssid"
-	end
-    if proxy.get(path) then
-  		wlname = proxy.get(wlname) and proxy.get(wlname)[1].value or wldevice
-      wldevice_count = wldevice_count + 1
-      table.insert(wldevices, {wldevice, wlname})
-     mapParams[wldevice] = path
-    end
-end
-
-for _ , value in pairs(wldevices) do
-  mapValid[value[1]] = gOV(vB)
+  if proxy.get(path) then
+    wlname = proxy.get(wlname) and proxy.get(wlname)[1].value or wldevice
+    local radio_name = proxy.get("rpc.wireless.ssid.@"..wldevice..".radio")[1].value
+    if radio_name == "radio_2G" then
+      wlname = wlname .. " (2.4G)"
+    else
+      wlname = wlname .. " (5G)"
+    end    
+    table.insert(wldevices, {wldevice, wlname})
+    mapParams[wldevice] = path
+    mapValid[wldevice] = gOV(vB)
+  end
 end
 
 local function validateWlDevice(value, object, key)
   local getValidateWlDevices = gVIC(wldevices)
   local ok, msg = getValidateWlDevices(value, object, key)
-
   if not ok then
     return ok, msg
   end
-
   for k,v in ipairs(wldevices) do
     object[v[1]] = nil
     object[v[1]] = isChecked(v[1], value) and "1" or "0"
   end
-
   return true
 end
 
+if not proxy.get(mapParams.wan_queues_enabled) then
+  mapParams.wan_queues_enabled = nil
+  mapValid.wan_queues_enabled = nil
+  mapValid.wandevices = validateWanDevice
+end
+
 if not proxy.get(mapParams.lan_queues_enabled) then
-	mapParams.lan_queues_enabled = nil
-	mapValid.lan_queues_enabled = nil
-	mapValid.ethports = validateEthports
+  mapParams.lan_queues_enabled = nil
+  mapValid.lan_queues_enabled = nil
+  mapValid.lanports = validateLanPort
 end
 
 mapValid.wldevices = validateWlDevice
 	
 local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
 
-for i = 0, wldevice_count do
-	if content["wl" .. i] == "" then
-		content["wl" .. i] = "1"
-	end
-end
+local function setDefaultEnabled(devices)
+  for _,v in pairs(devices) do
+    if content[v[1]] == "" then
+      content[v[1]] = "1"
+    end
+  end
+end  
 
-for i = 0, ethport_count do
-  if content["eth" .. i] == "" then
-		content["eth" .. i] = "1"
-	end
-end
-
-if content.wan_queues_enabled == "" then
-  content.wan_queues_enabled = "0"
-end
+setDefaultEnabled(wandevices)
+setDefaultEnabled(lanports)
+setDefaultEnabled(wldevices)
 
 -- queue table
 local classes_columns = {
@@ -345,11 +355,20 @@ local function post_data_process(classes_data, queues_default)
   end
 end
 
-local ethports_checked = {}
+local wandevices_checked = {}
 if type(content) == "table" then
-  for _,v in ipairs(ethports) do
+  for _,v in ipairs(wandevices) do
     if (content[v[1]] == "1") then
-      ethports_checked[#ethports_checked + 1] = v[1]
+      wandevices_checked[#wandevices_checked + 1] = v[1]
+    end
+  end
+end
+
+local lanports_checked = {}
+if type(content) == "table" then
+  for _,v in ipairs(lanports) do
+    if (content[v[1]] == "1") then
+      lanports_checked[#lanports_checked + 1] = v[1]
     end
   end
 end
@@ -372,35 +391,25 @@ if ngx.var.args and string.len(ngx.var.args) > 0 then
   uri = uri .. "?" .. ngx.var.args
 end
 
-ngx.print( ui_helper.createHeader(T"QoS", false, true) ); ngx.print('\
+ngx.print( ui_helper.createHeader(T"QoS", false) ); ngx.print('\
 <div class="modal-body update">\
-  ')
-    local tabs = {
-      {
-        desc = T"Queue",
-        target = "modals/qos-queue-modal.lp",
-        active = "active",
-      },
-      {
-        desc = T"Classification",
-        target = "modals/qos-classify-modal.lp",
-      },
-    }
-    ngx.print(ui_helper.createModalTabs(tabs))
-	
-  ngx.print('\
+  ');  lp.include("tabs-qos.lp")   ngx.print('\
   <form class="form-horizontal" method="post" action="'); ngx.print(uri); ngx.print('">\
   '); ngx.print( ui_helper.createMessages(uimessage_helper.popMessages()) )
 	local html = {}
 	
   html[#html+1] = "<fieldset>"
-  html[#html+1] =   "<legend>" ..  T"QoS Queue Scheduling on Interface WAN (".. wan_ifname:untaint() ..")</legend>"
+  html[#html+1] =   "<legend>" ..  T"QoS Queue Scheduling on Interface WAN".."</legend>"
 
-  html[#html+1] =     ui_helper.createSwitch(T"Enabled", "wan_queues_enabled", content["wan_queues_enabled"])
+	if content["wan_queues_enabled"] then
+		html[#html+1] =     ui_helper.createSwitch(T"Enabled", "wan_queues_enabled", content["wan_queues_enabled"])
+	elseif proxy.get("uci.qos.device.@eth4.enable") then
+		html[#html + 1] = ui_helper.createCheckboxGroup(T"QoS WAN Status", "wandevices", wandevices, wandevices_checked, {checkbox = { class="inline" }}, nil)
+	end
   html[#html+1] =     ui_helper.createInputSelect(T"Algorithm", "wan_queues_policy", policy_options, content["wan_queues_policy"])
   html[#html+1] =     ui_helper.createInputSelect(T"Default Queue", "wan_queues_default", wan_queue_options, content["wan_queues_default"])
 
-  html[#html+1] =   "<legend>" .. T"QoS Queue Table on Interface WAN" .. "</legend>"
+  html[#html+1] =   "<legend>" .. T"QoS Queue Table on Interface WAN".."</legend>"
 	html[#html+1] =   	ui_helper.createTable(classes_columns, wan_classes_data, wan_classes_options, nil, wan_classes_helpmsg)
   html[#html+1] = "</fieldset>"
 
@@ -410,7 +419,7 @@ ngx.print( ui_helper.createHeader(T"QoS", false, true) ); ngx.print('\
 	if content["lan_queues_enabled"] then
 		html[#html+1] =     ui_helper.createSwitch(T"Enabled", "lan_queues_enabled", content["lan_queues_enabled"])
 	elseif proxy.get("uci.qos.device.@eth0.enable") then
-		html[#html + 1] = ui_helper.createCheckboxGroup(T"Qos Port Status", "ethports", ethports, ethports_checked, {checkbox = { class="inline" }}, nil)
+		html[#html + 1] = ui_helper.createCheckboxGroup(T"QoS LAN Status", "lanports", lanports, lanports_checked, {checkbox = { class="inline" }}, nil)
 	end
   html[#html+1] =     ui_helper.createInputSelect(T"Algorithm", "lan_queues_policy", policy_options, content["lan_queues_policy"])
   html[#html+1] =     ui_helper.createInputSelect(T"Default Queue", "lan_queues_default", lan_queue_options, content["lan_queues_default"])
@@ -429,7 +438,7 @@ ngx.print( ui_helper.createHeader(T"QoS", false, true) ); ngx.print('\
 	html[#html+1] = "<fieldset>"
   html[#html+1] =   "<legend>".. T"QoS Queue Scheduling on Interface WLAN".."</legend>"
 	
-	html[#html+1] = 	ui_helper.createCheckboxGroup(T"Qos Wireless Status", "wldevices", wldevices, wldevices_checked, {checkbox = { class="inline" }}, nil)
+	html[#html+1] = 	ui_helper.createCheckboxGroup(T"QoS Wireless Status", "wldevices", wldevices, wldevices_checked, {checkbox = { class="inline" }}, nil)
   html[#html+1] =     ui_helper.createInputSelect(T"Algorithm", "wlan_queues_policy", policy_options, content["wlan_queues_policy"])
   html[#html+1] =     ui_helper.createInputSelect(T"Default Queue", "wlan_queues_default", wlan_queue_options, content["wlan_queues_default"])
 
