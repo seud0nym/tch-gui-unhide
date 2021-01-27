@@ -53,12 +53,13 @@ else
 end
 
 local inUseDevices = ""
-local network = proxy.getPN("uci.network.interface.", true)
-for _,v in ipairs(network) do
-  local ifname = proxy.get(v.path .. "ifname")[1].value:untaint()
-  if ifname and ifname ~= "" and ifname ~= "lo" then
-    inUseDevices = inUseDevices .. " " .. ifname
-  end
+local wanifname = proxy.get("uci.network.interface.@wan.ifname")[1].value:untaint()
+if wanifname and wanifname ~= "" and wanifname ~= "lo" and not match(wanifname, "^@") then
+  inUseDevices = inUseDevices .. " " .. wanifname
+end
+local lanifname = proxy.get("uci.network.interface.@lan.ifname")[1].value:untaint()
+if lanifname and lanifname ~= "" and lanifname ~= "lo" and not match(lanifname, "^@") then
+  inUseDevices = inUseDevices .. " " .. lanifname
 end
 local wifi = proxy.getPN("uci.wireless.wifi-iface.", true)
 for _,v in ipairs(wifi) do
