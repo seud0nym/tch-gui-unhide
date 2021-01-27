@@ -18,6 +18,9 @@ local session = ngx.ctx.session
 
 local uniqueKey = post_helper.getRandomKey()
 
+local lp = require("web.lp")
+lp.setpath("/www/snippets/")
+
 ----------------------------------------------------------------------------------
 -- UCI Paths (Do not add '@', arrays taken care of later)
 ----------------------------------------------------------------------------------
@@ -336,40 +339,24 @@ end
 
 classify_columns[8].type = "select"
 
-ngx.print( ui_helper.createHeader(T"QoS", false, true) ); ngx.print('\
+ngx.print( ui_helper.createHeader(T"QoS", false) ); ngx.print('\
 \
 <div class="modal-body update">\
-')
-        local tabs = {
-            {
-                desc = T"Queue",
-                target = "modals/qos-queue-modal.lp",
-            },
-            {
-                desc = T"Classification",
-                target = "modals/qos-classify-modal.lp",
-                active = "active",
-            },
-        }
-        ngx.print(ui_helper.createModalTabs(tabs))
-    ngx.print('\
-    <form class="form-horizontal" method="post" action="modals/qos-classify-modal.lp">\
+  ');  lp.include("tabs-qos.lp")   ngx.print('\
+  <form class="form-horizontal" method="post" action="modals/qos-classify-modal.lp">\
 	')
-		local html = {}
-		
-        html[#html+1] = "<fieldset>"
-        html[#html+1] =     "<legend>"..T"QoS Label Table".."</legend>"
-        html[#html+1] =     ui_helper.createTable(label_columns, label_data, label_options, nil, label_helpMsg)
-        html[#html+1] = "</fieldset>"
-        html[#html+1] = "<fieldset>"
-        html[#html+1] =	    "<legend>"..T"QoS Classification Table".."</legend>"
-        html[#html+1] =     ui_helper.createTable(classify_columns, classify_data, classify_options, nil, classify_helpMsg)
-        html[#html+1] = "</fieldset>"
-		
-		ngx.print(html)
-		
-		ngx.print('\
-    </form>\
+    local html = {}
+    html[#html+1] = "<fieldset>"
+    html[#html+1] =     "<legend>"..T"QoS Label Table".."</legend>"
+    html[#html+1] =     ui_helper.createTable(label_columns, label_data, label_options, nil, label_helpMsg)
+    html[#html+1] = "</fieldset>"
+    html[#html+1] = "<fieldset>"
+    html[#html+1] =	    "<legend>"..T"QoS Classification Table".."</legend>"
+    html[#html+1] =     ui_helper.createTable(classify_columns, classify_data, classify_options, nil, classify_helpMsg)
+    html[#html+1] = "</fieldset>"
+    ngx.print(html)
+    ngx.print('\
+  </form>\
 </div>\
 ')
 ngx.print( ui_helper.createFooter() )
