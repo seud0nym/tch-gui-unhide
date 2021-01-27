@@ -1,0 +1,16 @@
+grep -q swshaper /usr/share/transformer/mappings/uci/qos.map
+if [ $? -eq 1 ]; then
+  echo [$SCRIPT]: Configure transformer for QoS shaping
+  sed \
+    -e 's/"force_pcp" }/"force_pcp", "swshaper" }/' \
+    -e '$a \\' \
+    -e '$a \--uci.qos.swshaper' \
+    -e '$a \local qos_swshaper = {' \
+    -e '$a \  config = config_qos,' \
+    -e '$a \  type = "swshaper",' \
+    -e '$a \  options = { "enable", "max_bit_rate" }' \
+    -e '$a \}' \
+    -e '$a \mapper("uci_1to1").registerNamedMultiMap(qos_swshaper)' \
+    -i /usr/share/transformer/mappings/uci/qos.map
+fi
+
