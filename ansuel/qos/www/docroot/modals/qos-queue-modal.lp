@@ -133,8 +133,8 @@ local lanports = {}
 local lanport
 for lanport in gmatch(lan_ifname, "([^%s]+)") do
   local path = format("uci.qos.device.@%s.enable", lanport)
-	local portname = "LAN Port" .. " " .. match(lanport, "%d") + 1
   if proxy.get(path) then
+    local portname = "LAN Port" .. " " .. match(lanport, "%d") + 1
     table.insert(lanports, {lanport, portname})
     mapParams[lanport] = path
     mapValid[lanport] = gOV(vB)
@@ -158,8 +158,8 @@ local wldevices = {}
 for index = 0, 1 do
   local wldevice = "wl" .. index
 	local path = "uci.qos.device.@" .. wldevice .. ".enable"
-	local wlname = "uci.wireless.wifi-iface.@"..wldevice..".ssid"
   if proxy.get(path) then
+    local wlname = "uci.wireless.wifi-iface.@"..wldevice..".ssid"
     wlname = proxy.get(wlname) and proxy.get(wlname)[1].value or wldevice
     local radio_name = proxy.get("rpc.wireless.ssid.@"..wldevice..".radio")[1].value
     if radio_name == "radio_2G" then
