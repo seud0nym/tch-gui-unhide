@@ -23,14 +23,14 @@ local uci_swshaper_path = uci_qos_prefix .. "swshaper."
 local uci_device_path = uci_qos_prefix .. "device."
 
 local shaper_columns = {
-  {
+  { -- 1
     header = T"Shaper Name",
     name = "swshaper",
     param = "paramindex",
     type = "text",
     attr = { input = { class = "span2"} },
   },
-  {
+  { -- 2
     header = T"Max Upload Bit Rate",
     name = "max_bit_rate",
     param = "max_bit_rate",
@@ -38,12 +38,18 @@ local shaper_columns = {
     default = "40000",
     attr = { input = { type = "number", min = "0", step = "1000", class = "span2" } },
   },
-  {
+  { -- 3
     header = T"Enabled",
     name = "enable",
     param = "enable",
     type = "switch",
     attr = { switch = { ["data-placement"] = "center" }},
+  },
+  { -- 4
+    header = T"Applied to Device?",
+    name = "used",
+    type = "text",
+    readonly = true,
   },
 }
 
@@ -128,12 +134,13 @@ local shaper_data, shaper_helpMsg = post_helper.handleTableQuery(shaper_columns,
 
 local shapers = {}
 shapers[#shapers+1] = { "", T("None") }
-for _,v in ipairs (shaper_data) do
+for _,v in ipairs(shaper_data) do
   if v[3] == "0" then
-    shapers[#shapers+1] = { v[1], T(v[1] .. "(Disabled)") }
+    shapers[#shapers+1] = { v[1], T(v[1] .. " (Disabled)") }
   else
     shapers[#shapers+1] = { v[1], T(v[1]) }
   end
+  v[4] = "No"
 end
 
 local group = {}
@@ -171,8 +178,8 @@ local lan_ifname = proxy.get("uci.network.interface.@lan.ifname")[1].value
 local lanport
 for lanport in gmatch(lan_ifname, "([^%s]+)") do
   local path = format("uci.qos.device.@%s.enable", lanport)
-	local portname = "LAN Port" .. " " .. match(lanport, "%d") + 1
   if proxy.get(path) then
+    local portname = "LAN Port" .. " " .. match(lanport, "%d") + 1
     devices[untaint(lanport)] = portname
     usageParams[untaint(lanport)] = format("uci.qos.device.@%s.swshaper", lanport)
     usageValid[untaint(lanport)] = gVIES(shapers)
@@ -199,15 +206,27 @@ end
 
 local content, helpmsg = post_helper.handleQuery(usageParams, usageValid)
 
+for _,s in pairs(content) do
+  if s ~= "" then
+    for _,v in ipairs(shaper_data) do
+      if v[1] == s then
+        v[4] = "Yes"
+      end
+    end
+  end
+end
+
 local function makeHTMLfor(rows, heading)
   local sectionHTML = {}
-  sectionHTML[#sectionHTML+1] = "<fieldset>"
-  sectionHTML[#sectionHTML+1] =   "<legend>"..T"QoS Shaper Usage on Interface "..heading.."</legend>"
-  table.sort(rows)
-  for _,dev in pairs(rows) do
-    sectionHTML[#sectionHTML+1] = ui_helper.createInputSelect(T(devices[dev]), dev, shapers, content[dev])
+  if #rows > 0 then
+    sectionHTML[#sectionHTML+1] = "<fieldset>"
+    sectionHTML[#sectionHTML+1] =   "<legend>"..T"QoS Shaper Application on Interface "..heading.."</legend>"
+    table.sort(rows)
+    for _,dev in pairs(rows) do
+      sectionHTML[#sectionHTML+1] = ui_helper.createInputSelect(T(devices[dev]), dev, shapers, content[dev])
+    end
+    sectionHTML[#sectionHTML+1] = "<fieldset>"
   end
-  sectionHTML[#sectionHTML+1] = "<fieldset>"
   return sectionHTML
 end
 
