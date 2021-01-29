@@ -3,6 +3,7 @@
 gettext.textdomain('webui-core')
 
 local items = {
+  {"qos-device-modal.lp", T"Devices"},
   {"qos-queue-modal.lp", T"Queues"},
   {"qos-classify-modal.lp", T"Classifications"},
   {"qos-swshaper-modal.lp", T"Upload Shapers"},
