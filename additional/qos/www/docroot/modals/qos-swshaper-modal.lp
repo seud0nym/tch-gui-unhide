@@ -16,7 +16,7 @@ local vB = post_helper.validateBoolean
 local vNES = post_helper.validateNonEmptyString
 local vPN = post_helper.validatePositiveNum
 
-local format, gmatch, match, untaint = string.format, string.gmatch, string.match, string.untaint
+local find, format, gmatch, match, sub, untaint = string.find, string.format, string.gmatch, string.match, string.sub, string.untaint
 
 local uci_qos_prefix = "uci.qos."
 local uci_swshaper_path = uci_qos_prefix .. "swshaper."
@@ -151,56 +151,59 @@ group["TO_WLAN"] = {}
 local usageParams = {}
 local usageValid = {}
 local devices = {}
-local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
-local wandevice
-for wandevice in gmatch(wan_ifname, "([^%s]+)") do
+
+local inUseDevices = ""
+local wanifname = proxy.get("uci.network.interface.@wan.ifname")[1].value:untaint()
+if wanifname and wanifname ~= "" and wanifname ~= "lo" and not match(wanifname, "^@") then
+  inUseDevices = inUseDevices .. " " .. wanifname
+end
+local lanifname = proxy.get("uci.network.interface.@lan.ifname")[1].value:untaint()
+if lanifname and lanifname ~= "" and lanifname ~= "lo" and not match(lanifname, "^@") then
+  inUseDevices = inUseDevices .. " " .. lanifname
+end
+
+local ssid = {}
+local wifi = proxy.getPN("uci.wireless.wifi-iface.", true)
+for _,v in ipairs(wifi) do
+  local ifname = match(v.path, "uci%.wireless%.wifi%-iface%.@([^%.]+)%.")
+	local wlname = proxy.get(v.path .. "ssid")
+  local radio_name = proxy.get("rpc.wireless.ssid.@"..ifname..".radio")[1].value
+  if wlname then
+    wlname = wlname[1].value
+  else
+    wlname = ifname
+  end
+  if radio_name == "radio_2G" then
+    ssid[ifname] = wlname .. " (2.4G)"
+  else
+    ssid[ifname] = wlname .. " (5G)"
+  end    
+  inUseDevices = inUseDevices .. " " .. ifname
+end
+
+local qosDevices = proxy.getPN("uci.qos.device.", true)
+for _,v in ipairs(qosDevices) do
   local portname
-  if wandevice == "atmwan" or wandevice == "wanatmwan" or wandevice == "atm_8_35" then
-    wandevice = "atm_8_35"
+  local device = match(v.path, "uci%.qos%.device%.@([^%.]+)%.")
+  if device == "atm_8_35" then
+    device = "atm"
     portname = "aDSL WAN"
-  elseif wandevice == "wanptm0" or wandevice == "ptm0" then
-    wandevice = "ptm0"
+  elseif device == "ptm0" then
+    device = "ptm"
     portname = "vDSL WAN"
-  elseif wandevice == "eth4" then
+  elseif device == "eth4" then
     portname = "WAN Port"
-  else 
-    portname = "WAN Port" .. " " .. match(wandevice, "%d") + 1
+  elseif sub(device,1,2) == "wl" then
+    portname = ssid[device]
+  else
+    portname = "LAN Port" .. " " .. match(device, "%d") + 1
   end
-  local path = format("uci.qos.device.@%s.enable", wandevice)
-  if proxy.get(path) then
-    devices[untaint(wandevice)] = portname
-    usageParams[untaint(wandevice)] = format("uci.qos.device.@%s.swshaper", wandevice)
-    usageValid[untaint(wandevice)] = gVIES(shapers)
-    group.TO_WAN[#group.TO_WAN+1] = untaint(wandevice)
-  end
-end
-local lan_ifname = proxy.get("uci.network.interface.@lan.ifname")[1].value
-local lanport
-for lanport in gmatch(lan_ifname, "([^%s]+)") do
-  local path = format("uci.qos.device.@%s.enable", lanport)
-  if proxy.get(path) then
-    local portname = "LAN Port" .. " " .. match(lanport, "%d") + 1
-    devices[untaint(lanport)] = portname
-    usageParams[untaint(lanport)] = format("uci.qos.device.@%s.swshaper", lanport)
-    usageValid[untaint(lanport)] = gVIES(shapers)
-    group.TO_LAN[#group.TO_LAN+1] = untaint(lanport)
-  end
-end
-for index = 0, 1 do
-  local wldevice = "wl" .. index
-	local path = "uci.qos.device.@" .. wldevice .. ".enable"
-	local wlname = "uci.wireless.wifi-iface.@"..wldevice..".ssid"
-  if proxy.get(path) then
-    local radio_name = proxy.get("rpc.wireless.ssid.@"..wldevice..".radio")[1].value
-    wlname = proxy.get(wlname) and proxy.get(wlname)[1].value or wldevice
-    if radio_name == "radio_2G" then
-      devices[wldevice] = wlname .. " (2.4G)"
-    else
-      devices[wldevice] = wlname .. " (5G)"
-    end    
-    usageParams[wldevice] = format("uci.qos.device.@%s.swshaper", wldevice)
-    usageValid[wldevice] = gVIES(shapers)
-    group.TO_WLAN[#group.TO_WLAN+1] = untaint(wldevice)
+  if find(inUseDevices, device) then
+    local classgroup = untaint(proxy.get(v.path.."classgroup")[1].value)
+    devices[device] = portname
+    usageParams[device] = format("uci.qos.device.@%s.swshaper", device)
+    usageValid[device] = gVIES(shapers)
+    group[classgroup][#group[classgroup]+1] = device
   end
 end
 

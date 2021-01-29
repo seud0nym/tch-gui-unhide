@@ -9,7 +9,7 @@ local post_helper = require("web.post_helper")
 local uimessage_helper = require("web.uimessage_helper")
 local proxy = require("datamodel")
 local table, ipairs = table, ipairs
-local find, format, gmatch, match = string.find, string.format, string.gmatch, string.match
+local find, format, gmatch, match, sub = string.find, string.format, string.gmatch, string.match, string.sub
 local concat = table.concat
 
 local lp = require("web.lp")
@@ -91,27 +91,67 @@ local function isChecked(key, checked)
   return false
 end
 
-local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
-local wandevices = {}
-local wandevice
-for wandevice in gmatch(wan_ifname, "([^%s]+)") do
-  local portname
-  if wandevice == "atmwan" or wandevice == "wanatmwan" or wandevice == "atm_8_35" then
-    wandevice = "atm_8_35"
-    portname = "aDSL WAN"
-  elseif wandevice == "wanptm0" or wandevice == "ptm0" then
-    wandevice = "ptm0"
-    portname = "vDSL WAN"
-  elseif wandevice == "eth4" then
-    portname = "WAN Port"
-  else 
-    portname = "Port" .. " " .. match(wandevice, "%d") + 1
+local inUseDevices = ""
+local wanifname = proxy.get("uci.network.interface.@wan.ifname")[1].value:untaint()
+if wanifname and wanifname ~= "" and wanifname ~= "lo" and not match(wanifname, "^@") then
+  inUseDevices = inUseDevices .. " " .. wanifname
+end
+local lanifname = proxy.get("uci.network.interface.@lan.ifname")[1].value:untaint()
+if lanifname and lanifname ~= "" and lanifname ~= "lo" and not match(lanifname, "^@") then
+  inUseDevices = inUseDevices .. " " .. lanifname
+end
+
+local ssid = {}
+local wifi = proxy.getPN("uci.wireless.wifi-iface.", true)
+for _,v in ipairs(wifi) do
+  local ifname = match(v.path, "uci%.wireless%.wifi%-iface%.@([^%.]+)%.")
+	local wlname = proxy.get(v.path .. "ssid")
+  local radio_name = proxy.get("rpc.wireless.ssid.@"..ifname..".radio")[1].value
+  if wlname then
+    wlname = wlname[1].value
+  else
+    wlname = ifname
   end
-  local path = format("uci.qos.device.@%s.enable", wandevice)
-  if proxy.get(path) then
-    table.insert(wandevices, {wandevice, portname})
-    mapParams[wandevice] = path
-    mapValid[wandevice] = gOV(vB)
+  if radio_name == "radio_2G" then
+    ssid[ifname] = wlname .. " (2.4G)"
+  else
+    ssid[ifname] = wlname .. " (5G)"
+  end    
+  inUseDevices = inUseDevices .. " " .. ifname
+end
+
+local wandevices = {}
+local lanports = {}
+local wldevices = {}
+
+local qosDevices = proxy.getPN("uci.qos.device.", true)
+for _,v in ipairs(qosDevices) do
+  local portname
+  local device = match(v.path, "uci%.qos%.device%.@([^%.]+)%.")
+  if device == "atm_8_35" then
+    device = "atm"
+    portname = "aDSL WAN"
+  elseif device == "ptm0" then
+    device = "ptm"
+    portname = "vDSL WAN"
+  elseif device == "eth4" then
+    portname = "WAN Port"
+  elseif sub(device,1,2) == "wl" then
+    portname = ssid[device]
+  else
+    portname = "LAN Port" .. " " .. match(device, "%d") + 1
+  end
+  if find(inUseDevices, device) then
+    local group = proxy.get(v.path.."classgroup")[1].value
+    if group == "TO_WAN" then
+      table.insert(wandevices, {device, portname})
+    elseif group == "TO_LAN" then
+      table.insert(lanports, {device, portname})
+    elseif group == "TO_WLAN" then
+      table.insert(wldevices, {device, portname})
+    end
+    mapParams[device] = format("uci.qos.device.@%s.enable", device)
+    mapValid[device] = gOV(vB)
   end
 end
 
@@ -128,19 +168,6 @@ local function validateWanDevice(value, object, key)
   return true
 end
 
-local lan_ifname = proxy.get("uci.network.interface.@lan.ifname")[1].value
-local lanports = {}
-local lanport
-for lanport in gmatch(lan_ifname, "([^%s]+)") do
-  local path = format("uci.qos.device.@%s.enable", lanport)
-  if proxy.get(path) then
-    local portname = "LAN Port" .. " " .. match(lanport, "%d") + 1
-    table.insert(lanports, {lanport, portname})
-    mapParams[lanport] = path
-    mapValid[lanport] = gOV(vB)
-  end
-end
-
 local function validateLanPort(value, object, key)
   local getValidateEthports = gVIC(lanports)
   local ok, msg = getValidateEthports(value, object, key)
@@ -154,26 +181,7 @@ local function validateLanPort(value, object, key)
   return true
 end
 
-local wldevices = {}
-for index = 0, 1 do
-  local wldevice = "wl" .. index
-	local path = "uci.qos.device.@" .. wldevice .. ".enable"
-  if proxy.get(path) then
-    local wlname = "uci.wireless.wifi-iface.@"..wldevice..".ssid"
-    wlname = proxy.get(wlname) and proxy.get(wlname)[1].value or wldevice
-    local radio_name = proxy.get("rpc.wireless.ssid.@"..wldevice..".radio")[1].value
-    if radio_name == "radio_2G" then
-      wlname = wlname .. " (2.4G)"
-    else
-      wlname = wlname .. " (5G)"
-    end    
-    table.insert(wldevices, {wldevice, wlname})
-    mapParams[wldevice] = path
-    mapValid[wldevice] = gOV(vB)
-  end
-end
-
-local function validateWlDevice(value, object, key)
+local function validateWlanDevice(value, object, key)
   local getValidateWlDevices = gVIC(wldevices)
   local ok, msg = getValidateWlDevices(value, object, key)
   if not ok then
@@ -198,7 +206,7 @@ if not proxy.get(mapParams.lan_queues_enabled) then
   mapValid.lanports = validateLanPort
 end
 
-mapValid.wldevices = validateWlDevice
+mapValid.wldevices = validateWlanDevice
 	
 local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
 
