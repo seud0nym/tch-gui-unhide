@@ -7,6 +7,7 @@ local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
+local qosdevice_helper = require("qosdevice_helper")
 
 local find, match, sub, untaint = string.find, string.match, string.sub, string.untaint
 
@@ -16,45 +17,7 @@ lp.setpath("/www/snippets/")
 local gVIES = post_helper.getValidateInEnumSelect
 local vB = post_helper.validateBoolean
 
-local inUseDevices = ""
-local ssid = {}
-local wanifname = proxy.get("uci.network.interface.@wan.ifname")[1].value:untaint()
-if wanifname and wanifname ~= "" and wanifname ~= "lo" and not match(wanifname, "^@") then
-  inUseDevices = inUseDevices .. " " .. wanifname
-end
-local lanifname = proxy.get("uci.network.interface.@lan.ifname")[1].value:untaint()
-if lanifname and lanifname ~= "" and lanifname ~= "lo" and not match(lanifname, "^@") then
-  inUseDevices = inUseDevices .. " " .. lanifname
-end
-local wifi = proxy.getPN("uci.wireless.wifi-iface.", true)
-for _,v in ipairs(wifi) do
-  local ifname = match(v.path, "uci%.wireless%.wifi%-iface%.@([^%.]+)%.")
-	local wlname = proxy.get(v.path .. "ssid")
-  local radio_name = proxy.get("rpc.wireless.ssid.@"..ifname..".radio")[1].value
-  if wlname then
-    wlname = wlname[1].value
-  else
-    wlname = ifname
-  end
-  if radio_name == "radio_2G" then
-    ssid[ifname] = wlname .. " (2.4G)"
-  else
-    ssid[ifname] = wlname .. " (5G)"
-  end    
-  inUseDevices = inUseDevices .. " " .. ifname
-end
-
-local shaper_options = {}
-local swshapers = proxy.getPN("uci.qos.swshaper.",true)
-shaper_options[#shaper_options+1] = { "", T("") }
-for _,v in ipairs(swshapers) do
-  local name = match(v.path, "uci%.qos%.swshaper%.@([^%.]+)%.")
-  local desc = name
-  if proxy.get(v.path .. "enable")[1].value:untaint() == "0" then
-    desc = desc.." (Disabled)"
-  end
-  shaper_options[#shaper_options+1] = { name, T(desc) }
-end
+local ifs, ssid = qosdevice_helper.getNetworkDevices()
 
 local group_options = {
   { "TO_LAN", T"LAN" }, 
@@ -63,40 +26,40 @@ local group_options = {
 }
 
 local device_columns = {
-  { -- 1
+  {-- 1
+    header = T"Status",
+    name = "state",
+    param = "State",
+    type = "light",
+    readonly = true,
+    attr = { input = { class="span1" } },
+  },
+  { -- 2
     header = T"Description",
     name = "description",
     type = "text",
     readonly = true,
   },
-  { -- 2
+  { -- 3
     header = T"Device",
     name = "device",
     param = "paramindex",
     type = "text",
     readonly = true,
   },
-  { -- 3
+  { -- 4
+    header = T"Network Interface",
+    name = "networkif",
+    type = "text",
+    readonly = true,
+  },
+  { -- 5
     header = T"QoS Interface",
     name = "classgroup",
     param = "classgroup",
     type = "select",
     values = group_options,
     attr = { switch = { ["data-placement"] = "center" }},
-  },
-  { -- 4
-    header = T"Shaper",
-    name = "swshaper",
-    param = "swshaper",
-    type = "select",
-    values = shaper_options,
-    attr = { input = { class = "span2" } },
-  },
-  { -- 5
-    header = T"Device In Use?",
-    name = "used",
-    type = "text",
-    readonly = true,
   },
   { -- 6
     header = T"QoS Enabled?",
@@ -120,34 +83,43 @@ local device_options = {
 local device_valid = {
   device = vNES,
   classgroup = gVIES(group_options),
-  swshaper = gVIES(shaper_options),
   enable = vB
 }
 
 local device_data, device_helpMsg = post_helper.handleTableQuery(device_columns, device_options, nil, nil, device_valid)
 for _,v in pairs(device_data) do
   local portname
-  local device = untaint(v[2])
+  local device = untaint(v[3])
+  local classgroup = untaint(v[5])
   if device == "atm_8_35" then
-    device = "atm"
     portname = "aDSL WAN"
   elseif device == "ptm0" then
-    device = "ptm"
     portname = "vDSL WAN"
   elseif device == "eth4" then
-    portname = "WAN Port"
+    portname = "Ethernet WAN Port"
   elseif sub(device,1,2) == "wl" then
     portname = ssid[device]
   else
-    portname = "LAN Port" .. " " .. match(device, "%d") + 1
+    portname = "Ethernet LAN Port" .. " " .. match(device, "%d") + 1
   end
-  v[1] = portname
-  if find(inUseDevices, device) then
-    v[5] = "Yes"
-  end
+  v[2] = portname
+  v[4] = ""
   if v[6] == "" then
     v[6] = "1"
   end
+  if v[6] == "1" then
+    if not ifs[device] or ifs[device] == "" or ifs[device] == "ppp" or ifs[device] == "ipoe" then
+      v[1] = "0"
+    elseif (classgroup == "TO_WAN" and not find(ifs[device], "wan")) or (classgroup == "TO_WLAN" and not find(ifs[device], "wlan")) or (classgroup == "TO_LAN" and not match(ifs[device], "^lan") and not find(ifs[device], ",lan")) then
+      v[1] = "2"
+      v[4] = "<i class='icon-warning-sign'></i>"
+    else
+      v[1] = "1"
+    end
+  else
+    v[1] = "0"
+  end
+  v[4] = v[4] .. (ifs[device] or "")
 end
 
 ngx.print( ui_helper.createHeader(T"QoS", false) ); ngx.print('\
@@ -165,13 +137,4 @@ ngx.print( ui_helper.createHeader(T"QoS", false) ); ngx.print('\
     ngx.print('\
   </form>\
 </div>\
-');  ngx.print( ui_helper.createFooter() ); ngx.print('\
-<script>\
-$("#device>tbody>tr>td:nth-child(5)").each(function() {\
-  var content=$(this).text();\
-  if(content!="Yes"){\
-    $(this).parent().css("color","gray");\
-  }\
-});\
-</script>\
-');
+');  ngx.print( ui_helper.createFooter() ); 
