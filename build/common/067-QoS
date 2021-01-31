@@ -1,0 +1,7 @@
+echo [$SCRIPT]: Creating QoS Reclassify Rules modal
+sed \
+  -e 's/\(classify[\.-]\)/re\1/' \
+  -e 's/\("\)\(classify"..uniqueKey\)/\1re\2/' \
+  -e 's/Classify/Reclassify/' \
+  /www/docroot/modals/qos-classify-modal.lp > /www/docroot/modals/qos-reclassify-modal.lp
+
