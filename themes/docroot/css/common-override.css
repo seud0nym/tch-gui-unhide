@@ -8,7 +8,7 @@
 .smallcard .content{font-size:14px;height:125px;}
 .smallcard .subinfos{font-size:14px;}
 .status-icon{color:var(--RGB_STATUS_ICON);}
-#classify .checkbox{width:55px;}
+#classify .checkbox{width:60px;}
 #device-modal>div.modal-body>div.container{width:1060px !important;}
 #devices>tbody>tr>td:nth-child(2) input{width:110px;}
 #devices>tbody>tr>td:nth-child(2),#devices>tbody>tr>td:nth-child(6),#devices>tbody>tr>td:nth-child(7),#devices>tbody>tr>td:nth-child(8){white-space:nowrap;}
