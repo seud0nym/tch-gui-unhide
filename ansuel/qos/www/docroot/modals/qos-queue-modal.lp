@@ -257,7 +257,7 @@ local classes_columns = {
   },
   { --5
     header = "",
-    legend = T"QoS Queue Table on Interface WAN",
+    legend = T"QoS Queue on Interface WAN",
     name = "wan_queues",
     type = "aggregate",
     synthesis = nil, --tod_aggregate,
@@ -417,7 +417,7 @@ ngx.print( ui_helper.createHeader(T"QoS", false) ); ngx.print('\
   html[#html+1] =     ui_helper.createInputSelect(T"Algorithm", "wan_queues_policy", policy_options, content["wan_queues_policy"])
   html[#html+1] =     ui_helper.createInputSelect(T"Default Queue", "wan_queues_default", wan_queue_options, content["wan_queues_default"])
 
-  html[#html+1] =   "<legend>" .. T"QoS Queue Table on Interface WAN".."</legend>"
+  html[#html+1] =   "<legend><small>" .. T"QoS Queues on Interface WAN".."</small></legend>"
 	html[#html+1] =   	ui_helper.createTable(classes_columns, wan_classes_data, wan_classes_options, nil, wan_classes_helpmsg)
   html[#html+1] = "</fieldset>"
 
@@ -434,11 +434,11 @@ ngx.print( ui_helper.createHeader(T"QoS", false) ); ngx.print('\
 
   html[#html+1] = "</fieldset>"
   html[#html+1] = "<fieldset>"
-  html[#html+1] =   "<legend>".. T"QoS Queue Table on Interface LAN".."</legend>"
+  html[#html+1] =   "<legend><small>".. T"QoS Queues on Interface LAN".."</small></legend>"
 
   --legend = T"QoS Queue Table on Interface WAN"
   --is hardcoded in 'classes_columns',but for LAN edit panel, should be "QoS Queue Table on Interface LAN", change here
-  classes_columns[5]["legend"] = T"QoS Queue Table on Interface LAN"
+  classes_columns[5]["legend"] = T"QoS Queue on Interface LAN"
 
   html[#html+1] =   	ui_helper.createTable(classes_columns, lan_classes_data, lan_classes_options, nil, lan_classes_helpmsg)
   html[#html+1] = "</fieldset>"
@@ -452,11 +452,11 @@ ngx.print( ui_helper.createHeader(T"QoS", false) ); ngx.print('\
 
   html[#html+1] = "</fieldset>"
   html[#html+1] = "<fieldset>"
-  html[#html+1] =   "<legend>".. T"QoS Queue Table on Interface WLAN".."</legend>"
+  html[#html+1] =   "<legend><small>".. T"QoS Queues on Interface WLAN".."</small></legend>"
 
   --legend = T"QoS Queue Table on Interface WAN"
   --is hardcoded in 'classes_columns',but for LAN edit panel, should be "QoS Queue Table on Interface LAN", change here
-  classes_columns[5]["legend"] = T"QoS Queue Table on Interface WLAN"
+  classes_columns[5]["legend"] = T"QoS Queue on Interface WLAN"
 
   html[#html+1] =   	ui_helper.createTable(classes_columns, wlan_classes_data, wlan_classes_options, nil, wlan_classes_helpmsg)
   html[#html+1] = "</fieldset>"
