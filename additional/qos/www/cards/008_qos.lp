@@ -11,6 +11,7 @@ local session = ngx.ctx.session
 local qosdevice_helper = require("qosdevice_helper")
 
 local modal_link
+local devic_link
 local queue_link
 local class_link
 local recla_link
@@ -18,6 +19,7 @@ local shape_link
 
 if session:hasAccess("/modals/qos-queue-modal.lp") and session:hasAccess("/modals/qos-classify-modal.lp") then
   modal_link = "/modals/qos-device-modal.lp"
+  devic_link = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-device-modal.lp" data-id="qos-modal"'
   queue_link = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-queue-modal.lp" data-id="qos-modal"'
   class_link = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-classify-modal.lp" data-id="qos-modal"'
   recla_link = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-reclassify-modal.lp" data-id="qos-modal"'
@@ -121,14 +123,14 @@ ngx.print('\
       <div class="divtable">\
       ');
       ngx.print(
-        ui_helper.createSimpleLight(light.TO_WAN, format(N("%d queue","%d queues",wan_queues),wan_queues).." on "..format(N("<strong %1$s>%2$d WAN device</strong>","<strong %1$s>%2$d WAN devices</strong>",group.TO_WAN),queue_link,group.TO_WAN)),
-        ui_helper.createSimpleLight(light.TO_LAN, format(N("%d queue","%d queues",lan_queues),lan_queues).." on "..format(N("<strong %1$s>%2$d LAN port</strong>","<strong %1$s>%2$d LAN ports</strong>",group.TO_LAN),queue_link,group.TO_LAN)),
-        ui_helper.createSimpleLight(light.TO_WLAN, format(N("%d queue","%d queues",wlan_queues),wlan_queues).." on "..format(N("<strong %1$s>%2$d Wi-Fi SSID</strong>","<strong %1$s>%2$d Wi-Fi SSIDs</strong>",group.TO_WLAN),queue_link,group.TO_WLAN)),
+        ui_helper.createSimpleLight(light.TO_WAN, format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",wan_queues),queue_link,wan_queues).." on "..format(N("<strong %1$s>%2$d WAN device</strong>","<strong %1$s>%2$d WAN devices</strong>",group.TO_WAN),devic_link,group.TO_WAN)),
+        ui_helper.createSimpleLight(light.TO_LAN, format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",lan_queues),queue_link,lan_queues).." on "..format(N("<strong %1$s>%2$d LAN port</strong>","<strong %1$s>%2$d LAN ports</strong>",group.TO_LAN),devic_link,group.TO_LAN)),
+        ui_helper.createSimpleLight(light.TO_WLAN, format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",wlan_queues),queue_link,wlan_queues).." on "..format(N("<strong %1$s>%2$d Wi-Fi SSID</strong>","<strong %1$s>%2$d Wi-Fi SSIDs</strong>",group.TO_WLAN),devic_link,group.TO_WLAN)),
         ui_helper.createSimpleLight(shapers.light, format(N("<strong %1$s>%2$d Upload Shaper</strong> active","<strong %1$s>%2$d Upload Shapers</strong> active",shapers.active),shape_link,shapers.active)),
         '<p class="subinfos">',
-        format(N("<strong %1$s>%2$d classify rule</strong> defined","<strong %1$s>%2$d classify rules</strong> defined",classify),class_link,classify),
+        format(N("<strong %1$s>%2$d Classify Rule</strong> defined","<strong %1$s>%2$d Classify Rules</strong> defined",classify),class_link,classify),
         '<br>',
-        format(N("<strong %1$s>%2$d reclassify rule</strong> defined","<strong %1$s>%2$d reclassify rules</strong> defined",reclassify),recla_link,reclassify),
+        format(N("<strong %1$s>%2$d Reclassify Rule</strong> defined","<strong %1$s>%2$d Reclassify Rules</strong> defined",reclassify),recla_link,reclassify),
         '</p>'
       )
       ngx.print('\
