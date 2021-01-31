@@ -1,7 +1,7 @@
 #!/bin/sh
 
 DATE_VERSION=$(date +%Y.%m.%d)
-FULL_VERSION=$(date +%Y.%m.%d@%H:%M:%S)
+FULL_VERSION=$(date +%Y.%m.%d@%H:%M)
 
 while getopts v: option
 do
@@ -12,7 +12,7 @@ do
           exit
         else
           DATE_VERSION="$OPTARG"
-          FULL_VERSION="$DATE_VERSION@$(date +%H:%M:%S)"
+          FULL_VERSION="$DATE_VERSION@$(date +%H:%M)"
           echo "Overriding Release - using $FULL_VERSION"
         fi;;
   esac
@@ -26,8 +26,8 @@ rm -rf /tmp/additional ../additional/*.b64
 
 echo Building Base64 tar images...
 mkdir /tmp/additional
-tar --exclude README.md --exclude '*.b64'  -cf - -C ../ansuel/ .  | tar -xf - -C /tmp/additional/
-tar --exclude README.md --exclude '*.b64'  -cf - -C ../additional/ .  | tar -xf - -C /tmp/additional/
+tar --exclude README.md --exclude '*.b64' --exclude '*.new'  -cf - -C ../ansuel/ .  | tar -xf - -C /tmp/additional/
+tar --exclude README.md --exclude '*.b64' --exclude '*.new'  -cf - -C ../additional/ .  | tar -xf - -C /tmp/additional/
 
 TARGET=common/075-Enable-Ajax-Modals
 rm $TARGET

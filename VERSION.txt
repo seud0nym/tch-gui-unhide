@@ -1,3 +1,22 @@
+2021.01.31
+==========
+* tch-gui-unhide: Added -V option to show script release, current installed release and latest release available on GitHub
+* tch-gui-unhide: Added -v option to optionally disable update checking (default is to enable check for new releases and show the 'Update Available' button in GUI)
+* tch-gui-unhide: Replaced checkboxes with switches on Mobile Configuration modal
+* tch-gui-unhide: Added Device Capabilities information (read-only) to Mobile Configuration modal
+* tch-gui-unhide: Fixed check for DSL WAN interface on Broadband and Internet cards
+* tch-gui-unhide: Fixed static IPs/DNS missing from Internet card
+* tch-gui-unhide: Fixed QoS card and Queues tab which incorrectly showed QoS on WAN as disabled when it is really enabled
+* tch-gui-unhide: Correctly show re-allocated LAN to WAN ports on QoS Queues tab
+* tch-gui-unhide: Improved QoS card to show QoS status separately for WAN, LAN and Wi-Fi
+* tch-gui-unhide: Bug fixes and improvements to the QoS Classify Rules tab
+* tch-gui-unhide: Exposed Source and Destination interfaces on QoS Classify Rules
+* tch-gui-unhide: Correctly allocate QoS devices to QoS interfaces on the QoS Queues tab
+* tch-gui-unhide: Moved QoS Labels to new tab
+* tch-gui-unhide: Added new tab to modify QoS Device settings
+* tch-gui-unhide: Added new tab to modify QoS Reclassify rules
+* tch-gui-unhide: Added new tab to modify QoS Upload Shaping
+
 2021.01.16
 ==========
 * tch-gui-unhide: Added Network Operators to Mobile tabs to add/edit MCC/MNC values

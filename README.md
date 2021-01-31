@@ -102,7 +102,8 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - **Firewall** cards shows whether IPv4 and IPv6 pings are allowed, and the screen allows you to specify src and/or dest zone for user defined rules, and therefore create incoming, outgoing and forwarding rules in either direction (stock GUI only creates lan->wan forwarding rules)
 - **Telephony** card shows call statistics (number of calls in, missed and out)
 - **Telephony** screen now has a Dial Plans tab to edit the dial plans, and you can optionally show the decrypted SIP passwords on the Profiles tab
-- **Mobile** screen now has a Network Operators tab to modify the allowed Mobile Country Code (MCC) and Mobile Network Code (MNC) combinations
+- **Mobile** screen now has a Network Operators tab to modify the allowed Mobile Country Code (MCC) and Mobile Network Code (MNC) combinations, plus shows the device capabilities
+- **QoS** screen now has support for upload shapers and shows reclassify rules
 
 ## What else does it do?
 - Properly enables SSH LAN access (because if you don't and then disable it through the GUI, you can lose SSH access).
@@ -196,6 +197,9 @@ The script accepts the following options:
 - -p y|n
     - Use decrypted text field (y) or masked password field (n) for SIP Profile passwords
     - The default is current setting (i.e. (n) by default)
+- -v y|n
+    - Enable (y) check for new releases and show 'Update Available' button in GUI, or Disable (n)
+    - The default is current setting or (y) for first time installs
 - -T
     - Apply the theme settings *ONLY*. All other processing is bypassed.
 - -y
@@ -206,6 +210,8 @@ The script accepts the following options:
     - Check for and download any updates to the firmware-specific version of `tch-gui-unhide`
 - -U
     - Download the latest release, including utility scripts (will overwrite all existing script versions)
+- -V
+    - Show the release number of this script, the current installed release, and the latest available release on GitHub
 - -?
     - Displays usage information
 
