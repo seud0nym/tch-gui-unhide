@@ -25,7 +25,7 @@ local device_max = 0
 local device_min = 0
 for k,v in pairs(ifs) do
   if not find(v, "Guest") then
-    if sub(k,1,2) ~= "wl" or proxy.get(format("uci.wireless.wifi-iface.@%s.backhaul",k))[1].value ~= "1" then
+    if sub(k,1,1) ~= "@" and (sub(k,1,2) ~= "wl" or proxy.get(format("uci.wireless.wifi-iface.@%s.backhaul",k))[1].value ~= "1") then
       device_max = device_max + 1
       options_if[#options_if+1] = {k, k}
       if proxy.get(format("uci.qos.device.@%s.enable", k)) then
