@@ -94,7 +94,6 @@ local function onDeleteShaper(current_section_index)
 end
 
 local function validateShaperName(value, object, key)
-  ngx.log(ngx.ALERT, string.format("validateShaperName: value=%s key=%s inShaperAdd=%s", value,key,inShaperAdd))
   if inShaperAdd then
     if not value:match("^[%w]+$") then
       return nil, "must not be empty and must only contain alphanumeric characters"
