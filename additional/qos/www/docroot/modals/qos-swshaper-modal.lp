@@ -152,16 +152,6 @@ local usageParams = {}
 local usageValid = {}
 local devices = {}
 
-local inUseDevices = ""
-local wanifname = proxy.get("uci.network.interface.@wan.ifname")[1].value:untaint()
-if wanifname and wanifname ~= "" and wanifname ~= "lo" and not match(wanifname, "^@") then
-  inUseDevices = inUseDevices .. " " .. wanifname
-end
-local lanifname = proxy.get("uci.network.interface.@lan.ifname")[1].value:untaint()
-if lanifname and lanifname ~= "" and lanifname ~= "lo" and not match(lanifname, "^@") then
-  inUseDevices = inUseDevices .. " " .. lanifname
-end
-
 local ssid = {}
 local wifi = proxy.getPN("uci.wireless.wifi-iface.", true)
 for _,v in ipairs(wifi) do
@@ -178,7 +168,6 @@ for _,v in ipairs(wifi) do
   else
     ssid[ifname] = wlname .. " (5G)"
   end    
-  inUseDevices = inUseDevices .. " " .. ifname
 end
 
 local qosDevices = proxy.getPN("uci.qos.device.", true)
@@ -186,25 +175,21 @@ for _,v in ipairs(qosDevices) do
   local portname
   local device = match(v.path, "uci%.qos%.device%.@([^%.]+)%.")
   if device == "atm_8_35" then
-    device = "atm"
     portname = "aDSL WAN"
   elseif device == "ptm0" then
-    device = "ptm"
     portname = "vDSL WAN"
   elseif device == "eth4" then
-    portname = "WAN Port"
+    portname = "Ethernet WAN Port"
   elseif sub(device,1,2) == "wl" then
     portname = ssid[device]
   else
-    portname = "LAN Port" .. " " .. match(device, "%d") + 1
+    portname = "Ethernet LAN Port" .. " " .. match(device, "%d") + 1
   end
-  if find(inUseDevices, device) then
-    local classgroup = untaint(proxy.get(v.path.."classgroup")[1].value)
-    devices[device] = portname
-    usageParams[device] = format("uci.qos.device.@%s.swshaper", device)
-    usageValid[device] = gVIES(shapers)
-    group[classgroup][#group[classgroup]+1] = device
-  end
+  local classgroup = untaint(proxy.get(v.path.."classgroup")[1].value)
+  devices[device] = portname
+  usageParams[device] = format("uci.qos.device.@%s.swshaper", device)
+  usageValid[device] = gVIES(shapers)
+  group[classgroup][#group[classgroup]+1] = device
 end
 
 local content, helpmsg = post_helper.handleQuery(usageParams, usageValid)
