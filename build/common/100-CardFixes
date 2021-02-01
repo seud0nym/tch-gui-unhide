@@ -111,26 +111,29 @@ sed -e '/if info.bridged then/,/end/d' -i /www/lua/cards_limiter.lua
 
 echo [$SCRIPT]: Show individual helper status on NAT Helpers card
 sed \
-  -e '/local enabled/,/local disabled/d' \
-  -e '/ipairs/i \  local htmlLeft = {}' \
-  -e '/ipairs/i \  local htmlRight = {}' \
-  -e '/ipairs/i \  local attributes = {' \
-  -e '/ipairs/i \    span = { style = "display:inline-block;font-size:smaller;letter-spacing:-1px;vertical-align:unset;" },' \
-  -e '/ipairs/i \  }' \
-  -e '/if v.enable/,/end/d' \
-  -e '/loopback/a \          local state = v.enable' \
-  -e '/loopback/a \          local text' \
-  -e '/loopback/a \          if state ~= "0" then' \
-  -e '/loopback/a \              text =" enabled"' \
-  -e '/loopback/a \              state = "1"' \
-  -e '/loopback/a \          else' \
-  -e '/loopback/a \              text = " disabled"' \
-  -e '/loopback/a \          end' \
-  -e '/loopback/a \          if #htmlRight >= #htmlLeft then' \
-  -e '/loopback/a \              htmlLeft[#htmlLeft+1] = ui_helper.createSimpleLight(state, string.upper(v.helper), attributes) .. text' \
-  -e '/loopback/a \          else' \
-  -e '/loopback/a \              htmlRight[#htmlRight+1] = ui_helper.createSimpleLight(state, string.upper(v.helper), attributes) .. text' \
-  -e '/loopback/a \          end' \
+  -e '/local enabled/,/^  end/d' \
+  -e '/convertResultToObject/a \  local htmlLeft = {}' \
+  -e '/convertResultToObject/a \  local htmlRight = {}' \
+  -e '/convertResultToObject/a \  local attributes = {' \
+  -e '/convertResultToObject/a \    span = { style = "display:inline-block;font-size:smaller;letter-spacing:-1px;vertical-align:unset;" },' \
+  -e '/convertResultToObject/a \  }' \
+  -e '/convertResultToObject/a \  for _, v in ipairs(helper_uci_content) do' \
+  -e '/convertResultToObject/a \      if v.intf ~= "loopback" then' \
+  -e '/convertResultToObject/a \          local state = v.enable' \
+  -e '/convertResultToObject/a \          local text' \
+  -e '/convertResultToObject/a \          if state ~= "0" then' \
+  -e '/convertResultToObject/a \              text =" enabled<br>"' \
+  -e '/convertResultToObject/a \              state = "1"' \
+  -e '/convertResultToObject/a \          else' \
+  -e '/convertResultToObject/a \              text = " disabled<br>"' \
+  -e '/convertResultToObject/a \          end' \
+  -e '/convertResultToObject/a \          if #htmlRight >= #htmlLeft then' \
+  -e '/convertResultToObject/a \              htmlLeft[#htmlLeft+1] = ui_helper.createSimpleLight(state, string.upper(v.helper), attributes) .. text' \
+  -e '/convertResultToObject/a \          else' \
+  -e '/convertResultToObject/a \              htmlRight[#htmlRight+1] = ui_helper.createSimpleLight(state, string.upper(v.helper), attributes) .. text' \
+  -e '/convertResultToObject/a \          end' \
+  -e '/convertResultToObject/a \      end' \
+  -e '/convertResultToObject/a \  end' \
   -e '/divtable/,/div>/d' \
   -e '/card_bg/a \            <div style="display:flex;flex-direction:row;">\\' \
   -e '/card_bg/a \              <div style="width:50%">\\' \

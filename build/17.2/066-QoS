@@ -1,0 +1,10 @@
+echo [$SCRIPT]: Removing QoS rules tabs until bugs resolved
+sed \
+  -e "/class_link = '/d" \
+  -e "/recla_link = '/d" \
+  -i /www/cards/008_qos.lp
+sed \
+  -e '/label/d' \
+  -e '/classify/d' \
+  -i /www/snippets/tabs-qos.lp
+

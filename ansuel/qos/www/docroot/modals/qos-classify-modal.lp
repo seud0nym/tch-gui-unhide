@@ -305,7 +305,6 @@ local classify_options = {
   canAdd = true,
   canDelete = true,
   createMsg = T"Add New Rule",
-  sorted = uci_label_path,
 	objectName = "classify"..uniqueKey,
 	addNamedObject = true,
 }
@@ -343,19 +342,10 @@ local classify_valid = {
   qosClassifyPorts = gOV(validateStringIsPorts, validateEmptyString),
 }
 
-local function classify_filter(data)
-  if data[uci_param_srchost] == "" and data[uci_param_dsthost] == "" and data[uci_param_protocol] == "" and
-    data[uci_param_ports] == "" and data[uci_param_srcports] == "" and data[uci_param_dstports] == "" and
-    data[uci_param_dscp] == "" then
-    return false
-  end
-  return true
-end
-
 ----------------------------------------------------------------------------------
 -- Populate Table
 ----------------------------------------------------------------------------------
-local classify_data, classify_helpMsg = post_helper.handleTableQuery(classify_columns, classify_options, classify_filter, nil, classify_valid)
+local classify_data, classify_helpMsg = post_helper.handleTableQuery(classify_columns, classify_options, nil, nil, classify_valid)
 for _,v in ipairs(classify_data) do
   if v[11][2] and type(v[11][2]) == "table" then
     v[2] = table.concat(v[11][2], ",")
@@ -392,10 +382,16 @@ ngx.print( ui_helper.createHeader(T"QoS", false) ); ngx.print('\
   <form class ="form-horizontal" method ="post" action ="modals/qos-classify-modal.lp">\
   ');  ngx.print(ui_helper.createMessages(message_helper.popMessages())); ngx.print('\
 	')
-    local html = {}
+  local alert_attr = {
+    alert = {
+      class = "alert-info"
+    },
+  }
+  local html = {}
     html[#html+1] = "<fieldset>"
-    html[#html+1] =	    "<legend>"..T"QoS Classify Rules".."</legend>"
-    html[#html+1] =     ui_helper.createTable(classify_columns, classify_data, classify_options, nil, classify_helpMsg)
+    html[#html+1] =	  "<legend>"..T"QoS Classify Rules".."</legend>"
+    html[#html+1] =   ui_helper.createAlertBlock(T("Rules are applied in the order they appear in /etc/config/qos, NOT the order listed here!"), alert_attr)
+    html[#html+1] =   ui_helper.createTable(classify_columns, classify_data, classify_options, nil, classify_helpMsg)
     html[#html+1] = "</fieldset>"
     ngx.print(html)
     ngx.print('\

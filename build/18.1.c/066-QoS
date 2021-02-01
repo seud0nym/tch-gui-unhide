@@ -1,0 +1,50 @@
+grep -q swshaper /usr/share/transformer/mappings/uci/qos.map
+if [ $? -eq 1 ]; then
+  echo [$SCRIPT]: Configure transformer for QoS shaping
+  sed \
+    -e 's/"force_pcp" }/"force_pcp", "swshaper" }/' \
+    -e '$a \\' \
+    -e '$a \--uci.qos.swshaper' \
+    -e '$a \local qos_swshaper = {' \
+    -e '$a \  config = config_qos,' \
+    -e '$a \  type = "swshaper",' \
+    -e '$a \  options = { "enable", "max_bit_rate" }' \
+    -e '$a \}' \
+    -e '$a \mapper("uci_1to1").registerNamedMultiMap(qos_swshaper)' \
+    -i /usr/share/transformer/mappings/uci/qos.map
+fi
+
+echo [$SCRIPT]: Add QoS shaper count to card
+sed \
+  -e '/local recla_link/a local shape_link' \
+  -e "/recla_link =/a shape_link = 'class=\"modal-link\" data-toggle=\"modal\" data-remote=\"modals/qos-swshaper-modal.lp\" data-id=\"qos-modal\"'" \
+  -e '/numReclassify = /a numShapers = "uci.qos.swshaperNumberOfEntries",' \
+  -e '/local wlan_queues/a \\' \
+  -e '/local wlan_queues/a local shapers = {' \
+  -e '/local wlan_queues/a   count = tonumber(dataQoS.numShapers),' \
+  -e '/local wlan_queues/a   active = 0,' \
+  -e '/local wlan_queues/a   light = "0",' \
+  -e '/local wlan_queues/a   names = {},' \
+  -e '/local wlan_queues/a }' \
+  -e '/local wlan_queues/a if not shapers.count then' \
+  -e '/local wlan_queues/a   shapers.count = 0' \
+  -e '/local wlan_queues/a else' \
+  -e '/local wlan_queues/a   local swshapers = proxy.getPN("uci.qos.swshaper.",true)' \
+  -e '/local wlan_queues/a   for _,v in ipairs(swshapers) do' \
+  -e '/local wlan_queues/a     local name = match(v.path, "uci%.qos%.swshaper%.@([^%.]+)%.")' \
+  -e '/local wlan_queues/a     shapers.names[name] = proxy.get(v.path .. "enable")[1].value:untaint()' \
+  -e '/local wlan_queues/a   end' \
+  -e '/local wlan_queues/a end' \
+  -e '/local classgroup/a    local shaper = proxy.get(v.path .. "swshaper")[1].value:untaint()'\
+  -e '/local classgroup/a    if shapers.names[shaper] == "1" then'\
+  -e '/local classgroup/a      shapers.active = shapers.active + 1'\
+  -e '/local classgroup/a      shapers.light = "1"'\
+  -e '/local classgroup/a    end'\
+  -e '/light.TO_WLAN/a         ui_helper.createSimpleLight(shapers.light, format(N("<strong %1$s>%2$d Upload Shaper</strong> active","<strong %1$s>%2$d Upload Shapers</strong> active",shapers.active),shape_link,shapers.active)),' \
+  -i /www/cards/008_qos.lp
+
+echo [$SCRIPT]: Add QoS shaper tab
+sed \
+  -e '/qos-reclassify-modal.lp/a   {"qos-swshaper-modal.lp", T"Upload Shapers"},' \
+  -i /www/snippets/tabs-qos.lp
+
