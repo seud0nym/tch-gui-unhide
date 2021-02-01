@@ -1,3 +1,10 @@
+2021.02.01
+==========
+* tch-gui-unhide: Fixed QoS card on FW 17
+* tch-gui-unhide: Removed QoS classify/reclassify rules editing on FW 17 until bugs (e.g. incomplete lists, missing data after save, and errors on delete) resolved
+* tch-gui-unhide: Fixed NAT Helpers card on FW 17
+* tch-gui-unhide: Added warning message on QoS rule sequencing
+
 2021.01.31
 ==========
 * tch-gui-unhide: Added -V option to show script release, current installed release and latest release available on GitHub

@@ -1,7 +1,16 @@
 # Unlock the GUI on your Telstra Technicolor Device
 These scripts can be applied to various Telstra branded Technicolor devices to unlock hidden features in the web GUI, and automate many of the functions required to set up your device correctly.
 
+![Latest Release Downloads for 17.2.0284](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/17.2.0284.tar.gz)    
+![Latest Release Downloads for 17.2.0468](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/17.2.0468.tar.gz)  
+![Latest Release Downloads for 18.1.c.0462](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/18.1.c.0462.tar.gz)  
+![Latest Release Downloads for 18.1.c.0514](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/18.1.c.0514.tar.gz)  
+![Latest Release Downloads for 18.1.c.0543](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/18.1.c.0543.tar.gz)  
+![Latest Release Downloads for 18.1.c.0549](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/18.1.c.0549.tar.gz)  
+![Latest Release Downloads for 18.1.c.0585](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/18.1.c.0585.tar.gz)  
+
 ## TL;DR
+### Installation
 Skip any of these steps that you have already done.
 1. Root your device (see https://hack-technicolor.rtfd.io) and ensure it is running a supported firmware version.
 2. [Download](https://github.com/seud0nym/tch-gui-unhide/releases/latest) the latest release for your firmware.
@@ -20,6 +29,12 @@ Skip any of these steps that you have already done.
 - If you reset your device, *or* restore it to a state before you applied the scripts, *or* upgrade the firmware, you will need to run `de-telstra` and `tch-gui-unhide` again!
 - To change the GUI theme, run `./tch-gui-unhide -T` with your theme options, and only the theme will be applied without re-applying all the other changes that the script usually makes. Alternatively, you can change the theme from within the GUI (under **Management**).
 - You can revert to the Telstra GUI with the command: `./tch-gui-unhide -r`
+
+### Upgrading (Requires Internet Access on the device)
+1. Log on to your device and change to the directory where you copied the release (e.g. /root or /tmp or the USB stick).
+2. Execute: `./tch-gui-unhide -U`
+3. Once the download has finished, execute: `./tch-gui-unhide -y`
+    - You do not need to re-specify the parameters you initially used when installing, as they are persisted with the installation
 
 Read on for the long version...
 
@@ -86,9 +101,10 @@ Some hidden screens included on the device are not enabled, mainly because they 
 
 ### Additional (new) GUI Features
 - **Gateway** card now has current device status for CPU usage, free RAM and temperature
-- **Broadband** card shows current upload/download volume, and average per day
-- **Internet Access** and **LAN** cards now show IPv6 information
+- **Broadband** card auto-updates shows current upload/download volume, and average per day
+- **Internet Access** card auto updates and now shows IPv6 information
 - **Internet Access** screen allows you to specify the WAN Supervision mode, both IPv4 and IPv6 custom DNS Servers, and to set a static IPv6 address (in static connection mode)
+- **Local Network** now shows IPv6 information
 - **Local Network** allows enabling/disabling of DHCPv6 and SLAAC
 - **WiFi** card auto-updates to reflect SSID status (e.g. when Time of Day Wireless Access Controls rules enable or disable SSIDs)
 - **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
@@ -103,7 +119,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - **Telephony** card shows call statistics (number of calls in, missed and out)
 - **Telephony** screen now has a Dial Plans tab to edit the dial plans, and you can optionally show the decrypted SIP passwords on the Profiles tab
 - **Mobile** screen now has a Network Operators tab to modify the allowed Mobile Country Code (MCC) and Mobile Network Code (MNC) combinations, plus shows the device capabilities
-- **QoS** screen now has support for upload shapers and shows reclassify rules
+- **QoS** screen now has support for upload shapers and shows reclassify rules (FW 18 only)
 
 ## What else does it do?
 - Properly enables SSH LAN access (because if you don't and then disable it through the GUI, you can lose SSH access).
