@@ -28,30 +28,30 @@ function M.getNetworkDevices()
   local wifi = proxy.getPN("uci.wireless.wifi-iface.", true)
   for _,v in ipairs(wifi) do
     local device = match(v.path, "uci%.wireless%.wifi%-iface%.@([^%.]+)%.")
-    local wlname = proxy.get(v.path .. "ssid")
-    local radio_name = proxy.get("rpc.wireless.ssid.@"..device..".radio")[1].value
-    local lan = proxy.get("rpc.wireless.ssid.@"..device..".lan")[1].value
-    local ifname
-    if lan == "1" then
-      ifname = "wlan"
-    else
-      ifname = "wan"
+    local ifname = proxy.get("rpc.wireless.ssid.@"..device..".network")[1].value
+    if ifname ~= "fonopen" then
+      if ifname == "lan" then
+        ifname = "wlan"
+      end
+      local wlname = proxy.get(v.path .. "ssid")
+      local radio_name = proxy.get("rpc.wireless.ssid.@"..device..".radio")[1].value
+      local lan = proxy.get("rpc.wireless.ssid.@"..device..".lan")[1].value
+      if ifs[device] then
+        ifs[device] = ifs[device] .. "," .. untaint(ifname)
+      else
+        ifs[device] = untaint(ifname)
+      end
+      if wlname then
+        wlname = wlname[1].value
+      else
+        wlname = device
+      end
+      if radio_name == "radio_2G" then
+        ssid[device] = wlname .. " (2.4G)"
+      else
+        ssid[device] = wlname .. " (5G)"
+      end    
     end
-    if ifs[device] then
-      ifs[device] = ifs[device] .. "," .. ifname
-    else
-      ifs[device] = ifname
-    end
-    if wlname then
-      wlname = wlname[1].value
-    else
-      wlname = device
-    end
-    if radio_name == "radio_2G" then
-      ssid[device] = wlname .. " (2.4G)"
-    else
-      ssid[device] = wlname .. " (5G)"
-    end    
   end
 
   return ifs, ssid
