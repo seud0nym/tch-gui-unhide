@@ -8,8 +8,10 @@ local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
 local uimessage_helper = require("web.uimessage_helper")
 local proxy = require("datamodel")
+local qosdevice_helper = require("qosdevice_helper")
+
 local table, ipairs = table, ipairs
-local find, format, gmatch, match, sub = string.find, string.format, string.gmatch, string.match, string.sub
+local find, format, gmatch, match, sub, untaint = string.find, string.format, string.gmatch, string.match, string.sub, string.untaint
 local concat = table.concat
 
 local lp = require("web.lp")
@@ -58,10 +60,8 @@ for id=0,15,1 do
 end
 
 local mapParams = {
-  wan_queues_enabled = "uci.qos.device.@wan.enable",
   wan_queues_policy = "uci.qos.classgroup.@TO_WAN.policy",
   wan_queues_default = "uci.qos.classgroup.@TO_WAN.default",
-  lan_queues_enabled = "uci.qos.interface.@lan.enable",
   lan_queues_policy = "uci.qos.classgroup.@TO_LAN.policy",
   lan_queues_default = "uci.qos.classgroup.@TO_LAN.default",
 	wlan_queues_policy = "uci.qos.classgroup.@TO_WLAN.policy",
@@ -69,10 +69,8 @@ local mapParams = {
 }
 
 local mapValid = {
-  wan_queues_enabled = vB,
   wan_queues_policy = gVIES(policy_options),
   wan_queues_default = gVIES(wan_queue_options),
-  lan_queues_enabled = vB,
   lan_queues_policy = gVIES(policy_options),
 	lan_queues_default = gVIES(lan_queue_options),
 	wlan_queues_policy = gVIES(policy_options),
@@ -80,7 +78,7 @@ local mapValid = {
 }
 
 local function isChecked(key, checked)
-	if string.untaint(checked) == "" then
+	if untaint(checked) == "" then
 		return false
 	end
 	for _,v in ipairs(checked) do
@@ -91,34 +89,7 @@ local function isChecked(key, checked)
   return false
 end
 
-local inUseDevices = ""
-local wanifname = proxy.get("uci.network.interface.@wan.ifname")[1].value:untaint()
-if wanifname and wanifname ~= "" and wanifname ~= "lo" and not match(wanifname, "^@") then
-  inUseDevices = inUseDevices .. " " .. wanifname
-end
-local lanifname = proxy.get("uci.network.interface.@lan.ifname")[1].value:untaint()
-if lanifname and lanifname ~= "" and lanifname ~= "lo" and not match(lanifname, "^@") then
-  inUseDevices = inUseDevices .. " " .. lanifname
-end
-
-local ssid = {}
-local wifi = proxy.getPN("uci.wireless.wifi-iface.", true)
-for _,v in ipairs(wifi) do
-  local ifname = match(v.path, "uci%.wireless%.wifi%-iface%.@([^%.]+)%.")
-	local wlname = proxy.get(v.path .. "ssid")
-  local radio_name = proxy.get("rpc.wireless.ssid.@"..ifname..".radio")[1].value
-  if wlname then
-    wlname = wlname[1].value
-  else
-    wlname = ifname
-  end
-  if radio_name == "radio_2G" then
-    ssid[ifname] = wlname .. " (2.4G)"
-  else
-    ssid[ifname] = wlname .. " (5G)"
-  end    
-  inUseDevices = inUseDevices .. " " .. ifname
-end
+local ifs, ssid = qosdevice_helper.getNetworkDevices()
 
 local wandevices = {}
 local lanports = {}
@@ -127,21 +98,19 @@ local wldevices = {}
 local qosDevices = proxy.getPN("uci.qos.device.", true)
 for _,v in ipairs(qosDevices) do
   local portname
-  local device = match(v.path, "uci%.qos%.device%.@([^%.]+)%.")
-  if device == "atm_8_35" then
-    device = "atm"
-    portname = "aDSL WAN"
-  elseif device == "ptm0" then
-    device = "ptm"
-    portname = "vDSL WAN"
-  elseif device == "eth4" then
-    portname = "WAN Port"
-  elseif sub(device,1,2) == "wl" then
-    portname = ssid[device]
-  else
-    portname = "LAN Port" .. " " .. match(device, "%d") + 1
-  end
-  if find(inUseDevices, device) then
+  local device = untaint(match(v.path, "uci%.qos%.device%.@([^%.]+)%."))
+  if ifs[device] then
+    if device == "atm_8_35" then
+      portname = "aDSL WAN"
+    elseif device == "ptm0" then
+      portname = "vDSL WAN"
+    elseif device == "eth4" then
+      portname = "WAN Port"
+    elseif sub(device,1,2) == "wl" then
+      portname = ssid[device]
+    else
+      portname = "LAN Port" .. " " .. match(device, "%d") + 1
+    end
     local group = proxy.get(v.path.."classgroup")[1].value
     if group == "TO_WAN" then
       table.insert(wandevices, {device, portname})
@@ -194,18 +163,8 @@ local function validateWlanDevice(value, object, key)
   return true
 end
 
-if not proxy.get(mapParams.wan_queues_enabled) then
-  mapParams.wan_queues_enabled = nil
-  mapValid.wan_queues_enabled = nil
-  mapValid.wandevices = validateWanDevice
-end
-
-if not proxy.get(mapParams.lan_queues_enabled) then
-  mapParams.lan_queues_enabled = nil
-  mapValid.lan_queues_enabled = nil
-  mapValid.lanports = validateLanPort
-end
-
+mapValid.wandevices = validateWanDevice
+mapValid.lanports = validateLanPort
 mapValid.wldevices = validateWlanDevice
 	
 local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
