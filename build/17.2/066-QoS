@@ -1,10 +1,21 @@
-echo [$SCRIPT]: Removing QoS rules tabs until bugs resolved
+echo [$SCRIPT]: Fix QoS card for 17.2 FW
 sed \
-  -e "/class_link = '/d" \
-  -e "/recla_link = '/d" \
+  -e '/-- 18\.1\.c only[ \t]*$/d' \
+  -e '/-- 18\.1\.c only START/,/-- 18\.1\.c only END/d' \
   -i /www/cards/008_qos.lp
+
+echo [$SCRIPT]: Fix QoS classify modal for 17.2 FW
 sed \
-  -e '/label/d' \
-  -e '/classify/d' \
+  -e 's/uci_classify_path\.\."@."/uci_classify_path/' \
+  -e '/-- 18\.1\.c only[ \t]*$/d' \
+  -e '/-- 18\.1\.c only START/,/-- 18\.1\.c only END/d' \
+  -i /www/docroot/modals/qos-classify-modal.lp
+
+echo [$SCRIPT]: Remove QoS Upload Shapers tab \(Not supported on 17.2 FW\)
+if [ -f /www/docroot/modals/qos-swshaper-modal.lp ]; then
+  rm /www/docroot/modals/qos-swshaper-modal.lp
+fi
+sed \
+  -e '/qos-swshaper-modal.lp/d' \
   -i /www/snippets/tabs-qos.lp
 

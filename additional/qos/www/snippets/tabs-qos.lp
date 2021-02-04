@@ -8,6 +8,7 @@ local items = {
   {"qos-label-modal.lp", T"Labels"},
   {"qos-classify-modal.lp", T"Classify Rules"},
   {"qos-reclassify-modal.lp", T"Reclassify Rules"},
+  {"qos-swshaper-modal.lp", T"Upload Shapers"},
 }
 
 local uri = ngx.var.uri

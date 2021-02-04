@@ -137,6 +137,18 @@ for _,v in ipairs(proxy.getPN("rpc.network.interface.", true)) do
   end
 end
 
+-- 18.1.c only START
+local rules = proxy.getPN("uci.qos.classify.",true)
+local next_rule_num = 0
+for _,v in ipairs(rules) do
+  local number = tonumber(match(v.path, "@classify_(%d+)%."))
+  if number then
+    next_rule_num = number
+  end
+end
+next_rule_num = next_rule_num + 1
+-- 18.1.c only END
+
 local classify_columns = {
   { --[1]
     header = T"Label Target",
@@ -305,8 +317,9 @@ local classify_options = {
   canAdd = true,
   canDelete = true,
   createMsg = T"Add New Rule",
-	objectName = "classify"..uniqueKey,
-	addNamedObject = true,
+  addNamedObject = true, -- 18.1.c only
+  objectName = format("classify_%d", next_rule_num), -- 18.1.c only
+  sorted = "index"
 }
 
 ----------------------------------------------------------------------------------
@@ -390,7 +403,7 @@ ngx.print( ui_helper.createHeader(T"QoS", false) ); ngx.print('\
   local html = {}
     html[#html+1] = "<fieldset>"
     html[#html+1] =	  "<legend>"..T"QoS Classify Rules".."</legend>"
-    html[#html+1] =   ui_helper.createAlertBlock(T("Rules are applied in the order they appear in /etc/config/qos, NOT the order listed here!"), alert_attr)
+    html[#html+1] =   ui_helper.createAlertBlock(T("Rules are applied in the order they appear in /etc/config/qos, which is NOT necessarily the order listed here!"), alert_attr)
     html[#html+1] =   ui_helper.createTable(classify_columns, classify_data, classify_options, nil, classify_helpMsg)
     html[#html+1] = "</fieldset>"
     ngx.print(html)
