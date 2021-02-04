@@ -3,6 +3,7 @@ echo "Enter y to continue, or anything else to exit now"
 read
 if [ "$REPLY" = "y" -o "$REPLY" = "Y" ]
 then
+# mtd -r erase rootfs_data
   echo Copy firmware into bank_2 if applicable
   [ "$(cat /proc/banktable/booted)" = "bank_1" ] && mtd write /dev/mtd3 bank_2
   echo Make a temp copy of overlay for booted firmware
@@ -17,9 +18,9 @@ then
   mtd erase bank_1
   # Reboot to first valid firmware
   echo Attempting to reboot...
-  echo "#######################################################"
-  echo "# NOTE: If the reboot fails with 'Input/output error' #" 
-  echo "#       you can just manually power cycle the device  #"
-  echo "#######################################################"
+  echo "######################################################"
+  echo "# NOTE: If the reboot fails with an error message,   #" 
+  echo "#       you can just manually power cycle the device #"
+  echo "######################################################"
   reboot
 fi
