@@ -91,7 +91,7 @@ local ifs = qosdevice_helper.getNetworkDevices()
 local data = proxy.getPN("uci.qos.device.", true)
 for _,v in ipairs(data) do
   local device = untaint(match(v.path, "uci%.qos%.device%.@([^%.]+)%."))
-  if ifs[device] then
+  if ifs[device] and ifs[device] ~= "" and ifs[device] ~= "ppp" and ifs[device] ~= "ipoe" then
     local enabled = proxy.get(v.path .. "enable")[1].value:untaint()
     if enabled ~= "0" then
       local classgroup = proxy.get(v.path .. "classgroup")[1].value:untaint()
