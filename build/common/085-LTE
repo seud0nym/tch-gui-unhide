@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Tidy up Mobile Configuration screen and add Device Capabilities
+echo [$SCRIPT]: Add Device Capabilities and LTE Band Selection to Mobile Configuration screen
 sed \
   -e 's/getValidateCheckboxSwitch()/validateBoolean/' \
   -e 's/createCheckboxSwitch/createSwitch/' \
@@ -44,6 +44,57 @@ sed \
   -e '/local function get_session_info_section/i \	end' \
   -e '/local function get_session_info_section/i \end' \
   -e '/local function get_session_info_section/i \\' \
+  -e '/local function get_profile_select/i \local function validate_lte_bands(device)' \
+  -e '/local function get_profile_select/i \    local choices = setmetatable({}, untaint_mt)' \
+  -e '/local function get_profile_select/i \    local b' \
+  -e '/local function get_profile_select/i \    for b in string.gmatch(device.capabilities.supported_bands_lte, "%d+") do' \
+  -e '/local function get_profile_select/i \      choices[string.untaint(b)] = true' \
+  -e '/local function get_profile_select/i \    end' \
+  -e '/local function get_profile_select/i \    return function(value, object, key)' \
+  -e '/local function get_profile_select/i \      local uv' \
+  -e '/local function get_profile_select/i \      local concatvalue = ""' \
+  -e '/local function get_profile_select/i \      if not value then' \
+  -e '/local function get_profile_select/i \        return nil, T"Invalid input."' \
+  -e '/local function get_profile_select/i \      end' \
+  -e '/local function get_profile_select/i \      if type(value) == "table" then' \
+  -e '/local function get_profile_select/i \        uv = value' \
+  -e '/local function get_profile_select/i \      else' \
+  -e '/local function get_profile_select/i \        uv = { value }' \
+  -e '/local function get_profile_select/i \      end' \
+  -e '/local function get_profile_select/i \      for i,v in ipairs(uv) do' \
+  -e '/local function get_profile_select/i \        if v ~= "" then' \
+  -e '/local function get_profile_select/i \          if concatvalue ~= "" then' \
+  -e '/local function get_profile_select/i \            concatvalue = concatvalue.." "' \
+  -e '/local function get_profile_select/i \          end' \
+  -e '/local function get_profile_select/i \          concatvalue = concatvalue..string.untaint(v)' \
+  -e '/local function get_profile_select/i \          if not choices[v] then' \
+  -e '/local function get_profile_select/i \            return nil, T"Invalid value."' \
+  -e '/local function get_profile_select/i \          end' \
+  -e '/local function get_profile_select/i \        end' \
+  -e '/local function get_profile_select/i \      end' \
+  -e '/local function get_profile_select/i \      object[key] = concatvalue' \
+  -e '/local function get_profile_select/i \      return true' \
+  -e '/local function get_profile_select/i \    end' \
+  -e '/local function get_profile_select/i \end' \
+  -e '/local function get_profile_select/i \\' \
+  -e '/p.mapParams\["interface_enabled"\]/a \		p.mapParams["lte_bands"] = device.uci_path .. "lte_bands"' \
+  -e '/p.mapParams\["interface_enabled"\]/a \		p.mapValid["lte_bands"] = validate_lte_bands(device)' \
+  -e '/"Access Technology"/a \	 			if utils.radio_tech_map[page.device.leds.radio] == "LTE" then' \
+  -e '/"Access Technology"/a \	 				local b, lte_bands, lte_bands_checked = nil, {}, {}' \
+  -e '/"Access Technology"/a \	 				for b in string.gmatch(page.device.capabilities.supported_bands_lte, "%d+") do' \
+  -e '/"Access Technology"/a \	 					lte_bands[#lte_bands+1] = { string.untaint(b), b }' \
+  -e '/"Access Technology"/a \	 				end' \
+  -e '/"Access Technology"/a \	 				if not page.content["lte_bands"] or page.content["lte_bands"] == "" then' \
+  -e '/"Access Technology"/a \	 					for k,v in ipairs(lte_bands) do' \
+  -e '/"Access Technology"/a \	 						lte_bands_checked[k] = string.untaint(v[1])' \
+  -e '/"Access Technology"/a \	 					end' \
+  -e '/"Access Technology"/a \	 				else' \
+  -e '/"Access Technology"/a \	 					for b in string.gmatch(page.content["lte_bands"], "%d+") do' \
+  -e '/"Access Technology"/a \	 						lte_bands_checked[#lte_bands_checked+1] = string.untaint(b)' \
+  -e '/"Access Technology"/a \	 					end' \
+  -e '/"Access Technology"/a \	 				end' \
+  -e '/"Access Technology"/a \	 				tinsert(html, ui_helper.createCheckboxGroup(T"LTE Bands", "lte_bands", lte_bands, lte_bands_checked, {checkbox = { class="inline" }}, nil))' \
+  -e '/"Access Technology"/a \	 			end' \
   -e '/^\s*get_device_info_section/a get_device_capabilities_section(page, html)' \
   -i /www/docroot/modals/lte-modal.lp
 
