@@ -98,8 +98,16 @@ sed \
   -e '/^\s*get_device_info_section/a get_device_capabilities_section(page, html)' \
   -i /www/docroot/modals/lte-modal.lp
 
-echo [$SCRIPT]: Add Network Operators to Mobile tabs
+echo [$SCRIPT]: Add new Mobile tabs
 sed \
+  -e '/{"lte-doctor.lp", T"Diagnostics"},/a \	{"lte-autofailover.lp", T"Auto-Failover"},' \
   -e '/{"lte-doctor.lp", T"Diagnostics"},/a \	{"lte-operators.lp", T"Network Operators"},' \
   -i /www/snippets/tabs-mobiled.lp
+
+echo [$SCRIPT]: Configure transformer for missing WanSensing settings
+sed \
+  -e 's/\("autofailover\)/\1", \1maxwait/' \
+  -e '/timeout/ {n; :a; /timeout/! {N; ba;}; s/\("timeout"\)/\1, "fasttimeout"/;}' \
+  -i /usr/share/transformer/mappings/uci/wansensing.map
+SRV_transformer=$(( $SRV_transformer + 1 ))
 
