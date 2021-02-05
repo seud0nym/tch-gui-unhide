@@ -12,5 +12,6 @@ if [ $? -eq 1 ]; then
     -e '$a \}' \
     -e '$a \mapper("uci_1to1").registerNamedMultiMap(qos_swshaper)' \
     -i /usr/share/transformer/mappings/uci/qos.map
+  SRV_transformer=$(( $SRV_transformer + 1 ))
 fi
 

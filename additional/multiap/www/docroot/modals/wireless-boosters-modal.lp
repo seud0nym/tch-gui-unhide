@@ -11,6 +11,8 @@ local message_helper = require("web.uimessage_helper")
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
+local vB = post_helper.validateBoolean
+
 local mapParams = {
   agent_enabled = "uci.multiap.agent.enabled",
   controller_enabled = "uci.multiap.controller.enabled",
@@ -21,10 +23,10 @@ local mapParams = {
 }
 
 local mapValid = {
-  agent_enabled = post_helper.validateBoolean,
-  controller_enabled = post_helper.validateBoolean,
-  ap6state = post_helper.validateBoolean,
-  wl1_2state = post_helper.validateBoolean,
+  agent_enabled = vB,
+  controller_enabled = vB,
+  ap6state = vB,
+  wl1_2state = vB,
 }
 
 local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
