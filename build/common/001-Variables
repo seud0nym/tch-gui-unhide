@@ -117,8 +117,20 @@ fi
 SRV_dnsmasq=0
 SRV_dropbear=0
 SRV_nginx=0
+SRV_power=0
 SRV_system=0
 SRV_transformer=0
+
+check_pwr_setting() {
+  section="$1"
+  option="$2"
+  text="$3"
+  if [ -z "$(uci -q get power.$section.$option)" ]; then
+    pwrctl show | grep "$text" | grep -q DISABLED
+    uci set power.$section.$option="$?"
+    SRV_power=$(( $SRV_power + 1 ))
+  fi
+}
 
 apply_service_changes() {
   if [ $SRV_transformer -gt 0 ]; then
@@ -131,5 +143,26 @@ apply_service_changes() {
   [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear restart
   [ $SRV_system -gt 0 ] && /etc/init.d/system reload
   [ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
+
+  if [ -z "$(uci -q get power.cpu)" ];then
+    uci set power.cpu='cpu'
+  fi
+
+  if [ -z "$(uci -q get power.cpu.cpuspeed)" ]; then
+    case "$(pwrctl show | grep "CPU Speed Divisor" | tr -s " " | cut -d" " -f4)" in
+      1) uci set power.cpu.cpuspeed="1";;
+      2) uci set power.cpu.cpuspeed="2";;
+      4) uci set power.cpu.cpuspeed="4";;
+      5) uci set power.cpu.cpuspeed="8";;
+      *) uci set power.cpu.cpuspeed="256";;
+    esac
+    SRV_power=$(( $SRV_power + 1 ))
+  fi
+  check_pwr_setting "cpu" "wait" "CPU Wait"
+  check_pwr_setting "ethernet" "ethapd" "Auto Power"
+  check_pwr_setting "ethernet" "eee" "Energy Efficient Ethernet"
+  check_pwr_setting "ethernet" "autogreeen" "AutoGreeen"
+  check_pwr_setting "ethernet" "dgm" "Deep Green Mode"
+  [ $SRV_power -gt 0 ] && uci commit power
 }
 

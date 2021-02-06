@@ -4,7 +4,7 @@
 .card_bg.mirror:after{transform:matrix(-1,0,0,1,0,0);}
 .copyright{margin-bottom:0px;}
 .header .btn{margin-left:5px;}
-.simple-desc{display:block;padding-top:3px;}
+.simple-desc{display:block;padding-top:2px;}
 .smallcard .content{font-size:14px;height:125px;}
 .smallcard .subinfos{font-size:14px;}
 .status-icon{color:var(--RGB_STATUS_ICON);}

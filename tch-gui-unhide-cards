@@ -106,6 +106,7 @@ apply_defaults() {
       cwmpconf.lp) SEQ="090";;
       Devices.lp) SEQ="006";;
       diagnostics.lp) SEQ="009";;
+      eco.lp) SEQ="020";;
       firewall.lp) SEQ="008";;
       fon.lp) SEQ="010";;
       gateway.lp) SEQ="001";;
@@ -186,9 +187,10 @@ apply_suggested() {
     case "${FILE#*_}" in
       broadband.lp) SEQ="002";;
       contentsharing.lp) SEQ="019";;
-      cwmpconf.lp) SEQ="025"; if [ ! -f /etc/init.d/cwmpd ]; then HIDE=1; fi;;
+      cwmpconf.lp) SEQ="026"; if [ ! -f /etc/init.d/cwmpd ]; then HIDE=1; fi;;
       Devices.lp) SEQ="010";;
-      diagnostics.lp) SEQ="024";;
+      diagnostics.lp) SEQ="025";;
+      eco.lp) SEQ="024";;
       firewall.lp) SEQ="016";;
       fon.lp) SEQ="005";;
       gateway.lp) SEQ="001";;

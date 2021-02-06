@@ -1,4 +1,17 @@
 restore_www() {
+  # Add individual files to be restored here
+  for t in /etc/init.d/power
+  do
+    s=/rom$t
+    if [ -f $s ]; then
+      cmp -s "$s" "$t"
+      if [ $? -ne 0 ]; then
+        echo [$SCRIPT]: Restoring file $t
+        cp -f -p "$s" "$t"
+      fi
+    fi
+  done
+  # Add directories to be restored here
   for d in www/cards www/docroot www/lua www/snippets usr/share/transformer/commitapply usr/share/transformer/mappings/rpc usr/share/transformer/mappings/uci
   do
     echo [$SCRIPT]: Restoring directory /$d
