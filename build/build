@@ -51,6 +51,15 @@ echo "" >> $TARGET
 
 sed -e "s/current_version = \"\"/current_version = \"$FULL_VERSION\"/" -i $(find /tmp/additional -name gui.map)
 
+find /tmp/additional/ -type d -exec chmod 755 {} \;
+find /tmp/additional/ -type f -name '*.map' -exec chmod 644 {} \;
+find /tmp/additional/ -type f -name '*.lp'  -exec chmod 644 {} \;
+find /tmp/additional/ -type f -name '*.lua' -exec chmod 644 {} \;
+for d in $(find /tmp/additional/ -type d -name 'init.d')
+do
+  chmod 755 $d/*
+done
+
 for d in $(ls /tmp/additional)
 do
   if [ -d /tmp/additional/$d ]

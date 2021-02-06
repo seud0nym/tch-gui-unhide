@@ -18,6 +18,7 @@ then
   if [ ! -f /usr/share/transformer/commitapply/uci_minidlna.ca ]
   then
     echo '^minidlna /etc/init.d/minidlna restart'>/usr/share/transformer/commitapply/uci_minidlna.ca
+    chmod 644 /usr/share/transformer/commitapply/uci_minidlna.ca
     SRV_transformer=$(( $SRV_transformer + 1 ))
   fi
 
@@ -47,6 +48,7 @@ local minidlna_config = {
 
 mapper("uci_1to1").registerSimpleMap(minidlna_config) 
 MAP
+    chmod 644 /usr/share/transformer/mappings/uci/minidlna.map
     SRV_transformer=$(( $SRV_transformer + 1 ))
   fi
 
@@ -103,7 +105,7 @@ if [ "${ACTION}" == "remove" ]; then
   fi
 fi
 PLUG
-    chmod +x /etc/hotplug.d/mount/00-minidlna
+    chmod 755 /etc/hotplug.d/mount/00-minidlna
   fi
 
   # Update /lib/functions/contentsharing.sh
