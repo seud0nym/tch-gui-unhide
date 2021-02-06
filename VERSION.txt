@@ -1,3 +1,16 @@
+2021.02.06
+==========
+* tch-gui-unhide: Fixed 'invalid instance' error on QoS Queues tab when using DSL WAN
+* tch-gui-unhide: Ignored Telstra Air SSIDs when determining if any devices missing in QoS Device tab
+* tch-gui-unhide: Fixed QoS classify/reclassify rules editing on FW 17
+* tch-gui-unhide: Fixed incorrect WAN device count on QoS card
+* tch-gui-unhide: Added ability to enable/disable the SSH AFG configuration added by the root acquisition process
+* tch-gui-unhide: Added LTE Band Selection to Mobile Configuration
+* tch-gui-unhide: Added new Mobile Auto-Failover tab to configure timeouts after connection failure
+* tch-gui-unhide: Added modified Eco Settings card from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www
+* tch-gui-unhide-cards: Added support for Eco Settings card
+* reset-to-factory-defaults-with-root: Applied latest changes from https://hack-technicolor.readthedocs.io/en/stable/Upgrade/
+
 2021.02.01
 ==========
 * tch-gui-unhide: Fixed QoS card on FW 17

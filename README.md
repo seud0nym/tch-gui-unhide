@@ -90,6 +90,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
     - SSH LAN status
     - SSH WAN status
     - Can now switch active bank from the screen
+- Modified **Eco Settings** card
 - Modified **QoS** card
 - Modified **Telephony** Global tab to allow:
     - Add/delete SIP providers (up to maximum of 2)
