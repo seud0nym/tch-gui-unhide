@@ -1,13 +1,7 @@
 # Unlock the GUI on your Telstra Technicolor Device
 These scripts can be applied to various Telstra branded Technicolor devices to unlock hidden features in the web GUI, and automate many of the functions required to set up your device correctly.
 
-![Latest Release Downloads for 17.2.0284](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/17.2.0284.tar.gz)    
-![Latest Release Downloads for 17.2.0468](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/17.2.0468.tar.gz)  
-![Latest Release Downloads for 18.1.c.0462](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/18.1.c.0462.tar.gz)  
-![Latest Release Downloads for 18.1.c.0514](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/18.1.c.0514.tar.gz)  
-![Latest Release Downloads for 18.1.c.0543](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/18.1.c.0543.tar.gz)  
-![Latest Release Downloads for 18.1.c.0549](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/18.1.c.0549.tar.gz)  
-![Latest Release Downloads for 18.1.c.0585](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/18.1.c.0585.tar.gz)  
+![Latest Release Downloads](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/total)
 
 ## TL;DR
 ### Installation
