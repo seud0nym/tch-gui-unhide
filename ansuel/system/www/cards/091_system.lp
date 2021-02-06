@@ -53,6 +53,10 @@ local sshwan_state_map = {
   Disabled = T"SSH WAN disabled",
   Enabled = T"SSH WAN enabled",
 }
+local iperf_state_map = {
+  Disabled = T"iperf disabled",
+  Enabled = T"iperf enabled",
+}
 
 if session:hasAccess("/modals/system-modal.lp") then
     local modal_link = format("class=\"modal-link\" data-toggle=\"modal\" data-remote=\"%s\" data-id=\"device-modal\"",modalPath)
@@ -83,10 +87,6 @@ if session:hasAccess("/modals/system-modal.lp") then
         tinsert(html, ui_helper.createSimpleLight(nil, sshwan_state_map[sshwan_enabled], { light = { class = light_map[sshwan_enabled] } }) )
         tinsert(html, ui_helper.createSimpleLight(nil, syslog_state_map[syslog_present], { light = { class = light_map[syslog_present] } }) )
         if iperf then
-          local iperf_state_map = {
-            Disabled = T"iperf disabled",
-            Enabled = T"iperf enabled",
-          }
           tinsert(html, ui_helper.createSimpleLight(nil, iperf_state_map[iperf_enabled], { light = { class = light_map[iperf_enabled] } }) )
         end
         ngx.print(html)
