@@ -1,4 +1,8 @@
 restore_www() {
+  # File deployed to incorect location by releases prior to 2021.02.06
+  if [ -f /usr/share/transformer/mappings/iperf.map ]; then
+    rm /usr/share/transformer/mappings/iperf.map
+  fi
   # Add individual files to be restored here
   for t in /etc/init.d/power
   do
