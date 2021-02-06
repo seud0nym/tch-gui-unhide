@@ -111,6 +111,7 @@ local authentication_choices = {
 local ssh_wan_enable = untaint(proxy.get("uci.dropbear.dropbear.@wan.enable")[1].value)
 local ssh_wan_port = untaint(proxy.get("uci.dropbear.dropbear.@wan.Port")[1].value)
 local ssh_wan_src_ip = proxy.get("uci.dropbear.dropbear.@wan.AllowedClientIPs")
+local ssh_afg_if = proxy.get("uci.dropbear.dropbear.@afg.Interface")
 local ssh_params = {
   ssh_lan_enable = "uci.dropbear.dropbear.@lan.enable",
   ssh_lan_pwd_auth = "uci.dropbear.dropbear.@lan.PasswordAuth",
@@ -132,6 +133,14 @@ local ssh_valid = {
 if ssh_wan_src_ip then
   ssh_params["ssh_wan_src_ip"] = "uci.dropbear.dropbear.@wan.AllowedClientIPs"
   ssh_valid["ssh_wan_src_ip"] = gOV(vSII)
+end
+if ssh_afg_if then
+  ssh_params["ssh_afg_enable"] = "uci.dropbear.dropbear.@afg.enable"
+  ssh_params["ssh_afg_pwd_auth"] = "uci.dropbear.dropbear.@afg.PasswordAuth"
+  ssh_params["ssh_afg_root_pwd_auth"] = "uci.dropbear.dropbear.@afg.RootPasswordAuth"
+  ssh_valid["ssh_afg_enable"] = vB
+  ssh_valid["ssh_afg_pwd_auth"] = gVIES(authentication_choices)
+  ssh_valid["ssh_afg_root_pwd_auth"] = gVIES(authentication_choices)
 end
 local ssh_params, ssh_helpmsg = post_helper.handleQuery(ssh_params, ssh_valid)
 
@@ -294,16 +303,36 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     }
   }
   local html = {}
-  html[#html + 1] = ui_helper.createSwitch(T"LAN", "ssh_lan_enable", ssh_params["ssh_lan_enable"], switch_class_enable)
+  html[#html + 1] = '<fieldset><legend><small>'..T"LAN Access"..'</small></legend>'
+  html[#html + 1] = ui_helper.createSwitch(T"SSH LAN Enabled", "ssh_lan_enable", ssh_params["ssh_lan_enable"], switch_class_enable)
   html[#html + 1] = ui_helper.createInputSelect(T"LAN User Authentication", "ssh_lan_pwd_auth", authentication_choices, ssh_params["ssh_lan_pwd_auth"], ssh_lan_input, ssh_helpmsg["ssh_lan_pwd_auth"])
   html[#html + 1] = ui_helper.createInputSelect(T"LAN Root Authentication", "ssh_lan_root_pwd_auth", authentication_choices, ssh_params["ssh_lan_root_pwd_auth"], ssh_lan_input, ssh_helpmsg["ssh_lan_root_pwd_auth"])
-  html[#html + 1] = ui_helper.createSwitch(T"WAN", "ssh_wan_enable", ssh_params["ssh_wan_enable"], switch_class_enable)
+  if ssh_afg_if then
+    local ssh_afg_input = {
+      group = {
+        class ="monitor-ssh_afg_enable monitor-1",
+      },
+    }
+    local info_box = {
+      alert = {
+        class = "alert alert-info",
+      }
+    }
+    html[#html + 1] = ui_helper.createAlertBlock(T(format("The AFG configuration is added by the root acquisition process to allow SSH access over the %s interface.", string.upper(ssh_afg_if[1].value))), info_box)
+    html[#html + 1] = ui_helper.createSwitch(T"SSH AFG Enabled", "ssh_afg_enable", ssh_params["ssh_afg_enable"], switch_class_enable)
+    html[#html + 1] = ui_helper.createInputSelect(T"AFG User Authentication", "ssh_afg_pwd_auth", authentication_choices, ssh_params["ssh_afg_pwd_auth"], ssh_afg_input, ssh_helpmsg["ssh_afg_pwd_auth"])
+    html[#html + 1] = ui_helper.createInputSelect(T"AFG Root Authentication", "ssh_afg_root_pwd_auth", authentication_choices, ssh_params["ssh_afg_root_pwd_auth"], ssh_afg_input, ssh_helpmsg["ssh_afg_root_pwd_auth"])
+  end
+  html[#html + 1] = '</fieldset>'
+  html[#html + 1] = '<fieldset><legend><small>'..T"WAN Access"..'</small></legend>'
+  html[#html + 1] = ui_helper.createSwitch(T"SSH WAN Enabled", "ssh_wan_enable", ssh_params["ssh_wan_enable"], switch_class_enable)
   html[#html + 1] = ui_helper.createInputSelect(T"WAN User Authentication", "ssh_wan_pwd_auth", authentication_choices, ssh_params["ssh_wan_pwd_auth"], ssh_wan_input, ssh_helpmsg["ssh_wan_pwd_auth"])
   html[#html + 1] = ui_helper.createInputSelect(T"WAN Root Authentication", "ssh_wan_root_pwd_auth", authentication_choices, ssh_params["ssh_wan_root_pwd_auth"], ssh_wan_input, ssh_helpmsg["ssh_wan_root_pwd_auth"])
   html[#html + 1] = ui_helper.createInputText(T"WAN SSH Port", "ssh_wan_port", ssh_params["ssh_wan_port"], port_attributes, ssh_helpmsg["ssh_wan_port"])
   if ssh_wan_src_ip then
     html[#html + 1] = ui_helper.createInputText(T"Allowed Client IP", "ssh_wan_src_ip", ssh_params["ssh_wan_src_ip"], src_ip_attributes, ssh_helpmsg["ssh_wan_src_ip"])
   end
+  html[#html + 1] = '</fieldset>'
   ngx.print(html)
   ngx.print('\
 </fieldset>\
