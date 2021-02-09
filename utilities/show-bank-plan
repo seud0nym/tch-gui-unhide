@@ -30,5 +30,19 @@ if [ $OPTIMAL -eq 2 ]
 then
   echo "Bank Plan is OPTIMAL"
 else
-  echo "Bank Plan is NOT optimal"
+  echo "Bank Plan is NOT optimal!! Run the following command:"
+  echo
+  echo "  ./set-optimal-bank-plan"
+  echo
+  echo "or manually follow the instructions at:"
+  echo "https://hack-technicolor.readthedocs.io/en/stable/Hacking/PostRoot/#bank-planning"
+  echo
+  echo "NOTE: If you are unable to set an optimal bank plan, you may need to do a complete"
+  echo "      reset of the device using the following command:"
+  echo
+  echo "       mtd -r erase rootfs_data"
+  echo 
+  echo "      The device will reboot, and you WILL lose root, but you will be able to set"
+  echo "      the optimal bank plan after re-acquiring root."
+  echo 
 fi
