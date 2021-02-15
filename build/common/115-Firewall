@@ -1,46 +1,73 @@
-echo [$SCRIPT]: Show firewall status on card
+echo [$SCRIPT]: Show firewall default incoming policy and rules count on card
 sed \
-  -e '/"rpc.network.firewall.mode"/i \    enabled = "rpc.network.firewall.enable",' \
-  -e '/"rpc.network.firewall.mode"/i \    ping_ipv4 = "rpc.network.firewall.internetpingipv4",' \
-  -e '/"rpc.network.firewall.mode"/i \    ping_ipv6 = "rpc.network.firewall.internetpingipv6",' \
-  -e '/"rpc.network.firewall.mode"/i \    wan6_ip = "rpc.network.interface.@wan6.ip6addr",' \
-  -e '/"rpc.network.firewall.mode"/i \    wwan_ip = "rpc.network.interface.@wwan.ip6addr",' \
+  -e '/^local format/a \local proxy = require("datamodel")' \
+  -e '/firewall\.mode/a \    enabledRuleCount = "rpc.gui.firewall.enabledRuleCount",' \
+  -e '/firewall\.mode/a \    fwd_ipv4_rules = "uci.firewall.userredirectNumberOfEntries",' \
+  -e '/firewall\.mode/a \    fwd_ipv6_rules = "uci.firewall.pinholeruleNumberOfEntries",' \
+  -e '/firewall\.mode/a \    lanIpv6Enabled = "uci.network.interface.@lan.ipv6",' \
+  -e '/firewall\.mode/a \    pinholeEnabled = "uci.firewall.rulesgroup.@pinholerules.enabled",' \
+  -e '/getExactContent/a \local fw_incoming_policy' \
+  -e '/getExactContent/a \local zones = content_helper.convertResultToObject("uci.firewall.zone.", proxy.get("uci.firewall.zone."))' \
+  -e '/getExactContent/a \for key,zone in ipairs(zones) do' \
+  -e '/getExactContent/a \  if zone.wan == "1" then' \
+  -e '/getExactContent/a \    fw_incoming_policy = string.untaint(zone.input)' \
+  -e '/getExactContent/a \    break' \
+  -e '/getExactContent/a \  end' \
+  -e '/getExactContent/a \end' \
+  -e '/getExactContent/a \local fw_status_light_map = {' \
+  -e '/getExactContent/a \  DROP = "1",' \
+  -e '/getExactContent/a \  REJECT = "2",' \
+  -e '/getExactContent/a \  ACCEPT = "4"' \
+  -e '/getExactContent/a \}' \
   -e 's/T"low"/T"Low"/' \
   -e 's/T"normal"/T"Normal"/' \
   -e 's/T"high"/T"High"/' \
-  -e 's/T"user"/T"User defined"/' \
+  -e 's/T"user"/T"User Defined"/' \
   -e "/subinfos/i \    ');" \
-  -e '/subinfos/i \    local fw_status' \
-  -e '/subinfos/i \    if content.enabled == "1" then' \
-  -e '/subinfos/i \      fw_status = "Firewall enabled"' \
-  -e '/subinfos/i \    else' \
-  -e '/subinfos/i \      fw_status = "Firewall disabled"' \
-  -e '/subinfos/i \      content["enabled"] = "4"' \
-  -e '/subinfos/i \    end' \
-  -e '/subinfos/i \    ngx.print(ui_helper.createSimpleLight(content.enabled, fw_status))' \
-  -e '/subinfos/i \    if content.enabled == "1" then' \
-  -e '/subinfos/i \      local ping_ipv4_status' \
-  -e '/subinfos/i \      if content.ping_ipv4 == "1" then' \
-  -e '/subinfos/i \        ping_ipv4_status = "Answer IPv4 Ping enabled"' \
-  -e '/subinfos/i \      else' \
-  -e '/subinfos/i \        ping_ipv4_status = "Answer IPv4 Ping disabled"' \
-  -e '/subinfos/i \      end' \
-  -e '/subinfos/i \      ngx.print(ui_helper.createSimpleLight(content.ping_ipv4, ping_ipv4_status))' \
-  -e '/subinfos/i \      if content["wan6_ip"] ~= "" or content["wwan_ip"] ~= "" then' \
-  -e '/subinfos/i \        local ping_ipv6_status' \
-  -e '/subinfos/i \        if content.ping_ipv6 == "1" then' \
-  -e '/subinfos/i \          ping_ipv6_status = "Answer IPv6 Ping enabled"' \
-  -e '/subinfos/i \        else' \
-  -e '/subinfos/i \          ping_ipv6_status = "Answer IPv6 Ping disabled"' \
-  -e '/subinfos/i \        end' \
-  -e '/subinfos/i \        ngx.print(ui_helper.createSimpleLight(content.ping_ipv6, ping_ipv6_status))' \
-  -e '/subinfos/i \      end' \
-  -e '/subinfos/i \    end' \
+  -e '/subinfos/i \    local fw_status = format("Default Incoming Policy: <strong>%s</strong>", fw_incoming_policy)' \
+  -e '/subinfos/i \    ngx.print(ui_helper.createSimpleLight(fw_status_light_map[fw_incoming_policy], fw_status))' \
   -e "/subinfos/i \    ngx.print('\\\\" \
+  -e '/Firewall level/a \            local rules_modal_link = "class=\\"modal-link\\" data-toggle=\\"modal\\" data-remote=\\"/modals/firewall-rules-modal.lp\\" data-id=\\"firewall-rules-modal\\""' \
+  -e '/Firewall level/a \            html[#html+1] = format(N("<strong %1$s>%2$d Firewall rule</strong> active","<strong %1$s>%2$d Firewall rules</strong> active", content.enabledRuleCount), rules_modal_link, content.enabledRuleCount)' \
+  -e '/Firewall level/a \            html[#html+1] = "<br>"' \
+  -e '/Firewall level/a \            local fwd_modal_link = "class=\\"modal-link\\" data-toggle=\\"modal\\" data-remote=\\"/modals/firewall-port-forwarding-modal.lp\\" data-id=\\"firewall-port-forwarding-modal\\""' \
+  -e '/Firewall level/a \            local fwd_count = tonumber(content.fwd_ipv4_rules)' \
+  -e '/Firewall level/a \            if content.lanIpv6Enabled ~= "0" and content.pinholeEnabled == "1" then' \
+  -e '/Firewall level/a \              fwd_count = fwd_count + tonumber(content.fwd_ipv6_rules)' \
+  -e '/Firewall level/a \            end' \
+  -e '/Firewall level/a \            html[#html+1] = format(N("<strong %1$s>%2$d Port Forwarding rule</strong> defined","<strong %1$s>%2$d Port Forwarding rules</strong> defined", fwd_count), fwd_modal_link, fwd_count)' \
+  -e '/Firewall level/a \            html[#html+1] = "<br>"' \
+  -e '/Firewall level/a \            local nat_alg_card_hidden = proxy.get("uci.web.card.@card_natalghelper.hide")' \
+  -e '/Firewall level/a \            if nat_alg_card_hidden and nat_alg_card_hidden[1] and nat_alg_card_hidden[1].value == "1" then' \
+  -e '/Firewall level/a \              local alg_modal_link = "class=\\"modal-link\\" data-toggle=\\"modal\\" data-remote=\\"/modals/nat-alg-helper-modal.lp\\" data-id=\\"nat-alg-helper-modal\\""' \
+  -e '/Firewall level/a \              local helper_uci_path = "uci.firewall.helper."' \
+  -e '/Firewall level/a \              local helper_uci_content = proxy.get(helper_uci_path)' \
+  -e '/Firewall level/a \              helper_uci_content = content_helper.convertResultToObject(helper_uci_path,helper_uci_content)' \
+  -e '/Firewall level/a \              local disabled_count = 0' \
+  -e '/Firewall level/a \              local enabled_count = 0' \
+  -e '/Firewall level/a \              for _,v in ipairs(helper_uci_content) do' \
+  -e '/Firewall level/a \                if v.intf ~= "loopback" then' \
+  -e '/Firewall level/a \                  if v.enable ~= "0" then' \
+  -e '/Firewall level/a \                    enabled_count = enabled_count + 1' \
+  -e '/Firewall level/a \                   else' \
+  -e '/Firewall level/a \                    disabled_count = disabled_count + 1' \
+  -e '/Firewall level/a \                  end' \
+  -e '/Firewall level/a \                end' \
+  -e '/Firewall level/a \              end' \
+  -e '/Firewall level/a \              if enabled_count > 0 then' \
+  -e '/Firewall level/a \                html[#html+1] = format(N("<strong %1$s>%2$d NAT Helper</strong> enabled","<strong %1$s>%2$d NAT Helpers</strong> enabled", enabled_count), alg_modal_link, enabled_count)' \
+  -e '/Firewall level/a \              else' \
+  -e '/Firewall level/a \                html[#html+1] = format(N("<strong %1$s>%2$d NAT Helper</strong> disabled","<strong %1$s>%2$d NAT Helpers</strong> disabled", disabled_count), alg_modal_link, disabled_count)' \
+  -e '/Firewall level/a \              end' \
+  -e '/Firewall level/a \              html[#html+1] = "<br>"' \
+  -e '/Firewall level/a \            end' \
+  -e '/numrules/,/numrules_v6/d' \
+  -e '/if content.mode/,/end/d' \
   -i /www/cards/008_firewall.lp
 
-echo [$SCRIPT]: Fix NAT ALG modal errors
+echo [$SCRIPT]: Fix NAT ALG modal errors and include in Firewall tabs if card hidden
 sed \
+  -e '/^local ui_helper/i \local proxy = require("datamodel")' \
   -e 's/T"Enable"/T"Enabled"/' \
   -e 's/, readonly="true"/ /' \
   -e 's/unique/readonly/' \
@@ -52,5 +79,66 @@ sed \
   -e '/return true/i \  end' \
   -e '/return true/i \  object["helper"] = string.lower(object["helper"])' \
   -e '/--Look for the enable set to nothing/,/^end/d' \
+  -e '/^local UI_helper/i \local proxy = require("datamodel")' \
+  -e "/modal-body/a \  ');" \
+  -e '/modal-body/a \  local card_hidden = proxy.get("uci.web.card.@card_natalghelper.hide")' \
+  -e '/modal-body/a \  if card_hidden and card_hidden[1] and card_hidden[1].value == "1" then' \
+  -e '/modal-body/a \    local lp = require("web.lp")' \
+  -e '/modal-body/a \    lp.setpath("/www/snippets/")' \
+  -e '/modal-body/a \    lp.include("tabs-firewall.lp")' \
+  -e '/modal-body/a \  end' \
+  -e "/modal-body/a \  ngx.print('\\\\" \
+  -e "/createTable/i \        ngx.print('<legend>');  ngx.print( T'NAT Helpers (ALG\\\\'s)' ); ngx.print('</legend>');" \
+  -e "s/\"NAT Helpers (ALG's)\"/\"Firewall\"/" \
+  -e 's/Dest Port/Destination Port/' \
   -i /www/docroot/modals/nat-alg-helper-modal.lp
+
+echo [$SCRIPT]: Remove Port Forwarding from WAN Services - Moved to Firewall tab
+sed \
+  -e '/-- In UCI/,/local pfw_data,/d' \
+  -e '/local ipv6Data/,/local pfw_v6_data,/d' \
+  -e "/Port forwarding table/,/ngx.print('/d" \
+  -e '/if ipv6Data.lanIpv6Enabled/,/end$/d' \
+  -e '/local function getConfPath/,/local uri = ngx.var.uri/d' \
+  -e 's/\(local help_link =\).*/\1 nil/' \
+  -e '/if #alg_sip_paths/,/ end /d' \
+  -e '/if zonenum ~= "" /,/ end /d' \
+  -i /www/docroot/modals/wanservices-modal.lp
+
+echo [$SCRIPT]: Improving WAN Services card
+sed \
+  -e 's/class = "span4",//' \
+  -e '/sys.upnp.RedirectNumberOfEntries/i \  upnp_status = "uci.upnpd.config.enable_upnp",' \
+  -e '/sys.upnp.RedirectNumberOfEntries/i \  dnsrule_count = "uci.dhcp.dnsruleNumberOfEntries",' \
+  -e '/local n_upnp_rules/a \    local n_dns_rules = tonumber(wan_services_data["dnsrule_count"])' \
+  -e '/local n_upnp_rules/a \    local upnpstate' \
+  -e '/local n_upnp_rules/a \    if wan_services_data["upnp_status"] == "1" then' \
+  -e '/local n_upnp_rules/a \      upnpstate = "UPnP enabled"' \
+  -e '/local n_upnp_rules/a \    else' \
+  -e '/local n_upnp_rules/a \      upnpstate = "UPnP disabled"' \
+  -e '/local n_upnp_rules/a \    end' \
+  -e '/local n_upnp_rules/a \    local wol = io.open("/lib/functions/firewall-wol.sh", "r") and proxy.get("uci.wol.config.")' \
+  -e '/local n_upnp_rules/a \    local wolstate = ""' \
+  -e '/local n_upnp_rules/a \    if wol then' \
+  -e '/local n_upnp_rules/a \      wolenabled = proxy.get("uci.wol.config.enabled")' \
+  -e '/local n_upnp_rules/a \      if wolenabled then' \
+  -e '/local n_upnp_rules/a \        if wolenabled[1].value == "1" then' \
+  -e '/local n_upnp_rules/a \          wolstate = ui_helper.createSimpleLight("1", "WoL over Internet enabled")' \
+  -e '/local n_upnp_rules/a \        else' \
+  -e '/local n_upnp_rules/a \          wolstate = ui_helper.createSimpleLight("0", "WoL over Internet disabled")' \
+  -e '/local n_upnp_rules/a \        end' \
+  -e '/local n_upnp_rules/a \      end' \
+  -e '/local n_upnp_rules/a \    end' \
+  -e '/<p>/a \            wolstate,' \
+  -e '/<p>/a \            ui_helper.createSimpleLight(ddns_light_map[format("%s", wan_services_data["upnp_status"])] or "0", upnpstate),' \
+  -e '/firewall_rules/d' \
+  -e '/port forwarding<\/strong> rule /,/subinfos/d' \
+  -e "/modal\"', n_upnp_rules/a            '<br>'," \
+  -e "/modal\"', n_upnp_rules/a            format( N(\"<strong %s>%d DNS rule</strong> defined\"," \
+  -e "/modal\"', n_upnp_rules/a                      \"<strong %s>%d DNS rules</strong> defined\", n_dns_rules)," \
+  -e "/modal\"', n_upnp_rules/a                      'class=\"modal-link\" data-toggle=\"modal\" data-remote=\"modals/wanservices-modal.lp\" data-id=\"wanservices-modal\"', n_dns_rules)," \
+  -e 's|<p></p>||' \
+  -e 's|upnp</strong> rule |UPnP rule</strong> |' \
+  -e 's|upnp</strong> rules|UPnP rules</strong>|' \
+  -i /www/cards/007_wanservices.lp
 

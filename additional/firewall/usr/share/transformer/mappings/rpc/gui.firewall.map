@@ -1,0 +1,51 @@
+local uci_helper = mapper("ucihelper")
+
+local enabledRuleCountCache = 0
+
+local GUI_FIREWALL_ = {
+  objectType = {
+    name = "rpc.gui.firewall.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      enabledRuleCount = {
+        access = "readOnly",
+        type = "int"
+      },
+      clearCache = {
+        access = "readWrite",
+        type = "boolean"
+      },
+    }
+  }
+}
+
+GUI_FIREWALL_.get = {
+  enabledRuleCount = function()
+    if enabledRuleCountCache == 0 then
+      local level = uci_helper.get_from_uci({config="firewall", sectionname="fwconfig", option="level"})
+      for s,t in pairs(uci_helper.getall_from_uci({config = "firewall"})) do
+        if t[".type"] == "rule" or t[".type"] == "defaultrule" or t[".type"] == level.."rule" then
+          if not t.enabled or t.enabled ~= "0" then
+            enabledRuleCountCache = enabledRuleCountCache + 1
+          end
+        end
+      end
+    end
+    return tostring(enabledRuleCountCache)
+  end,
+  clearCache = function()
+    return "0"
+  end
+}
+
+GUI_FIREWALL_.set = {
+  clearCache = function(mapping,param,value,key)
+    if value == "1" then
+      enabledRuleCountCache = 0
+    end
+  end
+}
+
+register(GUI_FIREWALL_)
