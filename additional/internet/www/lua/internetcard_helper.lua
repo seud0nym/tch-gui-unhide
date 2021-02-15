@@ -18,6 +18,8 @@ function M.getInternetCardHTML(mode_active)
       ipaddr = "rpc.network.interface.@wwan.ipaddr",
       ip6addr = "rpc.network.interface.@wwan.ip6addr",
       dns = "rpc.network.interface.@wwan.dnsservers",
+      rx_bytes = "rpc.network.interface.@wwan.rx_bytes",
+      tx_bytes = "rpc.network.interface.@wwan.tx_bytes",
     }
     content_helper.getExactContent(content_mobile)
     if content_mobile.ipaddr ~= "" then
@@ -31,6 +33,12 @@ function M.getInternetCardHTML(mode_active)
         mobile_ip = format('<span style="font-size:12px">%s</span>', content_mobile.ip6addr)
         mobile_dns = format('<span style="font-size:12px">%s</span>', gsub(content_mobile.dns,",",", "))
       end
+    end
+    if tonumber(content_mobile.rx_bytes) * 100 < tonumber(content_mobile.tx_bytes) then
+      mobile_status["wwan_up"] = "2"
+      mobile_status["state"] = "Mobile Internet SIM disabled?"
+    else
+      mobile_status["state"] = "Mobile Internet connected"
     end
   end
   
@@ -203,7 +211,7 @@ function M.getInternetCardHTML(mode_active)
   end
 
   if mobile_ip then
-    html[#html+1] = ui_helper.createSimpleLight(mobile_status["wwan_up"], "Mobile Internet connected")
+    html[#html+1] = ui_helper.createSimpleLight(mobile_status["wwan_up"], mobile_status["state"])
     addIPs(mobile_ip, nil, mobile_dns, nil)
   end
 
