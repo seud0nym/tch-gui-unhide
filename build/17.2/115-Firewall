@@ -1,0 +1,17 @@
+echo [$SCRIPT]: Fix Firewall modals for FW 17.2
+sed \
+  -e 's/\.@\././' \
+  -i /www/docroot/modals/firewall-cone-modal.lp
+sed \
+  -e 's/@defaults\[0\]/1/' \
+  -i /www/docroot/modals/firewall-modal.lp
+sed \
+  -e 's/\.@\././' \
+  -i /www/docroot/modals/firewall-port-forwarding-modal.lp
+sed \
+  -e 's/\.@\././' \
+  -i /www/docroot/modals/firewall-rules-modal.lp
+sed \
+  -e 's/\.@\././' \
+  -i /www/docroot/modals/firewall-zones-modal.lp
+
