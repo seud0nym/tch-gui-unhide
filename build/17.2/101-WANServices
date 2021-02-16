@@ -1,0 +1,6 @@
+echo [$SCRIPT]: Change WAN Services modal checkboxes to switches
+sed \
+  -e 's/= gVCS/= vB/' \
+  -e 's/createCheckboxSwitch/createSwitch/' \
+  -i /www/docroot/modals/wanservices-modal.lp
+
