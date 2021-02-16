@@ -127,9 +127,9 @@ ngx.print('\
         ui_helper.createSimpleLight(light.TO_WLAN, format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",wlan_queues),queue_link,wlan_queues).." on "..format(N("<strong %1$s>%2$d Wi-Fi SSID</strong>","<strong %1$s>%2$d Wi-Fi SSIDs</strong>",group.TO_WLAN),devic_link,group.TO_WLAN)),
         ui_helper.createSimpleLight(shapers.light, format(N("<strong %1$s>%2$d Upload Shaper</strong> active","<strong %1$s>%2$d Upload Shapers</strong> active",shapers.active),shape_link,shapers.active)), -- 18.1.c only
         '<p class="subinfos">',
-        format(N("<strong %1$s>%2$d Classify Rule</strong> defined","<strong %1$s>%2$d Classify Rules</strong> defined",classify),class_link,classify),
+        format(N("<strong %1$s>%2$d Classify rule</strong> defined","<strong %1$s>%2$d Classify rules</strong> defined",classify),class_link,classify),
         '<br>',
-        format(N("<strong %1$s>%2$d Reclassify Rule</strong> defined","<strong %1$s>%2$d Reclassify Rules</strong> defined",reclassify),recla_link,reclassify),
+        format(N("<strong %1$s>%2$d Reclassify rule</strong> defined","<strong %1$s>%2$d Reclassify rules</strong> defined",reclassify),recla_link,reclassify),
         '</p>'
       )
       ngx.print('\
