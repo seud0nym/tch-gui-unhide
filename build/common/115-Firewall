@@ -142,3 +142,43 @@ sed \
   -e 's|upnp</strong> rules|UPnP rules</strong>|' \
   -i /www/cards/007_wanservices.lp
 
+echo [$SCRIPT]: Fix missing values on rpc.network.firewall.userrule.
+sed \
+  -e '/dest_port = {/i \      dest_mac = {' \
+  -e '/dest_port = {/i \        access = "readWrite",' \
+  -e '/dest_port = {/i \        type = "string",' \
+  -e '/dest_port = {/i \      },' \
+  -e '/dest_port =  function(mapping, paramname, k/i \    dest_mac =  function(mapping, paramname, key)' \
+  -e '/dest_port =  function(mapping, paramname, k/i \        return getFromUCI(key, paramname)' \
+  -e '/dest_port =  function(mapping, paramname, k/i \    end,' \
+  -e '/dest_port =  function(mapping, paramname, p/i \    dest_mac =  function(mapping, paramname, paramvalue, key)' \
+  -e '/dest_port =  function(mapping, paramname, p/i \        setOnUCI(key, paramname, paramvalue)' \
+  -e '/dest_port =  function(mapping, paramname, p/i \    end,' \
+  -i /usr/share/transformer/mappings/rpc/network.firewall.userrule.map
+SRV_transformer=$(( $SRV_transformer + 1 ))
+
+echo [$SCRIPT]: Fix missing values on rpc.network.firewall.userrule_v6.
+sed \
+  -e '/src = {/i \      name = {' \
+  -e '/src = {/i \        access = "readWrite",' \
+  -e '/src = {/i \        type = "string",' \
+  -e '/src = {/i \      },' \
+  -e '/src =  function(mapping, paramname, k/i \    name =  function(mapping, paramname, key)' \
+  -e '/src =  function(mapping, paramname, k/i \        return getFromUCI(key, paramname)' \
+  -e '/src =  function(mapping, paramname, k/i \    end,' \
+  -e '/src =  function(mapping, paramname, p/i \    name =  function(mapping, paramname, paramvalue, key)' \
+  -e '/src =  function(mapping, paramname, p/i \        setOnUCI(key, paramname, paramvalue)' \
+  -e '/src =  function(mapping, paramname, p/i \    end,' \
+  -e '/dest_port = {/i \      dest_mac = {' \
+  -e '/dest_port = {/i \        access = "readWrite",' \
+  -e '/dest_port = {/i \        type = "string",' \
+  -e '/dest_port = {/i \      },' \
+  -e '/dest_port =  function(mapping, paramname, k/i \    dest_mac =  function(mapping, paramname, key)' \
+  -e '/dest_port =  function(mapping, paramname, k/i \        return getFromUCI(key, paramname)' \
+  -e '/dest_port =  function(mapping, paramname, k/i \    end,' \
+  -e '/dest_port =  function(mapping, paramname, p/i \    dest_mac =  function(mapping, paramname, paramvalue, key)' \
+  -e '/dest_port =  function(mapping, paramname, p/i \        setOnUCI(key, paramname, paramvalue)' \
+  -e '/dest_port =  function(mapping, paramname, p/i \    end,' \
+  -i /usr/share/transformer/mappings/rpc/network.firewall.userrule_v6.map
+SRV_transformer=$(( $SRV_transformer + 1 ))
+
