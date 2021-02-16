@@ -1,0 +1,5 @@
+echo [$SCRIPT]: Fix WAN Services card
+sed \
+  -e '/local format/a \local proxy = require("datamodel")' \
+  -i /www/cards/007_wanservices.lp
+
