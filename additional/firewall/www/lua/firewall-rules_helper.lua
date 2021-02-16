@@ -13,7 +13,7 @@ local content_helper = require("web.content_helper")
 local portslist = require("portslist_helper")
 local hosts_ac, hosts_ac_v6 = require("web.uinetwork_helper").getAutocompleteHostsList()
 local concat, remove = table.concat, table.remove
-local find, match = string.find, string.match
+local find, match, untaint = string.find, string.match, string.untaint
 
 local vB = post_helper.validateBoolean
 local gVIES = post_helper.getValidateInEnumSelect
@@ -106,17 +106,17 @@ local session = ngx.ctx.session
 ]]
 local function rulesDuplicateCheck(basepath,tableid,columns)
   return function(value, postdata, key)
-  local sucess,msg
+  local success,msg
     if value and value ~= "" then
-      sucess,msg = vSIPR(value, postdata, key)
+      success,msg = vSIPR(value, postdata, key)
     else
-      sucess = true
+      success = true
     end
-    if sucess then
+    if success then
       -- specify column range to check for duplicates
-      local startIndex, endIndex= 4,10
+      local startIndex, endIndex = 3, 13
       local fullpath = nil
-      if postdata.action =="TABLE-MODIFY" then
+      if postdata.action =="TABLE-ADD" or postdata.action =="TABLE-MODIFY" then
         local index = tonumber(postdata.index)
         local tablesessionindexes = tableid..".allowedindexes"
         local allowedIndexes = session:retrieve(tablesessionindexes) or {}
@@ -128,7 +128,7 @@ local function rulesDuplicateCheck(basepath,tableid,columns)
       end
       local paths=nil
       for i=startIndex, endIndex do
-        local value = string.untaint(postdata[columns[i].name])
+        local value = untaint(postdata[columns[i].name])
         local cmatch = content_helper.getMatchedContent(basepath, {[columns[i].param] = value })
         if fullpath then
           for u,v in ipairs(cmatch) do
@@ -180,12 +180,12 @@ local function rulesDuplicateCheck(basepath,tableid,columns)
       --Finally if you get one or more paths which contain all
       --the 4 values are duplicated (sr ip,port and dest ip, port) are duplicated
       if paths then
-          sucess = nil
-          msg = T"duplicate value"
+          success = nil
+          msg = T"Existing rule duplicates these values"
           duplicatedErrMsg = msg
       end
     end
-    return sucess, msg
+    return success, msg
   end
 end
 
@@ -420,6 +420,14 @@ function M.getRuleColumns(fwrule_options)
           type = "text",
           attr = { input = { class="span1", maxlength="11" }, autocomplete = portslist },
         },
+        { -- [13]
+          header = T"Family",
+          name = "family",
+          param = "family",
+          type = "hidden",
+          default = "ipv4",
+          readonly = true,
+        },
       },
     }
   }
@@ -430,39 +438,45 @@ function M.getRuleColumns(fwrule_options)
     for _,v in ipairs(fwrule_columns) do
       v.name = v.name .. "_v6"
       if v.param == "proto" then
-        v.value = fwrules_v6_protocols
+        v.values = fwrules_v6_protocols
       end
-    end
-    for _,v in ipairs(fwrule_columns[14]) do
-      v.name = v.name .. "_v6"
-      if v.param == "proto" then
-        v.value = fwrules_v6_protocols
-      elseif param == "src_ip" or param == "dest_ip" then
-        v.attr = { input = { class="span2", maxlength="39" }, autocomplete = hosts_ac_v6 }
+      if v.name == "fwrule_entry_v6" then
+        for _,w in ipairs(v.subcolumns) do
+          w.name = w.name .. "_v6"
+          if w.param == "proto" then
+            w.values = fwrules_v6_protocols
+          elseif w.param == "family" then
+            w.default = "ipv6"
+          elseif param == "src_ip" or param == "dest_ip" then
+            w.attr = { input = { class="span2", maxlength="39" }, autocomplete = hosts_ac_v6 }
+          end
+        end
       end
     end
     fwrule_valid = {
       enabled_v6 = vB,
       target_v6 = gVIES(fwrules_targets),
+      family_v6 = gVIES(fwrules_family),
       protocol_v6 = gVIES(fwrules_v6_protocols),
       src_v6 = gVIES(src_intfs),
       src_ip_v6 = gOV(vIP6AS),
       src_port_v6 = gOV(vSIPR),
       dest_v6 = gVIES(dst_intfs),
       dest_ip_v6 = gOV(vIP6AS),
-      dest_port_v6 = rulesDuplicateCheck(dup_chk_basepath, fwrule_options.tableid, fwrule_columns),
+      dest_port_v6 = rulesDuplicateCheck(dup_chk_basepath, fwrule_options.tableid, fwrule_columns[15].subcolumns),
     }
   else
     fwrule_valid = {
       enabled = vB,
       target = gVIES(fwrules_targets),
+      family = gVIES(fwrules_family),
       protocol = gVIES(fwrules_protocols),
       src = gVIES(src_intfs),
       src_ip = validateLanIP,
       src_port = gOV(vSIPR),
       dest = gVIES(dst_intfs),
       dest_ip = validateLanIP,
-      dest_port = rulesDuplicateCheck(dup_chk_basepath, fwrule_options.tableid, fwrule_columns),
+      dest_port = rulesDuplicateCheck(dup_chk_basepath, fwrule_options.tableid, fwrule_columns[15].subcolumns),
     }
   end
 
@@ -476,10 +490,6 @@ end
 
 function M.fwrule_sort(rule1, rule2)
   return tonumber(rule1.paramindex) < tonumber(rule2.paramindex)
-end
-
-function M.getDuplicatedErrMsg()
-  return duplicatedErrMsg
 end
 
 function M.handleTableQuery(fwrule_options, fwrule_defaultObject)
@@ -496,6 +506,15 @@ function M.handleTableQuery(fwrule_options, fwrule_defaultObject)
     end
   end
 
+  if duplicatedErrMsg then
+    for _,v in ipairs(fwrule_columns[15].subcolumns) do
+      if v.param ~= "enabled" and v.param ~= "name" and (not fwrule_helpmsg[v.name] or fwrule_helpmsg[v.name] == "") then
+        fwrule_helpmsg[v.name]= duplicatedErrMsg
+      end
+    end
+    duplicatedErrMsg = nil
+  end
+  
   return fwrule_columns, fwrule_data, fwrule_helpmsg
 end
 

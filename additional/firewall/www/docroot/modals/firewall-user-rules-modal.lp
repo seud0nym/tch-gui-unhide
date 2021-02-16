@@ -20,8 +20,6 @@ if ngx.var.request_method == "POST" then
   end
 end
 
-local duplicatedErrMsg = nil
-
 local userLevelEnabled = (proxy.get("rpc.network.firewall.mode")[1].value == "user")
 
 local fwrule_options = {
@@ -40,17 +38,6 @@ local fwrule_defaultObject = {
 
 local fwrule_columns, fwrule_data, fwrule_helpmsg = fwrules_helper.handleTableQuery(fwrule_options, fwrule_defaultObject)
 
-duplicatedErrMsg = fwrules_helper.getDuplicatedErrMsg()
-if duplicatedErrMsg then
-  fwrule_helpmsg.protocol = duplicatedErrMsg
-  fwrule_helpmsg.src_ip = duplicatedErrMsg
-  fwrule_helpmsg.src_port = duplicatedErrMsg
-  fwrule_helpmsg.dest_ip = duplicatedErrMsg
-  fwrule_helpmsg.dest_port = duplicatedErrMsg
-  fwrule_helpmsg.dscp = duplicatedErrMsg
-  duplicatedErrMsg = nil
-end
-
 local fwrule_v6_options = {
   tableid = "fwrules_v6",
   basepath = "rpc.network.firewall.userrule_v6.@.",
@@ -66,16 +53,6 @@ local fwrule_v6_defaultObject = {
 }
 
 local fwrule_v6_columns, fwrule_v6_data, fwrule_v6_helpmsg = fwrules_helper.handleTableQuery(fwrule_v6_options, fwrule_v6_defaultObject)
-
-duplicatedErrMsg = fwrules_helper.getDuplicatedErrMsg()
-if duplicatedErrMsg then
-  fwrule_v6_helpmsg.protocol_v6 = duplicatedErrMsg
-  fwrule_v6_helpmsg.src_ip_v6 = duplicatedErrMsg
-  fwrule_v6_helpmsg.src_port_v6 = duplicatedErrMsg
-  fwrule_v6_helpmsg.dest_ip_v6 = duplicatedErrMsg
-  fwrule_v6_helpmsg.dest_port_v6 = duplicatedErrMsg
-  fwrule_v6_helpmsg.dscp_v6 = duplicatedErrMsg
-end
 
 local info_attr = {
   alert = {
