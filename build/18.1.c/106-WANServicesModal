@@ -1,37 +1,4 @@
 echo [$SCRIPT]: Fix setting of firewall forwarding rule when NAT enabled/disabled
-sed \
-  -e '/^local firewall_value/i \local function validateNat(value, object, key)' \
-  -e '/^local firewall_value/i \  local valid, msg = post_helper.validateBoolean(value, object, key)' \
-  -e '/^local firewall_value/i \  if valid and zonenum ~= "" and value ~= proxy.get("uci.firewall.zone."..zonenum..".masq")[1].value then' \
-  -e '/^local firewall_value/i \    proxy.set("uci.firewall.zone."..zonenum..".conntrack", "1")' \
-  -e '/^local firewall_value/i \    local fwd_enabled' \
-  -e '/^local firewall_value/i \    if value == "1" then' \
-  -e '/^local firewall_value/i \      fwd_enabled = "0"' \
-  -e '/^local firewall_value/i \    else' \
-  -e '/^local firewall_value/i \      fwd_enabled = "1"' \
-  -e '/^local firewall_value/i \    end' \
-  -e '/^local firewall_value/i \    if forwdnum == "" then' \
-  -e '/^local firewall_value/i \      forwdnum = proxy.add("uci.firewall.forwarding.")' \
-  -e '/^local firewall_value/i \      local count = 0' \
-  -e '/^local firewall_value/i \      firewall_forwarding_path = content_helper.convertResultToObject("uci.firewall.forwarding.",firewall_forwarding)' \
-  -e '/^local firewall_value/i \      for _ in ipairs(firewall_forwarding_path) do' \
-  -e '/^local firewall_value/i \        count = count + 1' \
-  -e '/^local firewall_value/i \      end' \
-  -e '/^local firewall_value/i \      forwdnum = "@forwarding[" .. count .. "]"' \
-  -e '/^local firewall_value/i \      proxy.set("uci.firewall.forwarding."..forwdnum..".src", "wan")' \
-  -e '/^local firewall_value/i \      proxy.set("uci.firewall.forwarding."..forwdnum..".dest", "lan")' \
-  -e '/^local firewall_value/i \      proxy.set("uci.firewall.forwarding."..forwdnum..".name", "for_w2l")' \
-  -e '/^local firewall_value/i \      proxy.set("uci.firewall.forwarding."..forwdnum..".enabled", fwd_enabled)' \
-  -e '/^local firewall_value/i \    else' \
-  -e '/^local firewall_value/i \      proxy.set("uci.firewall.forwarding."..forwdnum..".enabled", fwd_enabled)' \
-  -e '/^local firewall_value/i \    end' \
-  -e '/^local firewall_value/i \    proxy.apply()' \
-  -e '/^local firewall_value/i \  end' \
-  -e '/^local firewall_value/i \  return valid, msg' \
-  -e '/^local firewall_value/i \end' \
-  -e '/^local firewall_value/,/^end/d' \
-  -i /www/docroot/modals/wanservices-modal.lp
-
 for r in dhcp pppoa pppoe static
 do
   sed -e '/-- 106-BEGIN/d' -e '/-- 106-END/d' -i /www/snippets/internet-${r}-routed.lp
