@@ -58,9 +58,13 @@ function M.getBroadbandCardHTML()
   local content_rpc = {
     tx_bytes = "rpc.network.interface.@" .. wan_intf .. ".tx_bytes",
     rx_bytes = "rpc.network.interface.@" .. wan_intf .. ".rx_bytes",
+    uptime = "rpc.network.interface.@" .. wan_intf .. ".uptime",
   }
   content_helper.getExactContent(content_rpc)
-  local uptime = content_helper.readfile("/proc/uptime","number",floor)
+  local uptime = tonumber(content_rpc.uptime)
+  if not uptime then
+    uptime = tonumber(content_helper.readfile("/proc/uptime","number",floor))
+  end
 
   local html = {}
   if wan_data["wan_ifname"] and (find(wan_data["wan_ifname"],"ptm0") or find(wan_data["wan_ifname"],"atm")) then
@@ -93,7 +97,7 @@ function M.getBroadbandCardHTML()
   if mobiled_state["mob_session_state"] == "connected" then
     html[#html+1] = ui_helper.createSimpleLight("1", "Mobile Internet connected")
   end
-  if tonumber(content_rpc.rx_bytes) and tonumber(content_rpc.tx_bytes) and tonumber(uptime) then
+  if tonumber(content_rpc.rx_bytes) and tonumber(content_rpc.tx_bytes) and uptime then
     html[#html+1] = format('<span class="simple-desc" style="padding-top:10px"><i class="icon-cloud-upload icon-small status-icon"></i> <span id="broadband-card-upload">%s</span> <i class="icon-cloud-download icon-small status-icon"></i> <span id="broadband-card-download">%s</span> <span id="broadband-card-daily-average">%s</span>/<i>d</i></span>', 
       bytes2string(content_rpc.tx_bytes), bytes2string(content_rpc.rx_bytes), bytes2string((content_rpc.rx_bytes+content_rpc.tx_bytes)/(uptime/86400)))
   end
