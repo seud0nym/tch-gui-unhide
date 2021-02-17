@@ -77,8 +77,10 @@ sed \
   -e '/local function get_profile_select/i \    end' \
   -e '/local function get_profile_select/i \end' \
   -e '/local function get_profile_select/i \\' \
-  -e '/p.mapParams\["interface_enabled"\]/a \		p.mapParams["lte_bands"] = device.uci_path .. "lte_bands"' \
-  -e '/p.mapParams\["interface_enabled"\]/a \		p.mapValid["lte_bands"] = validate_lte_bands(device)' \
+  -e '/p.mapParams\["interface_enabled"\]/a \		if utils.radio_tech_map[device.leds.radio] == "LTE" then' \
+  -e '/p.mapParams\["interface_enabled"\]/a \			p.mapParams["lte_bands"] = device.uci_path .. "lte_bands"' \
+  -e '/p.mapParams\["interface_enabled"\]/a \			p.mapValid["lte_bands"] = validate_lte_bands(device)' \
+  -e '/p.mapParams\["interface_enabled"\]/a \		end' \
   -e '/"Access Technology"/a \	 			if utils.radio_tech_map[page.device.leds.radio] == "LTE" then' \
   -e '/"Access Technology"/a \	 				local b, lte_bands, lte_bands_checked = nil, {}, {}' \
   -e '/"Access Technology"/a \	 				for b in string.gmatch(page.device.capabilities.supported_bands_lte, "%d+") do' \
