@@ -21,7 +21,7 @@ local function checkCron()
   local f = io.open(cronfile,"r")
   for line in f:lines() do
     if line ~= "" then
-      local enabled, minute, hour, day, month, week, command = line:match("([# ]*)([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) ([0-9-%*-%--%/]+) (.*)")
+      local enabled, minute, hour, day, month, week, command = line:match("([# ]*)([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) (.*)")
       if enabled:gsub("%s","") == "#" then
         enabled = "0"
       else
@@ -209,32 +209,32 @@ GUI_CRON_i_.get = {
 
 GUI_CRON_i_.set = {
   minute = function(mapping,param,value,key)
-    if not value:match("[0-9-%*-%-]+") then
-      return nil, "Invalid set must be range of number or *"
+    if not value:match("[0-9-%*-%--%/,]+") then
+      return nil, "Minute can only contain 0-9, commas, -, / and *"
     end
     return editCron(param,value,key)
   end,
   hour = function(mapping,param,value,key)
-    if not value:match("[0-9-%*-%-]+") then
-      return nil, "Invalid set must be range of number or *"
+    if not value:match("[0-9-%*-%--%/,]+") then
+      return nil, "Hour can only contain 0-9, commas, -, / and *"
     end
     return editCron(param,value,key)
   end,
   day = function(mapping,param,value,key)
-    if not value:match("[0-9-%*-%-]+") then
-      return nil, "Invalid set must be range of number or *"
+    if not value:match("[0-9-%*-%--%/,]+") then
+      return nil, "Day can only contain 0-9, commas, -, / and *"
     end
     return editCron(param,value,key)
   end,
   month = function(mapping,param,value,key)
-    if not value:match("[0-9-%*-%-]+") then
-      return nil, "Invalid set must be range of number or *"
+    if not value:match("[0-9-%*-%--%/,]+") then
+      return nil, "Month can only contain 0-9, commas, -, / and *"
     end
     return editCron(param,value,key)
   end,
   week = function(mapping,param,value,key)
-    if not value:match("[0-9-%*-%-]+") then
-      return nil, "Invalid set must be range of number or *"
+    if not value:match("[0-9-%*-%--%/,]+") then
+      return nil, "Week can only contain 0-9, commas, -, / and *"
     end
     return editCron(param,value,key)
   end,
