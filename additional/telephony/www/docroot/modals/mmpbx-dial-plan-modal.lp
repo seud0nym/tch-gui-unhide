@@ -114,6 +114,13 @@ local entry_columns = {
     attr = { input = { type = "number", min = "0", class="span2", style = "width:35px" } },
   },
   {
+    header = T"Insert<br>Characters",
+    name = "insert",
+    param = "insert",
+    type = "text",
+    attr = { input = { type = "number", class="span2", style = "width:60px" } },
+  },
+  {
     header = T"Postion<br>of<br>Modify",
     name = "position_of_modify",
     param = "position_of_modify",
@@ -150,6 +157,26 @@ local entry_columns = {
   },
 }
 
+local gOV = post_helper.getOptionalValidation
+local vB = post_helper.validateBoolean
+local vNES = post_helper.validateNonEmptyString
+local vPN = post_helper.validatePositiveNum
+
+local entry_valid = {
+  enabled = vB,
+  pattern = vNES,
+  min_length = vPN,
+  max_length = vPN,
+  include_eon = vB,
+  remove_number_of_characters = vPN,
+  insert = gOV(vPN),
+  position_of_modify = vPN,
+  apply_forced_profile = vB,
+  open_inter_digit_timer = gOV(vPN),
+  priority = vNES,
+  allow = vB
+}
+
 %>
 <%= ui_helper.createHeader(T"Telephony", false, true) %>
 <div class="modal-body update">
@@ -165,7 +192,7 @@ local entry_columns = {
       <%
         local plan_attributes = {
             select = {
-                class ="monitor-changes",
+                class ="monitor-changes no-save",
             },
         }
         ngx.print(ui_helper.createInputSelect(T"Dial Plan Name", "dial_plan", plans, plan_name, plan_attributes))
@@ -217,7 +244,6 @@ local entry_columns = {
             input = {
               type = "number",
               style = "width:60px",
-              
             }
           }
           local details = plan_details[plan]
@@ -252,7 +278,7 @@ local entry_columns = {
             basepath = "uci.mmpbx.dial_plan_entry.",
             sorted = "pattern",
           }
-          local entry_data, entry_helpmsg = post_helper.handleTableQuery(entry_columns, entry_options, entry_filter)
+          local entry_data, entry_helpmsg = post_helper.handleTableQuery(entry_columns, entry_options, entry_filter, nil, entry_valid)
           local entry_attributes = {
             group = {
               class ="monitor-dial_plan monitor-"..name.." monitor-1",
