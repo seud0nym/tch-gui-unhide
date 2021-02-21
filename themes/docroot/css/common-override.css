@@ -7,6 +7,7 @@
 .simple-desc{display:block;padding-top:2px;}
 .smallcard .content{font-size:14px;height:125px;}
 .smallcard .subinfos{font-size:14px;}
+.span3{width:270px;}
 .status-icon{color:var(--RGB_STATUS_ICON);}
 .table th,.table td {padding-left:4px;padding-right:4px;}
 #classify .checkbox{width:60px;}
@@ -26,6 +27,7 @@
 legend+.control-group{margin-top:unset;}
 u{text-decoration:none;}
 [class^="icon-"],[class*=" icon-"]{display:inline-block;width:18px;}
+@media screen and (min-width: 768px) and (max-width: 979px){.span3 {width:47%;}}
 @media screen and (min-width: 1200px){
   #classify .additional-edit input.span1{width:200px;}
   #classify .additional-edit input.span2{width:450px;}
