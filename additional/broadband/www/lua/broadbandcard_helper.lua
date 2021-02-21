@@ -100,7 +100,7 @@ function M.getBroadbandCardHTML()
   if mobiled_state["mob_session_state"] == "connected" then
     html[#html+1] = ui_helper.createSimpleLight("1", "Mobile Internet connected")
   end
-  html[#html+1] = format('<span class="simple-desc modal-link" data-toggle="modal" data-remote="/modals/broadband-usage-modal.lp" data-id="bb-usage-modal" style="padding-top:10px"><span class="icon-small status-icon">&udarr;</span> %s&ensp;<i class="icon-cloud-upload status-icon"></i> %s&ensp;<i class="icon-cloud-download status-icon"></i> %s</span>', 
+  html[#html+1] = format('<span class="simple-desc modal-link" data-toggle="modal" data-remote="/modals/broadband-usage-modal.lp" data-id="bb-usage-modal" style="padding-top:10px"><span class="icon-small status-icon">&udarr;</span>%s&ensp;<i class="icon-cloud-upload status-icon"></i> %s&ensp;<i class="icon-cloud-download status-icon"></i> %s</span>', 
     bytes2string(content_rpc.total_bytes), bytes2string(content_rpc.tx_bytes), bytes2string(content_rpc.rx_bytes))
 
   return html

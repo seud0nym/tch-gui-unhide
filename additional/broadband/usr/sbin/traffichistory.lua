@@ -102,7 +102,7 @@ local function DataAggregator(datadir, histdir)
     sincemidnight = (datetable.min * 60) + (datetable.hour * 3600)
     filename = os.date("%F", lastupdate)
   end
-  local todaylines = sincemidnight / 600
+  local todaylines = math.floor((sincemidnight / 600) + 0.05)
   if debug then 
     print("Target filename is "..filename) 
   end
