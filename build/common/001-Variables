@@ -114,6 +114,7 @@ else
 fi
 
 # Keep count of changes so we know whether to restart services
+SRV_cron=0
 SRV_dropbear=0
 SRV_nginx=0
 SRV_power=0
@@ -138,6 +139,7 @@ apply_service_changes() {
     /etc/init.d/transformer restart
     /etc/init.d/watchdog-tch start
   fi
+  [ $SRV_cron -gt 0 ] && /etc/init.d/cron restart
   [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear restart
   [ $SRV_system -gt 0 ] && /etc/init.d/system reload
   [ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart

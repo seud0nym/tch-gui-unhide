@@ -3,6 +3,18 @@ restore_www() {
   if [ -f /usr/share/transformer/mappings/iperf.map ]; then
     rm /usr/share/transformer/mappings/iperf.map
   fi
+  # Need to remove existing version or it doesn't get replaced?? 
+  if [ -f /usr/sbin/traffichistory.lua ]; then
+    if [ "$1" = "V" ]; then
+      echo [$SCRIPT]: Removing file /usr/sbin/traffichistory.lua
+    fi
+    rm /usr/sbin/traffichistory.lua
+  fi
+  grep -q "/usr/sbin/traffichistory.lua" /etc/crontabs/root
+  if [ $? -eq 0 ]; then
+    sed -e '/traffichistory.lua/d' -i /etc/crontabs/root
+    SRV_cron=$(( $SRV_cron + 1 ))
+  fi
   # Add individual files to be restored here
   for t in /etc/init.d/power
   do

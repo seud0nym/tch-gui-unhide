@@ -1,0 +1,197 @@
+local lfs = require("lfs")
+local match, sub = string.match, string.sub
+
+local histdir = "/root/trafficmon/history/"
+local wan_rollover_config = histdir..".wan_rollover"
+local wwan_rollover_config = histdir..".wwan_rollover"
+local pattern = "([^|]*)|(%d+)|(%d+)"
+
+local usageTable = {}
+
+local function refreshUsage(filename)
+  local file = io.open(histdir..filename, "r")
+  if file then
+    local line
+    for line in file:lines() do
+      local ifname, rx_bytes, tx_bytes = match(line, pattern)
+      if ifname and rx_bytes and tx_bytes and ifname ~= "" then
+        usageTable[filename.."_"..ifname] = {
+          date = filename,
+          interface = ifname,
+          rx_bytes = tostring(tonumber(rx_bytes) or 0),
+          tx_bytes = tostring(tonumber(tx_bytes) or 0),
+        }
+      end
+    end
+    file:close()
+    return true
+  else
+    return false
+  end
+end
+
+local function getRollOverDay(filename)
+  local day
+  local file = io.open(filename, "r")
+  if file then
+    day = tonumber(file:read())
+    file:close()
+  end
+  if not day then
+    day = 1
+    setRollOverDay(filename, day)
+  end
+  return day
+end
+
+local function setRollOverDay(filename, value)
+  local day = tonumber(value)
+  if day and day >= 1 and day <= 31 then
+    local file = io.open(filename, "w")
+    if file then
+      file:write(day)
+      file:close()
+      return true
+    else
+      return false
+    end
+  else
+    return false
+  end
+end
+
+local summaryfilename
+for summaryfilename in lfs.dir(histdir) do
+  if sub(summaryfilename,1,1) ~= "." then
+    refreshUsage(summaryfilename)
+  end
+end
+
+local GUI_BBUSAGEHIST_ = {
+  objectType = {
+    name = "rpc.gui.traffichistory.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      refresh = {
+        access = "readWrite",
+        type = "string"
+      },
+      remove = {
+        access = "readWrite",
+        type = "string"
+      },
+      wan_rollover = {
+        access = "readWrite",
+        type = "unsignedInt"
+      },
+      wwan_rollover = {
+        access = "readWrite",
+        type = "unsignedInt"
+      },
+    }
+  }
+}
+
+GUI_BBUSAGEHIST_.get = {
+  refresh = "",
+  remove = "",
+  wan_rollover = function()
+    return tostring(getRollOverDay(wan_rollover_config))
+  end,
+  wwan_rollover = function()
+    return tostring(getRollOverDay(wwan_rollover_config))
+  end,
+}
+
+GUI_BBUSAGEHIST_.set = {
+  refresh = function(mapping,param,value,key)
+    return refreshUsage(value)
+  end,
+  remove = function(mapping,param,value,key)
+    if value and value ~= "" then
+      local prefix = value .. "_"
+      local key
+      local found = 0
+      for key in pairs(usageTable) do
+        if sub(key, 1 , #prefix) == prefix then
+          usageTable[key] = nil
+          found = found + 1
+        end
+      end
+      return (found > 0)
+    else
+      return false
+    end
+  end,
+  wan_rollover = function(mapping,param,value,key)
+    return setRollOverDay(wan_rollover_config, value)
+  end,
+  wwan_rollover = function(mapping,param,value,key)
+    return setRollOverDay(wwan_rollover_config, value)
+  end,
+}
+
+register(GUI_BBUSAGEHIST_)
+
+local GUI_BBUSAGEHIST_i_ = {
+  objectType = {
+    name = "rpc.gui.traffichistory.usage.@.",
+    access = "readOnly",
+    numEntriesParameter = "UsageNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      date = {
+        access = "readOnly",
+        type = "string",
+      },
+      interface = {
+        access = "readOnly",
+        type = "string",
+      },
+      rx_bytes = {
+        access = "readOnly",
+        type = "unsignedInt",
+      },
+      tx_bytes = {
+        access = "readOnly",
+        type = "unsignedInt",
+      },
+      total_bytes = {
+        access = "readOnly",
+        type = "unsignedInt",
+      },
+    }
+  }
+}
+
+GUI_BBUSAGEHIST_i_.entries = function(mapping)
+  local res = {}
+  local key
+  for key in pairs(usageTable) do
+    res[#res+1]=key
+  end
+  return res
+end
+
+GUI_BBUSAGEHIST_i_.get = {
+  date = function(mapping, param, key)
+    return usageTable[key].date or ""
+  end,
+  interface = function(mapping, param, key)
+    return usageTable[key].interface or ""
+  end,
+  rx_bytes = function(mapping, param, key)
+    return usageTable[key].rx_bytes or "0"
+  end,
+  tx_bytes = function(mapping, param, key)
+    return usageTable[key].tx_bytes or "0"
+  end,
+  total_bytes = function(mapping, param, key)
+    return tostring((usageTable[key].rx_bytes or 0) + (usageTable[key].tx_bytes or 0))
+  end,
+}
+
+register(GUI_BBUSAGEHIST_i_)

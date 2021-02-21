@@ -55,7 +55,7 @@ find /tmp/additional/ -type d -exec chmod 755 {} \;
 find /tmp/additional/ -type f -name '*.map' -exec chmod 644 {} \;
 find /tmp/additional/ -type f -name '*.lp'  -exec chmod 644 {} \;
 find /tmp/additional/ -type f -name '*.lua' -exec chmod 644 {} \;
-for d in $(find /tmp/additional/ -type d -name 'init.d')
+for d in $(find /tmp/additional/ -type d -name 'init.d' -o -name 'sbin')
 do
   chmod 755 $d/*
 done
@@ -68,7 +68,6 @@ do
     for f in $(find . -type f -name "*.lp" -o -name "*.lua")
     do
       sed -e 's/^[ \t]*//g' -e 's/[ \t]*$//' -e 's/\r$//' -i $f
-      chmod -x $f
     done
     echo "echo [\$SCRIPT]: Deploy modified $d GUI code" > $DIR/../additional/$d.b64
     echo "echo $(tar --owner=root --group=root -czf - * | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> $DIR/../additional/$d.b64

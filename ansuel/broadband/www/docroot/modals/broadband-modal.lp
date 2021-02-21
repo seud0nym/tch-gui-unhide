@@ -2,13 +2,15 @@
 
 gettext.textdomain('webui-core')
 
-local lp = require("web.lp")
 local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 local dyntab_helper = require("web.dyntab_helper")
 local content_helper = require("web.content_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
+
+local lp = require("web.lp")
+lp.setpath("/www/snippets/")
 
 local bmh = require("broadbandmode_helper")
 local tabdata = dyntab_helper.process(bmh)
@@ -34,12 +36,13 @@ if not tabdata.current.ajax then
 
 	ngx.print('\
 <div class="modal-body update">\
+'); lp.include("tabs-broadband.lp") ngx.print('\
 <form class="form-horizontal" method="post" action="/modals/broadband-modal.lp">\
 ')
 	ngx.print(ui_helper.createMessages(message_helper.popMessages()))
 	ngx.print('\
 <fieldset id="conn_mode" class="advanced hide">\
-<legend>');ngx.print(T"Broadband type");ngx.print('</legend>')
+<legend>');ngx.print(T"Broadband Type");ngx.print('</legend>')
 
 	local html = {}
 
@@ -65,8 +68,8 @@ if not tabdata.current.ajax then
 		}
 	}
 	
-	html[#html + 1] = ui_helper.createAlertBlock(T"WanSensing sets the connection mode automatically.<br/>Disable this to set the connection mode manually.<br/>After saving the changes the connection options will be shown.", info_box)
-	html[#html+1] = ui_helper.createSwitch(T"WanSensing State", "wsens", content["wsens"],nil)
+	html[#html + 1] = ui_helper.createAlertBlock(T"WAN Sensing sets the connection mode automatically.<br/>Disable this to set the connection mode manually.<br/>After saving the changes the connection options will be shown.", info_box)
+	html[#html+1] = ui_helper.createSwitch(T"WAN Sensing State", "wsens", content["wsens"],nil)
 	
 	if ( content["wsens"] == "0" ) then
 		html[#html+1] = ui_helper.createInputRadio(T"Mode", "newmode", mode_options, mode_current, mode_attributes)
@@ -78,11 +81,9 @@ if not tabdata.current.ajax then
 </fieldset>\
 ')
 end
-lp.setpath("/www/snippets/")
 lp.include(tabdata.current.view)
 if not tabdata.current.ajax then
 	-- only display if not doing an ajax request
-
 	ngx.print('</form>\
 </div>\
 ')

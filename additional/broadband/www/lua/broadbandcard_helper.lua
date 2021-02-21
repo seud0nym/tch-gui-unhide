@@ -56,14 +56,17 @@ function M.getBroadbandCardHTML()
     wan_intf = "wwan"
   end
   local content_rpc = {
-    tx_bytes = "rpc.network.interface.@" .. wan_intf .. ".tx_bytes",
-    rx_bytes = "rpc.network.interface.@" .. wan_intf .. ".rx_bytes",
-    uptime = "rpc.network.interface.@" .. wan_intf .. ".uptime",
+    rx_bytes = 0,
+    tx_bytes = 0,
+    total_bytes = 0,
   }
-  content_helper.getExactContent(content_rpc)
-  local uptime = tonumber(content_rpc.uptime)
-  if not uptime then
-    uptime = tonumber(content_helper.readfile("/proc/uptime","number",floor))
+  local rpc_ifname = proxy.get("rpc.network.interface.@"..wan_intf..".ifname")
+  local path = format("%s_%s", os.date("%F"), rpc_ifname[1].value)
+  local rx_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".rx_bytes")
+  if rx_bytes then
+    content_rpc.rx_bytes = rx_bytes[1].value
+    content_rpc.tx_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".tx_bytes")[1].value
+    content_rpc.total_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".total_bytes")[1].value
   end
 
   local html = {}
@@ -97,10 +100,8 @@ function M.getBroadbandCardHTML()
   if mobiled_state["mob_session_state"] == "connected" then
     html[#html+1] = ui_helper.createSimpleLight("1", "Mobile Internet connected")
   end
-  if tonumber(content_rpc.rx_bytes) and tonumber(content_rpc.tx_bytes) and uptime then
-    html[#html+1] = format('<span class="simple-desc" style="padding-top:10px"><i class="icon-cloud-upload icon-small status-icon"></i> <span id="broadband-card-upload">%s</span> <i class="icon-cloud-download icon-small status-icon"></i> <span id="broadband-card-download">%s</span> <span id="broadband-card-daily-average">%s</span>/<i>d</i></span>', 
-      bytes2string(content_rpc.tx_bytes), bytes2string(content_rpc.rx_bytes), bytes2string((content_rpc.rx_bytes+content_rpc.tx_bytes)/(uptime/86400)))
-  end
+  html[#html+1] = format('<span class="simple-desc modal-link" data-toggle="modal" data-remote="/modals/broadband-usage-modal.lp" data-id="bb-usage-modal" style="padding-top:10px"><span class="icon-small status-icon">&udarr;</span> %s&ensp;<i class="icon-cloud-upload status-icon"></i> %s&ensp;<i class="icon-cloud-download status-icon"></i> %s</span>', 
+    bytes2string(content_rpc.total_bytes), bytes2string(content_rpc.tx_bytes), bytes2string(content_rpc.rx_bytes))
 
   return html
 end
