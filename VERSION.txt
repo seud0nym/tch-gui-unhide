@@ -1,3 +1,19 @@
+2021.02.22
+==========
+* tch-gui-unhide: When running on Mobile Internet, added check for possibly disabled Telstra SIM (low received byte count compared to transmitted bytes)
+* tch-gui-unhide: Reworked Firewall GUI to use multiple tabs
+* tch-gui-unhide: Exposed Firewall advanced settings, system-defined rules, and zone configuration in new tabs
+* tch-gui-unhide: If the NAT Helpers card is hidden (using tch-gui-unhide-cards), the NAT Helpers functionality is moved to a tab in the Firewall GUI 
+* tch-gui-unhide: Moved Port Forwarding (from WAN Services) to a new tab in Firewall GUI
+* tch-gui-unhide: Reworked Firewall card to show default incoming policy (DROP, REJECT, or ACCEPT) rather than the more confusing enabled/disabled, and added number of port forwarding rules and number of active rules
+* tch-gui-unhide: Reworked WAN Services card to show WoL over Internet and UPnP status, plus number of defined DNS rules
+* tch-gui-unhide: Added support for insert option in dial plan entries
+* tch-gui-unhide: Added Usage History tab to Broadband, and a supporting cron job to generate the history (creates the history from the rolling 24-hour data collected by the default traffic monitoring cron job for displaying the traffic chart)
+* tch-gui-unhide: Improved card sizing on smaller-width screens
+* tch-gui-unhide: Fixed bug that prevented re-enabling mobile service after disabling
+* tch-gui-unhide: Fixed bug in cron numeric fields pattern matching
+* set-optimal-bank-plan: Handle different bank layouts correctly (see https://whrl.pl/RgdWhV and https://whrl.pl/RgdXmv)
+
 2021.02.06
 ==========
 * tch-gui-unhide: Fixed 'invalid instance' error on QoS Queues tab when using DSL WAN

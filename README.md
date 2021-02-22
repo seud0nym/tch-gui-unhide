@@ -96,7 +96,8 @@ Some hidden screens included on the device are not enabled, mainly because they 
 
 ### Additional (new) GUI Features
 - **Gateway** card now has current device status for CPU usage, free RAM and temperature
-- **Broadband** card auto-updates shows current upload/download volume, and average per day
+- **Broadband** card auto-updates and shows todays upload/download volume
+- **Broadband** has a new tab to show daily and monthly usage history
 - **Internet Access** card auto updates and now shows IPv6 information
 - **Internet Access** screen allows you to specify the WAN Supervision mode, both IPv4 and IPv6 custom DNS Servers, and to set a static IPv6 address (in static connection mode)
 - **Local Network** now shows IPv6 information
@@ -110,11 +111,18 @@ Some hidden screens included on the device are not enabled, mainly because they 
     - Configure WAN SSH access
     - Change the web GUI theme
 - **Management** screen allows the theme to be changed from within the GUI, and viewing of running processes
-- **Firewall** cards shows whether IPv4 and IPv6 pings are allowed, and the screen allows you to specify src and/or dest zone for user defined rules, and therefore create incoming, outgoing and forwarding rules in either direction (stock GUI only creates lan->wan forwarding rules)
+- **Firewall** card shows firewall status and number of rules currently applied
+- **Firewall** GUI restructured into tabbed interface showing:
+    - Configuration, including advanced firewall settings
+    - Firewall Zones
+    - User defined rules, which allows you to specify src and/or dest zone, and therefore create incoming, outgoing and forwarding rules in either direction (stock GUI only creates lan->wan forwarding rules)
+    - System defined rules
+    - Port forwarding rules (moved from WAN Services)
+    - If NAT Helpers card is hidden, then an extra tab is added to the firewall GUI
 - **Telephony** card shows call statistics (number of calls in, missed and out)
 - **Telephony** screen now has a Dial Plans tab to edit the dial plans, and you can optionally show the decrypted SIP passwords on the Profiles tab
 - **Mobile** screen now has a Network Operators tab to modify the allowed Mobile Country Code (MCC) and Mobile Network Code (MNC) combinations, plus shows the device capabilities
-- **QoS** screen now has support for upload shapers and shows reclassify rules (FW 18 only)
+- **QoS** screen now has support for upload shapers (FW 18 only) and shows classify/reclassify rules
 
 ## What else does it do?
 - Properly enables SSH LAN access (because if you don't and then disable it through the GUI, you can lose SSH access).
@@ -122,6 +130,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - Optionally enables or disables default user access (i.e. no login required to access the Web interface).
 - Allows you to change the sequence of the cards and their visibility. See Cards below.
 - Optionally uses a decrypted text field (instead of masked password field) for SIP Profile passwords.
+- Saves daily broadband upload/download history (data is extracted from the traffic monitoring files used by the rolling 24-hour traffic chart)
 
 ### Custom DNS Servers
 - If a file called *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* is found in the directory from which the script is invoked, the contents will be added to the list of DNS Servers on the **Local Network** screen.
