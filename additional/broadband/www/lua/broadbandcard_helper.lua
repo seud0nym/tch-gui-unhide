@@ -67,6 +67,10 @@ function M.getBroadbandCardHTML()
     content_rpc.rx_bytes = rx_bytes[1].value
     content_rpc.tx_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".tx_bytes")[1].value
     content_rpc.total_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".total_bytes")[1].value
+  else
+    content_rpc.rx_bytes = tonumber(proxy.get("rpc.network.interface.@" .. wan_intf .. ".rx_bytes")[1].value)
+    content_rpc.tx_bytes = tonumber(proxy.get("rpc.network.interface.@" .. wan_intf .. ".tx_bytes")[1].value)
+    content_rpc.total_bytes = content_rpc.rx_bytes + content_rpc.tx_bytes
   end
 
   local html = {}
