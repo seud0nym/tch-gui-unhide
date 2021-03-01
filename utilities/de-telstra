@@ -270,9 +270,6 @@ else
     uci -q del_list web.ruleset_main.rules='fon'
     uci commit web
     SRV_web=$(( $SRV_web + 2 ))
-    uci -q del_list qos.reclassify_1.srcif='fonopen'
-    uci commit qos
-    SRV_qos=$(( $SRV_qos + 1 ))
     for wl in $(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | cut -d. -f2)
     do
       ap=$(uci show wireless | grep iface=\'$wl\' | cut -d. -f2)
@@ -305,6 +302,17 @@ then
       SRV_fw=$(( $SRV_fw + 1 ))
     done
     uci commit firewall
+  fi
+  if [ $(uci show qos | grep "classify.*target='FON'" | wc -l) -eq 0 -a $(uci show qos.FON | wc -l) -eq 0 ]
+  then
+    echo [$SCRIPT]: - Telstra AIR QoS entries already removed
+  else
+    echo [$SCRIPT]: - Deleting Telstra AIR QoS entries
+    uci -q del_list qos.reclassify_1.srcif='fonopen'
+    uci -q delete $(uci show qos | grep "classify.*target='FON'" | cut -d. -f1-2)
+    uci -q delete qos.FON
+    uci commit qos
+    SRV_qos=$(( $SRV_qos + 3 ))
   fi
 fi
 
