@@ -206,7 +206,7 @@ status2text() {
 
 echo [$SCRIPT]: Applying default hardening rules...
 
-if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" ]
+if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" -o -f /etc/init.d/cwmpd ]
 then
   if [ "$CWMP" = 'n' ]
   then
