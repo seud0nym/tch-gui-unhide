@@ -245,7 +245,7 @@ else
     uci -q delete wifi_doctor_agent.as_config
     uci commit wifi_doctor_agent
     SRV_monitor=$(( $SRV_monitor + 3 ))
-    PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE libbcmairiq conf-airiq autoreset-tch tls-thor wifi-doctor-agent conf-wifi-doctor-agent"
+    PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE libbcmairiq conf-airiq autoreset-tch tls-thor-map wifi-doctor-agent conf-wifi-doctor-agent"
   else
     echo [$SCRIPT]: - OVERRIDE! Telstra monitoring NOT Disabled
   fi
