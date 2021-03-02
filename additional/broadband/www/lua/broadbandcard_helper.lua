@@ -18,11 +18,11 @@ local function bytes2string(s_bytes)
     local mb = kb/1024
     local gb = mb/1024
     if gb >= 1 then
-      return format("%.2f", gb) .. "<small>GB</small>"
+      return format("%.1f", gb) .. "<small>GB</small>"
     elseif mb >= 1 then
-      return format("%.2f", mb) .. "<small>MB</small>"
+      return format("%.1f", mb) .. "<small>MB</small>"
     elseif kb >= 1 then
-      return format("%.2f", kb) .. "<small>KB</small>"
+      return format("%.1f", kb) .. "<small>KB</small>"
     else
       return format("%d", s_bytes) .. "<small>B</small>"
     end

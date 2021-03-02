@@ -10,6 +10,7 @@
 .span3{width:270px;}
 .status-icon{color:var(--RGB_STATUS_ICON);}
 .table th,.table td {padding-left:4px;padding-right:4px;}
+#broadband-card-content>span.simple-desc.modal-link{font-size:13px;}
 #classify .checkbox{width:60px;}
 #device-modal>div.modal-body>div.container{width:1060px !important;}
 #devices>tbody>tr>td:nth-child(2) input{width:110px;}
