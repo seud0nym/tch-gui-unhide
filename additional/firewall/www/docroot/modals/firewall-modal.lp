@@ -53,6 +53,16 @@ local vB = post_helper.validateBoolean
 local gVIES = post_helper.getValidateInEnumSelect
 local vPN = post_helper.validatePositiveNum
 local vNES = post_helper.validateNonEmptyString
+local function vPktsPerSec(value, object, key)
+  local packets = string.match(value, "%d+")
+  if packets and packets ~= "" then
+    object.fw_synflood_rate = packets.."/s"
+    return true
+  else
+    return nil, "Invalid packets per second"
+  end
+end
+
 
 local fw_valid = {
   fw_enable = vB,
@@ -66,7 +76,7 @@ local fw_valid = {
   fw_drop_invalid = vB,
   fw_syn_flood = vB,
   fw_synflood_burst = vPN,
-  fw_synflood_rate = vPN,
+  fw_synflood_rate = vPktsPerSec,
   fw_tcp_ecn = vB,
   fw_tcp_syncookies = vB,
   fw_tcp_window_scaling = vB,
@@ -93,6 +103,8 @@ if content.fw_synflood_burst == "" then
 end
 if content.fw_synflood_rate == "" then 
   content.fw_synflood_rate = "25"
+else
+  content.fw_synflood_rate = string.match(content.fw_synflood_rate, "%d+")
 end
 if content.fw_tcp_ecn == "" then 
   content.fw_tcp_ecn = "0"

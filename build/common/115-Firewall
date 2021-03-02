@@ -182,3 +182,9 @@ sed \
   -i /usr/share/transformer/mappings/rpc/network.firewall.userrule_v6.map
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
+# Version 2021.02.22 set an incorrect value for synflood_rate, so have to fix it
+if [ "$(uci -q get firewall.@defaults[0].synflood_rate)" = "25" ]; then
+  uci set firewall.@defaults[0].synflood_rate="25/s"
+  /etc/init.d/firewall reload 2> /dev/null
+fi
+
