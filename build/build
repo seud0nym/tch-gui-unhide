@@ -22,12 +22,12 @@ shift $((OPTIND-1))
 DIR=$(pwd)
 
 echo Cleaning up..
-rm -rf /tmp/additional ../additional/*.b64
+rm -rf /tmp/additional /tmp/*.b64
 
 echo Building Base64 tar images...
 mkdir /tmp/additional
-tar --exclude README.md --exclude '*.b64' --exclude '*.new'  -cf - -C ../ansuel/ .  | tar -xf - -C /tmp/additional/
-tar --exclude README.md --exclude '*.b64' --exclude '*.new'  -cf - -C ../additional/ .  | tar -xf - -C /tmp/additional/
+tar --exclude README.md --exclude '*.new' -cf - -C lua/ansuel/ .  | tar -xf - -C /tmp/additional/
+tar --exclude README.md --exclude '*.new' -cf - -C lua/additional/ .  | tar -xf - -C /tmp/additional/
 
 TARGET=common/075-Enable-Ajax-Modals
 rm $TARGET
@@ -69,15 +69,15 @@ do
     do
       sed -e 's/^[ \t]*//g' -e 's/[ \t]*$//' -e 's/\r$//' -i $f
     done
-    echo "echo [\$SCRIPT]: Deploy modified $d GUI code" > $DIR/../additional/$d.b64
-    echo "echo $(tar --owner=root --group=root -czf - * | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> $DIR/../additional/$d.b64
-    echo >> $DIR/../additional/$d.b64
+    echo "echo [\$SCRIPT]: Deploy modified $d GUI code" > /tmp/$d.b64
+    echo "echo $(tar --owner=root --group=root -czf - * | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> /tmp/$d.b64
+    echo >> /tmp/$d.b64
     cd $DIR
   fi
 done
-echo "echo [\$SCRIPT]: Deploy theme files" > ../additional/themes.b64
-echo "echo $(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -czf - -C ../themes . | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> ../additional/themes.b64
-echo "" >> ../additional/themes.b64
+echo "echo [\$SCRIPT]: Deploy theme files" > /tmp/themes.b64
+echo "echo $(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -czf - -C themes . | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> /tmp/themes.b64
+echo "" >> /tmp/themes.b64
 
 for f in $(find . -mindepth 2 -type d | cut -c3- | tr '/' '-')
 do
@@ -107,12 +107,12 @@ do
       then
         for b in $(cat "$DIRECTORY/$FILENAME")
         do
-          sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/$b.b64 >> $TARGET
+          sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" /tmp/$b.b64 >> $TARGET
         done
       else
         if [ $FILENAME = "165-Themes" ]
         then
-          sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" ../additional/themes.b64 >> $TARGET
+          sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" /tmp/themes.b64 >> $TARGET
         elif [ $FILENAME = "200-Services" ]
         then
           echo "if [ \$THEME_ONLY = n ]; then" >> $TARGET
@@ -131,5 +131,5 @@ do
 done
 
 echo Cleaning up..
-rm -rf /tmp/additional ../additional/*.b64
+rm -rf /tmp/additional /tmp/*.b64
 echo Build Complete @ $(date +%H:%M:%S) for version $FULL_VERSION
