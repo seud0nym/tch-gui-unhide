@@ -1,6 +1,8 @@
 # Utility Scripts
 A collection of utility scripts for your Technicolor router.
 
+Download and execution instructions are [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#how-to-download-and-execute-these-scripts).
+
 ## de-telstra
 This script applies most of the hardening recommendations from https://hack-technicolor.readthedocs.io/en/stable/Hardening/. 
 
