@@ -31,7 +31,7 @@ local fw_levels = {
 }
 
 local fw_rule_options = {
-  tableid = "fw_rules",
+  tableid = "fw_sys_rules",
   basepath = "uci.firewall.rule.@.",
   canAdd = false,
   canEdit = allowEditRuleEnabled,

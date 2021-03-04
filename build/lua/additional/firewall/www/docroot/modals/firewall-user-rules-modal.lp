@@ -23,7 +23,7 @@ end
 local userLevelEnabled = (proxy.get("rpc.network.firewall.mode")[1].value == "user")
 
 local fwrule_options = {
-  tableid = "fwrules",
+  tableid = "fw_userrules",
   basepath = "rpc.network.firewall.userrule.@.",
   createMsg = T"Add new IPv4 firewall rule",
   canAdd = userLevelEnabled,
@@ -39,7 +39,7 @@ local fwrule_defaultObject = {
 local fwrule_columns, fwrule_data, fwrule_helpmsg = fwrules_helper.handleTableQuery(fwrule_options, fwrule_defaultObject)
 
 local fwrule_v6_options = {
-  tableid = "fwrules_v6",
+  tableid = "fw_userrules_v6",
   basepath = "rpc.network.firewall.userrule_v6.@.",
   createMsg = T"Add new IPv6 firewall rule",
   canAdd = userLevelEnabled,
