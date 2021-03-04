@@ -45,7 +45,6 @@ local fw_params = {
   fw_synflood_burst = "uci.firewall.defaults.@defaults[0].synflood_burst",
   fw_synflood_rate = "uci.firewall.defaults.@defaults[0].synflood_rate",
   fw_tcp_ecn = "uci.firewall.defaults.@defaults[0].tcp_ecn",
-  fw_tcp_syncookies = "uci.firewall.defaults.@defaults[0].tcp_syncookies",
   fw_tcp_window_scaling = "uci.firewall.defaults.@defaults[0].tcp_window_scaling",
 }
 
@@ -78,7 +77,6 @@ local fw_valid = {
   fw_synflood_burst = vPN,
   fw_synflood_rate = vPktsPerSec,
   fw_tcp_ecn = vB,
-  fw_tcp_syncookies = vB,
   fw_tcp_window_scaling = vB,
 }
 
@@ -108,9 +106,6 @@ else
 end
 if content.fw_tcp_ecn == "" then 
   content.fw_tcp_ecn = "0"
-end
-if content.fw_tcp_syncookies == "" then 
-  content.fw_tcp_syncookies = "1"
 end
 if content.fw_tcp_window_scaling == "" then 
   content.fw_tcp_window_scaling = "1"
@@ -207,7 +202,6 @@ ngx.print(ui_helper.createHeader(T"Firewall", true, false))   ngx.print('\
       html[#html+1] = ui_helper.createSwitch(T"SYN flood protection", "fw_syn_flood", content["fw_syn_flood"])
       html[#html+1] = ui_helper.createInputText(T"SYN flood rate limit (pkts/sec)", "fw_synflood_rate", content["fw_synflood_rate"], number_attr)
       html[#html+1] = ui_helper.createInputText(T"SYN flood burst limit", "fw_synflood_burst", content["fw_synflood_burst"], number_attr)
-      html[#html+1] = ui_helper.createSwitch(T"TCP SYN cookies", "fw_tcp_syncookies", content["fw_tcp_syncookies"])
       html[#html+1] = ui_helper.createSwitch(T"TCP ECN", "fw_tcp_ecn", content["fw_tcp_ecn"])
       html[#html+1] = ui_helper.createSwitch(T"TCP Window Scaling", "fw_tcp_window_scaling", content["fw_tcp_window_scaling"])
       html[#html+1] = ui_helper.createSwitch(T"Accept redirects", "fw_accept_redirects", content["fw_accept_redirects"])
