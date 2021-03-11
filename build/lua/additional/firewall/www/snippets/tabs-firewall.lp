@@ -10,7 +10,7 @@ local items = {
   {"firewall-modal.lp", T"Configuration"},
   {"firewall-zones-modal.lp", T"Zones"},
   {"firewall-user-rules-modal.lp", T"User Defined Rules"},
-  {"firewall-rules-modal.lp", T"System Defined Rules"},
+  {"firewall-rules-modal.lp", T"System Rules"},
   {"firewall-port-forwarding-modal.lp", T"Port Forwarding"},
   {"firewall-cone-modal.lp", T"Cone NAT"},
 }
