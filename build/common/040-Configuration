@@ -56,3 +56,10 @@ if [ $FIX_PARENT_BLK = y ]; then
   SRV_nginx=$(( $SRV_nginx + 2 ))
 fi
 
+grep -q -E "lua_shared_dict *TGU_MbPS" /etc/nginx/nginx.conf
+if [ $? -eq 1 ]; then
+  echo [$SCRIPT]: Creating shared dictionary for throughput calculations
+  sed -e '/^http/a\    lua_shared_dict TGU_MbPS 10m;' -i /etc/nginx/nginx.conf
+  SRV_nginx=$(( $SRV_nginx + 1 ))
+fi
+

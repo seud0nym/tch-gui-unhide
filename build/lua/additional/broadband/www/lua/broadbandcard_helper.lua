@@ -1,11 +1,12 @@
 local content_helper = require("web.content_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
+local socket = require("socket")
 local ui_helper = require("web.ui_helper")
-local floor = math.floor
-local find = string.find
-local format = string.format
+
+local floor, find, format, untaint = math.floor, string.find, string.format, string.untaint
 local tonumber = tonumber
+local TGU_MbPS = ngx.shared.TGU_MbPS
 
 local M = {}
 
@@ -29,6 +30,59 @@ local function bytes2string(s_bytes)
   end
 end
 
+local function getCurrentWANInterface()
+  local wan_intf = "wan"
+  local content_wan = {
+    wwan_ipaddr = "rpc.network.interface.@wwan.ipaddr",
+    wwan_ip6addr = "rpc.network.interface.@wwan.ip6addr",
+  }
+  content_helper.getExactContent(content_wan)
+  if content_wan.wwan_ipaddr:len() ~= 0 or content_wan.wwan_ip6addr:len() ~= 0 then
+    wan_intf = "wwan"
+  end
+  return wan_intf
+end
+
+function M.getThroughputHTML() 
+  local wan_data = {
+    lan_rx = "rpc.network.interface.@lan.rx_bytes",
+    lan_tx = "rpc.network.interface.@lan.tx_bytes",
+    wan_rx = "rpc.network.interface.@wan.rx_bytes",
+    wan_tx = "rpc.network.interface.@wan.tx_bytes",
+    wwan_rx = "rpc.network.interface.@wwan.rx_bytes",
+    wwan_tx = "rpc.network.interface.@wwan.tx_bytes",
+  }
+  content_helper.getExactContent(wan_data)
+
+  local key, value, ok, err
+  for key, value in pairs(wan_data) do
+    local is = tonumber(value)
+    local now = socket.gettime()
+    local from = TGU_MbPS:get(key.."_time")
+    if from then
+      local elapsed = now - from
+      local was = TGU_MbPS:get(key.."_bytes")
+      ok, err = TGU_MbPS:safe_set(key.."_mbps", (is - was) / elapsed * 0.000008)
+      if not ok then
+        ngx.log(ngx.ERR, "Failed to store current Mb/s into ", key, "_mbps: ", err)
+      end
+    end
+    ok, err = TGU_MbPS:safe_set(key.."_time", now)
+    if not ok then
+      ngx.log(ngx.ERR, "Failed to store current time into ", key, "_time: ", err)
+    end
+    ok, err = TGU_MbPS:safe_set(key.."_bytes", is)
+    if not ok then
+      ngx.log(ngx.ERR, "Failed to store ", is, " into ", key, "_bytes: ", err)
+    end
+  end
+
+  local wan_intf = getCurrentWANInterface()
+  return 
+    format("%.2f Mb/s <b>&uarr;</b><br>%.2f Mb/s <b>&darr;</b></span>", TGU_MbPS:get(wan_intf.."_tx_mbps") or 0, TGU_MbPS:get(wan_intf.."_rx_mbps") or 0),
+    format("%.2f Mb/s <b>&uarr;</b><br>%.2f Mb/s <b>&darr;</b></span>", TGU_MbPS:get("lan_tx_mbps") or 0, TGU_MbPS:get("lan_rx_mbps") or 0)
+end
+
 function M.getBroadbandCardHTML() 
   -- wan status data
   local wan_data = {
@@ -46,20 +100,12 @@ function M.getBroadbandCardHTML()
   }
   content_helper.getExactContent(mobiled_state)
 
-  local wan_intf ="wan"
-  local content_wan = {
-    wwan_ipaddr = "rpc.network.interface.@wwan.ipaddr",
-    wwan_ip6addr = "rpc.network.interface.@wwan.ip6addr",
-  }
-  content_helper.getExactContent(content_wan)
-  if content_wan.wwan_ipaddr:len() ~= 0 or content_wan.wwan_ip6addr:len() ~= 0 then
-    wan_intf = "wwan"
-  end
   local content_rpc = {
     rx_bytes = 0,
     tx_bytes = 0,
     total_bytes = 0,
   }
+  local wan_intf = getCurrentWANInterface()
   local rpc_ifname = proxy.get("rpc.network.interface.@"..wan_intf..".ifname")
   local path = format("%s_%s", os.date("%F"), rpc_ifname[1].value)
   local rx_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".rx_bytes")

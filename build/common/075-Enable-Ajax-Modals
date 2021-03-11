@@ -9,6 +9,17 @@ then
   uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
 fi
+if [ "$(uci -q get web.networkthroughputajax)" != "rule" ]
+then
+  echo [$SCRIPT]: Enabling network-throughput.lua
+  uci add_list web.ruleset_main.rules='networkthroughputajax'
+  uci set web.networkthroughputajax='rule'
+  uci set web.networkthroughputajax.target='/ajax/network-throughput.lua'
+  uci set web.networkthroughputajax.normally_hidden='1'
+  uci add_list web.networkthroughputajax.roles='admin'
+  uci commit web
+  SRV_nginx=$(( $SRV_nginx + 4 ))
+fi
 if [ "$(uci -q get web.devicesstatusajax)" != "rule" ]
 then
   echo [$SCRIPT]: Enabling devices-status.lua

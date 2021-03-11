@@ -54,24 +54,26 @@ end
 local html = bbch.getBroadbandCardHTML()
 
   ngx.print('\
-<div class="span3">\
+<div class="span3" id="broadband-card">\
   <div class="smallcard">\
     ');  ngx.print( ui_helper.createCardHeader(T"Broadband", modalPath, nil, nil, nil) ); ngx.print('\
+    <div id="broadband-card-throughput"><div class="throughput"><span title="Raw throughput including protocol overhead"></span></div></div>\
     <div class="content card_bg mirror" data-bg-text="&#xf0c1;">\
-    ');  
+      ');  
       ngx.print( ui_helper.createSimpleLight(nil, WS_Text, { light = { class = WS_light_map[WS_State] } }) )
       if WS_en == "1" then
         ngx.print( format('<p class="subinfos">L2: <strong>%s</strong> L3: <strong>%s</strong></p>', WS_L2, WS_L3) )
       end
       ngx.print('\
       <div id="broadband-card-content">\
-      ');  ngx.print(html); ngx.print('\
+        ');  ngx.print(html); ngx.print('\
       </div>\
     </div>\
   </div>\
 </div>\
 <script>\
 var bbFuncID;\
+var tpFuncID;\
 function updateBroadbandCard(){\
   $.post("/ajax/broadband-status.lua", [tch.elementCSRFtoken()], function(data){\
     $("#broadband-card-content").html(data["html"]);\
@@ -80,6 +82,26 @@ function updateBroadbandCard(){\
     if(response.status==403||response.status==404){clearInterval(bbFuncID);}\
   });\
 }\
-$().ready(function(){bbFuncID=setInterval(updateBroadbandCard,15000);window.intervalIDs.push(bbFuncID);});\
+function updateThroughput(){\
+  $.post("/ajax/network-throughput.lua", [tch.elementCSRFtoken()], function(data){\
+    $("#broadband-card-throughput .throughput span").html(data["wan"]);\
+    $("#lan-card-throughput .throughput span").html(data["lan"]);\
+  }, "json")\
+  .fail(function(response){\
+    if(response.status==403||response.status==404){clearInterval(tpFuncID);}\
+  });\
+}\
+$().ready(function(){\
+  bbFuncID=setInterval(updateBroadbandCard,15000);window.intervalIDs.push(bbFuncID);\
+  var bbdiv = document.querySelector("#broadband-card-throughput");\
+  var bbhdr = document.querySelector("#broadband-card .header-title");\
+  bbhdr.parentNode.insertBefore(bbdiv, bbhdr.nextSibling);\
+  var landiv = bbdiv.cloneNode(true);\
+  var lanhdr = document.querySelector("#Local").closest(".header-title");\
+  landiv.setAttribute("id", "lan-card-throughput");\
+  lanhdr.parentNode.insertBefore(landiv, lanhdr.nextSibling);\
+  updateThroughput();\
+  tpFuncID=setInterval(updateThroughput,2000);\
+});\
 </script>\
 '); 
