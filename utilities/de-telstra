@@ -838,17 +838,23 @@ case "$POWER" in
       uci commit power;;
 esac
 
-if [ "$OPKG" = "y" ]
+OPKG_DEP=$(grep -c 'www.macoers.com/repository' /etc/opkg/customfeeds.conf)
+if [ "$OPKG" = "y" -o $OPKG_DEP -gt 0 ]
 then
   cat /proc/cpuinfo | grep -q 'ARMv7 Processor rev 1 (v7l)'
   if [ $? -eq 0 ]
   then
-    if [ $(grep "^arch " /etc/opkg.conf | wc -l) -eq 0 -o $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | wc -l) -eq 0 ]
+    if [ $OPKG_DEP -gt 0 -o $(grep -c "^arch " /etc/opkg.conf) -eq 0 -o $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | wc -l) -eq 0 ]
     then
       HOMEWARE=$(uci get version.@version[0].version | cut -d. -f1)
       if [ "$HOMEWARE" -eq 17 -o "$HOMEWARE" -eq 18 ]
       then
-        echo [$SCRIPT]: Configuring opkg for Homeware $HOMEWARE...
+        if [ "$HOMEWARE" -eq 18 -a $OPKG_DEP -gt 0 ]
+        then
+          echo [$SCRIPT]: Re-configuring opkg for Homeware $HOMEWARE \(repository moved\)...
+        else
+          echo [$SCRIPT]: Configuring opkg for Homeware $HOMEWARE...
+        fi
         echo "arch all 1">>/etc/opkg.conf
         echo "arch noarch 1">>/etc/opkg.conf
         case "$HOMEWARE" in
@@ -864,12 +870,12 @@ HW17
           18) echo "arch arm_cortex-a9 10">>/etc/opkg.conf
               echo "arch arm_cortex-a9_neon 20">>/etc/opkg.conf
               cat <<-HW18 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
-                src/gz chaos_calmer_base_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/base
-                src/gz chaos_calmer_packages_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/packages
-                src/gz chaos_calmer_luci_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/luci
-                src/gz chaos_calmer_routing_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/routing
-                src/gz chaos_calmer_telephony_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/telephony
-                src/gz chaos_calmer_core_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/target/packages
+                src/gz chaos_calmer_base_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/base
+                src/gz chaos_calmer_packages_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages
+                src/gz chaos_calmer_luci_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/luci
+                src/gz chaos_calmer_routing_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing
+                src/gz chaos_calmer_telephony_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony
+                src/gz chaos_calmer_core_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages
 HW18
 ;;
         esac

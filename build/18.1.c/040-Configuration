@@ -1,0 +1,6 @@
+# Package repository for Homeware 18 moved 31/03/2021 (Quick fix in case de-telstra not run)
+if [ $(grep -c 'www.macoers.com/repository' /etc/opkg/customfeeds.conf) -gt 0 ]; then
+  echo [$SCRIPT]: Fixing opkg repository
+  sed -e 's|www.macoers.com/repository|repository.macoers.com|' -i /etc/opkg/customfeeds.conf
+fi
+
