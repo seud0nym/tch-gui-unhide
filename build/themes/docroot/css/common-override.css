@@ -4,6 +4,8 @@
 .card_bg.mirror:after{transform:matrix(-1,0,0,1,0,0);}
 .copyright{margin-bottom:0px;}
 .header .btn{margin-left:5px;}
+.iptables-head{font-size:smaller;font-variant:small-caps;}
+.iptables-head th:nth-child(n+1):nth-child(-n+2){text-align:right;}
 .simple-desc{display:block;padding-top:2px;}
 .smallcard .content{font-size:14px;height:125px;}
 .smallcard .subinfos{font-size:14px;}
@@ -19,6 +21,8 @@
 #fw_userrules>thead>tr>th:nth-child(3),#fw_userrules>tbody>tr>td:nth-child(3),#fw_userrules_v6>thead>tr>th:nth-child(3),#fw_userrules_v6>tbody>tr>td:nth-child(3){display:none;}
 #helper>tbody>tr>td{text-transform:uppercase;}
 #hide-unhide-non-connected-device{display:none;}
+#fw-pkt-filter-rules tr>td:nth-child(n+1):nth-child(-n+2){text-align:right;}
+#fw-pkt-filter-rules tr{white-space:nowrap;}
 #mobiletab .content .card-label{font-size:14px;}
 #proctable>tbody>tr>td:nth-child(1),#proctable>tbody>tr>td:nth-child(2),#proctable>tbody>tr>td:nth-child(5),#proctable>tbody>tr>td:nth-child(6),#proctable>tbody>tr>td:nth-child(7){text-align:right;}
 #proctable>tbody>tr>td:nth-child(6):after,#proctable>tbody>tr>td:nth-child(7):after{content:"%";}

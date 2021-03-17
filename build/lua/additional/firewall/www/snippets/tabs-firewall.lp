@@ -13,6 +13,7 @@ local items = {
   {"firewall-rules-modal.lp", T"System Rules"},
   {"firewall-port-forwarding-modal.lp", T"Port Forwarding"},
   {"firewall-cone-modal.lp", T"Cone NAT"},
+  {"firewall-iptables-modal.lp", T"Packet Filter Rules"},
 }
 
 local nat_alg_card_hidden = proxy.get("uci.web.card.@card_natalghelper.hide")

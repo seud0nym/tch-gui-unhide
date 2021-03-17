@@ -1,6 +1,82 @@
 local uci_helper = mapper("ucihelper")
+local format = string.format
+
+local fmt = "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"
+local head = "<tr class='iptables-head'><th>Packets</th><th>Bytes</th><th>Target</th><th>Protocol</th><th>Opt</th><th>In</th><th>Out</th><th>Source</th><th>Destination</th><th>Extra</th><th>Comment</th><tr>"
+local tail = "</tbody>"
+
+local function getOutputFrom(cmd, results)
+  local i
+  local k = #results
+  for i=0, k do results[i]=nil end
+  k = 0
+
+  local line
+  local count = 0
+
+  local cmdout = io.popen(cmd.." -nvL", "r")
+  for line in cmdout:lines() do
+    if line == "" then
+      if k == 0 or results[format("%d",k)]["html"] ~= head then
+        k = k + 1
+      end
+      results[format("%d",k)] = {
+        html = tail
+      }
+    elseif line:sub(1,5) == "Chain" then
+      results[format("%d",k)] = {
+        html = "<tbody><tr class='iptables-chain'><th colspan='11'>"..line.."<th><tr>"
+      }
+    else
+      k = k + 1
+      local pkts, bytes, target, prot, opt, in_if, out_if, srce, dest, comment = line:match("^%s*(.-)%s*$"):match("([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+) +([opt -]+) +([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+) *(.*)")
+      local extra = ""
+      if target == "target" and prot == "prot" and opt == "opt" then
+        results[format("%d",k)] = {
+          html = head
+        }
+      else
+        if comment ~= "" and comment:sub(1,2) ~= "/*" then
+          if comment:find(" %/%*") then
+            extra, comment = comment:match("([^/]+)(/%*.+)")
+          else
+            extra = comment
+            comment = ""
+          end
+        end
+        results[format("%d",k)] = {
+          html = format(fmt, pkts, bytes, target, prot, opt, in_if, out_if, srce, dest, extra or "", comment:gsub("%/%* ",""):gsub(" %*%/",""):gsub("!fw3:",""):gsub("!fw3",""):gsub("^ *",""))
+        }
+        count = count + 1
+      end
+    end
+  end
+  cmdout:close()
+
+  if k > 0 and results[format("%d",k)]["html"] ~= tail then
+    k = k + 1
+    results[format("%d",k)] = {
+      html = tail
+    }
+  end
+
+  local res = {}
+  local key
+  for key in pairs(results) do
+    res[#res+1] = key
+  end
+  return count, res
+end
 
 local enabledRuleCountCache = 0
+local ipv4pktfilters = 0
+local ipv6pktfilters = 0
+
+local iptables = {}
+local ip6tables = {}
+
+ipv4pktfilters = getOutputFrom("iptables", iptables)
+ipv6pktfilters = getOutputFrom("ip6tables", ip6tables)
 
 local GUI_FIREWALL_ = {
   objectType = {
@@ -16,6 +92,14 @@ local GUI_FIREWALL_ = {
       clearCache = {
         access = "readWrite",
         type = "boolean"
+      },
+      ipv4PacketFilterCount = {
+        access = "readOnly",
+        type = "int"
+      },
+      ipv6PacketFilterCount = {
+        access = "readOnly",
+        type = "int"
       },
     }
   }
@@ -37,7 +121,13 @@ GUI_FIREWALL_.get = {
   end,
   clearCache = function()
     return "0"
-  end
+  end,
+  ipv4PacketFilterCount = function()
+    return tostring(ipv4pktfilters)
+  end,
+  ipv6PacketFilterCount = function()
+    return tostring(ipv6pktfilters)
+  end,
 }
 
 GUI_FIREWALL_.set = {
@@ -49,3 +139,63 @@ GUI_FIREWALL_.set = {
 }
 
 register(GUI_FIREWALL_)
+
+local GUI_FW_IPTABLES_i_ = {
+  objectType = {
+    name = "rpc.gui.firewall.iptables.@.",
+    access = "readOnly",
+    numEntriesParameter = "iptablesNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      html = {
+        access = "readOnly",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_FW_IPTABLES_i_.entries = function(mapping)
+  local count, keys = getOutputFrom("iptables", iptables)
+  ipv4pktfilters = count
+  return keys
+end
+
+GUI_FW_IPTABLES_i_.get = {
+  html = function(mapping, param, key)
+    return iptables[key]["html"]
+  end,
+}
+
+register(GUI_FW_IPTABLES_i_)
+
+local GUI_FW_IP6TABLES_i_ = {
+  objectType = {
+    name = "rpc.gui.firewall.ip6tables.@.",
+    access = "readOnly",
+    numEntriesParameter = "ip6tablesNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      html = {
+        access = "readOnly",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_FW_IP6TABLES_i_.entries = function(mapping)
+  local count, keys = getOutputFrom("ip6tables", ip6tables)
+  ipv6pktfilters = count
+  return keys
+end
+
+GUI_FW_IP6TABLES_i_.get = {
+  html = function(mapping, param, key)
+    return ip6tables[key]["html"]
+  end,
+}
+
+register(GUI_FW_IP6TABLES_i_)
