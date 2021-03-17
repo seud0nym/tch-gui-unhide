@@ -79,7 +79,7 @@ echo "echo [\$SCRIPT]: Deploy theme files" > /tmp/themes.b64
 echo "echo $(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -czf - -C themes . | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> /tmp/themes.b64
 echo "" >> /tmp/themes.b64
 
-for f in $(find . -mindepth 2 -type d | cut -c3- | tr '/' '-')
+for f in $(find . -mindepth 2 -type d | cut -c3- | grep -v -E '^(lua|themes)' | tr '/' '-')
 do
   MAJOR=$(echo $f | cut -d- -f1)
   MINOR=$(echo $f | cut -d- -f2)
