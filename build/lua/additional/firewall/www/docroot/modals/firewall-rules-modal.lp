@@ -6,6 +6,7 @@ gettext.textdomain('webui-core')
 local ngx = ngx
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
+local post_helper = require("web.post_helper")
 local message_helper = require("web.uimessage_helper")
 local content_helper = require("web.content_helper")
 local fwrules_helper = require("firewall-rules_helper")
@@ -48,6 +49,65 @@ local fw_dflt_rule_options = {
 local fw_rule_columns, fw_rule_data, fw_rule_helpmsg = fwrules_helper.handleTableQuery(fw_rule_options)
 local fw_dflt_rule_columns, fw_dflt_rule_data, fw_dflt_rule_helpmsg = fwrules_helper.handleTableQuery(fw_dflt_rule_options)
 
+local fw_includes_columns = {
+  { -- [1]
+    header = "",
+    name = "status",
+    param = "enabled",
+    type = "switch",
+    default = "1",
+    attr = { switch = { ["data-placement"] = "right" }},
+  },
+  { -- [2]
+    header = T"Type",
+    name = "type",
+    param = "type",
+    type = "text",
+    readonly = true,
+  },
+  { -- [3]
+    header = T"Family",
+    name = "family",
+    param = "family",
+    type = "text",
+    readonly = true,
+  },
+  { -- [4]
+    header = T"Path",
+    name = "path",
+    param = "path",
+    type = "text",
+    readonly = true,
+  },
+  { -- [5]
+    header = T"Call on Reload?",
+    name = "reload",
+    param = "reload",
+    type = "text",
+    readonly = true,
+  },
+}
+ 
+local fw_includes_options = {
+  tableid = "fw_includes",
+  basepath = "uci.firewall.include.@.",
+  canAdd = false,
+  canEdit = true,
+  canDelete = false,
+}
+
+local fw_includes_data, fw_includes_helpmsg = post_helper.handleTableQuery(fw_includes_columns, fw_includes_options, nil, nil, nil)
+for _,v in ipairs(fw_includes_data) do
+  if v[1] == "" then
+    v[1] = "1"
+  end
+  if v[5] == "0" then
+    v[5] = "No"
+  else
+    v[5] = "Yes"
+  end
+end
+
 local info_attr = {
   alert = {
     class = "alert-info"
@@ -78,6 +138,8 @@ ngx.print(ui_helper.createHeader(T"Firewall", true, false))   ngx.print('\
       local fw_lvl_rule_columns, fw_lvl_rule_data, fw_lvl_rule_helpmsg = fwrules_helper.handleTableQuery(fw_lvl_rule_options)
       ngx.print(ui_helper.createTable(fw_lvl_rule_columns, fw_lvl_rule_data, fw_lvl_rule_options, nil, fw_lvl_rule_helpmsg))
     end
+    ngx.print('<legend>');  ngx.print( T"Includes" ); ngx.print('</legend>');
+    ngx.print(ui_helper.createTable(fw_includes_columns, fw_includes_data, fw_includes_options, nil, fw_includes_helpmsg))
     ngx.print('\
   </form>\
 </div>\
