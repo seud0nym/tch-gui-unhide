@@ -118,6 +118,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
     - User defined rules, which allows you to specify src and/or dest zone, and therefore create incoming, outgoing and forwarding rules in either direction (stock GUI only creates lan->wan forwarding rules)
     - System defined rules
     - Port forwarding rules (moved from WAN Services)
+    - All Packet Filter rules
     - If NAT Helpers card is hidden, then an extra tab is added to the firewall GUI
 - **Telephony** card shows call statistics (number of calls in, missed and out)
 - **Telephony** screen now has a Dial Plans tab to edit the dial plans, and you can optionally show the decrypted SIP passwords on the Profiles tab
