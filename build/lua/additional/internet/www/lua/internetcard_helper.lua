@@ -85,7 +85,7 @@ function M.getInternetCardHTML(mode_active)
     local dhcp_state = "connecting"
     local dhcp_state_map = {
       disabled = T"DHCP disabled",
-      connected = T"DHCP on",
+      connected = T"DHCP connected",
       connecting = T"Trying to connect using DHCP...",
     }
     local dhcp_light_map = {
@@ -127,7 +127,7 @@ function M.getInternetCardHTML(mode_active)
     local ppp_state_map = {
       disabled = T"PPP disabled",
       disconnecting = T"PPP disconnecting",
-      connected = T"PPP on",
+      connected = T"PPP connected",
       connecting = T"PPP connecting",
       disconnected = T"PPP disconnected",
       error = T"PPP error",
@@ -187,26 +187,31 @@ function M.getInternetCardHTML(mode_active)
       content_helper.getExactContent(wan_data)
       if wan_data["wan_ifname"] and (find(wan_data["wan_ifname"],"ptm0") or find(wan_data["wan_ifname"],"atm")) then
         if wan_data["dsl_status"] == "Up" then
-          html[#html+1] = ui_helper.createSimpleLight("1", "Static IP on")
+          html[#html+1] = ui_helper.createSimpleLight("1", "Static IP connected")
           addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
         elseif wan_data["dsl_status"] == "NoSignal" then
           html[#html+1] = ui_helper.createSimpleLight("4", "Static IP disconnected")
+          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
         elseif wan_data["dsl0_enabled"] == "0" then
           html[#html+1] = ui_helper.createSimpleLight("0", "Static IP disabled")
+          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
         else
           html[#html+1] = ui_helper.createSimpleLight("2", "Trying to connect with Static IP...")
+          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
         end
       end
       if wan_data["wan_ifname"] and find(wan_data["wan_ifname"],"eth") then
         if wan_data["ethwan_status"] == "up" then
-          html[#html+1] = ui_helper.createSimpleLight("1", "Static on")
+          html[#html+1] = ui_helper.createSimpleLight("1", "Static connected")
           addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
         else
           html[#html+1] = ui_helper.createSimpleLight("4", "Static IP disconnected")
+          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
         end
       end
     else
       html[#html+1] = ui_helper.createSimpleLight("0", "Static IP disabled")
+      addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
     end
   end
 
