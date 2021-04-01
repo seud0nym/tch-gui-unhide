@@ -1,3 +1,10 @@
+2021.04.01
+==========
+* tch-gui-unhide: Fixed bug in Mobile Network Operators tab in FW 17
+* tch-gui-unhide: Fixed peerdns and ipv6 configuration settings in Internet DHCP and static screens
+* tch-gui-unhide: Changed status text 'on' to 'connected' on Internet card
+* tch-gui-unhide: Added option to ignore a new release (hides the 'Update Available' button until the next release) 
+
 2021.03.17
 ==========
 * de-telstra: Remove CWMP even if already disabled (#22)

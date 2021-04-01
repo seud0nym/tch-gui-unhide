@@ -39,6 +39,7 @@
         "multiap",
         "mwan",
         "opkg",
+        "peerdns",
         "proto",
         "rate",
         "rsyncd",
