@@ -188,6 +188,9 @@ end
 if content.uci_wan_auto ~= "0" then
   content.uci_wan_auto = "1"
 end
+if content.uci_wan6_auto ~= "0" then
+  content.uci_wan6_auto = "1"
+end
 
 ---
 --- TRIGGERED DURING POST OPERATION ON IP ADDRESS
@@ -218,6 +221,12 @@ if ngx.req.get_method() == "POST" then
   if actionVal == "wanGatewayParam" then
     content["wanGatewayParam"] = gatewayVal
     proxy.set(wanGatewayPath_uci,gatewayVal)
+    doit = true
+  end
+
+  local wan_ipv6 = proxy.get("uci.network.interface.@wan.ipv6")[1].value
+  if wan_ipv6 ~= content.uci_wan6_auto then
+    proxy.set("uci.network.interface.@wan.ipv6", content.uci_wan6_auto)
     doit = true
   end
 

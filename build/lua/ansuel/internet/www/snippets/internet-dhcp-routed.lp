@@ -366,15 +366,21 @@ end
 if content.uci_wan6_auto ~= "0" then
   content.uci_wan6_auto = "1"
 end
-if content["uci_wan_peerdns"] == "" then
+if content["uci_wan_peerdns"] ~= "0" then
   content["uci_wan_peerdns"] = "1"
 end
-if content["uci_wan6_peerdns"] == "" then
+if content["uci_wan6_peerdns"] ~= "0" then
   content["uci_wan6_peerdns"] = "1"
 end
 
 if ngx.req.get_method() == "POST" then
   local doit = false
+  local wan_ipv6 = proxy.get("uci.network.interface.@wan.ipv6")[1].value
+
+  if wan_ipv6 ~= content.uci_wan6_auto then
+    proxy.set("uci.network.interface.@wan.ipv6", content.uci_wan6_auto)
+    doit = true
+  end
 
   if content.uci_wan6_auto ~= "0" then
     local ipv4ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
