@@ -1,10 +1,22 @@
 local release_version_cmd = "curl -q -s -k -L -r0-9 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/VERSION.txt"
 local current_version = "" -- Set by build script
 local current_version_date = string.match(current_version, "([0-9.]+)@.*")
+local ignored_release_version_file = "/etc/tch-gui-unhide.ignored_release"
+
 local release_version = {
   date,
   lastRetrieved
 }
+
+local function getIgnoredReleaseVersionDate()
+  local version = ""
+  local file = io.open(ignored_release_version_file, "r")
+  if file then
+    version = file:read()
+    file:close()
+  end
+  return version
+end
 
 local function getReleaseVersionDate()
   local time = os.time()
@@ -31,30 +43,58 @@ local GUI_ = {
     minEntries = 1,
     maxEntries = 1,
     parameters = {
+      IgnoreCurrentRelease = {
+        access = "readWrite",
+        type = "boolean"
+      },
       UnhideVersion = {
         access = "readOnly",
         type = "string"
       },
       UpdateAvailable = {
         access = "readOnly",
-        type = "int"
+        type = "boolean"
       },
     }
   }
 }
 
 GUI_.get = {
+  IgnoreCurrentRelease = function()
+    if getReleaseVersionDate() == getIgnoredReleaseVersionDate() then
+      return "1"
+    else
+      return "0"
+    end
+  end,
   UnhideVersion = function()
     return current_version
   end,
   UpdateAvailable = function() 
     local release_version_date = getReleaseVersionDate()
-    if release_version_date and release_version_date > current_version_date then
+    if release_version_date and release_version_date > current_version_date and release_version_date ~= getIgnoredReleaseVersionDate() then
       return "1"
     else
       return "0"
     end
   end
+}
+
+GUI_.set = {
+  IgnoreCurrentRelease = function(mapping,param,value,key)
+    local file, err_msg = io.open(ignored_release_version_file, "w")
+    if file then
+      if value == "1" then
+        file:write(getReleaseVersionDate())
+      else
+        file:write("")
+      end
+      file:close()
+      return true
+    else
+      return nil, "Failed to persist ignored release version: " .. err_msg, "error"
+    end
+  end,
 }
 
 register(GUI_)

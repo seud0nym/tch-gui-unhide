@@ -16,11 +16,24 @@ if [ "$UPDATE_BTN" = y ]; then
   sed \
     -e '/uci.version.version.@version\[0\].timestamp/a\    updatable = "rpc.gui.UpdateAvailable",' \
     -e '/isBridgedMode/i\        if cui.updatable == "1" then' \
-    -e "/isBridgedMode/i\          html[#html + 1] = '<a href=\"https://github.com/seud0nym/tch-gui-unhide/releases/latest\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"btn\">'" \
-    -e "/isBridgedMode/i\          html[#html + 1] = '<i class=\"icon-info-sign orange\"></i>&nbsp;<small>'" \
+    -e "/isBridgedMode/i\          html[#html + 1] = '<div class=\"btn-group\">'" \
+    -e "/isBridgedMode/i\          html[#html + 1] = '<button class=\"btn\"><i class=\"icon-info-sign orange\"></i>&nbsp;'" \
     -e "/isBridgedMode/i\          html[#html + 1] = T\"Update Available\"" \
-    -e "/isBridgedMode/i\          html[#html + 1] = '</small></a>'" \
+    -e "/isBridgedMode/i\          html[#html + 1] = '</button>'" \
+    -e "/isBridgedMode/i\          html[#html + 1] = '<button class=\"btn dropdown-toggle\" data-toggle=\"dropdown\"><span class=\"caret\"></span></button>'" \
+    -e "/isBridgedMode/i\          html[#html + 1] = '<ul class=\"dropdown-menu pull-right\">'" \
+    -e "/isBridgedMode/i\          html[#html + 1] = '<li><a tabindex=\"-1\" href=\"https://github.com/seud0nym/tch-gui-unhide/releases/latest\" target=\"_blank\" rel=\"noopener noreferrer\">'" \
+    -e "/isBridgedMode/i\          html[#html + 1] = T\"Open Download Page\"" \
+    -e "/isBridgedMode/i\          html[#html + 1] = '</a></li>'" \
+    -e "/isBridgedMode/i\          html[#html + 1] = '<li><a tabindex=\"-1\" href=\"/gateway.lp?ignore_update=1\">'" \
+    -e "/isBridgedMode/i\          html[#html + 1] = T\"Ignore This Update\"" \
+    -e "/isBridgedMode/i\          html[#html + 1] = '</a></li>'" \
+    -e "/isBridgedMode/i\          html[#html + 1] = '</ul></div>'" \
     -e '/isBridgedMode/i\        end' \
+    -e '/local getargs/a\if getargs and getargs.ignore_update then' \
+    -e '/local getargs/a\  local proxy = require("datamodel")' \
+    -e '/local getargs/a\  proxy.set("rpc.gui.IgnoreCurrentRelease", getargs.ignore_update)' \
+    -e '/local getargs/a\end' \
     -i /www/docroot/gateway.lp
 else
   echo [$SCRIPT]: Update available button will NOT be shown in GUI

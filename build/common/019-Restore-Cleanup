@@ -14,13 +14,19 @@
 
 if [ $RESTORE = y ]; then
   restore_www V
+  for f in /etc/tch-gui-unhide.ignored_release /etc/tch-gui-unhide.theme
+  do
+    if [ -f "$f" ]
+    then
+      echo [$SCRIPT]: Removing $f
+      rm "$f"
+    fi
+  done
   for d in /www/docroot/css/light /www/docroot/css/night /www/docroot/css/telstra /www/docroot/img/light /www/docroot/img/night /www/docroot/css/Telstra
   do
     if [ -d "$d" ]
     then
-      if [ "$1" = "V" ]; then
-        echo [$SCRIPT]: Removing empty directory $d
-      fi
+      echo [$SCRIPT]: Removing empty directory $d
       rmdir "$d"
     fi
   done
