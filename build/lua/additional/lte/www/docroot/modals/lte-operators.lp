@@ -16,14 +16,15 @@ local utils = require("web.lte-utils")
 local params = utils.get_params()
 
 local used_plmn = {}
-local devices = proxy.get("uci.mobiled.numDevices")
-if devices and tonumber(devices[1].value) > 0 then
-  for i = 1,tonumber(devices[1].value),1 do
-    local mcc = format("%s", proxy.get("uci.mobiled.device.@" .. i .. ".mcc")[1].value)
-    local mnc = format("%s", proxy.get("uci.mobiled.device.@" .. i .. ".mnc")[1].value)
+local devices = proxy.getPN("uci.mobiled.device.", true)
+if devices then
+  for _,device in pairs(devices) do
+    local mcc = format("%s", proxy.get(device.path .. "mcc")[1].value)
+    local mnc = format("%s", proxy.get(device.path .. "mnc")[1].value)
     used_plmn[mcc .. mnc] = 1
   end
 end
+
 
 local operator_valid = {
   ["name"] = post_helper.getValidateStringLengthInRange(1, 127),
