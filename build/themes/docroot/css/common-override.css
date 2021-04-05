@@ -8,7 +8,7 @@
 .iptables-head th:nth-child(n+1):nth-child(-n+2){text-align:right;}
 .simple-desc{display:block;padding-top:2px;}
 .smallcard .content{font-size:14px;height:125px;}
-.smallcard .subinfos{font-size:14px;}
+.smallcard .subinfos{font-size:14px;margin-top:1px;margin-bottom:0px;}
 .span3{width:270px;}
 .status-icon{color:var(--RGB_STATUS_ICON);}
 .table th,.table td {padding-left:4px;padding-right:4px;}
