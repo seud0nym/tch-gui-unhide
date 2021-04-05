@@ -106,6 +106,7 @@ function M.getBroadbandCardHTML()
     total_bytes = 0,
   }
   local wan_intf = getCurrentWANInterface()
+  local wan_ifname = wan_data["wan_ifname"]
   local rpc_ifname = proxy.get("rpc.network.interface.@"..wan_intf..".ifname")
   local path = format("%s_%s", os.date("%F"), rpc_ifname[1].value)
   local rx_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".rx_bytes")
@@ -120,8 +121,10 @@ function M.getBroadbandCardHTML()
   end
 
   local html = {}
-  if wan_data["wan_ifname"] and (find(wan_data["wan_ifname"],"ptm0") or find(wan_data["wan_ifname"],"atm")) then
+  local up = false
+  if wan_ifname and (find(wan_ifname,"ptm") or find(wan_ifname,"atm")) then
     if wan_data["dsl_status"] == "Up" then
+      up = true
       html[#html+1] = ui_helper.createSimpleLight("1", "DSL connected")
       -- After disabling broadband the page immediately refreshes. At this time the state is still up but the line
       -- rate is already cleared.
@@ -140,12 +143,32 @@ function M.getBroadbandCardHTML()
       html[#html+1] = ui_helper.createSimpleLight("2", "DSL connecting")
     end
   end
-  if wan_data["wan_ifname"] and find(wan_data["wan_ifname"],"eth") then
+  if wan_ifname and find(wan_ifname,"eth") then
+    up = true
     if wan_data["ethwan_status"] == "up" then
       html[#html+1] = ui_helper.createSimpleLight("1", "Ethernet connected")
     else
       html[#html+1] = ui_helper.createSimpleLight("4", "Ethernet disconnected")
     end
+  end
+  local vlanid = string.match(wan_ifname, ".*%.(%d+)")
+  if not vlanid then
+    local vid = proxy.get("uci.network.device.@".. wan_ifname .. ".vid")
+    if vid and vid[1].value ~= "" then
+      vlanid = vid[1].value
+    end
+  end
+  if vlanid then
+    local vlanifname = proxy.get("uci.network.device.@".. wan_ifname .. ".ifname")
+    if vlanifname and vlanifname[1].value == "" then
+      html[#html+1] = ui_helper.createSimpleLight("2", "VLAN "..vlanid.." disabled")
+    elseif up then
+      html[#html+1] = ui_helper.createSimpleLight("1", "VLAN "..vlanid.." active")
+    else
+      html[#html+1] = ui_helper.createSimpleLight("0", "VLAN "..vlanid.." inactive")
+    end
+  else
+    html[#html+1] = ui_helper.createSimpleLight("0", "No VLAN defined")
   end
   if mobiled_state["mob_session_state"] == "connected" then
     html[#html+1] = ui_helper.createSimpleLight("1", "Mobile Internet connected")
