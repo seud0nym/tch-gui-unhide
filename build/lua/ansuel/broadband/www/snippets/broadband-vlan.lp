@@ -9,6 +9,7 @@ local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
 local proxy = require("datamodel")
 local bmh = require("broadbandmode_helper")
+local format, match = string.format, string.match
 
 local ethname = proxy.get("sys.eth.port.@eth4.status")
 if ethname and ethname[1].value then
@@ -17,16 +18,28 @@ else
   ethname =  "eth3"
 end
 
-function getValidateNumberInRange(min, max, value)
+local function set(path, value)
+  local retval, errmsg = proxy.set(path, value)
+  if not retval then
+    local v,y
+    for _,v in pairs(errmsg) do
+      for _,y in pairs(v) do
+        message_helper.pushMessage("Error setting "..path..": "..y, "error")
+      end
+    end
+  end
+end
+
+local function getValidateNumberInRange(min, max, value)
   local helptext = T"Input must be a number"
   if min and max then
-    helptext = string.format(T"Input must be a number between %d and %d included", min, max)
+    helptext = format(T"Input must be a number between %d and %d included", min, max)
   elseif not min and not max then
     helptext = T"Input must be a number"
   elseif not min then
-    helptext = string.format(T"Input must be a number smaller than %d included", max)
+    helptext = format(T"Input must be a number smaller than %d included", max)
   elseif not max then
-    helptext = string.format(T"Input must be a number greater than %d included", min)
+    helptext = format(T"Input must be a number greater than %d included", min)
   end
   local num = tonumber(value)
   if not num then
@@ -41,8 +54,9 @@ function getValidateNumberInRange(min, max, value)
   return true
 end
 
-local pathifname = "uci.network.interface.@wan.ifname"
-local iface = proxy.get(pathifname)
+local wanifnamepath = "uci.network.interface.@wan.ifname"
+local wan6ifnamepath = "uci.network.interface.@wan6.ifname"
+local iface = proxy.get(wanifnamepath)
 local connection = ""
 local path = ""
 local vid = ""
@@ -55,13 +69,12 @@ else
   iface = ""
 end
 
-if string.match(iface, "eth") then
+if match(iface, "eth") then
   connection = ethname
-  path = "uci.network.device.@waneth4."
-  pathifname = "eth4"
-  if string.match(iface, "%.") then
-    difname = string.match(iface, ethname .. "%.[%d]+")
-    vid = string.match(difname, "[^"..ethname.."%.]+")
+  path = "uci.network.device.@wan"..ethname.."."
+  if match(iface, "%.") then
+    difname = match(iface, ethname .. "%.[%d]+")
+    vid = match(difname, "[^"..ethname.."%.]+")
   else
     if proxy.get(path) then
       vid = proxy.get(path.."vid")[1].value
@@ -69,12 +82,12 @@ if string.match(iface, "eth") then
       difname = proxy.get(path.."ifname")[1].value
     end
   end
-elseif string.match(iface, "atm") then
+elseif match(iface, "atm") then
   connection = "atmwan"
   path = "uci.network.device.@wanatmwan."
-  if string.match(iface, "%.") then
-    difname = string.match(iface, "atmwan%.[%d]+")
-    vid = string.match(difname, "[^atmwan%.]+")
+  if match(iface, "%.") then
+    difname = match(iface, "atmwan%.[%d]+")
+    vid = match(difname, "[^atmwan%.]+")
   else
     if proxy.get(path) then
       vid = proxy.get(path.."vid")[1].value
@@ -85,9 +98,9 @@ elseif string.match(iface, "atm") then
 else
   connection = "ptm0"
   path = "uci.network.device.@wanptm0."
-  if string.match(iface, "%.") then
-    difname = string.match(iface, "ptm0%.[%d]+")
-    vid = string.match(difname, "[^ptm0%.]+")
+  if match(iface, "%.") then
+    difname = match(iface, "ptm0%.[%d]+")
+    vid = match(difname, "[^ptm0%.]+")
   else
     if proxy.get(path) then
       vid = proxy.get(path.."vid")[1].value
@@ -95,54 +108,58 @@ else
       difname = proxy.get(path.."ifname")[1].value
     end
   end
-end  
+end
 
 if ngx.var.request_method == "POST" then
-    local content = ngx.req.get_post_args()
+  local content = ngx.req.get_post_args()
   if content["action"]=="SAVE" then
     range, helpmes = getValidateNumberInRange(2, 2048, content["intf_vlanid"])
     if content["auswahlliste"] == "devnot" then
       if range and (content["intf_vlanid"]~=vid or content["intf_vlan"]~="0") then
         if proxy.get(path) then
           dname = proxy.get(path.."name")[1].value
-          proxy.set(path.."vid", content["intf_vlanid"])
-          proxy.set(pathifname, dname)
-          ngx.print(dname)
-          proxy.set(path.."ifname", connection)
+          set(path.."vid", content["intf_vlanid"])
+          set(wanifnamepath, dname)
+          set(wan6ifnamepath, dname)
+          set(path.."ifname", connection)
         else
-          proxy.add("uci.network.device.", string.format("%s%s","wan",connection ))
-          proxy.set(path.."type","8021q")
-          proxy.set(path.."name","wan"..connection)
-          proxy.set(path.."macaddr", proxy.get("uci.env.rip.eth_mac")[1].value)
+          proxy.add("uci.network.device.", format("%s%s","wan",connection ))
+          set(path.."type","8021q")
+          set(path.."name","wan"..connection)
+          set(path.."macaddr", proxy.get("uci.env.rip.eth_mac")[1].value)
           dname = proxy.get(path.."name")[1].value
-          proxy.set(path.."vid", content["intf_vlanid"])
-          proxy.set(pathifname, dname)
-          proxy.set(path.."ifname", connection)
+          set(path.."vid", content["intf_vlanid"])
+          set(wanifnamepath, dname)
+          set(wan6ifnamepath, dname)
+          set(path.."ifname", connection)
         end
         proxy.apply()
       end
     elseif content["auswahlliste"] == "dotnot" then
       if range and (content["intf_vlanid"]~=vid or content["intf_vlan"]~="0") then
         if proxy.get(path) and proxy.get(path.."ifname")[1].value ~="" then
-          proxy.set(path.."ifname", "")
-        end        
-        proxy.set(pathifname, string.format("%s.%s",connection, content["intf_vlanid"]))
+          set(path.."ifname", "")
+        end
+        local wanifname = format("%s.%s",connection, content["intf_vlanid"])
+        set(wanifnamepath, wanifname)
+        set(wan6ifnamepath, wanifname)
         proxy.apply()
       end
     end
     if content["intf_vlan"]=="0" then
       if proxy.get(path) then
-        proxy.set(path.."ifname", "")
+        set(path.."ifname", "")
       end
-      proxy.set(pathifname, connection)
+      set(wanifnamepath, connection)
+      set(wan6ifnamepath, connection)
       proxy.apply()
     end
-    if string.match(iface, "eth") then
+    if match(iface, "eth") then
       connection = ethname
-      path = "uci.network.device.@waneth4."
-      if string.match(iface, "%.") then
-        difname = string.match(iface, ethname.."%.[%d]+")
-        vid = string.match(difname, "[^"..ethname.."%.]+")
+      path = "uci.network.device.@wan"..ethname.."."
+      if match(iface, "%.") then
+        difname = match(iface, ethname.."%.[%d]+")
+        vid = match(difname, "[^"..ethname.."%.]+")
       else
         if proxy.get(path) then
           vid = proxy.get(path.."vid")[1].value
@@ -150,12 +167,12 @@ if ngx.var.request_method == "POST" then
           difname = proxy.get(path.."ifname")[1].value
         end
       end
-    elseif string.match(iface, "ptm") then
+    elseif match(iface, "ptm") then
       connection = "ptm0"
       path = "uci.network.device.@wanptm0."
-      if string.match(iface, "%.") then
-        difname = string.match(iface, "ptm0%.[%d]+")
-        vid = string.match(difname, "[^ptm0%.]+")
+      if match(iface, "%.") then
+        difname = match(iface, "ptm0%.[%d]+")
+        vid = match(difname, "[^ptm0%.]+")
       else
         if proxy.get(path) then
           vid = proxy.get(path.."vid")[1].value
@@ -166,9 +183,9 @@ if ngx.var.request_method == "POST" then
     else
       connection = "atmwan"
       path = "uci.network.device.@wanatmwan."
-      if string.match(iface, "%.") then
-        difname = string.match(iface, "atmwan%.[%d]+")
-        vid = string.match(difname, "[^atmwan%.]+")
+      if match(iface, "%.") then
+        difname = match(iface, "atmwan%.[%d]+")
+        vid = match(difname, "[^atmwan%.]+")
       else
         if proxy.get(path) then
           vid = proxy.get(path.."vid")[1].value
@@ -181,60 +198,37 @@ if ngx.var.request_method == "POST" then
 end
 
 local check
-
-if not iface or string.match(iface, "%.") then
+if not iface or match(iface, "%.") then
   check = "dotnot"
 else
   check = "devnot"
 end
 
 local b
-
 if check == "dotnot" then
-  if string.match(difname, "%.") then
-    b = string.match(difname, "[%w]+")
-    difname = string.match(difname, "[%w]+")
+  if match(difname, "%.") then
+    b = match(difname, "[%w]+")
+    difname = match(difname, "[%w]+")
   else
     b = "empty"
   end
 else
-  if string.match(difname,"[%w]+") then
-    b = string.match(difname,"[%w]+")
-  else 
+  if match(difname,"[%w]+") then
+    b = match(difname,"[%w]+")
+  else
     b = "empty"
   end
 end
 
-local intf_state = "disabled"
-
-local intf_state_map = {
-  disabled = T"VLAN disabled",
-  connected = T"VLAN enabled",
-  disconnected = T"VLAN not connected",
-}
-
-local intf_light_map = {
-  disabled = "off",
-  disconnected = "red",
-  connected = "green",
-}
-
-if difname ~= "" then
-  intf_state = "connected"
-else
-  intf_state = "disabled"
-end
-
 ngx.print('\
 <fieldset>\
-    '); ngx.print(ui_helper.createMessages(message_helper.popMessages())) ngx.print('\
-  <legend>'); ngx.print( T"Internet channel" ); ngx.print('</legend>');
+  <legend>'); ngx.print( T"Internet Channel" ); ngx.print('</legend>');
 
-  liste = {  
-    {"dotnot", T"Dot &nbsp;"},
+  local liste = {
     {"devnot", T"Device &nbsp;"},
+    {"dotnot", T"Dot &nbsp;"}
   }
-  
+
   local html = {}
   local vlanswitchclass = {
     input = {
@@ -244,14 +238,20 @@ ngx.print('\
   }
   local vlanidclass = {
     group = {
-      class =string.format("monitor-intf_vlan monitor-%s",b),
+      class = format("monitor-intf_vlan monitor-%s",b),
     },
   }
+  local alertclass = {
+    alert = {
+      class = "alert-warn monitor-wsens monitor-1"
+    },
+  }
+  html[#html + 1] = ui_helper.createAlertBlock(T"WAN Sensing may not inter-operate correctly with VLAN. Disable WAN Sensing and select Connection Mode first, before setting VLAN ID.", alertclass)
   html[#html + 1] = ui_helper.createSwitch(T"Using VLAN", "intf_vlan", difname, vlanswitchclass)
   html[#html + 1] = ui_helper.createInputRadio(T"Notation", "auswahlliste" , liste, check, vlanidclass)
   html[#html + 1] = ui_helper.createInputText(T"VLAN ID", "intf_vlanid", vid, vlanidclass, helpmes)
   ngx.print(html)
-  
+
   ngx.print('\
 </fieldset>\
 ');
