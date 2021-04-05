@@ -118,9 +118,8 @@ local dsl_switch_data, dsl_switch_helpmsg = post_helper.handleQuery(dsl_switch_p
 \
 <fieldset>\
   ');  
-    ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('\
-  <legend>');  ngx.print( T"Physical link status" ); ngx.print('</legend>\
+  <legend>');  ngx.print( T"Physical Link Status" ); ngx.print('</legend>\
 \
   ');  
     local html = {}

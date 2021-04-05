@@ -11,12 +11,12 @@ local ui_helper = require("web.ui_helper")
 lp.include("broadband-xdsl.lp")
 
 local allowed_encs = {
-    {"llc",T"LLC"},
-    {"vcmux",T"VCMUX"}
+  {"llc",T"LLC"},
+  {"vcmux",T"VCMUX"}
 }
 
 local wan = {
-    iface = "uci.network.interface.@wan.ifname",
+  iface = "uci.network.interface.@wan.ifname",
 }
 content_helper.getExactContent(wan)
 local iface = wan.iface
@@ -39,9 +39,9 @@ if iface then
   }
 
   local mapParams = {
-      adsl_vp = "uci.xtm.atmdevice.@" .. iface .. ".vpi",
-      adsl_vc = "uci.xtm.atmdevice.@" .. iface .. ".vci",
-      adsl_enc = "uci.xtm.atmdevice.@" .. iface .. ".enc",
+    adsl_vp = "uci.xtm.atmdevice.@" .. iface .. ".vpi",
+    adsl_vc = "uci.xtm.atmdevice.@" .. iface .. ".vci",
+    adsl_enc = "uci.xtm.atmdevice.@" .. iface .. ".enc",
   }
   content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
 end
@@ -49,8 +49,6 @@ end
 ngx.print('\
 <fieldset>\
   ')
-    ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-  
   ngx.print('\
   <legend>'); ngx.print( T"Internet VPC" ); ngx.print('</legend>\
   ')

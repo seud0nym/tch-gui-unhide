@@ -25,7 +25,7 @@ local gpon_light_map = {
   ngx.print('\
 \
 <fieldset>\
-  <legend>');  ngx.print( T"Physical link status" ); ngx.print('</legend>\
+  <legend>');  ngx.print( T"Physical Link Status" ); ngx.print('</legend>\
 \
   ');  
     local html = {}
