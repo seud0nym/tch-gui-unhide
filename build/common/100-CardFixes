@@ -40,7 +40,7 @@ sed \
   -e '/@lan.dhcpv4/a \    ipv6State = "uci.network.interface.@lan.ipv6",' \
   -e '/@lan.dhcpv4/a \    dhcpv6State = "uci.dhcp.dhcp.@lan.dhcpv6",' \
   -e '/@lan.dhcpv4/a \    slaacState = "uci.dhcp.dhcp.@lan.ra",' \
-  -e '/@lan.netmask/a \    ipv6prefix = "rpc.network.interface.@wan6.ip6prefix",' \
+  -e '/@lan.netmask/a \    ipv6prefix = "rpc.network.interface.@lan.ip6prefix_assignment",' \
   -e 's/localdevIP = "uci/localdevIP = "rpc/' \
   -e 's/dhcpState/dhcp4State/g' \
   -e 's/DHCP enabled/DHCPv4 enabled/' \
