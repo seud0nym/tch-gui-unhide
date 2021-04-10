@@ -95,6 +95,33 @@ Parameters:
 ```
 If you enable DumaOS *after* running the `tch-gui-unhide` script, you will need to re-run `tch-gui-unhide` to enable the button to access DumaOS. Similarly, if you disable DumaOS, you will need to re-run `tch-gui-unhide` to remove the button. 
 
+## mtd-backup
+Backs up the MTD partitions to an attached USB device. Only unchanged partitions are backed up after the first execution.
+```
+Usage: ./mtd-backup [options]
+
+Options:
+ -c  Save the current UCI configuration into the DJA0231-CP1925SA65J-config.gz file
+ -e  Save the current environment into the DJA0231-CP1925SA65J-env file
+ -l  Write log messages to stderr as well as the system log
+ -o  Save the overlay content into the DJA0231-CP1925SA65J-overlay-files-backup.tgz file
+ -v  Verbose mode
+ -y  Bypass confirmation prompt (answers 'y')
+ -C  Adds or removes the scheduled daily backup cron job
+```
+When run with the -C option (which should be the only option), the scheduled job will be added if it does not already exist, or removed if it does exist in the schedule. By default, the backup will run every day at 1:30am. You can modify the schedule through the Management card in `tch-gui-unhide`, or by directly modifying the /etc/crontab/root file.
+
+## mtd-restore
+Restores the MTD partitions from an attached USB device, that were backed up using `mtd-restore`. Only changed partitions are restored.
+```
+Usage: ./mtd-restore [partition]
+
+Parameters:
+ partition  the partition to restored. (Optional)
+              Specify either the device (e.g. "mtd2") or name (e.g. "rootfs_data")
+```
+If no partition is specified for restore, ALL partitions that have been altered will be restored.
+
 ## reboot-on-coredump
 Enables or disables reboot on core dump. If you have a process that is continually crashing and core dumping, use this script to disable reboot on coredump.
 ```

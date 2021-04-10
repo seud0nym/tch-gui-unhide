@@ -1,0 +1,77 @@
+#!/bin/sh
+
+SCRIPT="$(basename $0)"
+VARIANT=$(uci -q get env.var.variant_friendly_name)
+
+if [ "o$1" = "o-?" ]; then
+cat <<EOH
+Restores the MTD partitions from an attached USB device. Only changed partitions are restored.
+
+Usage: $0 [partition]
+
+Parameters:
+ partition  the partition to restored. (Optional)
+              Specify either the device (e.g. "mtd2") or name (e.g. "rootfs_data")
+
+If no partition is specified for restore, ALL partitions that have been altered will be restored.
+
+EOH
+exit
+fi
+
+USB="$(ls /mnt/usb | head -n1)"
+if [ -z "$USB" ]
+then
+  echo $(date +%F@%X): ABORTING! No USB device found
+  exit 1
+fi
+
+echo $(date +%F@%X): If you wish to commence the restore, enter y otherwise just press [Enter] to exit.
+read
+if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
+  exit
+fi
+
+echo $(date +%F@%X): ACQUIRING list of existing images...
+for gz in $(ls /mnt/usb/$USB/backups/$VARIANT-*.img.gz 2>/dev/null)
+do
+  if [ ! -z "$1" ]
+  then
+    echo $gz | grep -q "$1"
+    if [ $? -ne 0 ]
+    then
+      echo $(date +%F@%X): SKIPPED restore of $gz: Does not match $1
+      continue
+    fi
+  fi
+  basename $gz | sed -e "s/^$VARIANT-\(mtd.\)-\(.*\).img.gz$/\1 \2/" | while read -r dev name
+  do
+    if [ -f /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256 ]
+    then
+      SHA256OLD="$(cat /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256)"
+    else
+      echo $(date +%F@%X): SKIPPED restore of $gz: $VARIANT-$dev-$name.img.sha256 does not exist?
+      continue
+    fi
+    echo $(date +%F@%X): CALCULATING current SHA256 checksum for $name
+    SHA256=$(dd if=/dev/$dev 2>/dev/null | sha256sum)
+    if [ "$SHA256" = "$SHA256OLD" ]
+    then
+      echo $(date +%F@%X): SKIPPED restore of $gz - Checksums for $name match therefore image unchanged
+    else
+      echo $(date +%F@%X): EXPANDING $name to /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img
+      gzip -dc $gz > /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img
+      echo $(date +%F@%X): RESTORING /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img to partion $name
+      mtd write /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img $name
+      if [ $? -eq 0 ]
+      then
+        echo $(date +%F@%X): RESTORED /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img to partion $name
+      else
+        echo $(date +%F@%X): FAILED to restore /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img to partion $name!
+      fi
+      echo $(date +%F@%X): DELETING /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img
+      rm /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img
+    fi
+  done
+done
+echo $(date +%F@%X): COMPLETED - You may need to manually power cycle the device now...

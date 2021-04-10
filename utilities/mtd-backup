@@ -1,0 +1,207 @@
+#!/bin/sh
+
+SCRIPT="$(basename $0)"
+SERIAL=$(uci get env.var.serial)
+VARIANT=$(uci -q get env.var.variant_friendly_name)
+
+usage() {
+cat <<EOH
+Backs up the MTD partitions to an attached USB device. Only unchanged partitions are backed up after the first execution.
+
+Usage: $0 [options]
+
+Options:
+ -c  Save the current UCI configuration into the $VARIANT-$SERIAL-config.gz file
+ -e  Save the current environment into the $VARIANT-$SERIAL-env file
+ -l  Write log messages to stderr as well as the system log
+ -o  Save the overlay content into the $VARIANT-$SERIAL-overlay-files-backup.tgz file
+ -v  Verbose mode
+ -y  Bypass confirmation prompt (answers 'y')
+ -C  Adds or removes the scheduled daily backup cron job
+
+EOH
+exit
+}
+
+CRON=N
+DEBUG=N
+DUMP_CFG=N
+DUMP_ENV=N
+DUMP_OVL=N
+LOGGER="/usr/bin/logger -t mtd-backup -p"
+YES=N
+
+while getopts :Ccelovy option
+do
+ case "${option}" in
+  C)  CRON=Y;;
+  c)  DUMP_CFG=Y;;
+  e)  DUMP_ENV=Y;;
+  l)  LOGGER="/usr/bin/logger -s -t mtd-backup -p";;
+  o)  DUMP_OVL=Y;;
+  v)  DEBUG=Y;;
+  y)  YES=Y;;
+  *)  usage;;
+ esac
+done
+shift $((OPTIND-1))
+
+USB="$(ls /mnt/usb | head -n1)"
+if [ -z "$USB" ]
+then
+  $LOGGER user.err ABORTING! No USB device found
+  exit 1
+fi
+
+if [ $CRON = Y ]
+then
+  grep -q "$SCRIPT" /etc/crontabs/root
+  if [ $? = 0 ]
+  then
+    CRON_ACTION=remove
+  else
+    CRON_ACTION=add
+  fi
+  if [ $YES = N ]; then
+    echo If you wish to $CRON_ACTION the cron schedule now, enter y otherwise just press [Enter] to exit.
+  fi
+else
+  if [ $YES = N ]; then
+    echo If you wish to commence the backup now, enter y otherwise just press [Enter] to exit.
+  fi
+fi
+
+if [ $YES = N ]; then
+  read
+else
+  REPLY=y
+fi
+if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
+  exit
+fi
+
+if [ $CRON = Y ]
+then
+  if [ $CRON_ACTION = remove ]
+  then
+    sed -e "/$SCRIPT/d" -i /etc/crontabs/root
+    echo Scheduled backup has been removed. 
+  else
+    echo "30 1 * * * $(cd $(dirname $0); pwd)/$SCRIPT -c -e -o -y" >> /etc/crontabs/root
+    echo Backup has been scheduled to execute at 1:30am every day. 
+    echo Execution messages will be written to the system log, and can be viewed with the following command:
+    echo
+    echo "  logread -e mtd-backup"
+    echo
+  fi
+  /etc/init.d/cron reload
+  exit
+fi
+
+if [ $DEBUG = Y ]
+then
+  $LOGGER user.debug Backup commenced
+  STARTED=$(date +%s)
+fi
+
+if [ ! -d /mnt/usb/$USB/backups ]
+then
+  mkdir -p /mnt/usb/$USB/backups
+fi
+if [ ! -f /mnt/usb/$USB/backups/README! ]
+then
+  echo "This directory contains compressed backup images of the device MTD partitions.">/mnt/usb/$USB/backups/README!
+  echo "">>/mnt/usb/$USB/backups/README!
+  echo "The .sha256 files contain a checksum that is ONLY used for determining if an image has been changed.">>/mnt/usb/$USB/backups/README!
+  echo "">>/mnt/usb/$USB/backups/README!
+  echo "The checksum may not match the actual content of the image, if the image is updated between checksum">>/mnt/usb/$USB/backups/README!
+  echo "calculation and actually writing the image!">>/mnt/usb/$USB/backups/README!
+fi
+
+if [ $DUMP_CFG = Y ]
+then
+  $LOGGER user.info WRITING current configuration to /mnt/usb/$USB/backups/$VARIANT-$SERIAL-config.gz 
+  SECONDS=$(date +%s)
+  uci show 2>/dev/null | grep -v -E '^env' | gzip > /mnt/usb/$USB/backups/$VARIANT-$SERIAL-config.gz
+  if [ $DEBUG = Y ]
+  then
+    $LOGGER user.debug WRITING current configuration to /mnt/usb/$USB/backups/$VARIANT-$SERIAL-config.gz took $(( $(date +%s) - $SECONDS )) seconds
+  fi
+else
+  if [ $DEBUG = Y ]
+  then
+    $LOGGER user.debug SKIPPED configuration backup - Not requested
+  fi
+fi
+
+if [ $DUMP_ENV = Y ]
+then
+  $LOGGER user.info WRITING current environment to /mnt/usb/$USB/backups/$VARIANT-$SERIAL-env
+  SECONDS=$(date +%s)
+  uci show env.var > /mnt/usb/$USB/backups/$VARIANT-$SERIAL-env
+  if [ $DEBUG = Y ]
+  then
+    $LOGGER user.debug WRITING current environment to /mnt/usb/$USB/backups/$VARIANT-$SERIAL-env took $(( $(date +%s) - $SECONDS )) seconds
+  fi
+else
+  if [ $DEBUG = Y ]
+  then
+    $LOGGER user.debug SKIPPED environment backup - Not requested
+  fi
+fi
+
+if [ $DUMP_OVL = Y ]
+then
+  $LOGGER user.info WRITING overlay contents to /mnt/usb/$USB/backups/$VARIANT-$SERIAL-overlay-files-backup.tgz
+  SECONDS=$(date +%s)
+  tar -C /overlay -czf /mnt/usb/$USB/backups/$VARIANT-$SERIAL-overlay-files-backup.tgz .
+  if [ $DEBUG = Y ]
+  then
+    $LOGGER user.debug WRITING overlay contents to /mnt/usb/$USB/backups/$VARIANT-$SERIAL-overlay-files-backup.tgz took $(( $(date +%s) - $SECONDS )) seconds
+  fi
+else
+  if [ $DEBUG = Y ]
+  then
+    $LOGGER user.debug SKIPPED overlay contents backup - Not requested
+  fi
+fi
+
+sed -e '/dev:/d' -e 's/\(mtd.\)[^"]*"\([^"]*\)"/\1 \2/' /proc/mtd | while read -r dev name
+do
+  if [ -f /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256 ]
+  then
+    SHA256OLD="$(cat /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256)"
+  else
+    SHA256OLD=""
+  fi
+  if [ $DEBUG = Y ]
+  then
+    $LOGGER user.debug Calculating SHA256 for $name..
+    SECONDS=$(date +%s)
+  fi
+  SHA256=$(dd if=/dev/$dev 2>/dev/null | sha256sum)
+  if [ $DEBUG = Y ]
+  then
+    $LOGGER user.debug Calculating SHA256 for $name took $(( $(date +%s) - $SECONDS )) seconds
+  fi
+  if [ "$SHA256" = "$SHA256OLD" ]
+  then
+    $LOGGER user.info SKIPPED Backup of $name - Checksums match
+    echo "$SHA256" > /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256
+  else
+    $LOGGER user.info WRITING $name to /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.gz
+    SECONDS=$(date +%s)
+    dd if=/dev/$dev | gzip > /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.gz
+    if [ $DEBUG = Y ]
+    then
+      $LOGGER user.debug WRITING $name to /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.gz took $(( $(date +%s) - $SECONDS )) seconds
+    fi
+    $LOGGER user.info WRITING checksum to /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256
+    echo "$SHA256" > /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256
+  fi
+done
+if [ $DEBUG = Y ]
+then
+  $LOGGER user.debug Backup completed in $(( $(date +%s) - $STARTED )) seconds
+fi
+
