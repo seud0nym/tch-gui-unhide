@@ -34,9 +34,10 @@ Optionally, it can also:
 - Stop and disable all services associated with optional features for a minimal memory configuration
 
 It does NOT remove the hidden BH-xxxxxx SSID from the DJA0230 or DJA0231, as this is not related to Telstra AIR. It is the wireless backhaul for EasyMesh.
-
-This script accepts the following options:
 ```
+Usage: ./de-telstra [options]
+
+Options:
  -k a|c|k|m|n          Override default hardening configuration:
     where a            - Keep Telstra AIR enabled
           c            - Keep CWMP installed
@@ -45,122 +46,100 @@ This script accepts the following options:
           n            - Keep Telstra NTP servers
           T            - Keep all default Telstra configuration (Equivalent to: -ka -kc -kk -km -kn)
  -h u|d|s|<hostname>
-    where u            Leave hostname unchanged (Default)
-          d            Set the hostname to the hardware variant (e.g.DJA0231 or TG800vac)
-          s            Set the hostname to hardware variant and appends the device serial number (Useful if you have multiple devices of the same variant.)
+    where u            Leave hostname unchanged
+          d            Set the hostname to DJA0231
+          s            Set the hostname to DJA0231-8C76FD
           <hostname>   Use the specified hostname
  -d u|g|<domainname>
-    where u            Leave domain name unchanged (Default)
+    where u            Leave domain name unchanged
           g            Set the domain name to gateway
           <domainname> Set the domain name to <domainname>
  -n u|a|c|g|f|o|<n.n.n.n>
-    where u            Leave DNS servers unchanged (Default)
-          a            Automatically use the DNS servers from the ISP (device default)
+    where u            Leave DNS servers unchanged
+          a            Automatically use the DNS servers from the ISP
           c            Set the DNS servers to Cloudflare
           g            Set the DNS servers to Google
           f            Set the DNS servers to OpenDNS Family Shield
           o            Set the DNS servers to OpenDNS
           <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
- -a u|y|n
-    where u            Leave ALGs unchanged (Default)
-          y            Enable ALGs (device default)
-          n            Disable ALGs (except SIP if telephony enabled)
- -c u|y|n
-    where u            Leave Content Sharing unchanged (Default)
-          y            Enable Content Sharing (device default)
-          n            Disable Content Sharing
- -f u|y|n
-    where u            Leave File Sharing unchanged (Default)
-          y            Enable File Sharing (device default)
-          n            Disable File Sharing
- -p u|y|n
-    where u            Leave power saving unchanged (Default)
-          y            Enable power saving (device default)
-          n            Disable power saving
- -r u|y|n
-    where u            Leave Printer Sharing unchanged (Default)
-          y            Enable Printer Sharing (device default)
-          n            Disable Printer Sharing
- -t u|y|n
-    where u            Leave Telephony (mmpbx) unchanged (Default)
-          y            Enable the telephony service
-          n            Disable the telephony service
- -e u|y|n
-    where u            Leave DECT Emission Mode unchanged (Default)
-          y            Enable DECT Emission Mode (device default)
-          n            Disable DECT Emission Mode
- -u u|y|n
-    where u            Leave UPnP unchanged (Default)
-          y            Enable the UPnP service
-          n            Disable the UPnP service
- -m u|y|n
-    where u            Leave EasyMesh (multiap) unchanged (Default)
-          y            Enable EasyMesh (multiap) (device default)
-          n            Disable EasyMesh (multiap)
- -g u|y|n
-    where u            Leave DumaOS (Telstra Game Optimiser) unchanged (Default)
-          y            Enable DumaOS (Telstra Game Optimiser)
-          n            Disable DumaOS (Telstra Game Optimiser) (device default)
- -w u|y|n              
-    where u            Leave WPS unchanged on non-Guest and non-Backhaul SSIDs (Default)
-          y            Enable WPS on non-Guest and non-Backhaul SSIDs (device default)
-          n            Disable WPS on non-Guest and non-Backhaul SSIDs
- -o                    Configures opkg
+ -a u|y|n              NAT Helpers:             u=Unchanged y=Enable n=Disable (except SIP if telephony enabled)
+ -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
+ -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
+ -p u|y|n              Power Saving:            u=unchanged y=Enable n=Disable
+ -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
+ -t u|y|n              Telephony:               u=unchanged y=Enable n=Disable
+ -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
+ -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
+ -m u|y|n            * MultiAP (EasyMesh):      u=unchanged y=Enable n=Disable
+ -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
+ -w u|y|n              WPS on non-Guest and non-Backhaul SSIDs: u=unchanged y=Enable n=Disable
  -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un -wn
  -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn
- -R                    Reset to device defaults (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -my -py -ry -ty -ey -uy -wy)
+ -M                    Minimum memory mode: Equivalent to: -an -cn -fn -rn -tn -en -un -mn -gn
+                        PLUS stops and disables the associated services
+ -R                    Reset to device defaults
+                        (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy)
+ -o                    Configures opkg
  -U                    Check for and download the latest version from GitHub
 ```
 Note that the options to disable/enable EasyMesh and DumaOS are only applicable to devices with those services installed.
 
 ## dumaos
 Enables or disables DumaOS on a DJA0231 running the 18.1.c.0514 or later firmware, or a DJA0230 running 18.1.c.0549 or later. It also disables or enables reboot on core dump, because if DumaOS gets into trouble, the router will just continally reboot.
+```
+Usage: ./dumaos -on|-off
 
-This script supports 1 parameter: `-on` or `-off`
-- -on
-    - Enables DumaOS and disables reboot on core dump, then starts the DumaOS service.
-- -off
-    - Disables DumaOS and enables reboot on core dump, then stops the DumaOS service.
-
+Parameters:
+ -on    Enables DumaOS and disables reboot on core dump, then starts the DumaOS service.
+ -off   Disables DumaOS and enables reboot on core dump, then stops the DumaOS service.
+```
 If you enable DumaOS *after* running the `tch-gui-unhide` script, you will need to re-run `tch-gui-unhide` to enable the button to access DumaOS. Similarly, if you disable DumaOS, you will need to re-run `tch-gui-unhide` to remove the button. 
 
 ## reboot-on-coredump
 Enables or disables reboot on core dump. If you have a process that is continually crashing and core dumping, use this script to disable reboot on coredump.
+```
+Usage: ./reboot-on-coredump -on|-off
 
-This script supports 1 parameter: `-on` or `-off`
-- -on
-    - Enables reboot on core dump.
-- -off
-    - Disables reboot on core dump.
+Parameters:
+ -on    Enables reboot on core dump.
+ -off   Disables reboot on core dump.
+```
 
 ## reset-to-factory-defaults-with-root
-It does what it says. It is a copy of the commands from https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access (without the backup - you need to do that manually and move it off the device), with a confirmation prompt and immediate reboot.
+It does what it says. It is a copy of the commands from https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access, with a confirmation prompt and immediate reboot.
+```
+Usage: ./reset-to-factory-defaults-with-root [options]
 
-This script also supports the following optional parameters:
-- -f filename
-  - Flash 'filename' into the mounted bank after reset and before reboot
-  - 'filename" can either be an unpacked file (.bin) or a .rbi file. 
-  - A .rbi file will be unpacked to either USB drive (by default) or /tmp before flashing.
-- -b
-  - Make a full backup of your booted bank configuration (requires attached USB device)
-- -i
-  - Keep the existing LAN IP address after reset and reboot
-- -I n.n.n.n
-  - Use LAN IP address n.n.n.n after reset and reboot
-- -c
-  - Disable CWMPD configuration during first boot after reset
-- -n
-    - Do NOT reboot.
+Options:
+ -b           Make a full backup of your booted bank configuration (requires attached USB device).
+ -c           Disable CWMPD configuration during first boot after reset.
+ -f filename  Flash 'filename' into the mounted bank after reset and before reboot,
+                If 'filename' ends with .rbi, it will be unpacked first, either to an attached USB device, or /tmp if no USB detected.
+ -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
+ -i           Keep the existing IP address after reset and reboot.
+ -n           Do NOT reboot.
+```
 
 ## set-optimal-bank-plan
 Again, it does what it says. It is a copy of the commands from https://hack-technicolor.readthedocs.io/en/stable/Hacking/PostRoot/#bank-planning, with a confirmation prompt.
+```
+Usage: ./set-optimal-bank-plan
+```
 
 ## set-web-admin-password
 Allows you to set or reset the web admin password. Specify the new password as the first parameter.
+```
+Usage: ./set-web-admin-password newpassword
+
+Parameters:
+ newpassword   the new admin password for the GUI. (Required)
+```
 
 ## show-bank-plan
 A pretty version of `find /proc/banktable -type f -print -exec cat {} ';'`, with a final analysis to show whether the bank plan is optimal, or not.
-
+```
+Usage: ./show-bank-plan
+```
 Example output:
 ```
 /proc/banktable/active         : bank_1  OK
@@ -178,7 +157,15 @@ Bank Plan is OPTIMAL
 Version 17 firmwares do not include `/usr/bin/transformer-cli`, which is very useful for working out what is returned in the various GUI scripts.
 
 ## unpack-rbi
-Unpacks the *.rbi* file passed as the first parameter. The second parameter is optional, and is either a filename or directory to which the *.rbi* file will be unpacked. If the filename or directory is not specified, the file will be written to the /tmp directory with the same name but with an extension of *.bin*.
+Unpacks the *.rbi* file passed as the first parameter. 
+```
+Usage: ./unpack-rbi source [target]
+
+Parameters:
+ source   the .rbi file to be unpacked. (Required)
+ target   either a filename or directory to which the .rbi file will be unpacked. (Optional)
+```
+The second parameter is optional, and is either a filename or directory to which the *.rbi* file will be unpacked. If the filename or directory is not specified, the file will be written to the /tmp directory with the same name but with an extension of *.bin*.
 
 # How to download and execute these scripts
 If you download a tch-gui-unhide release archive, the scripts applicable to that firmware version are included.

@@ -1,5 +1,21 @@
 #!/bin/sh
 
+usage() {
+cat <<EOH
+Enables or disables reboot on core dump. 
+If you have a process that is continually crashing and core dumping, 
+use this script to disable reboot on coredump.
+
+Usage: $0 -on|-off
+
+Parameters:
+ -on    Enables reboot on core dump.
+ -off   Disables reboot on core dump.
+
+EOH
+exit
+}
+
 ENABLED="$(uci -q get system.@coredump[0].reboot)"
 while getopts :onff option
 do
@@ -7,7 +23,7 @@ do
     o) SETTING="";;
     n) SETTING=on;;
     f) SETTING=off;;
-    ?) echo "Parameters: -on|-off";;
+    ?) usage;;
   esac
 done
 if [ -z "$SETTING" ]

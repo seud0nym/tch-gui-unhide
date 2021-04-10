@@ -1,3 +1,16 @@
+#!/bin/sh
+
+if [ "o$1" = "o-?" ]; then
+cat <<EOH
+Sets the optimal bank plan. 
+Effectively the same as the procedure from https://hack-technicolor.readthedocs.io/en/stable/Hacking/PostRoot/#bank-planning.
+
+Usage: $0
+
+EOH
+exit
+fi
+
 echo "Enter y to attempt to set the optimal bank plan, or anything else to exit now"
 read
 if [ "$REPLY" = "y" -o "$REPLY" = "Y" ]

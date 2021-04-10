@@ -3,8 +3,24 @@
 if [ -z "$1" ]
 then
   echo "ERROR: You must specify the source .rbi file as the first parameter."
-  echo "If you do not specify a target file or directory as the second parameter, the file will be written to the /tmp directory with the same name but with an extension of .bin"
-  exit
+  echo
+fi
+
+if [ -z "$1" -o "o$1" = "o-?" ]; then
+cat <<EOH
+Unpacks the .rbi file passed as the first parameter.
+
+Usage: $0 source [target]
+
+Parameters:
+ source   the .rbi file to be unpacked. (Required)
+ target   either a filename or directory to which the .rbi file will be unpacked. (Optional)
+
+If the target filename or directory is not specified, the file will be written to the /tmp 
+directory with the same name but with an extension of '.bin'.
+
+EOH
+exit
 fi
 
 echo "$1" | grep -q -E '\.rbi$'

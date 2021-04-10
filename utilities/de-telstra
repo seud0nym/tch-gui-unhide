@@ -8,7 +8,111 @@ fi
 
 # Based on https://hack-technicolor.readthedocs.io/en/stable/Hardening/
 
-SCRIPT=$(basename $0)
+SCRIPT="$(basename $0)"
+
+usage() {
+cat <<EOH
+Hardens root access and applies optional service configuration changes.
+
+Usage: $0 [options]
+
+Options:
+ -k a|c|k|m|n          Override default hardening configuration:
+    where a            - Keep Telstra AIR enabled
+          c            - Keep CWMP installed
+          k            - Keep default public authorized keys
+          m            - Keep Telstra monitoring and data collection enabled
+          n            - Keep Telstra NTP servers
+          T            - Keep all default Telstra configuration (Equivalent to: -ka -kc -kk -km -kn) 
+ -h u|d|s|<hostname>
+    where u            Leave hostname unchanged
+          d            Set the hostname to $VARIANT
+          s            Set the hostname to $VARIANT-$MAC_HEX
+          <hostname>   Use the specified hostname
+ -d u|g|<domainname>
+    where u            Leave domain name unchanged
+          g            Set the domain name to gateway
+          <domainname> Set the domain name to <domainname>
+ -n u|a|c|g|f|o|<n.n.n.n>
+    where u            Leave DNS servers unchanged
+          a            Automatically use the DNS servers from the ISP
+          c            Set the DNS servers to Cloudflare
+          g            Set the DNS servers to Google
+          f            Set the DNS servers to OpenDNS Family Shield
+          o            Set the DNS servers to OpenDNS
+          <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
+ -a u|y|n              NAT Helpers:             u=Unchanged y=Enable n=Disable (except SIP if telephony enabled)
+ -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
+ -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
+ -p u|y|n              Power Saving:            u=unchanged y=Enable n=Disable
+ -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
+ -t u|y|n              Telephony:               u=unchanged y=Enable n=Disable
+ -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
+ -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
+ -m u|y|n            * MultiAP (EasyMesh):      u=unchanged y=Enable n=Disable
+ -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
+ -w u|y|n              WPS on non-Guest and non-Backhaul SSIDs: u=unchanged y=Enable n=Disable
+ -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un -wn
+ -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn
+ -M                    Minimum memory mode: Equivalent to: -an -cn -fn -rn -tn -en -un -mn -gn
+                        PLUS stops and disables the associated services
+ -R                    Reset to device defaults
+                        (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy)
+ -o                    Configures opkg
+ -U                    Check for and download the latest version from GitHub
+
+NOTE #1: Default for all optional parameters is u (unchanged)
+NOTE #2: Options marked with * are only applicable if the service is installed
+
+EOH
+exit
+}
+
+upgrade() {
+  RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT | sed 's/\r//')
+  if [ $? -ne 0 ]
+  then
+      echo "[$SCRIPT] GitHub check of $SCRIPT failed with an unknown error. Do you have an internet connection?"
+      return 5
+  else 
+      STATUS=$(echo $RESULT | grep '^HTTP' | cut -d' ' -f2)
+      LENGTH=$(echo $RESULT | grep '^Content-Length' | cut -d' ' -f2)
+      next=''
+      for t in $(echo $RESULT | tr " " "$IFS")
+      do
+        case "$next" in
+        s) STATUS="$t";next='';;
+        l) LENGTH="$t";next='';;
+        *) case "$t" in
+        "HTTP/1.1") next='s';;
+        "Content-Length:") next='l';;
+        *) next='';;
+        esac
+        esac
+      done
+      case "$STATUS" in
+      200)  if [ -f "$SCRIPT" ]
+            then
+              SIZE=$(ls -l $SCRIPT | tr -s ' ' | cut -d' ' -f5)
+              if [ $SIZE -eq $LENGTH ]
+              then
+              echo "[$SCRIPT] Size of $SCRIPT matches GitHub version - No update required"
+              exit
+              fi
+            fi
+            curl -k -L https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT > $SCRIPT
+            if [ $? -eq 0 ]
+            then
+              chmod +x $SCRIPT
+              echo "[$SCRIPT] Successfully updated $SCRIPT."
+            else
+              echo "[$SCRIPT] Failed to download updated version of $SCRIPT."
+            fi;;
+      *)    echo "[$SCRIPT] GitHub check of $SCRIPT returned $STATUS";;
+      esac
+  fi
+  exit
+}
 
 # Keep count of changes so we know whether to restart services
 SRV_bulkdata=0
@@ -98,100 +202,8 @@ do
   M)  LITE='y'; ALG='0'; DECT='0'; DLNAD='0'; DUMAOS='0'; MMPBX='0'; MULTIAP='0'; PRNTR='0'; SAMBA='0'; UPNP='0'; WPS='0';;
   R)  LITE='R'; HOST='mymodem'; DOMAIN='modem'; NS='a'; ALG='1'; DLNAD='1'; DUMAOS='0'; SAMBA='1'; MULTIAP='1'; POWER='y'; PRNTR='1'; MMPBX='1'; DECT='1'; UPNP='1';;
   S)  HOST='s'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; PRNTR='0'; UPNP='0'; WPS='0';;
-  U)  RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT | sed 's/\r//')
-      if [ $? -ne 0 ]
-      then
-          echo "[$SCRIPT] GitHub check of $SCRIPT failed with an unknown error. Do you have an internet connection?"
-          return 5
-      else 
-          STATUS=$(echo $RESULT | grep '^HTTP' | cut -d' ' -f2)
-          LENGTH=$(echo $RESULT | grep '^Content-Length' | cut -d' ' -f2)
-          next=''
-          for t in $(echo $RESULT | tr " " "$IFS")
-          do
-            case "$next" in
-            s) STATUS="$t";next='';;
-            l) LENGTH="$t";next='';;
-            *) case "$t" in
-            "HTTP/1.1") next='s';;
-            "Content-Length:") next='l';;
-            *) next='';;
-            esac
-            esac
-          done
-          case "$STATUS" in
-          200)  if [ -f "$SCRIPT" ]
-                then
-                  SIZE=$(ls -l $SCRIPT | tr -s ' ' | cut -d' ' -f5)
-                  if [ $SIZE -eq $LENGTH ]
-                  then
-                  echo "[$SCRIPT] Size of $SCRIPT matches GitHub version - No update required"
-                  exit
-                  fi
-                fi
-                curl -k -L https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT > $SCRIPT
-                if [ $? -eq 0 ]
-                then
-                  chmod +x $SCRIPT
-                  echo "[$SCRIPT] Successfully updated $SCRIPT."
-                else
-                  echo "[$SCRIPT] Failed to download updated version of $SCRIPT."
-                fi;;
-          *)    echo "[$SCRIPT] GitHub check of $SCRIPT returned $STATUS";;
-          esac
-      fi
-      exit;;
-  ?) cat <<EOH
-Syntax: $0 <options>
-Optional parameters:
- -k a|c|k|m|n          Override default hardening configuration:
-    where a            - Keep Telstra AIR enabled
-          c            - Keep CWMP installed
-          k            - Keep default public authorized keys
-          m            - Keep Telstra monitoring and data collection enabled
-          n            - Keep Telstra NTP servers
-          T            - Keep all default Telstra configuration (Equivalent to: -ka -kc -kk -km -kn) 
- -h u|d|s|<hostname>
-    where u            Leave hostname unchanged
-          d            Set the hostname to $VARIANT
-          s            Set the hostname to $VARIANT-$MAC_HEX
-          <hostname>   Use the specified hostname
- -d u|g|<domainname>
-    where u            Leave domain name unchanged
-          g            Set the domain name to gateway
-          <domainname> Set the domain name to <domainname>
- -n u|a|c|g|f|o|<n.n.n.n>
-    where u            Leave DNS servers unchanged
-          a            Automatically use the DNS servers from the ISP
-          c            Set the DNS servers to Cloudflare
-          g            Set the DNS servers to Google
-          f            Set the DNS servers to OpenDNS Family Shield
-          o            Set the DNS servers to OpenDNS
-          <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
- -a u|y|n              NAT Helpers:             u=Unchanged y=Enable n=Disable (except SIP if telephony enabled)
- -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
- -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
- -p u|y|n              Power Saving:            u=unchanged y=Enable n=Disable
- -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
- -t u|y|n              Telephony:               u=unchanged y=Enable n=Disable
- -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
- -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
- -m u|y|n            * MultiAP (EasyMesh):      u=unchanged y=Enable n=Disable
- -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
- -w u|y|n              WPS on non-Guest and non-Backhaul SSIDs: u=unchanged y=Enable n=Disable
- -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un -wn
- -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn
- -M                    Minimum memory mode: Equivalent to: -an -cn -fn -rn -tn -en -un -mn -gn
-                        PLUS stops and disables the associated services
- -R                    Reset to device defaults
-                        (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy)
- -o                    Configures opkg
- -U                    Check for and download the latest version from GitHub
-
-NOTE #1: Default for all optional parameters is u (unchanged)
-NOTE #2: Options marked with * are only applicable if the service is installed
-EOH
-      exit;;
+  U)  upgrade;;
+  ?)  usage;;
  esac
 done
 

@@ -1,5 +1,26 @@
 #!/bin/sh
 
+usage() {
+cat <<EOH
+Resets the device to factory defaults, and prepares a run-once root access setup script to be executed on the next boot.
+Effectively the same as the procedure from https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access, 
+but with some additional options.
+
+Usage: $0 [options]
+
+Options:
+ -b           Make a full backup of your booted bank configuration (requires attached USB device).
+ -c           Disable CWMPD configuration during first boot after reset.
+ -f filename  Flash 'filename' into the mounted bank ($BOOTED) after reset and before reboot,
+                If 'filename' ends with .rbi, it will be unpacked first, either to an attached USB device, or /tmp if no USB detected.
+ -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
+ -i           Keep existing IP address [$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)] after reset and reboot.
+ -n           Do NOT reboot.
+
+EOH
+exit
+}
+
 ACTIVE="$(cat /proc/banktable/active)"
 BOOTED="$(cat /proc/banktable/booted)"
 BKUP=""
@@ -23,14 +44,7 @@ do
   i)  IPADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)";;
   n)  REBOOT="N";;
   c)  CWMP="uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop;";;
-  *)  echo "Optional parameters:"
-      echo " -f filename     : Flash 'filename' into the mounted bank ($BOOTED) after reset and before reboot"
-      echo " -b              : Make a full backup of your booted bank configuration (requires attached USB device)"
-      echo " -I n.n.n.n      : Use IP address n.n.n.n after reset and reboot"
-      echo " -i              : Keep existing IP address [$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)] after reset and reboot"
-      echo " -c              : Disable CWMPD configuration during first boot after reset"
-      echo " -n              : Do NOT reboot"
-      exit;;
+  *)  usage;;
  esac
 done
 
