@@ -101,10 +101,10 @@ Backs up the MTD partitions to an attached USB device. Only unchanged partitions
 Usage: ./mtd-backup [options]
 
 Options:
- -c  Save the current UCI configuration into the DJA0231-CP1925SA65J-config.gz file
- -e  Save the current environment into the DJA0231-CP1925SA65J-env file
+ -c  Save the current UCI configuration into the VARIANT-SERIAL-config.gz file
+ -e  Save the current environment into the VARIANT-SERIAL-env file
  -l  Write log messages to stderr as well as the system log
- -o  Save the overlay content into the DJA0231-CP1925SA65J-overlay-files-backup.tgz file
+ -o  Save the overlay content into the VARIANT-SERIAL-overlay-files-backup.tgz file
  -v  Verbose mode
  -y  Bypass confirmation prompt (answers 'y')
  -C  Adds or removes the scheduled daily backup cron job
