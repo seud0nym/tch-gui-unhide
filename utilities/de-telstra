@@ -315,7 +315,7 @@ then
     done
     uci commit firewall
   fi
-  if [ $(uci show qos | grep "classify.*target='FON'" | wc -l) -eq 0 -a $(uci show qos.FON | wc -l) -eq 0 ]
+  if [ $(uci show qos | grep "classify.*target='FON'" | wc -l) -eq 0 -a $(uci -q show qos.FON | wc -l) -eq 0 ]
   then
     echo [$SCRIPT]: - Telstra AIR QoS entries already removed
   else
