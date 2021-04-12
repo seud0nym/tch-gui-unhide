@@ -87,8 +87,10 @@ then
     sed -e "/$SCRIPT/d" -i /etc/crontabs/root
     echo Scheduled backup has been removed. 
   else
-    echo "30 1 * * * $(cd $(dirname $0); pwd)/$SCRIPT -c -e -o -y" >> /etc/crontabs/root
-    echo Backup has been scheduled to execute at 1:30am every day. 
+    mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
+    hh=$(awk 'BEGIN{srand();print int(rand()*3)+2;}')
+    echo "$mm $hh * * * $(cd $(dirname $0); pwd)/$SCRIPT -c -e -o -y" >> /etc/crontabs/root
+    echo Backup has been scheduled to execute at $hh:${mm}am every day. 
     echo Execution messages will be written to the system log, and can be viewed with the following command:
     echo
     echo "  logread -e mtd-backup"
