@@ -8,7 +8,6 @@ local message_helper = require("web.uimessage_helper")
 local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
 local proxy = require("datamodel")
-local bmh = require("broadbandmode_helper")
 local format, match = string.format, string.match
 
 local ethname = proxy.get("sys.eth.port.@eth4.status")
