@@ -26,13 +26,8 @@ function M.getInternetCardHTML(mode_active)
       mobile_ip = content_mobile.ipaddr
       mobile_dns = content_mobile.dns
     elseif content_mobile.ip6addr ~= "" then
-      if #content_mobile.ip6addr <= 28 then
-        mobile_ip = content_mobile.ip6addr
-        mobile_dns = gsub(content_mobile.dns,",",", ")
-      else
-        mobile_ip = format('<span style="font-size:12px">%s</span>', content_mobile.ip6addr)
-        mobile_dns = format('<span style="font-size:12px">%s</span>', gsub(content_mobile.dns,",",", "))
-      end
+      mobile_ip = content_mobile.ip6addr
+      mobile_dns = gsub(content_mobile.dns,",",", ")
     end
     if tonumber(content_mobile.rx_bytes) * 100 < tonumber(content_mobile.tx_bytes) then
       mobile_status["wwan_up"] = "2"
@@ -44,20 +39,28 @@ function M.getInternetCardHTML(mode_active)
   
   local html = {}
 
-  local function addIPs(ipaddr, ip6addr, dnsv4, dnsv6)
+  local function addIPs(ipaddr, ip6addr, dnsv4, dnsv6, ipv6uniqueglobaladdr, ipv6uniquelocaladdr)
     html[#html+1] = '<p class="subinfos" style="margin-bottom:4px;line-height:17px;">'
-    html[#html+1] = format(T'WAN IP: <strong style="letter-spacing:-1px">%s</strong>', ipaddr)
+    html[#html+1] = format(T'WAN IP: <strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>', ipaddr)
     if ip6addr and ip6addr ~= "" then
-      html[#html+1] = format(T'<br><strong style="letter-spacing:-1px">%s</strong>', ip6addr)
+      local addr = ip6addr
+      if find(ip6addr, " ") then
+        if ipv6uniqueglobaladdr and ipv6uniqueglobaladdr ~= "" and find(ip6addr, gsub(ipv6uniqueglobaladdr, "/%d+", "")) then
+          addr = gsub(ipv6uniqueglobaladdr, "/%d+", "")
+        elseif ipv6uniquelocaladdr and ipv6uniquelocaladdr ~= "" and find(ip6addr, gsub(ipv6uniquelocaladdr, "/%d+", "")) then
+          addr = gsub(ipv6uniquelocaladdr, "/%d+", "")
+        end
+      end
+      html[#html+1] = format(T'<br><strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>', addr)
     end
     html[#html+1] = '</p>'
     html[#html+1] = '<p class="subinfos" style="line-height:17px;">'
-    html[#html+1] = format(T'DNS: <strong style="letter-spacing:-1px">%s</strong>', gsub(gsub(dnsv4, "^%s*(.-)%s*$", "%1"),",",", "))
+    html[#html+1] = format(T'DNS: <strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>', gsub(gsub(dnsv4, "^%s*(.-)%s*$", "%1"),",",", "))
     if ip6addr and ip6addr ~= "" and dnsv6 and dnsv6 ~= "" then
       if dnsv4 and dnsv4 ~= "" then
         html[#html+1] = '<br>'
       end  
-      html[#html+1] = format(T'<strong style="letter-spacing:-1px">%s</strong>', gsub(dnsv6,",",", "))
+      html[#html+1] = format(T'<strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>', gsub(dnsv6,",",", "))
     end
     html[#html+1] = '</p>'
   end
@@ -78,6 +81,8 @@ function M.getInternetCardHTML(mode_active)
       uci_wan_auto = "uci.network.interface.@wan.auto",
       ipaddr = "rpc.network.interface.@wan.ipaddr",
       ip6addr = "rpc.network.interface.@wan6.ip6addr",
+      ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
+      ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
       dnsv4 = "rpc.network.interface.@wan.dnsservers",
       dnsv6 = "rpc.network.interface.@wan6.dnsservers",
     }
@@ -106,7 +111,7 @@ function M.getInternetCardHTML(mode_active)
 
     html[#html+1] = ui_helper.createSimpleLight(nil, dhcp_state_map[dhcp_state], { light = { class = dhcp_light_map[dhcp_state] } })
     if dhcp_state == "connected" then
-      addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
+      addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"])
     end
   -- PPOE
   elseif mode_active == "pppoe" then
@@ -120,6 +125,8 @@ function M.getInternetCardHTML(mode_active)
       wan_ppp_error = "rpc.network.interface.@wan.ppp.error",
       ipaddr = "rpc.network.interface.@wan.ipaddr",
       ip6addr = "rpc.network.interface.@wan6.ip6addr",
+      ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
+      ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
       dnsv4 = "rpc.network.interface.@wan.dnsservers",
       dnsv6 = "rpc.network.interface.@wan6.dnsservers",
     }
@@ -165,7 +172,7 @@ function M.getInternetCardHTML(mode_active)
     end
     html[#html+1] = ui_helper.createSimpleLight(nil, ppp_state_map[ppp_status], { light = { class = ppp_light_map[ppp_status] } })
     if ppp_status == "connected" then
-      addIPs(content_rpc["ipaddr"], content_rpc["ip6addr"], content_rpc["dnsv4"], content_rpc["dnsv6"])
+      addIPs(content_rpc["ipaddr"], content_rpc["ip6addr"], content_rpc["dnsv4"], content_rpc["dnsv6"], content_rpc["ipv6uniqueglobaladdr"], content_rpc["ipv6uniquelocaladdr"])
     end
   -- STATIC
   elseif mode_active == "static" then
@@ -173,6 +180,8 @@ function M.getInternetCardHTML(mode_active)
       uci_wan_auto = "uci.network.interface.@wan.auto",
       ipaddr = "rpc.network.interface.@wan.ipaddr",
       ip6addr = "rpc.network.interface.@wan6.ip6addr",
+      ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
+      ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
       dnsv4 = "rpc.network.interface.@wan.dnsservers",
       dnsv6 = "rpc.network.interface.@wan6.dnsservers",
     }
@@ -188,36 +197,36 @@ function M.getInternetCardHTML(mode_active)
       if wan_data["wan_ifname"] and (find(wan_data["wan_ifname"],"ptm0") or find(wan_data["wan_ifname"],"atm")) then
         if wan_data["dsl_status"] == "Up" then
           html[#html+1] = ui_helper.createSimpleLight("1", "Static IP connected")
-          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
+          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"])
         elseif wan_data["dsl_status"] == "NoSignal" then
           html[#html+1] = ui_helper.createSimpleLight("4", "Static IP disconnected")
-          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
+          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"])
         elseif wan_data["dsl0_enabled"] == "0" then
           html[#html+1] = ui_helper.createSimpleLight("0", "Static IP disabled")
-          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
+          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"])
         else
           html[#html+1] = ui_helper.createSimpleLight("2", "Trying to connect with Static IP...")
-          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
+          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"])
         end
       end
       if wan_data["wan_ifname"] and find(wan_data["wan_ifname"],"eth") then
         if wan_data["ethwan_status"] == "up" then
           html[#html+1] = ui_helper.createSimpleLight("1", "Static connected")
-          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
+          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"])
         else
           html[#html+1] = ui_helper.createSimpleLight("4", "Static IP disconnected")
-          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
+          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"])
         end
       end
     else
       html[#html+1] = ui_helper.createSimpleLight("0", "Static IP disabled")
-      addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"])
+      addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"])
     end
   end
 
   if mobile_ip then
     html[#html+1] = ui_helper.createSimpleLight(mobile_status["wwan_up"], mobile_status["state"])
-    addIPs(mobile_ip, nil, mobile_dns, nil)
+    addIPs(mobile_ip, nil, mobile_dns, nil, nil, nil)
   end
 
   return html

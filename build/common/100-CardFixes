@@ -78,9 +78,9 @@ sed \
   -e 's/and netmask is/<br>Subnet Mask:/' \
   -e "s/IP is/IP:/" \
   -e "/<\/p>/i \            '<br>'," \
-  -e "/<\/p>/i \            format(T'%s <nobr><strong style=\"letter-spacing:-1px\">%s</strong></nobr>', ipv6State_text, mapParams[\"ipv6prefix\"])," \
+  -e "/<\/p>/i \            format(T'%s <nobr><strong style=\"letter-spacing:-1px;font-size:12px;\">%s</strong></nobr>', ipv6State_text, mapParams[\"ipv6prefix\"])," \
   -e '/^\\$/d' \
-  -e "s/<strong>/<strong style=\"letter-spacing:-1px\">/g" \
+  -e "s/<strong>/<strong style=\"letter-spacing:-1px;font-size:12px;\">/g" \
   -i /www/cards/005_LAN.lp
 
 echo [$SCRIPT]: Fix bug in relay setup card 
