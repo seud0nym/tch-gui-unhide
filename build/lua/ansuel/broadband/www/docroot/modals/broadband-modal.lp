@@ -74,6 +74,11 @@ if not tabdata.current.ajax then
             class = "alert alert-info",
           }
         }
+        local warn_box = {
+          alert = {
+            class = "alert alert-warn monitor-wsens monitor-0",
+          }
+        }
 
         html[#html + 1] = ui_helper.createAlertBlock(T"WAN Sensing sets the connection mode automatically when enabled.", info_box)
         if content["wsens"] == "1" then
@@ -81,8 +86,9 @@ if not tabdata.current.ajax then
         end
         html[#html+1] = ui_helper.createSwitch(T"WAN Sensing", "wsens", content["wsens"], wsensswitchclass)
         if content["wsens"] == "0" then
-          html[#html+1] = ui_helper.createInputRadio(T"Connection Mode", "newmode", mode_options, mode_current, mode_attributes)
-          html[#html+1] = ui_helper.createButton("", T"Switch Connection Mode", "icon-cog", mode_button)
+          html[#html + 1] = ui_helper.createInputRadio(T"Connection Mode", "newmode", mode_options, mode_current, mode_attributes)
+          html[#html + 1] = ui_helper.createButton("", T"Apply Connection Mode", "icon-cog", mode_button)
+          html[#html + 1] = ui_helper.createAlertBlock(T"You should apply the Connection Mode after disabling WAN Sensing, even if the required mode is already selected!", warn_box)
         end
 
         ngx.print(html)
