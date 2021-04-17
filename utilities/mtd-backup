@@ -18,6 +18,7 @@ Options:
  -v  Verbose mode
  -y  Bypass confirmation prompt (answers 'y')
  -C  Adds or removes the scheduled daily backup cron job
+ -P  Reports the USB backup path.
 
 EOH
 exit
@@ -30,11 +31,18 @@ DUMP_ENV=N
 DUMP_OVL=N
 LOGGER="/usr/bin/logger -t mtd-backup -p"
 YES=N
+USB="$(ls /mnt/usb | head -n1)"
+if [ -z "$USB" ]
+then
+  $LOGGER user.err ABORTING! No USB device found
+  exit 1
+fi
 
-while getopts :Ccelovy option
+while getopts :celovyCP option
 do
  case "${option}" in
   C)  CRON=Y;;
+  P)  echo "/mnt/usb/$USB/backups/"; exit;;
   c)  DUMP_CFG=Y;;
   e)  DUMP_ENV=Y;;
   l)  LOGGER="/usr/bin/logger -s -t mtd-backup -p";;
@@ -45,13 +53,6 @@ do
  esac
 done
 shift $((OPTIND-1))
-
-USB="$(ls /mnt/usb | head -n1)"
-if [ -z "$USB" ]
-then
-  $LOGGER user.err ABORTING! No USB device found
-  exit 1
-fi
 
 if [ $CRON = Y ]
 then
