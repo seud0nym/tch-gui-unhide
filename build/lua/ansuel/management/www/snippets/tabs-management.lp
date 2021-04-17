@@ -3,7 +3,9 @@ ngx.print('<ul class="nav nav-tabs">\
 ');
 
 gettext.textdomain('webui-core')
+
 local content_helper = require("web.content_helper")
+local proxy = require("datamodel")
 local ipairs, string = ipairs, string
 local items = {
   {"theme-modal.lp", T"Theme"},
@@ -22,14 +24,21 @@ for _,v in pairs(items) do
   end
 end
 
+local data = proxy.getPN("rpc.gui.cron.entries.", true)
+for _,v in ipairs(data) do
+  local cmd = proxy.get(v.path.."command")
+  if cmd and string.find(string.untaint(cmd[1].value),"mtd%-backup") then
+    tabs[#tabs+1] = {"mtd-backup-modal.lp", T"Backups"}
+    break
+  end
+end
+
 local html = {}
 
 local uri = ngx.var.uri
 if ngx.var.args and string.len(ngx.var.args) > 0 then
   uri = uri .. "?" .. ngx.var.args
 end
-
-
 
 for _,v in ipairs(tabs) do
   local active = ""
