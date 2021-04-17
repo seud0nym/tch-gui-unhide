@@ -108,8 +108,9 @@ Options:
  -v  Verbose mode
  -y  Bypass confirmation prompt (answers 'y')
  -C  Adds or removes the scheduled daily backup cron job
+ -P  Reports the USB backup path
 ```
-When run with the -C option (which should be the only option), the scheduled job will be added if it does not already exist, or removed if it does exist in the schedule. By default, the backup will run every day at 1:30am. You can modify the schedule through the Management card in `tch-gui-unhide`, or by directly modifying the /etc/crontab/root file.
+When run with the -C option (which should be the only option), the scheduled job will be added if it does not already exist, or removed if it does exist in the schedule. By default, the backup will run every day at a random time between 2:00am and 5:00am. You can modify the schedule through the Management card in `tch-gui-unhide`, or by directly modifying the /etc/crontab/root file.
 
 ## mtd-restore
 Restores the MTD partitions from an attached USB device, that were backed up using `mtd-restore`. Only changed partitions are restored.

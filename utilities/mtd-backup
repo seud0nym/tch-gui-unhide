@@ -18,7 +18,7 @@ Options:
  -v  Verbose mode
  -y  Bypass confirmation prompt (answers 'y')
  -C  Adds or removes the scheduled daily backup cron job
- -P  Reports the USB backup path.
+ -P  Reports the USB backup path
 
 EOH
 exit
