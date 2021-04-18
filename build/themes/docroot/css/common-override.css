@@ -18,11 +18,11 @@
 #devices>tbody>tr>td:nth-child(2) input{width:110px;}
 #devices>tbody>tr>td:nth-child(2),#devices>tbody>tr>td:nth-child(6),#devices>tbody>tr>td:nth-child(7),#devices>tbody>tr>td:nth-child(8){white-space:nowrap;}
 #dnsServer,#ipv4_dns_sec,#dns_v6_pri,#dns_v6_sec{width:190px;}
+#fw-iptables tr>td:nth-child(n+1):nth-child(-n+2),#fw-iptables tr:not(.iptables-chain)>th:nth-child(n+1):nth-child(-n+2){text-align:right;}
+#fw-iptables tr{white-space:nowrap;}
 #fw_userrules>thead>tr>th:nth-child(3),#fw_userrules>tbody>tr>td:nth-child(3),#fw_userrules_v6>thead>tr>th:nth-child(3),#fw_userrules_v6>tbody>tr>td:nth-child(3){display:none;}
 #helper>tbody>tr>td{text-transform:uppercase;}
 #hide-unhide-non-connected-device{display:none;}
-#fw-pkt-filter-rules tr>td:nth-child(n+1):nth-child(-n+2){text-align:right;}
-#fw-pkt-filter-rules tr{white-space:nowrap;}
 #mobiletab .content .card-label{font-size:14px;}
 #proctable>tbody>tr>td:nth-child(1),#proctable>tbody>tr>td:nth-child(2),#proctable>tbody>tr>td:nth-child(5),#proctable>tbody>tr>td:nth-child(6),#proctable>tbody>tr>td:nth-child(7){text-align:right;}
 #proctable>tbody>tr>td:nth-child(6):after,#proctable>tbody>tr>td:nth-child(7):after{content:"%";}

@@ -2,8 +2,6 @@ echo [$SCRIPT]: Show firewall default incoming policy and rules count on card
 sed \
   -e '/^local format/a \local proxy = require("datamodel")' \
   -e '/firewall\.mode/a \    enabledRuleCount = "rpc.gui.firewall.enabledRuleCount",' \
-  -e '/firewall\.mode/a \    ipv4PacketFilterCount = "rpc.gui.firewall.ipv4PacketFilterCount",' \
-  -e '/firewall\.mode/a \    ipv6PacketFilterCount = "rpc.gui.firewall.ipv6PacketFilterCount",' \
   -e '/firewall\.mode/a \    fwd_ipv4_rules = "uci.firewall.userredirectNumberOfEntries",' \
   -e '/firewall\.mode/a \    fwd_ipv6_rules = "uci.firewall.pinholeruleNumberOfEntries",' \
   -e '/firewall\.mode/a \    lanIpv6Enabled = "uci.network.interface.@lan.ipv6",' \
@@ -29,10 +27,6 @@ sed \
   -e '/subinfos/i \    local fw_status = format("Default Incoming Policy: <strong>%s</strong>", fw_incoming_policy)' \
   -e '/subinfos/i \    ngx.print(ui_helper.createSimpleLight(fw_status_light_map[fw_incoming_policy], fw_status))' \
   -e "/subinfos/i \    ngx.print('\\\\" \
-  -e '/Firewall level/a \            local pkt_filter_count = content.ipv4PacketFilterCount + content.ipv6PacketFilterCount' \
-  -e '/Firewall level/a \            local pkt_filter_modal_link = "class=\\"modal-link\\" data-toggle=\\"modal\\" data-remote=\\"/modals/firewall-iptables-modal.lp\\" data-id=\\"firewall-iptables-modal\\""' \
-  -e '/Firewall level/a \            html[#html+1] = format(N("<strong %1$s>%2$d Packet Filter rule</strong> active","<strong %1$s>%2$d Packet Filter rules</strong> active", pkt_filter_count), pkt_filter_modal_link, pkt_filter_count)' \
-  -e '/Firewall level/a \            html[#html+1] = "<br>"' \
   -e '/Firewall level/a \            local rules_modal_link = "class=\\"modal-link\\" data-toggle=\\"modal\\" data-remote=\\"/modals/firewall-rules-modal.lp\\" data-id=\\"firewall-rules-modal\\""' \
   -e '/Firewall level/a \            html[#html+1] = format(N("<strong %1$s>%2$d Firewall rule</strong> active","<strong %1$s>%2$d Firewall rules</strong> active", content.enabledRuleCount), rules_modal_link, content.enabledRuleCount)' \
   -e '/Firewall level/a \            html[#html+1] = "<br>"' \
