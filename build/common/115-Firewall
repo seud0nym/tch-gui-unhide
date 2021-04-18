@@ -203,3 +203,6 @@ if [ $SRV_firewall -gt 0 ]; then
   /etc/init.d/firewall reload 2> /dev/null
 fi
 
+echo [$SCRIPT]: Add transformer mapping for uci.firewall.nat.
+sed -n '/-- uci.firewall.redirect/,/MultiMap/p' /usr/share/transformer/mappings/uci/firewall.map |  sed -e 's/redirect/nat/g' >> /usr/share/transformer/mappings/uci/firewall.map
+

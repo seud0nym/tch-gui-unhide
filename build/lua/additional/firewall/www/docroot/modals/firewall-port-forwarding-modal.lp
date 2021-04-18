@@ -12,6 +12,7 @@ local content_helper = require("web.content_helper")
 local portslist = require("portslist_helper")
 local knownapps = require("pfwd_helper")
 local uinetwork = require("web.uinetwork_helper")
+local fwrules_helper = require("firewall-rules_helper")
 
 local hosts_ac, hosts_ac_v6 = uinetwork.getAutocompleteHostsList()
 local pairs, string = pairs, string
@@ -472,6 +473,24 @@ local pfw_v6_valid = {
 local pfw_v6_data, pfw_v6_helpmsg = post_helper.handleTableQuery(pfw_v6_columns, pfw_v6_options, pfw_v6_filter, pfw_v6_defaultObject, pfw_v6_valid)
 -- Ipv6 data retrieval - End
 
+local fw_redirect_options = {
+  tableid = "fw_redirect_rules",
+  basepath = "uci.firewall.redirect.@.",
+  canAdd = false,
+  canEdit = false,
+  canDelete = false,
+}
+local fw_redirect_columns, fw_redirect_data, fw_redirect_helpmsg = fwrules_helper.handleTableQuery(fw_redirect_options)
+
+local fw_nat_options = {
+  tableid = "fw_nat_rules",
+  basepath = "uci.firewall.nat.@.",
+  canAdd = false,
+  canEdit = false,
+  canDelete = false,
+}
+local fw_nat_columns, fw_nat_data, fw_nat_helpmsg = fwrules_helper.handleTableQuery(fw_nat_options)
+
 local range_warning = {
   alert = {
     class = "alert-range"
@@ -505,7 +524,19 @@ ngx.print(ui_helper.createHeader(T"Firewall", true, false))   ngx.print('\
       </fieldset>\
       ');  
     end
-  ngx.print('\
+    ngx.print('\
+    <fieldset>\
+      <legend>');  ngx.print( T"System Redirect Rules" ); ngx.print('</legend>\
+      ');  
+      ngx.print(ui_helper.createTable(fw_redirect_columns, fw_redirect_data, fw_redirect_options, nil, fw_redirect_helpmsg))
+      ngx.print('\
+    </fieldset>\
+    <fieldset>\
+      <legend>');  ngx.print( T"System NAT Rules" ); ngx.print('</legend>\
+      ');  
+      ngx.print(ui_helper.createTable(fw_nat_columns, fw_nat_data, fw_nat_options, nil, fw_nat_helpmsg))
+      ngx.print('\
+    </fieldset>\
   </form>\
 </div>\
 ');  ngx.print(ui_helper.createFooter());
