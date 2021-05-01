@@ -11,14 +11,14 @@ local ajax_helper = require("web.ajax_helper")
 local tonumber = tonumber
 local match, format = string.match, string.format
 local post_helper = require("web.post_helper")
-local gVIES = post_helper.getValidateInEnumSelect
 local session = ngx.ctx.session
+
 -- State data
 local dhcp_state = "connecting"
 local dhcp_state_map = {
-    disabled = T"Disabled",
-    connected = T"Connected",
-    connecting = T"Connecting",
+  disabled = T"Disabled",
+  connected = T"Connected",
+  connecting = T"Connecting",
 }
 
 local dhcp_light_map = {
@@ -28,21 +28,22 @@ local dhcp_light_map = {
 }
 
 local ajax_attr = {
-    span = {
-      ["data-ajaxrefresh"] = "5",
-    }
+  span = {
+    ["data-ajaxrefresh"] = "5",
+  }
 }
 local ajax_attr_light = {
-    light = {
-        class = "",
-	id = "DHCP_Status_LED"
-    },
-    controls = {
-        id = "wan_status",
-        ["data-ajaxrefresh"] = "5",
-    }
+  light = {
+      class = "",
+      id = "DHCP_Status_LED"
+  },
+  controls = {
+    id = "wan_status",
+    ["data-ajaxrefresh"] = "5",
+  }
 }
 
+local gVIES = post_helper.getValidateInEnumSelect
 local vSII = post_helper.validateStringIsIP
 local gOV = post_helper.getOptionalValidation
 local vNES = post_helper.validateNonEmptyString
@@ -174,6 +175,7 @@ local mapParams = {
   uci_wan_peerdns = "uci.network.interface.@wan.peerdns",
 	uci_wan_vendorid = "uci.network.interface.@wan.vendorid",
   uci_wan6_peerdns = "uci.network.interface.@wan6.peerdns",
+  uci_wan6_reqaddress = "uci.network.interface.@wan6.reqaddress",
 }
 
 -- Shortcuts to validation helpers to make lines shorter
@@ -202,6 +204,12 @@ local function IPv6andUsername(value, object, key)
 	return valid, msg
 end
 
+local reqaddress_map = {
+  { "try", T"Try" },
+  { "force", T"Force" },
+  { "none", T"None" },
+}
+
 local mapValid = {
   uci_wan_auto = vB,
   uci_wan_masq = validateNat,
@@ -211,6 +219,7 @@ local mapValid = {
   uci_wan_peerdns = vB,
   uci_wan_vendorid = gOV(post_helper.validateNonEmptyString),
   uci_wan6_peerdns = vB,
+  uci_wan6_reqaddress = gVIES(reqaddress_map),
 }
 
 local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
@@ -409,6 +418,9 @@ end
 ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   ngx.print('\
 <legend>');  ngx.print( T"DHCP connection" ); ngx.print('</legend>\
+<div class="row">\
+<div class="span11">\
+<div class="span5">\
 ');  
   local switch_class_enable = {
     input = {
@@ -427,7 +439,8 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   html[#html+1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
   html[#html+1] = ui_helper.createSwitch(T"Auto-discover IPv4 DNS", "uci_wan_peerdns", content["uci_wan_peerdns"])
   html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled on Boot", "uci_wan6_auto", content.uci_wan6_auto, switch_class_enable)
-  html[#html+1] = ui_helper.createSwitch(T"IPv6 Force Prefix", "uci_wan6_forceprefix", content.uci_wan6_forceprefix, ipv6_input)
+  html[#html+1] = ui_helper.createInputSelect(T"IPv6 Address Request<span class='icon-question-sign' title='Behaviour for requesting addresses'></span>", "uci_wan6_reqaddress", reqaddress_map, content.uci_wan6_reqaddress, ipv6_input)
+  html[#html+1] = ui_helper.createSwitch(T"IPv6 Force Prefix<span class='icon-question-sign' title='Require the presence of IPv6 Prefix in received DHCP message'></span>", "uci_wan6_forceprefix", content.uci_wan6_forceprefix, ipv6_input)
   html[#html+1] = ui_helper.createSwitch(T"Auto-discover IPv6 DNS", "uci_wan6_peerdns", content["uci_wan6_peerdns"], ipv6_input)
   if supervision_support then
     html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision", "supervision_mode", supervision_modes, supervision_modes_content["supervision_mode"])
@@ -435,6 +448,12 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   end
   html[#html+1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac", content["uci_wan_mac"], nil, helpmsg["uci_wan_mac"])
   html[#html+1] = ui_helper.createInputText(T"VendorID","uci_wan_vendorid", content["uci_wan_vendorid"], nil, helpmsg["uci_wan_vendorid"])
+  ngx.print(html)
+  ngx.print('\
+</div>\
+<div class="span5">\
+');
+  html = {}
   ajax_attr.span.id = "leaseobtained"
   html[#html+1] = ui_helper.createLabel(T"Lease obtained", cs["leaseobtained"], ajax_attr)
   ajax_attr.span.id = "leaseexpires"
@@ -466,6 +485,9 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
 
   ngx.print(html)
   ngx.print('\
+</div>\
+</div>\
+</div>\
 </fieldset>\
 ');  
   require("web.lp").include("internet-dns-servers.lp")
