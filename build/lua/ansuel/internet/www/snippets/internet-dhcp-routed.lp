@@ -176,6 +176,7 @@ local mapParams = {
 	uci_wan_vendorid = "uci.network.interface.@wan.vendorid",
   uci_wan6_peerdns = "uci.network.interface.@wan6.peerdns",
   uci_wan6_reqaddress = "uci.network.interface.@wan6.reqaddress",
+  uci_wan6_reqprefix = "uci.network.interface.@wan6.reqprefix",
 }
 
 -- Shortcuts to validation helpers to make lines shorter
@@ -210,6 +211,15 @@ local reqaddress_map = {
   { "none", T"None" },
 }
 
+local reqprefix_map = {
+  { "no", T"No" },
+  { "auto", T"Automatic" },
+}
+local prefix_len
+for prefix_len = 0, 64, 1 do
+  reqprefix_map[#reqprefix_map+1] = { tostring(prefix_len), T("/" .. prefix_len) }
+end
+
 local mapValid = {
   uci_wan_auto = vB,
   uci_wan_masq = validateNat,
@@ -220,6 +230,7 @@ local mapValid = {
   uci_wan_vendorid = gOV(post_helper.validateNonEmptyString),
   uci_wan6_peerdns = vB,
   uci_wan6_reqaddress = gVIES(reqaddress_map),
+  uci_wan6_reqprefix = gVIES(reqprefix_map),
 }
 
 local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
@@ -229,6 +240,9 @@ if content["uci_wan_auto"] ~= "0" then
 end
 if content["uci_wan6_auto"] ~= "0" then
   content["uci_wan6_auto"] = "1"
+end
+if content["uci_wan6_reqprefix"] == "" then
+  content["uci_wan6_reqprefix"] = "auto"
 end
 
 local wan_ppp_ll_intf = proxy.get("rpc.network.interface.@wan.ppp.ll_intf")
@@ -440,6 +454,7 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   html[#html+1] = ui_helper.createSwitch(T"Auto-discover IPv4 DNS", "uci_wan_peerdns", content["uci_wan_peerdns"])
   html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled on Boot", "uci_wan6_auto", content.uci_wan6_auto, switch_class_enable)
   html[#html+1] = ui_helper.createInputSelect(T"IPv6 Address Request<span class='icon-question-sign' title='Behaviour for requesting addresses'></span>", "uci_wan6_reqaddress", reqaddress_map, content.uci_wan6_reqaddress, ipv6_input)
+  html[#html+1] = ui_helper.createInputSelect(T"IPv6 Prefix Request<span class='icon-question-sign' title='Behaviour for requesting prefixes (numbers denote hinted prefix length). Use 'no' if you only want a single IPv6 address for the AP itself without a subnet for routing'></span>", "uci_wan6_reqprefix", reqprefix_map, content.uci_wan6_reqprefix, ipv6_input)
   html[#html+1] = ui_helper.createSwitch(T"IPv6 Force Prefix<span class='icon-question-sign' title='Require the presence of IPv6 Prefix in received DHCP message'></span>", "uci_wan6_forceprefix", content.uci_wan6_forceprefix, ipv6_input)
   html[#html+1] = ui_helper.createSwitch(T"Auto-discover IPv6 DNS", "uci_wan6_peerdns", content["uci_wan6_peerdns"], ipv6_input)
   if supervision_support then
