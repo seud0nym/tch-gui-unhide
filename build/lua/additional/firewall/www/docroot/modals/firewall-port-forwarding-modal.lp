@@ -477,7 +477,7 @@ local fw_redirect_options = {
   tableid = "fw_redirect_rules",
   basepath = "uci.firewall.redirect.@.",
   canAdd = false,
-  canEdit = false,
+  canEdit = true,
   canDelete = false,
 }
 local fw_redirect_columns, fw_redirect_data, fw_redirect_helpmsg = fwrules_helper.handleTableQuery(fw_redirect_options)
@@ -486,7 +486,7 @@ local fw_nat_options = {
   tableid = "fw_nat_rules",
   basepath = "uci.firewall.nat.@.",
   canAdd = false,
-  canEdit = false,
+  canEdit = true,
   canDelete = false,
 }
 local fw_nat_columns, fw_nat_data, fw_nat_helpmsg = fwrules_helper.handleTableQuery(fw_nat_options)
