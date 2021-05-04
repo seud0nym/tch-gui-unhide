@@ -15,7 +15,7 @@ In addition, it automatically:
 - Disables and removes all Telstra monitoring and logging
 - Disables and removes Telstra AIR, including the SSIDs and GUI card
 - Removes web GUI default user access
-- Sets SAMBA and DLNA hostnames to the device hostname (replacing Telstra-Modem)
+- Sets SAMBA and DLNA host names to the device hostname (replacing Telstra-Modem)
 - Removes packages related to CWMP, Telstra monitoring, and Telstra AIR
 
 Optionally, it can also:
@@ -85,7 +85,7 @@ Options:
 Note that the options to disable/enable EasyMesh and DumaOS are only applicable to devices with those services installed.
 
 ## dumaos
-Enables or disables DumaOS on a DJA0231 running the 18.1.c.0514 or later firmware, or a DJA0230 running 18.1.c.0549 or later. It also disables or enables reboot on core dump, because if DumaOS gets into trouble, the router will just continally reboot.
+Enables or disables DumaOS on a DJA0231 running the 18.1.c.0514 or later firmware, or a DJA0230 running 18.1.c.0549 or later. It also disables or enables reboot on core dump, because if DumaOS gets into trouble, the router will just continually reboot.
 ```
 Usage: ./dumaos -on|-off
 
@@ -94,6 +94,31 @@ Parameters:
  -off   Disables DumaOS and enables reboot on core dump, then stops the DumaOS service.
 ```
 If you enable DumaOS *after* running the `tch-gui-unhide` script, you will need to re-run `tch-gui-unhide` to enable the button to access DumaOS. Similarly, if you disable DumaOS, you will need to re-run `tch-gui-unhide` to remove the button. 
+
+## intercept-dns
+Configures DNS interception:
+- Hijacks IPv4 DNS requests to ensure that they are handled by the router, or by a specified DNS Server
+- Rejects DNS-over-TLS (DoT) requests over IPv4 and IPv6
+- Rejects DNS-over-HTTPS (DoH) to known HTTPS DNS Servers over IPv4 and IPv6
+- Configures a scheduled weekly cron job to maintain IP Sets of known HTTPS DNS Servers
+
+This script is based upon the configuration specified in https://openwrt.org/docs/guide-user/firewall/fw3_configurations/intercept_dns, with modifications to support the OpenWRT version in use on the Telstra Technicolor devices.
+```
+Usage: ./intercept-dns [options]
+
+Options:
+ -d n.n.n.n   The IPv4 address of the local DNS Server to which DNS queries will be redirected.
+                If not specified, defaults to the router.
+ -x n.n.n.n   Exclude the specified IPv4 address from DNS interception. May be specified multiple times
+                to exclude multiple IPv4 addresses.
+                The local DNS Server specified with -d is automatically excluded and does not need to
+                be re-specified with -x. 
+ -6           Do NOT apply blocking to IPv6 DNS requests.
+ -r           Remove DNS interception.
+```
+The list of known DoH hosts is retrieved from https://github.com/dibdot/DoH-IP-blocklists.
+
+*Please note* that, as the Telstra Technicolor devices do not have the `kmod-ipt-nat6` kernel module installed, DNS hijacking is **NOT** possible for IPv6. Blocking DoT and DoH **IS** supported for IPv6, because they rely on blocking a specific port for DoT and the IP Set of known DoH hosts.
 
 ## mtd-backup
 Backs up the MTD partitions to an attached USB device. Only unchanged partitions are backed up after the first execution.

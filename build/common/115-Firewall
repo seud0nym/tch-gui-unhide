@@ -61,6 +61,10 @@ sed \
   -e '/Firewall level/a \              end' \
   -e '/Firewall level/a \              html[#html+1] = "<br>"' \
   -e '/Firewall level/a \            end' \
+  -e '/Firewall level/a \            local dns_int = proxy.get("uci.firewall.redirect.@dns_int.enabled")' \
+  -e '/Firewall level/a \            if dns_int and dns_int[1] and dns_int[1].value ~= "0" then' \
+  -e '/Firewall level/a \              html[#html+1] = ui_helper.createSimpleLight("1", "DNS Intercept enabled")' \
+  -e '/Firewall level/a \            end' \
   -e '/numrules/,/numrules_v6/d' \
   -e '/if content.mode/,/end/d' \
   -i /www/cards/008_firewall.lp
