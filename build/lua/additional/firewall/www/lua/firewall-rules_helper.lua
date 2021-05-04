@@ -321,6 +321,13 @@ function M.getRuleColumns(fwrule_options)
       readonly = true,
     },
     { -- [15]
+      header = T"IP<br>Set",
+      name = "ipset",
+      param = "ipset",
+      type = "text",
+      readonly = true,
+    },
+    { -- [16]
       header = "",
       legend = T"Firewall Rule",
       name = "fwrule_entry",
@@ -463,7 +470,7 @@ function M.getRuleColumns(fwrule_options)
       src_port_v6 = gOV(vSIPR),
       dest_v6 = gVIES(dst_intfs),
       dest_ip_v6 = gOV(vIP6AS),
-      dest_port_v6 = rulesDuplicateCheck(dup_chk_basepath, fwrule_options.tableid, fwrule_columns[15].subcolumns),
+      dest_port_v6 = rulesDuplicateCheck(dup_chk_basepath, fwrule_options.tableid, fwrule_columns[16].subcolumns),
     }
   else
     fwrule_valid = {
@@ -476,13 +483,13 @@ function M.getRuleColumns(fwrule_options)
       src_port = gOV(vSIPR),
       dest = gVIES(dst_intfs),
       dest_ip = validateLanIP,
-      dest_port = rulesDuplicateCheck(dup_chk_basepath, fwrule_options.tableid, fwrule_columns[15].subcolumns),
+      dest_port = rulesDuplicateCheck(dup_chk_basepath, fwrule_options.tableid, fwrule_columns[16].subcolumns),
     }
   end
 
   if fwrule_options.canEdit and not fwrule_options.canAdd and not fwrule_options.canDelete then
     fwrule_columns[1].readonly = false
-    remove(fwrule_columns, 15)
+    remove(fwrule_columns, 16)
   end
 
   return fwrule_columns, fwrule_valid
@@ -507,7 +514,7 @@ function M.handleTableQuery(fwrule_options, fwrule_defaultObject)
   end
 
   if duplicatedErrMsg then
-    for _,v in ipairs(fwrule_columns[15].subcolumns) do
+    for _,v in ipairs(fwrule_columns[16].subcolumns) do
       if v.param ~= "enabled" and v.param ~= "name" and (not fwrule_helpmsg[v.name] or fwrule_helpmsg[v.name] == "") then
         fwrule_helpmsg[v.name]= duplicatedErrMsg
       end
