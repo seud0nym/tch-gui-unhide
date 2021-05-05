@@ -55,6 +55,18 @@ sed \
  -e '/Lease time/a \                 ,[[</div>]]' \
  -e '/gVIES(/a \    dhcpv6State = gVIES(dhcpStateselect),' \
  -e '/gVIES(/a \    slaacState = gVIES(dhcpStateselect),' \
+ -e '/^local function validateLimit/i \local function DHCPValidationNotRequired()' \
+ -e '/^local function validateLimit/i \  local post_data = ngx.req.get_post_args()' \
+ -e '/^local function validateLimit/i \  local localdevIP = proxy.get("uci.network.interface.@" .. curintf .. ".ipaddr")' \
+ -e '/^local function validateLimit/i \  local dhcpIgnore = proxy.get(mapParams["dhcpIgnore"])' \
+ -e '/^local function validateLimit/i \  if (localdevIP and localdevIP[1].value ~= post_data["localdevIP"]) or (dhcpIgnore and dhcpIgnore[1].value == "1") then' \
+ -e '/^local function validateLimit/i \    return true' \
+ -e '/^local function validateLimit/i \  end' \
+ -e '/^local function validateLimit/i \  return false' \
+ -e '/^local function validateLimit/i \end' \
+ -e '/^local function \(validateLimit\|validateDHCPStart\)/a \    if DHCPValidationNotRequired() then' \
+ -e '/^local function \(validateLimit\|validateDHCPStart\)/a \      return true' \
+ -e '/^local function \(validateLimit\|validateDHCPStart\)/a \    end' \
  -i /www/docroot/modals/ethernet-modal.lp
 
  
