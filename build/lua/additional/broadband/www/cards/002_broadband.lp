@@ -101,7 +101,7 @@ $().ready(function(){\
   landiv.setAttribute("id", "lan-card-throughput");\
   lanhdr.parentNode.insertBefore(landiv, lanhdr.nextSibling);\
   updateThroughput();\
-  tpFuncID=setInterval(updateThroughput,2000);\
+  tpFuncID=setInterval(updateThroughput,2000);window.intervalIDs.push(tpFuncID);\
 });\
 </script>\
 '); 
