@@ -26,10 +26,22 @@ then
   done
 fi
 
-echo [$SCRIPT]: Adding switch to enable/disable DHCPv6 Server and SLAAC
+echo [$SCRIPT]: Adding domain name and switch to enable/disable DHCPv6 Server and SLAAC, and removing unused ethernet port processing
 sed \
+ -e '/^local gVIES/a \local vNES = post_helper.validateNonEmptyString' \
+ -e '/^-- Standard/i \local function getDomainNamePath()' \
+ -e '/^-- Standard/i \  local dnsmidx, dnsmif' \
+ -e '/^-- Standard/i \  for _,dnsmidx in pairs(proxy.getPN("uci.dhcp.dnsmasq.", true)) do' \
+ -e '/^-- Standard/i \    for _,dnsmif in pairs(proxy.get(dnsmidx.path.."interface.")) do' \
+ -e '/^-- Standard/i \      if dnsmif.value == "lan" then' \
+ -e '/^-- Standard/i \        return dnsmidx.path .. "domain"' \
+ -e '/^-- Standard/i \      end' \
+ -e '/^-- Standard/i \    end' \
+ -e '/^-- Standard/i \  end' \
+ -e '/^-- Standard/i \end' \
  -e '/"\.dhcpv4"/a \    dhcpv6State = "uci.dhcp.dhcp.@" .. cur_dhcp_intf .. ".dhcpv6",' \
  -e '/"\.dhcpv4"/a \    slaacState = "uci.dhcp.dhcp.@" .. cur_dhcp_intf .. ".ra",' \
+ -e '/"\.dhcpv4"/a \    domainName = getDomainNamePath(),' \
  -e 's/dhcpv4Stateselect/dhcpStateselect/' \
  -e 's/DHCP Server/DHCPv4 Server/' \
  -e '/local stdattributes/i \              local switch_class_enable = {' \
@@ -55,6 +67,7 @@ sed \
  -e '/Lease time/a \                 ,[[</div>]]' \
  -e '/gVIES(/a \    dhcpv6State = gVIES(dhcpStateselect),' \
  -e '/gVIES(/a \    slaacState = gVIES(dhcpStateselect),' \
+ -e '/gVIES(/a \    domainName = vNES,' \
  -e '/^local function validateLimit/i \local function DHCPValidationNotRequired()' \
  -e '/^local function validateLimit/i \  local post_data = ngx.req.get_post_args()' \
  -e '/^local function validateLimit/i \  local localdevIP = proxy.get("uci.network.interface.@" .. curintf .. ".ipaddr")' \
@@ -67,6 +80,8 @@ sed \
  -e '/^local function \(validateLimit\|validateDHCPStart\)/a \    if DHCPValidationNotRequired() then' \
  -e '/^local function \(validateLimit\|validateDHCPStart\)/a \      return true' \
  -e '/^local function \(validateLimit\|validateDHCPStart\)/a \    end' \
+ -e '/T"Local Network subnet"/a \              if curintf == "lan" then' \
+ -e '/T"Local Network subnet"/a \                ngx.print(ui_helper.createInputText(T"Domain Name", "domainName", content["domainName"], advanced, helpmsg["domainName"]))' \
+ -e '/T"Local Network subnet"/a \              end' \
  -i /www/docroot/modals/ethernet-modal.lp
 
- 
