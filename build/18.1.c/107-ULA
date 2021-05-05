@@ -26,8 +26,8 @@ sed \
  -e '/^local gVIES/a \  end' \
  -e '/^local gVIES/a \  return valid, msg' \
  -e '/^local gVIES/a \end' \
+ -e '/slaacState = "uci/i \    ip6assign = "uci.network.interface.@" .. curintf .. ".ip6assign",' \
  -e '/slaacState = "uci/a \    ula_prefix = "uci.network.globals.ula_prefix",' \
- -e '/@eth0.enable/i \    ip6assign = "uci.network.interface.@" .. curintf .. ".ip6assign",' \
  -e '/local number_attr/i \              local ula_attr = {' \
  -e '/local number_attr/i \                controls = {' \
  -e '/local number_attr/i \                  style = "width:220px",' \

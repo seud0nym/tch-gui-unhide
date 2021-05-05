@@ -83,5 +83,12 @@ sed \
  -e '/T"Local Network subnet"/a \              if curintf == "lan" then' \
  -e '/T"Local Network subnet"/a \                ngx.print(ui_helper.createInputText(T"Domain Name", "domainName", content["domainName"], advanced, helpmsg["domainName"]))' \
  -e '/T"Local Network subnet"/a \              end' \
+ -e '/eth0 =/d' \
+ -e '/ethports = validateEthports/d' \
+ -e '/^local ethports/,/^end/d' \
+ -e '/^local function validateEthports/,/^end/d' \
+ -e '/^local ethports_checked/,/^end/d' \
+ -e '/ethport_count do/,/^end/d' \
+ -e '/--[[/,/]]/d' \
  -i /www/docroot/modals/ethernet-modal.lp
 
