@@ -61,9 +61,23 @@ sed \
   -e '/Firewall level/a \              end' \
   -e '/Firewall level/a \              html[#html+1] = "<br>"' \
   -e '/Firewall level/a \            end' \
-  -e '/Firewall level/a \            local dns_int = proxy.get("uci.firewall.redirect.@dns_int.enabled")' \
-  -e '/Firewall level/a \            if dns_int and dns_int[1] and dns_int[1].value ~= "0" then' \
-  -e '/Firewall level/a \              html[#html+1] = ui_helper.createSimpleLight("1", "DNS Intercept enabled")' \
+  -e '/Firewall level/a \            local dns_int' \
+  -e '/Firewall level/a \            for _, v in ipairs(proxy.getPN("uci.firewall.redirect.", true)) do' \
+  -e '/Firewall level/a \              local path = v.path' \
+  -e '/Firewall level/a \              local values = proxy.get(path.."name", path.."enabled")' \
+  -e '/Firewall level/a \              if values then' \
+  -e '/Firewall level/a \                local name = values[1].value' \
+  -e '/Firewall level/a \                if name == "Redirect-DNS" or name == "Intercept-DNS" then' \
+  -e '/Firewall level/a \                  if values[2] then' \
+  -e '/Firewall level/a \                    if values[2].value == "0" then' \
+  -e '/Firewall level/a \                      html[#html+1] = ui_helper.createSimpleLight("0", "DNS Intercept disabled")' \
+  -e '/Firewall level/a \                    else' \
+  -e '/Firewall level/a \                      html[#html+1] = ui_helper.createSimpleLight("1", "DNS Intercept enabled")' \
+  -e '/Firewall level/a \                    end' \
+  -e '/Firewall level/a \                  end' \
+  -e '/Firewall level/a \                  break' \
+  -e '/Firewall level/a \                end' \
+  -e '/Firewall level/a \              end' \
   -e '/Firewall level/a \            end' \
   -e '/numrules/,/numrules_v6/d' \
   -e '/if content.mode/,/end/d' \

@@ -26,12 +26,10 @@ then
   done
 fi
 
-echo [$SCRIPT]: Adding IPv6 Prefix Size and switch to enable/disable DHCPv6 Server and SLAAC
+echo [$SCRIPT]: Adding switch to enable/disable DHCPv6 Server and SLAAC
 sed \
- -e '/^local gVIES/a \local gVNIR = post_helper.getValidateNumberInRange' \
  -e '/"\.dhcpv4"/a \    dhcpv6State = "uci.dhcp.dhcp.@" .. cur_dhcp_intf .. ".dhcpv6",' \
  -e '/"\.dhcpv4"/a \    slaacState = "uci.dhcp.dhcp.@" .. cur_dhcp_intf .. ".ra",' \
- -e '/@eth0.enable/i \    ip6assign = "uci.network.interface.@" .. curintf .. ".ip6assign",' \
  -e 's/dhcpv4Stateselect/dhcpStateselect/' \
  -e 's/DHCP Server/DHCPv4 Server/' \
  -e '/local stdattributes/i \              local switch_class_enable = {' \
@@ -51,14 +49,12 @@ sed \
  -e '/local stdattributes/i \                }' \
  -e '/local stdattributes/i \              }' \
  -e 's/\(ui_helper.createSwitch(T"IPv6 \)s\(tate", "localIPv6", content\["localIPv6"\]\)/\1S\2, switch_class_enable/' \
- -e "/Switch(T\"IPv6/a \               ,ui_helper.createInputText(T\"IPv6 Prefix Size<span class='icon-question-sign' title='Delegate a prefix of the given length to this interface'></span>\", \"ip6assign\", content[\"ip6assign\"], number_attr)" \
  -e '/Lease time/a \                 ,[[<div class="monitor-localIPv6 monitor-1 monitor-hidden-localIPv6">]]' \
  -e '/Lease time/a \                 ,ui_helper.createSwitch(T"DHCPv6 Server", "dhcpv6State", content["dhcpv6State"], switchDHCP)' \
  -e "/Lease time/a \                 ,ui_helper.createSwitch(T\"SLAAC + RA<span class='icon-question-sign' title='IPv6 Stateless Address Auto-Configuration + Router Advertisement'></span>\", \"slaacState\", content[\"slaacState\"], switchDHCP)" \
  -e '/Lease time/a \                 ,[[</div>]]' \
  -e '/gVIES(/a \    dhcpv6State = gVIES(dhcpStateselect),' \
  -e '/gVIES(/a \    slaacState = gVIES(dhcpStateselect),' \
- -e '/gVIES(/a \    ip6assign = gVNIR(0,128),' \
  -i /www/docroot/modals/ethernet-modal.lp
 
  
