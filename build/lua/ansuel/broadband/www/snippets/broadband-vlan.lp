@@ -10,6 +10,8 @@ local ui_helper = require("web.ui_helper")
 local proxy = require("datamodel")
 local format, match = string.format, string.match
 
+local wsens = proxy.get("uci.wansensing.global.enable")
+
 local ethname = proxy.get("sys.eth.port.@eth4.status")
 if ethname and ethname[1].value then
   ethname =  "eth4"
@@ -245,7 +247,9 @@ ngx.print('\
       class = "alert-warn monitor-wsens monitor-1"
     },
   }
-  html[#html + 1] = ui_helper.createAlertBlock(T"WAN Sensing may not inter-operate correctly with VLAN. Disable WAN Sensing and select Connection Mode first, before setting VLAN ID.", alertclass)
+  if wsens and wsens[1].value == "1" then
+    html[#html + 1] = ui_helper.createAlertBlock(T"WAN Sensing may not inter-operate correctly with VLAN. Disable WAN Sensing and select Connection Mode first, before setting VLAN ID.", alertclass)
+  end
   html[#html + 1] = ui_helper.createSwitch(T"Using VLAN", "intf_vlan", difname, vlanswitchclass)
   html[#html + 1] = ui_helper.createInputRadio(T"Notation", "auswahlliste" , liste, check, vlanidclass)
   html[#html + 1] = ui_helper.createInputText(T"VLAN ID", "intf_vlanid", vid, vlanidclass, helpmes)
