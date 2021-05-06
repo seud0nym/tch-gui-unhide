@@ -1,11 +1,9 @@
 gettext.textdomain('webui-core')
 
+local bridged = require("bridgedmode_helper")
 local proxy = require("datamodel")
-local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
-local message_helper = require("web.uimessage_helper")
-local post_helper = require("web.post_helper")
-local format, match, sub = string.format, string.match, string.sub
+local match, sub = string.match, string.sub
 
 local content = {
   sfp_enabled = "uci.env.rip.sfp",
@@ -21,15 +19,9 @@ else
 end
 
 local function get_wansensing() 
-  if proxy.get("uci.wansensing.global.enable") then
-    return proxy.get("uci.wansensing.global.enable")[1].value
-  end
-  return ""
-end
-
-local function get_wan_mode()
-  if proxy.get("uci.network.config.wan_mode") then
-    return proxy.get("uci.network.config.wan_mode")[1].value 
+  local ws = proxy.get("uci.wansensing.global.enable")
+  if ws then
+    return ws[1].value
   end
   return ""
 end
@@ -75,62 +67,6 @@ local function findwan(interface)
   return base
 end
 
-local function restartNetwork() 
-  local ubus = require("ubus")
-  local conn = ubus.connect()
-  if not conn then
-    return "Failed to connect to ubusd"
-  end
-  conn:call("network", "restart", {})
-  conn:close()
-end
-
-local function bridge(mode) 
-  local ifnames = proxy.get("uci.network.interface.@lan.ifname")[1].value
-  local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
-  local state = proxy.get("uci.network.config.wan_mode")
-  if mode == "enable" then
-    proxy.set({
-      ["uci.wansensing.global.enable"] = '0',
-      ["uci.network.interface.@wan.enabled"] = '0',
-      ["uci.network.interface.@wan.auto"] = '0',
-      ["uci.network.interface.@wan6.enabled"] = '0',
-      ["uci.network.interface.@wwan.enabled"] = '0',
-      ["uci.wireless.wifi-device.@radio_2G.state"] = '0',
-      ["uci.wireless.wifi-device.@radio_5G.state"] = '0',
-      ["uci.mmpbx.mmpbx.@global.enabled"] = '0',
-      ["uci.dhcp.dhcp.@lan.ignore"] = '1',
-      ["uci.cwmpd.cwmpd_config.state"] = '0',
-      ["uci.mobiled.device_defaults.enabled"] = '0',
-      ["uci.network.interface.@lan.ifname"] = ifnames ..' '.. wan_ifname,
-      ["uci.network.config.wan_mode"] = 'bridge',
-    })
-  elseif not (state and state[1].value == "bridge") then
-    return
-  else
-    local wan_proto = proxy.get("uci.network.interface.@wan.proto")
-    proxy.set({
-      ["uci.wansensing.global.enable"] = '1',
-      ["uci.network.interface.@wan.enabled"] = '1',
-      ["uci.network.interface.@wan.auto"] = '1',
-      ["uci.network.interface.@wan6.enabled"] = '1',
-      ["uci.network.interface.@wwan.enabled"] = '1',
-      ["uci.wireless.wifi-device.@radio_2G.state"] = '1',
-      ["uci.wireless.wifi-device.@radio_5G.state"] = '1',
-      ["uci.mmpbx.mmpbx.@global.enabled"] = '1',
-      ["uci.dhcp.dhcp.@lan.ignore"] = '0',
-      ["uci.cwmpd.cwmpd_config.state"] = '1',
-      ["uci.mobiled.device_defaults.enabled"] = '1',
-      ["uci.network.interface.@lan.ifname"] = string.gsub(string.gsub(ifnames, wan_ifname, ""), "%s$", ""),
-      ["uci.network.config.wan_mode"] = wan_proto and wan_proto[1].value or "dhcp",
-    })
-  end
-  
-  restartNetwork()
-
-  return
-end
-
 local tablecontent = {}
 tablecontent[#tablecontent + 1] = {
   name = "adsl",
@@ -145,17 +81,14 @@ tablecontent[#tablecontent + 1] = {
         return true
       end
     else
-      if not ( get_wan_mode() == "bridge" ) then
         local ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
         local iface = match(ifname, "atm")
         if iface then
           return true
         end
       end
-    end
   end,
   operations = function()
-    bridge("check")
     local interface = findwan("atm") or "@wanatmwan"
     local difname = proxy.get("uci.network.device." .. interface .. ".ifname")
     if difname then
@@ -198,17 +131,14 @@ tablecontent[#tablecontent + 1] = {
         return true
       end
     else
-      if not ( get_wan_mode() == "bridge" ) then
-        local ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
-        local iface = match(ifname, "ptm0")
-        if iface then
-          return true
-        end
+      local ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
+      local iface = match(ifname, "ptm0")
+      if iface then
+        return true
       end
     end
   end,
   operations = function()
-    bridge("check")
     local interface = findwan("ptm") or "@wanptm0"
     local difname = proxy.get("uci.network.device." .. interface .. ".ifname")
     if difname then
@@ -245,12 +175,9 @@ tablecontent[#tablecontent + 1] = {
   view = "broadband-bridge.lp",
   card = "002_broadband_bridge.lp",
   check = function()
-    if ( get_wansensing() == "0" ) and ( get_wan_mode() == "bridge" ) then
-      return true
-    end
+    return bridged.isBridgedMode()
   end,
   operations = function()
-    bridge("enable")
   end,
 }
 tablecontent[#tablecontent + 1] = {
@@ -266,24 +193,21 @@ tablecontent[#tablecontent + 1] = {
         return true
       end
     else
-      if not ( get_wan_mode() == "bridge" ) then
-        local ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
-        local iface = match(ifname, ethname)
-        if sfp == 1 then
-          local lwmode = proxy.get("uci.ethernet.globals.eth4lanwanmode")[1].value
-          if iface and lwmode == "0" then
-            return true
-          end
-        else
-          if iface then
-            return true
-          end
+      local ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
+      local iface = match(ifname, ethname) or match(ifname, "lan") --the or is in case wan iface is br-lan
+      if sfp == 1 then
+        local lwmode = proxy.get("uci.ethernet.globals.eth4lanwanmode")[1].value
+        if iface and lwmode == "0" then
+          return true
+        end
+      else
+        if iface then
+          return true
         end
       end
     end
   end,
   operations = function()
-    bridge("check")
     local interface = findwan(ethname) or "@wan"..ethname
     local difname = proxy.get("uci.network.device." .. interface .. ".ifname")
     if difname then
@@ -328,24 +252,21 @@ if sfp == 1 then
           return true
         end
       else
-        if not (get_wan_mode() == "bridge") then
-          local ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
-          local iface = match(ifname, ethname)
-          if sfp == 1 then
-            local lwmode = proxy.get("uci.ethernet.globals.eth4lanwanmode")[1].value
-            if iface and lwmode == "1" then
-              return true
-            end
-          else
-            if iface then
-              return true
-            end
+        local ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
+        local iface = match(ifname, ethname)
+        if sfp == 1 then
+          local lwmode = proxy.get("uci.ethernet.globals.eth4lanwanmode")[1].value
+          if iface and lwmode == "1" then
+            return true
+          end
+        else
+          if iface then
+            return true
           end
         end
       end
     end,
     operations = function()
-      bridge("check")
       local interface = findwan(ethname) or "@waneth4"
       local difname = proxy.get("uci.network.device." .. interface .. ".ifname")
       if difname then
