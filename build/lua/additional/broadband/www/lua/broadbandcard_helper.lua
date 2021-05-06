@@ -1,10 +1,11 @@
+local bridged = require("bridgedmode_helper")
 local content_helper = require("web.content_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
 local socket = require("socket")
 local ui_helper = require("web.ui_helper")
 
-local floor, find, format, untaint = math.floor, string.find, string.format, string.untaint
+local floor, find, format, gmatch, match, untaint = math.floor, string.find, string.format, string.gmatch, string.match, string.untaint
 local tonumber = tonumber
 local TGU_MbPS = ngx.shared.TGU_MbPS
 
@@ -56,7 +57,7 @@ function M.getThroughputHTML()
 
   local key, value, ok, err
   for key, value in pairs(wan_data) do
-    local is = tonumber(value)
+    local is = tonumber(value) or 0
     local now = socket.gettime()
     local from = TGU_MbPS:get(key.."_time")
     if from then
@@ -84,97 +85,148 @@ function M.getThroughputHTML()
 end
 
 function M.getBroadbandCardHTML() 
-  -- wan status data
-  local wan_data = {
-    wan_ifname        = "uci.network.interface.@wan.ifname",
-    dsl_status        = "sys.class.xdsl.@line0.Status",
-    dsl_linerate_up   = "sys.class.xdsl.@line0.UpstreamCurrRate",
-    dsl_linerate_down = "sys.class.xdsl.@line0.DownstreamCurrRate",
-    ethwan_status     = "sys.eth.port.@eth4.status",
-    dsl0_enabled      = "uci.xdsl.xdsl.@dsl0.enabled",
-  }
-  content_helper.getExactContent(wan_data)
-
-  local mobiled_state = {
-    mob_session_state = "rpc.mobiled.device.@1.network.sessions.@1.session_state"
-  }
-  content_helper.getExactContent(mobiled_state)
-
-  local content_rpc = {
-    rx_bytes = 0,
-    tx_bytes = 0,
-    total_bytes = 0,
-  }
-  local wan_intf = getCurrentWANInterface()
-  local wan_ifname = wan_data["wan_ifname"]
-  local rpc_ifname = proxy.get("rpc.network.interface.@"..wan_intf..".ifname")
-  local path = format("%s_%s", os.date("%F"), rpc_ifname[1].value)
-  local rx_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".rx_bytes")
-  if rx_bytes then
-    content_rpc.rx_bytes = rx_bytes[1].value
-    content_rpc.tx_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".tx_bytes")[1].value
-    content_rpc.total_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".total_bytes")[1].value
-  else
-    content_rpc.rx_bytes = tonumber(proxy.get("rpc.network.interface.@" .. wan_intf .. ".rx_bytes")[1].value)
-    content_rpc.tx_bytes = tonumber(proxy.get("rpc.network.interface.@" .. wan_intf .. ".tx_bytes")[1].value)
-    content_rpc.total_bytes = content_rpc.rx_bytes + content_rpc.tx_bytes
-  end
-
   local html = {}
-  local up = false
-  if wan_ifname and (find(wan_ifname,"ptm") or find(wan_ifname,"atm")) then
-    if wan_data["dsl_status"] == "Up" then
-      up = true
-      html[#html+1] = ui_helper.createSimpleLight("1", "DSL connected")
-      -- After disabling broadband the page immediately refreshes. At this time the state is still up but the line
-      -- rate is already cleared.
-      local rate_up = tonumber(wan_data["dsl_linerate_up"])
-      local rate_down = tonumber(wan_data["dsl_linerate_down"])
-      if rate_up and rate_down then
-        rate_up = floor(rate_up / 10) / 100
-        rate_down = floor(rate_down / 10) / 100
-        html[#html+1] = format('<p class="bbstats"><i class="icon-upload icon-small gray"></i> %.2f<small>Mbps</small> <i class="icon-download icon-small gray"></i> %.2f<small>Mbps</small></p>', rate_up, rate_down)
+  if bridged.isBridgedMode() then
+    local ifnames = {
+      iface = "uci.network.interface.@lan.ifname",
+    }
+    content_helper.getExactContent(ifnames)
+      
+    local intf_state = "disabled"
+    local intf_state_map = {
+      disabled = T"Bridge disabled",
+      connected = T"Bridge connected",
+      disconnected = T"Bridge not connected",
+    }
+    local intf_light_map = {
+      disabled = "off",
+      disconnected = "red",
+      connected = "green",
+    }
+
+    local connected_iface = ""
+    local v
+    for v in string.gmatch(ifnames.iface, "[^%s]+") do
+      local iface = untaint(match(v, "([^%.]+)")) -- try to remove the potential vlan id from the interface name
+      local stats = {
+        operstate = "sys.class.net.@" .. iface .. ".operstate",
+        carrier = "sys.class.net.@" .. iface .. ".carrier",
+      }
+      content_helper.getExactContent(stats)
+  
+      if stats.operstate == "up" then
+        if stats.carrier ~= "0" then
+          intf_state = "connected"
+          connected_iface = connected_iface .. " " .. iface
+        else
+          intf_state = intf_state ~= "connected" and "disconnected"
+        end
       end
-    elseif wan_data["dsl_status"] == "NoSignal" then
-      html[#html+1] = ui_helper.createSimpleLight("4", "DSL disconnected")
-    elseif wan_data["dsl0_enabled"] == "0" then
-      html[#html+1] = ui_helper.createSimpleLight("0", "DSL disabled")
+    end
+    if connected_iface == "" then
+      connected_iface = "NONE"
+    end
+
+    html[#html+1] = ui_helper.createSimpleLight(nil, intf_state_map[intf_state], {light = {class = intf_light_map[intf_state]}})
+    html[#html+1] = '<p class="subinfos">'
+    html[#html+1] = format(T'Connected Interfaces: <strong>%s</strong>', connected_iface)
+    html[#html+1] = '</p>'
+  else -- not bridge mode
+    -- wan status data
+    local wan_data = {
+      wan_ifname        = "uci.network.interface.@wan.ifname",
+      dsl_status        = "sys.class.xdsl.@line0.Status",
+      dsl_linerate_up   = "sys.class.xdsl.@line0.UpstreamCurrRate",
+      dsl_linerate_down = "sys.class.xdsl.@line0.DownstreamCurrRate",
+      ethwan_status     = "sys.eth.port.@eth4.status",
+      dsl0_enabled      = "uci.xdsl.xdsl.@dsl0.enabled",
+    }
+    content_helper.getExactContent(wan_data)
+
+    local mobiled_state = {
+      mob_session_state = "rpc.mobiled.device.@1.network.sessions.@1.session_state"
+    }
+    content_helper.getExactContent(mobiled_state)
+
+    local content_rpc = {
+      rx_bytes = 0,
+      tx_bytes = 0,
+      total_bytes = 0,
+    }
+    local wan_intf = getCurrentWANInterface()
+    local wan_ifname = wan_data["wan_ifname"]
+    local rpc_ifname = proxy.get("rpc.network.interface.@"..wan_intf..".ifname")
+    if rpc_ifname then
+      local path = format("%s_%s", os.date("%F"), rpc_ifname[1].value)
+      local rx_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".rx_bytes")
+      if rx_bytes then
+        content_rpc.rx_bytes = rx_bytes[1].value
+        content_rpc.tx_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".tx_bytes")[1].value
+        content_rpc.total_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".total_bytes")[1].value
+      else
+        content_rpc.rx_bytes = tonumber(proxy.get("rpc.network.interface.@" .. wan_intf .. ".rx_bytes")[1].value)
+        content_rpc.tx_bytes = tonumber(proxy.get("rpc.network.interface.@" .. wan_intf .. ".tx_bytes")[1].value)
+        content_rpc.total_bytes = content_rpc.rx_bytes + content_rpc.tx_bytes
+      end
+    end
+
+    local up = false
+    if wan_ifname and (find(wan_ifname,"ptm") or find(wan_ifname,"atm")) then
+      if wan_data["dsl_status"] == "Up" then
+        up = true
+        html[#html+1] = ui_helper.createSimpleLight("1", "DSL connected")
+        -- After disabling broadband the page immediately refreshes. At this time the state is still up but the line
+        -- rate is already cleared.
+        local rate_up = tonumber(wan_data["dsl_linerate_up"])
+        local rate_down = tonumber(wan_data["dsl_linerate_down"])
+        if rate_up and rate_down then
+          rate_up = floor(rate_up / 10) / 100
+          rate_down = floor(rate_down / 10) / 100
+          html[#html+1] = format('<p class="bbstats"><i class="icon-upload icon-small gray"></i> %.2f<small>Mbps</small> <i class="icon-download icon-small gray"></i> %.2f<small>Mbps</small></p>', rate_up, rate_down)
+        end
+      elseif wan_data["dsl_status"] == "NoSignal" then
+        html[#html+1] = ui_helper.createSimpleLight("4", "DSL disconnected")
+      elseif wan_data["dsl0_enabled"] == "0" then
+        html[#html+1] = ui_helper.createSimpleLight("0", "DSL disabled")
+      else
+        html[#html+1] = ui_helper.createSimpleLight("2", "DSL connecting")
+      end
+    end
+    if wan_ifname and find(wan_ifname,"eth") then
+      up = true
+      if wan_data["ethwan_status"] == "up" then
+        html[#html+1] = ui_helper.createSimpleLight("1", "Ethernet connected")
+      else
+        html[#html+1] = ui_helper.createSimpleLight("4", "Ethernet disconnected")
+      end
+    end
+    local vlanid = string.match(wan_ifname, ".*%.(%d+)")
+    if not vlanid then
+      local vid = proxy.get("uci.network.device.@".. wan_ifname .. ".vid")
+      if vid and vid[1].value ~= "" then
+        vlanid = vid[1].value
+      end
+    end
+    if vlanid then
+      local vlanifname = proxy.get("uci.network.device.@".. wan_ifname .. ".ifname")
+      if vlanifname and vlanifname[1].value == "" then
+        html[#html+1] = ui_helper.createSimpleLight("2", "VLAN "..vlanid.." disabled")
+      elseif up then
+        html[#html+1] = ui_helper.createSimpleLight("1", "VLAN "..vlanid.." active")
+      else
+        html[#html+1] = ui_helper.createSimpleLight("0", "VLAN "..vlanid.." inactive")
+      end
     else
-      html[#html+1] = ui_helper.createSimpleLight("2", "DSL connecting")
+      html[#html+1] = ui_helper.createSimpleLight("0", "No VLAN defined")
+    end
+    if mobiled_state["mob_session_state"] == "connected" then
+      html[#html+1] = ui_helper.createSimpleLight("1", "Mobile Internet connected")
+    end
+    if rpc_ifname then
+      html[#html+1] = format('<span class="simple-desc modal-link" data-toggle="modal" data-remote="/modals/broadband-usage-modal.lp" data-id="bb-usage-modal" style="padding-top:5px"><span class="icon-small status-icon">&udarr;</span>%s&ensp;<i class="icon-cloud-upload status-icon"></i> %s&ensp;<i class="icon-cloud-download status-icon"></i> %s</span>', 
+        bytes2string(content_rpc.total_bytes), bytes2string(content_rpc.tx_bytes), bytes2string(content_rpc.rx_bytes))
     end
   end
-  if wan_ifname and find(wan_ifname,"eth") then
-    up = true
-    if wan_data["ethwan_status"] == "up" then
-      html[#html+1] = ui_helper.createSimpleLight("1", "Ethernet connected")
-    else
-      html[#html+1] = ui_helper.createSimpleLight("4", "Ethernet disconnected")
-    end
-  end
-  local vlanid = string.match(wan_ifname, ".*%.(%d+)")
-  if not vlanid then
-    local vid = proxy.get("uci.network.device.@".. wan_ifname .. ".vid")
-    if vid and vid[1].value ~= "" then
-      vlanid = vid[1].value
-    end
-  end
-  if vlanid then
-    local vlanifname = proxy.get("uci.network.device.@".. wan_ifname .. ".ifname")
-    if vlanifname and vlanifname[1].value == "" then
-      html[#html+1] = ui_helper.createSimpleLight("2", "VLAN "..vlanid.." disabled")
-    elseif up then
-      html[#html+1] = ui_helper.createSimpleLight("1", "VLAN "..vlanid.." active")
-    else
-      html[#html+1] = ui_helper.createSimpleLight("0", "VLAN "..vlanid.." inactive")
-    end
-  else
-    html[#html+1] = ui_helper.createSimpleLight("0", "No VLAN defined")
-  end
-  if mobiled_state["mob_session_state"] == "connected" then
-    html[#html+1] = ui_helper.createSimpleLight("1", "Mobile Internet connected")
-  end
-  html[#html+1] = format('<span class="simple-desc modal-link" data-toggle="modal" data-remote="/modals/broadband-usage-modal.lp" data-id="bb-usage-modal" style="padding-top:5px"><span class="icon-small status-icon">&udarr;</span>%s&ensp;<i class="icon-cloud-upload status-icon"></i> %s&ensp;<i class="icon-cloud-download status-icon"></i> %s</span>', 
-    bytes2string(content_rpc.total_bytes), bytes2string(content_rpc.tx_bytes), bytes2string(content_rpc.rx_bytes))
 
   return html
 end
