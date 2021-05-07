@@ -81,12 +81,14 @@ tablecontent[#tablecontent + 1] = {
         return true
       end
     else
-        local ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
-        local iface = match(ifname, "atm")
+      local ifname = proxy.get("uci.network.interface.@wan.ifname")
+      if ifname then
+        local iface = match(ifname[1].value, "atm")
         if iface then
           return true
         end
       end
+    end
   end,
   operations = function()
     local interface = findwan("atm") or "@wanatmwan"
@@ -131,10 +133,12 @@ tablecontent[#tablecontent + 1] = {
         return true
       end
     else
-      local ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
-      local iface = match(ifname, "ptm0")
-      if iface then
-        return true
+      local ifname = proxy.get("uci.network.interface.@wan.ifname")
+      if ifname then
+        local iface = match(ifname[1].value, "ptm0")
+        if iface then
+          return true
+        end
       end
     end
   end,
@@ -193,16 +197,18 @@ tablecontent[#tablecontent + 1] = {
         return true
       end
     else
-      local ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
-      local iface = match(ifname, ethname) or match(ifname, "lan") --the or is in case wan iface is br-lan
-      if sfp == 1 then
-        local lwmode = proxy.get("uci.ethernet.globals.eth4lanwanmode")[1].value
-        if iface and lwmode == "0" then
-          return true
-        end
-      else
-        if iface then
-          return true
+      local ifname = proxy.get("uci.network.interface.@wan.ifname")
+      if ifname then
+        local iface = match(ifname[1].value, ethname) or match(ifname[1].value, "lan") --the or is in case wan iface is br-lan
+        if sfp == 1 then
+          local lwmode = proxy.get("uci.ethernet.globals.eth4lanwanmode")[1].value
+          if iface and lwmode == "0" then
+            return true
+          end
+        else
+          if iface then
+            return true
+          end
         end
       end
     end
@@ -252,16 +258,18 @@ if sfp == 1 then
           return true
         end
       else
-        local ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
-        local iface = match(ifname, ethname)
-        if sfp == 1 then
-          local lwmode = proxy.get("uci.ethernet.globals.eth4lanwanmode")[1].value
-          if iface and lwmode == "1" then
-            return true
-          end
-        else
-          if iface then
-            return true
+        local ifname = proxy.get("uci.network.interface.@wan.ifname")
+        if ifname then
+          local iface = match(ifname[1].value, ethname)
+          if sfp == 1 then
+            local lwmode = proxy.get("uci.ethernet.globals.eth4lanwanmode")[1].value
+            if iface and lwmode == "1" then
+              return true
+            end
+          else
+            if iface then
+              return true
+            end
           end
         end
       end

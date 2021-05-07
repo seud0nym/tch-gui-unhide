@@ -85,7 +85,6 @@ return {
             { "uci.network.config.wan_mode", "^bridge$"}
         },
         operations = {
-            { "uci.network.interface.@wan.proto", "bridge"},
             { "uci.network.config.wan_mode", "bridge"},
             { "uci.network.interface.@lan.ifname", ifnames ..' '.. wan_ifname},
         },
