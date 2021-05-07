@@ -167,6 +167,8 @@ local mapParams = {
   uci_wan_auto = "uci.network.interface.@wan.auto",
   uci_wan_username = "uci.network.interface.@wan.username",
   uci_wan_password = "uci.network.interface.@wan.password",
+  uci_ppp_username = "uci.network.interface.@ppp.username",
+  uci_ppp_password = "uci.network.interface.@ppp.password",
   uci_wan_masq = "uci.firewall.zone."..zonenum..".masq",
   uci_wan6_auto = "uci.network.interface.@wan.ipv6", -- use uci_wan6_auto param name instead of more consistent uci_wan_ipv6 for consistency with dhcp/static, and because internet-dns-servers.lp uses it to show/hide IPv6 DNS Servers table
 	uci_wan6_forceprefix = "uci.network.interface.@wan6.forceprefix",
@@ -313,6 +315,14 @@ local mapValid = {
   uci_wan_auto = vB,
   uci_wan_username = gCV(isWanEnabled, validateUsername, gOV(validateUsername)),
   uci_wan_password = gCV(isWanEnabled, gVP(vNES), gVP()),
+  uci_ppp_username = function(val, object)
+    object.uci_ppp_username = object.uci_wan_username
+    return true
+  end,
+  uci_ppp_password = function(val, object)
+    object.uci_ppp_password = object.uci_wan_password
+    return true
+  end,
   uci_wan_masq = validateNat,
   uci_wan6_auto = IPv6andUsername,
 	uci_wan6_forceprefix = vB,
