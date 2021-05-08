@@ -39,25 +39,10 @@ else
   echo [$SCRIPT]: Update available button will NOT be shown in GUI
 fi
 
-echo [$SCRIPT]: Add auto-refresh management
+echo [$SCRIPT]: Add auto-refresh management and wait indicator when opening modals
 sed \
-  -e '/<title>/a \<script>\\' \
-  -e '/<title>/a \window.intervalIDs=new Array();\\' \
-  -e '/<title>/a \function clearRegisteredIntervals(){\\' \
-  -e '/<title>/a \  for(let i=0;i<window.intervalIDs.length;i++){\\' \
-  -e '/<title>/a \    clearInterval(window.intervalIDs[i]);\\' \
-  -e '/<title>/a \  }\\' \
-  -e '/<title>/a \}\\' \
-  -e '/<title>/a \var modalLoaded=false;\\' \
-  -e '/<title>/a \$(document).bind("DOMSubtreeModified",function(){\\' \
-  -e '/<title>/a \  if(!modalLoaded){\\' \
-  -e '/<title>/a \    if($(".modal").length>0){\\' \
-  -e '/<title>/a \      modalLoaded=true;\\' \
-  -e '/<title>/a \      clearRegisteredIntervals();\\' \
-  -e '/<title>/a \    }\\' \
-  -e '/<title>/a \  }\\' \
-  -e '/<title>/a \});\\' \
-  -e '/<title>/a \</script>\\' \
+  -e '/<title>/i \    <script src="/js/tch-gui-unhide.js"></script>\\' \
+  -e '/id="waiting"/a \    <script>$(".header,.modal-link").click(function(){$("#waiting").fadeIn();});</script>\\' \
   -i /www/docroot/gateway.lp
 
 echo [$SCRIPT]: Fix uptime on basic Broadband tab

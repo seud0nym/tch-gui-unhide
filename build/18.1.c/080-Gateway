@@ -1,0 +1,6 @@
+echo [$SCRIPT]: Use the nicer green spinner
+for lp in $(grep -l -r -e 'spinner.*gif' /www | sort | xargs)
+do
+  sed -e 's/spinner.gif/spinner-green.gif/' -i $lp
+done
+
