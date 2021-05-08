@@ -75,18 +75,4 @@ return {
             { "uci.network.interface.@lan.ifname", gsub(gsub(ifnames, wan_ifname, ""), "%s$", "")},
         },
     },
-    {
-        name = "bridge",
-        default = false,
-        description = T"Bridge mode",
-        view = "internet-bridged.lp",
-        card = "003_internet_bridged.lp",
-        check = {
-            { "uci.network.config.wan_mode", "^bridge$"}
-        },
-        operations = {
-            { "uci.network.config.wan_mode", "bridge"},
-            { "uci.network.interface.@lan.ifname", ifnames ..' '.. wan_ifname},
-        },
-    },
 }

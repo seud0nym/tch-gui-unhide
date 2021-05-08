@@ -26,7 +26,7 @@ then
   done
 fi
 
-echo [$SCRIPT]: Adding domain name and switch to enable/disable DHCPv6 Server and SLAAC, and removing unused ethernet port processing
+echo [$SCRIPT]: Adding domain name and switch to enable/disable DHCPv6 Server and SLAAC, removing unused ethernet port processing, and fix some spelling/grammar
 sed \
  -e '/^local gVIES/a \local vNES = post_helper.validateNonEmptyString' \
  -e '/^-- Standard/i \local function getDomainNamePath()' \
@@ -90,5 +90,7 @@ sed \
  -e '/^local ethports_checked/,/^end/d' \
  -e '/ethport_count do/,/^end/d' \
  -e '/--[[/,/]]/d' \
+ -e 's/Network mode/Network Mode/' \
+ -e 's/to switch the modem/you want to switch/' \
  -i /www/docroot/modals/ethernet-modal.lp
 

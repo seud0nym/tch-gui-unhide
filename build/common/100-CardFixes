@@ -43,7 +43,7 @@ sed \
   -e '/@lan.dhcpv4/a \    ignored = "uci.dhcp.dhcp.@lan.ignore",' \
   -e '/@lan.netmask/a \    ipv6prefix = "rpc.network.interface.@lan.ip6prefix_assignment",' \
   -e '/DHCP enabled/i if mapParams["ignored"] == "1" then' \
-  -e '/DHCP enabled/i   dhcp4State_text = T"DHCPv4 ignored (Bridge mode)"' \
+  -e '/DHCP enabled/i   dhcp4State_text = T"DHCPv4 ignored (Bridged mode)"' \
   -e '/DHCP enabled/i   dhcp4State = "2"' \
   -e '/DHCP enabled/i else' \
   -e '/dhcpState = "1"/a end' \
@@ -54,7 +54,7 @@ sed \
   -e '/getExactContent/a \if mapParams["ipv6State"] == "" or mapParams["ipv6State"] == "1" then' \
   -e '/getExactContent/a \  if mapParams["dhcpv6State"] == "" or mapParams["dhcpv6State"] == "server" then' \
   -e '/getExactContent/a \    if mapParams["ignored"] == "1" then' \
-  -e '/getExactContent/a \      dhcp6State_text = T"DHCPv6 ignored (Bridge mode)"' \
+  -e '/getExactContent/a \      dhcp6State_text = T"DHCPv6 ignored (Bridged mode)"' \
   -e '/getExactContent/a \      dhcp6State = "2"' \
   -e '/getExactContent/a \    else' \
   -e '/getExactContent/a \      dhcp6State_text = T"DHCPv6 enabled"' \
@@ -66,7 +66,7 @@ sed \
   -e '/getExactContent/a \  end' \
   -e '/getExactContent/a \  if mapParams["slaacState"] == "" or mapParams["slaacState"] == "server" then' \
   -e '/getExactContent/a \    if mapParams["ignored"] == "1" then' \
-  -e '/getExactContent/a \      slaacState_text = T"SLAAC + RA ignored (Bridge mode)"' \
+  -e '/getExactContent/a \      slaacState_text = T"SLAAC + RA ignored (Bridged mode)"' \
   -e '/getExactContent/a \      slaacState = "2"' \
   -e '/getExactContent/a \    else' \
   -e '/getExactContent/a \      slaacState_text = T"SLAAC + RA enabled"' \

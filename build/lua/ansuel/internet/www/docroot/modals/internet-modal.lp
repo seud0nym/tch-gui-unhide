@@ -85,10 +85,6 @@ end
 
 lp.setpath("/www/snippets/")
 
-if wan_mode == "bridge" and tabdata.current.name ~= "bridge" then
-    lp.include("internet-bridged.lp")
-end
-
 lp.include(tabdata.current.view)
 
 if not tabdata.current.ajax then
