@@ -42,7 +42,7 @@ fi
 echo [$SCRIPT]: Add auto-refresh management and wait indicator when opening modals
 sed \
   -e '/<title>/i \    <script src="/js/tch-gui-unhide.js"></script>\\' \
-  -e '/id="waiting"/a \    <script>$(".header,.modal-link").click(function(){$("#waiting").fadeIn();});</script>\\' \
+  -e '/id="waiting"/a \    <script>$(".smallcard .header,.modal-link").click(function(){$("#waiting").fadeIn();});</script>\\' \
   -i /www/docroot/gateway.lp
 
 echo [$SCRIPT]: Fix uptime on basic Broadband tab
