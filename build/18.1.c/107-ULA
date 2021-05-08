@@ -56,7 +56,7 @@ sed \
  -e '/^(function() {/a \  gen_ula_span.setAttribute("style","padding:5px 3px 8px 3px;");\\' \
  -e '/^(function() {/a \  gen_ula_span.setAttribute("title","Click to generate a random ULA prefix");\\' \
  -e '/^(function() {/a \  $("#ula_prefix").after(gen_ula_span);\\' \
- -e '/^(function() {/a \  $("#random_ula_prefix").click(function(){$("#ula_prefix").val((parseInt("fd00",16)+rand(2**8)).toString(16)+":"+rand16()+":"+rand16()+"::/48");});\\' \
+ -e '/^(function() {/a \  $("#random_ula_prefix").click(function(){var i=$("#ula_prefix");i.val((parseInt("fd00",16)+rand(2**8)).toString(16)+":"+rand16()+":"+rand16()+"::/48");var e=jQuery.Event("keydown");e.which=e.keyCode=13;i.trigger(e);});\\' \
  -i /www/docroot/modals/ethernet-modal.lp
 
  
