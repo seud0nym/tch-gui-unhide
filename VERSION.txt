@@ -1,3 +1,34 @@
+2021.05.09
+==========
+* tch-gui-unhide: Fixed Local Network card showed incorrect IPv6 prefix
+* tch-gui-unhide: Fixed DHCP range validation errors when changing LAN IP address
+* tch-gui-unhide: Fixed GUI failing to display and various other issues when in bridged mode
+* tch-gui-unhide: Removed ability to set the tch-nginx-gui version of bridged mode through Broadband screen and Internet Access
+* tch-gui-unhide: Fixed VLAN detection when manually changing Broadband connection mode
+* tch-gui-unhide: When configuring VLAN, set IPv6 (wan6) interface as well as IPv4 (wan) interface
+* tch-gui-unhide: Set IPv6 (wan6) interface as well as IPv4 (wan) interface when manually changing Broadband connection mode
+* tch-gui-unhide: Added warning to remind that WAN connection mode has to be applied after disabling WAN sensing
+* tch-gui-unhide: Added VLAN status to Broadband card
+* tch-gui-unhide: Added Bridged Mode button to Broadband card (same as Local Network card)
+* tch-gui-unhide: Added IPv6 Address request behavior setting to Internet Access DHCP configuration (#24) and PPPoE configuration
+* tch-gui-unhide: Added IPv6 Prefix request behavior setting to Internet Access DHCP configuration (#24) and PPPoE configuration
+* tch-gui-unhide: Added IPv6 Prefix Size to Local Network screen (FW 18 only)
+* tch-gui-unhide: Added IPv6 ULA Prefix to Local Network screen, and button to randomly generate ULA prefix (FW 18 only)
+* tch-gui-unhide: Added ability to set wan6 interface to either same as wan interface or '@wan' when using PPPoE (Fix for Exetel users)
+* tch-gui-unhide: PPPoE username/password entered in Internet Access screen was only saved on the WAN interface and not updated on to the PPP interface like it is in the basic configuration screen
+* tch-gui-unhide: Added ability to set LAN Domain Name on Local Network screen
+* tch-gui-unhide: Added new Management tab when MTD backups enabled (by mtd-backup script cron job) to show list of backups on USB
+* tch-gui-unhide: Added system Redirect and NAT firewall rules to Port Forwarding tab
+* tch-gui-unhide: Renamed Packet Filter Rules tab in Firewall to Firewall Rules, and added ability to display NAT, Mangle and Raw tables in addition to Filter table
+* tch-gui-unhide: Applied consistent font size to all IP addresses displayed on Internet and Local Network cards
+* tch-gui-unhide: Show waiting spinner before opening modals
+* tch-gui-unhide: Forces protection against loss of root when doing a factory reset from the GUI by preserving the password files and dropbear (SSH) configuration
+* de-telstra: Fixed "uci: Entry not found" message when executed after Telstra AIR QoS configuration already removed
+* de-telstra: Added -F option to enable/disable protection against loss of root when doing a factory reset from the GUI, by preserving the password files and dropbear (SSH) configuration
+* intercept-dns: Added new script to enable DNS interception and hijacking
+* mtd-backup: Added new script to perform ad-hoc or scheduled backups of MTD partitions and other configuration to an attached USB drive
+* mtd-restore: Added new script to restore backed up MTD partitions
+
 2021.04.01
 ==========
 * tch-gui-unhide: Fixed bug in Mobile Network Operators tab in FW 17

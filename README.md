@@ -75,7 +75,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - **Internet** allows:
     - Set connection parameters
     - Specify DNS servers used by the device
-- Additional tabs and features on the **IP Extras** card/screen:
+- Additional tabs and features on the **IP Extras** (now IP Routing) card/screen:
     - Customise DNS by network interface
     - Policy routing for mwan
     - Bridge grouping
@@ -97,28 +97,41 @@ Some hidden screens included on the device are not enabled, mainly because they 
 ### Additional (new) GUI Features
 - **Gateway** card now has current device status for CPU usage, free RAM and temperature
 - **Broadband** card auto-updates and shows todays upload/download volume
-- **Broadband** has a new tab to show daily and monthly usage history
+- **Broadband** screen has a new tab to show daily and monthly usage history
 - **Internet Access** card auto updates and now shows IPv6 information
-- **Internet Access** screen allows you to specify the WAN Supervision mode, both IPv4 and IPv6 custom DNS Servers, and to set a static IPv6 address (in static connection mode)
-- **Local Network** now shows IPv6 information
-- **Local Network** allows enabling/disabling of DHCPv6 and SLAAC
+- **Internet Access** screen allows you to set the:
+    - WAN Supervision mode
+    - IPv4 and IPv6 custom DNS Servers
+    - static IPv6 address (in static connection mode)
+    - IPv6 address request configuration (DHCP and PPoE)
+    - IPv6 prefix configuration (DHCP and PPoE)
+- **Local Network** card now shows IPv6 information
+- **Local Network** screen allows:
+    - enabling/disabling of DHCPv6 and SLAAC
+    - IPv6 Unique Local Address prefix (FW 18 only)
+    - IPv6 LAN prefix size (FW 18 only, if prefix assigned by ISP)
 - **WiFi** card auto-updates to reflect SSID status (e.g. when Time of Day Wireless Access Controls rules enable or disable SSIDs)
 - **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
 - **Devices** card auto-refreshes, and also shows separately  the count of WiFi devices connected via a WiFi Booster (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
 - **Traffic monitor** tab in Diagnostics
 - **Time of Day** card shows the Wireless Control rule count, and correctly applies changes so that they work reliably
-- **System Extras** now allows:
-    - Configure WAN SSH access
-    - Change the web GUI theme
-- **Management** screen allows the theme to be changed from within the GUI, and viewing of running processes
+- **System Extras** now allows you to:
+    - configure WAN/AFG SSH access
+    - enable/disable iperf service (FW 18 only)
+- **Management** screen allows:
+    - the theme to be changed from within the GUI
+    - viewing of running processes
+    - init process management
+    - cron tab management
 - **Firewall** card shows firewall status and number of rules currently applied
 - **Firewall** GUI restructured into tabbed interface showing:
     - Configuration, including advanced firewall settings
-    - Firewall Zones
+    - Firewall Zones and zone traffic control rules
     - User defined rules, which allows you to specify src and/or dest zone, and therefore create incoming, outgoing and forwarding rules in either direction (stock GUI only creates lan->wan forwarding rules)
     - System defined rules
+    - System redirect and NAT rules
     - Port forwarding rules (moved from WAN Services)
-    - All Packet Filter rules
+    - All Packet Filter, NAT, Mangle and Raw rules
     - If NAT Helpers card is hidden, then an extra tab is added to the firewall GUI
 - **Telephony** card shows call statistics (number of calls in, missed and out)
 - **Telephony** screen now has a Dial Plans tab to edit the dial plans, and you can optionally show the decrypted SIP passwords on the Profiles tab
@@ -132,6 +145,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - Allows you to change the sequence of the cards and their visibility. See Cards below.
 - Optionally uses a decrypted text field (instead of masked password field) for SIP Profile passwords.
 - Saves daily broadband upload/download history (data is extracted from the traffic monitoring files used by the rolling 24-hour traffic chart)
+- Protects against loss of root when doing a factory reset via the GUI, by preserving the password files and dropbear (SSH) configuration
 
 ### Custom DNS Servers
 - If a file called *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* is found in the directory from which the script is invoked, the contents will be added to the list of DNS Servers on the **Local Network** screen.
