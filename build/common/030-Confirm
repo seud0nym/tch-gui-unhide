@@ -2,6 +2,7 @@ echo "[$SCRIPT]: This script will perform the following actions:"
 if [ $FIX_SSH = y ]; then
 echo "[$SCRIPT]:  - Properly enable SSH access over LAN"
 fi
+echo "[$SCRIPT]:  - Preserve the password files and SSH configuration to prevent root loss on RTFD"
 if [ $FIX_CFG_PORT = y ]; then
 echo "[$SCRIPT]:  - Enable unsigned configuration export/import in the web GUI"
 fi

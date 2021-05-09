@@ -63,3 +63,13 @@ if [ $? -eq 1 ]; then
   SRV_nginx=$(( $SRV_nginx + 1 ))
 fi
 
+echo [$SCRIPT]: Preserving password files and SSH configuration to prevent root loss on RTFD
+for f in /etc/passwd /etc/shadow /etc/config/dropbear /etc/dropbear/* /etc/rc.d/*dropbear
+do
+  grep -q -E "^$f$" /etc/rtfd_persistent_filelist.conf
+  if [ $? -eq 1 ]
+  then
+    echo "$f">>/etc/rtfd_persistent_filelist.conf
+  fi
+done
+

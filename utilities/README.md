@@ -32,6 +32,7 @@ Optionally, it can also:
 - Disable or enable WPS on non-Guest and non-Backhaul SSIDs 
 - Configure the opkg package manager so that you can install additional packages on the device
 - Stop and disable all services associated with optional features for a minimal memory configuration
+- Protect against loss of root when doing a factory reset, by preserving the password files and dropbear (SSH) configuration
 
 It does NOT remove the hidden BH-xxxxxx SSID from the DJA0230 or DJA0231, as this is not related to Telstra AIR. It is the wireless backhaul for EasyMesh.
 ```
@@ -73,12 +74,13 @@ Options:
  -m u|y|n            * MultiAP (EasyMesh):      u=unchanged y=Enable n=Disable
  -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
  -w u|y|n              WPS on non-Guest and non-Backhaul SSIDs: u=unchanged y=Enable n=Disable
- -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un -wn
- -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn
- -M                    Minimum memory mode: Equivalent to: -an -cn -fn -rn -tn -en -un -mn -gn
+ -F u|y|n              Factory reset root protection: u=unchanged y=Enable n=Disable
+ -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un -wn -Fy
+ -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn -Fy
+ -M                    Minimum memory mode: Equivalent to: -an -cn -fn -rn -tn -en -un -mn -gn -Fy
                         PLUS stops and disables the associated services
  -R                    Reset to device defaults
-                        (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy)
+                        (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy -Fn)
  -o                    Configures opkg
  -U                    Check for and download the latest version from GitHub
 ```
