@@ -75,6 +75,7 @@ Options:
  -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
  -w u|y|n              WPS on non-Guest and non-Backhaul SSIDs: u=unchanged y=Enable n=Disable
  -F u|y|n              Factory reset root protection: u=unchanged y=Enable n=Disable
+                          NOTE: Installation of tch-gui-unhide will ALWAYS enable RTFD protection!
  -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un -wn -Fy
  -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn -Fy
  -M                    Minimum memory mode: Equivalent to: -an -cn -fn -rn -tn -en -un -mn -gn -Fy
