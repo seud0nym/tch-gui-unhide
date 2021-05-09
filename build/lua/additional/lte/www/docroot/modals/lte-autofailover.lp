@@ -106,7 +106,7 @@ if l3type and l3type[1] then
   local t = l3type[1].value
   for _,v in ipairs(l3state_data) do
     if v[1] == t and v[5] then
-      delay = (v[5] * 11) + content["autofailovermaxwait"]
+      delay = ((tonumber(v[5]) or 0) * 11) + (tonumber(content["autofailovermaxwait"]) or 0)
       break
     end
   end
