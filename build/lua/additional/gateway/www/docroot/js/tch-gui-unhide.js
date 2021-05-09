@@ -8,7 +8,7 @@ var modalLoaded=false;
 $(document).bind("DOMSubtreeModified",function(){
   if(!modalLoaded){
     if($(".modal-backdrop").length>0){
-      $("#waiting").fadeOut();
+      $("#waiting:not(.do-not-show)").fadeOut();
       modalLoaded=true;
       clearRegisteredIntervals();
     }

@@ -20,7 +20,6 @@ if ngx.var.request_method == "POST" then
   if mmpbx_enable then
     proxy.set("uci.mmpbx.mmpbx.@global.enabled", mmpbx_enable:untaint())
     proxy.apply()
-    ngx.sleep(20)
     ngx.exit(ngx.HTTP_NO_CONTENT)
   end
 end

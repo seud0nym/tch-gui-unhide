@@ -68,7 +68,7 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
   </div>
 </div>
 <script>
-$(".header input#mmpbx_enable").on("change",function(){$("#waiting").removeClass("hide")});
+$(".header input#mmpbx_enable").on("change",function(){$("#waiting").addClass("do-not-show").removeClass("hide")});
 <% if mmpbx_state == "1" then %>
   var tFuncID;
   function updateTelephonyCard(){
