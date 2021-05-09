@@ -15,5 +15,7 @@ sed \
   -e 's|800px;|900px;margin:0 auto;|' \
   -e 's|traffic.lp|modals/diagnostics-traffic-modal.lp|' \
   -e 's|<a href="%s" target="_self">|<a href="#" data-remote="%s">|' \
+  -e 's|@wwan.up")\[1\].value|@wwan.up")|' \
+  -e 's|if wwan_up|if wwan_up and wwan_up[1].value|' \
   /www/docroot/traffic.lp > /www/docroot/modals/diagnostics-traffic-modal.lp
 
