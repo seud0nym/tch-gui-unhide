@@ -7,29 +7,36 @@ local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
 
-local function sendcmd(cmd,name)
-  ngx.log(ngx.INFO, "Calling "..name.." "..cmd)
-	proxy.set("rpc.gui.init."..cmd, name)
+local function sendcmd(cmd,service)
+  ngx.log(ngx.INFO, "Calling "..service.." "..cmd)
+	proxy.set("rpc.gui.init."..cmd, service)
   proxy.apply()
+  if cmd == "disable" then
+    return "#"..service.."-enable"
+  elseif cmd == "enable" then  
+    return "#"..service.."-disable"
+  end
+  return "#"..service.."-"..cmd
 end
 
+local scrollto
 if ngx.req.get_method() == "POST" then
 	local action = string.untaint(ngx.req.get_post_args().action)
 	if action:match("restart") then
 		local name = action:gsub("restart_","")
-		sendcmd("restart",name)
+		scrollto = sendcmd("restart",name)
 	elseif action:match("start") then
 		local name = action:gsub("start_","")
-		sendcmd("start",name)
+		scrollto = sendcmd("start",name)
 	elseif action:match("stop") then
 		local name = action:gsub("stop_","")
-		sendcmd("stop",name)
+		scrollto = sendcmd("stop",name)
 	elseif action:match("enable") then
 		local name = action:gsub("enable_","")
-		sendcmd("enable",name)
+		scrollto = sendcmd("enable",name)
 	elseif action:match("disable") then
 		local name = action:gsub("disable_","")
-		sendcmd("disable",name)
+		scrollto = sendcmd("disable",name)
 	end
 end
 
@@ -102,7 +109,6 @@ local init_options = {
 }
 
 local init_filter = function(data)
-
 	if data.start_order == "" then
 		return false
 	end
@@ -110,6 +116,7 @@ local init_filter = function(data)
 	local function genAttrib(type)
 		return {
 			button = {
+        id = data.name.."-"..type,
 			  class = "btn-"..type,
 			  ["data-name"] = data.name
 			}
@@ -166,6 +173,11 @@ local init_data, sipnet_helpmsg = post_helper.handleTableQuery(init_columns, ini
   </form>\
   </div>\
   <script>\
+  ')
+  if scrollto then
+    ngx.print('$("', scrollto,'")[0].scrollIntoView();')
+  end
+  ngx.print('\
   var hdrs = document.getElementsByTagName("th");\
   for(var i=0;i<hdrs.length;i++){\
     var text=hdrs[i].innerText;\
