@@ -28,8 +28,9 @@ function M.getNetworkDevices()
   local wifi = proxy.getPN("uci.wireless.wifi-iface.", true)
   for _,v in ipairs(wifi) do
     local device = match(v.path, "uci%.wireless%.wifi%-iface%.@([^%.]+)%.")
-    local ifname = proxy.get("rpc.wireless.ssid.@"..device..".network")[1].value
-    if ifname ~= "fonopen" then
+    local ifname = proxy.get("rpc.wireless.ssid.@"..device..".network")
+    if ifname and ifname[1].value ~= "fonopen" then
+      ifname = ifname[1].value
       if ifname == "lan" then
         ifname = "wlan"
       end
