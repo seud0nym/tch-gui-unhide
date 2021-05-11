@@ -27,12 +27,13 @@ FW_UPGRD=$(uci -q get web.uidefault.upgradefw)
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 MAC=$(uci -q get env.var.ssid_mac_postfix_r0)
 HOSTNAME=$(uci -q get system.@system[0].hostname)
-case "$(grep 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1)" in
-  $VARIANT) TITLE="$VARIANT";;
-  $HOSTNAME) TITLE="$HOSTNAME";;
-  $VARIANT-$MAC) TITLE="$VARIANT-$MAC";;
-  *) TITLE="";;
-esac
+tmpTITLE="$(grep 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1)"
+echo $tmpTITLE | grep -q ngx.print
+if [ $? -eq 1 ]; then
+  TITLE="$tmpTITLE"
+else
+  TITLE=""
+fi
 
 if [ -f /usr/tch-gui-unhide.theme ]; then
   mv /usr/tch-gui-unhide.theme /etc/tch-gui-unhide.theme
