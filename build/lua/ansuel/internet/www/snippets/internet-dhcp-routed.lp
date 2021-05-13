@@ -216,7 +216,7 @@ local reqprefix_map = {
   { "auto", T"Automatic" },
 }
 local prefix_len
-for prefix_len = 0, 64, 1 do
+for prefix_len = 64,0,-1 do
   reqprefix_map[#reqprefix_map+1] = { tostring(prefix_len), T("/" .. prefix_len) }
 end
 
