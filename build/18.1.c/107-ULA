@@ -46,7 +46,7 @@ sed \
  -e '/if content\["localIPv6"\] ~=/i \              if ip6prefix and ip6prefix[1].value ~= "" then' \
  -e "/if content\[\"localIPv6\"\] ~=/i \                ngx.print(ui_helper.createInputText(T\"IPv6 Prefix Size<span class='icon-question-sign' title='Delegate a prefix of the given length to this interface'></span>\", \"ip6assign\", content[\"ip6assign\"], number_attr, helpmsg[\"ip6assign\"]))" \
  -e '/if content\["localIPv6"\] ~=/i \              end' \
- -e '/slaacState = gVIES(/a \    ip6assign = gVNIR(0,128),' \
+ -e '/slaacState = gVIES(/a \    ip6assign = gOV(gVNIR(0,128)),' \
  -e '/slaacState = gVIES(/a \    ula_prefix = validateULAPrefix,' \
  -e '/^(function() {/i \function rand(max){return Math.floor(Math.random()*max);}\\' \
  -e '/^(function() {/i \function rand16() {return rand(2**16).toString(16);}\\' \
