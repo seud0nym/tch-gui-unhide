@@ -5,7 +5,6 @@ gettext.textdomain('webui-core')
 
 local proxy = require("datamodel")
 local content_helper = require("web.content_helper")
-local internethelper = require("internethelper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local ajax_helper = require("web.ajax_helper")
@@ -358,11 +357,11 @@ local content_rpc = {
   concentrator_mac = "rpc.network.interface.@wan.ppp.access_concentrator_mac",
   ipv6_gua = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
   dns_loopback = "rpc.network.interface.@loopback.dnsservers", -- Added to include static dns servers configured on loopback interface (for TI custo)
+  ip6addr = "rpc.network.interface.@wan6.ip6addr",
+  ip6prefix = "rpc.network.interface.@wan6.ip6prefix",
+  dnsv6 = "rpc.network.interface.@wan6.dnsservers",
 }
 
-for v6Key, v6Value in pairs(internethelper.getIpv6Content()) do
-	content_rpc[v6Key] = v6Value
-end
 
 ajax_helper.handleAjaxQuery(content_rpc, function(c)
     -- this will add the HTML for the light

@@ -280,20 +280,17 @@ local content_uci = {
 content_helper.getExactContent(content_uci)
 
 local content_rpc = {
-    wan_ppp_state = "rpc.network.interface.@wan.ppp.state",
-    wan_ppp_error = "rpc.network.interface.@wan.ppp.error",
-    wan_ppp_ll_intf = "rpc.network.interface.@wan.ppp.ll_intf",
-    ipaddr = "rpc.network.interface.@wan.ipaddr",
-    nexthop = "rpc.network.interface.@wan.nexthop",
-    dns = "rpc.network.interface.@wan.dnsservers",
-    dns_loopback = "rpc.network.interface.@loopback.dnsservers", -- Added to include static dns servers configured on loopback interface (for TI custo)
+  wan_ppp_state = "rpc.network.interface.@wan.ppp.state",
+  wan_ppp_error = "rpc.network.interface.@wan.ppp.error",
+  wan_ppp_ll_intf = "rpc.network.interface.@wan.ppp.ll_intf",
+  ipaddr = "rpc.network.interface.@wan.ipaddr",
+  nexthop = "rpc.network.interface.@wan.nexthop",
+  dns = "rpc.network.interface.@wan.dnsservers",
+  dns_loopback = "rpc.network.interface.@loopback.dnsservers", -- Added to include static dns servers configured on loopback interface (for TI custo)
+  ip6addr = "rpc.network.interface.@wan6.ip6addr",
+  ip6prefix = "rpc.network.interface.@wan6.ip6prefix",
+  dnsv6 = "rpc.network.interface.@wan6.dnsservers",
 }
-
-local internethelper = require("internethelper")
-
-for v6Key, v6Value in pairs(internethelper.getIpv6Content()) do
-	content_rpc[v6Key] = v6Value
-end
 
 ajax_helper.handleAjaxQuery(content_rpc, function(c)
     -- this will add the HTML for the light
