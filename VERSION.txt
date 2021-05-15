@@ -1,3 +1,12 @@
+2021.05.15
+==========
+* tch-gui-unhide: Fixed detection of custom browser tab titles
+* tch-gui-unhide: Fixed bug in QoS card when in bridged mode
+* tch-gui-unhide: Fixed 'Some parameters failed validation' error on Local Network screen when WAN IPv6 not enabled
+* tch-gui-unhide: Scroll last changed init script into view on refresh
+* tch-gui-unhide: Added help icon to Wireless Output Power Adjustment (#25)
+* tch-gui-unhide: Added MAC vendor name lookup to device list
+
 2021.05.09
 ==========
 * tch-gui-unhide: Fixed Local Network card showed incorrect IPv6 prefix

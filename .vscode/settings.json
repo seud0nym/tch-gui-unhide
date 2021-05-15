@@ -21,6 +21,7 @@
         "airiq",
         "autogreeen",
         "bulkdata",
+        "chmod",
         "contentsharing",
         "coredump",
         "customisation",
@@ -36,6 +37,7 @@
         "lotagent",
         "minidlna",
         "mmpbx",
+        "mulitap",
         "multiap",
         "mwan",
         "opkg",
@@ -48,6 +50,7 @@
         "synflood",
         "unhide",
         "unhiding",
+        "wansensing",
         "xtra",
         "xzvf"
     ]
