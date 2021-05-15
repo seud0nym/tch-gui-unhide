@@ -86,12 +86,12 @@ then
   if [ $CRON_ACTION = remove ]
   then
     sed -e "/$SCRIPT/d" -i /etc/crontabs/root
-    echo Scheduled backup has been removed. 
+    echo Scheduled backup has been removed.
   else
     mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
     hh=$(awk 'BEGIN{srand();print int(rand()*3)+2;}')
     echo "$mm $hh * * * $(cd $(dirname $0); pwd)/$SCRIPT -c -e -o -y" >> /etc/crontabs/root
-    echo Backup has been scheduled to execute at $hh:${mm}am every day. 
+    echo Backup has been scheduled to execute at $hh:${mm}am every day.
     echo Execution messages will be written to the system log, and can be viewed with the following command:
     echo
     echo "  logread -e mtd-backup"
@@ -123,7 +123,7 @@ fi
 
 if [ $DUMP_CFG = Y ]
 then
-  $LOGGER user.info WRITING current configuration to /mnt/usb/$USB/backups/$VARIANT-$SERIAL-config.gz 
+  $LOGGER user.info WRITING current configuration to /mnt/usb/$USB/backups/$VARIANT-$SERIAL-config.gz
   SECONDS=$(date +%s)
   uci show 2>/dev/null | grep -v -E '^env' | gzip > /mnt/usb/$USB/backups/$VARIANT-$SERIAL-config.gz
   if [ $DEBUG = Y ]
@@ -173,7 +173,7 @@ sed -e '/dev:/d' -e 's/\(mtd.\)[^"]*"\([^"]*\)"/\1 \2/' /proc/mtd | while read -
 do
   if [ -f /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256 ]
   then
-    SHA256OLD="$(cat /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256)"
+    SHA256OLD="$(cat /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256 | cut -d' ' -f1)"
   else
     SHA256OLD=""
   fi
@@ -182,7 +182,7 @@ do
     $LOGGER user.debug Calculating SHA256 for $name..
     SECONDS=$(date +%s)
   fi
-  SHA256=$(dd if=/dev/$dev 2>/dev/null | sha256sum)
+  SHA256=$(sha256sum "/dev/${dev}ro" | cut -d' ' -f1)
   if [ $DEBUG = Y ]
   then
     $LOGGER user.debug Calculating SHA256 for $name took $(( $(date +%s) - $SECONDS )) seconds
@@ -194,7 +194,7 @@ do
   else
     $LOGGER user.info WRITING $name to /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.gz
     SECONDS=$(date +%s)
-    dd if=/dev/$dev | gzip > /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.gz
+    dd if="/dev/${dev}ro" bs=1M | gzip > /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.gz
     if [ $DEBUG = Y ]
     then
       $LOGGER user.debug WRITING $name to /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.gz took $(( $(date +%s) - $SECONDS )) seconds
