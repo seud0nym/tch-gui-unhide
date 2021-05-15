@@ -215,7 +215,7 @@ if getargs.cache and getargs.cache == "clear" then
   os.remove("/tmp/mac.cache")
 else
   local attr = lfs.attributes("/tmp/mac.cache")
-  if attr.mode == "file" then
+  if attr and attr.mode == "file" then
     if attr.modification + 86400 < ngx.now() then
       os.execute("sed -e '/NO COMPANY/d' -i /tmp/mac.cache")
     end
