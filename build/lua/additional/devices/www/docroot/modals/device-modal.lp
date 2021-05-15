@@ -8,11 +8,12 @@ local content_helper = require("web.content_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local ui_helper = require("web.ui_helper")
+local lfs = require("lfs")
 local string, ngx, os = string, ngx, os
 local tonumber = tonumber
 local floor = math.floor
 local concat = table.concat
-local format, match, lower = string.format, string.match, string.lower
+local format, match, lower, untaint = string.format, string.match, string.lower, string.untaint
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
@@ -114,7 +115,7 @@ local devices_columns = {
     attr = { input = { class="span1" } },
   },
   {--[8]
-    header = T"Lease",
+    header = T"Lease Time",
     name = "dhcpLeaseTime",
     param = "DhcpLeaseTime",
     type = "text",
@@ -209,6 +210,30 @@ else
   connectedAction = "Active"
 end
 
+local mac_vendor = {}
+if getargs.cache and getargs.cache == "clear" then
+  os.remove("/tmp/mac.cache")
+else
+  local attr = lfs.attributes("/tmp/mac.cache")
+  if attr.mode == "file" then
+    if attr.modification + 86400 < ngx.now() then
+      os.execute("sed -e '/NO COMPANY/d' -i /tmp/mac.cache")
+    end
+    local file = io.open("/tmp/mac.cache", "r")
+    if file then
+      local pattern = "([%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]) (.*)"
+      local line 
+      for line in file:lines() do
+        local mac, name = match(line, pattern)
+        if mac and name and name ~= "" then
+          mac_vendor[mac] = name
+        end
+      end
+      file:close()
+    end
+  end
+end
+
 local device_valid = {}
 local devices_options = {
   canEdit = true,
@@ -234,6 +259,8 @@ local devices_filter = function(data)
       end
     end 
   end
+  local mac = untaint(data["MACAddress"])
+  data["MACAddress"] = format("%s<i class='macvendor'>%s</i>", mac, mac_vendor[mac] or "")
   return true
 end
 
@@ -262,7 +289,7 @@ for k, v in pairs (devices_data) do
     end
 end
 
-local interval = 5
+local interval = 10
 if ngx.var.request_method == "POST" and ngx.var.content_type and match(ngx.var.content_type, "application/x%-www%-form%-urlencoded") then
   local action = ngx.req.get_post_args().action
   if action == "TABLE-EDIT" then
@@ -271,6 +298,7 @@ if ngx.var.request_method == "POST" and ngx.var.content_type and match(ngx.var.c
 end
 
 ngx.print( ui_helper.createHeader(T"Devices", false, true, interval) ); ngx.print('\
+<style>.macvendor{display:block;font-size:8px;line-height:8px;}</style>\
 <div class="modal-body update">\
 ');  lp.include("tabs-devices.lp")   ngx.print('\
   <form class="form-horizontal" method="post" action="modals/device-modal.lp?sort='); ngx.print(sortcol); ngx.print('&connected='); ngx.print(connected); ngx.print('">\
@@ -284,6 +312,18 @@ ngx.print( ui_helper.createHeader(T"Devices", false, true, interval) ); ngx.prin
 </div>\
 ');  ngx.print( ui_helper.createFooter() ); ngx.print('\
 <script>\
+$("#devices>tbody>tr>td:nth-child(5)").each(function(index, cell){\
+  var i=($(cell).children(".macvendor"));\
+  if ($(i).text() =="") {\
+    var mac=$(cell).text();\
+    $.post("/ajax/vendor.lua?mac="+mac,[tch.elementCSRFtoken()],function(data){\
+      $(i).text(data["name"]);\
+    }, "json")\
+    .fail(function(response){\
+      $(i).text("Vendor lookup failed :-(");\
+    });\
+  }\
+});\
 var hdrs = document.getElementsByTagName("th");\
 for(var i=0;i<hdrs.length;i++){\
   var text=hdrs[i].innerText;\
@@ -308,5 +348,8 @@ for(var i=0;i<hdrs.length;i++){\
     hdrs[i].setAttribute("class", "nav");\
   }\
 }\
+$("#Refresh_id").html("<i class=\'icon-trash\'></i> Clear MAC cache").removeClass("modal-action-refresh").click(function(){\
+  tch.loadModal($(".modal form").attr("action")+"&cache=clear");\
+});\
 </script>\
 '); 
