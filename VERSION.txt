@@ -1,3 +1,8 @@
+2021.05.16
+==========
+* tch-gui-unhide: Fixed bug in new MAC vendor lookup that broke device list on first execution
+* mtd-backup/mtd-restore: Speed up MTD backups and restores by a factor of 5-10 [#26] (Thanks neg2led)
+
 2021.05.15
 ==========
 * tch-gui-unhide: Fixed detection of custom browser tab titles
