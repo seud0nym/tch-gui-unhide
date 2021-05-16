@@ -17,7 +17,6 @@ if mac then
     vendor = match(result, name_pattern)
   else
     local cmd = format("curl -fksm 2 https://api.maclookup.app/v2/macs/%s/company/name", mac)
-    ngx.log(ngx.ALERT,cmd)
     local curl = io.popen(cmd)
     result = curl:read("*a")
     curl:close()
