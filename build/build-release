@@ -13,6 +13,15 @@ fi
 
 common=$(find ../utilities/ -type f | grep -v -E '(README|dumaos|transformer)' | sed -e 's,^\.\./,,' | tr "$IFS" " ")
 
+echo Fixing utilities line endings...
+for f in $(find ../utilities/ -type f)
+do
+  if [ "$(file --brief --mime-type $f | cut -d/ -f1)" = text ]
+  then
+    dos2unix -q $f
+  fi
+done
+
 echo Cleaning up..
 rm ../*.tar.gz *.tar.gz 2>/dev/null
 

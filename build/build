@@ -24,6 +24,15 @@ DIR=$(pwd)
 echo Cleaning up..
 rm -rf /tmp/additional /tmp/*.b64
 
+echo Fixing line endings...
+for f in $(find . -type f)
+do
+  if [ "$(file --brief --mime-type $f | cut -d/ -f1)" = text ]
+  then
+    dos2unix -q $f
+  fi
+done
+
 echo Building Base64 tar images...
 mkdir /tmp/additional
 tar --exclude README.md --exclude '*.new' -cf - -C lua/ansuel/ .  | tar -xf - -C /tmp/additional/
