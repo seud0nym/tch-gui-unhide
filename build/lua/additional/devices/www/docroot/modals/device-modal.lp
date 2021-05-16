@@ -9,11 +9,12 @@ local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local ui_helper = require("web.ui_helper")
 local lfs = require("lfs")
+local splitter = require("split")
 local string, ngx, os = string, ngx, os
 local tonumber = tonumber
 local floor = math.floor
-local concat = table.concat
-local format, match, lower, untaint = string.format, string.match, string.lower, string.untaint
+local concat, sort = table.concat, table.sort
+local find, format, match, lower, untaint = string.find, string.format, string.match, string.lower, string.untaint
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
@@ -156,7 +157,8 @@ elseif sortcol == "IPv4" then
     return ipv4ToNumber(a) < ipv4ToNumber(b)
   end
 elseif sortcol == "IPv6" then
-  local ipv6ToString = function(a)
+  local ipv6ToString = function(addr)
+    local a = splitter.first_and_rest(untaint(addr), " ")
     local emptyIdx = 0
     local bits = {}
     for bit in string.gmatch(a, "(%w*):*") do
@@ -258,6 +260,13 @@ local devices_filter = function(data)
         data["IPv6"] = data["DhcpLeaseIP"]
       end
     end 
+  end
+  if find(data["IPv6"]," ")  then
+    local addresses = splitter.split(untaint(data["IPv6"])," ")
+    sort(addresses, function(a,b)
+      return a < b
+    end)
+    data["IPv6"] = concat(addresses, " ")
   end
   local mac = untaint(data["MACAddress"])
   data["MACAddress"] = format("%s<i class='macvendor'>%s</i>", mac, mac_vendor[mac] or "")
