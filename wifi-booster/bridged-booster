@@ -221,31 +221,33 @@ if [ ! -z $NDHTTPD ]; then
   $NDHTTPD disable
 fi
 
-SRV_hostapd=0
-for wl in $(uci show wireless | grep iface= | cut -d"'" -f2); do
-  if [ $wl != wl0 -a $wl != wl1 -a $wl != wl1_2 ]
-  then
-    ssid=$(uci get wireless.$wl.ssid)
-    if [ $GUEST = n -o ${ssid#Guest} != $ssid ]; then
-      ap=$(uci show wireless | grep iface=\'$wl\' | cut -d. -f2)
-      nw=$(uci get wireless.$wl.network)
-      echo -e "${GREEN} Removing SSID $ssid ($wl AP=$ap)${NC}"
-      uci -q delete wireless.$wl
-      uci -q delete wireless.$ap
-      SRV_hostapd=$(( $SRV_hostapd + 1 ))
-      if [ "$nw" != lan ]; then
-        echo -e "${GREEN}  - Removing network interface $nw${NC}"
-        uci -q delete network.$nw
-      fi
-      if [ ${ssid#Guest} != $ssid ]; then
-        echo -e "${GREEN}  - Removing DHCP configuration $nw_private${NC}"
-        uci -q delete dhcp.${nw}_private
+if [ $GUEST = n ]; then
+  SRV_hostapd=0
+  for wl in $(uci show wireless | grep iface= | cut -d"'" -f2); do
+    if [ $wl != wl0 -a $wl != wl1 -a $wl != wl1_2 ]
+    then
+      ssid=$(uci get wireless.$wl.ssid)
+      if [ $GUEST = n -o ${ssid#Guest} != $ssid ]; then
+        ap=$(uci show wireless | grep iface=\'$wl\' | cut -d. -f2)
+        nw=$(uci get wireless.$wl.network)
+        echo -e "${GREEN}Removing SSID $ssid ($wl AP=$ap)${NC}"
+        uci -q delete wireless.$wl
+        uci -q delete wireless.$ap
+        SRV_hostapd=$(( $SRV_hostapd + 1 ))
+        if [ "$nw" != lan ]; then
+          echo -e "${GREEN}  - Removing network interface $nw${NC}"
+          uci -q delete network.$nw
+        fi
+        if [ ${ssid#Guest} != $ssid ]; then
+          echo -e "${GREEN}  - Removing DHCP configuration $nw_private${NC}"
+          uci -q delete dhcp.${nw}_private
+        fi
       fi
     fi
+  done
+  if [ $SRV_hostapd -gt 0 ]; then
+    uci commit wireless
   fi
-done
-if [ $SRV_hostapd -gt 0 ]; then
-  uci commit wireless
 fi
 
 echo -e "${GREEN}Setting LAN IP address to $LAN_IP_ADDR${NC}"
