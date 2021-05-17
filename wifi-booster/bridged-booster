@@ -36,7 +36,6 @@ Options:
               Specify multiple times for multiple DNS servers. Default is the LAN Gateway IP address.
  -l 0-9      Set MultiAP logging level 
               0=off 2=Default 9=very verbose
- -G          Do NOT remove the Guest Wi-Fi network SSIDs
  -r          Skip reboot (NOT recommended!)
  -y          Skip the confirmation prompt
 
@@ -44,7 +43,6 @@ EOH
 exit
 }
 
-GUEST='n'
 LAN_IP_ADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)"
 LAN_NETMASK='255.255.255.0' 
 LAN_GATEWAY='192.168.0.1'
@@ -64,16 +62,15 @@ else
   UHTTPD=''
 fi
 
-if [ "$(echo $LAN_IP_ADDR | cut -d. -f1-3)" != "192.168.0" ]; then
+if [ "$LAN_IP_ADDR" = "192.168.0.1" -o "$(echo $LAN_IP_ADDR | cut -d. -f1-3)" != "192.168.0" ]; then
   LAN_IP_ADDR="192.168.0.2"
 fi
 
 IPv4PATTERN="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
 
-while getopts :g:i:l:m:n:ryG option
+while getopts :g:i:l:m:n:ry option
 do
   case "${option}" in
-    G)  GUEST='y';;
     g)  LAN_GATEWAY="$OPTARG";;
     i)  LAN_IP_ADDR="$OPTARG";;
     l)  MULTIAP_LOGGING_LEVEL="$OPTARG";;
@@ -138,9 +135,6 @@ echo -e " - ${ORANGE}DISABLE DumaOS UHTTP daemon${NC}"
 fi
 if [ ! -z $NDHTTPD ]; then
 echo -e " - ${ORANGE}DISABLE DumaOS NDHTTP daemon${NC}"
-fi
-if [ $GUEST = n ]; then
-echo -e " - ${ORANGE}REMOVE Guest Wi-Fi networks and SSIDs${NC}"
 fi
 echo -e " - ${GREEN}Set LAN IP address to $LAN_IP_ADDR${NC}"
 echo -e " - ${GREEN}Set LAN Subnet Mask to $LAN_NETMASK${NC}"
@@ -219,35 +213,6 @@ fi
 if [ ! -z $NDHTTPD ]; then
   echo -e "${GREEN}Disabling DumaOS NDHTTP daemon${NC}"
   $NDHTTPD disable
-fi
-
-if [ $GUEST = n ]; then
-  SRV_hostapd=0
-  for wl in $(uci show wireless | grep iface= | cut -d"'" -f2); do
-    if [ $wl != wl0 -a $wl != wl1 -a $wl != wl1_2 ]
-    then
-      ssid=$(uci get wireless.$wl.ssid)
-      if [ $GUEST = n -o ${ssid#Guest} != $ssid ]; then
-        ap=$(uci show wireless | grep iface=\'$wl\' | cut -d. -f2)
-        nw=$(uci get wireless.$wl.network)
-        echo -e "${GREEN}Removing SSID $ssid ($wl AP=$ap)${NC}"
-        uci -q delete wireless.$wl
-        uci -q delete wireless.$ap
-        SRV_hostapd=$(( $SRV_hostapd + 1 ))
-        if [ "$nw" != lan ]; then
-          echo -e "${GREEN}  - Removing network interface $nw${NC}"
-          uci -q delete network.$nw
-        fi
-        if [ ${ssid#Guest} != $ssid ]; then
-          echo -e "${GREEN}  - Removing DHCP configuration $nw_private${NC}"
-          uci -q delete dhcp.${nw}_private
-        fi
-      fi
-    fi
-  done
-  if [ $SRV_hostapd -gt 0 ]; then
-    uci commit wireless
-  fi
 fi
 
 echo -e "${GREEN}Setting LAN IP address to $LAN_IP_ADDR${NC}"

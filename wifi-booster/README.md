@@ -60,8 +60,6 @@ This script will automate the following functions:
     - Not required as there will be no WAN interface.
 - Disables the DumaOS web servers
     - To free up some memory
-- Removes the Guest Wi-Fi networks and SSIDs
-    - You can optionally choose to retain the Guest SSIDs.
 
 ### Usage
 ```
@@ -78,7 +76,6 @@ Options:
               Specify multiple times for multiple DNS servers. Default is teh LAN Gateway IP address.
  -l 0-9      Set MultiAP logging level 
               0=off 2=Default 9=very verbose
- -G          Do NOT remove the Guest Wi-Fi network SSIDs
  -r          Skip reboot (NOT recommended!)
  -y          Skip the confirmation prompt
 ```
