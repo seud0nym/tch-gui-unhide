@@ -6,8 +6,11 @@ gettext.textdomain('webui-printersharing')
 local ngx = ngx
 local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
-local attributes = { span = { class = "span4" } }
 local message_helper = require("web.uimessage_helper")
+local booster_helper = require("booster_helper")
+local proxy = require("datamodel")
+local match, untaint = string.match, string.untaint
+
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
@@ -31,7 +34,40 @@ local mapValid = {
 
 local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
 
-  ngx.print('\
+local ssids, synced = booster_helper.getSSIDList()
+
+if ngx.var.request_method == "POST" then
+  local args = ngx.req.get_post_args()
+  if args["action"] == "SAVE" then
+    local gVChkbox = post_helper.getValidateCheckboxSwitch()
+    gVChkbox(args["reset_ssids"], args, "reset_ssids")
+    if args["reset_ssids"] == "1" then
+      local ap = {}
+      local v
+      for _,v in ipairs(proxy.getPN("uci.wireless.wifi-ap.", true)) do
+        local path = v.path
+        local iface = untaint(proxy.get(path .. "iface")[1].value)
+        ap[iface] = path
+      end
+      local credential
+      local do_apply = false
+      for _,credential in pairs(ssids) do
+        if credential.synced == true then
+          local iface = match(credential.wireless_path, ".*@(.*)%.")
+          ngx.log(ngx.ALERT, "Resetting iface ", iface, " to original SSID ", credential.ssid)
+          proxy.set(credential.wireless_path .. "ssid", credential.ssid)
+          proxy.set(ap[iface] .. ".wpa_psk_key", credential.password)
+          do_apply = true
+        end
+      end
+      if do_apply then
+        proxy.apply()
+      end
+    end
+  end
+end
+
+ngx.print('\
 \
 ');  ngx.print( ui_helper.createHeader(T"Wi-Fi Boosters", false, true, nil)); ngx.print('\
 <div class="modal-body update">\
@@ -39,13 +75,27 @@ local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
   <form class="form-horizontal" method="post" action="modals/wireless-boosters-modal.lp">\
     ');  ngx.print(ui_helper.createMessages(message_helper.popMessages())); ngx.print('\
     ');  
+      local switch_class_enable = {
+        input = {
+          class = "monitor-changes",
+        }
+      }
+      local switch_class_monitor = {
+        group = {
+          class = "monitor-agent_enabled monitor-0 monitor-hidden-agent_enabled",
+        },
+      }
+
       html = {}
       html[#html+1] = "<fieldset><legend>" .. T"Multi-AP Status" .. "</legend>"
-      html[#html+1] = ui_helper.createSwitch(T"Controller", "controller_enabled", content["controller_enabled"], attributes)
-      html[#html+1] = ui_helper.createSwitch(T"Agent", "agent_enabled", content["agent_enabled"], attributes)
+      html[#html+1] = ui_helper.createSwitch(T"Controller", "controller_enabled", content["controller_enabled"])
+      html[#html+1] = ui_helper.createSwitch(T"Agent", "agent_enabled", content["agent_enabled"], switch_class_enable)
+      if synced > 0 then
+        html[#html+1] = ui_helper.createCheckboxSwitch(T"Reset Default SSIDs", "reset_ssids", "0", switch_class_monitor)
+      end
       html[#html+1] = "</fieldset>"
       html[#html+1] = "<fieldset><legend>" .. T"Wireless Backhaul" .. "</legend>"
-      html[#html+1] = ui_helper.createSwitch(T"SSID " .. content["wl1_2ssid"], "wl1_2state", content["wl1_2state"], attributes)
+      html[#html+1] = ui_helper.createSwitch(T"SSID " .. content["wl1_2ssid"], "wl1_2state", content["wl1_2state"])
       html[#html+1] = ui_helper.createSimpleInputHidden("ap6state", content["ap6state"])
       html[#html+1] = "</fieldset>"
       ngx.print(html)
