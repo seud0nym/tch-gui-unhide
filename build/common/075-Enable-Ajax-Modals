@@ -64,6 +64,17 @@ then
   uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
 fi
+if [ "$(uci -q get web.boosterstatusajax)" != "rule" ]
+then
+  echo [$SCRIPT]: Enabling booster-status.lua
+  uci add_list web.ruleset_main.rules='boosterstatusajax'
+  uci set web.boosterstatusajax='rule'
+  uci set web.boosterstatusajax.target='/ajax/booster-status.lua'
+  uci set web.boosterstatusajax.normally_hidden='1'
+  uci add_list web.boosterstatusajax.roles='admin'
+  uci commit web
+  SRV_nginx=$(( $SRV_nginx + 4 ))
+fi
 if [ "$(uci -q get web.telephonystatusajax)" != "rule" ]
 then
   echo [$SCRIPT]: Enabling telephony-status.lua
