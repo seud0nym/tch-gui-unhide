@@ -13,7 +13,7 @@ function M.getSSIDList()
 
   for _,v in ipairs(proxy.getPN("rpc.wireless.ssid.", true)) do
     local path = v.path
-    local values = proxy.get(path .. "radio", path .. "ssid", path .. "oper_state")
+    local values = proxy.get(path .. "radio", path .. "ssid", path .. "oper_state", path .. "network")
     if values then
       local ssid = values[2].value
       if ssid:sub(1,3) ~= "BH-" then
@@ -40,7 +40,7 @@ function M.getSSIDList()
           else
             display_ssid = ssid .. radio_suffix
           end
-          if display_ssid:sub(1,5) == "Guest" then
+          if values[4].value:sub(1,5) == "Guest" then
             sortby = "yyyyy"
           else
             sortby = display_ssid:lower()
