@@ -1,4 +1,5 @@
 local proxy = require("datamodel")
+local ui_helper = require("web.ui_helper")
 local ipairs, string = ipairs, string
 local format = string.format
 
@@ -8,10 +9,11 @@ function M.getSSIDList()
   local ssid_list = {}
   local fon_count = 0
   local fon_state = 0
+  local v
 
-  for _, v in ipairs(proxy.getPN("rpc.wireless.ssid.", true)) do
+  for _,v in ipairs(proxy.getPN("rpc.wireless.ssid.", true)) do
     local path = v.path
-    local values = proxy.get(path .. "radio" , path .. "ssid", path .. "oper_state")
+    local values = proxy.get(path .. "radio", path .. "ssid", path .. "oper_state")
     if values then
       local ssid = values[2].value
       if ssid:sub(1,3) ~= "BH-" then
@@ -66,6 +68,24 @@ function M.getSSIDList()
   table.sort(ssid_list, function(a,b) return a.sort < b.sort end)
 
   return ssid_list
+end
+
+function M.getWiFiCardHTML() 
+  local ssid_list = M.getSSIDList()
+  local html = {}
+
+  for i,v in ipairs(ssid_list) do
+    if i <= 5 then
+      local attributes = {
+        light = {
+          id = v.id
+        }
+      }
+      html[#html+1] = ui_helper.createSimpleLight(v.state or "0", v.ssid, attributes)
+    end
+  end
+
+  return html
 end
 
 return M

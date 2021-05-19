@@ -29,7 +29,7 @@ else
   wifiState = "0"
 end
 
-local ssid_list = ssid_helper.getSSIDList()
+local html = ssid_helper.getWiFiCardHTML()
 
 local session = ngx.ctx.session
 local modalPath = nil
@@ -43,19 +43,8 @@ end
 <div class="span3">\
   <div class="smallcard">\
     ');  ngx.print(ui_helper.createCardHeader(T"Wi-Fi", modalPath, switchName, wifiState) ); ngx.print('\
-    <div class="content card_bg" data-bg-text="&#xf09e;">\
-    ');  
-      for i,v in ipairs(ssid_list) do
-        if i <= 5 then
-          local attributes = {
-            light = {
-              id = v.id
-            }
-          }
-          ngx.print(ui_helper.createSimpleLight(v.state or "0", v.ssid, attributes))
-        end
-      end
-      ngx.print('\
+    <div id="wifi-card-content" class="content card_bg" data-bg-text="&#xf09e;">\
+      ');  ngx.print(html); ngx.print('\
     </div>\
   </div>\
 </div>\
@@ -64,16 +53,12 @@ $(".header input#set_wifi_radio_state").on("change",function(){$("#waiting").rem
 var ssidFuncID;\
 function updateWirelessCard(){\
   $.post("/ajax/ssid-status.lua", [tch.elementCSRFtoken()], function(data){\
-    for (var ssid in data) {\
-      var light=$("#"+ssid);\
-      light.removeClass("green off");\
-      light.addClass(data[ssid] == "0" ? "off" : "green");\
-    }\
+    $("#wifi-card-content").html(data["html"]);\
   }, "json")\
   .fail(function(response){\
     if(response.status==403||response.status==404){clearInterval(ssidFuncID);}\
   });\
 }\
-$().ready(function(){ssidFuncID=setInterval(updateWirelessCard,20000);window.intervalIDs.push(ssidFuncID);});\
+$().ready(function(){ssidFuncID=setInterval(updateWirelessCard,19000);window.intervalIDs.push(ssidFuncID);});\
 </script>\
 '); 
