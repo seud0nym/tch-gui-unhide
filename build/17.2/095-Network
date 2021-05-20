@@ -1,0 +1,26 @@
+echo [$SCRIPT]: Add webserver wait functions
+sed \
+  -e '/function resetreboot(msg, msg_dst, action)/i \  var refreshTimeOut = 5000;\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \  var refreshDelay = 3000;\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \  function wait_for_webserver_running() {\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \    $.ajax({ url: "/", timeout: refreshTimeOut })\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \    .done(function(data) {\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \      document.open("text/html");\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \      document.write(data);\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \      document.close();\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \    })\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \    .fail(function() {\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \      window.setTimeout(wait_for_webserver_running, refreshDelay);\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \    });\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \  }\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \  function wait_for_webserver_down() {\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \    $.ajax({ url: target, timeout: refreshTimeOut })\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \    .done(function() {\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \      window.setTimeout(wait_for_webserver_down, refreshDelay);\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \    })\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \    .fail(function() {\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \      window.setTimeout(wait_for_webserver_running, refreshDelay);\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \    });\\' \
+  -e '/function resetreboot(msg, msg_dst, action)/i \  }\\' \
+  -i /www/docroot/modals/broadband-modal.lp
+
