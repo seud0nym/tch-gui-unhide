@@ -26,9 +26,11 @@ then
   done
 fi
 
-echo [$SCRIPT]: Adding domain name and switch to enable/disable DHCPv6 Server and SLAAC, removing unused ethernet port processing, and fix some spelling/grammar
+echo [$SCRIPT]: Processing Local Network modal
 sed \
  -e '/^local gVIES/a \local vNES = post_helper.validateNonEmptyString' \
+ -e '/^local gVIES/a \local gOV = post_helper.getOptionalValidation' \
+ -e '/^local gVIES/a \local vSIIP4 = post_helper.validateStringIsIPv4' \
  -e '/^-- Standard/i \local function getDomainNamePath()' \
  -e '/^-- Standard/i \  local dnsmidx, dnsmif' \
  -e '/^-- Standard/i \  for _,dnsmidx in pairs(proxy.getPN("uci.dhcp.dnsmasq.", true)) do' \
@@ -41,7 +43,8 @@ sed \
  -e '/^-- Standard/i \end' \
  -e '/"\.dhcpv4"/a \    dhcpv6State = "uci.dhcp.dhcp.@" .. cur_dhcp_intf .. ".dhcpv6",' \
  -e '/"\.dhcpv4"/a \    slaacState = "uci.dhcp.dhcp.@" .. cur_dhcp_intf .. ".ra",' \
- -e '/"\.dhcpv4"/a \    domainName = getDomainNamePath(),' \
+ -e '/"\.dhcpv4"/a \    localdomain = getDomainNamePath(),' \
+ -e '/"\.dhcpv4"/a \    localgw = "uci.network.interface.@" .. curintf .. ".gateway",' \
  -e 's/dhcpv4Stateselect/dhcpStateselect/' \
  -e 's/DHCP Server/DHCPv4 Server/' \
  -e '/local stdattributes/i \              local switch_class_enable = {' \
@@ -67,7 +70,8 @@ sed \
  -e '/Lease time/a \                 ,[[</div>]]' \
  -e '/gVIES(/a \    dhcpv6State = gVIES(dhcpStateselect),' \
  -e '/gVIES(/a \    slaacState = gVIES(dhcpStateselect),' \
- -e '/gVIES(/a \    domainName = vNES,' \
+ -e '/gVIES(/a \    localdomain = vNES,' \
+ -e '/gVIES(/a \    localgw = gOV(vSIIP4),' \
  -e '/^local function validateLimit/i \local function DHCPValidationNotRequired()' \
  -e '/^local function validateLimit/i \  local post_data = ngx.req.get_post_args()' \
  -e '/^local function validateLimit/i \  local localdevIP = proxy.get("uci.network.interface.@" .. curintf .. ".ipaddr")' \
@@ -81,8 +85,41 @@ sed \
  -e '/^local function \(validateLimit\|validateDHCPStart\)/a \      return true' \
  -e '/^local function \(validateLimit\|validateDHCPStart\)/a \    end' \
  -e '/T"Local Network subnet"/a \              if curintf == "lan" then' \
- -e '/T"Local Network subnet"/a \                ngx.print(ui_helper.createInputText(T"Domain Name", "domainName", content["domainName"], advanced, helpmsg["domainName"]))' \
+ -e '/T"Local Network subnet"/a \                if bridged.isBridgedMode() then' \
+ -e '/T"Local Network subnet"/a \                  ngx.print(ui_helper.createInputText(T"Local Gateway", "localgw", content["localgw"], advanced, helpmsg["localgw"]))' \
+ -e '/T"Local Network subnet"/a \                end' \
+ -e '/T"Local Network subnet"/a \                ngx.print(ui_helper.createInputText(T"Local Domain Name", "localdomain", content["localdomain"], advanced, helpmsg["localdomain"]))' \
  -e '/T"Local Network subnet"/a \              end' \
+ -e '/in Bridged Mode/i \              local ipv4pattern = "^(((([1]?\\d)?\\d|2[0-4]\\d|25[0-5])\\.){3}(([1]?\\d)?\\d|2[0-4]\\d|25[0-5]))$"' \
+ -e '/in Bridged Mode/i \              local ipv4DNScolumns = {' \
+ -e '/in Bridged Mode/i \                {' \
+ -e '/in Bridged Mode/i \                  header = T"IPv4 DNS Server Address",' \
+ -e '/in Bridged Mode/i \                  name = "wanDnsParam",' \
+ -e '/in Bridged Mode/i \                  param = "value",' \
+ -e '/in Bridged Mode/i \                  type = "text",' \
+ -e '/in Bridged Mode/i \                  attr = { input = { class="span2", maxlength="15", pattern = ipv4pattern } },' \
+ -e '/in Bridged Mode/i \                },' \
+ -e '/in Bridged Mode/i \              }' \
+ -e '/in Bridged Mode/i \              local ipv4DNSoptions = {' \
+ -e '/in Bridged Mode/i \                canEdit = true,' \
+ -e '/in Bridged Mode/i \                canAdd = true,' \
+ -e '/in Bridged Mode/i \                canDelete = true,' \
+ -e '/in Bridged Mode/i \                tableid = "dns4server",' \
+ -e '/in Bridged Mode/i \                basepath = "uci.network.interface.@lan.dns.@.",' \
+ -e '/in Bridged Mode/i \                createMsg = T"Add New IPv4 DNS Server",' \
+ -e '/in Bridged Mode/i \                minEntries = 0,' \
+ -e '/in Bridged Mode/i \                maxEntries = 4,' \
+ -e '/in Bridged Mode/i \                sorted = function(a, b)' \
+ -e '/in Bridged Mode/i \                  return tonumber(a.paramindex) < tonumber(b.paramindex)' \
+ -e '/in Bridged Mode/i \                end' \
+ -e '/in Bridged Mode/i \              }' \
+ -e '/in Bridged Mode/i \              local ipv4DNSvalid = {' \
+ -e '/in Bridged Mode/i \                wanDnsParam =  post_helper.advancedIPValidation,' \
+ -e '/in Bridged Mode/i \              }' \
+ -e '/in Bridged Mode/i \              local ipv4DNSdata, ipv4DNShelpmsg = post_helper.handleTableQuery(ipv4DNScolumns, ipv4DNSoptions, nil, nil, ipv4DNSvalid)' \
+ -e '/in Bridged Mode/i \              html[#html + 1] = "<legend>LAN Domain Name Server Configuration</legend>"' \
+ -e '/in Bridged Mode/i \              html[#html + 1] = ui_helper.createTable(ipv4DNScolumns, ipv4DNSdata, ipv4DNSoptions, nil, ipv4DNShelpmsg)' \
+ -e '/in Bridged Mode/i \              html[#html + 1] = "<legend>Network Mode</legend>"' \
  -e '/eth0 =/d' \
  -e '/ethports = validateEthports/d' \
  -e '/^local ethports/,/^end/d' \
@@ -92,5 +129,6 @@ sed \
  -e '/--[[/,/]]/d' \
  -e 's/Network mode/Network Mode/' \
  -e 's/to switch the modem/you want to switch/' \
+ -e 's/if cur_dhcp_intf == "lan" then/if cur_dhcp_intf == "lan" and not bridged.isBridgedMode() then/' \
  -i /www/docroot/modals/ethernet-modal.lp
 

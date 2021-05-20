@@ -43,7 +43,7 @@ end
 
 if not tabdata.current.ajax then
 	-- only display if not doing an ajax request
-	
+
 	-- Currently, the only advanced field is the conncection mode.
 	-- So if it's not included, there's no need for an advanced button.
 	ngx.print(ui_helper.createHeader(T"Internet Access", true, true)); ngx.print('\
@@ -52,9 +52,9 @@ if not tabdata.current.ajax then
 	<form class="form-horizontal" method="post" action="modals/internet-modal.lp">\
 	\
 	'); ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-	
+
 	local html = {}
-	
+
 	local mode_attributes = {
 		radio = {
 			class = "inline"
@@ -70,17 +70,16 @@ if not tabdata.current.ajax then
 			["data-value"] = "SWITCH_MODE",
 		}
 	}
-    if wan_mode == "bridge" then
-        mode_current = "bridge"
-    end
+	if wan_mode == "bridge" then
+		mode_current = "bridge"
+	end
 	html[#html+1] = '<fieldset id="conn_mode" class="advanced hide">'
-	html[#html+1] = '<legend>' .. T"Connection mode" .. '</legend>'
+	html[#html+1] = '<legend>' .. T"Connection Mode" .. '</legend>'
 	html[#html+1] = ui_helper.createInputRadio(T"Mode", "newmode", mode_options, mode_current, mode_attributes)
-	html[#html+1] = ui_helper.createButton("", T"Switch connection mode", "icon-cog", mode_button)
+	html[#html+1] = ui_helper.createButton("", T"Switch Connection Mode", "icon-cog", mode_button)
 	html[#html+1] = '</fieldset>'
-	
-	ngx.print(html)
 
+	ngx.print(html)
 end
 
 lp.setpath("/www/snippets/")
