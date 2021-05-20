@@ -16,6 +16,5 @@ local content_helper = require("web.content_helper")
 	elseif stats.wansensing_state:match("ETH") then
 		lp.include("broadband-ethernet.lp")
 	end
-	lp.include("broadband-vlan.lp")
     ngx.print('\
 '); 

@@ -26,7 +26,7 @@ then
   done
 fi
 
-echo [$SCRIPT]: Processing Local Network modal
+echo [$SCRIPT]: Processing Local Network modal...
 sed \
  -e '/^local gVIES/a \local vNES = post_helper.validateNonEmptyString' \
  -e '/^local gVIES/a \local gOV = post_helper.getOptionalValidation' \
@@ -130,5 +130,7 @@ sed \
  -e 's/Network mode/Network Mode/' \
  -e 's/to switch the modem/you want to switch/' \
  -e 's/if cur_dhcp_intf == "lan" then/if cur_dhcp_intf == "lan" and not bridged.isBridgedMode() then/' \
+ -e 's/please do factory reset/you can revert without factory reset/' \
+ -e 's/gateway-modal/broadband-modal/' \
  -i /www/docroot/modals/ethernet-modal.lp
 

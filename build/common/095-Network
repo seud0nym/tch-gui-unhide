@@ -8,4 +8,86 @@ echo [$SCRIPT]: Make Telstra bridge mode compatible with Ansuel network cards an
 sed \
   -e "/uci.network.interface.@lan.ifname/i \        [\"uci.network.config.wan_mode\"] = 'bridge'," \
   -i /www/lua/bridgedmode_helper.lua
+echo [$SCRIPT]: Allow reset to Routed Mode without RTFD
+sed \
+  -e '/configBridgedMode/i \function M.configRoutedMode()' \
+  -e '/configBridgedMode/i \  local success = proxy.set({' \
+  -e '/configBridgedMode/i \    ["uci.wansensing.global.enable"] = "1",' \
+  -e '/configBridgedMode/i \    ["uci.network.interface.@lan.ifname"] = "eth0 eth1 eth2 eth3",' \
+  -e '/configBridgedMode/i \    ["uci.dhcp.dhcp.@lan.ignore"] = "0",' \
+  -e '/configBridgedMode/i \    ["uci.network.config.wan_mode"] = "dhcp",' \
+  -e '/configBridgedMode/i \    ["uci.network.interface.@lan.gateway"] = "",' \
+  -e '/configBridgedMode/i \  })' \
+  -e '/configBridgedMode/i \  if success then' \
+  -e '/configBridgedMode/i \    local landns = proxy.getPN("uci.network.interface.@lan.dns.", true)' \
+  -e '/configBridgedMode/i \    if landns then' \
+  -e '/configBridgedMode/i \      local dns' \
+  -e '/configBridgedMode/i \      for _,dns in pairs(landns) do' \
+  -e '/configBridgedMode/i \        proxy.del(dns.path)' \
+  -e '/configBridgedMode/i \      end' \
+  -e '/configBridgedMode/i \    end' \
+  -e '/configBridgedMode/i \    local ifnames = {' \
+  -e '/configBridgedMode/i \      ppp = {' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@ppp.proto"] = "pppoe",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@ppp.metric"] = "10",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@ppp.username"] = "newdsluser@bigpond.com",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@ppp.password"] = "new2dsl",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@ppp.keepalive"] = "4,20",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@ppp.iface6rd"] = "0",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@ppp.graceful_restart"] = "1",' \
+  -e '/configBridgedMode/i \      },' \
+  -e '/configBridgedMode/i \      ipoe = {' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@ipoe.proto"] = "dhcp",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@ipoe.metric"] = "1",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@ipoe.reqopts"] = "1 3 6 43 51 58 59",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@ipoe.iface6rd"] = "0",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@ipoe.vendorid"] = "technicolor",' \
+  -e '/configBridgedMode/i \      },' \
+  -e '/configBridgedMode/i \      wan = {' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@wan.auto"] = "0",' \
+  -e '/configBridgedMode/i \      },' \
+  -e '/configBridgedMode/i \      wan6 = {' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@wan6.auto"] = "0",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@wan6.proto"] = "dhcpv6",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@wan6.reqopts"] = "23 17",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@wan6.reqaddress"] = "force",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@wan6.noslaaconly"] = "1",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@wan6.iface_464xlat"] = "0",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@wan6.forceprefix"] = "1",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@wan6.soltimeout"] = "240",' \
+  -e '/configBridgedMode/i \      },' \
+  -e '/configBridgedMode/i \      wwan = {' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@wwan.enabled"] = "0"' \
+  -e '/configBridgedMode/i \      },' \
+  -e '/configBridgedMode/i \      Guest1 = {' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@Guest1.proto"] = "static",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@Guest1.ip6assign"] = "64",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@Guest1.ip6hint"] = "1",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@Guest1.netmask"] = "255.255.255.128",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@Guest1.ipaddr"] = "192.168.2.126",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@Guest1.ifname"] = "wl0_1",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@Guest1.force_link"] = "0",' \
+  -e '/configBridgedMode/i \      },' \
+  -e '/configBridgedMode/i \      Guest1_5GHz = {' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@Guest1_5GHz.proto"] = "static",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@Guest1_5GHz.ip6assign"] = "64",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@Guest1_5GHz.ip6hint"] = "2",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@Guest1_5GHz.netmask"] = "255.255.255.128",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@Guest1_5GHz.ipaddr"] = "192.168.2.254",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@Guest1_5GHz.ifname"] = "wl1_1",' \
+  -e '/configBridgedMode/i \        ["uci.network.interface.@Guest1_5GHz.force_link"] = "0",' \
+  -e '/configBridgedMode/i \      },' \
+  -e '/configBridgedMode/i \    }' \
+  -e '/configBridgedMode/i \    local ifname,config' \
+  -e '/configBridgedMode/i \    for ifname,config in pairs(ifnames) do' \
+  -e '/configBridgedMode/i \      if success and not proxy.get("uci.network.interface.@" .. ifname .. ".") then' \
+  -e '/configBridgedMode/i \        proxy.add("uci.network.interface.", ifname)' \
+  -e '/configBridgedMode/i \      end' \
+  -e '/configBridgedMode/i \      success = success and proxy.set(config)' \
+  -e '/configBridgedMode/i \    end' \
+  -e '/configBridgedMode/i \    success = success and proxy.apply()' \
+  -e '/configBridgedMode/i \  end' \
+  -e '/configBridgedMode/i \  return success' \
+  -e '/configBridgedMode/i \end' \
+  -i /www/lua/bridgedmode_helper.lua
 

@@ -52,6 +52,11 @@ if ngx.var.request_method == "POST" then
       bridged.configBridgedMode()
       return resetreboot("rpc.system.reboot", "GUI")
     end
+  elseif action == "ROUTED" then
+    if bridged.isBridgedMode() then
+      bridged.configRoutedMode()
+      return resetreboot("rpc.system.reboot", "GUI")
+    end
   end
 end
 
@@ -61,7 +66,7 @@ if not tabdata.current.ajax then
 
 	ngx.print('\
   <div class="modal-body update">\
-    '); lp.include("tabs-broadband.lp") ngx.print('\
+    '); lp.include("tabs-broadband.lp"); ngx.print('\
     <form class="form-horizontal" method="post" action="/modals/broadband-modal.lp">\
     ')
       ngx.print(ui_helper.createMessages(message_helper.popMessages()))
@@ -130,27 +135,27 @@ if not tabdata.current.ajax then
       ');  
       if not bridged.isBridgedMode() then
         local html = {}
-        local rebooting = {
+        local bridged_rebooting = {
           alert = {
             class = "alert hide",
-            id = "rebooting-msg"
+            id = "bridged-rebooting-msg"
           }
         }
-        local confirming = {
+        local bridged_confirming = {
           alert = {
             class = "alert hide",
-            id = "confirming-msg"
+            id = "bridged-confirming-msg"
           }
         }
         local bridged_button = {
-            button = {
-                id = "btn-bridged"
-            }
+          button = {
+            id = "btn-bridged"
+          }
         }
         html[#html + 1] = ui_helper.createButton("Bridged Mode", "Bridged Mode", "icon-cog", bridged_button)
         html[#html + 1] = '<div class="control-group controls">'
-        html[#html + 1] = ui_helper.createAlertBlock(T"Switching to <strong>Bridged Mode</strong> and restarting, please wait...", rebooting)
-        html[#html + 1] = ui_helper.createAlertBlock(T"Are you sure you want to switch to <strong>Bridged Mode</strong>?", confirming)
+        html[#html + 1] = ui_helper.createAlertBlock(T"Switching to <strong>Bridged Mode</strong> and restarting, please wait...", bridged_rebooting)
+        html[#html + 1] = ui_helper.createAlertBlock(T"Are you sure you want to switch to <strong>Bridged Mode</strong>?", bridged_confirming)
         html[#html + 1] = string.format([[
           <div id="bridged-changes" class="hide">
             <div id="bridged-confirm" class="btn btn-primary" data-dismiss="modal">%s</div>
@@ -160,12 +165,36 @@ if not tabdata.current.ajax then
         ]], T"Confirm", T"Cancel")
         ngx.print(html)
       else
-        local infomessage = {
+        local html = {}
+        local routed_rebooting = {
           alert = {
-            class = "alert",
+            class = "alert hide",
+            id = "routed-rebooting-msg"
           }
         }
-        ngx.print(ui_helper.createAlertBlock(T[[Note: your gateway is in Bridged Mode. If you want the gateway to run in Routed Mode again, please do factory reset <a href="javascript:tch.loadModal('/modals/gateway-modal.lp')">here</a>]], infomessage))
+        local routed_confirming = {
+          alert = {
+            class = "alert hide",
+            id = "routed-confirming-msg"
+          }
+        }
+        local routed_button = {
+          button = {
+            id = "btn-routed"
+          }
+        }
+        html[#html + 1] = ui_helper.createButton("Routed Mode", "Routed Mode", "icon-cog", routed_button)
+        html[#html + 1] = '<div class="control-group controls">'
+        html[#html + 1] = ui_helper.createAlertBlock(T"Switching to <strong>Routed Mode</strong> and restarting, please wait...", routed_rebooting)
+        html[#html + 1] = ui_helper.createAlertBlock(T"Are you sure you want to switch back to <strong>Routed Mode</strong>?", routed_confirming)
+        html[#html + 1] = string.format([[
+          <div id="routed-changes" class="hide">
+            <div id="routed-confirm" class="btn btn-primary" data-dismiss="modal">%s</div>
+            <div id="routed-cancel" class="btn">%s</div>
+          </div>
+        </div>
+        ]], T"Confirm", T"Cancel")
+        ngx.print(html)
       end
       ngx.print('\
       </fieldset>\
@@ -190,20 +219,36 @@ if not tabdata.current.ajax then
       return false;\
     }\
     $("#btn-bridged").click(function() {\
-      $("#confirming-msg").removeClass("hide");\
+      $("#bridged-confirming-msg").removeClass("hide");\
       $("#bridged-changes").removeClass("hide");\
       $(".modal-body").animate({\'scrollTop\':"+=100px"}, "fast")\
     });\
     $("#bridged-confirm").click(function() {\
-      $("#confirming-msg").addClass("hide");\
+      $("#bridged-confirming-msg").addClass("hide");\
       $("#bridged-changes").addClass("hide");\
       $("#btn-bridged").addClass("hide");\
-      return resetreboot($("#rebooting-msg"), $("#btn-bridged"), "BRIDGED");\
+      return resetreboot($("#bridged-rebooting-msg"), $("#btn-bridged"), "BRIDGED");\
     });\
     $("#bridged-cancel").click(function() {\
-      $("#confirming-msg").addClass("hide");\
+      $("#bridged-confirming-msg").addClass("hide");\
       $("#bridged-changes").addClass("hide");\
-      $("#rebooting-msg").addClass("hide");\
+      $("#bridged-rebooting-msg").addClass("hide");\
+    });\
+    $("#btn-routed").click(function() {\
+      $("#routed-confirming-msg").removeClass("hide");\
+      $("#routed-changes").removeClass("hide");\
+      $(".modal-body").animate({\'scrollTop\':"+=100px"}, "fast")\
+    });\
+    $("#routed-confirm").click(function() {\
+      $("#routed-confirming-msg").addClass("hide");\
+      $("#routed-changes").addClass("hide");\
+      $("#btn-routed").addClass("hide");\
+      return resetreboot($("#routed-rebooting-msg"), $("#btn-routed"), "ROUTED");\
+    });\
+    $("#routed-cancel").click(function() {\
+      $("#routed-confirming-msg").addClass("hide");\
+      $("#routed-changes").addClass("hide");\
+      $("#routed-rebooting-msg").addClass("hide");\
     });\
   }());\
   </script>\
