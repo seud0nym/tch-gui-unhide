@@ -61,6 +61,8 @@ This script will automate the following functions:
 - Disables the DumaOS web servers
     - To free up some memory
 
+The script can also restore your device from Bridged Mode to Routed Mode (with the -R option).
+
 ### Usage
 ```
 Usage: ./bridged-booster [options]
@@ -72,10 +74,13 @@ Options:
               The Subnet Mask must be the same as the LAN subnet mask configured on the primary device
  -g n.n.n.n  Set LAN Gateway IP address to n.n.n.n (default is 192.168.0.1)
               This is the LAN IP address of the primary device
+              (This option is ignored if -R specified)
  -n n.n.n.n  Set LAN DNS Server IP address to n.n.n.n 
               Specify multiple times for multiple DNS servers. Default is teh LAN Gateway IP address.
+              (This option is ignored if -R specified)
  -l 0-9      Set MultiAP logging level 
               0=off 2=Default 9=very verbose
+ -R          Restore to Routed Mode
  -r          Skip reboot (NOT recommended!)
  -y          Skip the confirmation prompt
 ```

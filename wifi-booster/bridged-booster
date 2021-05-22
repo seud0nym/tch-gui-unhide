@@ -30,12 +30,15 @@ Options:
               The IP address must be in the same LAN subnet as the primary device
  -m n.n.n.n  Set LAN Subnet Mask to n.n.n.n (default is -m$LAN_NETMASK)
               The Subnet Mask must be the same as the LAN subnet mask configured on the primary device
- -g n.n.n.n  Set LAN Gateway IP address to n.n.n.n (default is -g192.168.0.1)
+ -g n.n.n.n  Set LAN Gateway IP address to n.n.n.n (default is -g$LAN_GATEWAY)
               This is the LAN IP address of the primary device
+              (This option is ignored if -R specified)
  -n n.n.n.n  Set LAN DNS Server IP address to n.n.n.n 
               Specify multiple times for multiple DNS servers. Default is the LAN Gateway IP address.
+              (This option is ignored if -R specified)
  -l 0-9      Set MultiAP logging level 
               0=off 2=Default 9=very verbose
+ -R          Restore to Routed Mode
  -r          Skip reboot (NOT recommended!)
  -y          Skip the confirmation prompt
 
@@ -43,13 +46,22 @@ EOH
 exit
 }
 
-LAN_IP_ADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)"
-LAN_NETMASK='255.255.255.0' 
-LAN_GATEWAY='192.168.0.1'
+IP_ADDR="$(uci get network.lan.ipaddr)"
+IP_ADDR_SET='n'
+NETMASK="$(uci get network.lan.netmask)"
+NETMASK_SET='n'
+LAN_IP_ADDR="$IP_ADDR"
+LAN_NETMASK="$NETMASK"
+LAN_GATEWAY="$(echo $LAN_IP_ADDR | cut -d. -f1-3).1"
 LAN_DNS=''
 MULTIAP_LOGGING_LEVEL=2
 REBOOT='y'
+RESTORE='n'
 YES='n'
+
+if [ "$LAN_IP_ADDR" = "$LAN_GATEWAY" ]; then
+  LAN_IP_ADDR="$(echo $LAN_IP_ADDR | cut -d. -f1-3).2"
+fi
 
 if [ -f /etc/init.d/ndhttpd ]; then
   NDHTTPD='/etc/init.d/ndhttpd'
@@ -62,17 +74,11 @@ else
   UHTTPD=''
 fi
 
-if [ "$LAN_IP_ADDR" = "192.168.0.1" -o "$(echo $LAN_IP_ADDR | cut -d. -f1-3)" != "192.168.0" ]; then
-  LAN_IP_ADDR="192.168.0.2"
-fi
-
-IPv4PATTERN="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-
-while getopts :g:i:l:m:n:ry option
+while getopts :g:i:l:m:n:ryR option
 do
   case "${option}" in
     g)  LAN_GATEWAY="$OPTARG";;
-    i)  LAN_IP_ADDR="$OPTARG";;
+    i)  LAN_IP_ADDR="$OPTARG";IP_ADDR_SET='y';;
     l)  MULTIAP_LOGGING_LEVEL="$OPTARG";;
     m)  LAN_NETMASK="$OPTARG";;
     n)  if [ -z "$LAN_DNS" ]; then
@@ -82,215 +88,451 @@ do
         fi;;
     r)  REBOOT='n';;
     y)  YES='y';;
+    R)  RESTORE='y';;
     *)  usage;;
   esac
 done
 
-echo "$LAN_IP_ADDR" | grep -q -E $IPv4PATTERN
-if [ $? -eq 1 ]; then 
-  echo -e "${RED}ERROR! Invalid LAN IP address: $LAN_IP_ADDR${NC}"
-  exit
-fi
-echo "$LAN_NETMASK" | grep -q -E $IPv4PATTERN
-if [ $? -eq 1 ]; then 
-  echo -e "${RED}ERROR! Invalid LAN Subnet Mask: $LAN_NETMASK${NC}"
-  exit
-fi
-echo "$LAN_GATEWAY" | grep -q -E $IPv4PATTERN
-if [ $? -eq 1 ]; then 
-  echo -e "${RED}ERROR! Invalid LAN Gateway IP address: $LAN_GATEWAY${NC}"
-  exit
-fi
-if [ "$(echo $LAN_IP_ADDR | cut -d. -f1-3)" != "$(echo $LAN_GATEWAY | cut -d. -f1-3)" ]; then
-  echo -e "${RED}ERROR! LAN IP address $LAN_IP_ADDR must be in the same subnet as the Gateway: $LAN_GATEWAY${NC}"
-  exit
-fi
-if [ -z "$LAN_DNS" ]; then
-  LAN_DNS="$LAN_GATEWAY"
-else
-  for DNS in $LAN_DNS
-  do
-    echo "$DNS" | grep -q -E $IPv4PATTERN
-    if [ $? -eq 1 ]; then 
-      echo -e "${RED}ERROR! Invalid DNS Server IP address: $DNS${NC}"
-      exit
-    fi
-  done
-  if [ "$MULTIAP_LOGGING_LEVEL" -lt 0 -o "$MULTIAP_LOGGING_LEVEL" -gt 9 ]; then
-    echo -e "${RED}ERROR! MultiAP logging level must be between 0 and 9${NC}"
+if [ $RESTORE = n ]; then
+  IPv4PATTERN="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+
+  echo "$LAN_IP_ADDR" | grep -q -E $IPv4PATTERN
+  if [ $? -eq 1 ]; then 
+    echo -e "${RED}ERROR! Invalid LAN IP address: $LAN_IP_ADDR${NC}"
     exit
   fi
-fi
+  echo "$LAN_NETMASK" | grep -q -E $IPv4PATTERN
+  if [ $? -eq 1 ]; then 
+    echo -e "${RED}ERROR! Invalid LAN Subnet Mask: $LAN_NETMASK${NC}"
+    exit
+  fi
+  echo "$LAN_GATEWAY" | grep -q -E $IPv4PATTERN
+  if [ $? -eq 1 ]; then 
+    echo -e "${RED}ERROR! Invalid LAN Gateway IP address: $LAN_GATEWAY${NC}"
+    exit
+  fi
+  if [ "$(echo $LAN_IP_ADDR | cut -d. -f1-3)" != "$(echo $LAN_GATEWAY | cut -d. -f1-3)" ]; then
+    echo -e "${RED}ERROR! LAN IP address $LAN_IP_ADDR must be in the same subnet as the Gateway: $LAN_GATEWAY${NC}"
+    exit
+  fi
+  if [ -z "$LAN_DNS" ]; then
+    LAN_DNS="$LAN_GATEWAY"
+  else
+    for DNS in $LAN_DNS
+    do
+      echo "$DNS" | grep -q -E $IPv4PATTERN
+      if [ $? -eq 1 ]; then 
+        echo -e "${RED}ERROR! Invalid DNS Server IP address: $DNS${NC}"
+        exit
+      fi
+    done
+    if [ "$MULTIAP_LOGGING_LEVEL" -lt 0 -o "$MULTIAP_LOGGING_LEVEL" -gt 9 ]; then
+      echo -e "${RED}ERROR! MultiAP logging level must be between 0 and 9${NC}"
+      exit
+    fi
+  fi
 
-echo "About to:"
-echo -e " - ${ORANGE}DISABLE WAN Sensing${NC}"
-echo -e " - ${ORANGE}DISABLE WAN Supervision${NC}"
-echo -e " - ${ORANGE}DISABLE 4G Mobile Backup${NC}"
-echo -e " - ${ORANGE}DISABLE IPv4 and IPv6 DHCP servers${NC}"
-echo -e " - ${ORANGE}DISABLE the intercept daemon${NC}"
-echo -e " - ${ORANGE}DISABLE the Backhaul SSID${NC}"
-echo -e " - ${ORANGE}DISABLE QoS${NC}"
-if [ ! -z $UHTTPD ]; then
-echo -e " - ${ORANGE}DISABLE DumaOS UHTTP daemon${NC}"
-fi
-if [ ! -z $NDHTTPD ]; then
-echo -e " - ${ORANGE}DISABLE DumaOS NDHTTP daemon${NC}"
-fi
-echo -e " - ${GREEN}Set LAN IP address to $LAN_IP_ADDR${NC}"
-echo -e " - ${GREEN}Set LAN Subnet Mask to $LAN_NETMASK${NC}"
-echo -e " - ${GREEN}Set LAN Gateway IP address to $LAN_GATEWAY${NC}"
-echo -e " - ${GREEN}Set LAN DNS to $(echo $LAN_DNS | tr \"$IFS\" ' ')${NC}"
-echo -e " - ${GREEN}ENABLE Bridged Mode${NC}"
-echo -e " - ${GREEN}ENABLE MultiAP on the bridge${NC}"
-echo -e " - ${ORANGE}DISABLE MultiAP Controller${NC}"
-echo -e " - ${GREEN}Set MultiAP logging level to $MULTIAP_LOGGING_LEVEL${NC}"
-if [ $REBOOT = y ]; then
-echo -e " - ${GREEN}REBOOT to apply changes${NC}"
-else
-echo
-echo -e "${ORANGE}WARNING: The device will NOT be rebooted. This is NOT recommended!${NC}"
-fi
-echo 
-echo "If you wish to proceed, enter y otherwise just press [Enter] to stop."
-if [ $YES = y ]; then
-  REPLY=y
-else
-  read
-fi
-if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
-  exit
-fi
+  wl0="$(uci -q get wireless.wl0.network)"
+  wl1="$(uci -q get wireless.wl1.network)"
+  wl1_2="$(uci -q get wireless.wl1_2.network)"
 
-echo -e "${GREEN}Stop MultiAP agent whilst we reconfigure${NC}"
-/etc/init.d/multiap_agent stop
-
-echo -e "${GREEN}Disabling WAN Sensing${NC}"
-uci set wansensing.global.autofailover='0'
-uci set wansensing.global.enable='0'
-uci commit wansensing
-/etc/init.d/wansensing disable
-
-echo -e "${GREEN}Disabling WAN Supervision${NC}"
-uci set supervision.global.enabled="0"
-uci commit supervision
-/etc/init.d/supervision disable
-
-echo -e "${GREEN}Disabling 4G Mobile Backup${NC}"
-uci set mobiled.device_defaults.enabled="0"
-uci set mobiled.@device[0].enabled="0"
-uci commit mobiled
-/etc/init.d/mobiled disable
-uci set ltedoctor.config.enabled="0"
-/etc/init.d/lte-doctor-logger disable
-
-echo -e "${GREEN}Disabling IPv4 and IPv6 DHCP servers${NC}"
-uci set dhcp.lan.dhcpv4='disabled'
-uci set dhcp.lan.dhcpv6='disabled'
-uci set dhcp.lan.ra='disabled'
-uci set dhcp.lan.ignore='1'
-uci commit dhcp
-
-echo -e "${GREEN}Disabling intercept daemon${NC}"
-uci set intercept.config.enabled='0'
-uci commit intercept
-/etc/init.d/intercept disable
-
-echo -e "${GREEN}Disabling Backhaul SSID${NC}"
-uci set wireless.ap6.state='0'
-uci commit wireless
-
-echo -e "${GREEN}Disabling QoS${NC}"
-for DEVICE in $(uci show qos | grep =device | tr = . | cut -d. -f2)
-do
-  uci set qos.$DEVICE.enable='0'
-done
-uci commit qos
-
-if [ ! -z $UHTTPD ]; then
-  echo -e "${GREEN}Disabling DumaOS UHTTP daemon${NC}"
-  $UHTTPD disable
-fi
-if [ ! -z $NDHTTPD ]; then
-  echo -e "${GREEN}Disabling DumaOS NDHTTP daemon${NC}"
-  $NDHTTPD disable
-fi
-
-echo -e "${GREEN}Setting LAN IP address to $LAN_IP_ADDR${NC}"
-uci set network.lan.ipaddr="$LAN_IP_ADDR"
-echo -e "${GREEN}Setting LAN Subnet Mask to $LAN_NETMASK${NC}"
-uci set network.lan.netmask="$LAN_NETMASK"
-echo -e "${GREEN}Setting LAN Gateway IP address to $LAN_GATEWAY${NC}"
-uci set network.lan.gateway="$LAN_GATEWAY"
-echo -e "${GREEN}Setting LAN DNS${NC}"
-uci -q delete network.lan.dns
-for dns in $LAN_DNS
-do
-  echo -e "${GREEN} -> Adding $dns${NC}"
-  uci add_list network.lan.dns="$dns"
-done
-echo -e "${GREEN}Configuring bridge mode${NC}"
-uci set network.config.wan_mode='bridge'
-uci set network.lan.ifname='eth0 eth1 eth2 eth3 eth4 wl0 wl1 wl1_2 atm_8_35 ptm0'
-for ifname in ppp ipoe wan wan6 wwan lan.pppoerelay
-do
-  uci -q delete network.$ifname
-  uci -q delete dhcp.$ifname
-done
-uci commit network
-
-echo -e "${GREEN}Disabling traffic history${NC}"
-sed -e '/traffichistory.lua/d' -i /etc/crontabs/root
-
-echo -e "${GREEN}Enabling MultiAP on bridge${NC}"
-uci set multiap.al_entity.interfaces='eth0,eth1,eth2,eth3,eth4,wl0,wl1,wl1_2,wds*'
-echo -e "${GREEN}Enabling MultiAP agent${NC}"
-uci set multiap.agent.enabled='1'
-echo -e "${GREEN}Disabling MultiAP controller${NC}"
-uci set multiap.controller.enabled='0'
-echo -e "${GREEN}Set MultiAP logging level to $MULTIAP_LOGGING_LEVEL${NC}"
-uci set multiap.logging.library="$MULTIAP_LOGGING_LEVEL"
-uci set multiap.logging.ieee1905="$MULTIAP_LOGGING_LEVEL"
-uci set multiap.logging.agent="$MULTIAP_LOGGING_LEVEL"
-uci set multiap.logging.vendor_ipc="$MULTIAP_LOGGING_LEVEL"
-uci commit multiap
-
-if [ $REBOOT = y ]; then
-  echo -e "${ORANGE}Rebooting...${NC}"
-  reboot
-else
-  echo -e "${ORANGE}Stopping WAN Sensing daemon...${NC}"
-  /etc/init.d/wansensing stop
-  echo -e "${ORANGE}Stopping supervision daemon...${NC}"
-  /etc/init.d/supervision stop
-  echo -e "${ORANGE}Stopping 4G Backup daemons...${NC}"
-  /etc/init.d/mobiled stop
-  /etc/init.d/lte-doctor-logger stop
-  echo -e "${ORANGE}Applying DHCP server changes...${NC}"
-  /etc/init.d/dnsmasq restart
-  /etc/init.d/odhcpd reload
-  echo -e "${ORANGE}Stopping intercept daemon...${NC}"
-  /etc/init.d/intercept stop
-  echo -e "${ORANGE}Applying QoS changes...${NC}"
-  /etc/init.d/qos restart
+  echo "About to:"
+  echo -e " - ${ORANGE}DISABLE WAN Sensing${NC}"
+  echo -e " - ${ORANGE}DISABLE WAN Supervision${NC}"
+  echo -e " - ${ORANGE}DISABLE 4G Mobile Backup${NC}"
+  echo -e " - ${ORANGE}DISABLE IPv4 and IPv6 DHCP servers${NC}"
+  echo -e " - ${ORANGE}DISABLE the intercept daemon${NC}"
+  if [ "$wl0" = wan -o "$wl1" = wan -o "$wl1_2" = wan ]; then
+  echo -e " - ${GREEN}RESET Wireless networks from wan to lan${NC}"
+  fi
+  echo -e " - ${ORANGE}DISABLE the Backhaul SSID${NC}"
+  echo -e " - ${ORANGE}DISABLE QoS${NC}"
   if [ ! -z $UHTTPD ]; then
-    echo -e "${ORANGE}Stopping DumaOS UHTTP daemon...${NC}"
-    $UHTTPD stop
+  echo -e " - ${ORANGE}DISABLE DumaOS UHTTP daemon${NC}"
   fi
   if [ ! -z $NDHTTPD ]; then
-    echo -e "${GREEN}Stopping DumaOS NDHTTP daemon${NC}"
-    $NDHTTPD stop
+  echo -e " - ${ORANGE}DISABLE DumaOS NDHTTP daemon${NC}"
   fi
-  echo -e "${ORANGE}Applying wireless changes...${NC}"
-  /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"
-  echo -e "${ORANGE}Applying network changes...${NC}"
-  /etc/init.d/network reload
-  /etc/init.d/dhcp reload
-  echo -e "${ORANGE}Applying cron changes...${NC}"
-  /etc/init.d/cron restart
-  echo -e "${ORANGE}Aplying MultiAP changes...${NC}"
-  /etc/init.d/multiap_controller restart
-  echo -e "${ORANGE}Restarting MultiAP agent...${NC}"
-  /etc/init.d/multiap_agent restart
+  if [ $LAN_IP_ADDR != $IP_ADDR ]; then
+  echo -e " - ${GREEN}Set LAN IP address to $LAN_IP_ADDR${NC}"
+  fi
+  if [ $LAN_NETMASK != $NETMASK ]; then
+  echo -e " - ${GREEN}Set LAN Subnet Mask to $LAN_NETMASK${NC}"
+  fi
+  echo -e " - ${GREEN}Set LAN Gateway IP address to $LAN_GATEWAY${NC}"
+  echo -e " - ${GREEN}Set LAN DNS to $(echo $LAN_DNS | tr \"$IFS\" ' ')${NC}"
+  echo -e " - ${GREEN}ENABLE Bridged Mode${NC}"
+  echo -e " - ${GREEN}ENABLE MultiAP on the bridge${NC}"
+  echo -e " - ${ORANGE}DISABLE MultiAP Controller${NC}"
+  echo -e " - ${GREEN}Set MultiAP logging level to $MULTIAP_LOGGING_LEVEL${NC}"
+  if [ $REBOOT = y ]; then
+    echo -e " - ${ORANGE}REBOOT to apply changes${NC}"
+  else
+    echo
+    echo -e "${RED}WARNING: The device will NOT be rebooted. This is NOT recommended!${NC}"
+  fi
+  echo 
+  echo "If you wish to proceed, enter y otherwise just press [Enter] to stop."
+  if [ $YES = y ]; then
+    REPLY=y
+  else
+    read
+  fi
+  if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
+    exit
+  fi
+
+  echo -e "${ORANGE}Stop MultiAP agent whilst we reconfigure${NC}"
+  /etc/init.d/multiap_agent stop
+
+  echo -e "${ORANGE}Disabling WAN Sensing${NC}"
+  uci set wansensing.global.autofailover='0'
+  uci set wansensing.global.enable='0'
+  uci commit wansensing
+  /etc/init.d/wansensing disable
+
+  echo -e "${ORANGE}Disabling WAN Supervision${NC}"
+  uci set supervision.global.enabled="0"
+  uci commit supervision
+  /etc/init.d/supervision disable
+
+  echo -e "${ORANGE}Disabling 4G Mobile Backup${NC}"
+  uci set mobiled.device_defaults.enabled="0"
+  uci set mobiled.@device[0].enabled="0"
+  uci commit mobiled
+  /etc/init.d/mobiled disable
+  uci set ltedoctor.config.enabled="0"
+  /etc/init.d/lte-doctor-logger disable
+
+  echo -e "${ORANGE}Disabling IPv4 and IPv6 DHCP servers${NC}"
+  uci set dhcp.lan.dhcpv4='disabled'
+  uci set dhcp.lan.dhcpv6='disabled'
+  uci set dhcp.lan.ra='disabled'
+  uci set dhcp.lan.ignore='1'
+  uci commit dhcp
+
+  echo -e "${ORANGE}Disabling intercept daemon${NC}"
+  uci set intercept.config.enabled='0'
+  uci commit intercept
+  /etc/init.d/intercept disable
+
+  if [ "$wl0" = wan -o "$wl1" = wan -o "$wl1_2" = wan ]; then
+    echo -e " - ${GREEN}Resetting Wireless networks from wan to lan${NC}"
+    uci set wireless.wl0.network='lan'
+    uci set wireless.wl1.network='lan'
+    uci set wireless.wl1_2.network='lan'
+  fi
+
+  echo -e "${ORANGE}Disabling Backhaul SSID${NC}"
+  uci set wireless.ap6.state='0'
+  uci commit wireless
+
+  echo -e "${ORANGE}Disabling QoS${NC}"
+  for DEVICE in $(uci show qos | grep =device | tr = . | cut -d. -f2)
+  do
+    uci set qos.$DEVICE.enable='0'
+  done
+  uci commit qos
+
+  if [ ! -z $UHTTPD ]; then
+    echo -e "${ORANGE}Disabling DumaOS UHTTP daemon${NC}"
+    $UHTTPD disable
+  fi
+  if [ ! -z $NDHTTPD ]; then
+    echo -e "${ORANGE}Disabling DumaOS NDHTTP daemon${NC}"
+    $NDHTTPD disable
+  fi
+
+  if [ $LAN_IP_ADDR != $IP_ADDR ]; then
+    echo -e "${GREEN}Setting LAN IP address to $LAN_IP_ADDR${NC}"
+    uci set network.lan.ipaddr="$LAN_IP_ADDR"
+  fi
+  if [ $LAN_NETMASK != $NETMASK ]; then
+    echo -e "${GREEN}Setting LAN Subnet Mask to $LAN_NETMASK${NC}"
+    uci set network.lan.netmask="$LAN_NETMASK"
+  fi
+  echo -e "${GREEN}Setting LAN Gateway IP address to $LAN_GATEWAY${NC}"
+  uci set network.lan.gateway="$LAN_GATEWAY"
+  echo -e "${GREEN}Setting LAN DNS${NC}"
+  uci -q delete network.lan.dns
+  for dns in $LAN_DNS
+  do
+    echo -e "${GREEN} -> Adding $dns${NC}"
+    uci add_list network.lan.dns="$dns"
+  done
+  echo -e "${GREEN}Configuring bridged mode${NC}"
+  uci set network.config.wan_mode='bridge'
+  uci set network.lan.ifname='eth0 eth1 eth2 eth3 eth4 wl0 wl1 wl1_2 atm_8_35 ptm0'
+  for ifname in ppp ipoe wan wan6 wwan lan.pppoerelay
+  do
+    uci -q delete network.$ifname
+    uci -q delete dhcp.$ifname
+  done
+  uci commit network
+
+  echo -e "${ORANGE}Disabling traffic history${NC}"
+  sed -e '/traffichistory.lua/d' -i /etc/crontabs/root
+
+  echo -e "${GREEN}Enabling MultiAP on bridge${NC}"
+  uci set multiap.al_entity.interfaces='eth0,eth1,eth2,eth3,eth4,wl0,wl1,wl1_2,wds*'
+  echo -e "${GREEN}Enabling MultiAP agent${NC}"
+  uci set multiap.agent.enabled='1'
+  echo -e "${ORANGE}Disabling MultiAP controller${NC}"
+  uci set multiap.controller.enabled='0'
+  echo -e "${GREEN}Set MultiAP logging level to $MULTIAP_LOGGING_LEVEL${NC}"
+  uci set multiap.logging.library="$MULTIAP_LOGGING_LEVEL"
+  uci set multiap.logging.ieee1905="$MULTIAP_LOGGING_LEVEL"
+  uci set multiap.logging.agent="$MULTIAP_LOGGING_LEVEL"
+  uci set multiap.logging.vendor_ipc="$MULTIAP_LOGGING_LEVEL"
+  uci commit multiap
+
+  if [ $REBOOT = y ]; then
+    echo -e "${ORANGE}Rebooting...${NC}"
+    reboot
+  else
+    echo -e "${ORANGE}Stopping WAN Sensing daemon...${NC}"
+    /etc/init.d/wansensing stop
+    echo -e "${ORANGE}Stopping supervision daemon...${NC}"
+    /etc/init.d/supervision stop
+    echo -e "${ORANGE}Stopping 4G Backup daemons...${NC}"
+    /etc/init.d/mobiled stop
+    /etc/init.d/lte-doctor-logger stop
+    echo -e "${ORANGE}Applying DHCP server changes...${NC}"
+    /etc/init.d/dnsmasq restart
+    /etc/init.d/odhcpd reload
+    echo -e "${ORANGE}Stopping intercept daemon...${NC}"
+    /etc/init.d/intercept stop
+    echo -e "${ORANGE}Applying QoS changes...${NC}"
+    /etc/init.d/qos restart
+    if [ ! -z $UHTTPD ]; then
+      echo -e "${ORANGE}Stopping DumaOS UHTTP daemon...${NC}"
+      $UHTTPD stop
+    fi
+    if [ ! -z $NDHTTPD ]; then
+      echo -e "${ORANGE}Stopping DumaOS NDHTTP daemon${NC}"
+      $NDHTTPD stop
+    fi
+    echo -e "${ORANGE}Applying wireless changes...${NC}"
+    /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"
+    echo -e "${ORANGE}Applying network changes...${NC}"
+    /etc/init.d/network reload
+    echo -e "${ORANGE}Applying cron changes...${NC}"
+    /etc/init.d/cron restart
+    echo -e "${ORANGE}Applying MultiAP changes...${NC}"
+    /etc/init.d/multiap_controller restart
+    echo -e "${ORANGE}Restarting MultiAP agent...${NC}"
+    /etc/init.d/multiap_agent restart
+  fi
+else # RESTORE
+  if [ $IP_ADDR_SET = n ]; then
+    LAN_IP_ADDR="$IP_ADDR"
+  fi
+
+  echo "About to:"
+  echo -e " - ${GREEN}ENABLE MultiAP Controller${NC}"
+  echo -e " - ${GREEN}ENABLE MultiAP on the LAN${NC}"
+  echo -e " - ${GREEN}Set MultiAP logging level to $MULTIAP_LOGGING_LEVEL${NC}"
+  echo -e " - ${ORANGE}DISABLE Bridged Mode and revert to Routed Mode${NC}"
+  if [ $LAN_IP_ADDR != $IP_ADDR ]; then
+  echo -e " - ${GREEN}Set LAN IP address to $LAN_IP_ADDR${NC}"
+  fi
+  if [ $LAN_NETMASK != $NETMASK ]; then
+  echo -e " - ${GREEN}Set LAN Subnet Mask to $LAN_NETMASK${NC}"
+  fi
+  echo -e " - ${ORANGE}REMOVE LAN DNS"
+  echo -e " - ${ORANGE}REMOVE LAN Gateway IP address"
+  if [ ! -z $UHTTPD ]; then
+  echo -e " - ${GREEN}ENABLE DumaOS UHTTP daemon${NC}"
+  fi
+  if [ ! -z $NDHTTPD ]; then
+  echo -e " - ${GREEN}ENABLE DumaOS NDHTTP daemon${NC}"
+  fi
+  echo -e " - ${GREEN}ENABLE QoS${NC}"
+  echo -e " - ${GREEN}ENABLE the intercept daemon${NC}"
+  echo -e " - ${GREEN}ENABLE IPv4 and IPv6 DHCP servers${NC}"
+  echo -e " - ${GREEN}ENABLE 4G Mobile Backup${NC}"
+  echo -e " - ${GREEN}ENABLE WAN Supervision${NC}"
+  echo -e " - ${GREEN}ENABLE WAN Sensing${NC}"
+
+  if [ $REBOOT = y ]; then
+    echo -e " - ${ORANGE}REBOOT to apply changes${NC}"
+  else
+    echo
+    echo -e "${RED}WARNING: The device will NOT be rebooted. This is NOT recommended!${NC}"
+  fi
+  echo 
+  echo "If you wish to proceed, enter y otherwise just press [Enter] to stop."
+  if [ $YES = y ]; then
+    REPLY=y
+  else
+    read
+  fi
+  if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
+    exit
+  fi
+
+  echo -e "${GREEN}Enabling MultiAP on default interfaces${NC}"
+  uci set multiap.al_entity.interfaces='lo,eth0,eth1,eth2,eth3,wl0,wl1,wl1_2,wds*'
+  echo -e "${GREEN}Enabling MultiAP agent${NC}"
+  uci set multiap.agent.enabled='1'
+  echo -e "${GREEN}Enabling MultiAP controller${NC}"
+  uci set multiap.controller.enabled='1'
+  echo -e "${GREEN}Set MultiAP logging level to $MULTIAP_LOGGING_LEVEL${NC}"
+  uci set multiap.logging.library="$MULTIAP_LOGGING_LEVEL"
+  uci set multiap.logging.ieee1905="$MULTIAP_LOGGING_LEVEL"
+  uci set multiap.logging.agent="$MULTIAP_LOGGING_LEVEL"
+  uci set multiap.logging.vendor_ipc="$MULTIAP_LOGGING_LEVEL"
+  uci commit multiap
+
+  if [ -f /usr/sbin/traffichistory.lua ]; then
+    grep -q "/usr/sbin/traffichistory.lua" /etc/crontabs/root
+    if [ $? -eq 1 ]; then
+      echo -e "${GREEN}Enabling traffic history${NC}"
+      echo "9,19,29,39,49,59 * * * * /usr/sbin/traffichistory.lua" >> /etc/crontabs/root
+    fi
+  fi
+
+  if [ $LAN_IP_ADDR != $IP_ADDR ]; then
+    echo -e "${GREEN}Setting LAN IP address to $LAN_IP_ADDR${NC}"
+    uci set network.lan.ipaddr="$LAN_IP_ADDR"
+  fi
+  if [ $LAN_NETMASK != $NETMASK ]; then
+    echo -e "${GREEN}Setting LAN Subnet Mask to $LAN_NETMASK${NC}"
+    uci set network.lan.netmask="$LAN_NETMASK"
+  fi
+  echo -e "${ORANGE}Removing LAN Gateway IP address"
+  uci set network.lan.gateway=""
+  echo -e "${ORANGE}Removing LAN DNS${NC}"
+  uci -q delete network.lan.dns
+
+  echo -e "${GREEN}Configuring routed mode${NC}"
+  uci set network.config.wan_mode='dhcp'
+  uci set network.lan.ifname='eth0 eth1 eth2 eth3'
+  uci set network.ppp=interface
+  uci set network.ppp.proto='pppoe'
+  uci set network.ppp.metric='10'
+  uci set network.ppp.username='newdsluser@bigpond.com'
+  uci set network.ppp.password='new2dsl'
+  uci set network.ppp.keepalive='4,20'
+  uci set network.ppp.iface6rd='0'
+  uci set network.ppp.graceful_restart='1'
+  uci set network.ipoe=interface
+  uci set network.ipoe.proto='dhcp'
+  uci set network.ipoe.metric='1'
+  uci set network.ipoe.reqopts='1 3 6 43 51 58 59'
+  uci set network.ipoe.release='1'
+  uci set network.ipoe.iface6rd='0'
+  uci set network.ipoe.vendorid='technicolor'
+  uci set network.wan6=interface
+  uci set network.wan6.auto='0'
+  uci set network.wan6.proto='dhcpv6'
+  uci set network.wan6.reqopts='23 17'
+  uci set network.wan6.reqaddress='force'
+  uci set network.wan6.noslaaconly='1'
+  uci set network.wan6.iface_464xlat='0'
+  uci set network.wan6.forceprefix='1'
+  uci set network.wan6.soltimeout='240'
+  uci set network.wwan=interface
+  uci set network.wwan.enabled='0'
+  uci set network.wan=interface
+  uci set network.wan.auto='1'
+  uci set network.eth4=device
+  uci set network.eth4.name='eth4'
+  uci set network.eth4.mtu='1500'
+  uci set network.eth4.mtu6='1500'
+  uci set network.eth4.neighreachabletime='1200000'
+  uci set network.eth4.neighgcstaletime='2400'
+  uci set network.atm_8_35=device
+  uci set network.atm_8_35.name='atm_8_35'
+  uci set network.atm_8_35.neighreachabletime='1200000'
+  uci set network.atm_8_35.neighgcstaletime='2400'
+  uci set network.ptm0=device
+  uci set network.ptm0.name='ptm0'
+  uci set network.ptm0.neighreachabletime='1200000'
+  uci set network.ptm0.neighgcstaletime='2400'
+  uci add network ppp_placeholder
+  uci set network.@ppp_placeholder[0].uciname='pppoe-wan'
+  uci commit network
+
+  if [ ! -z $UHTTPD ]; then
+    echo -e "${GREEN}Enabling DumaOS UHTTP daemon${NC}"
+    $UHTTPD enable
+  fi
+  if [ ! -z $NDHTTPD ]; then
+    echo -e "${GREEN}Enabling DumaOS NDHTTP daemon${NC}"
+    $NDHTTPD enable
+  fi
+  
+  echo -e "${GREEN}Enabling QoS${NC}"
+  for DEVICE in $(uci show qos | grep =device | tr = . | cut -d. -f2)
+  do
+    uci set qos.$DEVICE.enable='1'
+  done
+  uci commit qos
+
+  echo -e "${GREEN}Enabling intercept daemon${NC}"
+  uci set intercept.config.enabled='1'
+  uci commit intercept
+  /etc/init.d/intercept enable
+
+  echo -e "${GREEN}Enabling IPv4 and IPv6 DHCP servers${NC}"
+  uci set dhcp.lan.dhcpv4='server'
+  uci set dhcp.lan.dhcpv6='server'
+  uci set dhcp.lan.ignore='0'
+  uci commit dhcp
+
+  echo -e "${GREEN}Enabling 4G Mobile Backup${NC}"
+  uci set mobiled.device_defaults.enabled="1"
+  uci set mobiled.@device[0].enabled="1"
+  uci commit mobiled
+  /etc/init.d/mobiled enable
+  uci set ltedoctor.config.enabled="1"
+  /etc/init.d/lte-doctor-logger enable
+
+  echo -e "${GREEN}Enabling WAN Supervision${NC}"
+  uci set supervision.global.enabled="1"
+  uci commit supervision
+  /etc/init.d/supervision enable
+
+  echo -e "${GREEN}Enabling WAN Sensing${NC}"
+  uci set wansensing.global.autofailover='1'
+  uci set wansensing.global.enable='1'
+  uci commit wansensing
+  /etc/init.d/wansensing enable
+
+  if [ $REBOOT = y ]; then
+    echo -e "${ORANGE}Rebooting...${NC}"
+    reboot
+  else
+    echo -e "${GREEN}Starting WAN Sensing daemon...${NC}"
+    /etc/init.d/wansensing start
+    echo -e "${GREEN}Starting supervision daemon...${NC}"
+    /etc/init.d/supervision start
+    echo -e "${GREEN}Starting 4G Backup daemons...${NC}"
+    /etc/init.d/mobiled start
+    /etc/init.d/lte-doctor-logger start
+    echo -e "${GREEN}Applying DHCP server changes...${NC}"
+    /etc/init.d/dnsmasq restart
+    /etc/init.d/odhcpd reload
+    echo -e "${GREEN}Starting intercept daemon...${NC}"
+    /etc/init.d/intercept start
+    echo -e "${GREEN}Applying QoS changes...${NC}"
+    /etc/init.d/qos restart
+    if [ ! -z $UHTTPD ]; then
+      echo -e "${GREEN}Starting DumaOS UHTTP daemon...${NC}"
+      $UHTTPD start
+    fi
+    if [ ! -z $NDHTTPD ]; then
+      echo -e "${GREEN}Starting DumaOS NDHTTP daemon${NC}"
+      $NDHTTPD start
+    fi
+    echo -e "${GREEN}Applying network changes...${NC}"
+    /etc/init.d/network reload
+    echo -e "${GREEN}Applying cron changes...${NC}"
+    /etc/init.d/cron restart
+    echo -e "${GREEN}Applying MultiAP changes...${NC}"
+    /etc/init.d/multiap_controller restart
+  fi
 fi
 
 echo -e "${GREEN}Done${NC}"
