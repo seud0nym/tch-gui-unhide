@@ -1,0 +1,5 @@
+echo [$SCRIPT]: Fix incorrect error detection in DDNS update when IPv6 address contains 401 or 500 
+sed \
+  -e 's/\(".\*401"\|".\*500"\)/\1|grep -v Address/' \
+  -i /usr/share/transformer/mappings/rpc/ddns.map
+
