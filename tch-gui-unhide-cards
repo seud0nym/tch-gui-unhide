@@ -186,32 +186,32 @@ apply_suggested() {
     HIDE=$HIDDEN
     case "${FILE#*_}" in
       broadband.lp) SEQ="002";;
-      contentsharing.lp) SEQ="011";;
+      contentsharing.lp) SEQ="019";;
       cwmpconf.lp) SEQ="026"; if [ ! -f /etc/init.d/cwmpd ]; then HIDE=1; fi;;
       Devices.lp) SEQ="009";;
-      diagnostics.lp) SEQ="024";;
-      eco.lp) SEQ="023";;
-      firewall.lp) SEQ="014";;
+      diagnostics.lp) SEQ="023";;
+      eco.lp) SEQ="017";;
+      firewall.lp) SEQ="010";;
       fon.lp) SEQ="005";;
       gateway.lp) SEQ="001";;
       internet.lp) SEQ="003";;
-      iproutes.lp) SEQ="018";;
-      LAN.lp) SEQ="008";;
+      iproutes.lp) SEQ="014";;
+      LAN.lp) SEQ="009";;
       lte.lp) SEQ="004";;
-      natalghelper.lp) SEQ="015"; HIDE="$HIDE_EXTRA";;
+      natalghelper.lp) SEQ="011"; HIDE="$HIDE_EXTRA";;
       nfc.lp) SEQ="004";;
-      parental.lp) SEQ="020";;
-      printersharing.lp) SEQ="012"; HIDE="$HIDE_EXTRA";;
-      qos.lp) SEQ="017";;
-      relaysetup.lp) SEQ="019"; HIDE="$HIDE_EXTRA";;
-      system.lp) SEQ="013";;
-      telephony.lp) SEQ="010";;
-      tod.lp) SEQ="021";;
-      usermgr.lp) SEQ="022";;
-      wanservices.lp) SEQ="016";;
+      parental.lp) SEQ="021";;
+      printersharing.lp) SEQ="020"; HIDE="$HIDE_EXTRA";;
+      qos.lp) SEQ="016";;
+      relaysetup.lp) SEQ="025"; HIDE="$HIDE_EXTRA";;
+      system.lp) SEQ="012";;
+      telephony.lp) SEQ="015";;
+      tod.lp) SEQ="022";;
+      usermgr.lp) SEQ="018";;
+      wanservices.lp) SEQ="013";;
       wireless_boosters.lp) SEQ="007";;
       wireless.lp) SEQ="006";;
-      xdsl.lp) SEQ="025";;
+      xdsl.lp) SEQ="024";;
       *) SEQ=$(basename $FILE | cut -c1-3);;
     esac
     if [ -z "$TMP" ]
