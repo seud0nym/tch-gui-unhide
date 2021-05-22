@@ -107,6 +107,15 @@ if [ -z "$IPADDR" ]
 then
   LANCONFIG=""
 else
+  IPPREFIX="$(echo $IPADDR | cut -d. -f1-3)"
+  for GUESTIP in $(uci show network | grep "network\.Guest.*ipaddr=" | cut -d"'" -f2 | cut -d. -f1-3 | sort -u)
+  do
+    if [ "$IPPREFIX" = "$GUESTIP" ]
+    then
+      echo "ABORTING: $IPADDR conflicts with the Guest IP address range!"
+      exit
+    fi
+  done
   echo "NOTE:    IP address will be set to '$IPADDR'"
   LANCONFIG="uci set network.lan.ipaddr='$IPADDR';uci commit network;/etc/init.d/network reload;"
 fi
