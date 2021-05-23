@@ -132,5 +132,17 @@ sed \
  -e 's/if cur_dhcp_intf == "lan" then/if cur_dhcp_intf == "lan" and not bridged.isBridgedMode() then/' \
  -e 's/please do factory reset/you can revert without factory reset/' \
  -e 's/gateway-modal/broadband-modal/' \
+ -e '/header = T"Hostname",/,/^  {/d' \
+ -e '/header = "",/i \    header = T"Hostname" ,' \
+ -e '/header = "",/i \    name = "sleases_name",' \
+ -e '/header = "",/i \    param = "name",' \
+ -e '/header = "",/i \    type = "text",' \
+ -e '/header = "",/i \    attr = { input = { class="span2" } },' \
+ -e '/header = "",/i \  },' \
+ -e '/header = "",/i \  {' \
+ -e 's/ address/ Address/' \
+ -e 's/ leases/ Leases/' \
+ -e 's/ subnet/ Subnet/' \
+ -e 's/ time/ Time/' \
  -i /www/docroot/modals/ethernet-modal.lp
 
