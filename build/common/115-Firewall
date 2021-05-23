@@ -111,27 +111,6 @@ sed \
   -e 's/Dest Port/Destination Port/' \
   -i /www/docroot/modals/nat-alg-helper-modal.lp
 
-echo [$SCRIPT]: Remove Port Forwarding from WAN Services - Moved to Firewall tab
-sed \
-  -e '/-- In UCI/,/local pfw_data,/d' \
-  -e '/local ipv6Data/,/local pfw_v6_data,/d' \
-  -e "/Port forwarding table/,/ngx.print('/d" \
-  -e '/if ipv6Data.lanIpv6Enabled/,/end$/d' \
-  -e '/local function getConfPath/,/local uri = ngx.var.uri/d' \
-  -e 's/\(local help_link =\).*/\1 nil/' \
-  -i /www/docroot/modals/wanservices-modal.lp
-echo [$SCRIPT]: Remove SIP ALG and NAT from WAN Services
-sed \
-  -e '/if #alg_sip_paths/,/ end /d' \
-  -e '/if zonenum ~= "" /,/ end /d' \
-  -i /www/docroot/modals/wanservices-modal.lp
-echo [$SCRIPT]: Add WOL over Internet destination IP
-sed \
-  -e '/qry_params.WOL_port/a \  qry_params.WOL_dest_ip = "uci.wol.config.dest_ip"' \
-  -e '/qry_valid.WOL_port/a  \  qry_valid.WOL_dest_ip = vSIIP' \
-  -e '/createInputText(T"WAN port"/i \                    ui_helper.createInputText(T"Destination IP", "WOL_dest_ip", qry_data["WOL_dest_ip"], nil, qry_helpmsg["WOL_dest_ip"]),' \
-  -i /www/docroot/modals/wanservices-modal.lp
-
 echo [$SCRIPT]: Improving WAN Services card
 sed \
   -e 's/class = "span4",//' \
