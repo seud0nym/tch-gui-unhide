@@ -56,7 +56,7 @@ if usbpath then
       if f then
         local sha256 = f:read()
         f:close()
-        checksum[basename] = match(sha256,"(.+) .*")
+        checksum[basename] = sha256
       end
     end
   end
