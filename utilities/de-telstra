@@ -880,6 +880,7 @@ case "$POWER" in
       uci commit power;;
 esac
 
+# macoers repository URL changed, so need to update if it is the old one
 OPKG_DEP=$(grep -c 'www.macoers.com/repository' /etc/opkg/customfeeds.conf)
 if [ "$OPKG" = "y" -o $OPKG_DEP -gt 0 ]
 then
@@ -927,6 +928,8 @@ HW18
         if [ $? -eq 0 ]
         then
           opkg update
+          echo [$SCRIPT]: Updating System CA certificates
+          opkg install --force-overwrite ca-certificates
         else
           echo [$SCRIPT]: WARNING: Unable to execute opkg update - You do not have an internet connection???
         fi
