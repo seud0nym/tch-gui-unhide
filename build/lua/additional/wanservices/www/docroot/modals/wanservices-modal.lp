@@ -13,7 +13,7 @@ local portslist = require("portslist_helper")
 local uinetwork = require("web.uinetwork_helper")
 local hosts_ac, hosts_ac_v6 = uinetwork.getAutocompleteHostsList()
 local io, pairs, string = io, pairs, string
-local table, ipairs, tonumber, format, match = table, ipairs, tonumber, string.format, string.match
+local table, ipairs, tonumber, format, match, gsub, untaint = table, ipairs, tonumber, string.format, string.match, string.gsub, string.untaint
 local currentuserrole = ngx.ctx.session:getrole()
 --local tprint=require("tch.tableprint")
 
@@ -82,6 +82,10 @@ local ddns_ipv4_params = {
   ddnsv4_cacert = "uci.ddns.service.@myddns_ipv4.cacert",
 }
 
+local acme_params = {
+  acme_enabled = "rpc.gui.acme.enabled",
+}
+
 local ddns_ipv6_params = {
   ddnsv6_enabled = "uci.ddns.service.@myddns_ipv6.enabled",
   ddnsv6_service_name = "uci.ddns.service.@myddns_ipv6.service_name",
@@ -145,10 +149,14 @@ local ddns_ipv4_valid = {
   ddnsv4_service_name = gAV(gVIPIL(gOrV(vSIDN, vSIIP), "ddnsv4_enabled", {"1"}), gVIPIL(gVIES(valid_ipv4_services), "ddnsv4_enabled", {"1"})),
   ddnsv4_username = gVIPIL(vNES, "ddnsv4_enabled", {"1"}),
   ddnsv4_password = gVP(gVIPIL(vNES, "ddnsv4_enabled", {"1"})),
-  ddnsv4_domain = gAV(gOrV(vSIDN, vSIIP), gVIPIL(vNES, "ddnsv4_enabled", {"1"})),
+  ddnsv4_domain = gOrV(vSIDN, vSIIP),
   ddnsv4_lookup_host = set_lookup_hostv4,
   ddnsv4_usehttps = vB,
   ddnsv4_cacert = set_cacertv4,
+}
+
+local acme_valid = {
+  acme_enabled = vB
 }
 
 local ddns_ipv6_valid = {
@@ -156,7 +164,7 @@ local ddns_ipv6_valid = {
   ddnsv6_service_name = gAV(gVIPIL(gOrV(vSIDN, vSIIP6), "ddnsv6_enabled", {"1"}), gVIPIL(gVIES(valid_ipv6_services), "ddnsv6_enabled", {"1"})),
   ddnsv6_username = gVIPIL(vNES, "ddnsv6_enabled", {"1"}),
   ddnsv6_password = gVP(gVIPIL(vNES, "ddnsv6_enabled", {"1"})),
-  ddnsv6_domain = gAV(gOrV(vSIDN, vSIIP6), gVIPIL(vNES, "ddnsv6_enabled", {"1"})),
+  ddnsv6_domain = gOrV(vSIDN, vSIIP6),
   ddnsv6_lookup_host = set_lookup_hostv6,
   ddnsv6_usehttps = vB,
   ddnsv6_cacert = set_cacertv6,
@@ -192,9 +200,18 @@ local qry_data, qry_helpmsg = post_helper.handleQuery(qry_params, qry_valid)
 
 local ddns_ipv4_data, ddns_ipv4_helpmsg
 local ddns_ipv4_status, ddns_ipv4_update_info
+local acme_domain, acme_data, acme_helpmsg
 
 if ddns_ipv4 then
   ddns_ipv4_data, ddns_ipv4_helpmsg = post_helper.handleQuery(ddns_ipv4_params, ddns_ipv4_valid)
+  if ddns_ipv4_data["ddnsv4_domain"] ~= "yourhost.example.com" then
+    acme_domain = vSIDN(ddns_ipv4_data["ddnsv4_domain"])
+    if acme_domain then
+      acme_data, acme_helpmsg = post_helper.handleQuery(acme_params, acme_valid)
+    else
+      proxy.set("rpc.gui.acme.enabled", "0")
+    end
+  end
 end
 
 local ddns_ipv6_data, ddns_ipv6_helpmsg
@@ -412,39 +429,50 @@ local upnp_options = {
 
 local upnp_data, upnp_helpmsg = post_helper.handleTableQuery(upnp_columns, upnp_options, nil, nil, nil)
 
-local help_link = nil
   ngx.print('\
-');  ngx.print(ui_helper.createHeader(T"WAN Services", true, true, nil, help_link) ); ngx.print('\
+');  ngx.print(ui_helper.createHeader(T"WAN Services", false, true) ); ngx.print('\
 <div class="modal-body update">\
   <form class="form-horizontal" method="post" action="modals/wanservices-modal.lp">\
   ');  
-  ngx.print(ui_helper.createMessages(message_helper.popMessages()))
+  local basic = {
+    span = {
+      class = "span12"
+    },
+  }
+ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   if ddns_ipv4 ~= nil then
     ngx.print('\
   <fieldset>\
     <legend>');  ngx.print( T"IPv4 Dynamic DNS" ); ngx.print('</legend>\
     ');  
-     ngx.print(
+    ngx.print(
       ui_helper.createLight(T"Status", nil, ddns_state_map[ddns_ipv4_status], { light = { class = ddns_light_map[ddns_ipv4_status] } }),
       ui_helper.createSwitch(T"Enabled", "ddnsv4_enabled", ddns_ipv4_data["ddnsv4_enabled"], nil, ddns_ipv4_helpmsg["ddnsv4_enabled"]),
       ui_helper.createInputText(T"Service Name", "ddnsv4_service_name", ddns_ipv4_data["ddnsv4_service_name"], {autocomplete = ddns_ipv4_supported_services}, ddns_ipv4_helpmsg["ddnsv4_service_name"]),
       ui_helper.createSwitch(T"HTTPS", "ddnsv4_usehttps", ddns_ipv4_data["ddnsv4_usehttps"], nil, ddns_ipv4_helpmsg["ddnsv4_usehttps"]),
-      ui_helper.createLabel(T"", T"Note: HTTPS mode will enable encryption but not certificate-based authentication of DynDNS service", { span = {class = "span12"},}),
+      ui_helper.createLabel(T"", T"Note: HTTPS mode will enable encryption but not certificate-based authentication of DynDNS service", basic),
       ui_helper.createInputText(T"Domain", "ddnsv4_domain", ddns_ipv4_data["ddnsv4_domain"], nil, ddns_ipv4_helpmsg["ddnsv4_domain"]),
       ui_helper.createInputText(T"User Name", "ddnsv4_username", ddns_ipv4_data["ddnsv4_username"], nil, ddns_ipv4_helpmsg["ddnsv4_username"]),
       ui_helper.createInputPassword(T"Password", "ddnsv4_password", ddns_ipv4_data["ddnsv4_password"], nil, ddns_ipv4_helpmsg["ddnsv4_password"])
     )
     if ddns_ipv4_data["ddnsv4_enabled"] == "1" then
-      local basic = {
-        span = {
-          class = "span12"
-        },
-      }
       ngx.print(
         ui_helper.createLabel(T"DynDNS Information", ddns_ipv4_update_info, basic)
       )
     end
-    ngx.print('\
+    if acme_domain then
+      ngx.print(
+        ui_helper.createSwitch(T"Server Certficate<span class='icon-question-sign' title='Enable to automatically issue and renew a Server Certificate for this domain'></span>", "acme_enabled", acme_data["acme_enabled"], nil, acme_helpmsg["acme_enabled"])
+      )
+      local acme_log = proxy.get("rpc.gui.acme.log")[1].value
+      if acme_log == "" then
+        acme_log = T"<i>No recent log messages found</i>"
+      end
+      ngx.print(
+        ui_helper.createLabel(T"Certificate Log", gsub(untaint(acme_log), "\n", "<br>"), basic)
+      )
+    end
+  ngx.print('\
   </fieldset>\
   ');  end   ngx.print('\
   ');  
@@ -458,17 +486,12 @@ local help_link = nil
       ui_helper.createSwitch(T"Enabled", "ddnsv6_enabled", ddns_ipv6_data["ddnsv6_enabled"], nil, ddns_ipv6_helpmsg["ddnsv6_enabled"]),
       ui_helper.createInputText(T"Service Name", "ddnsv6_service_name", ddns_ipv6_data["ddnsv6_service_name"], {autocomplete = ddns_ipv6_supported_services}, ddns_ipv6_helpmsg["ddnsv6_service_name"]),
       ui_helper.createSwitch(T"HTTPS", "ddnsv6_usehttps", ddns_ipv6_data["ddnsv6_usehttps"], nil, ddns_ipv6_helpmsg["ddnsv6_usehttps"]),
-      ui_helper.createLabel(T"", T"Note: HTTPS mode will enable encryption but not certificate-based authentication of DynDNS service", { span = {class = "span12"},}),
+      ui_helper.createLabel(T"", T"Note: HTTPS mode will enable encryption but not certificate-based authentication of DynDNS service", basic),
       ui_helper.createInputText(T"Domain", "ddnsv6_domain", ddns_ipv6_data["ddnsv6_domain"], nil, ddns_ipv6_helpmsg["ddnsv6_domain"]),
       ui_helper.createInputText(T"User Name", "ddnsv6_username", ddns_ipv6_data["ddnsv6_username"], nil, ddns_ipv6_helpmsg["ddnsv6_username"]),
       ui_helper.createInputPassword(T"Password", "ddnsv6_password", ddns_ipv6_data["ddnsv6_password"], nil, ddns_ipv6_helpmsg["ddnsv6_password"])
     )
     if ddns_ipv6_data["ddnsv6_enabled"] == "1" then
-      local basic = {
-        span = {
-          class = "span12"
-        },
-      }
       ngx.print(
         ui_helper.createLabel(T"DynDNS Information", ddns_ipv6_update_info, basic)
       )

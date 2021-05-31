@@ -154,5 +154,6 @@ local cron_data, cron_helpmsg = post_helper.handleTableQuery(cron_columns, cron_
 $("#crontable td:contains(/usr/bin/thermalProtection)").siblings(":last").children(".btn-table-edit,.btn-table-delete").hide(); \
 $("#crontable td:contains(/sbin/trafficmon.lua)").siblings(":last").children(".btn-table-delete").hide(); \
 $("#crontable td:contains(/usr/sbin/traffichistory.lua)").siblings(":last").children(".btn-table-delete").hide(); \
+$("#crontable td:contains(/root/.acme.sh/acme-ipsec.sh)").siblings(":last").children(".btn-table-edit,.btn-table-delete").hide(); \
 </script>\
 '); 

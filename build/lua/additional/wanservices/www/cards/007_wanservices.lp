@@ -16,6 +16,7 @@ local wan_services_data = {
   ddns_IPv4_enabled = "uci.ddns.service.@myddns_ipv4.enabled",
   ddns_IPv6_enabled = "uci.ddns.service.@myddns_ipv6.enabled",
   ddns_status = "rpc.ddns.status",
+  cert_IPv4_enabled = "rpc.gui.acme.enabled",
 }
 content_helper.getExactContent(wan_services_data)
 
@@ -41,6 +42,10 @@ if session:hasAccess("/modals/wanservices-modal.lp") then
       if wan_services_data["ddns_"..family.."_enabled"] ~= "1" then
         ddnsstate = ui_helper.createSimpleLight("0", T(state_prefix .. "disabled"))
       else
+        local cert = ""
+        if wan_services_data["cert_"..family.."_enabled"] and wan_services_data["cert_"..family.."_enabled"] == "1" then
+          cert="&nbsp;<span class='icon-lock' title='Server Certificate auto-renewal enabled'></span>"
+        end
         local service_status
         if status then
           for x in gmatch(status, '([^%]]+)') do
@@ -52,14 +57,14 @@ if session:hasAccess("/modals/wanservices-modal.lp") then
         end
         if service_status then
           if service_status == "Domain's IP updated" then
-            ddnsstate = ui_helper.createSimpleLight("1", T(state_prefix .. "- IP updated"))
+            ddnsstate = ui_helper.createSimpleLight("1", T(state_prefix .. "- IP updated" .. cert))
           elseif service_status == "No error received from server" then
-            ddnsstate = ui_helper.createSimpleLight("2", T(state_prefix .. "- IP updating"))
+            ddnsstate = ui_helper.createSimpleLight("2", T(state_prefix .. "- IP updating" .. cert))
           else
-            ddnsstate = ui_helper.createSimpleLight("4", T(state_prefix .. "update error"))
+            ddnsstate = ui_helper.createSimpleLight("4", T(state_prefix .. "update error" .. cert))
           end
         else
-          ddnsstate = ui_helper.createSimpleLight("4", T(state_prefix .. "state unknown"))
+          ddnsstate = ui_helper.createSimpleLight("4", T(state_prefix .. "state unknown" .. cert))
         end
       end
 
