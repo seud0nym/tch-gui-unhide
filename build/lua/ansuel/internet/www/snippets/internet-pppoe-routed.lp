@@ -598,7 +598,8 @@ if content_rpc["dnsv6"] and content_rpc["dnsv6"]:len() > 0 then
   ajax_attr.span.id = "dnsv6"
   html[#html+1] = ui_helper.createLabel(T"IPv6 DNS Servers", content_rpc["dnsv6"],ajax_attr)
 end
-  -- ATM VP/VC
+
+-- ATM VP/VC
 if wan_ppp_over_atm then
   local advanced = {
     group = {
@@ -609,6 +610,13 @@ if wan_ppp_over_atm then
   html[#html + 1] = ui_helper.createLabel(T"ATM VP / VC", vp_vc, advanced)
   html[#html + 1] = ui_helper.createLabel(T"Encapsulation", upper(content_uci_xtm["wan_atm_enc"]), advanced)
 end
+
+local alert_warn = {
+  alert = {
+    class = "alert alert-warn"
+  },
+}
+html[#html+1] = ui_helper.createAlertBlock(T"If you turn off DNS Auto-discovery, you <b>MUST</b> add at least one custom DNS Server, or your setting will be ignored!",alert_warn)
 
 ngx.print(html)
 ngx.print('</fieldset>');
