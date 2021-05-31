@@ -29,7 +29,7 @@ GUI_ACME_.get = {
     return tostring(isEnabled())
   end,
   log = function()
-    local cmd = io.popen("/sbin/logread -l 5000 | grep \"acme.*\\[$(date +'%a %b %d')\" | tail -n 20 | sed -e 's/.\\[[0-9;]*m//g' -e 's/^\\(.*acme.*\\)\\(\\[.*\\)/\\2/'","r")
+    local cmd = io.popen("/sbin/logread -e \"acme.*\\[$(date +'%a %b %d')\" | tail -n 20 | sed -e 's/.\\[[0-9;]*m//g' -e 's/^\\(.*acme.*\\)\\(\\[.*\\)/\\2/'","r")
     local status = cmd:read("*a")
     cmd:close()
     return status
