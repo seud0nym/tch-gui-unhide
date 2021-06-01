@@ -439,7 +439,7 @@ local upnp_data, upnp_helpmsg = post_helper.handleTableQuery(upnp_columns, upnp_
       class = "span12"
     },
   }
-ngx.print(ui_helper.createMessages(message_helper.popMessages()))
+  ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   if ddns_ipv4 ~= nil then
     ngx.print('\
   <fieldset>\
@@ -462,15 +462,30 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     end
     if acme_domain then
       ngx.print(
-        ui_helper.createSwitch(T"Server Certficate<span class='icon-question-sign' title='Enable to automatically issue and renew a Server Certificate for this domain'></span>", "acme_enabled", acme_data["acme_enabled"], nil, acme_helpmsg["acme_enabled"])
+        ui_helper.createSwitch(T"Server Certficate<span class='icon-question-sign' title='Enable to automatically issue and renew a Server Certificate for the specified Domain.\nNOTE: You do not have to enable Dynamic DNS (e.g. if you have a static IP), as long as\nas long as you use a Domain that will resolve to the IP address of this device.'></span>", "acme_enabled", acme_data["acme_enabled"], nil, acme_helpmsg["acme_enabled"])
       )
+      local acme_log_attr = {
+        span = {
+          id = "acme_log",
+          class = "span12",
+        },
+      }
       local acme_log = proxy.get("rpc.gui.acme.log")[1].value
-      if acme_log == "" then
-        acme_log = T"<i>No recent log messages found</i>"
-      end
       ngx.print(
-        ui_helper.createLabel(T"Certificate Log", gsub(untaint(acme_log), "\n", "<br>"), basic)
-      )
+        ui_helper.createLabel(T"Certificate Log", untaint(acme_log), acme_log_attr),'\
+        <script>\
+          var acmeLogFuncID;\
+          function updateAcmeLog(){\
+            $.post("/ajax/acme-log.lua", [tch.elementCSRFtoken()], function(data){\
+              $("#acme_log").html(data["html"]);\
+            }, "json")\
+            .fail(function(response){\
+              if(response.status==403||response.status==404){clearInterval(acmeLogFuncID);}\
+            });\
+          }\
+          $().ready(function(){acmeLogFuncID=setInterval(updateAcmeLog,2500);});\
+        </script>\
+      ')
     end
   ngx.print('\
   </fieldset>\
