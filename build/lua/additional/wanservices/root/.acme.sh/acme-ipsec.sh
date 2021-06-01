@@ -79,7 +79,7 @@ done
 shift $((OPTIND-1))
 
 LOGGER="/usr/bin/logger $TO_STDERR -t $SCRIPT -p"
-_log() { priority="$1"; shift; $LOGGER $priority "[$(date +'%a %b %d %T %Z %Y')] $@"; }
+_log() { priority="$1"; shift; $LOGGER $priority "[$(date)] $@"; }
 _dbg() { [ "!$DEBUG" = "!--debug" ] && { _log user.debug $@; } }
 
 if [ ! -f "$ACME_DIR/$SCRIPT" ]; then
@@ -272,7 +272,7 @@ if [ $CRON = Y ]; then
     if [ "!$FORCE_RENEW" = "!--force" ]; then
       entry="$entry -F"
     fi
-    _log user.info "Creating scheduled cron job to check certificate renewal every day at 00:$(printf '%02d' $mm)"
+    _log user.info "Creating scheduled cron job to check certificate renewal every day at 00:$(printf '%02d' $mm)am"
     lock /var/lock/$SCRIPT.cron
     _dbg "Acquired lock on /var/lock/$SCRIPT.cron"
     sed -e "/$SCRIPT/d" -i /etc/crontabs/root
