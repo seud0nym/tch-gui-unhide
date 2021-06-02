@@ -112,7 +112,7 @@ do
       FILENAME="$(echo $s | cut -d/ -f1)"
       SEQUENCE="$(echo $FILENAME | cut -d- -f1)"
       DIRECTORY="$(echo $s | cut -d/ -f2-)"
-      if [ $FILENAME = "060-Additional" ]
+      if [ $FILENAME = "055-Additional" ]
       then
         for b in $(cat "$DIRECTORY/$FILENAME")
         do
