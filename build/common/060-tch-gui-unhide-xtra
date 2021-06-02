@@ -1,9 +1,7 @@
-if [ $THEME_ONLY = n ]; then
-  # Run any extra feature scripts
-  for s in $(ls tch-gui-unhide-xtra.* 2>/dev/null)
-  do
-    echo -n [$SCRIPT]: Executing extra feature script for $(echo $s | cut -d. -f2-):
-    . $s
-  done
-fi
+# Run any extra feature scripts
+for s in $(ls tch-gui-unhide-xtra.* 2>/dev/null)
+do
+  echo -n [$SCRIPT]: Executing extra feature script for $(echo $s | cut -d. -f2-):
+  . $s
+done
 
