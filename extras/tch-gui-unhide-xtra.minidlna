@@ -187,7 +187,6 @@ PLUG
     -e '/DLNA name: ",/a\                tinsert(html, ui_helper.createSwitch(T"Auto-discover new files: ", "dlna_inotify", content["dlna_inotify"], attributes))' \
     -e '/DLNA name: ",/a\                tinsert(html, "<\/div>")' \
     -e '/DLNA name: ",/a\                tinsert(html, "<\/fieldset>")' \
-    -e '/^            tinsert(html, "<\/fieldset>")/d' \
     -i /www/docroot/modals/contentsharing-modal.lp
 else
   grep -q '/var/run/minidlna_d.pid' /lib/functions/contentsharing.sh

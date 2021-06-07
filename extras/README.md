@@ -1,5 +1,5 @@
 # Extras
-This is where extra functionality scripts can be found. These are not incorporated in the main tch-gui-unhide code line, because they rely on additional packages being installed, and/or they make changes outside of the /www directory.
+This is where extra functionality scripts can be found. These are not incorporated in the main tch-gui-unhide code line, because they rely on additional packages being installed.
 
 Extras scripts that rely on packages to be installed require `opkg` to be configured correctly on your device. See **opkg Configuration** [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#opkg-Configuration).
 
@@ -20,7 +20,7 @@ Creates the the following transformer UCI mappings and commit/apply scripts to s
 4. Now you can delete `tch-gui-unhide-xtra.minidlna`
 
 ## tch-gui-unhide-xtra.rsyncd
-Adds the ability to enable and enable the rsync daemon from the GUI.
+Adds the ability to enable and disable the rsync daemon from the GUI.
 #### Download
 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.rsyncd
 #### Prerequisites 
