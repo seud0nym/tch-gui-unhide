@@ -7,9 +7,8 @@ local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
 
-local find, sub = string.find, string.sub
+local find, format, match, sub = string.find, string.format, string.match, string.sub
 local floor, ipairs = math.floor, ipairs
-local format = string.format
 
 local temp1_input = {}
 local temp_output = {}
@@ -29,6 +28,11 @@ content_helper.getExactContent(content)
 content["uptime"] = content_helper.readfile("/proc/uptime","number",floor)
 content["load"] = content_helper.readfile("/proc/loadavg","string"):sub(1,14)
 content["temps"] = table.concat(temp_output, "&deg; ") .. "&deg;"
+
+local cmd = io.popen("df -h  / | grep ^overlay")
+local overlay = cmd:read()
+cmd:close()
+content["disk_total"], content["disk_free"] = match(overlay, "%S+%s+(%S+)%s+%S+%s+(%S+).*")
 
 -- Construct an uptime string from the number of seconds
 local function secondsToTime(uptime)
@@ -67,11 +71,12 @@ local headerAttr = {
   <div class="smallcard">\
     ');  ngx.print( ui_helper.createCardHeader(T"Gateway", "modals/gateway-modal.lp", nil, nil, headerAttr) ); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf129;">\
-      <span class="simple-desc"><i class="icon-time status-icon"></i>&nbsp; System Time: <strong id="gateway-card-time">'); ngx.print(os.date("%d/%m/%Y %H:%M:%S",os.time())); ngx.print('</strong></span>\
-      <span class="simple-desc"><i class="icon-circle-arrow-up status-icon"></i>&nbsp; Up: <strong id="gateway-card-uptime">'); ngx.print(secondsToTime(content.uptime)); ngx.print('</strong></span>\
-      <span class="simple-desc"><i class="icon-dashboard status-icon"></i>&nbsp; CPU Usage: <strong><span id="gateway-card-cpu">'); ngx.print(content.cpu); ngx.print('</span>% [<span id="gateway-card-load">'); ngx.print(content.load); ngx.print('</span>]</strong></span>\
-      <span class="simple-desc"><i class="icon-hdd status-icon"></i>&nbsp; RAM: <span id="gateway-card-ram-total">'); ngx.print(format('%.2f', content.ram_total / 1024)); ngx.print('</span>MB <strong>[<span id="gateway-card-ram-free">'); ngx.print(format('%.2f', content.ram_free / 1024)); ngx.print('</span>MB Free]</strong></span>\
-      <span class="simple-desc"><i class="icon-fire status-icon"></i>&nbsp; Sensor Temperatures: <strong><span id="gateway-card-temps">'); ngx.print(content.temps); ngx.print('</span></strong></span>\
+      <span class="simple-desc"><i class="icon-time status-icon"></i> System Time: <strong id="gateway-card-time">'); ngx.print(os.date("%d/%m/%Y %H:%M:%S",os.time())); ngx.print('</strong></span>\
+      <span class="simple-desc"><i class="icon-circle-arrow-up status-icon"></i> Up: <strong id="gateway-card-uptime">'); ngx.print(secondsToTime(content.uptime)); ngx.print('</strong></span>\
+      <span class="simple-desc"><i class="icon-dashboard status-icon"></i> CPU Usage: <strong><span id="gateway-card-cpu">'); ngx.print(content.cpu); ngx.print('</span>% [<span id="gateway-card-load">'); ngx.print(content.load); ngx.print('</span>]</strong></span>\
+      <span class="simple-desc"><i class="icon-beaker status-icon"></i> RAM: <span id="gateway-card-ram-total">'); ngx.print(format('%.2f', content.ram_total / 1024)); ngx.print('</span>MB <strong>[<span id="gateway-card-ram-free">'); ngx.print(format('%.2f', content.ram_free / 1024)); ngx.print('</span>MB Free]</strong></span>\
+      <span class="simple-desc"><i class="icon-hdd status-icon"></i> File System: <span id="gateway-card-disk-total">'); ngx.print(content.disk_total); ngx.print('</span> <strong>[<span id="gateway-card-ram-free">'); ngx.print(content.disk_free); ngx.print('</span> Free]</strong></span>\
+      <span class="simple-desc"><i class="icon-fire status-icon"></i> Sensor Temperatures: <strong><span id="gateway-card-temps">'); ngx.print(content.temps); ngx.print('</span></strong></span>\
     </div>\
   </div>\
 </div>\
@@ -95,6 +100,8 @@ function updateGatewayCard(){\
     $("#gateway-card-load").text(data["load"]);\
     $("#gateway-card-ram-free").text((Number(data["ram_free"]) / 1024).toFixed(2));\
     $("#gateway-card-ram-total").text((Number(data["ram_total"]) / 1024).toFixed(2));\
+    $("#gateway-card-disk-free").text(data["disk_free"]);\
+    $("#gateway-card-disk-total").text(data["disk_total"]);\
     $("#gateway-card-temps").html(data["temps"]);\
   }, "json")\
   .fail(function(response){\
