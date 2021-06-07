@@ -1,11 +1,48 @@
+echo [$SCRIPT]: Add Mounted USB Devices to Content Sharing card
+sed \
+  -e 's/\t/  /g' \
+  -e '/dlna_name/d' \
+  -e '/samba_name/d' \
+  -e '/^local content/i \local usb = {}' \
+  -e '/^local content/i\local usbdev_data = proxy.getPN("sys.usb.device.", true)' \
+  -e '/^local content/i\if usbdev_data then' \
+  -e '/^local content/i\  local v' \
+  -e '/^local content/i\  for _,v in ipairs(usbdev_data) do' \
+  -e '/^local content/i\    local partitions = proxy.get(v.path .. "partitionOfEntries")' \
+  -e '/^local content/i\    if partitions then' \
+  -e '/^local content/i\      partitions = partitions[1].value' \
+  -e '/^local content/i\      if partitions ~= "0" then' \
+  -e '/^local content/i\        usb[#usb+1] = {' \
+  -e '/^local content/i\          product = proxy.get(v.path .. "product")[1].value,' \
+  -e '/^local content/i\          size = proxy.get(v.path .. "partition.1.TotalSpace")[1].value,' \
+  -e '/^local content/i\        }' \
+  -e '/^local content/i\      end' \
+  -e '/^local content/i\    end' \
+  -e '/^local content/i\  end' \
+  -e '/^local content/i\end' \
+  -e '/ngx.print(html)/i\                if #usb == 0 then' \
+  -e '/ngx.print(html)/i\                  tinsert(html, ui_helper.createSimpleLight("0", T"No USB devices found", attributes))' \
+  -e '/ngx.print(html)/i\                else' \
+  -e '/ngx.print(html)/i\                  tinsert(html, ui_helper.createSimpleLight("1", format(N("%d USB Device found:","%d USB devices found:",#usb),#usb), attributes))' \
+  -e '/ngx.print(html)/i\                  tinsert(html, T"<p class=\\"subinfos\\">")' \
+  -e '/ngx.print(html)/i\                  local v' \
+  -e '/ngx.print(html)/i\                  for _,v in pairs(usb) do' \
+  -e '/ngx.print(html)/i\                    tinsert(html, format("<span class=\\"simple-desc\\"><i class=\\"icon-hdd status-icon\\"></i>&nbsp;%s %s</span>", v.size, v.product))' \
+  -e '/ngx.print(html)/i\                  end' \
+  -e '/ngx.print(html)/i\                  tinsert(html, T"</p>")' \
+  -e '/ngx.print(html)/i\                end' \
+  -i /www/cards/012_contentsharing.lp
+
 echo [$SCRIPT]: Make Content Sharing Screen nicer
 sed \
   -e 's/getValidateCheckboxSwitch()/validateBoolean/' \
   -e 's/<form class/<form id="content-sharing-modal" class/' \
   -e 's/createCheckboxSwitch/createSwitch/' \
   -e '/T"General status"/d' \
+  -e '/^            tinsert(html, "<\/fieldset>")/d' \
   -e '/"File Server Enabled"/i\                tinsert(html, "<fieldset><legend>" .. T"File Server Status" .. "<\/legend>")' \
   -e '/"File Server descript/a\                tinsert(html, "<\/fieldset>")' \
   -e '/DLNA Enabled"/i\                tinsert(html, "<fieldset><legend>" .. T"DLNA Server Status" .. "<\/legend>")' \
+  -e '/DLNA name"/a\                tinsert(html, "</fieldset>")' \
   -i /www/docroot/modals/contentsharing-modal.lp
 

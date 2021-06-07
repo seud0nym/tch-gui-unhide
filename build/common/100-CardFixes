@@ -108,13 +108,6 @@ sed \
   -e 's/\r//' \
   -i /www/cards/018_relaysetup.lp
 
-echo [$SCRIPT]: Add SAMBA and DLNA server names to the Content Sharing card
-sed \
-  -e 's/\t/  /g' \
-  -e '/Light(content\["dlna/i\        tinsert(html, format(T"<p class=\\"subinfos\\">%s</p>", content["samba_name"]))' \
-  -e '/Light(content\["dlna/a\        tinsert(html, format(T"<p class=\\"subinfos\\">%s</p>", content["dlna_name"]))' \
-  -i /www/cards/012_contentsharing.lp
-
 echo [$SCRIPT]: Only show xDSL Config card if WAN interface is DSL 
 sed \
  -e '/uci.xdsl.xdsl.@dsl0.enabled/a \      wan_ifname = "uci.network.interface.@wan.ifname",' \
