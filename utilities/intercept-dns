@@ -78,6 +78,7 @@ uci -q delete firewall.doh6_fwd
 uci -q delete firewall.dns_xcptn
 uci -q delete firewall.ipsets_restore
 uci -q delete firewall.doh_ipsets_restore # Used by previous version of this script
+uci -q delete firewall.doh_fwd_xcptn
 
 echo -e "${GREEN}[$SCRIPT] Removing the cron job${NC}"
 sed -e '/doh-ipsets-maintain/d' -i /etc/crontabs/root
@@ -162,6 +163,10 @@ if [ "$IPv6" = "n" ]
 then
   uci set firewall.dot_fwd.family="ipv4"
 fi
+if [ ! -z "$EXC_IP4" ]
+then
+  uci set firewall.dot_fwd.ipset="!dns_xcptn src"
+fi
 
 # Configure IP sets
 echo -e "${GREEN}[$SCRIPT] Creating DNS over HTTPS IP Set for IPv4${NC}"
@@ -198,8 +203,22 @@ do
 done
 END-RESTORE
 chmod +x /usr/sbin/ipsets-restore
- 
+
 # Filter DoH traffic
+if [ ! -z "$EXC_IP4" ]
+then
+  echo -e "${GREEN}[$SCRIPT] Configuring IPv4 DNS over HTTPS acceptance for excluded addresses${NC}"
+  uci set firewall.doh_fwd_xcptn="rule"
+  uci set firewall.doh_fwd_xcptn.name="Allow-DoH"
+  uci set firewall.doh_fwd_xcptn.src="lan"
+  uci set firewall.doh_fwd_xcptn.dest="wan"
+  uci set firewall.doh_fwd_xcptn.dest_port="443"
+  uci set firewall.doh_fwd_xcptn.proto="tcp udp"
+  uci set firewall.doh_fwd_xcptn.family="ipv4"
+  uci set firewall.doh_fwd_xcptn.ipset="dns_xcptn src"
+  uci set firewall.doh_fwd_xcptn.target="ACCEPT"
+fi
+
 echo -e "${GREEN}[$SCRIPT] Configuring IPv4 DNS over HTTPS rejection${NC}"
 uci set firewall.doh_fwd="rule"
 uci set firewall.doh_fwd.name="Deny-DoH"
