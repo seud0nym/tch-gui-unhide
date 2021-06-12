@@ -78,6 +78,7 @@ uci -q delete firewall.doh6_fwd
 uci -q delete firewall.dns_xcptn
 uci -q delete firewall.ipsets_restore
 uci -q delete firewall.doh_ipsets_restore # Used by previous version of this script
+uci -q delete firewall.dot_fwd.xcptn
 uci -q delete firewall.doh_fwd_xcptn
 
 echo -e "${GREEN}[$SCRIPT] Removing the cron job${NC}"
@@ -151,6 +152,19 @@ then
 fi
 
 # Filter DoT traffic
+if [ ! -z "$EXC_IP4" ]
+then
+  echo -e "${GREEN}[$SCRIPT] Configuring IPv4 DNS over TLS acceptance for excluded addresses${NC}"
+  uci set firewall.dot_fwd_xcptn="rule"
+  uci set firewall.dot_fwd_xcptn.name="Allow-DoT"
+  uci set firewall.dot_fwd_xcptn.src="lan"
+  uci set firewall.dot_fwd.xcptn.dest="wan"
+  uci set firewall.dot_fwd_xcptn.dest_port="853"
+  uci set firewall.dot_fwd_xcptn.proto="tcp udp"
+  uci set firewall.dot_fwd_xcptn.target="ACCEPT"
+  uci set firewall.dot_fwd_xcptn.family="ipv4"
+  uci set firewall.dot_fwd.ipset="!dns_xcptn src"
+fi
 echo -e "${GREEN}[$SCRIPT] Configuring DNS over TLS rejection${NC}"
 uci set firewall.dot_fwd="rule"
 uci set firewall.dot_fwd.name="Deny-DoT"
@@ -162,10 +176,6 @@ uci set firewall.dot_fwd.target="REJECT"
 if [ "$IPv6" = "n" ]
 then
   uci set firewall.dot_fwd.family="ipv4"
-fi
-if [ ! -z "$EXC_IP4" ]
-then
-  uci set firewall.dot_fwd.ipset="!dns_xcptn src"
 fi
 
 # Configure IP sets
