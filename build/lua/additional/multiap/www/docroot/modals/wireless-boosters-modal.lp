@@ -1,7 +1,7 @@
 --pretranslated: do not change this file
  
 -- Enable localization
-gettext.textdomain('webui-printersharing')
+gettext.textdomain('webui-core')
 
 local ngx = ngx
 local ui_helper = require("web.ui_helper")
@@ -71,35 +71,35 @@ ngx.print('\
 \
 ');  ngx.print( ui_helper.createHeader(T"Wi-Fi Boosters", false, true, nil)); ngx.print('\
 <div class="modal-body update">\
-');  lp.include("tabs-boosters.lp")   ngx.print('\
+');  lp.include("tabs-boosters.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/wireless-boosters-modal.lp">\
-    ');  ngx.print(ui_helper.createMessages(message_helper.popMessages())); ngx.print('\
     ');  
-      local switch_class_enable = {
-        input = {
-          class = "monitor-changes",
-        }
+    ngx.print(ui_helper.createMessages(message_helper.popMessages())); 
+    local switch_class_enable = {
+      input = {
+        class = "monitor-changes",
       }
-      local switch_class_monitor = {
-        group = {
-          class = "monitor-agent_enabled monitor-0 monitor-hidden-agent_enabled",
-        },
-      }
+    }
+    local switch_class_monitor = {
+      group = {
+        class = "monitor-agent_enabled monitor-0 monitor-hidden-agent_enabled",
+      },
+    }
 
-      html = {}
-      html[#html+1] = "<fieldset><legend>" .. T"Multi-AP Status" .. "</legend>"
-      html[#html+1] = ui_helper.createSwitch(T"Controller", "controller_enabled", content["controller_enabled"])
-      html[#html+1] = ui_helper.createSwitch(T"Agent", "agent_enabled", content["agent_enabled"], switch_class_enable)
-      if synced > 0 then
-        html[#html+1] = ui_helper.createCheckboxSwitch(T"Reset Default SSIDs", "reset_ssids", "0", switch_class_monitor)
-      end
-      html[#html+1] = "</fieldset>"
-      html[#html+1] = "<fieldset><legend>" .. T"Wireless Backhaul" .. "</legend>"
-      html[#html+1] = ui_helper.createSwitch(T"SSID " .. content["wl1_2ssid"], "wl1_2state", content["wl1_2state"])
-      html[#html+1] = ui_helper.createSimpleInputHidden("ap6state", content["ap6state"])
-      html[#html+1] = "</fieldset>"
-      ngx.print(html)
-      ngx.print('\
+    html = {}
+    html[#html+1] = "<fieldset><legend>" .. T"Multi-AP Status" .. "</legend>"
+    html[#html+1] = ui_helper.createSwitch(T"Controller", "controller_enabled", content["controller_enabled"])
+    html[#html+1] = ui_helper.createSwitch(T"Agent", "agent_enabled", content["agent_enabled"], switch_class_enable)
+    if synced > 0 then
+      html[#html+1] = ui_helper.createCheckboxSwitch(T"Reset Default SSIDs", "reset_ssids", "0", switch_class_monitor)
+    end
+    html[#html+1] = "</fieldset>"
+    html[#html+1] = "<fieldset><legend>" .. T"Wireless Backhaul" .. "</legend>"
+    html[#html+1] = ui_helper.createSwitch(T"SSID " .. content["wl1_2ssid"], "wl1_2state", content["wl1_2state"])
+    html[#html+1] = ui_helper.createSimpleInputHidden("ap6state", content["ap6state"])
+    html[#html+1] = "</fieldset>"
+    ngx.print(html)
+    ngx.print('\
   </form>\
 </div>\
 ');  ngx.print(ui_helper.createFooter())   ngx.print('\
