@@ -75,6 +75,28 @@ then
   uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
 fi
+if [ "$(uci -q get web.opkgcfgajax)" != "rule" ]
+then
+  echo [$SCRIPT]: Enabling opkg-cfg.lua
+  uci add_list web.ruleset_main.rules='opkgcfgajax'
+  uci set web.opkgcfgajax='rule'
+  uci set web.opkgcfgajax.target='/ajax/opkg-cfg.lua'
+  uci set web.opkgcfgajax.normally_hidden='1'
+  uci add_list web.opkgcfgajax.roles='admin'
+  uci commit web
+  SRV_nginx=$(( $SRV_nginx + 4 ))
+fi
+if [ "$(uci -q get web.opkglistajax)" != "rule" ]
+then
+  echo [$SCRIPT]: Enabling opkg-list.lua
+  uci add_list web.ruleset_main.rules='opkglistajax'
+  uci set web.opkglistajax='rule'
+  uci set web.opkglistajax.target='/ajax/opkg-list.lua'
+  uci set web.opkglistajax.normally_hidden='1'
+  uci add_list web.opkglistajax.roles='admin'
+  uci commit web
+  SRV_nginx=$(( $SRV_nginx + 4 ))
+fi
 if [ "$(uci -q get web.telephonystatusajax)" != "rule" ]
 then
   echo [$SCRIPT]: Enabling telephony-status.lua

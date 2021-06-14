@@ -1,0 +1,652 @@
+local lfs = require("lfs")
+local socket = require("socket")
+local logger = require("tch.logger")
+local log = logger.new("rpc.gui.opkg", 7)
+local gsub, find, format, match, sub, tolower = string.gsub, string.find, string.format, string.match, string.sub, string.lower
+
+local system_pkg = {}
+
+local function telstraIPK(path)
+  for file in lfs.dir(path) do
+    local name, version = match(file, "(.*)_(.-)_.-%.ipk")
+    if name and version then
+      system_pkg[name] = {
+        version = version,
+        telstra = true
+      }
+    end
+  end
+end
+
+local cmd
+cmd = io.popen("uci get version.@version[0].marketing_version")
+local fw_version = cmd:read()
+cmd:close()
+log.info("Firmware version = %s", fw_version)
+
+cmd = io.popen("grep '^Version:' /rom/usr/lib/opkg/info/*.control")
+local file
+for file in cmd:lines() do
+  local name, version = match(file, "/rom/usr/lib/opkg/info/(.+).control:Version: (.*)")
+  system_pkg[name] = {
+    version = version,
+    telstra = false
+  }
+end
+cmd:close()
+telstraIPK("/usr/lib/ipk/Dependencies")
+telstraIPK("/usr/lib/ipk/THOR")
+
+local opkg_cache = {
+  tbl,
+  time_check = 0,
+  reload = false,
+  last_action = 0,
+  last_update = -1,
+  not_installed = 0,
+  sys_installed = 0,
+  usr_installed = 0,
+  sys_upgradable = 0,
+  usr_upgradable = 0,
+}
+
+local function checkPackages(grp)
+  local group = grp or "user"
+  local time = os.time()
+  local elapsed = (time - opkg_cache.time_check)
+  if opkg_cache.tbl and not opkg_cache.reload and elapsed < 60 then
+    return opkg_cache.tbl[group], opkg_cache.tbl[group.."_keys"]
+  end
+
+  log:notice("%s: Primary cache check missed (tbl=%s reload=%s seconds=%s)",socket.gettime(),type(opkg_cache.tbl),tostring(opkg_cache.reload),elapsed)
+
+  local lupdate = -1
+  local laction = lfs.attributes("/usr/lib/opkg/status","modification")
+  if lfs.attributes("/var/opkg-lists","modification") then
+    local file
+    for file in lfs.dir("/var/opkg-lists") do
+      if file ~= "." and file ~= ".." then
+        local mtime = lfs.attributes("/var/opkg-lists/"..file,"modification")
+        if mtime and mtime > lupdate then
+          lupdate = mtime
+        end
+      end
+    end
+  end
+
+  if opkg_cache.tbl and not opkg_cache.reload and opkg_cache.last_update == lupdate and opkg_cache.last_action == laction then
+    opkg_cache.time_check = time
+    return opkg_cache.tbl[group], opkg_cache.tbl[group.."_keys"]
+  end
+  
+  log:notice("%s: Secondary cache check missed (tbl=%s reload=%s last_update=%s~%s last_action=%s~%s)",socket.gettime(),type(opkg_cache.tbl),tostring(opkg_cache.reload),opkg_cache.last_update,lupdate,opkg_cache.last_action,laction)
+  
+  local function source(package)
+    local base = system_pkg[package]
+    if base then
+      if base.telstra then
+        return "Telstra", "system", "system_keys"
+      end
+      return "Base", "system", "system_keys"
+    end
+    return "", "user", "user_keys"
+  end
+
+  opkg_cache.last_update = lupdate
+  opkg_cache.last_action = laction
+  opkg_cache.sys_upgradable = 0
+  opkg_cache.usr_upgradable = 0
+
+  local data = {
+    system = {},
+    user = {},
+    available = {},
+    packages = {},
+    system_keys = {},
+    user_keys = {},
+    available_keys = {},
+  }
+
+  local cmd
+
+  local pattern,package,version,line = "","",""
+  cmd = io.popen("grep -E '^Package|^Version|^Status' /usr/lib/opkg/status")
+  for line in cmd:lines() do
+    local key,value = string.match(line, "^(%S+):%s(.*)")
+    if key == "Package" then
+      package = value
+    elseif key == "Version" then
+      version = value
+    elseif key == "Status" then
+      if find(value, "not%-installed") then
+        pattern,package,version = "","",""
+      else
+        local system,target,keys = source(package)
+        local index = #data[target]+1
+        data["packages"][package] = {
+          target = target, 
+          index = index,
+        }
+        data[keys][#data[keys]+1] = tostring(index)
+        data[target][index] = {
+          name = package,
+          description = "",
+          installed_version = version,
+          available_version = "",
+          warning = "",
+          system = system,
+          action = "",
+        }
+        if pattern == "" then
+          pattern = package .. " - ".. version
+        else
+          pattern = pattern .. "|" .. package .. " - ".. version
+        end
+      end
+    end
+  end
+  cmd:close()
+
+  cmd = io.popen("grep -E '^Description|^ ' /usr/lib/opkg/info/*.control", "r")
+  for line in cmd:lines() do
+    local pkg,key,value = string.match(line, "^/usr/lib/opkg/info/(.*)%.control:(%w+): (.*)")
+    if pkg then
+      local idx = data["packages"][pkg]
+      if not idx then
+        local target,keys = "available","available_keys"
+        local index = #data[target]+1
+        data["packages"][pkg] = {
+          target = target,
+          index = index,
+        }
+        data[keys][#data[keys]+1] = tostring(index)
+        data[target][index] = {
+          name = pkg,
+          description = value,
+          installed_version = "",
+          available_version = "",
+          warning = "",
+          system = source(package),
+          action = "",
+        }
+      else
+        data[idx["target"]][idx["index"]]["description"] = value
+      end
+    else
+      local pkg, desc = string.match(line, "^/usr/lib/opkg/info/(.*)%.control:%s(.*)")
+      if desc then
+        local idx = data["packages"][pkg]
+        local target = idx["target"]
+        local index = idx["index"]
+        data[target][index]["description"] = data[target][index]["description"] .. " " .. desc
+      end
+    end
+  end
+  cmd:close()
+
+  cmd = io.popen("opkg list | grep -v -E '" .. pattern .. "'", "r")
+  for line in cmd:lines() do
+    local pkg,available_version,description = match(line, "(%S+)%s+%-%s+(%S+)%s*%-*%s*(.*)")
+    local warning = ""
+    if not pkg then
+      pkg,available_version = match(line, "Package (%S+) version (%S+) has no valid architecture, ignoring.")
+      description = ""
+      warning = line
+    end
+    if pkg then
+      local idx = data["packages"][pkg]
+      if not idx then
+        local target,keys = "available","available_keys"
+        local index = #data[target]+1
+        idx = {
+          target = target,
+          index = index,
+        }
+        data[keys][#data[keys]+1] = tostring(index)
+        data[target][index] = {
+          name = pkg,
+          description = description or "",
+          installed_version = "",
+          available_version = available_version,
+          warning = warning,
+          system = system,
+          action = "",
+        }
+        data["packages"][pkg] = idx
+      else
+        local target = idx["target"]
+        local index = idx["index"]
+        if (data[target][index]["description"] or "") == "" then
+          data[target][index]["description"] = description
+        end
+        if (data[target][index]["warning"] or "") == "" then
+          data[target][index]["warning"] = warning
+        end
+      end
+      local target = idx["target"]
+      local index = idx["index"]
+      local installed_version = data[target][index]["installed_version"]
+      if warning == "" and installed_version ~= "" and available_version ~= installed_version and available_version > installed_version then
+        data[target][index]["available_version"] = available_version
+        if data[target][index]["system"] == "" then
+          opkg_cache.usr_upgradable = opkg_cache.usr_upgradable + 1
+        else
+          opkg_cache.sys_upgradable = opkg_cache.sys_upgradable + 1
+        end
+      end
+    end
+  end
+  cmd:close()
+
+  opkg_cache.tbl = data
+  opkg_cache.time_check = time
+  opkg_cache.reload = false
+
+  log:notice("%s: Cache update completed", socket.gettime())
+
+  return data[group], data[group.."_keys"]
+end
+
+checkPackages()
+
+local GUI_OPKG_ = {
+  objectType = {
+    name = "rpc.gui.opkg.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      feeds_configured = {
+        access = "readWrite",
+        type = "int"
+      },
+      last_action = {
+        access = "readOnly",
+        type = "string"
+      },
+      last_update = {
+        access = "readOnly",
+        type = "string"
+      },
+      refresh_cache = {
+        access = "readWrite",
+        type = "int"
+      },
+      scheduled_update = {
+        access = "readWrite",
+        type = "int"
+      },
+      update = {
+        access = "readWrite",
+        type = "int"
+      },
+      log = {
+        access = "readOnly",
+        type = "string"
+      },
+      system_upgradable = {
+        access = "readOnly",
+        type = "int"
+      },
+      user_upgradable = {
+        access = "readOnly",
+        type = "int"
+      },
+    }
+  }
+}
+
+local function feeds_configured() 
+  local cmd = io.popen("sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep -E 'BoLaMN|macoers' | wc -l", "r")
+  local status = cmd:read("*n")
+  cmd:close()
+  if status > 0 then
+    return "1"
+  end
+  return "0"
+end
+
+local function update_scheduled() 
+  local cmd = io.popen("sed -e '/^#/d' /etc/crontabs/root | grep 'opkg update' | wc -l", "r")
+  local status = cmd:read("*n")
+  cmd:close()
+  if status > 0 then
+    return "1"
+  end
+  return "0"
+end
+
+GUI_OPKG_.get = {
+  feeds_configured = function ()
+    return feeds_configured()
+  end,
+  last_action = function()
+    checkPackages()
+    return tostring(opkg_cache.last_action)
+  end,
+  last_update = function()
+    checkPackages()
+    return tostring(opkg_cache.last_update)
+  end,
+  refresh_cache = function()
+    if opkg_cache.reload then
+      return "1"
+    end
+    return "0"
+  end,
+  scheduled_update = function()
+    return update_scheduled()
+  end,
+  update = function()
+    return "0"
+  end,
+  log = function()
+    local today = sub(os.date(),1,10)
+    local cmd = io.popen("/sbin/logread | grep -E '^"..today..".* user\\..* rpc\\.gui\\.opkg' | tail -n 50","r")
+    local status = cmd:read("*a")
+    cmd:close()
+    if status == "" then
+      return "<i>No recent log messages found</i>"
+    end
+    return gsub(status, "\n", "<br>")
+  end,
+  system_upgradable = function()
+    checkPackages()
+    return tostring(opkg_cache.sys_upgradable)
+  end,
+  user_upgradable = function()
+    checkPackages()
+    return tostring(opkg_cache.usr_upgradable)
+  end,
+}
+
+GUI_OPKG_.set = {
+  feeds_configured = function(mapping,param,value,key)
+    if value == "1" and feeds_configured() == "0" then
+      local opkg = io.open("/etc/opkg.conf", "w")
+      if opkg then
+        local customfeeds = io.open("/etc/opkg/customfeeds.conf", "w")
+        if customfeeds then
+          opkg:write("dest root /\n")
+          opkg:write("dest ram /tmp\n")
+          opkg:write("lists_dir ext /var/opkg-lists\n")
+          opkg:write("option overlay_root /overlay\n")
+          opkg:write("arch all 1\n")
+          opkg:write("arch noarch 1\n")
+          opkg:write("arch arch arm_cortex-a9 10\n")
+          opkg:write("arch arch arm_cortex-a9_neon 20\n")
+          opkg:write("arch brcm63xx-tch 30\n")
+          if fw_version == "17.2" then
+            customfeeds:write("src/gz base https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/base\n")
+            customfeeds:write("src/gz luci https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/luci\n")
+            customfeeds:write("src/gz management https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/management\n")
+            customfeeds:write("src/gz packages https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/packages\n")
+            customfeeds:write("src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/routing\n")
+            customfeeds:write("src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony\n")
+          else
+            customfeeds:write("src/gz chaos_calmer_base_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/base\n")
+            customfeeds:write("src/gz chaos_calmer_packages_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages\n")
+            customfeeds:write("src/gz chaos_calmer_luci_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/luci\n")
+            customfeeds:write("src/gz chaos_calmer_routing_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing\n")
+            customfeeds:write("src/gz chaos_calmer_telephony_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony\n")
+            customfeeds:write("src/gz chaos_calmer_core_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages\n")
+          end
+          customfeeds:close()
+        end
+        opkg:close()
+        if customfeeds then
+          os.execute("sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf;\
+          SRC='https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/'\
+          IPK=$(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-certificates' | cut -d' ' -f2)\
+          curl -sk $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -t rpc.gui.opkg -p user.info && rm /tmp/$IPK;")
+        else
+          return nil, "Failed to open /etc/opkg/customfeeds.conf"
+        end
+      else
+        return nil, "Failed to open /etc/opkg.conf"
+      end
+      opkg_cache.reload = true
+      checkPackages()
+    elseif value == "0" and feeds_configured() == "1" then
+      os.execute("sed -e '/BoLaMN/d' -e '/macoers/d' -i /etc/opkg/customfeeds.conf")
+      os.execute("sed -e '/opkg update/d' -i /etc/crontabs/root && /etc/init.d/cron restart")
+    elseif value ~= "0" and value ~= "1" then
+      return nil, "Value must be 0 or 1"
+    end
+    return true
+  end,
+  scheduled_update = function(mapping,param,value,key)
+    if value == "1" and update_scheduled() == "0" then
+      math.randomseed(os.time())
+      local m,h,d = math.random(0,59),math.random(5),math.random(7)
+      local crontab = io.open("/etc/crontabs/root", "a")
+      if crontab then
+        crontab:write(format("%s %s * * %s sh -c 'opkg update 2>&1 | logger -t rpc.gui.opkg -p user.info'\n",m,h,d))
+        crontab:close()
+        os.execute("/etc/init.d/cron restart")
+      else
+        return nil, "Failed to open /etc/crontabs/root"
+      end
+    elseif value == "0" and update_scheduled() == "1" then
+      os.execute("sed -e '/opkg update/d' -i /etc/crontabs/root && /etc/init.d/cron restart")
+    elseif value ~= "0" and value ~= "1" then
+      return nil, "Value must be 0 or 1"
+    end
+    return true
+  end,
+  refresh_cache = function(mapping,param,value,key)
+    if value == "1" then
+      opkg_cache.reload = true
+      checkPackages()
+    elseif value ~= "0" then
+      return nil, "Value must be 0 or 1"
+    end
+  end,
+  update = function(mapping,param,value,key)
+    if value == "1" then
+      os.execute("logger -t rpc.gui.opkg -p user.info Executing: opkg update;opkg update 2>&1 | logger -t rpc.gui.opkg -p user.info")
+      opkg_cache.reload = true
+      checkPackages()
+    elseif value ~= "0" then
+      return nil, "Value must be 0 or 1"
+    end
+    return true
+  end,
+}
+
+register(GUI_OPKG_)
+
+local function getEntries(group)
+  local _,keys = checkPackages(group)
+  return keys
+end
+
+local function getValue(group, key, param)
+  local data = checkPackages(group)
+  return data[tonumber(key)][param] or ""
+end
+
+local function runAction(group, key, value)
+  log:notice("runAction: group=%s key=%s value=%s", group,key,value)
+  if value ~= "" then
+    local data = checkPackages(group)
+    local warning = data[tonumber(key)]["warning"]
+    if warning and warning ~= "" then
+      return nil, warning
+    else
+      local action_cmd
+      local command = tolower(value)
+      if command == "remove" then
+        action_cmd = "opkg --autoremove --force-depends --force-removal-of-dependent-packages remove "
+      elseif command == "install" then
+        action_cmd = "opkg --force-overwrite install "
+      elseif command == "upgrade" then
+        action_cmd = "opkg upgrade "
+      else
+        os.execute("logger -t rpc.gui.opkg -p user.err Unrecognised command: " .. command)
+        return nil, "Unrecognised command: " .. command
+      end
+      action_cmd = action_cmd .. data[tonumber(key)]["name"]
+      os.execute("logger -t rpc.gui.opkg -p user.info Executing: " .. action_cmd .. ";" .. action_cmd .. " 2>&1 | logger -t rpc.gui.opkg -p user.info")
+      opkg_cache.reload = true
+      checkPackages()
+    end
+  end
+  return true
+end
+
+local GUI_OPKG_SYS_i_ = {
+  objectType = {
+    name = "rpc.gui.opkg.system.@.",
+    access = "readOnly",
+    numEntriesParameter = "systemNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      name = {
+        access = "readOnly",
+        type = "string",
+      },
+      description = {
+        access = "readOnly",
+        type = "string",
+      },
+      installed_version = {
+        access = "readOnly",
+        type = "string",
+      },
+      available_version = {
+        access = "readOnly",
+        type = "string",
+      },
+      warning = {
+        access = "readOnly",
+        type = "string",
+      },
+      system = {
+        access = "readOnly",
+        type = "string",
+      },
+      action = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_OPKG_SYS_i_.entries = function(mapping)
+  return getEntries("system")
+end
+
+GUI_OPKG_SYS_i_.get = function(mapping, param, key)
+  return getValue("system", key, param)
+end
+
+GUI_OPKG_SYS_i_.set = {
+  action = function(mapping, param, value, key)
+    return runAction("system", key, value)
+  end
+}
+
+register(GUI_OPKG_SYS_i_)
+
+local GUI_OPKG_USR_i_ = {
+  objectType = {
+    name = "rpc.gui.opkg.user.@.",
+    access = "readOnly",
+    numEntriesParameter = "userNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      name = {
+        access = "readOnly",
+        type = "string",
+      },
+      description = {
+        access = "readOnly",
+        type = "string",
+      },
+      installed_version = {
+        access = "readOnly",
+        type = "string",
+      },
+      available_version = {
+        access = "readOnly",
+        type = "string",
+      },
+      warning = {
+        access = "readOnly",
+        type = "string",
+      },
+      action = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_OPKG_USR_i_.entries = function(mapping)
+  return getEntries("user")
+end
+
+GUI_OPKG_USR_i_.get = function(mapping, param, key)
+  return getValue("user", key, param)
+end
+
+GUI_OPKG_USR_i_.set = {
+  action = function(mapping, param, value, key)
+    return runAction("user", key, value)
+  end
+}
+
+register(GUI_OPKG_USR_i_)
+
+local GUI_OPKG_NOT_i_ = {
+  objectType = {
+    name = "rpc.gui.opkg.available.@.",
+    access = "readOnly",
+    numEntriesParameter = "availableNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      name = {
+        access = "readOnly",
+        type = "string",
+      },
+      description = {
+        access = "readOnly",
+        type = "string",
+      },
+      available_version = {
+        access = "readOnly",
+        type = "string",
+      },
+      warning = {
+        access = "readOnly",
+        type = "string",
+      },
+      action = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_OPKG_NOT_i_.entries = function(mapping)
+  return getEntries("available")
+end
+
+GUI_OPKG_NOT_i_.get = function(mapping, param, key)
+  return getValue("available", key, param)
+end
+
+GUI_OPKG_NOT_i_.set = {
+  action = function(mapping, param, value, key)
+    return runAction("available", key, value)
+  end
+}
+
+register(GUI_OPKG_NOT_i_)

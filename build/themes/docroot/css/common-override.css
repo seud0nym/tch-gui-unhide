@@ -24,7 +24,9 @@
 #helper>tbody>tr>td{text-transform:uppercase;}
 #hide-unhide-non-connected-device{display:none;}
 #mobiletab .content .card-label{font-size:14px;}
-#proctable>tbody>tr>td:nth-child(1),#proctable>tbody>tr>td:nth-child(2),#proctable>tbody>tr>td:nth-child(5),#proctable>tbody>tr>td:nth-child(6),#proctable>tbody>tr>td:nth-child(7){text-align:right;}
+#opkgs>tbody>tr>td:nth-child(1){white-space:nowrap;}
+#opkgs>tbody>tr>td:nth-child(n+3):nth-child(-n+4){text-overflow:ellipsis;overflow:hidden;white-space:nowrap;max-width:100px;}
+#opkgs>tbody>tr>td:nth-child(n+3):nth-child(-n+4):hover{text-overflow:clip;white-space:normal;word-break:break-all;}#proctable>tbody>tr>td:nth-child(1),#proctable>tbody>tr>td:nth-child(2),#proctable>tbody>tr>td:nth-child(5),#proctable>tbody>tr>td:nth-child(6),#proctable>tbody>tr>td:nth-child(7){text-align:right;}
 #proctable>tbody>tr>td:nth-child(6):after,#proctable>tbody>tr>td:nth-child(7):after{content:"%";}
 #proctable>thead>tr>th{white-space:nowrap;}
 #telephony-card-content p.subinfos{margin-top:-1px;margin-bottom:0px;}
