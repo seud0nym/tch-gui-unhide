@@ -77,14 +77,17 @@ MAP
   grep -q "users = samba" /lib/functions/contentsharing.sh || sed -e '/guest ok =/a \       users = samba' -i /lib/functions/contentsharing.sh
   grep -q "\.users=samba" /lib/functions/contentsharing.sh || sed -e '/guest_ok=/a \  uci -P /var/state set samba.\${sharename}.users=samba' -i /lib/functions/contentsharing.sh
 
-  for f in /var/etc/smb.auto/USB-*.conf; do
-    sharename=$(head -n 1 $f | tr -d '[]')
-    sed -e 's/guest ok = yes/guest ok = no/' -i $f
-    grep -q "users = samba" $f || sed -e '/guest ok =/a \       users = samba' -i $f
-    uci -q -P /var/state set samba.${sharename}.users=samba
-    uci -q -P /var/state set samba.${sharename}.guest_ok=no
-    uci -q -P /var/state commit samba
-  done
+  usb=$(ls /var/etc/smb.auto/USB-*.conf 2>/dev/null)
+  if [ ! -z "$usb" ]; then
+    for f in $usb; do
+      sharename=$(head -n 1 $f | tr -d '[]')
+      sed -e 's/guest ok = yes/guest ok = no/' -i $f
+      grep -q "users = samba" $f || sed -e '/guest ok =/a \       users = samba' -i $f
+      uci -q -P /var/state set samba.${sharename}.users=samba
+      uci -q -P /var/state set samba.${sharename}.guest_ok=no
+      uci -q -P /var/state commit samba
+    done
+  fi
 
   grep -q sambaconfigsdir /etc/init.d/samba || sed \
     -e "/config_foreach smb_add_share sambashare/a \ $(echo -e '\t')local sambaconfigsdir=\"\$(uci -P /var/state get samba.samba.configsdir | sed 's:/*\$::')\"" \
