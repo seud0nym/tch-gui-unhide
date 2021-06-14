@@ -467,7 +467,7 @@ local upnp_data, upnp_helpmsg = post_helper.handleTableQuery(upnp_columns, upnp_
       local acme_log_attr = {
         span = {
           id = "acme_log",
-          class = "span12",
+          style = "display:block;white-space:pre;",
         },
       }
       local acme_log = proxy.get("rpc.gui.acme.log")[1].value
