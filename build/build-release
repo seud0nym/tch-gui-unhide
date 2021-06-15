@@ -1,7 +1,7 @@
 #!/bin/sh
 
 version="$(head -n 1 ../VERSION.txt)"
-if [ "$(date +%Y.%m.%d)" != "$version" ]
+if [ "$(date +%Y.%m.%d)" != "$version" -a "!$1" = "!" ]
 then
   echo "ERROR: First line of VERSION.txt does not match new version number!!!"
   exit 1
@@ -9,37 +9,46 @@ else
   echo Building Release $version
 fi
 
-. ./build
-
-common=$(find ../utilities/ -type f | grep -v -E '(README|dumaos|transformer)' | sed -e 's,^\.\./,,' | tr "$IFS" " ")
+./build -v$version
 
 echo Fixing utilities line endings...
-for f in $(find ../utilities/ -type f)
-do
-  if [ "$(file --brief --mime-type $f | cut -d/ -f1)" = text ]
-  then
-    dos2unix -q $f
-  fi
-done
+DOS=$(find ../utilities/ -type f | xargs file | grep CRLF | cut -d: -f1 | xargs)
+if [ ! -z "$DOS" ]
+then
+  for f in $DOS
+  do
+    dos2unix $f
+  done
+  find ../utilities/ -name 'd2utmp*' -exec rm -f {} \;
+fi
 
 echo Cleaning up..
 rm ../*.tar.gz *.tar.gz 2>/dev/null
 
-for f in $(ls ../tch-gui-unhide-1* | sed -e 's,^\.\./,,')
+common=$(find ../utilities/ -type f | grep -v -E '(README|dumaos|transformer)' | sed -e 's,^\.\./,,' | tr "$IFS" " ")
+
+for major in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1)
 do
-  dumaos=""
+  new="../tch-gui-unhide-$major"
   transformer=""
-  if [ ${f%%[0-9][0-9]} = "tch-gui-unhide-18.1.c.05" ]
-  then
-    dumaos="utilities/dumaos"
-  fi
-  if [ "${f%%[0-9][0-9][0-9]}" = "tch-gui-unhide-17.2.0" ]
+  if [ "$major" = "17.2" ]
   then
     transformer="utilities/transformer-cli"
   fi
+  dumaos=""
+  if [ "$major" = "18.1.c" ]
+  then
+    dumaos="utilities/dumaos"
+  fi
 
-  echo Writing "../${f##tch-gui-unhide-}.tar.gz"...
-  tar --xform='s,utilities/,,' --owner=root --group=root --mode=755 -czf "../${f##tch-gui-unhide-}.tar.gz" -C .. tch-gui-unhide $f tch-gui-unhide-cards $common $dumaos $transformer
+  echo Writing "../${major}.tar.gz"...
+  tar --xform='s,utilities/,,' --owner=root --group=root --mode=755 -czf "../${major}.tar.gz" -C .. tch-gui-unhide tch-gui-unhide-$major tch-gui-unhide-cards $common $dumaos $transformer
+
+  for minor in $(find $major -mindepth 1 -type d | tr '/' '.')
+  do
+    echo Writing "../${minor}.tar.gz"...
+    tar --xform='s,utilities/,,' --owner=root --group=root --mode=755 -czf "../${minor}.tar.gz" -C .. tch-gui-unhide tch-gui-unhide-$major tch-gui-unhide-cards $common $dumaos $transformer
+  done
 done
 
 echo Done.

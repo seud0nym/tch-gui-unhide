@@ -25,13 +25,15 @@ echo Cleaning up..
 rm -rf /tmp/additional /tmp/*.b64
 
 echo Fixing line endings...
-for f in $(find . -type f)
-do
-  if [ "$(file --brief --mime-type $f | cut -d/ -f1)" = text ]
-  then
-    dos2unix -q $f
-  fi
-done
+DOS=$(find . -type f | xargs file | grep CRLF | cut -d: -f1 | xargs)
+if [ ! -z "$DOS" ]
+then
+  for f in $DOS
+  do
+    dos2unix $f
+  done
+  find . -name 'd2utmp*' -exec rm -f {} \;
+fi
 
 echo Building Base64 tar images...
 mkdir /tmp/additional
@@ -88,53 +90,57 @@ echo "echo [\$SCRIPT]: Deploy theme files" > /tmp/themes.b64
 echo "echo $(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -czf - -C themes . | base64 | tr -d "$IFS") | base64 -d | tar -xzf - -C /" >> /tmp/themes.b64
 echo "" >> /tmp/themes.b64
 
-for f in $(find . -mindepth 2 -type d | cut -c3- | grep -v -E '^(lua|themes)' | tr '/' '-')
+for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1)
 do
-  MAJOR=$(echo $f | cut -d- -f1)
-  MINOR=$(echo $f | cut -d- -f2)
-  TARGET=../tch-gui-unhide-$MAJOR.$MINOR
+  TARGET=../tch-gui-unhide-$MAJOR
   
-  if [ ! -z "$1" -a "$1" != "$MAJOR.$MINOR" ]
+  if [ ! -z "$1" -a "$1" != "$MAJOR" ]
   then
     continue
   fi
 
+  for f in .delete-me ${TARGET}*
+  do
+    if [ -f $f ]
+    then
+      echo Removing $f...
+      rm -f $f
+    fi
+  done
+
   echo Writing $TARGET...
   echo "#!/bin/sh" > $TARGET
-  echo "echo 000@\$(date +%H:%M:%S): Built for firmware version $MAJOR.$MINOR - Release $DATE_VERSION" >> $TARGET
+  echo "echo 000@\$(date +%H:%M:%S): Built for firmware version $MAJOR - Release $DATE_VERSION" >> $TARGET
   echo "RELEASE='$FULL_VERSION'" >> $TARGET
 
-  for s in $(find . -mindepth 2 -type f -a ! -name .do-not-delete -exec sh -c 'echo $(basename {})$(dirname {} | cut -c2-)' \; | sort)
+  for s in $(find common $MAJOR -type f -a ! -name .do-not-delete -exec sh -c 'echo $(basename {})/$(dirname {})' \; | sort)
   do
-    echo $s | grep -q -E "(common$|${MAJOR}$|${MAJOR}/${MINOR}$)"
-    if [ $? -eq 0 ]
+    FILENAME="$(echo $s | cut -d/ -f1)"
+    SEQUENCE="$(echo $FILENAME | cut -d- -f1)"
+    DIRECTORY="$(echo $s | cut -d/ -f2-)"
+    if [ $FILENAME = "055-Additional" ]
     then
-      FILENAME="$(echo $s | cut -d/ -f1)"
-      SEQUENCE="$(echo $FILENAME | cut -d- -f1)"
-      DIRECTORY="$(echo $s | cut -d/ -f2-)"
-      if [ $FILENAME = "055-Additional" ]
+      for b in $(cat "$DIRECTORY/$FILENAME")
+      do
+        sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" /tmp/$b.b64 >> $TARGET
+      done
+    else
+      if [ $FILENAME = "165-Themes" ]
       then
-        for b in $(cat "$DIRECTORY/$FILENAME")
-        do
-          sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" /tmp/$b.b64 >> $TARGET
-        done
-      else
-        if [ $FILENAME = "165-Themes" ]
-        then
-          sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" /tmp/themes.b64 >> $TARGET
-        elif [ $FILENAME = "200-Services" ]
-        then
-          echo "if [ \$THEME_ONLY = n ]; then" >> $TARGET
-          echo "  for l in \$(grep -l -r 'current_year); ngx.print(' /www 2>/dev/null)" >> $TARGET
-          echo "  do" >> $TARGET
-          echo "    echo $SEQUENCE@\$(date +%H:%M:%S): Adding tch-gui-unhide version to copyright in \$l" >> $TARGET
-          echo "    sed -e \"s/\(current_year); ngx.print('\)/\\\1 \[tch-gui-unhide $DATE_VERSION for FW Version $MAJOR.$MINOR\]/\" -i \$l" >> $TARGET
-          echo "  done" >> $TARGET
-          echo "fi" >> $TARGET
-          echo >> $TARGET
-        fi
-        sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
+        sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" /tmp/themes.b64 >> $TARGET
+      elif [ $FILENAME = "200-Services" ]
+      then
+        echo "if [ \$THEME_ONLY = n ]; then" >> $TARGET
+        echo "  MKTING_VERSION=\$(uci get version.@version[0].marketing_name)" >> $TARGET
+        echo "  for l in \$(grep -l -r 'current_year); ngx.print(' /www 2>/dev/null)" >> $TARGET
+        echo "  do" >> $TARGET
+        echo "    echo $SEQUENCE@\$(date +%H:%M:%S): Adding tch-gui-unhide version to copyright in \$l" >> $TARGET
+        echo "    sed -e \"s/\(current_year); ngx.print('\)/\\\1 \[tch-gui-unhide $DATE_VERSION for FW Version $MAJOR (\$MKTING_VERSION)\]/\" -i \$l" >> $TARGET
+        echo "  done" >> $TARGET
+        echo "fi" >> $TARGET
+        echo >> $TARGET
       fi
+      sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
     fi
   done
 done

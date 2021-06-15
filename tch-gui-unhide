@@ -1,21 +1,25 @@
 #!/bin/sh
-
-VERSION="$(uci get version.@version[0].version | cut -d- -f1)"
+VERSION="$(uci get version.@version[0].marketing_version)"
 SCRIPT="tch-gui-unhide-$VERSION"
-DOWNLOAD="$(echo $* | sed -e 's/^-U/y/')"
 
-if [ -f "$SCRIPT" -a "$DOWNLOAD" != "y" ]; then
+if [ -f "$SCRIPT" -a "$(echo $* | grep -o -e '-U')" != '-U' ]; then
   ./$SCRIPT -W $*
 else
   if [ ! -f "$SCRIPT" ]; then
-    echo "[tch-gui-unhide] Platform script $SCRIPT not found!"
+    echo "$(date +%H:%M:%S): Platform script $SCRIPT not found!"
   fi
-  echo "[tch-gui-unhide] Attempting to download latest release for FW $VERSION from GitHub..."
-  wget -s -q https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$VERSION.tar.gz
-  if [ $? -eq -0 ]
+  echo "$(date +%H:%M:%S): Attempting to download latest release for FW $VERSION from GitHub..."
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$VERSION.tar.gz)
+  if [ "$RESPONSE_CODE" = 200 ]
   then
     curl -k -L https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$VERSION.tar.gz | tar -xzvf -
+  elif [ "$RESPONSE_CODE" = 404 ]
+  then
+    echo "$(date +%H:%M:%S): ERROR! No latest release found on GitHub for FW $VERSION"
+  elif [ "$RESPONSE_CODE" = 000 ]
+  then
+    echo "$(date +%H:%M:%S): ERROR! No Internet connection???"
   else
-    echo "[tch-gui-unhide] ERROR! No platform script found on GitHub for FW $VERSION"
+    echo "$(date +%H:%M:%S): ERROR! Unknown response for latest FW $VERSION release on GitHub [$RESPONSE_CODE]"
   fi
 fi 
