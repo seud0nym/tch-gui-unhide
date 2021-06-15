@@ -183,54 +183,56 @@ else
     if [$(grep -c "^arch " /etc/opkg.conf) -eq 0 -o $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | wc -l) -eq 0 ]
     then
       HOMEWARE=$(uci get version.@version[0].version | cut -d. -f1)
-      if [ "$HOMEWARE" -eq 17 -o "$HOMEWARE" -eq 18 ]
+      if [ "$HOMEWARE" -eq 17 -o "$HOMEWARE" -eq 18 -o "$HOMEWARE" -eq 20 ]
       then
         _log user.info "Configuring opkg for Homeware $HOMEWARE..."
+        echo "dest root">/etc/opkg.conf
+        echo "dest ram /tmp">>/etc/opkg.conf
+        echo "lists_dir ext /var/opkg-lists">>/etc/opkg.conf
+        echo "option overlay_root /overlay">>/etc/opkg.conf
         echo "arch all 1">>/etc/opkg.conf
         echo "arch noarch 1">>/etc/opkg.conf
+        echo "arch arm_cortex-a9 10">>/etc/opkg.conf
+        echo "arch arm_cortex-a9_neon 20">>/etc/opkg.conf
+        echo "arch brcm63xx-tch 30">>/etc/opkg.conf
         case "$HOMEWARE" in
           17) cat <<-HW17 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
-                src/gz base https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/base
-                src/gz luci https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/luci
-                src/gz management https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/management
-                src/gz packages https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/packages
-                src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/routing
-                src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony
+            src/gz base https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/base
+            src/gz luci https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/luci
+            src/gz management https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/management
+            src/gz packages https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/packages
+            src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/routing
+            src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony
 HW17
 ;;
-          18) echo "arch arm_cortex-a9 10">>/etc/opkg.conf
-              echo "arch arm_cortex-a9_neon 20">>/etc/opkg.conf
-              cat <<-HW18 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
-                src/gz chaos_calmer_base_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/base
-                src/gz chaos_calmer_packages_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages
-                src/gz chaos_calmer_luci_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/luci
-                src/gz chaos_calmer_routing_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing
-                src/gz chaos_calmer_telephony_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony
-                src/gz chaos_calmer_core_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages
+          18|20) cat <<-HW18 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
+            src/gz chaos_calmer_base_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/base
+            src/gz chaos_calmer_packages_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages
+            src/gz chaos_calmer_luci_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/luci
+            src/gz chaos_calmer_routing_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing
+            src/gz chaos_calmer_telephony_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony
+            src/gz chaos_calmer_core_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages
 HW18
 ;;
         esac
-        echo "arch brcm63xx-tch 30">>/etc/opkg.conf
         sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf
       else
-        _log user.err "ERROR: Unable to configure opkg for Firmware Version $(uci get version.@version[0].version)"
+        _log user.err "ERROR: Unable to configure opkg for Firmware Version $(uci get version.@version[0].marketing_version)"
         OK=1
       fi
     fi
     if [ $OK = 0 ]; then
-      opkg update 
-      if [ $? -eq 0 ]; then
-        _log user.info "Installing System CA certificates..."
-        opkg install --force-overwrite ca-certificates 
-        _log user.info "Installing socat..."
-        opkg install socat
-        PKG_CNT=$(opkg list-installed | grep -c -E '^ca-certificates -|^socat -')
-        if [ $PKG_CNT -ne 2 ]; then
-          _log user.err "ERROR: Failed to install required packages"
-          OK=1
-        fi
-      else
-        _log user.err "ERROR: Failed to update package lists - cannot install required packages"
+      _log user.info "Installing System CA certificates..."
+      SRC='https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/'
+      IPK=$(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-certificates' | cut -d' ' -f2)
+      curl -sk $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
+      _log user.info "Updating local package list..."
+      opkg update | logger -s -t rpc.gui.opkg -p user.info
+      _log user.info "Installing socat..."
+      opkg install socat | logger -s -t rpc.gui.opkg -p user.info
+      PKG_CNT=$(opkg list-installed | grep -c -E '^ca-certificates -|^socat -')
+      if [ $PKG_CNT -ne 2 ]; then
+        _log user.err "ERROR: Failed to install required packages"
         OK=1
       fi
     fi
