@@ -29,7 +29,7 @@ content["uptime"] = content_helper.readfile("/proc/uptime","number",floor)
 content["load"] = content_helper.readfile("/proc/loadavg","string"):sub(1,14)
 content["temps"] = table.concat(temp_output, "&deg; ") .. "&deg;"
 
-local cmd = io.popen("df -h  / | grep ^overlay")
+local cmd = io.popen("df -hP / | grep /$")
 local overlay = cmd:read()
 cmd:close()
 content["disk_total"], content["disk_free"] = match(overlay, "%S+%s+(%S+)%s+%S+%s+(%S+).*")

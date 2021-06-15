@@ -4,7 +4,7 @@ local readfile = require("web.content_helper").readfile
 local floor, ipairs = math.floor, ipairs
 local ngx = ngx
 
-local cmd = io.popen("df -h  / | grep ^overlay")
+local cmd = io.popen("df -hP / | grep /$")
 local overlay = cmd:read()
 cmd:close()
 
