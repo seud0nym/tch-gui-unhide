@@ -110,6 +110,6 @@ ngx.print('\
     busy_msg[0].scrollIntoView();\
     $(".modal-body").scrollLeft(0);\
   });\
-  $().ready(function(){opkgLogFuncID=setInterval(updateAcmeLog,1000);});\
+  $().ready(function(){opkgLogFuncID=setInterval(updateAcmeLog,2000);});\
 </script>\
 '); 
