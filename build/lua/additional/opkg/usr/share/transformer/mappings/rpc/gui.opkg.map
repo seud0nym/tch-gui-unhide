@@ -1,8 +1,8 @@
 local lfs = require("lfs")
 local socket = require("socket")
 local uci_helper = mapper("ucihelper")
-local logger = require("tch.logger")
-local log = logger.new("rpc.gui.opkg", 7)
+--local logger = require("tch.logger")
+--local log = logger.new("rpc.gui.opkg", 7)
 local gsub, find, format, match, sub, tolower = string.gsub, string.find, string.format, string.match, string.sub, string.lower
 local popen = io.popen
 
@@ -60,7 +60,7 @@ local function checkPackages(grp)
     return opkg_cache.tbl[group], opkg_cache.tbl[group.."_keys"]
   end
 
-  log:notice("%s: Primary cache check missed (tbl=%s reload=%s seconds=%s)",socket.gettime(),type(opkg_cache.tbl),tostring(opkg_cache.reload),elapsed)
+  --log:notice("%s: Primary cache check missed (tbl=%s reload=%s seconds=%s)",socket.gettime(),type(opkg_cache.tbl),tostring(opkg_cache.reload),elapsed)
 
   local lupdate = -1
   local laction = lfs.attributes("/usr/lib/opkg/status","modification")
@@ -81,7 +81,7 @@ local function checkPackages(grp)
     return opkg_cache.tbl[group], opkg_cache.tbl[group.."_keys"]
   end
   
-  log:notice("%s: Secondary cache check missed (tbl=%s reload=%s last_update=%s~%s last_action=%s~%s)",socket.gettime(),type(opkg_cache.tbl),tostring(opkg_cache.reload),opkg_cache.last_update,lupdate,opkg_cache.last_action,laction)
+  --log:notice("%s: Secondary cache check missed (tbl=%s reload=%s last_update=%s~%s last_action=%s~%s)",socket.gettime(),type(opkg_cache.tbl),tostring(opkg_cache.reload),opkg_cache.last_update,lupdate,opkg_cache.last_action,laction)
   
   local function source(package)
     local base = system_pkg[package]
@@ -244,7 +244,7 @@ local function checkPackages(grp)
   opkg_cache.time_check = time
   opkg_cache.reload = false
 
-  log:notice("%s: Cache update completed", socket.gettime())
+  --log:notice("%s: Cache update completed", socket.gettime())
 
   return data[group], data[group.."_keys"]
 end
@@ -483,7 +483,7 @@ local function getValue(group, key, param)
 end
 
 local function runAction(group, key, value)
-  log:notice("runAction: group=%s key=%s value=%s", group,key,value)
+  --log:notice("runAction: group=%s key=%s value=%s", group,key,value)
   if value ~= "" then
     local data = checkPackages(group)
     local warning = data[tonumber(key)]["warning"]
