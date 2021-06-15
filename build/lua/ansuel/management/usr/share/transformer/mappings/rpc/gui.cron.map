@@ -156,7 +156,7 @@ local GUI_CRON_i_ = {
         access = "readWrite",
         type = "string",
       },
-      week = {
+      weekday = {
         access = "readWrite",
         type = "string",
       },
@@ -197,7 +197,7 @@ GUI_CRON_i_.get = {
     local cronTbl = checkCron()
     return cronTbl[key].month or ""
   end,
-  week = function(mapping, param, key)
+  weekday = function(mapping, param, key)
     local cronTbl = checkCron()
     return cronTbl[key].week or ""
   end,
@@ -232,9 +232,9 @@ GUI_CRON_i_.set = {
     end
     return editCron(param,value,key)
   end,
-  week = function(mapping,param,value,key)
-    if not value:match("[0-9-%*-%--%/,]+") then
-      return nil, "Week can only contain 0-9, commas, -, / and *"
+  weekday = function(mapping,param,value,key)
+    if not value:match("[0-7-%*-%--%/,]+") then
+      return nil, "Weekday can only contain 0-7, commas, -, / and *"
     end
     return editCron(param,value,key)
   end,
