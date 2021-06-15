@@ -1,8 +1,10 @@
 local lfs = require("lfs")
 local socket = require("socket")
+local uci_helper = mapper("ucihelper")
 local logger = require("tch.logger")
 local log = logger.new("rpc.gui.opkg", 7)
 local gsub, find, format, match, sub, tolower = string.gsub, string.find, string.format, string.match, string.sub, string.lower
+local popen = io.popen
 
 local system_pkg = {}
 
@@ -19,12 +21,12 @@ local function telstraIPK(path)
 end
 
 local cmd
-cmd = io.popen("uci get version.@version[0].marketing_version")
+cmd = popen("uci get version.@version[0].marketing_version")
 local fw_version = cmd:read()
 cmd:close()
 log.info("Firmware version = %s", fw_version)
 
-cmd = io.popen("grep '^Version:' /rom/usr/lib/opkg/info/*.control")
+cmd = popen("grep '^Version:' /rom/usr/lib/opkg/info/*.control")
 local file
 for file in cmd:lines() do
   local name, version = match(file, "/rom/usr/lib/opkg/info/(.+).control:Version: (.*)")
@@ -110,7 +112,7 @@ local function checkPackages(grp)
   local cmd
 
   local pattern,package,version,line = "","",""
-  cmd = io.popen("grep -E '^Package|^Version|^Status' /usr/lib/opkg/status")
+  cmd = popen("grep -E '^Package|^Version|^Status' /usr/lib/opkg/status")
   for line in cmd:lines() do
     local key,value = string.match(line, "^(%S+):%s(.*)")
     if key == "Package" then
@@ -147,7 +149,7 @@ local function checkPackages(grp)
   end
   cmd:close()
 
-  cmd = io.popen("grep -E '^Description|^ ' /usr/lib/opkg/info/*.control", "r")
+  cmd = popen("grep -E '^Description|^ ' /usr/lib/opkg/info/*.control", "r")
   for line in cmd:lines() do
     local pkg,key,value = string.match(line, "^/usr/lib/opkg/info/(.*)%.control:(%w+): (.*)")
     if pkg then
@@ -184,7 +186,7 @@ local function checkPackages(grp)
   end
   cmd:close()
 
-  cmd = io.popen("opkg list | grep -v -E '" .. pattern .. "'", "r")
+  cmd = popen("opkg list | grep -v -E '" .. pattern .. "'", "r")
   for line in cmd:lines() do
     local pkg,available_version,description = match(line, "(%S+)%s+%-%s+(%S+)%s*%-*%s*(.*)")
     local warning = ""
@@ -297,7 +299,7 @@ local GUI_OPKG_ = {
 }
 
 local function feeds_configured() 
-  local cmd = io.popen("sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep -E 'BoLaMN|macoers' | wc -l", "r")
+  local cmd = popen("sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep -E 'BoLaMN|macoers' | wc -l", "r")
   local status = cmd:read("*n")
   cmd:close()
   if status > 0 then
@@ -307,7 +309,7 @@ local function feeds_configured()
 end
 
 local function update_scheduled() 
-  local cmd = io.popen("sed -e '/^#/d' /etc/crontabs/root | grep 'opkg update' | wc -l", "r")
+  local cmd = popen("sed -e '/^#/d' /etc/crontabs/root | grep 'opkg update' | wc -l", "r")
   local status = cmd:read("*n")
   cmd:close()
   if status > 0 then
@@ -341,8 +343,22 @@ GUI_OPKG_.get = {
     return "0"
   end,
   log = function()
+    local persistentlog_enabled = false
+    local log_binding = {config="system", sectionname="log"}
+    uci_helper.foreach_on_uci(log_binding, function(s)
+      if s.path and s.size and s.rotate then
+        persistentlog_enabled = true
+        return false
+      end
+    end)
+    local source
+    if persistentlog_enabled then
+      source ='cat `ls -r /root/log/message*`'
+    else
+      source = '/sbin/logread'
+    end
     local today = sub(os.date(),1,10)
-    local cmd = io.popen("/sbin/logread | grep -E '^"..today..".* user\\..* rpc\\.gui\\.opkg' | tail -n 50","r")
+    local cmd = popen(source.." | grep -E '^"..today..".* user\\..* rpc\\.gui\\.opkg' | tail -n 50","r")
     local status = cmd:read("*a")
     cmd:close()
     if status == "" then
