@@ -1,8 +1,8 @@
 local lfs = require("lfs")
 local socket = require("socket")
 local uci_helper = mapper("ucihelper")
---local logger = require("tch.logger")
---local log = logger.new("rpc.gui.opkg", 7)
+local logger = require("tch.logger")
+local log = logger.new("rpc.gui.opkg", 7)
 local gsub, find, format, match, sub, tolower = string.gsub, string.find, string.format, string.match, string.sub, string.lower
 local popen = io.popen
 
@@ -56,7 +56,7 @@ local function checkPackages(grp)
   local group = grp or "user"
   local time = os.time()
   local elapsed = (time - opkg_cache.time_check)
-  if opkg_cache.tbl and not opkg_cache.reload and elapsed < 60 then
+  if opkg_cache.tbl and not opkg_cache.reload and elapsed < 30 then
     return opkg_cache.tbl[group], opkg_cache.tbl[group.."_keys"]
   end
 
@@ -499,11 +499,12 @@ local function runAction(group, key, value)
       elseif command == "upgrade" then
         action_cmd = "opkg upgrade "
       else
-        os.execute("logger -t rpc.gui.opkg -p user.err Unrecognised command: " .. command)
+        log:err("Unrecognised command: " .. command)
         return nil, "Unrecognised command: " .. command
       end
       action_cmd = action_cmd .. data[tonumber(key)]["name"]
-      os.execute("logger -t rpc.gui.opkg -p user.info Executing: " .. action_cmd .. ";" .. action_cmd .. " 2>&1 | logger -t rpc.gui.opkg -p user.info")
+      log:info("Executing: " .. action_cmd)
+      os.execute(action_cmd .. " 2>&1 | logger -t rpc.gui.opkg -p user.info")
       opkg_cache.reload = true
       checkPackages()
     end
