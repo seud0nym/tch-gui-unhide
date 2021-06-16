@@ -19,9 +19,34 @@ Options:
  -y  Bypass confirmation prompt (answers 'y')
  -C  Adds or removes the scheduled daily backup cron job
  -P  Reports the USB backup path
+ -U  Download the latest version of $SCRIPT from GitHub
 
 EOH
 exit
+}
+
+upgrade() {
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ]
+  then
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
+    if [ $? -eq 0 ]
+    then
+      chmod +x $SCRIPT
+      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
+    else
+      echo "[$SCRIPT] Failed to download $SCRIPT."
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]
+  then
+    echo "[$SCRIPT] ERROR! Not found on GitHub???"
+  elif [ "$RESPONSE_CODE" = 000 ]
+  then
+    echo "ERROR! No Internet connection???"
+  else
+    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
+  fi
+  exit
 }
 
 CRON=N
@@ -38,7 +63,7 @@ then
   exit 1
 fi
 
-while getopts :celovyCP option
+while getopts :celovyCPU option
 do
  case "${option}" in
   C)  CRON=Y;;
@@ -49,6 +74,7 @@ do
   o)  DUMP_OVL=Y;;
   v)  DEBUG=Y;;
   y)  YES=Y;;
+  U)  upgrade;;
   *)  usage;;
  esac
 done
@@ -91,7 +117,7 @@ then
     mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
     hh=$(awk 'BEGIN{srand();print int(rand()*3)+2;}')
     echo "$mm $hh * * * $(cd $(dirname $0); pwd)/$SCRIPT -c -e -o -y" >> /etc/crontabs/root
-    echo Backup has been scheduled to execute at $hh:${mm}am every day.
+    echo Backup has been scheduled to execute at $hh:$(printf '%02d' $mm)am every day.
     echo Execution messages will be written to the system log, and can be viewed with the following command:
     echo
     echo "  logread -e mtd-backup"

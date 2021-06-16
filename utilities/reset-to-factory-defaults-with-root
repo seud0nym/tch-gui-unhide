@@ -16,9 +16,34 @@ Options:
  -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
  -i           Keep existing IP address [$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)] after reset and reboot.
  -n           Do NOT reboot.
+ -U           Download the latest version of $SCRIPT from GitHub
 
 EOH
 exit
+}
+
+upgrade() {
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ]
+  then
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
+    if [ $? -eq 0 ]
+    then
+      chmod +x $SCRIPT
+      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
+    else
+      echo "[$SCRIPT] Failed to download $SCRIPT."
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]
+  then
+    echo "[$SCRIPT] ERROR! Not found on GitHub???"
+  elif [ "$RESPONSE_CODE" = 000 ]
+  then
+    echo "ERROR! No Internet connection???"
+  else
+    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
+  fi
+  exit
 }
 
 ACTIVE="$(cat /proc/banktable/active)"
@@ -28,7 +53,7 @@ FIRMWARE=""
 REBOOT="Y"
 IPADDR=""
 CWMP=""
-while getopts :bf:I:inc option
+while getopts :bf:I:incU option
 do
  case "${option}" in
   b)  BKUP="Y";;
@@ -44,6 +69,7 @@ do
   i)  IPADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)";;
   n)  REBOOT="N";;
   c)  CWMP="uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop;";;
+  U)  upgrade;;
   *)  usage;;
  esac
 done

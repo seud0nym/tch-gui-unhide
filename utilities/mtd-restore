@@ -3,21 +3,55 @@
 SCRIPT="$(basename $0)"
 VARIANT=$(uci -q get env.var.variant_friendly_name)
 
-if [ "o$1" = "o-?" ]; then
+usage() {
 cat <<EOH
 Restores the MTD partitions from an attached USB device. Only changed partitions are restored.
 
-Usage: $0 [partition]
+Usage: $0 [-U] [partition]
 
 Parameters:
  partition  the partition to restored. (Optional)
               Specify either the device (e.g. "mtd2") or name (e.g. "rootfs_data")
+ -U         Download the latest version of $SCRIPT from GitHub
 
 If no partition is specified for restore, ALL partitions that have been altered will be restored.
 
 EOH
 exit
-fi
+}
+
+upgrade() {
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ]
+  then
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
+    if [ $? -eq 0 ]
+    then
+      chmod +x $SCRIPT
+      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
+    else
+      echo "[$SCRIPT] Failed to download $SCRIPT."
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]
+  then
+    echo "[$SCRIPT] ERROR! Not found on GitHub???"
+  elif [ "$RESPONSE_CODE" = 000 ]
+  then
+    echo "ERROR! No Internet connection???"
+  else
+    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
+  fi
+  exit
+}
+
+while getopts :U option
+do
+ case "${option}" in
+  U)  upgrade;;
+  *)  usage;;
+ esac
+done
+shift $((OPTIND-1))
 
 USB="$(ls /mnt/usb | head -n1)"
 if [ -z "$USB" ]

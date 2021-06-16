@@ -61,7 +61,7 @@ Options:
  -R                    Reset to device defaults
                         (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy -Fn)
  -o                    Configures opkg
- -U                    Check for and download the latest version from GitHub
+ -U                    Download the latest version of $SCRIPT from GitHub
 
 NOTE #1: Default for all optional parameters is u (unchanged)
 NOTE #2: Options marked with * are only applicable if the service is installed
@@ -71,47 +71,25 @@ exit
 }
 
 upgrade() {
-  RESULT=$(curl -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT | sed 's/\r//')
-  if [ $? -ne 0 ]
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ]
   then
-      echo "[$SCRIPT] GitHub check of $SCRIPT failed with an unknown error. Do you have an internet connection?"
-      return 5
-  else 
-      STATUS=$(echo $RESULT | grep '^HTTP' | cut -d' ' -f2)
-      LENGTH=$(echo $RESULT | grep '^Content-Length' | cut -d' ' -f2)
-      next=''
-      for t in $(echo $RESULT | tr " " "$IFS")
-      do
-        case "$next" in
-        s) STATUS="$t";next='';;
-        l) LENGTH="$t";next='';;
-        *) case "$t" in
-        "HTTP/1.1") next='s';;
-        "Content-Length:") next='l';;
-        *) next='';;
-        esac
-        esac
-      done
-      case "$STATUS" in
-      200)  if [ -f "$SCRIPT" ]
-            then
-              SIZE=$(ls -l $SCRIPT | tr -s ' ' | cut -d' ' -f5)
-              if [ $SIZE -eq $LENGTH ]
-              then
-              echo "[$SCRIPT] Size of $SCRIPT matches GitHub version - No update required"
-              exit
-              fi
-            fi
-            curl -k -L https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT > $SCRIPT
-            if [ $? -eq 0 ]
-            then
-              chmod +x $SCRIPT
-              echo "[$SCRIPT] Successfully updated $SCRIPT."
-            else
-              echo "[$SCRIPT] Failed to download updated version of $SCRIPT."
-            fi;;
-      *)    echo "[$SCRIPT] GitHub check of $SCRIPT returned $STATUS";;
-      esac
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
+    if [ $? -eq 0 ]
+    then
+      chmod +x $SCRIPT
+      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
+    else
+      echo "[$SCRIPT] Failed to download $SCRIPT."
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]
+  then
+    echo "[$SCRIPT] ERROR! Not found on GitHub???"
+  elif [ "$RESPONSE_CODE" = 000 ]
+  then
+    echo "ERROR! No Internet connection???"
+  else
+    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
   fi
   exit
 }
@@ -887,54 +865,62 @@ then
   cat /proc/cpuinfo | grep -q 'ARMv7 Processor rev 1 (v7l)'
   if [ $? -eq 0 ]
   then
-    if [ $OPKG_DEP -gt 0 -o $(grep -c "^arch " /etc/opkg.conf) -eq 0 -o $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | wc -l) -eq 0 ]
+    if [ $OPKG_DEP -gt 0 -o $(sed -e '/^#/d' -e '/^[ \t]*$/d' /etc/opkg/customfeeds.conf | wc -l) -eq 0 ]
     then
       HOMEWARE=$(uci get version.@version[0].version | cut -d. -f1)
-      if [ "$HOMEWARE" -eq 17 -o "$HOMEWARE" -eq 18 ]
+      if [ "$HOMEWARE" -eq 17 -o "$HOMEWARE" -eq 18 -o "$HOMEWARE" -eq 20 ]
       then
-        if [ "$HOMEWARE" -eq 18 -a $OPKG_DEP -gt 0 ]
+        if [ $OPKG_DEP -gt 0 ]
         then
+          sed -e '/macoers/d' -i /etc/opkg/customfeeds.conf
           echo [$SCRIPT]: Re-configuring opkg for Homeware $HOMEWARE \(repository moved\)...
         else
           echo [$SCRIPT]: Configuring opkg for Homeware $HOMEWARE...
         fi
-        echo "arch all 1">>/etc/opkg.conf
-        echo "arch noarch 1">>/etc/opkg.conf
-        case "$HOMEWARE" in
-          17) cat <<-HW17 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
-                src/gz base https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/base
-                src/gz luci https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/luci
-                src/gz management https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/management
-                src/gz packages https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/packages
-                src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/routing
-                src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony
-HW17
-;;
-          18) echo "arch arm_cortex-a9 10">>/etc/opkg.conf
-              echo "arch arm_cortex-a9_neon 20">>/etc/opkg.conf
-              cat <<-HW18 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
-                src/gz chaos_calmer_base_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/base
-                src/gz chaos_calmer_packages_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages
-                src/gz chaos_calmer_luci_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/luci
-                src/gz chaos_calmer_routing_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing
-                src/gz chaos_calmer_telephony_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony
-                src/gz chaos_calmer_core_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages
-HW18
-;;
-        esac
-        echo "arch brcm63xx-tch 30">>/etc/opkg.conf
-        sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf
         ping -c 1 -W 2 -q 1.1.1.1 >/dev/null 2>&1
         if [ $? -eq 0 ]
         then
-          opkg update
-          echo [$SCRIPT]: Updating System CA certificates
-          opkg install --force-overwrite ca-certificates
+          echo "dest root">/etc/opkg.conf
+          echo "dest ram /tmp">>/etc/opkg.conf
+          echo "lists_dir ext /var/opkg-lists">>/etc/opkg.conf
+          echo "option overlay_root /overlay">>/etc/opkg.conf
+          echo "arch all 1">>/etc/opkg.conf
+          echo "arch noarch 1">>/etc/opkg.conf
+          echo "arch arm_cortex-a9 10">>/etc/opkg.conf
+          echo "arch arm_cortex-a9_neon 20">>/etc/opkg.conf
+          echo "arch brcm63xx-tch 30">>/etc/opkg.conf
+          case "$HOMEWARE" in
+            17) cat <<-HW17 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
+              src/gz base https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/base
+              src/gz luci https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/luci
+              src/gz management https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/management
+              src/gz packages https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/packages
+              src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/routing
+              src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony
+HW17
+;;
+          18|20) cat <<-HW18 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
+              src/gz chaos_calmer_base_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/base
+              src/gz chaos_calmer_packages_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages
+              src/gz chaos_calmer_luci_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/luci
+              src/gz chaos_calmer_routing_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing
+              src/gz chaos_calmer_telephony_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony
+              src/gz chaos_calmer_core_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages
+HW18
+;;
+          esac
+          sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf
+          echo [$SCRIPT]: Downloading and installing packages required for repository access...
+          SRC='https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/'
+          IPK=$(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-certificates' | cut -d' ' -f2)
+          curl -sk $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
+          echo [$SCRIPT]: Updating local package list
+          opkg update | logger -s -t rpc.gui.opkg -p user.info;
         else
-          echo [$SCRIPT]: WARNING: Unable to execute opkg update - You do not have an internet connection???
+          echo [$SCRIPT]: WARNING: No internet connection??? opkg not configured...
         fi
       else
-        echo [$SCRIPT]: Sorry!! I do not know how to configure opkg for Firmware Version $(uci get version.@version[0].version)
+        echo [$SCRIPT]: Sorry!! I do not know how to configure opkg for Firmware Version $(uci get version.@version[0].marketing_version)
       fi
     else
       echo [$SCRIPT]: Looks like opkg has already been configured...

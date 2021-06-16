@@ -25,9 +25,34 @@ Options:
                 be re-specified with -x. 
  -6           Do NOT apply blocking to IPv6 DNS requests.
  -r           Remove DNS interception.
+ -U           Download the latest version of $SCRIPT from GitHub
 
 EOH
 exit
+}
+
+upgrade() {
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ]
+  then
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
+    if [ $? -eq 0 ]
+    then
+      chmod +x $SCRIPT
+      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
+    else
+      echo "[$SCRIPT] Failed to download $SCRIPT."
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]
+  then
+    echo "[$SCRIPT] ERROR! Not found on GitHub???"
+  elif [ "$RESPONSE_CODE" = 000 ]
+  then
+    echo "ERROR! No Internet connection???"
+  else
+    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
+  fi
+  exit
 }
 
 # Options
@@ -41,7 +66,7 @@ GREEN='\033[1;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-while getopts :d:x:r6 option
+while getopts :d:x:r6U option
 do
   case "${option}" in
     d)  echo "$OPTARG" | grep -q -E "$IPv4_PATTERN"
@@ -61,6 +86,7 @@ do
         fi;;
     r)  REMOVE="y";;
     6)  IPv6="n";;
+    U)  upgrade;;
     ?)  usage;;
   esac
 done

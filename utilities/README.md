@@ -83,7 +83,7 @@ Options:
  -R                    Reset to device defaults
                         (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy -Fn)
  -o                    Configures opkg
- -U                    Check for and download the latest version from GitHub
+ -U                    Download the latest version of de-telstra rom GitHub
 ```
 Note that the options to disable/enable EasyMesh and DumaOS are only applicable to devices with those services installed.
 
@@ -118,6 +118,7 @@ Options:
                 be re-specified with -x. 
  -6           Do NOT apply blocking to IPv6 DNS requests.
  -r           Remove DNS interception.
+ -U           Download the latest version of intercept-dns rom GitHub
 ```
 The list of known DoH hosts is retrieved from https://github.com/dibdot/DoH-IP-blocklists.
 
@@ -137,6 +138,7 @@ Options:
  -y  Bypass confirmation prompt (answers 'y')
  -C  Adds or removes the scheduled daily backup cron job
  -P  Reports the USB backup path
+ -U  Download the latest version of mtd-backup rom GitHub
 ```
 When run with the -C option (which should be the only option), the scheduled job will be added if it does not already exist, or removed if it does exist in the schedule. By default, the backup will run every day at a random time between 2:00am and 5:00am. You can modify the schedule through the Management card in `tch-gui-unhide`, or by directly modifying the /etc/crontab/root file.
 
@@ -148,6 +150,7 @@ Usage: ./mtd-restore [partition]
 Parameters:
  partition  the partition to restored. (Optional)
               Specify either the device (e.g. "mtd2") or name (e.g. "rootfs_data")
+ -U         Download the latest version of mtd-restore rom GitHub
 ```
 If no partition is specified for restore, ALL partitions that have been altered will be restored.
 
@@ -174,6 +177,7 @@ Options:
  -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
  -i           Keep the existing IP address after reset and reboot.
  -n           Do NOT reboot.
+ -U           Download the latest version of reset-to-factory-defaults-with-root rom GitHub
 ```
 
 ## set-optimal-bank-plan
