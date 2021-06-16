@@ -227,6 +227,16 @@ Parameters:
 ```
 The second parameter is optional, and is either a filename or directory to which the *.rbi* file will be unpacked. If the filename or directory is not specified, the file will be written to the /tmp directory with the same name but with an extension of *.bin*.
 
+## update-ca-certificates
+Downloads and installs the latest version of the System CA Certificates. 
+```
+Usage: ./update-ca-certificates [options]
+
+Options:
+ -C  Adds or removes the scheduled monthly cron job
+ -U  Download the latest version of update-ca-certificates from GitHub
+```
+
 # How to download and execute these scripts
 If you download a tch-gui-unhide release archive, the scripts applicable to that firmware version are included.
 

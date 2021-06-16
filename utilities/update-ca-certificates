@@ -1,0 +1,82 @@
+#!/bin/sh
+
+SCRIPT="$(basename $0)"
+
+usage() {
+cat <<EOH
+Downloads and installs the latest version of the System CA Certificates
+
+Usage: $0 [options]
+
+Options:
+ -C  Adds or removes the scheduled monthly cron job
+ -U  Download the latest version of $SCRIPT from GitHub
+
+EOH
+exit
+}
+
+upgrade() {
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ]
+  then
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
+    if [ $? -eq 0 ]
+    then
+      chmod +x $SCRIPT
+      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
+    else
+      echo "[$SCRIPT] Failed to download $SCRIPT."
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]
+  then
+    echo "[$SCRIPT] ERROR! Not found on GitHub???"
+  elif [ "$RESPONSE_CODE" = 000 ]
+  then
+    echo "ERROR! No Internet connection???"
+  else
+    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
+  fi
+  exit
+}
+
+CRON=N
+
+while getopts :CU option
+do
+ case "${option}" in
+  C)  CRON=Y;;
+  U)  upgrade;;
+  *)  usage;;
+ esac
+done
+shift $((OPTIND-1))
+
+if [ $CRON = Y ]
+then
+  grep -q "$SCRIPT" /etc/crontabs/root
+  if [ $? = 0 ]
+  then
+    sed -e "/$SCRIPT/d" -i /etc/crontabs/root
+    echo Scheduled update has been removed.
+  else
+    mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
+    hh=$(awk 'BEGIN{srand();print int(rand()*3)+2;}')
+    dd=$(awk 'BEGIN{srand();print int(rand()*28);}')
+    echo "$mm $hh $dd * * $(cd $(dirname $0); pwd)/$SCRIPT" >> /etc/crontabs/root
+    echo Backup has been scheduled to execute at $hh:$(printf '%02d' $mm)am on day $dd of each month.
+    echo Execution messages will be written to the system log, and can be viewed with the following command:
+    echo
+    echo "  logread -e rpc.gui.opkg"
+    echo
+  fi
+  /etc/init.d/cron reload
+  exit
+fi
+
+SRC="https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/"
+for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2)
+do
+  curl -sk $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK | logger -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
+done
+  
