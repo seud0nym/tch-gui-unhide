@@ -22,7 +22,7 @@ shift $((OPTIND-1))
 DIR=$(pwd)
 
 echo Cleaning up..
-rm -rf /tmp/additional /tmp/*.b64
+rm -rf /tmp/tch-gui-unhide /tmp/*.b64
 
 echo Fixing line endings...
 DOS=$(find . -type f | xargs file | grep CRLF | cut -d: -f1 | xargs)
@@ -36,14 +36,19 @@ then
 fi
 
 echo Combining source files into single tree...
-mkdir /tmp/additional
-tar --exclude README.md --exclude '*.new' -cf - -C lua/ansuel/ .  | tar -xf - -C /tmp/additional/
-tar --exclude README.md --exclude '*.new' -cf - -C lua/additional/ .  | tar -xf - -C /tmp/additional/
+mkdir -p /tmp/tch-gui-unhide/common
+tar --exclude README.md -cf - -C lua/ansuel/ .  | tar -xf - -C /tmp/tch-gui-unhide/common/
+tar --exclude README.md -cf - -C lua/additional/ .  | tar -xf - -C /tmp/tch-gui-unhide/common/
+for d in $(ls -d lua/stock/[0-9]*)
+do
+  mkdir -p /tmp/tch-gui-unhide/$(basename $d)
+  tar --exclude README.md -cf - -C $d .  | tar -xf - -C /tmp/tch-gui-unhide/$(basename $d)/
+done
 
 TARGET=common/075-Enable-Ajax-Modals
 echo Updating $TARGET...
 rm $TARGET
-for a in $(find /tmp/additional/*/www/docroot/ajax -type f)
+for a in $(find /tmp/tch-gui-unhide/common/*/www/docroot/ajax -type f)
 do
   AJAX=$(basename $a)
   RULE="$(basename $a .lua | sed -e 's/-//g')ajax"
@@ -62,28 +67,24 @@ done
 echo "" >> $TARGET
 
 echo Updating rpc.gui.UnhideVersion...
-sed -e "s/current_version = \"\"/current_version = \"$FULL_VERSION\"/" -i $(find /tmp/additional -name gui.map)
+sed -e "s/current_version = \"\"/current_version = \"$FULL_VERSION\"/" -i $(find /tmp/tch-gui-unhide/common -name gui.map)
 
 echo Fixing file and directory attributes...
-find /tmp/additional/ -type d -exec chmod 755 {} \;
-find /tmp/additional/ -type f -name '*.map' -exec chmod 644 {} \;
-find /tmp/additional/ -type f -name '*.lp'  -exec chmod 644 {} \;
-find /tmp/additional/ -type f -name '*.lua' -exec chmod 644 {} \;
-for d in $(find /tmp/additional/ -type d -name 'init.d' -o -name 'sbin')
+find /tmp/tch-gui-unhide/ -type d -exec chmod 755 {} \;
+find /tmp/tch-gui-unhide/ -type f -name '*.map' -exec chmod 644 {} \;
+find /tmp/tch-gui-unhide/ -type f -name '*.lp'  -exec chmod 644 {} \;
+find /tmp/tch-gui-unhide/ -type f -name '*.lua' -exec chmod 644 {} \;
+for d in $(find /tmp/tch-gui-unhide/ -type d -name 'init.d' -o -name 'sbin')
 do
   chmod 755 $d/*
 done
 
-echo Building Base64 tar images...
-for d in $(ls /tmp/additional)
+echo Building bzipped Base64 tar images...
+for d in $(ls /tmp/tch-gui-unhide/common)
 do
-  if [ -d /tmp/additional/$d ]
+  if [ -d /tmp/tch-gui-unhide/common/$d ]
   then
-    cd /tmp/additional/$d
-    for f in $(find . -type f -name "*.lp" -o -name "*.lua")
-    do
-      sed -e 's/^[ \t]*//g' -e 's/[ \t]*$//' -e 's/\r$//' -i $f
-    done
+    cd /tmp/tch-gui-unhide/common/$d
     echo "echo [\$SCRIPT]: Deploy modified $d GUI code" > /tmp/$d.b64
     echo "echo $(tar --owner=root --group=root -cf - * | bzip2 | base64 | tr -d "$IFS") | base64 -d | bzcat | tar -xf - -C /" >> /tmp/$d.b64
     echo >> /tmp/$d.b64
@@ -93,6 +94,24 @@ done
 echo "echo [\$SCRIPT]: Deploy theme files" > /tmp/themes.b64
 echo "echo $(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -cf - -C themes . | bzip2 | base64 | tr -d "$IFS") | base64 -d | bzcat | tar -xf - -C /" >> /tmp/themes.b64
 echo "" >> /tmp/themes.b64
+for d in $(ls -d /tmp/tch-gui-unhide/[0-9]*)
+do
+  if [ -d $d ]
+  then
+    cd $d
+    FW=$(basename $d)
+    TARGET=/tmp/$FW.b64
+    if [ -f $d/.source ]
+    then
+      echo "echo [\$SCRIPT]: Importing stock GUI code from $(cat $d/.source | xargs) into $FW" > $TARGET
+    else
+      echo "echo [\$SCRIPT]: Importing stock GUI code" > $TARGET
+    fi
+    echo "echo $(tar --exclude .source --owner=root --group=root -cf - * | bzip2 | base64 | tr -d "$IFS") | base64 -d | bzcat | tar -xf - -C /" >> $TARGET
+    echo >> $TARGET
+    cd $DIR
+  fi
+done
 
 for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1)
 do
@@ -128,6 +147,18 @@ do
       do
         sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" /tmp/$b.b64 >> $TARGET
       done
+      IMPORTS=$(ls /tmp/$MAJOR*.b64 2>/dev/null)
+      if [ ! -z "$IMPORTS" ]
+      then
+        for b in $IMPORTS
+        do
+          FW_TARGET=$(basename $b .b64)
+          echo "echo \"\$VERSION\" | grep -q \"^$FW_TARGET\"" >> $TARGET
+          echo "if [ \$? -eq 0 ]; then" >> $TARGET
+          sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" $b >> $TARGET
+          echo "fi" >> $TARGET
+        done
+      fi
     else
       if [ $FILENAME = "165-Themes" ]
       then
@@ -150,5 +181,5 @@ do
 done
 
 echo Cleaning up..
-rm -rf /tmp/additional /tmp/*.b64
+rm -rf /tmp/tch-gui-unhide/common /tmp/*.b64
 echo Build Complete @ $(date +%H:%M:%S) for version $FULL_VERSION
