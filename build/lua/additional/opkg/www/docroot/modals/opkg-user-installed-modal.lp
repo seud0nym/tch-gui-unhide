@@ -5,6 +5,7 @@ gettext.textdomain('webui-core')
 
 local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
+local content_helper = require("web.content_helper")
 local match, untaint = string.match, string.untaint
 
 local lp = require("web.lp")
@@ -17,6 +18,11 @@ if ngx.req.get_method() == "POST" then
   proxy.set("rpc.gui.opkg.user.@".. pkg .. ".action", cmd)
 end
 
+local opkg_data = {
+  user_installed = "rpc.gui.opkg.userNumberOfEntries",
+}
+content_helper.getExactContent(opkg_data)
+
 ngx.print(ui_helper.createHeader(T"Packages", true, false))   ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-opkg.lp"); ngx.print('\
@@ -24,14 +30,25 @@ ngx.print(ui_helper.createHeader(T"Packages", true, false))   ngx.print('\
     '); 
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('<legend>');  ngx.print( T"User Installed Packages" ); ngx.print('</legend>');
-    lp.include("opkg-form.lp");
+    if opkg_data["user_installed"] == "0" then
+      local alert_info = {
+        alert = {
+          class = "alert alert-info"
+        },
+      }
+      ngx.print(ui_helper.createAlertBlock(T"No user-installed packages found",alert_info))
+    else 
+      lp.include("opkg-form.lp");
+    end
     ngx.print('\
   </form>\
   '); 
   lp.include("opkg-post.lp");
   ngx.print('\
 </div>\
-');  ngx.print(ui_helper.createFooter()); ngx.print('\
+');  ngx.print(ui_helper.createFooter()); 
+if opkg_data["user_installed"] ~= "0" then
+  ngx.print('\
 <script>\
   $.post("/ajax/opkg-list.lua?group=user", [tch.elementCSRFtoken()], function(data){\
     $("#opkgs_place_holder").html(data["html"]);\
@@ -46,4 +63,5 @@ ngx.print(ui_helper.createHeader(T"Packages", true, false))   ngx.print('\
     if(response.status==403||response.status==404){alert("Error retrieving packages?");}\
   });\
 </script>\
-')
+  ')
+end
