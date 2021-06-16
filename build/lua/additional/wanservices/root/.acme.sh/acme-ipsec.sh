@@ -14,6 +14,9 @@ fi
 
 # Inspired by https://gist.github.com/t413/3e616611299b22b17b08baa517d2d02c
 
+ACME_DIR="$(cd $(dirname $0) && pwd)"
+SCRIPT="$(basename $0)"
+
 usage() {
 cat <<EOH
 Issues or renews a Let's Encrypt certificate for this device using acme.sh. (Let's Encrypt is preferred as it does not require an email address to issue the certificate.)
@@ -38,14 +41,36 @@ Options:
             If the cron job is being added, then the script will continue on and
             request an initial issue or renewal. Otherwise it will exit after
             removing the cron job.
- -F       Force renewal of existing certificate
+ --force  Force renewal of existing certificate
+ -U       Download the latest version of this $SCRIPT from GitHub
 
 EOH
 exit
 }
 
-ACME_DIR="$(cd $(dirname $0) && pwd)"
-SCRIPT="$(basename $0)"
+upgrade() {
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/build/lua/additional/wanservices/root/.acme.sh/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ]
+  then
+    curl -kL -o $ACME_DIR/$SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/build/lua/additional/wanservices/root/.acme.sh/$SCRIPT
+    if [ $? -eq 0 ]
+    then
+      chmod +x $ACME_DIR/$SCRIPT
+      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
+    else
+      echo "[$SCRIPT] Failed to download $SCRIPT."
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]
+  then
+    echo "[$SCRIPT] ERROR! Not found on GitHub???"
+  elif [ "$RESPONSE_CODE" = 000 ]
+  then
+    echo "ERROR! No Internet connection???"
+  else
+    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
+  fi
+  exit
+}
 
 SECONDS=$(date +%s)
 
@@ -61,7 +86,7 @@ FORCE_RENEW=""
 TO_STDERR=""
 WAN_PORT='80'
 
-while getopts :c:i:k:lsvyCF option
+while getopts :c:i:k:lsvyCU-: option
 do
  case "${option}" in
   c)  CERTS_DIR="$OPTARG";;
@@ -72,7 +97,8 @@ do
   v)  DEBUG="--debug";;
   y)  YES=Y;;
   C)  CRON=Y;;
-  F)  FORCE_RENEW="--force";;
+  U)  upgrade;;
+  -)  if [ "$OPTARG" = "force" ]; then FORCE_RENEW="--force"; else usage; fi;;
   *)  usage;;
  esac
 done
@@ -305,7 +331,7 @@ else
 fi
 
 _dbg "Running acme.sh..."
-./acme.sh --issue $SOCAT $LAN_PORT --server letsencrypt -d $DOMAIN --key-file $PRIVATE_DIR/$DOMAIN.key --cert-file $CERTS_DIR/$DOMAIN.cer --ca-file $CACERTS_DIR/$DOMAIN-ca.cer --renew-hook "/etc/init.d/ipsec restart" --syslog 6 $FORCE_RENEW $DEBUG
+./acme.sh --issue $SOCAT $LAN_PORT --server letsencrypt -d $DOMAIN --key-file $PRIVATE_DIR/$DOMAIN.key --fullchain-file $CERTS_DIR/$DOMAIN.cer --renew-hook "/etc/init.d/ipsec restart" --syslog 6 $FORCE_RENEW $DEBUG
 
 _log user.info "Closing IP address $WAN_IP port $WAN_PORT on interface $IFNAME..."
 ENABLED='0'
