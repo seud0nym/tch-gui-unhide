@@ -17,13 +17,15 @@ Hardens root access and applies optional service configuration changes.
 Usage: $0 [options]
 
 Options:
- -k a|c|k|m|n          Override default hardening configuration:
+ -k a|c|e|k|m|n        Override default hardening configuration:
     where a            - Keep Telstra AIR enabled
           c            - Keep CWMP installed
           k            - Keep default public authorized keys
           m            - Keep Telstra monitoring and data collection enabled
           n            - Keep Telstra NTP servers
-          T            - Keep all default Telstra configuration (Equivalent to: -ka -kc -kk -km -kn) 
+          x            - Keep noexec on ext2/3/4, fat, hfsplus, hfsplusjournal and ntfs filesystems
+                           (i.e. prevent execution of scripts/programs on USB devices)
+          T            - Keep all default Telstra configuration (Equivalent to: -ka -kc -kk -km -kn -kx) 
  -h u|d|s|<hostname>
     where u            Leave hostname unchanged
           d            Set the hostname to $VARIANT
@@ -41,7 +43,7 @@ Options:
           f            Set the DNS servers to OpenDNS Family Shield
           o            Set the DNS servers to OpenDNS
           <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
- -a u|y|n              NAT Helpers:             u=Unchanged y=Enable n=Disable (except SIP if telephony enabled)
+ -a u|y|n              WAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable
  -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
  -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
  -p u|y|n              Power Saving:            u=unchanged y=Enable n=Disable
@@ -94,6 +96,8 @@ upgrade() {
   exit
 }
 
+VERSION=$(uci get version.@version[0].marketing_version)
+
 # Keep count of changes so we know whether to restart services
 SRV_bulkdata=0
 SRV_cups=0
@@ -108,6 +112,7 @@ SRV_hotspot=0
 SRV_mmpbxd=0
 SRV_mobiled=0
 SRV_monitor=0
+SRV_mountd=0
 SRV_network=0
 SRV_ntp=0
 SRV_qos=0
@@ -159,6 +164,7 @@ CWMP='n'
 KEYS='n'
 MONITORING='n'
 NTP='n'
+NOEXEC='n'
 
 while getopts :a:c:d:e:f:g:h:k:m:n:op:r:t:u:w:AF:MRSU option
 do
@@ -170,7 +176,7 @@ do
   f)  case "${OPTARG}" in y) SAMBA='1';; n) SAMBA='0';; u) SAMBA='u';; *) SAMBA='u'; echo 'ERROR: -f valid options are y, n, or u'; exit 1;; esac;;
   g)  case "${OPTARG}" in y) DUMAOS='1';; n) DUMAOS='0';; u) DUMAOS='u';; *) DUMAOS='u'; echo 'ERROR: -g valid options are y, n, or u'; exit 1;; esac;;
   h)  HOST=${OPTARG};;
-  k)  case "${OPTARG}" in k) KEYS='y';; c) CWMP='y';; m) MONITORING='y';; a) AIR='y';; n) NTP='y';; T) KEYS='y'; CWMP='y'; MONITORING='y'; AIR='y'; NTP='y';; *) echo "ERROR: Unknown override option $OPTARG"; exit 1;; esac;;
+  k)  case "${OPTARG}" in k) KEYS='y';; c) CWMP='y';; m) MONITORING='y';; a) AIR='y';; n) NTP='y';; x) NOEXEC='y';; T) KEYS='y'; CWMP='y'; MONITORING='y'; AIR='y'; NTP='y'; NOEXEC='y';; *) echo "ERROR: Unknown override option $OPTARG"; exit 1;; esac;;
   m)  case "${OPTARG}" in y) MULTIAP='1';; n) MULTIAP='0';; u) MULTIAP='u';; *) MULTIAP='u'; echo 'ERROR: -m valid options are y, n, or u'; exit 1;; esac;;
   n)  NS=${OPTARG};;
   o)  OPKG='y';;
@@ -364,6 +370,32 @@ then
   fi
 else
   echo [$SCRIPT]: - OVERRIDE! Telstra logging and data collection NOT Removed
+fi
+
+if [ $(uci show mountd | grep -E 'mountd\.(ext[2-4]|fat|hfsplus(journal)*|ntfs)\.options=.*noexec.*' | wc -l) -gt 0 ]
+then
+  if [ "$NOEXEC" = 'n' ]
+  then
+    for fs in ext2 ext3 ext4 fat hfsplus hfsplusjournal ntfs
+    do
+      FS_OPT=$(uci -q get mountd.$fs.options)
+      echo $FS_OPT | grep -q noexec
+      if [ $? -eq 0 ]
+      then
+        uci set mountd.$fs.options="$(echo $FS_OPT | sed -e 's/noexec,//' -e 's/,noexec//')"
+        SRV_mountd=$(( $SRV_mountd + 1 ))
+        echo [$SCRIPT]: - noexec on $fs mounts Disabled
+      fi
+    done
+    if [ $SRV_mountd -gt 0 ]
+    then
+      uci commit mountd
+    fi
+  else
+    echo [$SCRIPT]: - OVERRIDE! noexec on ext2/3/4, fat, hfsplus, hfsplusjournal and ntfs mounts NOT Disabled
+  fi
+else
+  echo [$SCRIPT]: - noexec on ext2/3/4, fat, hfsplus, hfsplusjournal and ntfs mounts already Disabled
 fi
 
 if [ -f authorized_keys ]
@@ -743,39 +775,53 @@ else
   fi
 fi
 
-if [ "$ALG" = "u" ]
+if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]
 then
-  echo [$SCRIPT]: ALGs unchanged \[$(uci show firewall | grep helper | grep -E "enable='(1|y)'" | wc -l) Enabled\]
-else
-  for g in $(uci show firewall | grep '\.helper' | cut -d\' -f2)
-  do
-    key=$(uci show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
-    G=$(echo $g | tr "[a-z]" "[A-Z]")
-    G_NOW="$(uci -q get -q $key.enable)"
-    if [ "$G_NOW" != "$ALG" ]
-    then
-      if [ "$ALG" = "0" ]
+  if [ "$ALG" = "u" ]
+  then
+    echo [$SCRIPT]: ALGs unchanged \[$(uci show firewall | grep helper | grep -E "enable='(1|y)'" | wc -l) Enabled\]
+  else
+    for g in $(uci show firewall | grep '\.helper' | cut -d\' -f2)
+    do
+      key=$(uci show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
+      G=$(echo $g | tr "[a-z]" "[A-Z]")
+      G_NOW="$(uci -q get -q $key.enable)"
+      if [ "$G_NOW" != "$ALG" ]
       then
-        echo $g | grep -q -i sip
-        if [ $? -eq 0 ]
+        if [ "$ALG" = "0" ]
         then
-          if [ "$MMPBX_NOW" = "1" ]
-          then
-            echo [$SCRIPT]: SIP ALG left Enabled because Telephony Enabled
-            continue
-          fi
+          echo [$SCRIPT]: $G ALG Disabled
+        else 
+          echo [$SCRIPT]: $G ALG Enabled
         fi
-        echo [$SCRIPT]: $G ALG Disabled
-      else 
-        echo [$SCRIPT]: $G ALG Enabled
+        uci set $key.enable="$ALG"
+        uci commit firewall
+        SRV_fw=$(( $SRV_fw + 1 ))
+      else
+        echo [$SCRIPT]: $G ALG unchanged \[$(status2text $G_NOW)\]
       fi
-      uci set $key.enable="$ALG"
-      uci commit firewall
-      SRV_fw=$(( $SRV_fw + 1 ))
+    done
+  fi
+else # 20.3.c
+  if [ "$ALG" = "u" ]
+  then
+    echo [$SCRIPT]: WAN ALGs unchanged \[$(uci -q get $(uci show firewall | grep @zone | grep "wan='1'" | cut -d. -f1-2).helper | wc -w) Enabled\]
+  else
+    ZONE=$(uci show firewall | grep @zone | grep "wan='1'" | cut -d. -f1-2)
+    uci -q delete $ZONE.helper
+    if [ "$ALG" = "0" ]
+    then
+      echo [$SCRIPT]: $G All WAN ALGs Disabled
     else
-      echo [$SCRIPT]: $G ALG unchanged \[$(status2text $G_NOW)\]
+      for g in ftp tftp snmp pptp sip irc amanda rtsp
+      do
+        uci add_list $ZONE.helper="$g"
+        echo [$SCRIPT]: $G ALG Enabled
+      done
     fi
-  done
+    uci commit firewall
+    SRV_fw=$(( $SRV_fw + 1 ))
+  fi
 fi
 
 NATPMP_NOW="$(uci -q get upnpd.config.enable_natpmp)"
@@ -959,6 +1005,14 @@ fi
 [ $SRV_multiap -gt 0 ] && { /etc/init.d/multiap_controller restart; /etc/init.d/multiap_agent restart; } > /dev/null 2>&1
 [ $SRV_upnp -gt 0 ] && /etc/init.d/miniupnpd-tch restart > /dev/null 2>&1
 [ $SRV_dumaos -gt 0 ] && /etc/init.d/dumaos restart > /dev/null 2>&1
+[ $SRV_mountd -gt 0 ] && { 
+  mnt_path=$(uci get mountd.mountd.path); 
+  for f in $(ls ${mnt_path}* 2>/dev/null);do 
+    echo "[$SCRIPT]: Attempting to unmount $f..."; 
+    umount $f; 
+  done; 
+  echo -e "[$SCRIPT]: \033[1;32mNOTE: You should remove and re-insert any mounted USB device\033[0m"; 
+}
 [ "$PRNTR_NOW" = "0" -o "$PRNTR" = "0" ] && /etc/init.d/cupsd stop > /dev/null 2>&1
 [ "$PRNTR_NOW" = "0" -a "$PRNTR" = "1" ] && /etc/init.d/cupsd restart > /dev/null 2>&1
 [ "$DLNA_NOW" = "0" -o "$DLNAD" = "0" ] && /etc/init.d/mud stop > /dev/null 2>&1
@@ -1001,4 +1055,4 @@ echo [$SCRIPT]: Cleaning up broken links in /etc/rc.d
 find /etc/rc.d -type l ! -exec test -e {} \; -exec rm {} \;
 
 echo [$SCRIPT]: Done!
-echo "[$SCRIPT]: NOTE: If you haven't changed the root password, you should do it now..."
+echo -e "[$SCRIPT]: \033[1;32mNOTE: If you haven't changed the root password, you should do it now...\033[0m"

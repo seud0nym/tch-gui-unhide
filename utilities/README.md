@@ -19,10 +19,10 @@ In addition, it automatically:
 - Removes packages related to CWMP, Telstra monitoring, and Telstra AIR
 
 Optionally, it can also:
-- Set the hostname of the device and the domain of the LAN. Default Telstra hostnames (except telstra.wifi, which is used by EasyMesh) are removed.
+- Set the hostname of the device and the domain of the LAN. Default Telstra host names (except telstra.wifi, which is used by EasyMesh) are removed.
 - Set the device DNS servers
 - Disable or enable content and printer sharing, and the DLNA server
-- Disable or enable all ALGs (FTP, TFTP, SNMP, PPTP, IRC, AMANDA, RTSP, SIP)
+- Disable or enable all WAN ALGs (FTP, TFTP, SNMP, PPTP, IRC, AMANDA, RTSP, SIP)
 - Disable or enable telephony, and enables VoLTE backup voice service and SMS reception
 - Disable or enable DECT Emission Mode
 - Disable or enable UPnP
@@ -39,17 +39,20 @@ It does NOT remove the hidden BH-xxxxxx SSID from the DJA0230 or DJA0231, as thi
 Usage: ./de-telstra [options]
 
 Options:
- -k a|c|k|m|n          Override default hardening configuration:
+Options:
+ -k a|c|e|k|m|n        Override default hardening configuration:
     where a            - Keep Telstra AIR enabled
           c            - Keep CWMP installed
           k            - Keep default public authorized keys
           m            - Keep Telstra monitoring and data collection enabled
           n            - Keep Telstra NTP servers
-          T            - Keep all default Telstra configuration (Equivalent to: -ka -kc -kk -km -kn)
+          x            - Keep noexec on ext2/3/4, fat, hfsplus, hfsplusjournal and ntfs filesystems
+                           (i.e. prevent execution of scripts/programs on USB devices)
+          T            - Keep all default Telstra configuration (Equivalent to: -ka -kc -kk -km -kn -kx)
  -h u|d|s|<hostname>
     where u            Leave hostname unchanged
           d            Set the hostname to DJA0231
-          s            Set the hostname to DJA0231-8C76FD
+          s            Set the hostname to DJA0231-7E5F7A
           <hostname>   Use the specified hostname
  -d u|g|<domainname>
     where u            Leave domain name unchanged
@@ -63,7 +66,7 @@ Options:
           f            Set the DNS servers to OpenDNS Family Shield
           o            Set the DNS servers to OpenDNS
           <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
- -a u|y|n              NAT Helpers:             u=Unchanged y=Enable n=Disable (except SIP if telephony enabled)
+ -a u|y|n              WAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable
  -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
  -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
  -p u|y|n              Power Saving:            u=unchanged y=Enable n=Disable
@@ -81,9 +84,9 @@ Options:
  -M                    Minimum memory mode: Equivalent to: -an -cn -fn -rn -tn -en -un -mn -gn -Fy
                         PLUS stops and disables the associated services
  -R                    Reset to device defaults
-                        (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy -Fn)
+                        (equivalent to: -h mymodem -d modem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy -Fn)
  -o                    Configures opkg
- -U                    Download the latest version of de-telstra rom GitHub
+ -U                    Download the latest version of de-telstra from GitHub
 ```
 Note that the options to disable/enable EasyMesh and DumaOS are only applicable to devices with those services installed.
 
