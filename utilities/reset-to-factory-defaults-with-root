@@ -74,7 +74,8 @@ do
  esac
 done
 
-USB="$(ls /mnt/usb | head -n1)"
+MOUNT_PATH=$(uci get mountd.mountd.path)
+USB="$(ls $MOUNT_PATH | head -n1)"
 
 if [ ! -z "$BKUP" ]
 then
@@ -84,7 +85,7 @@ then
     echo "         Are you REALLY sure you wish to proceed?"
   else
     SOURCE="$(cat /proc/banktable/booted)"
-    TARGET="/mnt/usb/$USB/${SOURCE}_Backup-$(date +%Y-%m-%d@%H%M).tar.gz"
+    TARGET="${MOUNT_PATH}${USB}/${SOURCE}_Backup-$(date +%Y-%m-%d@%H%M).tar.gz"
     echo "NOTE:    $SOURCE will be backed up to $TARGET"
   fi
 else
@@ -106,7 +107,7 @@ then
         then
           echo "NOTE:    $FIRMWARE will be unpacked to /tmp before flashing. Do you have enough space?"
         else
-          echo "NOTE:    $FIRMWARE will be unpacked to /mnt/usb/$USB before flashing. Do you have enough space?"
+          echo "NOTE:    $FIRMWARE will be unpacked to ${MOUNT_PATH}${USB} before flashing. Do you have enough space?"
         fi
         echo "NOTE:    $(basename $FIRMWARE .rbi).bin will be flashed into $BOOTED after reset"
       else
@@ -175,7 +176,7 @@ then
   then
     target="/tmp/$(basename $FIRMWARE .rbi).bin"
   else
-    target="/mnt/usb/$USB/$(basename $FIRMWARE .rbi).bin"
+    target="${MOUNT_PATH}${USB}/$(basename $FIRMWARE .rbi).bin"
   fi
   echo "About to unpack $FIRMWARE to $target"
   echo -n "Enter y to continue, or anything else to abort: "
