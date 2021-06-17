@@ -6,20 +6,22 @@ VARIANT=$(uci -q get env.var.variant_friendly_name)
 
 usage() {
 cat <<EOH
-Backs up the MTD partitions to an attached USB device. Only unchanged partitions are backed up after the first execution.
+Backs up the MTD partitions to an attached USB device or SSHFS attached filesystem. Only unchanged partitions are backed up after the first execution.
 
 Usage: $0 [options]
 
 Options:
- -c  Save the current UCI configuration into the $VARIANT-$SERIAL-config.gz file
- -e  Save the current environment into the $VARIANT-$SERIAL-env file
- -l  Write log messages to stderr as well as the system log
- -o  Save the overlay content into the $VARIANT-$SERIAL-overlay-files-backup.tgz file
- -v  Verbose mode
- -y  Bypass confirmation prompt (answers 'y')
- -C  Adds or removes the scheduled daily backup cron job
- -P  Reports the USB backup path
- -U  Download the latest version of $SCRIPT from GitHub
+ -d directory   The name of the directory on the USB device or SSHFS filesystem.
+                  If not specified, defaults to: backups
+ -c             Save the current UCI configuration into the $VARIANT-$SERIAL-config.gz file
+ -e             Save the current environment into the $VARIANT-$SERIAL-env file
+ -l             Write log messages to stderr as well as the system log
+ -o             Save the overlay content into the $VARIANT-$SERIAL-overlay-files-backup.tgz file
+ -v             Verbose mode
+ -y             Bypass confirmation prompt (answers 'y')
+ -C             Adds or removes the scheduled daily backup cron job
+ -P             Reports the backup path
+ -U             Download the latest version of $SCRIPT from GitHub
 
 EOH
 exit
@@ -51,24 +53,21 @@ upgrade() {
 
 CRON=N
 DEBUG=N
+DIR="backups"
 DUMP_CFG=N
 DUMP_ENV=N
 DUMP_OVL=N
 LOGGER="/usr/bin/logger -t mtd-backup -p"
+PATH_ONLY=N
 YES=N
-USB="$(ls /mnt/usb | head -n1)"
-if [ -z "$USB" ]
-then
-  $LOGGER user.err ABORTING! No USB device found
-  exit 1
-fi
 
-while getopts :celovyCPU option
+while getopts :cd:elovyCPU option
 do
  case "${option}" in
   C)  CRON=Y;;
-  P)  echo "/mnt/usb/$USB/backups/"; exit;;
+  P)  PATH_ONLY=Y;;
   c)  DUMP_CFG=Y;;
+  d)  DIR="$OPTARG";;
   e)  DUMP_ENV=Y;;
   l)  LOGGER="/usr/bin/logger -s -t mtd-backup -p";;
   o)  DUMP_OVL=Y;;
@@ -79,6 +78,39 @@ do
  esac
 done
 shift $((OPTIND-1))
+
+MOUNT_PATH=$(uci get mountd.mountd.path)
+USB="$(ls $MOUNT_PATH | head -n1)"
+if [ -z "$USB" ]
+then
+  SSHFS=$(grep fuse\.sshfs /proc/mounts | head -n1 | cut -d" " -f2)
+  if [ -z "$SSHFS" ]
+  then
+    if [ $PATH_ONLY = Y ]
+    then
+      echo ERROR! No USB device or mounted SSHFS filesystem found
+    else
+      $LOGGER user.err ABORTING! No USB device or mounted SSHFS filesystem found
+    fi
+    exit 2
+  else
+  TARGET=${SSHFS}/${DIR}
+  fi
+else
+  TARGET=${MOUNT_PATH}${USB}/${DIR}
+fi
+
+if [ $PATH_ONLY = Y ]
+then
+  echo $TARGET
+  exit
+fi
+
+if [ $DEBUG = Y ]
+then
+  $LOGGER user.debug Backup commenced
+  STARTED=$(date +%s)
+fi
 
 if [ $CRON = Y ]
 then
@@ -116,7 +148,7 @@ then
   else
     mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
     hh=$(awk 'BEGIN{srand();print int(rand()*3)+2;}')
-    echo "$mm $hh * * * $(cd $(dirname $0); pwd)/$SCRIPT -c -e -o -y" >> /etc/crontabs/root
+    echo "$mm $hh * * * $(cd $(dirname $0); pwd)/$SCRIPT -d $DIR -c -e -o -y" >> /etc/crontabs/root
     echo Backup has been scheduled to execute at $hh:$(printf '%02d' $mm)am every day.
     echo Execution messages will be written to the system log, and can be viewed with the following command:
     echo
@@ -133,28 +165,29 @@ then
   STARTED=$(date +%s)
 fi
 
-if [ ! -d /mnt/usb/$USB/backups ]
+if [ ! -d $TARGET ]
 then
-  mkdir -p /mnt/usb/$USB/backups
+  $LOGGER user.info Backup target $TARGET not found - Creating...
+  mkdir -p $TARGET
 fi
-if [ ! -f /mnt/usb/$USB/backups/README! ]
+if [ ! -f $TARGET/README! ]
 then
-  echo "This directory contains compressed backup images of the device MTD partitions.">/mnt/usb/$USB/backups/README!
-  echo "">>/mnt/usb/$USB/backups/README!
-  echo "The .sha256 files contain a checksum that is ONLY used for determining if an image has been changed.">>/mnt/usb/$USB/backups/README!
-  echo "">>/mnt/usb/$USB/backups/README!
-  echo "The checksum may not match the actual content of the image, if the image is updated between checksum">>/mnt/usb/$USB/backups/README!
-  echo "calculation and actually writing the image!">>/mnt/usb/$USB/backups/README!
+  echo "This directory contains compressed backup images of the device MTD partitions.">$TARGET/README!
+  echo "">>$TARGET/README!
+  echo "The .sha256 files contain a checksum that is ONLY used for determining if an image has been changed.">>$TARGET/README!
+  echo "">>$TARGET/README!
+  echo "The checksum may not match the actual content of the image, if the image is updated between checksum">>$TARGET/README!
+  echo "calculation and actually writing the image!">>$TARGET/README!
 fi
 
 if [ $DUMP_CFG = Y ]
 then
-  $LOGGER user.info WRITING current configuration to /mnt/usb/$USB/backups/$VARIANT-$SERIAL-config.gz
+  $LOGGER user.info WRITING current configuration to $TARGET/$VARIANT-$SERIAL-config.gz
   SECONDS=$(date +%s)
-  uci show 2>/dev/null | grep -v -E '^env' | gzip > /mnt/usb/$USB/backups/$VARIANT-$SERIAL-config.gz
+  uci show 2>/dev/null | grep -v -E '^env' | gzip > $TARGET/$VARIANT-$SERIAL-config.gz
   if [ $DEBUG = Y ]
   then
-    $LOGGER user.debug WRITING current configuration to /mnt/usb/$USB/backups/$VARIANT-$SERIAL-config.gz took $(( $(date +%s) - $SECONDS )) seconds
+    $LOGGER user.debug WRITING current configuration to $TARGET/$VARIANT-$SERIAL-config.gz took $(( $(date +%s) - $SECONDS )) seconds
   fi
 else
   if [ $DEBUG = Y ]
@@ -165,12 +198,12 @@ fi
 
 if [ $DUMP_ENV = Y ]
 then
-  $LOGGER user.info WRITING current environment to /mnt/usb/$USB/backups/$VARIANT-$SERIAL-env
+  $LOGGER user.info WRITING current environment to $TARGET/$VARIANT-$SERIAL-env
   SECONDS=$(date +%s)
-  uci show env.var > /mnt/usb/$USB/backups/$VARIANT-$SERIAL-env
+  uci show env.var > $TARGET/$VARIANT-$SERIAL-env
   if [ $DEBUG = Y ]
   then
-    $LOGGER user.debug WRITING current environment to /mnt/usb/$USB/backups/$VARIANT-$SERIAL-env took $(( $(date +%s) - $SECONDS )) seconds
+    $LOGGER user.debug WRITING current environment to $TARGET/$VARIANT-$SERIAL-env took $(( $(date +%s) - $SECONDS )) seconds
   fi
 else
   if [ $DEBUG = Y ]
@@ -181,12 +214,12 @@ fi
 
 if [ $DUMP_OVL = Y ]
 then
-  $LOGGER user.info WRITING overlay contents to /mnt/usb/$USB/backups/$VARIANT-$SERIAL-overlay-files-backup.tgz
+  $LOGGER user.info WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz
   SECONDS=$(date +%s)
-  tar -C /overlay -czf /mnt/usb/$USB/backups/$VARIANT-$SERIAL-overlay-files-backup.tgz .
+  tar -C /overlay -czf $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz .
   if [ $DEBUG = Y ]
   then
-    $LOGGER user.debug WRITING overlay contents to /mnt/usb/$USB/backups/$VARIANT-$SERIAL-overlay-files-backup.tgz took $(( $(date +%s) - $SECONDS )) seconds
+    $LOGGER user.debug WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz took $(( $(date +%s) - $SECONDS )) seconds
   fi
 else
   if [ $DEBUG = Y ]
@@ -197,9 +230,9 @@ fi
 
 sed -e '/dev:/d' -e 's/\(mtd.\)[^"]*"\([^"]*\)"/\1 \2/' /proc/mtd | while read -r dev name
 do
-  if [ -f /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256 ]
+  if [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ]
   then
-    SHA256OLD="$(cat /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256 | cut -d' ' -f1)"
+    SHA256OLD="$(cat $TARGET/$VARIANT-$dev-$name.img.sha256 | cut -d' ' -f1)"
   else
     SHA256OLD=""
   fi
@@ -216,17 +249,17 @@ do
   if [ "$SHA256" = "$SHA256OLD" ]
   then
     $LOGGER user.info SKIPPED Backup of $name - Checksums match
-    echo "$SHA256" > /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256
+    echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256
   else
-    $LOGGER user.info WRITING $name to /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.gz
+    $LOGGER user.info WRITING $name to $TARGET/$VARIANT-$dev-$name.img.gz
     SECONDS=$(date +%s)
-    dd if="/dev/${dev}ro" bs=1M | gzip > /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.gz
+    dd if="/dev/${dev}ro" bs=1M | gzip > $TARGET/$VARIANT-$dev-$name.img.gz
     if [ $DEBUG = Y ]
     then
-      $LOGGER user.debug WRITING $name to /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.gz took $(( $(date +%s) - $SECONDS )) seconds
+      $LOGGER user.debug WRITING $name to $TARGET/$VARIANT-$dev-$name.img.gz took $(( $(date +%s) - $SECONDS )) seconds
     fi
-    $LOGGER user.info WRITING checksum to /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256
-    echo "$SHA256" > /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256
+    $LOGGER user.info WRITING checksum to $TARGET/$VARIANT-$dev-$name.img.sha256
+    echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256
   fi
 done
 if [ $DEBUG = Y ]

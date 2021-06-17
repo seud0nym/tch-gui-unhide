@@ -125,20 +125,22 @@ The list of known DoH hosts is retrieved from https://github.com/dibdot/DoH-IP-b
 *Please note* that, as the Telstra Technicolor devices do not have the `kmod-ipt-nat6` kernel module installed, DNS hijacking is **NOT** possible for IPv6. Blocking DoT and DoH **IS** supported for IPv6, because they rely on blocking a specific port for DoT and the IP Set of known DoH hosts.
 
 ## mtd-backup
-Backs up the MTD partitions to an attached USB device. Only unchanged partitions are backed up after the first execution.
+Backs up the MTD partitions to an attached USB device or SSHFS attached filesystem. Only unchanged partitions are backed up after the first execution.
 ```
 Usage: ./mtd-backup [options]
 
 Options:
- -c  Save the current UCI configuration into the VARIANT-SERIAL-config.gz file
- -e  Save the current environment into the VARIANT-SERIAL-env file
- -l  Write log messages to stderr as well as the system log
- -o  Save the overlay content into the VARIANT-SERIAL-overlay-files-backup.tgz file
- -v  Verbose mode
- -y  Bypass confirmation prompt (answers 'y')
- -C  Adds or removes the scheduled daily backup cron job
- -P  Reports the USB backup path
- -U  Download the latest version of mtd-backup rom GitHub
+ -d directory   The name of the directory on the USB device or SSHFS filesystem.
+                  If not specified, defaults to: backups
+ -c             Save the current UCI configuration into the DJA0231-CP1837TA46D-config.gz file
+ -e             Save the current environment into the DJA0231-CP1837TA46D-env file
+ -l             Write log messages to stderr as well as the system log
+ -o             Save the overlay content into the DJA0231-CP1837TA46D-overlay-files-backup.tgz file
+ -v             Verbose mode
+ -y             Bypass confirmation prompt (answers 'y')
+ -C             Adds or removes the scheduled daily backup cron job
+ -P             Reports the backup path
+ -U             Download the latest version of mtd-backup from GitHub
 ```
 When run with the -C option (which should be the only option), the scheduled job will be added if it does not already exist, or removed if it does exist in the schedule. By default, the backup will run every day at a random time between 2:00am and 5:00am. You can modify the schedule through the Management card in `tch-gui-unhide`, or by directly modifying the /etc/crontab/root file.
 
