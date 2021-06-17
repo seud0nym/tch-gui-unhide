@@ -5,16 +5,19 @@ VARIANT=$(uci -q get env.var.variant_friendly_name)
 
 usage() {
 cat <<EOH
-Restores the MTD partitions from an attached USB device. Only changed partitions are restored.
+Restores MTD partitions from an attached USB device or SSHFS filesystem. Only changed partitions are restored.
 
-Usage: $0 [-U] [partition]
+Usage: $0 [options] [partition ...]
 
+Options:
+ -d directory   The name of the directory on the USB device or SSHFS filesystem.
+                  If not specified, defaults to: backups
+ -U             Download the latest version of $SCRIPT from GitHub
+                  Do NOT specify any other parameters or options if doing a version upgrade.
 Parameters:
- partition  the partition to restored. (Optional)
-              Specify either the device (e.g. "mtd2") or name (e.g. "rootfs_data")
- -U         Download the latest version of $SCRIPT from GitHub
-
-If no partition is specified for restore, ALL partitions that have been altered will be restored.
+ partition      One or more partitions to restored.
+                  Specify either the device (e.g. "mtd2") or name (e.g. "rootfs_data")
+                  If not specified, defaults to $VARIANT-mtd2-rootfs_data
 
 EOH
 exit
@@ -44,45 +47,88 @@ upgrade() {
   exit
 }
 
-while getopts :U option
+DIR="backups"
+
+while getopts :d:U option
 do
  case "${option}" in
+  d)  DIR="$OPTARG";;
   U)  upgrade;;
   *)  usage;;
  esac
 done
 shift $((OPTIND-1))
 
-USB="$(ls /mnt/usb | head -n1)"
+MOUNT_PATH=$(uci get mountd.mountd.path)
+USB="$(ls $MOUNT_PATH | head -n1)"
 if [ -z "$USB" ]
 then
-  echo $(date +%F@%X): ABORTING! No USB device found
-  exit 1
-fi
-
-echo $(date +%F@%X): If you wish to commence the restore, enter y otherwise just press [Enter] to exit.
-read
-if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
-  exit
-fi
-
-echo $(date +%F@%X): ACQUIRING list of existing images...
-for gz in $(ls /mnt/usb/$USB/backups/$VARIANT-*.img.gz 2>/dev/null)
-do
-  if [ ! -z "$1" ]
+  SSHFS=$(grep fuse\.sshfs /proc/mounts | head -n1 | cut -d" " -f2)
+  if [ -z "$SSHFS" ]
   then
-    echo $gz | grep -q "$1"
-    if [ $? -ne 0 ]
-    then
-      echo $(date +%F@%X): SKIPPED restore of $gz: Does not match $1
-      continue
-    fi
+    echo "$(date +%F@%X): ERROR! No USB device or mounted SSHFS filesystem found"
+    exit 2
+  else
+  SOURCE=${SSHFS}/${DIR}
   fi
+else
+  SOURCE=${MOUNT_PATH}${USB}/${DIR}
+fi
+
+if [ ! -d $SOURCE ]
+then
+  echo "$(date +%F@%X): ERROR! Backup source $SOURCE not found"
+  exit 2
+fi
+
+IMAGES=""
+if [ $# -eq 0 ]
+then
+  IMAGES="$VARIANT-mtd2-rootfs_data.img.gz"
+  if [ ! -f "$SOURCE/$IMAGES" ]
+  then
+    echo "$(date +%F@%X): ERROR! Could not find a backup matching $IMAGES"
+    exit 2
+  fi
+else
+  for p in $*
+  do
+    COUNT=$(ls $SOURCE 2>/dev/null | grep -E "$VARIANT-.*$p.*\.img\.gz" | wc -l)
+    if [ $COUNT -eq 1 ]
+    then
+      IMAGES="$IMAGES $(ls $SOURCE 2>/dev/null | grep -E "$VARIANT-.*$p.*\.img\.gz")"
+    elif [ $COUNT -eq 0 ]
+    then
+      echo "$(date +%F@%X): WARNING! Could not find a backup matching $p - IGNORED"
+    else
+      echo "$(date +%F@%X): WARNING! Found $COUNT backups matching $p - IGNORED"
+      ls $SOURCE 2>/dev/null | grep -E "$VARIANT-.*$p.*\.img\.gz" | while read line; do echo "                     -> $line"; done
+    fi
+  done
+fi
+
+if [ -z "$IMAGES" ]
+then
+  echo "$(date +%F@%X): ERROR! No valid backups selected for restore"
+  exit 2
+else 
+  IMAGES=$(echo $IMAGES | tr " " "\n" | sort -u | xargs)
+  echo "$(date +%F@%X): $(echo $IMAGES | wc -w) backups selected for restore"
+fi
+
+for gz in $(echo $IMAGES | tr " " "\n" | sort -u)
+do
+  echo $(date +%F@%X): If you wish to commence the restore of $gz enter y otherwise just press [Enter] to exit.
+  read
+  if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
+    exit
+  fi
+
   basename $gz | sed -e "s/^$VARIANT-\(mtd.\)-\(.*\).img.gz$/\1 \2/" | while read -r dev name
   do
-    if [ -f /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256 ]
+    if [ -f $SOURCE/$VARIANT-$dev-$name.img.sha256 ]
     then
-      SHA256OLD="$(cat /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img.sha256 | cut -d' ' -f1)"
+      SHA256OLD="$(cat $SOURCE/$VARIANT-$dev-$name.img.sha256 | cut -d' ' -f1)"
     else
       echo $(date +%F@%X): SKIPPED restore of $gz: $VARIANT-$dev-$name.img.sha256 does not exist?
       continue
@@ -99,19 +145,20 @@ do
     then
       echo $(date +%F@%X): SKIPPED restore of $gz - Checksums for $name match therefore image unchanged
     else
-      echo $(date +%F@%X): EXPANDING $name to /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img
-      gzip -dc $gz > /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img
-      echo $(date +%F@%X): RESTORING /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img to partion $name
-      mtd write /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img $name
+      echo $(date +%F@%X): EXPANDING $name to $SOURCE/$VARIANT-$dev-$name.img
+      gzip -dc $SOURCE/$gz > $SOURCE/$VARIANT-$dev-$name.img
+      echo $(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partion $name
+      mtd write $SOURCE/$VARIANT-$dev-$name.img $name
       if [ $? -eq 0 ]
       then
-        echo $(date +%F@%X): RESTORED /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img to partion $name
+        echo $(date +%F@%X): RESTORED $SOURCE/$VARIANT-$dev-$name.img to partion $name
       else
-        echo $(date +%F@%X): FAILED to restore /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img to partion $name!
+        echo $(date +%F@%X): FAILED to restore $SOURCE/$VARIANT-$dev-$name.img to partion $name!
       fi
-      echo $(date +%F@%X): DELETING /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img
-      rm /mnt/usb/$USB/backups/$VARIANT-$dev-$name.img
+      echo $(date +%F@%X): DELETING expanded temporary file $SOURCE/$VARIANT-$dev-$name.img
+      rm $SOURCE/$VARIANT-$dev-$name.img
     fi
   done
 done
+
 echo $(date +%F@%X): COMPLETED - You may need to manually power cycle the device now...
