@@ -9,13 +9,15 @@ local popen = io.popen
 local system_pkg = {}
 
 local function telstraIPK(path)
-  for file in lfs.dir(path) do
-    local name, version = match(file, "(.*)_(.-)_.-%.ipk")
-    if name and version then
-      system_pkg[name] = {
-        version = version,
-        telstra = true
-      }
+  if lfs.attributes(path) then
+    for file in lfs.dir(path) do
+      local name, version = match(file, "(.*)_(.-)_.-%.ipk")
+      if name and version then
+        system_pkg[name] = {
+          version = version,
+          telstra = true
+        }
+      end
     end
   end
 end
