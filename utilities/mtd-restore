@@ -142,14 +142,8 @@ do
       echo "$(date +%F@%X): SKIPPED restore of $gz: $VARIANT-$dev-$name.img.sha256 does not exist?"
       continue
     fi
-    if [ -z "$1" ]
-    then
-      echo "$(date +%F@%X): CALCULATING current SHA256 checksum for $name"
-      SHA256=$(sha256sum "/dev/${dev}ro" | cut -d' ' -f1)
-    else
-      echo "$(date +%F@%X): SKIPPED calculation of current SHA256 checksum for $name because requested restore of $1"
-      SHA256=""
-    fi
+    echo "$(date +%F@%X): CALCULATING current SHA256 checksum for $name"
+    SHA256=$(sha256sum "/dev/${dev}ro" | cut -d' ' -f1)
     if [ "$SHA256" = "$SHA256OLD" ]
     then
       echo "$(date +%F@%X): SKIPPED restore of $gz - Checksums for $name match therefore image unchanged"
