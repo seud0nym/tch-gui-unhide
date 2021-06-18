@@ -5,6 +5,17 @@ local proxy = require("datamodel")
 
 local M = {}
 
+function M.findBackhaulAPPath()
+  for _,v in ipairs(proxy.getPN("uci.wireless.wifi-ap.", true)) do
+    local path = v.path
+    local iface = proxy.get(path .. "iface")
+    if iface and iface[1].value == "wl1_2" then
+      return path
+    end
+  end
+  return nil
+end
+
 function M.getSSIDList()
   local synced = 0
   local credentials = {}
@@ -58,10 +69,11 @@ function M.getSSIDList()
 end
 
 function M.getBoosterCardHTML(agent_enabled, controller_enabled, modalPath)
+  local appath = M.findBackhaulAPPath()
   local content = {
     state5g = "uci.wireless.wifi-device.@radio_5G.state",
-    ap6iface = "uci.wireless.wifi-ap.@ap6.iface",
-    ap6state = "uci.wireless.wifi-ap.@ap6.state",
+    apiface = appath .. "iface",
+    apstate = appath .. "state",
     wl1_2ssid = "uci.wireless.wifi-iface.@wl1_2.ssid",
   }
 
@@ -91,11 +103,11 @@ function M.getBoosterCardHTML(agent_enabled, controller_enabled, modalPath)
     controllerStatus = "Multi-AP Controller disabled"
     modalPath = "/modals/wireless-boosters-modal.lp"
   end
-  if content["ap6state"] and content["ap6iface"] == "wl1_2" and content["wl1_2ssid"] ~= "" then
-    if content["ap6state"] == "0" then
+  if content["apstate"] and content["apiface"] == "wl1_2" and content["wl1_2ssid"] ~= "" then
+    if content["apstate"] == "0" then
       backhaulStatus = T"Backhaul " .. content["wl1_2ssid"] .. " (5G) disabled"
     elseif content["state5g"] == "0" then
-      content["ap6state"] = "2"
+      content["apstate"] = "2"
       backhaulStatus = T"Backhaul " .. content["wl1_2ssid"] .. " (5G) radio off"
     else
       backhaulStatus = T"Backhaul " .. content["wl1_2ssid"] .. " (5G) enabled"
@@ -113,7 +125,7 @@ function M.getBoosterCardHTML(agent_enabled, controller_enabled, modalPath)
     html[#html+1] = '</p>'
   end
   if backhaulStatus then
-    html[#html+1] = ui_helper.createSimpleLight(content["ap6state"], backhaulStatus)
+    html[#html+1] = ui_helper.createSimpleLight(content["apstate"], backhaulStatus)
   end
   if controller_enabled == "1" then
     local modalLink = format('class="modal-link" data-toggle="modal" data-remote="%s" data-id="booster-modal"',modalPath)
