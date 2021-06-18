@@ -2,6 +2,7 @@
 
 SCRIPT="$(basename $0)"
 VARIANT=$(uci -q get env.var.variant_friendly_name)
+VERSION=$(uci -q get version.@version[0].marketing_version)
 
 usage() {
 cat <<EOH
@@ -13,7 +14,7 @@ Usage: $0 [options] [partition ...]
 
 Options:
  -d directory   The name of the directory on the USB device or SSHFS filesystem containing the backups.
-                  If not specified, defaults to: backups
+                  If not specified, defaults to: backups or backups-$VERSION
  -f             Restore mtd1 (rootfs), mtd2 (rootfs_data), and mtd4 (bank_2) (i.e. a firmware restore)
  -U             Download the latest version of $SCRIPT from GitHub
                   Do NOT specify any other parameters or options if doing a version upgrade.
@@ -82,8 +83,13 @@ fi
 
 if [ ! -d $SOURCE ]
 then
-  echo "$(date +%F@%X): ERROR! Backup source $SOURCE not found"
-  exit 2
+  if [ -d $SOURCE-$VERSION ]
+  then
+    SOURCE=$SOURCE-$VERSION
+  else
+    echo "$(date +%F@%X): ERROR! Backup source $SOURCE not found"
+    exit 2
+  fi
 fi
 
 if [ $# -eq 0 -a -z "$FW_RESTORE" ]
