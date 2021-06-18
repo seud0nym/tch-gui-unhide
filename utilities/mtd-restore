@@ -7,17 +7,20 @@ usage() {
 cat <<EOH
 Restores MTD partitions from an attached USB device or SSHFS filesystem. Only changed partitions are restored.
 
+USB devices have priority over SSHFS filesystems. 
+
 Usage: $0 [options] [partition ...]
 
 Options:
- -d directory   The name of the directory on the USB device or SSHFS filesystem.
+ -d directory   The name of the directory on the USB device or SSHFS filesystem containing the backups.
                   If not specified, defaults to: backups
+ -f             Restore mtd1 (rootfs), mtd2 (rootfs_data), and mtd4 (bank_2) (i.e. a firmware restore)
  -U             Download the latest version of $SCRIPT from GitHub
                   Do NOT specify any other parameters or options if doing a version upgrade.
 Parameters:
  partition      One or more partitions to restored.
-                  Specify either the device (e.g. "mtd2") or name (e.g. "rootfs_data")
-                  If not specified, defaults to $VARIANT-mtd2-rootfs_data
+                  Specify either the device (e.g. mtd2) or name (e.g. rootfs_data or data)
+                  If not specified and -f not specified, defaults to $VARIANT-mtd2-rootfs_data
 
 EOH
 exit
@@ -48,11 +51,13 @@ upgrade() {
 }
 
 DIR="backups"
+FW_RESTORE=""
 
-while getopts :d:U option
+while getopts :d:fU option
 do
  case "${option}" in
   d)  DIR="$OPTARG";;
+  f)  FW_RESTORE="mtd1 mtd2 mtd4";;
   U)  upgrade;;
   *)  usage;;
  esac
@@ -81,8 +86,7 @@ then
   exit 2
 fi
 
-IMAGES=""
-if [ $# -eq 0 ]
+if [ $# -eq 0 -a -z "$FW_RESTORE" ]
 then
   IMAGES="$VARIANT-mtd2-rootfs_data.img.gz"
   if [ ! -f "$SOURCE/$IMAGES" ]
@@ -91,7 +95,7 @@ then
     exit 2
   fi
 else
-  for p in $*
+  for p in $FW_RESTORE $*
   do
     COUNT=$(ls $SOURCE 2>/dev/null | grep -E "$VARIANT-.*$p.*\.img\.gz" | wc -l)
     if [ $COUNT -eq 1 ]
@@ -111,17 +115,22 @@ if [ -z "$IMAGES" ]
 then
   echo "$(date +%F@%X): ERROR! No valid backups selected for restore"
   exit 2
-else 
-  IMAGES=$(echo $IMAGES | tr " " "\n" | sort -u | xargs)
-  echo "$(date +%F@%X): $(echo $IMAGES | wc -w) backups selected for restore"
+fi
+
+IMAGES=$(echo $IMAGES | tr " " "\n" | sort -u | xargs)
+echo "$(date +%F@%X): $(echo $IMAGES | wc -w) backups selected for restore"
+echo -n "$(date +%F@%X): If you wish to commence the restore, enter y otherwise just press [Enter] to exit. "
+read
+if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
+  exit
 fi
 
 for gz in $(echo $IMAGES | tr " " "\n" | sort -u)
 do
-  echo $(date +%F@%X): If you wish to commence the restore of $gz enter y otherwise just press [Enter] to exit.
-  read
-  if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
-    exit
+  echo $gz | grep -q -e '-mtd0-'
+  if [ $? -eq 0 ]; then
+    echo "$(date +%F@%X): SORRY! You cannot restore mtd0 usng this script"
+    continue
   fi
 
   basename $gz | sed -e "s/^$VARIANT-\(mtd.\)-\(.*\).img.gz$/\1 \2/" | while read -r dev name
@@ -130,35 +139,35 @@ do
     then
       SHA256OLD="$(cat $SOURCE/$VARIANT-$dev-$name.img.sha256 | cut -d' ' -f1)"
     else
-      echo $(date +%F@%X): SKIPPED restore of $gz: $VARIANT-$dev-$name.img.sha256 does not exist?
+      echo "$(date +%F@%X): SKIPPED restore of $gz: $VARIANT-$dev-$name.img.sha256 does not exist?"
       continue
     fi
     if [ -z "$1" ]
     then
-      echo $(date +%F@%X): CALCULATING current SHA256 checksum for $name
+      echo "$(date +%F@%X): CALCULATING current SHA256 checksum for $name"
       SHA256=$(sha256sum "/dev/${dev}ro" | cut -d' ' -f1)
     else
-      echo $(date +%F@%X): SKIPPED calculation of current SHA256 checksum for $name because requested restore of $1
+      echo "$(date +%F@%X): SKIPPED calculation of current SHA256 checksum for $name because requested restore of $1"
       SHA256=""
     fi
     if [ "$SHA256" = "$SHA256OLD" ]
     then
-      echo $(date +%F@%X): SKIPPED restore of $gz - Checksums for $name match therefore image unchanged
+      echo "$(date +%F@%X): SKIPPED restore of $gz - Checksums for $name match therefore image unchanged"
     else
-      echo $(date +%F@%X): EXPANDING $name to $SOURCE/$VARIANT-$dev-$name.img
+      echo "$(date +%F@%X): EXPANDING $name to temporary file $SOURCE/$VARIANT-$dev-$name.img"
       gzip -dc $SOURCE/$gz > $SOURCE/$VARIANT-$dev-$name.img
-      echo $(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partion $name
+      echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partion $name"
       mtd write $SOURCE/$VARIANT-$dev-$name.img $name
       if [ $? -eq 0 ]
       then
-        echo $(date +%F@%X): RESTORED $SOURCE/$VARIANT-$dev-$name.img to partion $name
+        echo "$(date +%F@%X): RESTORED $SOURCE/$VARIANT-$dev-$name.img to partion $name"
       else
-        echo $(date +%F@%X): FAILED to restore $SOURCE/$VARIANT-$dev-$name.img to partion $name!
+        echo "$(date +%F@%X): FAILED to restore $SOURCE/$VARIANT-$dev-$name.img to partion $name!"
       fi
-      echo $(date +%F@%X): DELETING expanded temporary file $SOURCE/$VARIANT-$dev-$name.img
+      echo "$(date +%F@%X): DELETING expanded temporary file $SOURCE/$VARIANT-$dev-$name.img"
       rm $SOURCE/$VARIANT-$dev-$name.img
     fi
   done
 done
 
-echo $(date +%F@%X): COMPLETED - You may need to manually power cycle the device now...
+echo "$(date +%F@%X): COMPLETED - You may need to manually power cycle the device now..."

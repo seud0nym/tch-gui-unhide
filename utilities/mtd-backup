@@ -3,20 +3,23 @@
 SCRIPT="$(basename $0)"
 SERIAL=$(uci get env.var.serial)
 VARIANT=$(uci -q get env.var.variant_friendly_name)
+VERSION=$(uci -q get version.@version[0].marketing_version)
 
 usage() {
 cat <<EOH
 Backs up the MTD partitions to an attached USB device or SSHFS attached filesystem. Only unchanged partitions are backed up after the first execution.
+
+USB devices have priority over SSHFS filesystems. 
 
 Usage: $0 [options]
 
 Options:
  -d directory   The name of the directory on the USB device or SSHFS filesystem.
                   If not specified, defaults to: backups
- -c             Save the current UCI configuration into the $VARIANT-$SERIAL-config.gz file
- -e             Save the current environment into the $VARIANT-$SERIAL-env file
+ -c             Save the current UCI configuration into the $VARIANT-$SERIAL-$VERSION-config.gz file
+ -e             Save the current environment into the $VARIANT-$SERIAL-$VERSION-env file
  -l             Write log messages to stderr as well as the system log
- -o             Save the overlay content into the $VARIANT-$SERIAL-overlay-files-backup.tgz file
+ -o             Save the overlay content into the $VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz file
  -v             Verbose mode
  -y             Bypass confirmation prompt (answers 'y')
  -C             Adds or removes the scheduled daily backup cron job
@@ -44,7 +47,7 @@ upgrade() {
     echo "[$SCRIPT] ERROR! Not found on GitHub???"
   elif [ "$RESPONSE_CODE" = 000 ]
   then
-    echo "ERROR! No Internet connection???"
+    echo "[$SCRIPT] ERROR! No Internet connection???"
   else
     echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
   fi
@@ -88,9 +91,9 @@ then
   then
     if [ $PATH_ONLY = Y ]
     then
-      echo ERROR! No USB device or mounted SSHFS filesystem found
+      echo "[$SCRIPT] ERROR! No USB device or mounted SSHFS filesystem found"
     else
-      $LOGGER user.err ABORTING! No USB device or mounted SSHFS filesystem found
+      $LOGGER user.err "ABORTING! No USB device or mounted SSHFS filesystem found"
     fi
     exit 2
   else
@@ -122,11 +125,11 @@ then
     CRON_ACTION=add
   fi
   if [ $YES = N ]; then
-    echo If you wish to $CRON_ACTION the cron schedule now, enter y otherwise just press [Enter] to exit.
+    echo -n "[$SCRIPT] If you wish to $CRON_ACTION the cron schedule now, enter y otherwise just press [Enter] to exit. "
   fi
 else
   if [ $YES = N ]; then
-    echo If you wish to commence the backup now, enter y otherwise just press [Enter] to exit.
+    echo -n "[$SCRIPT] If you wish to commence the backup now, enter y otherwise just press [Enter] to exit. "
   fi
 fi
 
@@ -144,13 +147,13 @@ then
   if [ $CRON_ACTION = remove ]
   then
     sed -e "/$SCRIPT/d" -i /etc/crontabs/root
-    echo Scheduled backup has been removed.
+    echo "[$SCRIPT] Scheduled backup has been removed."
   else
     mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
     hh=$(awk 'BEGIN{srand();print int(rand()*3)+2;}')
     echo "$mm $hh * * * $(cd $(dirname $0); pwd)/$SCRIPT -d $DIR -c -e -o -y" >> /etc/crontabs/root
-    echo Backup has been scheduled to execute at $hh:$(printf '%02d' $mm)am every day.
-    echo Execution messages will be written to the system log, and can be viewed with the following command:
+    echo "[$SCRIPT] Backup has been scheduled to execute at $hh:$(printf '%02d' $mm)am every day."
+    echo "[$SCRIPT] Execution messages will be written to the system log, and can be viewed with the following command:"
     echo
     echo "  logread -e mtd-backup"
     echo
@@ -161,13 +164,13 @@ fi
 
 if [ $DEBUG = Y ]
 then
-  $LOGGER user.debug Backup commenced
+  $LOGGER user.debug "Backup commenced"
   STARTED=$(date +%s)
 fi
 
 if [ ! -d $TARGET ]
 then
-  $LOGGER user.info Backup target $TARGET not found - Creating...
+  $LOGGER user.info "Backup target $TARGET not found - Creating..."
   mkdir -p $TARGET
 fi
 if [ ! -f $TARGET/README! ]
@@ -182,51 +185,80 @@ fi
 
 if [ $DUMP_CFG = Y ]
 then
-  $LOGGER user.info WRITING current configuration to $TARGET/$VARIANT-$SERIAL-config.gz
+  if [ -f $TARGET/$VARIANT-$SERIAL-config.gz ]
+  then
+    FIX_VER=$(cat $TARGET/$VARIANT-$SERIAL-config.gz | gunzip | grep 'marketing_version' | cut -d"'" -f2)
+    if [ ! -z "$FIX_VER" ]
+    then
+      $LOGGER user.info "RENAMING existing configuration backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-config.gz"
+      mv $TARGET/$VARIANT-$SERIAL-config.gz $TARGET/$VARIANT-$SERIAL-$FIX_VER-config.gz
+    fi
+  fi
+  $LOGGER user.info "WRITING current configuration to $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz"
   SECONDS=$(date +%s)
-  uci show 2>/dev/null | grep -v -E '^env' | gzip > $TARGET/$VARIANT-$SERIAL-config.gz
+  uci show 2>/dev/null | grep -v -E '^env' | gzip > $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz
   if [ $DEBUG = Y ]
   then
-    $LOGGER user.debug WRITING current configuration to $TARGET/$VARIANT-$SERIAL-config.gz took $(( $(date +%s) - $SECONDS )) seconds
+    $LOGGER user.debug "WRITING current configuration to $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz took $(( $(date +%s) - $SECONDS )) seconds"
   fi
 else
   if [ $DEBUG = Y ]
   then
-    $LOGGER user.debug SKIPPED configuration backup - Not requested
+    $LOGGER user.debug "SKIPPED configuration backup - Not requested"
   fi
 fi
 
 if [ $DUMP_ENV = Y ]
 then
-  $LOGGER user.info WRITING current environment to $TARGET/$VARIANT-$SERIAL-env
+  if [ -f $TARGET/$VARIANT-$SERIAL-env ]
+  then
+    FIX_VER=$(grep env.var.friendly_sw_version_activebank $TARGET/$VARIANT-$SERIAL-env | cut -d"'" -f2 | cut -d- -f1)
+    if [ ! -z "$FIX_VER" ]
+    then
+      $LOGGER user.info "RENAMING existing environment backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-env"
+      mv $TARGET/$VARIANT-$SERIAL-env $TARGET/$VARIANT-$SERIAL-$FIX_VER-env
+    fi
+  fi
+  $LOGGER user.info "WRITING current environment to $TARGET/$VARIANT-$SERIAL-$VERSION-env"
   SECONDS=$(date +%s)
-  uci show env.var > $TARGET/$VARIANT-$SERIAL-env
+  uci show env.var > $TARGET/$VARIANT-$SERIAL-$VERSION-env
   if [ $DEBUG = Y ]
   then
-    $LOGGER user.debug WRITING current environment to $TARGET/$VARIANT-$SERIAL-env took $(( $(date +%s) - $SECONDS )) seconds
+    $LOGGER user.debug "WRITING current environment to $TARGET/$VARIANT-$SERIAL-$VERSION-env took $(( $(date +%s) - $SECONDS )) seconds"
   fi
 else
   if [ $DEBUG = Y ]
   then
-    $LOGGER user.debug SKIPPED environment backup - Not requested
+    $LOGGER user.debug "SKIPPED environment backup - Not requested"
   fi
 fi
 
 if [ $DUMP_OVL = Y ]
 then
-  $LOGGER user.info WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz
+  if [ -f $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz ]
+  then
+    FIX_VER=$(cat $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz | tar  -xzOf - ./bank_2/etc/config/version | grep 'marketing_version' | cut -d"'" -f2 )
+    if [ ! -z "$FIX_VER" ]
+    then
+      $LOGGER user.info "RENAMING existing overlay contents backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-overlay-files-backup.tgz"
+      mv $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz $TARGET/$VARIANT-$SERIAL-$FIX_VER-overlay-files-backup.tgz
+    fi
+  fi
+  $LOGGER user.info "WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz"
   SECONDS=$(date +%s)
-  tar -C /overlay -czf $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz .
+  tar -C /overlay -czf $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz .
   if [ $DEBUG = Y ]
   then
-    $LOGGER user.debug WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz took $(( $(date +%s) - $SECONDS )) seconds
+    $LOGGER user.debug "WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz took $(( $(date +%s) - $SECONDS )) seconds"
   fi
 else
   if [ $DEBUG = Y ]
   then
-    $LOGGER user.debug SKIPPED overlay contents backup - Not requested
+    $LOGGER user.debug "SKIPPED overlay contents backup - Not requested"
   fi
 fi
+
+echo "$VERSION" > $TARGET/$VARIANT-$SERIAL-version
 
 sed -e '/dev:/d' -e 's/\(mtd.\)[^"]*"\([^"]*\)"/\1 \2/' /proc/mtd | while read -r dev name
 do
@@ -238,32 +270,32 @@ do
   fi
   if [ $DEBUG = Y ]
   then
-    $LOGGER user.debug Calculating SHA256 for $name..
+    $LOGGER user.debug "Calculating SHA256 for $name..."
     SECONDS=$(date +%s)
   fi
   SHA256=$(sha256sum "/dev/${dev}ro" | cut -d' ' -f1)
   if [ $DEBUG = Y ]
   then
-    $LOGGER user.debug Calculating SHA256 for $name took $(( $(date +%s) - $SECONDS )) seconds
+    $LOGGER user.debug "Calculating SHA256 for $name took $(( $(date +%s) - $SECONDS )) seconds"
   fi
   if [ "$SHA256" = "$SHA256OLD" ]
   then
-    $LOGGER user.info SKIPPED Backup of $name - Checksums match
+    $LOGGER user.info "SKIPPED Backup of $name - Checksums match"
     echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256
   else
-    $LOGGER user.info WRITING $name to $TARGET/$VARIANT-$dev-$name.img.gz
+    $LOGGER user.info "WRITING $name to $TARGET/$VARIANT-$dev-$name.img.gz"
     SECONDS=$(date +%s)
     dd if="/dev/${dev}ro" bs=1M | gzip > $TARGET/$VARIANT-$dev-$name.img.gz
     if [ $DEBUG = Y ]
     then
-      $LOGGER user.debug WRITING $name to $TARGET/$VARIANT-$dev-$name.img.gz took $(( $(date +%s) - $SECONDS )) seconds
+      $LOGGER user.debug "WRITING $name to $TARGET/$VARIANT-$dev-$name.img.gz took $(( $(date +%s) - $SECONDS )) seconds"
     fi
-    $LOGGER user.info WRITING checksum to $TARGET/$VARIANT-$dev-$name.img.sha256
+    $LOGGER user.info "WRITING $name checksum to $TARGET/$VARIANT-$dev-$name.img.sha256"
     echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256
   fi
 done
 if [ $DEBUG = Y ]
 then
-  $LOGGER user.debug Backup completed in $(( $(date +%s) - $STARTED )) seconds
+  $LOGGER user.debug "Backup completed in $(( $(date +%s) - $STARTED )) seconds"
 fi
 

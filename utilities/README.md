@@ -129,16 +129,18 @@ The list of known DoH hosts is retrieved from https://github.com/dibdot/DoH-IP-b
 
 ## mtd-backup
 Backs up the MTD partitions to an attached USB device or SSHFS attached filesystem. Only unchanged partitions are backed up after the first execution.
+
+USB devices have priority over SSHFS filesystems. 
 ```
 Usage: ./mtd-backup [options]
 
 Options:
  -d directory   The name of the directory on the USB device or SSHFS filesystem.
                   If not specified, defaults to: backups
- -c             Save the current UCI configuration into the DJA0231-CP1837TA46D-config.gz file
- -e             Save the current environment into the DJA0231-CP1837TA46D-env file
+ -c             Save the current UCI configuration into the VARIANT-SERIAL-VERSION-config.gz file
+ -e             Save the current environment into the VARIANT-SERIAL-VERSION-env file
  -l             Write log messages to stderr as well as the system log
- -o             Save the overlay content into the DJA0231-CP1837TA46D-overlay-files-backup.tgz file
+ -o             Save the overlay content into the VARIANT-SERIAL-VERSION-overlay-files-backup.tgz file
  -v             Verbose mode
  -y             Bypass confirmation prompt (answers 'y')
  -C             Adds or removes the scheduled daily backup cron job
@@ -149,21 +151,23 @@ When run with the -C option (which should be the only option), the scheduled job
 
 ## mtd-restore
 Restores MTD partitions from an attached USB device or SSHFS filesystem. Only changed partitions are restored.
+
+USB devices have priority over SSHFS filesystems. 
 ```
 Usage: ./mtd-restore [options] [partition ...]
 
 Options:
  -d directory   The name of the directory on the USB device or SSHFS filesystem.
                   If not specified, defaults to: backups
- -U             Download the latest version of $SCRIPT from GitHub
+ -f             Restore mtd1 (rootfs), mtd2 (rootfs_data), and mtd4 (bank_2) (i.e. a firmware restore)
+ -U             Download the latest version of mtd-restore from GitHub
                   Do NOT specify any other parameters or options if doing a version upgrade.
 Parameters:
  partition      One or more partitions to restored.
                   Specify either the device (e.g. "mtd2") or name (e.g. "rootfs_data")
-                  If not specified, defaults to VARIANT-mtd2-rootfs_data
+                  If not specified and -f not specified, defaults to VARIANT-mtd2-rootfs_data
 
 ```
-If no partition is specified for restore, ALL partitions that have been altered will be restored.
 
 ## reboot-on-coredump
 Enables or disables reboot on core dump. If you have a process that is continually crashing and core dumping, use this script to disable reboot on coredump.
