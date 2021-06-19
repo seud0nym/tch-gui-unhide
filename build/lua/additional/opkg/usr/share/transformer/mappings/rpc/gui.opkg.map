@@ -381,53 +381,45 @@ GUI_OPKG_.get = {
 GUI_OPKG_.set = {
   feeds_configured = function(mapping,param,value,key)
     if value == "1" and feeds_configured() == "0" then
-      local opkg = io.open("/etc/opkg.conf", "w")
-      if opkg then
-        local customfeeds = io.open("/etc/opkg/customfeeds.conf", "w")
-        if customfeeds then
-          opkg:write("dest root /\n")
-          opkg:write("dest ram /tmp\n")
-          opkg:write("lists_dir ext /var/opkg-lists\n")
-          opkg:write("option overlay_root /overlay\n")
-          opkg:write("arch all 1\n")
-          opkg:write("arch noarch 1\n")
-          opkg:write("arch arch arm_cortex-a9 10\n")
-          opkg:write("arch arch arm_cortex-a9_neon 20\n")
-          opkg:write("arch brcm63xx-tch 30\n")
-          if fw_version == "17.2" then
-            customfeeds:write("src/gz base https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/base\n")
-            customfeeds:write("src/gz luci https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/luci\n")
-            customfeeds:write("src/gz management https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/management\n")
-            customfeeds:write("src/gz packages https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/packages\n")
-            customfeeds:write("src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/routing\n")
-            customfeeds:write("src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony\n")
-          else
-            customfeeds:write("src/gz chaos_calmer_base_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/base\n")
-            customfeeds:write("src/gz chaos_calmer_packages_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages\n")
-            customfeeds:write("src/gz chaos_calmer_luci_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/luci\n")
-            customfeeds:write("src/gz chaos_calmer_routing_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing\n")
-            customfeeds:write("src/gz chaos_calmer_telephony_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony\n")
-            customfeeds:write("src/gz chaos_calmer_core_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages\n")
-          end
-          customfeeds:close()
-        end
-        opkg:close()
-        if customfeeds then
-          os.execute("sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf;\
-          SRC='https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/'\
-          IPK=$(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-certificates' | cut -d' ' -f2)\
-          curl -sk $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -t rpc.gui.opkg -p user.info && rm /tmp/$IPK;")
-        else
-          return nil, "Failed to open /etc/opkg/customfeeds.conf"
-        end
+      os.execute("rm /etc/opkg.conf;\
+        echo 'dest root'>/etc/opkg.conf;\
+        echo 'dest ram /tmp'>>/etc/opkg.conf;\
+        echo 'lists_dir ext /var/opkg-lists'>>/etc/opkg.conf;\
+        echo 'option overlay_root /overlay'>>/etc/opkg.conf;\
+        echo 'arch all 1'>>/etc/opkg.conf;\
+        echo 'arch noarch 1'>>/etc/opkg.conf;\
+        echo 'arch arm_cortex-a9 10'>>/etc/opkg.conf;\
+        echo 'arch arm_cortex-a9_neon 20'>>/etc/opkg.conf;\
+        echo 'arch brcm63xx-tch 30'>>/etc/opkg.conf;")
+      if fw_version == "17.2" then
+        os.execute("rm /etc/opkg/customfeeds.conf;\
+          echo 'src/gz base https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/base'>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz luci https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/luci'>>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz management https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/management'>>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz packages https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/packages'>>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/routing'>>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony'>>/etc/opkg/customfeeds.conf")
       else
-        return nil, "Failed to open /etc/opkg.conf"
+        os.execute("rm /etc/opkg/customfeeds.conf;\
+          echo 'src/gz chaos_calmer_base_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/base'>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz chaos_calmer_packages_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages'>>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz chaos_calmer_luci_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/luci'>>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz chaos_calmer_routing_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing'>>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz chaos_calmer_telephony_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony'>>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz chaos_calmer_core_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages'>>/etc/opkg/customfeeds.conf;")
       end
+      os.execute("sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf;\
+        SRC='https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/';\
+        IPK=$(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-certificates' | cut -d' ' -f2);\
+        curl -sk $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite --force-depends --nodeps install /tmp/$IPK 2>&1 | logger -t rpc.gui.opkg -p user.info && rm /tmp/$IPK;")
       opkg_cache.reload = true
       checkPackages()
     elseif value == "0" and feeds_configured() == "1" then
-      os.execute("sed -e '/BoLaMN/d' -e '/macoers/d' -i /etc/opkg/customfeeds.conf")
-      os.execute("sed -e '/opkg update/d' -i /etc/crontabs/root && /etc/init.d/cron restart")
+      os.execute("\
+        sed -e '/^arch /d' -i /etc/opkg.conf;\
+        sed -e '/BoLaMN/d' -e '/macoers/d' -i /etc/opkg/customfeeds.conf;\
+        sed -e '/opkg update/d' -i /etc/crontabs/root;\
+        /etc/init.d/cron restart;")
     elseif value ~= "0" and value ~= "1" then
       return nil, "Value must be 0 or 1"
     end
