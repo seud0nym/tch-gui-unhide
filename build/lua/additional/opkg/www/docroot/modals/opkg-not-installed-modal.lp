@@ -13,9 +13,16 @@ lp.setpath("/www/snippets/")
 
 if ngx.req.get_method() == "POST" then
   local proxy = require("datamodel")
-  local action = untaint(ngx.req.get_post_args().action)
-  local cmd, pkg = match(action, "(%w+)_(.*)")
-  proxy.set("rpc.gui.opkg.available.@".. pkg .. ".action", cmd)
+  local install = untaint(ngx.req.get_post_args().install_pkg)
+  if install then
+    local pkg
+    if type(install) == "string" then
+      install = { install }
+    end
+    for _,pkg in pairs(install) do
+      proxy.set("rpc.gui.opkg.available.@".. pkg .. ".action", "install")
+    end
+  end
 end
 
 local opkg_data = {
@@ -54,6 +61,10 @@ if opkg_data["last_update"] ~= "-1" then
     $("#opkgs_place_holder").html(data["html"]);\
     $(".btn-Install").on("click", function(){\
       postAction("install",$(this).data("index"),$(this).data("name"));\
+    });\
+    $(".opkg_cb").on("change", function(){\
+      $("#modal-no-change").addClass("hide");\
+      $("#modal-changes").removeClass("hide");\
     });\
   }, "json")\
   .fail(function(response){\

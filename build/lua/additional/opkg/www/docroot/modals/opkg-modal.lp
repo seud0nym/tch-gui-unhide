@@ -109,6 +109,7 @@ ngx.print('\
     busy_msg.removeClass("hide");\
     busy_msg[0].scrollIntoView();\
     $(".modal-body").scrollLeft(0);\
+    return true;\
   });\
   $().ready(function(){opkgLogFuncID=setInterval(updateAcmeLog,2000);});\
 </script>\

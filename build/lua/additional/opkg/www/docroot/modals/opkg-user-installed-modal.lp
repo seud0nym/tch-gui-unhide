@@ -13,9 +13,25 @@ lp.setpath("/www/snippets/")
 
 if ngx.req.get_method() == "POST" then
   local proxy = require("datamodel")
-  local action = untaint(ngx.req.get_post_args().action)
-  local cmd, pkg = match(action, "(%w+)_(.*)")
-  proxy.set("rpc.gui.opkg.user.@".. pkg .. ".action", cmd)
+  local upgrade = ngx.req.get_post_args().upgrade_pkg
+  local remove = ngx.req.get_post_args().remove_pkg
+  local pkg
+  if upgrade then
+    if type(upgrade) == "string" then
+      upgrade = { upgrade }
+    end
+    for _,pkg in pairs(upgrade) do
+      proxy.set("rpc.gui.opkg.available.@".. pkg .. ".action", "upgrade")
+    end
+  end
+  if remove then
+    if type(remove) == "string" then
+      remove = { remove }
+    end
+    for _pkg in pairs(remove) do
+      proxy.set("rpc.gui.opkg.available.@".. pkg .. ".action", "remove")
+    end
+  end
 end
 
 local opkg_data = {
@@ -57,6 +73,10 @@ if opkg_data["user_installed"] ~= "0" then
     });\
     $(".btn-Upgrade").on("click", function(){\
       postAction("upgrade",$(this).data("index"),$(this).data("name"));\
+    });\
+    $(".opkg_cb").on("change", function(){\
+      $("#modal-no-change").addClass("hide");\
+      $("#modal-changes").removeClass("hide");\
     });\
   }, "json")\
   .fail(function(response){\

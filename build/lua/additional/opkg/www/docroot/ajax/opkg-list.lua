@@ -73,7 +73,7 @@ local opkg_columns = {
       type = "text",
     },
     { -- [4]
-      header = T"",
+      header = T"<i>Install</i>",
       name = "pkg_install",
       param = "pkg_upgrade",
       type = "text",
@@ -117,13 +117,13 @@ local opkg_columns = {
       type = "text",
     },
     { -- [6]
-      header = T"",
+      header = T"<i>Upgrade</i>",
       name = "pkg_upgrade",
       param = "pkg_upgrade",
       type = "text",
     },
     { -- [7]
-      header = T"",
+      header = T"<i>Remove</i>",
       name = "pkg_remove",
       param = "pkg_remove",
       type = "text",
@@ -161,13 +161,13 @@ local opkg_columns = {
       type = "text",
     },
     { -- [5]
-      header = T"",
+      header = T"<i>Upgrade</i>",
       name = "pkg_upgrade",
       param = "pkg_upgrade",
       type = "text",
     },
     { -- [6]
-      header = T"",
+      header = T"<i>Remove</i>",
       name = "pkg_remove",
       param = "pkg_remove",
       type = "text",
@@ -186,7 +186,7 @@ local opkg_filter = {
     if data.warning and data.warning ~= "" then
       data.warning = "<span class='icon-warning-sign' title='"..data.warning.."'></span>"  
     else
-      data.pkg_upgrade = ui_helper.createSimpleButton("","icon-plus-sign",genAttrib(data,"Install %s"))
+      data.pkg_upgrade = format("<input type='checkbox' class='opkg_cb' name='install_pkg' value='%s' title='Tick to install %s'>",data.paramindex,data.name)
     end
     return true
   end,
@@ -206,9 +206,9 @@ local opkg_filter = {
       data.warning = "<span class='icon-warning-sign' title='"..data.warning.."'></span>"  
     else
       if data.available_version ~= "" then
-        data.pkg_upgrade = ui_helper.createSimpleButton("","icon-plus-sign",genAttrib(data,"Upgrade %s"))
+        data.pkg_upgrade = format("<input type='checkbox' class='opkg_cb' name='upgrade_pkg' value='%s' title='Tick to upgrade %s'>",data.paramindex,data.name)
       end
-      data.pkg_remove = ui_helper.createSimpleButton("","icon-remove",genAttrib(data,"Remove %s"))
+      data.pkg_remove = format("<input type='checkbox' class='opkg_cb' name='remove_pkg' value='%s' title='Tick to remove %s'>",data.paramindex,data.name)
     end
     return true
   end,
