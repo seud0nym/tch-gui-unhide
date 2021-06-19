@@ -64,7 +64,7 @@ then
     hh=$(awk 'BEGIN{srand();print int(rand()*3)+2;}')
     dd=$(awk 'BEGIN{srand();print int(rand()*28);}')
     echo "$mm $hh $dd * * $(cd $(dirname $0); pwd)/$SCRIPT" >> /etc/crontabs/root
-    echo Backup has been scheduled to execute at $hh:$(printf '%02d' $mm)am on day $dd of each month.
+    echo System certificates update has been scheduled to execute at $hh:$(printf '%02d' $mm)am on day $dd of each month.
     echo Execution messages will be written to the system log, and can be viewed with the following command:
     echo
     echo "  logread -e rpc.gui.opkg"
@@ -75,8 +75,8 @@ then
 fi
 
 SRC="https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/"
-for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2)
+for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-certificates' | cut -d' ' -f2)
 do
-  curl -sk $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK | logger -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
+  curl -sk $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite --force-depends --nodeps install /tmp/$IPK 2>&1 | logger -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
 done
   
