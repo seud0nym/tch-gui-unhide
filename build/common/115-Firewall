@@ -38,13 +38,13 @@ sed \
   -e '/Firewall level/a \            html[#html+1] = format(N("<strong %1$s>%2$d Port Forwarding rule</strong> defined","<strong %1$s>%2$d Port Forwarding rules</strong> defined", fwd_count), fwd_modal_link, fwd_count)' \
   -e '/Firewall level/a \            html[#html+1] = "<br>"' \
   -e '/Firewall level/a \            local nat_alg_card_hidden = proxy.get("uci.web.card.@card_natalghelper.hide")' \
-  -e '/Firewall level/a \            if nat_alg_card_hidden and nat_alg_card_hidden[1] and nat_alg_card_hidden[1].value == "1" then' \
+  -e '/Firewall level/a \            if not nat_alg_card_hidden or nat_alg_card_hidden[1].value == "1" then' \
   -e '/Firewall level/a \              local alg_modal_link = "class=\\"modal-link\\" data-toggle=\\"modal\\" data-remote=\\"/modals/nat-alg-helper-modal.lp\\" data-id=\\"nat-alg-helper-modal\\""' \
+  -e '/Firewall level/a \              local enabled_count = 0' \
+  -e '/Firewall level/a \              local disabled_count = 0' \
   -e '/Firewall level/a \              local helper_uci_path = "uci.firewall.helper."' \
   -e '/Firewall level/a \              local helper_uci_content = proxy.get(helper_uci_path)' \
   -e '/Firewall level/a \              helper_uci_content = content_helper.convertResultToObject(helper_uci_path,helper_uci_content)' \
-  -e '/Firewall level/a \              local disabled_count = 0' \
-  -e '/Firewall level/a \              local enabled_count = 0' \
   -e '/Firewall level/a \              for _,v in ipairs(helper_uci_content) do' \
   -e '/Firewall level/a \                if v.intf ~= "loopback" then' \
   -e '/Firewall level/a \                  if v.enable ~= "0" then' \
@@ -82,34 +82,6 @@ sed \
   -e '/numrules/,/numrules_v6/d' \
   -e '/if content.mode/,/end/d' \
   -i /www/cards/008_firewall.lp
-
-echo [$SCRIPT]: Fix NAT ALG modal errors and include in Firewall tabs if card hidden
-sed \
-  -e '/^local ui_helper/i \local proxy = require("datamodel")' \
-  -e 's/T"Enable"/T"Enabled"/' \
-  -e 's/, readonly="true"/ /' \
-  -e 's/unique/readonly/' \
-  -e 's/string.upper/string.lower/' \
-  -e '/attr = { input = { class="span1"/i \    readonly = true,' \
-  -e '/^local hlp_attributes/i \table.insert(hlp_columns, table.remove(hlp_columns, 1))' \
-  -e '/return true/i \  if object["enable"] == "" then' \
-  -e '/return true/i \    object["enable"] = "1"' \
-  -e '/return true/i \  end' \
-  -e '/return true/i \  object["helper"] = string.lower(object["helper"])' \
-  -e '/--Look for the enable set to nothing/,/^end/d' \
-  -e '/^local UI_helper/i \local proxy = require("datamodel")' \
-  -e "/modal-body/a \  ');" \
-  -e '/modal-body/a \  local card_hidden = proxy.get("uci.web.card.@card_natalghelper.hide")' \
-  -e '/modal-body/a \  if card_hidden and card_hidden[1] and card_hidden[1].value == "1" then' \
-  -e '/modal-body/a \    local lp = require("web.lp")' \
-  -e '/modal-body/a \    lp.setpath("/www/snippets/")' \
-  -e '/modal-body/a \    lp.include("tabs-firewall.lp")' \
-  -e '/modal-body/a \  end' \
-  -e "/modal-body/a \  ngx.print('\\\\" \
-  -e "/createTable/i \        ngx.print('<legend>');  ngx.print( T'NAT Helpers (ALG\\\\'s)' ); ngx.print('</legend>');" \
-  -e "s/\"NAT Helpers (ALG's)\"/\"Firewall\"/" \
-  -e 's/Dest Port/Destination Port/' \
-  -i /www/docroot/modals/nat-alg-helper-modal.lp
 
 echo [$SCRIPT]: Fix missing values on rpc.network.firewall.userrule.
 sed \

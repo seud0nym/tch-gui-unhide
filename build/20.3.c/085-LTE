@@ -1,0 +1,5 @@
+echo [$SCRIPT]: Add refreshInterval
+sed \
+  -e 's/\(setInterval\)/var refreshInterval = \1/' \
+  -i $(find /www/cards -type f -name '*lte.lp')
+

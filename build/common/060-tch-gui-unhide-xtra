@@ -2,6 +2,6 @@
 for s in $(ls tch-gui-unhide-xtra.* 2>/dev/null)
 do
   echo -n [$SCRIPT]: Executing extra feature script for $(echo $s | cut -d. -f2-):
-  . $s
+  . ./$s
 done
 

@@ -6,6 +6,7 @@ sed \
  -e 's^\(<td><div data-toggle="modal" data-remote="modals/diagnostics-connection\)^<td><div data-toggle="modal" data-remote="modals/log-connections-modal.lp" data-id="log-connections-modal"><img href="#" rel="tooltip" data-original-title="CONNECTIONS" src="/img/light/Data-Sync-WF.png" alt="connections"></div></td>\\\n\1^' \
  -e 's^\(alt="network"></div></td>\)\(</tr>\\\)^\1\\\n <td><div data-toggle="modal" data-remote="modals/diagnostics-tcpdump-modal.lp" data-id="diagnostics-tcpdump-modal"><img href="#" rel="tooltip" data-original-title="TCPDUMP" src="/img/light/tcp-dump.png" alt="tcpdump"></div></td>\2^' \
  -e 's|\(alt="\)\([^/"]*\)|class="diag-\2" \1\2|g' \
+ -e 's| cellspacing="10%" cellpadding="10%" ||' \
  -i /www/cards/009_diagnostics.lp
 
 echo [$SCRIPT]: Rename Diagnostics tabs and add Connections and Traffic Monitor tabs

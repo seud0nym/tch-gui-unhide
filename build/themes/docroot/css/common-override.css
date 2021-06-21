@@ -21,7 +21,7 @@
 #fw-iptables tr>td:nth-child(n+1):nth-child(-n+2),#fw-iptables tr:not(.iptables-chain)>th:nth-child(n+1):nth-child(-n+2){text-align:right;}
 #fw-iptables tr{white-space:nowrap;}
 #fw_userrules>thead>tr>th:nth-child(3),#fw_userrules>tbody>tr>td:nth-child(3),#fw_userrules_v6>thead>tr>th:nth-child(3),#fw_userrules_v6>tbody>tr>td:nth-child(3){display:none;}
-#helper>tbody>tr>td{text-transform:uppercase;}
+table[id^="helper"]>tbody>tr>td{text-transform:uppercase;}
 #hide-unhide-non-connected-device{display:none;}
 #mobiletab .content .card-label{font-size:14px;}
 #opkgs>tbody>tr>td:nth-child(1){white-space:nowrap;}

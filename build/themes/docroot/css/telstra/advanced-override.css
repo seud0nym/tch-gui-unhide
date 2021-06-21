@@ -1,12 +1,13 @@
 .card_bg:after{z-index:-20;}
-.diag-traffic{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/Profit-01-WF.png) no-repeat;width:32px;height:32px;padding-left:32px;}
-.diag-dsl{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/bandwidth-px-png.png) no-repeat;width:32px;height:32px;padding-left:32px;}
-.diag-ping{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/pocket-32-black.png) no-repeat;width:32px;height:32px;padding-left:32px;}
-.diag-logviewer{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/log-viewer.png) no-repeat;width:32px;height:32px;padding-left:32px;}
-.diag-connections{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/Data-Sync-WF.png) no-repeat;width:32px;height:32px;padding-left:32px;}
-.diag-connection{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/connection-established.png) no-repeat;width:32px;height:32px;padding-left:32px;}
-.diag-network{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/network_sans-32.png) no-repeat;width:32px;height:32px;padding-left:32px;}
-.diag-tcpdump{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/tcp-dump.png) no-repeat;width:32px;height:32px;padding-left:32px;}
+.diag-traffic{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/Profit-01-WF.png) no-repeat;width:32px;height:32px;padding-left:48px;padding-bottom:48px;}
+.diag-dsl{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/bandwidth-px-png.png) no-repeat;width:32px;height:32px;padding-left:48px;padding-bottom:48px;}
+.diag-ping{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/pocket-32-black.png) no-repeat;width:32px;height:32px;padding-left:48px;padding-bottom:48px;}
+.diag-logviewer{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/log-viewer.png) no-repeat;width:32px;height:32px;padding-left:48px;padding-bottom:48px;}
+.diag-connections{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/Data-Sync-WF.png) no-repeat;width:32px;height:32px;padding-left:48px;padding-bottom:48px;}
+.diag-connection{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/connection-established.png) no-repeat;width:32px;height:32px;padding-left:48px;padding-bottom:48px;}
+.diag-network{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/network_sans-32.png) no-repeat;width:32px;height:32px;padding-left:48px;padding-bottom:48px;}
+.diag-tcpdump{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/tcp-dump.png) no-repeat;width:32px;height:32px;padding-left:48px;padding-bottom:48px;}
+.diag-graphs{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/Bar-Charts-1-WF.png) no-repeat;width:32px;height:32px;padding-left:48px;padding-bottom:48px;}
 .networkmap .apinfo{font-size:0.775em;color:#002856;line-height:normal;text-align:left;border:solid 8px transparant;display:inline-block;vertical-align:middle;position:absolute;}
 .networkmap .device:hover .deviceinfo.hoveronly{display:inline-block;}
 .networkmap .device{width:auto;text-align:center;}

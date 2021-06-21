@@ -1,12 +1,3 @@
-echo [$SCRIPT]: Show the hidden Telephony tabs and fix default tab
-sed \
- -e 's/--       {"mmpbx-service/       {"mmpbx-service/' \
- -e '/mmpbx-contacts/d' \
- -e '/T"Service"/i \       {"mmpbx-inoutgoingmap-modal.lp", T"In\/Outgoing Map"},' \
- -e '/T"Service"/a \       {"mmpbx-codec-modal.lp", T"Codecs"},' \
- -e '/T"Service"/a \       {"mmpbx-dial-plan-modal.lp", T"Dial Plans"},' \
- -e '/T"DECT"/a    \       {"mmpbx-contacts-modal.lp", T"Phone Book"},' \
- -i /www/snippets/tabs-voice.lp
 echo [$SCRIPT]: Fix default Telephony tab
 # Default telephony tab is DECT!!! 
 sed \

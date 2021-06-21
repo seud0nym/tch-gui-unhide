@@ -97,7 +97,7 @@ $().ready(function(){\
   var bbhdr = document.querySelector("#broadband-card .header-title");\
   bbhdr.parentNode.insertBefore(bbdiv, bbhdr.nextSibling);\
   var landiv = bbdiv.cloneNode(true);\
-  var lanhdr = document.querySelector("#Local").closest(".header-title");\
+  var lanhdr = document.querySelector("#Local,#Local_Network_tab").closest(".header-title");\
   landiv.setAttribute("id", "lan-card-throughput");\
   lanhdr.parentNode.insertBefore(landiv, lanhdr.nextSibling);\
   updateThroughput();\

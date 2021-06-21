@@ -1,0 +1,6 @@
+echo [$SCRIPT]: Fix Telephony Service tab errors
+sed \
+ -e 's/{k, serviceNames\[k\]}/{k, k}/' \
+ -e 's/post_helper.variantHasAccess(variantHelper, "showAdvanced", role)/false/' \
+ -i /www/docroot/modals/mmpbx-service-modal.lp
+

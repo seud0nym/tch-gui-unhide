@@ -1,0 +1,14 @@
+# Lines in this file must be specified in the format <filename>/<dirname relative to build dir>
+012-Restore-Select-File/18.1.c
+016-Restore-Cleanup-File-Select/18.1.c
+040-Configuration/18.1.c
+055-Additional/18.1.c
+065-MultiAP/18.1.c
+066-QoS/18.1.c
+080-Gateway/18.1.c
+085-LED/18.1.c
+091-Titles/18.1.c
+105-RelayModal/18.1.c
+107-ULA/18.1.c
+120-Telephony/18.1.c
+166-Theme-Common/18.1.c

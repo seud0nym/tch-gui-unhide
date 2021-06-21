@@ -1,3 +1,14 @@
+echo [$SCRIPT]: Update gateway card and status ajax with hardware temperature monitors
+elements=""
+for m in $(find /sys/devices/ -name temp1_input)
+do
+  elements="$elements\"$m\","
+done
+for f in /www/cards/001_gateway.lp /www/docroot/ajax/gateway-status.lua
+do
+  sed -e "s|\(^local temp1_input = {\)|\1$elements|" -i $f
+done
+
 SERIAL=$(uci get env.var.serial)
 echo [$SCRIPT]: Change config export filename from config.bin to $VARIANT-$SERIAL-$VERSION@YYMMDD.bin
 echo [$SCRIPT]: Add reset/upgrade warnings

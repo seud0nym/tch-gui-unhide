@@ -17,7 +17,7 @@ local items = {
 }
 
 local nat_alg_card_hidden = proxy.get("uci.web.card.@card_natalghelper.hide")
-if nat_alg_card_hidden and nat_alg_card_hidden[1] and nat_alg_card_hidden[1].value == "1" then
+if not nat_alg_card_hidden or nat_alg_card_hidden[1].value == "1" then
   items[#items+1] = {"nat-alg-helper-modal.lp", T"NAT Helpers"}
 end
 

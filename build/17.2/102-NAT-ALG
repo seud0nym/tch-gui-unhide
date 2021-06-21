@@ -1,0 +1,68 @@
+echo [$SCRIPT]: Show individual helper status on NAT Helpers card
+sed \
+  -e '/local enabled/,/^  end/d' \
+  -e '/convertResultToObject/a \  local htmlLeft = {}' \
+  -e '/convertResultToObject/a \  local htmlRight = {}' \
+  -e '/convertResultToObject/a \  local attributes = {' \
+  -e '/convertResultToObject/a \    span = { style = "display:inline-block;font-size:smaller;letter-spacing:-1px;vertical-align:unset;" },' \
+  -e '/convertResultToObject/a \  }' \
+  -e '/convertResultToObject/a \  for _, v in ipairs(helper_uci_content) do' \
+  -e '/convertResultToObject/a \      if v.intf ~= "loopback" then' \
+  -e '/convertResultToObject/a \          local state = v.enable' \
+  -e '/convertResultToObject/a \          local text' \
+  -e '/convertResultToObject/a \          if state ~= "0" then' \
+  -e '/convertResultToObject/a \              text =" enabled<br>"' \
+  -e '/convertResultToObject/a \              state = "1"' \
+  -e '/convertResultToObject/a \          else' \
+  -e '/convertResultToObject/a \              text = " disabled<br>"' \
+  -e '/convertResultToObject/a \          end' \
+  -e '/convertResultToObject/a \          if #htmlRight >= #htmlLeft then' \
+  -e '/convertResultToObject/a \              htmlLeft[#htmlLeft+1] = ui_helper.createSimpleLight(state, string.upper(v.helper), attributes) .. text' \
+  -e '/convertResultToObject/a \          else' \
+  -e '/convertResultToObject/a \              htmlRight[#htmlRight+1] = ui_helper.createSimpleLight(state, string.upper(v.helper), attributes) .. text' \
+  -e '/convertResultToObject/a \          end' \
+  -e '/convertResultToObject/a \      end' \
+  -e '/convertResultToObject/a \  end' \
+  -e '/divtable/,/div>/d' \
+  -e '/card_bg/a \            <div style="display:flex;flex-direction:row;">\\' \
+  -e '/card_bg/a \              <div style="width:50%">\\' \
+  -e "/card_bg/a \                ');" \
+  -e '/card_bg/a \                ngx.print(htmlLeft);' \
+  -e "/card_bg/a \                ngx.print('\\\\" \
+  -e '/card_bg/a \              </div>\\' \
+  -e '/card_bg/a \              <div style="width:50%">\\' \
+  -e "/card_bg/a \                ');" \
+  -e '/card_bg/a \                ngx.print(htmlRight);' \
+  -e "/card_bg/a \                ngx.print('\\\\" \
+  -e '/card_bg/a \              </div>\\' \
+  -e '/card_bg/a \            </div>\\' \
+  -i /www/cards/092_natalghelper.lp
+
+echo [$SCRIPT]: Fix NAT ALG modal errors and include in Firewall tabs if card hidden
+sed \
+  -e '/^local ui_helper/i \local proxy = require("datamodel")' \
+  -e 's/T"Enable"/T"Enabled"/' \
+  -e 's/, readonly="true"/ /' \
+  -e 's/unique/readonly/' \
+  -e 's/string.upper/string.lower/' \
+  -e '/attr = { input = { class="span1"/i \    readonly = true,' \
+  -e '/^local hlp_attributes/i \table.insert(hlp_columns, table.remove(hlp_columns, 1))' \
+  -e '/return true/i \  if object["enable"] == "" then' \
+  -e '/return true/i \    object["enable"] = "1"' \
+  -e '/return true/i \  end' \
+  -e '/return true/i \  object["helper"] = string.lower(object["helper"])' \
+  -e '/--Look for the enable set to nothing/,/^end/d' \
+  -e '/^local UI_helper/i \local proxy = require("datamodel")' \
+  -e "/modal-body/a \  ');" \
+  -e '/modal-body/a \  local card_hidden = proxy.get("uci.web.card.@card_natalghelper.hide")' \
+  -e '/modal-body/a \  if card_hidden and card_hidden[1] and card_hidden[1].value == "1" then' \
+  -e '/modal-body/a \    local lp = require("web.lp")' \
+  -e '/modal-body/a \    lp.setpath("/www/snippets/")' \
+  -e '/modal-body/a \    lp.include("tabs-firewall.lp")' \
+  -e '/modal-body/a \  end' \
+  -e "/modal-body/a \  ngx.print('\\\\" \
+  -e "/createTable/i \        ngx.print('<legend>');  ngx.print( T'NAT Helpers (ALG\\\\'s)' ); ngx.print('</legend>');" \
+  -e "s/\"NAT Helpers (ALG's)\"/\"Firewall\"/" \
+  -e 's/Dest Port/Destination Port/' \
+  -i /www/docroot/modals/nat-alg-helper-modal.lp
+

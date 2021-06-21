@@ -1,0 +1,1 @@
+Icon color is #FF404040

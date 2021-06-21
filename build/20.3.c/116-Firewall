@@ -1,0 +1,16 @@
+echo [$SCRIPT]: Add WAN NAT ALG helper count to Firewall card
+sed \
+  -e '/local enabled_count/,/<br>/d' \
+  -e '/local alg_modal_link/a \              local zones = proxy.getPN("uci.firewall.zone.", true)' \
+  -e '/local alg_modal_link/a \              for k,v in ipairs(zones) do' \
+  -e '/local alg_modal_link/a \                local wan = proxy.get(v.path .. "wan")' \
+  -e '/local alg_modal_link/a \                if wan and wan[1].value == "1" then' \
+  -e '/local alg_modal_link/a \                  local helpers = proxy.get(v.path .. "helper.")' \
+  -e '/local alg_modal_link/a \                  if helpers then' \
+  -e '/local alg_modal_link/a \                    html[#html+1] = format(N("<strong %1$s>%2$d WAN NAT ALG Helper</strong> enabled","<strong %1$s>%2$d WAN NAT ALG Helpers</strong> enabled", #helpers), alg_modal_link, #helpers)' \
+  -e '/local alg_modal_link/a \                    html[#html+1] = "<br>"' \
+  -e '/local alg_modal_link/a \                  end' \
+  -e '/local alg_modal_link/a \                end' \
+  -e '/local alg_modal_link/a \              end' \
+  -i /www/cards/008_firewall.lp
+

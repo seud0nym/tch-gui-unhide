@@ -1,3 +1,13 @@
+echo [$SCRIPT]: Show the hidden Telephony tabs and fix default tab
+sed \
+  -e 's/\(--\)\( *{"mmpbx-service-modal.lp\)/  \2/' \
+  -e '/mmpbx-contacts/d' \
+  -e '/T"Service"/i \    {"mmpbx-inoutgoingmap-modal.lp", T"In\/Outgoing Map"},' \
+  -e '/T"Service"/a \    {"mmpbx-codec-modal.lp", T"Codecs"},' \
+  -e '/T"Service"/a \    {"mmpbx-dialplan-modal.lp", T"Dial Plans"},' \
+  -e '/T"DECT"/a    \    {"mmpbx-contacts-modal.lp", T"Phone Book"},' \
+  -i /www/snippets/tabs-voice.lp
+
 echo [$SCRIPT]: Handle the Telephony card switch
 sed \
   -e '/^local format/a \if ngx.var.request_method == "POST" then' \
@@ -9,4 +19,36 @@ sed \
   -e '/^local format/a \  end' \
   -e '/^local format/a \end' \
   -i /www/docroot/modals/mmpbx-info-modal.lp
+
+echo [$SCRIPT]: Display Telephony tabs even when mmpbx disabled
+sed \
+ -e '/if mmpbx_state == "1" then/d' \
+ -e '/elseif session:hasAccess/,/end/d' \
+ -i /www/snippets/tabs-voice.lp
+
+if [ $SIP_PWDS = y ]; then
+  echo [$SCRIPT]: Always display decrypted SIP passwords
+  sed \
+  -e '/local mask_password/d' \
+  -e '/if password == mask_password then/,/end/d' \
+  -e '/v\[scns\["password"\]\] = mask_password/d' \
+  -e '/ipairs(v)/a if sip_columns[j].name == "password" then' \
+  -e '/ipairs(v)/a   w = proxy.get("rpc.gui.pwd.@" .. v[scns["profile"]] .. ".password")[1].value' \
+  -e '/ipairs(v)/a   sip_columns[j].type = "text"' \
+  -e '/ipairs(v)/a end' \
+  -i /www/docroot/modals/mmpbx-profile-modal.lp
+fi
+
+if [ "$(uci -q get mmpbxbrcmfxsdev.@device[1])" != "device" ]
+then
+  echo [$SCRIPT]: Remove non-existing FXS2 device CODEC config
+  sed -e '/fxs2/d' -e '/FXS2/d' -i /www/docroot/modals/mmpbx-codec-modal.lp
+fi
+
+echo [$SCRIPT]: Add missing insert option on dial plan entries
+sed \
+  -e 's/registerMultiMap/registerNamedMultiMap/' \
+  -e 's/modify", "remove/modify", "insert", "remove/' \
+  -i /usr/share/transformer/mappings/uci/mmpbx.map
+SRV_transformer=$(( $SRV_transformer + 1 ))
 

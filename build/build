@@ -103,9 +103,9 @@ do
     TARGET=/tmp/$FW.b64
     if [ -f $d/.source ]
     then
-      echo "echo [\$SCRIPT]: Importing stock GUI code from $(cat $d/.source | xargs) into $FW" > $TARGET
+      echo "echo [\$SCRIPT]: Importing missing GUI code from $(cat $d/.source | xargs) into $FW" > $TARGET
     else
-      echo "echo [\$SCRIPT]: Importing stock GUI code" > $TARGET
+      echo "echo [\$SCRIPT]: Importing missing GUI code" > $TARGET
     fi
     echo "echo $(tar --exclude .source --owner=root --group=root -cf - * | bzip2 | base64 | tr -d "$IFS") | base64 -d | bzcat | tar -xf - -C /" >> $TARGET
     echo >> $TARGET
@@ -136,7 +136,7 @@ do
   echo "echo 000@\$(date +%H:%M:%S): Built for firmware version $MAJOR - Release $DATE_VERSION" >> $TARGET
   echo "RELEASE='$FULL_VERSION'" >> $TARGET
 
-  for s in $(find common $MAJOR -type f -a ! -name .do-not-delete -exec sh -c 'echo $(basename {})/$(dirname {})' \; | sort)
+  for s in $(find common $MAJOR -type f -a ! -name .do-not-delete ! -name .include -printf '%f/%h\n' | cat - $MAJOR/.include 2>/dev/null | grep -v '^#' | sort)
   do
     FILENAME="$(echo $s | cut -d/ -f1)"
     SEQUENCE="$(echo $FILENAME | cut -d- -f1)"
@@ -148,7 +148,7 @@ do
         sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" /tmp/$b.b64 >> $TARGET
       done
       IMPORTS=$(ls /tmp/$MAJOR*.b64 2>/dev/null)
-      if [ ! -z "$IMPORTS" ]
+      if [ "$DIRECTORY" = "common" -a ! -z "$IMPORTS" ]
       then
         for b in $IMPORTS
         do

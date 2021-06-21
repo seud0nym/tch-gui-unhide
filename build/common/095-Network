@@ -1,3 +1,87 @@
+echo [$SCRIPT]: Add DHCPv6 Server status and prefix to LAN card 
+sed \
+  -e '/local dhcpState$/a local dhcp6State_text = ""' \
+  -e '/local dhcpState$/a local dhcp6State' \
+  -e '/local dhcpState$/a local slaacState_text = ""' \
+  -e '/local dhcpState$/a local slaacState' \
+  -e '/local dhcpState$/a local ipv6State_text' \
+  -e '/@lan.dhcpv4/a \    ipv6State = "uci.network.interface.@lan.ipv6",' \
+  -e '/@lan.dhcpv4/a \    dhcpv6State = "uci.dhcp.dhcp.@lan.dhcpv6",' \
+  -e '/@lan.dhcpv4/a \    slaacState = "uci.dhcp.dhcp.@lan.ra",' \
+  -e '/@lan.dhcpv4/a \    ignored = "uci.dhcp.dhcp.@lan.ignore",' \
+  -e '/@lan.netmask/a \    ipv6prefix = "rpc.network.interface.@lan.ip6prefix_assignment",' \
+  -e '/DHCP enabled/i if mapParams["ignored"] == "1" then' \
+  -e '/DHCP enabled/i   dhcp4State_text = T"DHCPv4 ignored (Bridged mode)"' \
+  -e '/DHCP enabled/i   dhcp4State = "2"' \
+  -e '/DHCP enabled/i else' \
+  -e '/dhcpState = "1"/a end' \
+  -e 's/localdevIP = "uci/localdevIP = "rpc/' \
+  -e 's/dhcpState/dhcp4State/g' \
+  -e 's/DHCP enabled/DHCPv4 enabled/' \
+  -e 's/DHCP disabled/DHCPv4 disabled/' \
+  -e '/getExactContent/a \if mapParams["ipv6State"] == "" or mapParams["ipv6State"] == "1" then' \
+  -e '/getExactContent/a \  if mapParams["dhcpv6State"] == "" or mapParams["dhcpv6State"] == "server" then' \
+  -e '/getExactContent/a \    if mapParams["ignored"] == "1" then' \
+  -e '/getExactContent/a \      dhcp6State_text = T"DHCPv6 ignored (Bridged mode)"' \
+  -e '/getExactContent/a \      dhcp6State = "2"' \
+  -e '/getExactContent/a \    else' \
+  -e '/getExactContent/a \      dhcp6State_text = T"DHCPv6 enabled"' \
+  -e '/getExactContent/a \      dhcp6State = "1"' \
+  -e '/getExactContent/a \    end' \
+  -e '/getExactContent/a \  else' \
+  -e '/getExactContent/a \    dhcp6State_text = T"DHCPv6 disabled"' \
+  -e '/getExactContent/a \    dhcp6State = "0"' \
+  -e '/getExactContent/a \  end' \
+  -e '/getExactContent/a \  if mapParams["slaacState"] == "" or mapParams["slaacState"] == "server" then' \
+  -e '/getExactContent/a \    if mapParams["ignored"] == "1" then' \
+  -e '/getExactContent/a \      slaacState_text = T"SLAAC + RA ignored (Bridged mode)"' \
+  -e '/getExactContent/a \      slaacState = "2"' \
+  -e '/getExactContent/a \    else' \
+  -e '/getExactContent/a \      slaacState_text = T"SLAAC + RA enabled"' \
+  -e '/getExactContent/a \      slaacState = "1"' \
+  -e '/getExactContent/a \    end' \
+  -e '/getExactContent/a \  else' \
+  -e '/getExactContent/a \    slaacState_text = T"SLAAC + RA disabled"' \
+  -e '/getExactContent/a \    slaacState = "0"' \
+  -e '/getExactContent/a \  end' \
+  -e '/getExactContent/a \else' \
+  -e '/getExactContent/a \    dhcp6State_text = T"IPv6 disabled"' \
+  -e '/getExactContent/a \    dhcp6State = "0"' \
+  -e '/getExactContent/a \end' \
+  -e '/getExactContent/a \if mapParams["ipv6prefix"] == "" then' \
+  -e '/getExactContent/a \    ipv6State_text = T""' \
+  -e '/getExactContent/a \else' \
+  -e '/getExactContent/a \    ipv6State_text = T"Prefix: "' \
+  -e '/getExactContent/a \end' \
+  -e '/createSimpleLight/a \            ui_helper.createSimpleLight(dhcp6State, dhcp6State_text)' \
+  -e '/createSimpleLight/a \        )' \
+  -e '/createSimpleLight/a \        if mapParams["ipv6State"] == "1" then' \
+  -e '/createSimpleLight/a \            ngx.print(ui_helper.createSimpleLight(slaacState, slaacState_text))' \
+  -e '/createSimpleLight/a \        end' \
+  -e '/createSimpleLight/a \        ngx.print(' \
+  -e 's/and netmask is/<br>Subnet Mask:/' \
+  -e "s/IP is/IP:/" \
+  -e "/<\/p>/i \            '<br>'," \
+  -e "/<\/p>/i \            format(T'%s <nobr><strong style=\"letter-spacing:-1px;font-size:12px;\">%s</strong></nobr>', ipv6State_text, mapParams[\"ipv6prefix\"])," \
+  -e '/^\\$/d' \
+  -e "s/<strong>/<strong style=\"letter-spacing:-1px;font-size:12px;\">/g" \
+  -i /www/cards/005_LAN.lp
+
+echo [$SCRIPT]: Fix bug in relay setup card 
+sed \
+  -e '/getExactContent/a \ ' \
+  -e '/getExactContent/a local server_addr = proxy.get\("uci.dhcp.relay.@relay.server_addr"\)' \
+  -e 's/\(if proxy.get."uci.dhcp.relay.@relay.server_addr".\)\(.*\)\( then\)/if not server_addr or \(server_addr\2\)\3/' \
+  -e 's/\r//' \
+  -i /www/cards/018_relaysetup.lp
+
+echo [$SCRIPT]: Only show xDSL Config card if WAN interface is DSL 
+sed \
+ -e '/uci.xdsl.xdsl.@dsl0.enabled/a \      wan_ifname = "uci.network.interface.@wan.ifname",' \
+ -e '/if session:hasAccess/i \local wan_ifname = content["wan_ifname"]' \
+ -e 's/if session:hasAccess/if wan_ifname and (wan_ifname == "ptm0" or wan_ifname == "atmwan") and session:hasAccess/' \
+ -i /www/cards/093_xdsl.lp
+
 echo [$SCRIPT]: Add forceprefix to transformer mapping for network interface
 sed \
   -e 's/"reqprefix", "noslaaconly"/"reqprefix", "forceprefix", "noslaaconly"/' \

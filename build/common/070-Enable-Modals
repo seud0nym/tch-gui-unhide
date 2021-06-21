@@ -13,8 +13,8 @@ fi
 if [ $(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | wc -l) -eq 0 ]
 then
   echo [$SCRIPT]: Telstra Air and Fon SSIDs not found - Removing from GUI
-  rm /www/cards/010_fon.lp
-  rm /www/docroot/modals/fon-modal.lp
+  [ -f /www/cards/010_fon.lp ] && rm /www/cards/010_fon.lp
+  [ -f /www/docroot/modals/fon-modal.lp ] && rm /www/docroot/modals/fon-modal.lp
   uci -q delete web.fon
   uci -q delete web.fonmodal
   uci -q del_list web.ruleset_main.rules=fon
