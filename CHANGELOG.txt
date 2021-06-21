@@ -1,0 +1,489 @@
+2021.06.21 (Pre-release)
+==========
+* Support for 20.1.c firmware
+* tch-gui-unhide: When a device has multiple IPv6 addresses in the Device list, sort them
+* tch-gui-unhide: Stop mobile card background refresh when any modal displayed
+* tch-gui-unhide: Entire Wireless card now auto-refreshes, not just SSID status (to pick up SSID changes propagated from MultiAP controller)
+* tch-gui-unhide: Wireless Booster card now auto-refreshes and shows the number of SSIDs synced from MultiAP controller
+* tch-gui-unhide: When disabling the MultiAP Agent, you can now reset the SSIDs and passwords to their defaults
+* tch-gui-unhide: Allow setting of LAN IPv4 Gateway and DNS servers in Bridged Mode
+* tch-gui-unhide: Fixed setting Bridged Mode from Broadband screen on 17.2 FW
+* tch-gui-unhide: Allow reset to Routed Mode from Bridged Mode without reset to factory defaults
+* tch-gui-unhide: Added ability to specify the destination IP for WoL over Internet 
+* tch-gui-unhide: Changed order of columns in static leases table
+* tch-gui-unhide: Back-ported WAN Services modal to FW 17.2
+* tch-gui-unhide: Fixed incorrect error detection in DDNS update when IPv6 address contains 401 or 500 
+* tch-gui-unhide: Added separate IPv4/6 Dynamic DNS status to card, and shows status rather than just enabled/disabled
+* tch-gui-unhide: Added the ability to automatically issue and renew a Server Certificate from https://letsencrypt.org/ for the IPv4 Dynamic DNS domain using the brilliant acme.sh from https://github.com/acmesh-official/acme.sh
+* tch-gui-unhide: Added warning to Internet Access screen that turning off DNS Auto-discovery will be ignored unless at least one custom DNS server is added
+* tch-gui-unhide: Added mounted USB Devices to Content Sharing card
+* tch-gui-unhide: Added file system free space to Gateway card
+* tch-gui-unhide: Added new card to manage packages (opkg UI)
+* tch-gui-unhide-cards: Added option to make all hidden cards visible
+* tch-gui-unhide-xtra.rsyncd: Moved rsyncd from System Extras to Content Sharing
+* tch-gui-unhide-xtra.samba36-server: Fixed error messages during tch-gui-unhide install when no USB mounted
+* de-telstra: Install System CA certificates automatically after configuring opkg repositories (fixes SSL errors with curl)
+* de-telstra: Turn off noexec option on file system mounts, which prevented execution of scripts from USB
+* de-telstra: Enable or disable zone-specific NAT ALG helpers (FW 20.3.c)
+* mtd-backup: Now allows backups to a specified directory name on either USB or SSHFS
+* mtd-backup: Append FW version to rootfs_data and booted bank images
+* mtd-restore: Now allows restores from a specified directory name on either USB or SSHFS
+* mtd-restore: Now requires the partitions to be restored to be specified as parameters. If no partition is specified, it defaults to mtd2-rootfs_data
+* reset-to-factory-defaults-with-root: Ensure IP address specified with -I option does not conflict with the Guest network
+* update-ca-certificates: New script to download and install the latest version of the System CA Certificates (on-demand and/or optionally once per month)
+
+2021.05.16
+==========
+* tch-gui-unhide: Fixed bug in new MAC vendor lookup that broke device list on first execution
+* mtd-backup/mtd-restore: Speed up MTD backups and restores by a factor of 5-10 [#26] (Thanks neg2led)
+
+2021.05.15
+==========
+* tch-gui-unhide: Fixed detection of custom browser tab titles
+* tch-gui-unhide: Fixed bug in QoS card when in bridged mode
+* tch-gui-unhide: Fixed 'Some parameters failed validation' error on Local Network screen when WAN IPv6 not enabled
+* tch-gui-unhide: Scroll last changed init script into view on refresh
+* tch-gui-unhide: Added help icon to Wireless Output Power Adjustment (#25)
+* tch-gui-unhide: Added MAC vendor name lookup to device list
+
+2021.05.09
+==========
+* tch-gui-unhide: Fixed Local Network card showed incorrect IPv6 prefix
+* tch-gui-unhide: Fixed DHCP range validation errors when changing LAN IP address
+* tch-gui-unhide: Fixed GUI failing to display and various other issues when in bridged mode
+* tch-gui-unhide: Removed ability to set the tch-nginx-gui version of bridged mode through Broadband screen and Internet Access
+* tch-gui-unhide: Fixed VLAN detection when manually changing Broadband connection mode
+* tch-gui-unhide: When configuring VLAN, set IPv6 (wan6) interface as well as IPv4 (wan) interface
+* tch-gui-unhide: Set IPv6 (wan6) interface as well as IPv4 (wan) interface when manually changing Broadband connection mode
+* tch-gui-unhide: Added warning to remind that WAN connection mode has to be applied after disabling WAN sensing
+* tch-gui-unhide: Added VLAN status to Broadband card
+* tch-gui-unhide: Added Bridged Mode button to Broadband card (same as Local Network card)
+* tch-gui-unhide: Added IPv6 Address request behavior setting to Internet Access DHCP configuration (#24) and PPPoE configuration
+* tch-gui-unhide: Added IPv6 Prefix request behavior setting to Internet Access DHCP configuration (#24) and PPPoE configuration
+* tch-gui-unhide: Added IPv6 Prefix Size to Local Network screen (FW 18 only)
+* tch-gui-unhide: Added IPv6 ULA Prefix to Local Network screen, and button to randomly generate ULA prefix (FW 18 only)
+* tch-gui-unhide: Added ability to set wan6 interface to either same as wan interface or '@wan' when using PPPoE (Fix for Exetel users)
+* tch-gui-unhide: PPPoE username/password entered in Internet Access screen was only saved on the WAN interface and not updated on to the PPP interface like it is in the basic configuration screen
+* tch-gui-unhide: Added ability to set LAN Domain Name on Local Network screen
+* tch-gui-unhide: Added new Management tab when MTD backups enabled (by mtd-backup script cron job) to show list of backups on USB
+* tch-gui-unhide: Added system Redirect and NAT firewall rules to Port Forwarding tab
+* tch-gui-unhide: Renamed Packet Filter Rules tab in Firewall to Firewall Rules, and added ability to display NAT, Mangle and Raw tables in addition to Filter table
+* tch-gui-unhide: Applied consistent font size to all IP addresses displayed on Internet and Local Network cards
+* tch-gui-unhide: Show waiting spinner before opening modals
+* tch-gui-unhide: Forces protection against loss of root when doing a factory reset from the GUI by preserving the password files and dropbear (SSH) configuration
+* de-telstra: Fixed "uci: Entry not found" message when executed after Telstra AIR QoS configuration already removed
+* de-telstra: Added -F option to enable/disable protection against loss of root when doing a factory reset from the GUI, by preserving the password files and dropbear (SSH) configuration
+* intercept-dns: Added new script to enable DNS interception and hijacking
+* mtd-backup: Added new script to perform ad-hoc or scheduled backups of MTD partitions and other configuration to an attached USB drive
+* mtd-restore: Added new script to restore backed up MTD partitions
+
+2021.04.01
+==========
+* tch-gui-unhide: Fixed bug in Mobile Network Operators tab in FW 17
+* tch-gui-unhide: Fixed peerdns and ipv6 configuration settings in Internet DHCP and static screens
+* tch-gui-unhide: Changed status text 'on' to 'connected' on Internet card
+* tch-gui-unhide: Added option to ignore a new release (hides the 'Update Available' button until the next release) 
+
+2021.03.17
+==========
+* de-telstra: Remove CWMP even if already disabled (#22)
+* de-telstra: Fix tls-thor package not found message
+* de-telstra: Remove some more FON QoS settings
+* de-telstra: Changed opkg repository for Homeware 18
+* tch-gui-unhide: Added current receive/transmit raw throughput (Mb/s) to Broadband and Local Network cards
+* tch-gui-unhide: Reformatted up/down volume on Broadband card to prevent wrap-around
+* tch-gui-unhide: Fix firewall synflood_rate set with incorrect value
+* tch-gui-unhide: Added firewall includes to System Rules tab
+* tch-gui-unhide: Added tab to show active packet filter rules (iptables/ip6tables)
+
+2021.02.22
+==========
+* tch-gui-unhide: When running on Mobile Internet, added check for possibly disabled Telstra SIM (low received byte count compared to transmitted bytes)
+* tch-gui-unhide: Reworked Firewall GUI to use multiple tabs
+* tch-gui-unhide: Exposed Firewall advanced settings, system-defined rules, and zone configuration in new tabs
+* tch-gui-unhide: If the NAT Helpers card is hidden (using tch-gui-unhide-cards), the NAT Helpers functionality is moved to a tab in the Firewall GUI 
+* tch-gui-unhide: Moved Port Forwarding (from WAN Services) to a new tab in Firewall GUI
+* tch-gui-unhide: Reworked Firewall card to show default incoming policy (DROP, REJECT, or ACCEPT) rather than the more confusing enabled/disabled, and added number of port forwarding rules and number of active rules
+* tch-gui-unhide: Reworked WAN Services card to show WoL over Internet and UPnP status, plus number of defined DNS rules
+* tch-gui-unhide: Added support for insert option in dial plan entries
+* tch-gui-unhide: Added Usage History tab to Broadband, and a supporting cron job to generate the history (creates the history from the rolling 24-hour data collected by the default traffic monitoring cron job for displaying the traffic chart)
+* tch-gui-unhide: Improved card sizing on smaller-width screens
+* tch-gui-unhide: Fixed bug that prevented re-enabling mobile service after disabling
+* tch-gui-unhide: Fixed bug in cron numeric fields pattern matching
+* set-optimal-bank-plan: Handle different bank layouts correctly (see https://whrl.pl/RgdWhV and https://whrl.pl/RgdXmv)
+
+2021.02.06
+==========
+* tch-gui-unhide: Fixed 'invalid instance' error on QoS Queues tab when using DSL WAN
+* tch-gui-unhide: Ignored Telstra Air SSIDs when determining if any devices missing in QoS Device tab
+* tch-gui-unhide: Fixed QoS classify/reclassify rules editing on FW 17
+* tch-gui-unhide: Fixed incorrect WAN device count on QoS card
+* tch-gui-unhide: Added ability to enable/disable the SSH AFG configuration added by the root acquisition process
+* tch-gui-unhide: Added LTE Band Selection to Mobile Configuration
+* tch-gui-unhide: Added new Mobile Auto-Failover tab to configure timeouts after connection failure
+* tch-gui-unhide: Added modified Eco Settings card from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www
+* tch-gui-unhide-cards: Added support for Eco Settings card
+* reset-to-factory-defaults-with-root: Applied latest changes from https://hack-technicolor.readthedocs.io/en/stable/Upgrade/
+
+2021.02.01
+==========
+* tch-gui-unhide: Fixed QoS card on FW 17
+* tch-gui-unhide: Removed QoS classify/reclassify rules editing on FW 17 until bugs (e.g. incomplete lists, missing data after save, and errors on delete) resolved
+* tch-gui-unhide: Fixed NAT Helpers card on FW 17
+* tch-gui-unhide: Added warning message on QoS rule sequencing
+
+2021.01.31
+==========
+* tch-gui-unhide: Added -V option to show script release, current installed release and latest release available on GitHub
+* tch-gui-unhide: Added -v option to optionally disable update checking (default is to enable check for new releases and show the 'Update Available' button in GUI)
+* tch-gui-unhide: Replaced checkboxes with switches on Mobile Configuration modal
+* tch-gui-unhide: Added Device Capabilities information (read-only) to Mobile Configuration modal
+* tch-gui-unhide: Fixed check for DSL WAN interface on Broadband and Internet cards
+* tch-gui-unhide: Fixed static IPs/DNS missing from Internet card
+* tch-gui-unhide: Fixed QoS card and Queues tab which incorrectly showed QoS on WAN as disabled when it is really enabled
+* tch-gui-unhide: Correctly show re-allocated LAN to WAN ports on QoS Queues tab
+* tch-gui-unhide: Improved QoS card to show QoS status separately for WAN, LAN and Wi-Fi
+* tch-gui-unhide: Bug fixes and improvements to the QoS Classify Rules tab
+* tch-gui-unhide: Exposed Source and Destination interfaces on QoS Classify Rules
+* tch-gui-unhide: Correctly allocate QoS devices to QoS interfaces on the QoS Queues tab
+* tch-gui-unhide: Moved QoS Labels to new tab
+* tch-gui-unhide: Added new tab to modify QoS Device settings
+* tch-gui-unhide: Added new tab to modify QoS Reclassify rules
+* tch-gui-unhide: Added new tab to modify QoS Upload Shaping
+
+2021.01.16
+==========
+* tch-gui-unhide: Added Network Operators to Mobile tabs to add/edit MCC/MNC values
+* tch-gui-unhide: Added auto refresh to Telephony card
+* tch-gui-unhide: Stop all auto-refreshes when any modal opened
+* tch-gui-unhide: Fixed icon display issue on Telstra Classic theme [#19]
+* tch-gui-unhide: Allowed add/delete of dial plan entries
+* tch-gui-unhide: Clarified PoS on Telephony Codecs tab
+* tch-gui-unhide: Allow entry of SIP Domain Name and Realm
+* tch-gui-unhide: Optionally use a decrypted text field (instead of masked password field) for SIP Profile passwords
+* tch-gui-unhide: Allow assignment of IPv6 address to router via DHCP without LAN prefix
+* tch-gui-unhide: Show individual helper status on NAT Helpers card
+* tch-gui-unhide: Moved WAN Sensing L3 status from Internet Access card to Broadband card with L2 status
+* tch-gui-unhide: Added DNS Server IPs to Internet card [#20]
+* tch-gui-unhide: Standardised IPv4 and IPv6 DNS settings across DHCP/PPPoE/Static Internet Access modal snippets, plus added ability to enable/disable auto-discovery of ISP IPv6 DNS servers
+* tch-gui-unhide-xtra.minidlna: Correctly restore /lib/functions/contentsharing.sh after minidlna opkg removed
+* tch-gui-unhide-xtra.samba36-server: Correctly restore /lib/functions/contentsharing.sh after samba36-server opkg removed
+
+2021.01.06
+==========
+* tch-gui-unhide: Added auto refresh to Broadband card
+* tch-gui-unhide: Added auto refresh to Internet card
+* tch-gui-unhide: Added auto refresh to Devices card, and show booster-connected Wi-Fi devices separately
+* tch-gui-unhide: Added WAN Supervision to Internet PPPoE Mode snippet
+* tch-gui-unhide: Fix formatting on Mobile card
+* tch-gui-unhide: Static and DHCP Internet modals incorrectly used wan network interface "ipv6" setting to determine IPv6 status (setting only relevant to PPP connection method)
+* tch-gui-unhide: Hide custom firewall rules if User Defined firewall level not selected
+
+2021.01.01
+==========
+* tch-gui-unhide: Fixed bug that caused Telephony card to crash when no call statistics recorded [#18]
+* tch-gui-unhide: Added button to indicate when a new version is available
+* tch-gui-unhide: Added tch-gui-unhide release version to landing page (18.1.c only)
+* tch-gui-unhide: Allow setup of wan connection when in bridge mode (https://github.com/Ansuel/tch-nginx-gui/commit/1903e3578b8557076c8b4681d8078c20c996a7d4)
+* tch-gui-unhide: Ensure wan6 auto, proto and ifname settings match wan on save
+
+2020.12.29
+==========
+* ALL: Fixed "Illegal option -?" message when using -? to determine script optional parameters
+* tch-gui-unhide: Fixed bug where Internet access modal was not displaying IP, Gateway and DNS addresses for PPPoE [#17]
+* tch-gui-unhide: Fixed bug that displayed NAT ALG helpers as disabled when they were enabled
+* tch-gui-unhide: Fixed bug that occasionally prevented theme changes from GUI (permission denied error)
+* tch-gui-unhide: Fixed static IPv6 address assignment - requires CIDR notation but input field did not allow it
+* tch-gui-unhide: Ensure wan6 auto, proto and ifname settings match wan
+* tch-gui-unhide: Enabled direct tab links from Management and Telephony cards
+* tch-gui-unhide: Device card now correctly counts booster-attached WiFi devices in wireless count, not ethernet count
+* tch-gui-unhide: Device modal shows booster-attached WiFi device interface correctly
+* tch-gui-unhide: Device modal now does case-insensitive device name sort, and added sorting by IPv4 and IPv6
+* tch-gui-unhide: Device modal can now toggle between Active Only and All connected devices by clicking Status heading
+* tch-gui-unhide: Disable refresh whilst editing device name
+* tch-gui-unhide: Squish IP addresses to fit IPv6 addresses on Internet Access and Local Network cards
+* tch-gui-unhide: Fixed bug when saving changes on Boosters tab that caused screen dis-arrangement
+* tch-gui-unhide: Added call stats to Telephony card
+* tch-gui-unhide: Stop background refresh of Gateway card when any modal is loaded
+* tch-gui-unhide: Moved theme settings file to more sensible location
+* tch-gui-unhide-xtra.rsyncd: Initial release to add rsyncd support to GUI
+* de-telstra: Added ability to override hardening and retain Telstra configuration for: CWMP, SSH keys, Telstra AIR, Telstra NTP servers, and/or Telstra monitoring and data collection
+
+2020.12.09
+==========
+* tch-gui-unhide: Added modified firewall modal so that you can specify src and/or dest zone for user defined rules, and therefore create incoming, outgoing and forwarding rules in either direction (stock GUI only creates lan->wan forwarding rules)
+* tch-gui-unhide: Added new tab to telephony to edit dial plans
+* tch-gui-unhide: Added auto-refresh to device list and process viewer
+* tch-gui-unhide: Added background update of upload/download volumes on Broadband card
+* tch-gui-unhide: Added background update of SSID status on Wireless card
+* tch-gui-unhide: Added WAN Supervision to Internet Static Routed Mode snippet
+* tch-gui-unhide: Added ability to set static IPv6 address
+* tch-gui-unhide: Added FW version to copyright
+* tch-gui-unhide: Fixed restore processing to prevent it from deleting DumaOS web configuration
+* tch-gui-unhide: Fixed Time of Day tabs 
+* tch-gui-unhide: Restart Time of Day processing after updates applied to ensure changes are processed [#14]
+* tch-gui-unhide: Fixed Telstra Classic theme, and added Telstra Modern theme [#15]
+* tch-gui-unhide: Fixed Internet Access modal in PPPoE connection mode which always showed Connecting even when connected [#14]
+* tch-gui-unhide: Fixed uptime in basic view when uptime between 24 and 48 hours (showed no days instead of 1 day) [#16]
+
+2020.11.29
+==========
+* tch-gui-unhide: Added support for FW 18.1.c.0585 [#13]
+* tch-gui-unhide: Missed Telstra Air-5G when consolidating Telstra Air/Fon SSIDs on Wi-Fi card
+* tch-gui-unhide: Daily usage estimate on Broadband card wrong after WAN reset
+* tch-gui-unhide: Added wait spinner to init management when action selected
+* tch-gui-unhide: Added filtering to process viewer and init management
+* tch-gui-unhide-cards: Added option to only show a minimal set of cards, hiding all optional features
+* de-telstra: Added option to enable/disable DumaOS
+* de-telstra: Added -M option for minimal memory configuration, which is equivalent to specifying n on all u/y/n options (except power saving and WPS), plus all services associated with those options are stopped and disabled
+* reboot-on-coredump: New script to enable/disable reboot on coredump
+
+2020.11.20
+==========
+* tch-gui-unhide: Fixed NAT ALG screen so that it repairs already broken helpers
+* tch-gui-unhide: Fixed editing of cron tab
+* tch-gui-unhide: Fixed Init Management - did not refresh when init scripts added or removed
+* tch-gui-unhide: Fixed Process viewer - did not update and refresh button not working
+* tch-gui-unhide: Fixed tab highlighting after sorting on Devices and Management screens
+* tch-gui-unhide: Fixed inconsistent enabling/disabling of back-haul SSID
+* tch-gui-unhide: Fixed Local Network card so that DHCPv6 server not shown as enabled when IPv6 disabled 
+* tch-gui-unhide: Added ability to enable/disable cron tasks
+* tch-gui-unhide: Added ability to enable/disable SLAAC
+* tch-gui-unhide: Back-ported Local Network modal from 17.2.0468 into 17.2.0284
+* de-telstra: Inconsistent enabling/disabling of back-haul SSID
+
+2020.11.16
+==========
+* tch-gui-unhide: Moved prettifying of content sharing screen from tch-gui-unhide-xtra.minidlna
+* tch-gui-unhide-xtra.minidlna: Moved prettifying of content sharing screen to tch-gui-unhide
+* tch-gui-unhide-xtra.samba36-server: Initial release to add SMBv2 support
+
+2020.11.11
+==========
+* tch-gui-unhide: Allow specific text for browser tabs
+* tch-gui-unhide: Do not remove Telstra Air card if SSIDs exist
+* tch-gui-unhide: Collapse Telstra Air SSIDs to single line on card if they exist
+
+2020.11.09
+==========
+* tch-gui-unhide: Fixed bug that caused the version number to be repeated multiple times in Copyright footer when run with -T switch
+* tch-gui-unhide: Fixed bug when selecting Telstra Branding theme from the GUI
+* tch-gui-unhide-cards: Fixed "SH BAD NUMBER" error
+* tch-gui-unhide-cards: Added check for unhandled parameters
+
+2020.11.08
+==========
+* tch-gui-unhide: Re-worked theme processing to allow theme to be changed within GUI (from Management card)
+* tch-gui-unhide: Added red theme variation
+* tch-gui-unhide: Changed keep landing page option to require y/n otherwise could not de-brand landing page after initially keeping Telstra branding
+* tch-gui-unhide: Use red status light for disabled firewall
+* tch-gui-unhide: Fixed setting of firewall rule when SSH WAN access enabled/disabled
+* tch-gui-unhide: Fixed NAT ALG errors - GUI no longer changes helper names to uppercase which caused the helper to fail
+* tch-gui-unhide: Added extra configuration for SSH WAN access: port/authentication type/allowed client IP
+* tch-gui-unhide: Added GUI support to enable/disable iperf (FW 18.1.c only)
+* tch-gui-unhide: Added IPv6 info to Internet and LAN cards
+* tch-gui-unhide: Added modified Cron viewer and Init Script management from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www to Management screen
+* tch-gui-unhide: Added Process viewer to Management screen
+* tch-gui-unhide: Added reset/upgrade warnings to gateway screen
+* tch-gui-unhide: Moved card visibility and sequencing into new tch-gui-unhide-cards script
+* tch-gui-unhide-cards: Initial release
+* de-telstra: Moved GUI default user settings into optional parameter on tch-gui-unhide
+* de-telstra: Fixed transformer errors caused by package removal
+* reset-to-factory-defaults-with-root: Optionally disable CWMP during first boot after restore
+* reset-to-factory-defaults-with-root: Allow .rbi file to be specified for flashing, and automatically unpack
+* transformer-cli: Added stock version of /usr/bin/transformer-cli from FW 18 to FW 17 releases
+
+2020.10.23
+==========
+* de-telstra: Remove band steering configuration added by Telstra Air script
+* de-telstra: Remove Telstra Air firewall rules
+* de-telstra: No longer disables SSH WAN access (because it is not on by default, and user may have configured it manually)
+* de-telstra: Disable or enable WPS on non-Guest and non-Back-haul SSIDs
+* de-telstra: Set SAMBA and DLNA host names to hostname (replacing Telstra-Gateway or Telstra-Modem)
+* de-telstra: Removed TLS on DJA0230
+* tch-gui-unhide: Added sensor temperatures to gateway card
+* tch-gui-unhide: Sort SSIDs on Wireless card with Guests last
+* tch-gui-unhide: Can exclude or include cards based on full *modal* filename (may not work for all cards)
+* tch-gui-unhide: -nA option includes all excluded cards
+* tch-gui-unhide: Reverted to display subnet mask on LAN card
+* tch-gui-unhide: Get IP address from lease if blank in Devices list
+* tch-gui-unhide: Removed sorting of devices by IP, because sort happens before getting missing IP addresses from lease, so devices do not appear in IP order
+* tch-gui-unhide: getRandomKey function not part of standard post_helper in 17.2.0284
+* tch-gui-unhide: Bytes up/downloaded not displaying correctly on Broadband card
+* tch-gui-unhide: Telstra theme fixes for 17.2.0284
+* tch-gui-unhide: Fixed setting of firewall forwarding rule when NAT enabled/disabled
+* tch-gui-unhide: Removed voice connection mode (applicable to Italian ISP TIM only) from Broadband modal
+* tch-gui-unhide: Added support for FW 18.1.c.0549
+* tch-gui-unhide: New -f option to enable/disable/leave unchanged firmware update in GUI (because it also does RTFD)
+* tch-gui-unhide: Included DumaOS button in all applicable versions (if DumaOS enabled)
+* tch-gui-unhide-xtra.minidlna: Added interface configuration
+* reset-to-factory-defaults-with-root: Added option to backup overlay to USB before RTFD
+* dumaos: Renamed (from dumaos-beta)
+
+2020.10.09
+==========
+* tch-gui-unhide: Auto-refreshing device status on gateway card broke 17.2.0284
+
+2020.10.08
+==========
+* tch-gui-unhide: "Keep landing page" default not detected from current setting
+* tch-gui-unhide: Only show connected interfaces on broadband card (Issue #9)
+* tch-gui-unhide: Added Time of Day Wireless Control modal from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www
+* tch-gui-unhide: Added tch-gui-unhide release version to copyright line
+* tch-gui-unhide: Fixed bug causing error 500 when accessing gateway.lp
+* de-telstra: Removed power saving from -A and -S shortcuts
+
+2020.10.05
+==========
+* tch-gui-unhide: RAM usage showed wrong units (is MB, but showed KB)
+* tch-gui-unhide: Restore did not correctly clean up web config
+* tch-gui-unhide: Added Time of Day to excludable/includable cards
+* tch-gui-unhide: Show Wi-Fi Control rule count on Time of Day card
+* tch-gui-unhide: Status icon colours match theme colour
+
+2020.10.04
+==========
+* tch-gui-unhide: Added Telstra theme, and option to leave landing page unchanged
+* tch-gui-unhide: Added auto-refreshing device status to gateway card
+
+2020.10.02
+==========
+* de-telstra: Optionally configures opkg so that you can install additional packages on the device
+* tch-gui-unhide: Added ability to disable/enable the firewall
+* tch-gui-unhide: Allow enabling/disabling of Internet IPv6 pings
+* tch-gui-unhide: Added ability to sort device list by column headings
+* tch-gui-unhide: Replaced ugly host map with the nicer network map from the basic view
+* tch-gui-unhide: Added support for extra feature scripts that rely on additional packages being installed, and/or that make changes outside of the /www directory
+* tch-gui-unhide: Added WAN Supervision to Internet DHCP Routed Mode snippet
+* tch-gui-unhide-xtra.minidlna: Extra feature script to manage minidlna (if installed) through the GUI 
+
+2020.09.26
+==========
+* tch-gui-unhide: Added option to apply theme colors to both the light and night themes
+* tch-gui-unhide: Added option to set browser tabs titles to variant, variant-MAChex, or hostname
+* tch-gui-unhide: De-branded and themed DJA0231 landing page
+* tch-gui-unhide: Removed "Boost Your Wi-Fi" tab in Basic view
+* tch-gui-unhide: Only show xDSL Config card if WAN interface is DSL
+* tch-gui-unhide: Hide Mobile card if no devices found
+* tch-gui-unhide: Only show WAN Services card if WAN interface defined
+* tch-gui-unhide: Adding favicon accidentally replaced the <head> tag
+* tch-gui-unhide: Added Telephony Codecs tab from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www
+* de-telstra: Disable bulkdata (Telstra data collection)
+* de-telstra: Disable or enable DECT Emission Mode and fixed some display message bugs
+* de-telstra: Set SAMBA and DLNA host names to hostname (replacing Telstra-Modem)
+* de-telstra: Power settings for Ethernet eee and autogreeen were not persisted between reboots
+
+2020.09.17
+==========
+* tch-gui-unhide: Allow increase in WiFi output power to +6dBm
+
+2020.09.16
+==========
+* tch-gui-unhide: Optionally hide/show some cards (Content Sharing, Management, NAT Helpers, Printer Sharing, QoS, Relay Setup, System Extras, and xDSL config)
+* tch-gui-unhide: Added 3 new night theme variations (purple, green and orange) with option to show or hide card icons (-s), and can now apply theme only (-T option)
+* tch-gui-unhide: Re-ordered telephony tabs and made info default
+* tch-gui-unhide: Display Telephony tabs even when mmpbx disabled
+* tch-gui-unhide: Replaced Telephony Global modal with https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www modified version to allow setting of second SIP provider and interface
+* tch-gui-unhide: Added switch to Telephony card to enable/disable, and display status of SIP profiles
+* tch-gui-unhide: Added switch to Wi-Fi card to disable/enable radios, and display status of Guest SSIDs
+* tch-gui-unhide: Added Wi-Fi Boosters card and screens to manage Multi-AP settings
+* tch-gui-unhide: Added traffic monitor charts to Diagnostics
+* tch-gui-unhide: Added upload/download stats to Broadband card 
+* tch-gui-unhide: Fixed positioning of signal indicator on Mobile card
+* tch-gui-unhide: Fixed hard-coded QoS vDSL WAN interface - now uses current defined WAN interface, or card hidden if no current WAN interface
+* tch-gui-unhide: Fixed Internet card bug and bridge detection
+* tch-gui-unhide: Fixed "invalid exact path uci.network.interface.@wan.host_uniq" message when using PPoE
+* tch-gui-unhide: Fixed "invalid instance" message when broadband mode configured as ADSL2+
+* tch-gui-unhide: Fixed allowed role in broadband mode configuration imported from Ansuel GUI
+* de-telstra: File/Printer/Content Sharing messages showed current state not new state when changed
+
+2020.09.06
+==========
+* reset-to-factory-defaults-with-root: Can now keep or set new IP address after reset
+* tch-gui-unhide: Moved /www restore to a function as it is used twice 
+* tch-gui-unhide: Fixed various bugs and enabled additional screens
+* tch-gui-unhide: Added support for custom ipv6-DNS-Servers
+* tch-gui-unhide: Added switch to enable/disable DHCPv6 Server
+* tch-gui-unhide: Enabled device host map and sort device list by host name
+* tch-gui-unhide: Enabled cards in Bridge Mode
+* tch-gui-unhide: Added QoS state to card
+* tch-gui-unhide: Added support for 17.2.0468 FW
+
+2020.08.29
+==========
+tch-gui-unhide
+--------------
+* Removed device variant dependencies - scripts are now only dependent on firmware version
+* Added tch-gui-unhide script that runs the correct firmware version script
+* Added support for 18.1.c.0543 FW
+* Allowed editing of host names in device list
+* Replaced Internet modal with https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www modified version to allow setting of internet parameters, such as DNS servers
+* Replaced IP Extras card/modal with https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www modified version to access additional features and tabs (Customise DNS by network interface, Policy routing for mwan, Bridge grouping and DoS protection)
+* Added modified QoS card/modal from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www (may be vDSL only?)
+* Changed description of router DNS Server from Telstra to device variant (18.1.c)
+* Diagnostics modal tab name changes, and exposed hidden network connections tab
+* Fixed night theme display bug in time of day modal
+* Removed User Management card
+* Show SSH status on System Extras card
+* Missing favicon on some screens
+* Decreased LOW and MEDIUM LED levels on 18.1.c
+* Default theme is now the previously applied theme
+* Added ability to download latest version or latest release from GitHub
+
+de-telstra
+----------
+* Removed airiq package and dependencies
+* Removed Telstra NTP servers
+* Disabled lotagent (Telstra logging?)
+* Setting hostname and domain are now optional
+* Reworked with new command line options to set, enable, disable or leave unchanged existing features and new options:
+    * ALGs
+    * DNS servers
+    * Content, File and Printer Sharing
+    * EasyMesh configuration
+    * Telephony
+    * UPnP
+    * Power saving
+* Added ability to download latest version from GitHub
+
+2020.08.22
+==========
+* Added Broadband modal from https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www to allow VLAN tagging + dis/enable WAN Sensing and set connection method
+* Improved detection of added files to more easily restore state
+* Included serial number in configuration export file name (for those with multiple devices of the same variant)
+* Moved hostname and VoLTE backup from tch-gui-unhide to de-telstra (so that tch-gui-unhide only makes GUI changes and de-telstra makes once-off config changes)
+* Added option to include serial number in host name (for those with multiple devices of the same variant)
+* Removed any Windows line endings in the ipv4-DNS-Servers file so that they doesn't break the GUI
+* Restored Incoming/Outgoing Map Telephony tab
+
+2020.08.16
+==========
+* Removed SIP Device, Incoming/Outgoing Map, and Statistics Telephony tabs (only applicable to FW 17.2.0188 and earlier, according to https://hack-technicolor.readthedocs.io/en/stable/Unlock/#voip-setup)
+
+2020.08.08
+==========
+* Selected theme is now applied to both the basic and advanced GUI
+* Moved hardening configuration to new 'de-telstra' script
+* Moved enabling of DumaOS to new 'dumaos-beta' script
+* Added additional utility scripts for bank planning, RTFD with root, and setting web admin password
+* Added new script for unhiding GUI on TG800vac running firmware 17.2.0284
+* Added new script for unhiding GUI on DJA0231 running firmware 18.1.c.0462
+* Removed additional theme scripts, because theme is now specified by the -t command line option
+
+2020.08.03
+==========
+* Restore of lte card was not handled correctly
+* Original snippets files were not restored before applying changes
+* Enabled VoLTE backup voice service and SMS reception
+
+2020.07.28
+==========
+* Fixed admin role in mmpbx-service-modal.lp
+
+2020.07.27
+==========
+* Removed an extra background icon in light theme
+
+2020.07.20
+==========
+* Initial release
