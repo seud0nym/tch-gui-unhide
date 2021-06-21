@@ -11,10 +11,6 @@ local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local proxy = require ("datamodel")
-
-local lp = require("web.lp")
-lp.setpath("/www/snippets/")
-
 local substring, toupper, untaint = string.sub, string.upper, string.untaint
 local gVIES = post_helper.getValidateInEnumSelect
 
@@ -153,7 +149,14 @@ end
 ngx.print('\
 ');  ngx.print(ui_helper.createHeader(T"NAT Helpers (ALG's)", false, false))   ngx.print('\
 <div class="modal-body update">\
-'); lp.include("tabs-firewall.lp"); ngx.print('\
+');
+local card_hidden = proxy.get("uci.web.card.@card_natalghelper.hide")
+if card_hidden and card_hidden[1].value == "1" then
+  local lp = require("web.lp")
+  lp.setpath("/www/snippets/")
+  lp.include("tabs-firewall.lp")
+end
+ngx.print('\
   <form class="form-horizontal" method="post" action="modals/nat-alg-helper-modal.lp">\
     ');  
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
