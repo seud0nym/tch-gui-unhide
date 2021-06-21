@@ -227,6 +227,26 @@ apply_suggested() {
   unset TMP
 }
 
+apply_visible() {
+  TMP=""
+  for CARD in $(echo "$CARDS" | tr ' ' ';')
+  do
+    HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
+    FILE=$(echo "$CARD" | cut -d'|' -f4)
+    MODAL=$(echo "$CARD" | cut -d'|' -f5)
+    TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
+    HIDE=0
+    if [ -z "$TMP" ]
+    then
+      TMP="$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+    else
+      TMP="$TMP$IFS$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
+    fi
+  done
+  CARDS="$TMP"
+  unset TMP
+}
+
 undo_changes() {
   TMP=""
   for CARD in $(echo "$CARDS" | tr ' ' ';')
@@ -247,17 +267,17 @@ undo_changes() {
   unset TMP
 }
 
-if [ "action$1" = "action-s" ]
+if [ "$BATCH" = "s" ]
 then
   apply_suggested
   apply_changes
   exit
-elif [ "action$1" = "action-d" ]
+elif [ "$BATCH" = "d" ]
 then
   apply_defaults
   apply_changes
   exit
-elif [ "action$1" = "action-M" ]
+elif [ "$BATCH" = "M" ]
 then
   apply_suggested
   apply_minimal
@@ -313,6 +333,7 @@ do
   echo "OPTIONS: A single card number between 1 and $I"
   echo "         d = order cards by the default sequence"
   echo "         m = hide all optional feature cards"
+  echo "         v = make all cards visible"
   echo "         s = order cards by a suggested sequence"
   echo "         u = undo changes"
   echo "         a = apply changes and quit"
@@ -329,6 +350,7 @@ do
     q)  break;;
     s)  apply_suggested;;
     u)  undo_changes;;
+    v)  apply_visible;;
     *)  if [ "$FROM" -ge 1 -a "$FROM" -le "$I" ]
         then
           printf "For card #$FROM, enter h to hide, u to unhide, or new position number: "
