@@ -119,9 +119,9 @@ local shaper_options = {
 }
 
 local shaper_valid = {
-  shaperName = validateShaperName,
-  shaperMaxBitRateName = vPN,
-  shaperEnabledName = vB,
+  swshaper = validateShaperName,
+  max_bit_rate = vPN,
+  enable = vB,
 }
 
 local shaper_filter = function(data)
