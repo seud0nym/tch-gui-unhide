@@ -16,11 +16,11 @@ if ngx.req.get_method() == "POST" then
   local install = untaint(ngx.req.get_post_args().install_pkg)
   if install then
     local pkg
-    if type(install) == "string" then
+    if type(install) == "string" or type(install) == "userdata" then
       install = { install }
     end
     for _,pkg in pairs(install) do
-      proxy.set("rpc.gui.opkg.available.@".. pkg .. ".action", "install")
+      proxy.set("rpc.gui.opkg.available.@".. untaint(pkg) .. ".action", "install")
     end
   end
 end

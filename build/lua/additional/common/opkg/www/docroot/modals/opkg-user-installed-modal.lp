@@ -17,19 +17,19 @@ if ngx.req.get_method() == "POST" then
   local remove = ngx.req.get_post_args().remove_pkg
   local pkg
   if upgrade then
-    if type(upgrade) == "string" then
+    if type(upgrade) == "string" or type(upgrade) == "userdata" then
       upgrade = { upgrade }
     end
     for _,pkg in pairs(upgrade) do
-      proxy.set("rpc.gui.opkg.available.@".. pkg .. ".action", "upgrade")
+      proxy.set("rpc.gui.opkg.user.@".. untaint(pkg) .. ".action", "upgrade")
     end
   end
   if remove then
-    if type(remove) == "string" then
+    if type(remove) == "string" or type(remove) == "userdata" then
       remove = { remove }
     end
-    for _pkg in pairs(remove) do
-      proxy.set("rpc.gui.opkg.available.@".. pkg .. ".action", "remove")
+    for _,pkg in pairs(remove) do
+      proxy.set("rpc.gui.opkg.user.@".. untaint(pkg) .. ".action", "remove")
     end
   end
 end

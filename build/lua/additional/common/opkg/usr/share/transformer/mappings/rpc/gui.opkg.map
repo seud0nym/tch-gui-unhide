@@ -126,13 +126,9 @@ local function checkPackages(grp)
         pattern,package,version = "","",""
       else
         local system,target,keys = source(package)
-        local index = #data[target]+1
-        data["packages"][package] = {
-          target = target, 
-          index = index,
-        }
-        data[keys][#data[keys]+1] = tostring(index)
-        data[target][index] = {
+        data["packages"][package] = target
+        data[keys][#data[keys]+1] = package
+        data[target][package] = {
           name = package,
           description = "",
           installed_version = version,
@@ -155,16 +151,13 @@ local function checkPackages(grp)
   for line in cmd:lines() do
     local pkg,key,value = string.match(line, "^/usr/lib/opkg/info/(.*)%.control:(%w+): (.*)")
     if pkg then
-      local idx = data["packages"][pkg]
-      if not idx then
-        local target,keys = "available","available_keys"
-        local index = #data[target]+1
-        data["packages"][pkg] = {
-          target = target,
-          index = index,
-        }
-        data[keys][#data[keys]+1] = tostring(index)
-        data[target][index] = {
+      local target = data["packages"][pkg]
+      if not target then
+        target = "available"
+        local keys = "available_keys"
+        data["packages"][pkg] = target
+        data[keys][#data[keys]+1] = pkg
+        data[target][pkg] = {
           name = pkg,
           description = value,
           installed_version = "",
@@ -174,15 +167,13 @@ local function checkPackages(grp)
           action = "",
         }
       else
-        data[idx["target"]][idx["index"]]["description"] = value
+        data[target][pkg]["description"] = value
       end
     else
       local pkg, desc = string.match(line, "^/usr/lib/opkg/info/(.*)%.control:%s(.*)")
       if desc then
-        local idx = data["packages"][pkg]
-        local target = idx["target"]
-        local index = idx["index"]
-        data[target][index]["description"] = data[target][index]["description"] .. " " .. desc
+        local target = data["packages"][pkg]
+        data[target][pkg]["description"] = data[target][pkg]["description"] .. " " .. desc
       end
     end
   end
@@ -198,16 +189,12 @@ local function checkPackages(grp)
       warning = line
     end
     if pkg then
-      local idx = data["packages"][pkg]
-      if not idx then
-        local target,keys = "available","available_keys"
-        local index = #data[target]+1
-        idx = {
-          target = target,
-          index = index,
-        }
-        data[keys][#data[keys]+1] = tostring(index)
-        data[target][index] = {
+      local target = data["packages"][pkg]
+      if not target then
+        target = "available"
+        local keys = "available_keys"
+        data[keys][#data[keys]+1] = pkg
+        data[target][pkg] = {
           name = pkg,
           description = description or "",
           installed_version = "",
@@ -216,23 +203,19 @@ local function checkPackages(grp)
           system = system,
           action = "",
         }
-        data["packages"][pkg] = idx
+        data["packages"][pkg] = target
       else
-        local target = idx["target"]
-        local index = idx["index"]
-        if (data[target][index]["description"] or "") == "" then
-          data[target][index]["description"] = description
+        if (data[target][pkg]["description"] or "") == "" then
+          data[target][pkg]["description"] = description
         end
-        if (data[target][index]["warning"] or "") == "" then
-          data[target][index]["warning"] = warning
+        if (data[target][pkg]["warning"] or "") == "" then
+          data[target][pkg]["warning"] = warning
         end
       end
-      local target = idx["target"]
-      local index = idx["index"]
-      local installed_version = data[target][index]["installed_version"]
+      local installed_version = data[target][pkg]["installed_version"]
       if warning == "" and installed_version ~= "" and available_version ~= installed_version and available_version > installed_version then
-        data[target][index]["available_version"] = available_version
-        if data[target][index]["system"] == "" then
+        data[target][pkg]["available_version"] = available_version
+        if data[target][pkg]["system"] == "" then
           opkg_cache.usr_upgradable = opkg_cache.usr_upgradable + 1
         else
           opkg_cache.sys_upgradable = opkg_cache.sys_upgradable + 1
@@ -473,14 +456,14 @@ end
 
 local function getValue(group, key, param)
   local data = checkPackages(group)
-  return data[tonumber(key)][param] or ""
+  return data[key][param] or ""
 end
 
 local function runAction(group, key, value)
   --log:notice("runAction: group=%s key=%s value=%s", group,key,value)
   if value ~= "" then
     local data = checkPackages(group)
-    local warning = data[tonumber(key)]["warning"]
+    local warning = data[key]["warning"]
     if warning and warning ~= "" then
       return nil, warning
     else
@@ -496,7 +479,7 @@ local function runAction(group, key, value)
         log:err("Unrecognised command: " .. command)
         return nil, "Unrecognised command: " .. command
       end
-      action_cmd = action_cmd .. data[tonumber(key)]["name"]
+      action_cmd = action_cmd .. data[key]["name"]
       log:info("Executing: " .. action_cmd)
       os.execute(action_cmd .. " 2>&1 | logger -t rpc.gui.opkg -p user.info")
       opkg_cache.reload = true

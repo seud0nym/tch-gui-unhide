@@ -38,8 +38,8 @@ fi
 echo Combining source files into single tree...
 mkdir -p /tmp/tch-gui-unhide/common
 tar --exclude README.md -cf - -C lua/ansuel/ .  | tar -xf - -C /tmp/tch-gui-unhide/common/
-tar --exclude README.md -cf - -C lua/additional/ .  | tar -xf - -C /tmp/tch-gui-unhide/common/
-for d in $(ls -d lua/stock/[0-9]*)
+tar --exclude README.md -cf - -C lua/additional/common/ .  | tar -xf - -C /tmp/tch-gui-unhide/common/
+for d in $(ls -d lua/additional/[0-9]*)
 do
   mkdir -p /tmp/tch-gui-unhide/$(basename $d)
   tar --exclude README.md -cf - -C $d .  | tar -xf - -C /tmp/tch-gui-unhide/$(basename $d)/
