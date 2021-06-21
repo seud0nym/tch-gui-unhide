@@ -158,15 +158,15 @@ Usage: ./mtd-restore [options] [partition ...]
 
 Options:
  -d directory   The name of the directory on the USB device or SSHFS filesystem.
-                  If not specified, defaults to: backups
- -f             Restore mtd1 (rootfs), mtd2 (rootfs_data), and mtd4 (bank_2) (i.e. a firmware restore)
+                  If not specified, defaults to: backups or backups-VERSION
+ -f             Restore rootfs_data and booted bank
  -U             Download the latest version of mtd-restore from GitHub
                   Do NOT specify any other parameters or options if doing a version upgrade.
 Parameters:
  partition      One or more partitions to restored.
                   Specify either the device (e.g. "mtd2") or name (e.g. "rootfs_data")
-                  If not specified and -f not specified, defaults to VARIANT-mtd2-rootfs_data
-
+                  Do not specify the device variant prefix (e.g. DJA0231-)
+                  If not specified and -f not specified, defaults to mtd2-rootfs_data
 ```
 
 ## reboot-on-coredump

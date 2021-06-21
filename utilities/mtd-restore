@@ -3,6 +3,7 @@
 SCRIPT="$(basename $0)"
 VARIANT=$(uci -q get env.var.variant_friendly_name)
 VERSION=$(uci -q get version.@version[0].marketing_version)
+BOOTED=$(cat /proc/banktable/booted)
 
 usage() {
 cat <<EOH
@@ -15,13 +16,14 @@ Usage: $0 [options] [partition ...]
 Options:
  -d directory   The name of the directory on the USB device or SSHFS filesystem containing the backups.
                   If not specified, defaults to: backups or backups-$VERSION
- -f             Restore mtd1 (rootfs), mtd2 (rootfs_data), and mtd4 (bank_2) (i.e. a firmware restore)
+ -f             Restore rootfs_data and $BOOTED
  -U             Download the latest version of $SCRIPT from GitHub
                   Do NOT specify any other parameters or options if doing a version upgrade.
 Parameters:
  partition      One or more partitions to restored.
                   Specify either the device (e.g. mtd2) or name (e.g. rootfs_data or data)
-                  If not specified and -f not specified, defaults to $VARIANT-mtd2-rootfs_data
+                  Do not specify the device variant prefix (e.g. $VARIANT-)
+                  If not specified and -f not specified, defaults to mtd2-rootfs_data
 
 EOH
 exit
@@ -52,13 +54,13 @@ upgrade() {
 }
 
 DIR="backups"
-FW_RESTORE=""
+DFLT_RESTORE=""
 
 while getopts :d:fU option
 do
  case "${option}" in
-  d)  DIR="$OPTARG";;
-  f)  FW_RESTORE="mtd1 mtd2 mtd4";;
+  d)  DIR="$(echo $OPTARG | sed -e 's,/$,,')";;
+  f)  DFLT_RESTORE="rootfs_data $BOOTED";;
   U)  upgrade;;
   *)  usage;;
  esac
@@ -69,7 +71,7 @@ MOUNT_PATH=$(uci get mountd.mountd.path)
 USB="$(ls $MOUNT_PATH | head -n1)"
 if [ -z "$USB" ]
 then
-  SSHFS=$(grep fuse\.sshfs /proc/mounts | head -n1 | cut -d" " -f2)
+  SSHFS=$(grep -m 1 fuse\.sshfs /proc/mounts | cut -d" " -f2)
   if [ -z "$SSHFS" ]
   then
     echo "$(date +%F@%X): ERROR! No USB device or mounted SSHFS filesystem found"
@@ -92,30 +94,24 @@ then
   fi
 fi
 
-if [ $# -eq 0 -a -z "$FW_RESTORE" ]
+if [ $# -eq 0 -a -z "$DFLT_RESTORE" ]
 then
-  IMAGES="$VARIANT-mtd2-rootfs_data.img.gz"
-  if [ ! -f "$SOURCE/$IMAGES" ]
-  then
-    echo "$(date +%F@%X): ERROR! Could not find a backup matching $IMAGES"
-    exit 2
-  fi
-else
-  for p in $FW_RESTORE $*
-  do
-    COUNT=$(ls $SOURCE 2>/dev/null | grep -E "$VARIANT-.*$p.*\.img\.gz" | wc -l)
-    if [ $COUNT -eq 1 ]
-    then
-      IMAGES="$IMAGES $(ls $SOURCE 2>/dev/null | grep -E "$VARIANT-.*$p.*\.img\.gz")"
-    elif [ $COUNT -eq 0 ]
-    then
-      echo "$(date +%F@%X): WARNING! Could not find a backup matching $p - IGNORED"
-    else
-      echo "$(date +%F@%X): WARNING! Found $COUNT backups matching $p - IGNORED"
-      ls $SOURCE 2>/dev/null | grep -E "$VARIANT-.*$p.*\.img\.gz" | while read line; do echo "                     -> $line"; done
-    fi
-  done
+  DFLT_RESTORE="mtd2-rootfs_data"
 fi
+for p in $DFLT_RESTORE $*
+do
+  COUNT=$(ls $SOURCE 2>/dev/null | grep -E "$VARIANT-.*$p.*\.img\.gz" | wc -l)
+  if [ $COUNT -eq 1 ]
+  then
+    IMAGES="$IMAGES $(ls $SOURCE 2>/dev/null | grep -E "$VARIANT-.*$p.*\.img\.gz")"
+  elif [ $COUNT -eq 0 ]
+  then
+    echo "$(date +%F@%X): WARNING! Could not find a backup matching $p - IGNORED"
+  else
+    echo "$(date +%F@%X): WARNING! Found $COUNT backups matching $p - IGNORED"
+    ls $SOURCE 2>/dev/null | grep -E "$VARIANT-.*$p.*\.img\.gz" | while read line; do echo "                     -> $line"; done
+  fi
+done
 
 if [ -z "$IMAGES" ]
 then
@@ -124,7 +120,11 @@ then
 fi
 
 IMAGES=$(echo $IMAGES | tr " " "\n" | sort -u | xargs)
-echo "$(date +%F@%X): $(echo $IMAGES | wc -w) backups selected for restore"
+echo "$(date +%F@%X): $(echo $IMAGES | wc -w) backups selected for restore:"
+for gz in $(echo $IMAGES | tr " " "\n" | sort -u)
+do
+  echo "                     -> $gz"
+done
 echo -n "$(date +%F@%X): If you wish to commence the restore, enter y otherwise just press [Enter] to exit. "
 read
 if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
