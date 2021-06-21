@@ -3,7 +3,8 @@
 SCRIPT="$(basename $0)"
 SERIAL=$(uci get env.var.serial)
 VARIANT=$(uci -q get env.var.variant_friendly_name)
-VERSION=$(uci -q get version.@version[0].marketing_version)
+VERSION=$(uci get version.@version[0].version | cut -d- -f1)
+BOOTED=$(cat /proc/banktable/booted)
 
 usage() {
 cat <<EOH
@@ -86,7 +87,7 @@ MOUNT_PATH=$(uci get mountd.mountd.path)
 USB="$(ls $MOUNT_PATH | head -n1)"
 if [ -z "$USB" ]
 then
-  SSHFS=$(grep fuse\.sshfs /proc/mounts | head -n1 | cut -d" " -f2)
+  SSHFS=$(grep -m 1 fuse\.sshfs /proc/mounts | cut -d" " -f2)
   if [ -z "$SSHFS" ]
   then
     if [ $PATH_ONLY = Y ]
@@ -258,10 +259,12 @@ else
   fi
 fi
 
-echo "$VERSION" > $TARGET/$VARIANT-$SERIAL-version
-
 sed -e '/dev:/d' -e 's/\(mtd.\)[^"]*"\([^"]*\)"/\1 \2/' /proc/mtd | while read -r dev name
 do
+  if [ "$name" = "rootfs_data" -o "$name" = "$BOOTED" ]
+  then
+    name="$name-$VERSION"
+  fi
   if [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ]
   then
     SHA256OLD="$(cat $TARGET/$VARIANT-$dev-$name.img.sha256 | cut -d' ' -f1)"
