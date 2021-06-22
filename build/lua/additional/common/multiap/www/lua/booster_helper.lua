@@ -69,13 +69,16 @@ function M.getSSIDList()
 end
 
 function M.getBoosterCardHTML(agent_enabled, controller_enabled, modalPath)
-  local appath = M.findBackhaulAPPath()
   local content = {
     state5g = "uci.wireless.wifi-device.@radio_5G.state",
-    apiface = appath .. "iface",
-    apstate = appath .. "state",
-    wl1_2ssid = "uci.wireless.wifi-iface.@wl1_2.ssid",
   }
+
+  local appath = M.findBackhaulAPPath()
+  if appath then
+    content["apiface"] = appath .. "iface"
+    content["apstate"] = appath .. "state"
+    content["wl1_2ssid"] = "uci.wireless.wifi-iface.@wl1_2.ssid"
+  end
 
   content_helper.getExactContent(content)
 
@@ -103,7 +106,7 @@ function M.getBoosterCardHTML(agent_enabled, controller_enabled, modalPath)
     controllerStatus = "Multi-AP Controller disabled"
     modalPath = "/modals/wireless-boosters-modal.lp"
   end
-  if content["apstate"] and content["apiface"] == "wl1_2" and content["wl1_2ssid"] ~= "" then
+  if appath and content["apstate"] and content["apiface"] == "wl1_2" and content["wl1_2ssid"] ~= "" then
     if content["apstate"] == "0" then
       backhaulStatus = T"Backhaul " .. content["wl1_2ssid"] .. " (5G) disabled"
     elseif content["state5g"] == "0" then

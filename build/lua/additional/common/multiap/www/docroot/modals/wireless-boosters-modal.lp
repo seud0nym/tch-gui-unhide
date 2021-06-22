@@ -16,23 +16,27 @@ lp.setpath("/www/snippets/")
 
 local vB = post_helper.validateBoolean
 
-local appath = booster_helper.findBackhaulAPPath()
-
 local mapParams = {
   agent_enabled = "uci.multiap.agent.enabled",
   controller_enabled = "uci.multiap.controller.enabled",
   state5g = "uci.wireless.wifi-device.@radio_5G.state",
-  apstate = appath .. "state",
-  wl1_2ssid = "uci.wireless.wifi-iface.@wl1_2.ssid",
-  wl1_2state = "uci.wireless.wifi-iface.@wl1_2.state",
 }
 
 local mapValid = {
   agent_enabled = vB,
   controller_enabled = vB,
-  apstate = vB,
-  wl1_2state = vB,
 }
+
+
+local appath = booster_helper.findBackhaulAPPath()
+if appath then
+  mapParams["apstate"] = appath .. "state"
+  mapParams["wl1_2ssid"] = "uci.wireless.wifi-iface.@wl1_2.ssid"
+  mapParams["wl1_2state"] = "uci.wireless.wifi-iface.@wl1_2.state"
+
+  mapValid["apstate"] = vB
+  mapValid["wl1_2state"] = vB
+end
 
 local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
 
@@ -96,16 +100,21 @@ ngx.print('\
       html[#html+1] = ui_helper.createCheckboxSwitch(T"Reset Default SSIDs", "reset_ssids", "0", switch_class_monitor)
     end
     html[#html+1] = "</fieldset>"
-    html[#html+1] = "<fieldset><legend>" .. T"Wireless Backhaul" .. "</legend>"
-    html[#html+1] = ui_helper.createSwitch(T"SSID " .. content["wl1_2ssid"], "wl1_2state", content["wl1_2state"])
-    html[#html+1] = ui_helper.createSimpleInputHidden("apstate", content["apstate"])
-    html[#html+1] = "</fieldset>"
+    if appath then
+      html[#html+1] = "<fieldset><legend>" .. T"Wireless Backhaul" .. "</legend>"
+      html[#html+1] = ui_helper.createSwitch(T"SSID " .. content["wl1_2ssid"], "wl1_2state", content["wl1_2state"])
+      html[#html+1] = ui_helper.createSimpleInputHidden("apstate", content["apstate"])
+      html[#html+1] = "</fieldset>"
+    end
     ngx.print(html)
     ngx.print('\
   </form>\
 </div>\
-');  ngx.print(ui_helper.createFooter())   ngx.print('\
+');  ngx.print(ui_helper.createFooter())   
+if appath then
+  ngx.print('\
 <script>\
 $("#wl1_2state").change(function() { $("input[name=apstate]").val(this.value); });\
 </script>\
-'); 
+  ');
+end 
