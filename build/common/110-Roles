@@ -8,3 +8,9 @@ sed \
   -e 's/if w\["provisioned"\] == "1"/if role == "admin" or w\["provisioned"\] == "1"/' \
   -i /www/docroot/modals/mmpbx-service-modal.lp
 
+echo [$SCRIPT]: Enable various cards that the default user was not allowed to see
+for f in $(grep -l -r "and not session:isdefaultuser" /www/cards)
+do
+  sed -e 's/ and not session:isdefaultuser()//' -i $f
+done
+
