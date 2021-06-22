@@ -1,6 +1,7 @@
 if [ -f /etc/init.d/cwmpd ]
 then
-  echo [$SCRIPT]: CWMP found - Leaving in GUI
+  echo [$SCRIPT]: CWMP found - Leaving in GUI and removing switch from card
+  sed -e 's/switchName, content.*,/nil, nil,/' -i /www/cards/090_cwmpconf.lp
 else
   echo [$SCRIPT]: CWMP not found - Removing from GUI
   rm /www/cards/090_cwmpconf.lp
