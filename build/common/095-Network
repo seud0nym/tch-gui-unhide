@@ -77,7 +77,7 @@ sed \
 
 echo [$SCRIPT]: Only show xDSL Config card if WAN interface is DSL 
 sed \
- -e '/uci.xdsl.xdsl.@dsl0.enabled/a \      wan_ifname = "uci.network.interface.@wan.ifname",' \
+ -e '/local content =/a \      wan_ifname = "uci.network.interface.@wan.ifname",' \
  -e '/if session:hasAccess/i \local wan_ifname = content["wan_ifname"]' \
  -e 's/if session:hasAccess/if wan_ifname and (wan_ifname == "ptm0" or wan_ifname == "atmwan") and session:hasAccess/' \
  -i /www/cards/093_xdsl.lp
