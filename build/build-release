@@ -1,9 +1,15 @@
 #!/bin/sh
 
-version="$(head -n 1 ../VERSION.txt)"
-if [ "$(date +%Y.%m.%d)" != "$version" -a "!$1" = "!" ]
+if [ "x$1" = "x-f" ]
 then
-  echo "ERROR: First line of VERSION.txt does not match new version number!!!"
+  version=$(date +%Y.%m.%d)
+else
+  version="$(head -n 1 ../VERSION.txt)"
+fi
+
+if [ "$(date +%Y.%m.%d)" != "$version" ]
+then
+  echo "ERROR: First line of VERSION.txt does not match expected version number!!!"
   exit 1
 else
   echo Building Release $version
