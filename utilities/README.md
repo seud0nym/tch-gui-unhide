@@ -150,7 +150,7 @@ Options:
 When run with the -C option (which should be the only option), the scheduled job will be added if it does not already exist, or removed if it does exist in the schedule. By default, the backup will run every day at a random time between 2:00am and 5:00am. You can modify the schedule through the Management card in `tch-gui-unhide`, or by directly modifying the /etc/crontab/root file.
 
 ## mtd-restore
-Restores MTD partitions from an attached USB device or SSHFS filesystem. Only changed partitions are restored.
+Restores MTD partitions from an attached USB device or SSHFS filesystem. Only changed partitions are restored  (unless -s is specified).
 
 USB devices have priority over SSHFS filesystems. 
 ```
@@ -160,6 +160,9 @@ Options:
  -d directory   The name of the directory on the USB device or SSHFS filesystem.
                   If not specified, defaults to: backups or backups-VERSION
  -f             Restore rootfs_data and booted bank
+ -q             Quiet mode (i.e. no [w] on writing partition)
+ -r             Reboot after last partition successfully restored
+ -s             Skip check for changed partitions and always restore
  -U             Download the latest version of mtd-restore from GitHub
                   Do NOT specify any other parameters or options if doing a version upgrade.
 Parameters:

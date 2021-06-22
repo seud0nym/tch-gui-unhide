@@ -7,7 +7,7 @@ BOOTED=$(cat /proc/banktable/booted)
 
 usage() {
 cat <<EOH
-Restores MTD partitions from an attached USB device or SSHFS filesystem. Only changed partitions are restored.
+Restores MTD partitions from an attached USB device or SSHFS filesystem. Only changed partitions are restored (unless -s is specified).
 
 USB devices have priority over SSHFS filesystems. 
 
@@ -17,6 +17,9 @@ Options:
  -d directory   The name of the directory on the USB device or SSHFS filesystem containing the backups.
                   If not specified, defaults to: backups or backups-$VERSION
  -f             Restore rootfs_data and $BOOTED
+ -q             Quiet mode (i.e. no [w] on writing partition)
+ -r             Reboot after last partition successfully restored
+ -s             Skip check for changed partitions and always restore
  -U             Download the latest version of $SCRIPT from GitHub
                   Do NOT specify any other parameters or options if doing a version upgrade.
 Parameters:
@@ -55,12 +58,18 @@ upgrade() {
 
 DIR="backups"
 DFLT_RESTORE=""
+QUIET=""
+REBOOT=N
+SKIP_CHG_CHECK=N
 
-while getopts :d:fU option
+while getopts :d:fqrsU option
 do
  case "${option}" in
   d)  DIR="$(echo $OPTARG | sed -e 's,/$,,')";;
   f)  DFLT_RESTORE="rootfs_data $BOOTED";;
+  q)  QUIET="-q";;
+  r)  REBOOT=Y;;
+  s)  SKIP_CHG_CHECK=Y;;
   U)  upgrade;;
   *)  usage;;
  esac
@@ -77,7 +86,7 @@ then
     echo "$(date +%F@%X): ERROR! No USB device or mounted SSHFS filesystem found"
     exit 2
   else
-  SOURCE=${SSHFS}/${DIR}
+    SOURCE=${SSHFS}/${DIR}
   fi
 else
   SOURCE=${MOUNT_PATH}${USB}/${DIR}
@@ -120,18 +129,29 @@ then
 fi
 
 IMAGES=$(echo $IMAGES | tr " " "\n" | sort -u | xargs)
+LAST=""
 echo "$(date +%F@%X): $(echo $IMAGES | wc -w) backups selected for restore:"
-for gz in $(echo $IMAGES | tr " " "\n" | sort -u)
+for gz in $IMAGES
 do
   echo "                     -> $gz"
+  LAST="$gz"
 done
+if [ $SKIP_CHG_CHECK = Y ]; then
+  echo "$(date +%F@%X): NOTE: Partitions will be restored WITHOUT checking for changes first!"
+fi
+if [ $REBOOT = Y ]; then
+  echo "$(date +%F@%X): NOTE: Device will be rebooted after restoring $LAST!"
+fi
 echo -n "$(date +%F@%X): If you wish to commence the restore, enter y otherwise just press [Enter] to exit. "
 read
 if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
   exit
 fi
 
-for gz in $(echo $IMAGES | tr " " "\n" | sort -u)
+echo "$(date +%F@%X): Cleaning up any old images..."
+find $SOURCE -name "$VARIANT-*.img" -exec rm {} \;
+
+for gz in $IMAGES
 do
   echo $gz | grep -q -e '-mtd0-'
   if [ $? -eq 0 ]; then
@@ -141,31 +161,46 @@ do
 
   basename $gz | sed -e "s/^$VARIANT-\(mtd.\)-\(.*\).img.gz$/\1 \2/" | while read -r dev name
   do
-    if [ -f $SOURCE/$VARIANT-$dev-$name.img.sha256 ]
+    if [ $SKIP_CHG_CHECK = N ]
     then
-      SHA256OLD="$(cat $SOURCE/$VARIANT-$dev-$name.img.sha256 | cut -d' ' -f1)"
+      if [ -f $SOURCE/$VARIANT-$dev-$name.img.sha256 ]
+      then
+        SHA256OLD="$(cat $SOURCE/$VARIANT-$dev-$name.img.sha256 | cut -d' ' -f1)"
+      else
+        echo "$(date +%F@%X): SKIPPED restore of $gz: $VARIANT-$dev-$name.img.sha256 does not exist?"
+        continue
+      fi
+      echo "$(date +%F@%X): CALCULATING current SHA256 checksum for $name"
+      SHA256=$(sha256sum "/dev/${dev}ro" | cut -d' ' -f1)
     else
-      echo "$(date +%F@%X): SKIPPED restore of $gz: $VARIANT-$dev-$name.img.sha256 does not exist?"
-      continue
+      SHA256OLD="SHA256OLD"
+      SHA256="SHA256"
     fi
-    echo "$(date +%F@%X): CALCULATING current SHA256 checksum for $name"
-    SHA256=$(sha256sum "/dev/${dev}ro" | cut -d' ' -f1)
     if [ "$SHA256" = "$SHA256OLD" ]
     then
       echo "$(date +%F@%X): SKIPPED restore of $gz - Checksums for $name match therefore image unchanged"
     else
       echo "$(date +%F@%X): EXPANDING $name to temporary file $SOURCE/$VARIANT-$dev-$name.img"
       gzip -dc $SOURCE/$gz > $SOURCE/$VARIANT-$dev-$name.img
-      echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partion $name"
-      mtd write $SOURCE/$VARIANT-$dev-$name.img $name
       if [ $? -eq 0 ]
       then
-        echo "$(date +%F@%X): RESTORED $SOURCE/$VARIANT-$dev-$name.img to partion $name"
+        if [ $REBOOT = Y -a "$LAST" = "$gz" ]
+        then
+          echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partion $dev ($name) and rebooting"
+          mtd $QUIET -r write $SOURCE/$VARIANT-$dev-$name.img $name && rm $SOURCE/$VARIANT-$dev-$name.img
+        else
+          echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partion $dev ($name)"
+          mtd $QUIET write $SOURCE/$VARIANT-$dev-$name.img $name && rm $SOURCE/$VARIANT-$dev-$name.img
+        fi
+        if [ $? -eq 0 ]
+        then
+          echo "$(date +%F@%X): RESTORED $SOURCE/$VARIANT-$dev-$name.img to partion $dev"
+        else
+          echo "$(date +%F@%X): FAILED to restore $SOURCE/$VARIANT-$dev-$name.img to partion $dev!"
+        fi
       else
-        echo "$(date +%F@%X): FAILED to restore $SOURCE/$VARIANT-$dev-$name.img to partion $name!"
+        echo "$(date +%F@%X): FAILED to expand $name to $SOURCE/$VARIANT-$dev-$name.img!"
       fi
-      echo "$(date +%F@%X): DELETING expanded temporary file $SOURCE/$VARIANT-$dev-$name.img"
-      rm $SOURCE/$VARIANT-$dev-$name.img
     fi
   done
 done
