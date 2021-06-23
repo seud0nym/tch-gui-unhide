@@ -6,10 +6,10 @@
 .header{border-bottom:0px;box-shadow:none;margin-bottom:30px;}
 .nav-header{text-shadow:none;}
 .nav-list>li>a,.nav-list .nav-header{text-shadow:none;}
-.networkmap .apinfo{font-size:0.775em;color:#002856;line-height:normal;text-align:left;border:solid 8px transparant;display:inline-block;vertical-align:middle;position:absolute;}
+.networkmap .apinfo{font-size:0.775em;color:#002856;line-height:normal;text-align:left;border:solid 8px transparent;display:inline-block;vertical-align:middle;position:absolute;}
 .networkmap .device:hover .deviceinfo.hoveronly{display:inline-block;}
 .networkmap .device{width:auto;text-align:center;}
-.networkmap .deviceinfo{font-size:0.775em;color:#002856;line-height:normal;text-align:left;border:solid 8px transparant;display:inline-block;vertical-align:middle;position:absolute;}
+.networkmap .deviceinfo{font-size:0.775em;color:#002856;line-height:normal;text-align:left;border:solid 8px transparent;display:inline-block;vertical-align:middle;position:absolute;}
 .networkmap .devicelist{-webkit-border-radius:10px;-moz-border-radius:10px;border-radius:10px;border:1px solid #DADADA;padding:0.625em;text-align:center;}
 .networkmap .hoveronly{display:none;}
 .networkmap .interface-name{color:#004D9D;font-size:1.25em;margin-bottom:10px;}
@@ -20,7 +20,7 @@
 .networkmap .showinfo{display:inline-block;}
 .networkmap .table td{border-top:none;border-color:#004D9D;padding-top:0px;padding-bottom:0px;width:12.5%;}
 .networkmap .table td .tooltip-inner{text-align:left;}
-.smallcard{border:0px;font-family:Roboto,Noto,sans-serif;font-weight:400;}
+.smallcard{border:0px;font-family:Roboto,Noto,sans-serif;font-weight:400;border-radius:7px;-moz-border-radius:7px;-webkit-border-radius:7px;-o-border-radius:7px;}
 .smallcard .header{background-image:none;border-bottom:0px;font-size:20px;font-weight:400;text-shadow:none;}
 body{font-family:Roboto,Noto,sans-serif;}
 input,button,select,textarea{font-family:Roboto,Noto,sans-serif;}
