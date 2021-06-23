@@ -197,7 +197,7 @@ then
   fi
   $LOGGER user.info "WRITING current configuration to $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz"
   SECONDS=$(date +%s)
-  uci show 2>/dev/null | grep -v -E '^env' | gzip > $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz
+  uci show 2>/dev/null | grep -v -E '^airiq|^bulkdata|^cwmpd|^env|^ipping|^ledfw|^mobiled.*device|^traceroute|^version|macaddress|user_agent|uuid|\._key=' | gzip > $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz
   if [ $DEBUG = Y ]
   then
     $LOGGER user.debug "WRITING current configuration to $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz took $(( $(date +%s) - $SECONDS )) seconds"
