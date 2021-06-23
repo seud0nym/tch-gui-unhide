@@ -75,8 +75,8 @@ then
 fi
 
 SRC="https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/"
-for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-certificates' | cut -d' ' -f2)
+for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2)
 do
-  curl -sk $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite --force-depends --nodeps install /tmp/$IPK 2>&1 | logger -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
+  curl -sk $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
 done
   
