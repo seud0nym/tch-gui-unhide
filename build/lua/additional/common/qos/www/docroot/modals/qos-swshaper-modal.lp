@@ -210,11 +210,16 @@ local function makeHTMLfor(rows, heading)
     sectionHTML[#sectionHTML+1] =   "<legend>"..T"QoS Shaper Application on Interface "..heading.."</legend>"
     table.sort(rows)
     for _,dev in pairs(rows) do
-      sectionHTML[#sectionHTML+1] = ui_helper.createInputSelect(T(devices[dev]), dev, shapers, content[dev])
+      if dev and devices[dev] and content[dev] then
+        sectionHTML[#sectionHTML+1] = ui_helper.createInputSelect(T(devices[dev]), dev, shapers, content[dev])
+      end
     end
     sectionHTML[#sectionHTML+1] = "<fieldset>"
   end
-  return sectionHTML
+  if #sectionHTML > 3 then
+    return sectionHTML
+  end
+  return {}
 end
 
 ngx.print( ui_helper.createHeader(T"QoS", false) ); ngx.print('\
