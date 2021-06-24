@@ -141,6 +141,8 @@ Options:
  -e             Save the current environment into the VARIANT-SERIAL-VERSION-env file
  -l             Write log messages to stderr as well as the system log
  -o             Save the overlay content into the VARIANT-SERIAL-VERSION-overlay-files-backup.tgz file
+ -s             Skip recalculation of the checksum of the backed-up partition, and just save the checksum
+                  calculated to determine if the image has changed.
  -v             Verbose mode
  -y             Bypass confirmation prompt (answers 'y')
  -C             Adds or removes the scheduled daily backup cron job
@@ -163,6 +165,8 @@ Options:
  -q             Quiet mode (i.e. no [w] on writing partition)
  -r             Reboot after last partition successfully restored
  -s             Skip check for changed partitions and always restore
+ -v             Skip verification of image checksum 
+                  (if it exists i.e. if mtd-backup was NOT executed with the -s option)
  -U             Download the latest version of mtd-restore from GitHub
                   Do NOT specify any other parameters or options if doing a version upgrade.
 Parameters:

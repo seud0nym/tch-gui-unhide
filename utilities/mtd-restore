@@ -20,6 +20,8 @@ Options:
  -q             Quiet mode (i.e. no [w] on writing partition)
  -r             Reboot after last partition successfully restored
  -s             Skip check for changed partitions and always restore
+ -v             Skip verification of image checksum 
+                  (if it exists i.e. if mtd-backup was NOT executed with the -s option)
  -U             Download the latest version of $SCRIPT from GitHub
                   Do NOT specify any other parameters or options if doing a version upgrade.
 Parameters:
@@ -61,8 +63,14 @@ DFLT_RESTORE=""
 QUIET=""
 REBOOT=N
 SKIP_CHG_CHECK=N
+SKIP_SHA_CHECK=N
 
-while getopts :d:fqrsU option
+GREEN='\033[1;32m'
+ORANGE='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+while getopts :d:fqrsvU option
 do
  case "${option}" in
   d)  DIR="$(echo $OPTARG | sed -e 's,/$,,')";;
@@ -70,6 +78,7 @@ do
   q)  QUIET="-q";;
   r)  REBOOT=Y;;
   s)  SKIP_CHG_CHECK=Y;;
+  v)  SKIP_SHA_CHECK=Y;;
   U)  upgrade;;
   *)  usage;;
  esac
@@ -83,7 +92,7 @@ then
   SSHFS=$(grep -m 1 fuse\.sshfs /proc/mounts | cut -d" " -f2)
   if [ -z "$SSHFS" ]
   then
-    echo "$(date +%F@%X): ERROR! No USB device or mounted SSHFS filesystem found"
+    echo -e "$(date +%F@%X): ${RED}ERROR! No USB device or mounted SSHFS filesystem found${NC}"
     exit 2
   else
     SOURCE=${SSHFS}/${DIR}
@@ -98,7 +107,7 @@ then
   then
     SOURCE=$SOURCE-$VERSION
   else
-    echo "$(date +%F@%X): ERROR! Backup source $SOURCE not found"
+    echo -e "$(date +%F@%X): ${RED}ERROR! Backup source $SOURCE not found${NC}"
     exit 2
   fi
 fi
@@ -115,16 +124,16 @@ do
     IMAGES="$IMAGES $(ls $SOURCE 2>/dev/null | grep -E "$VARIANT-.*$p.*\.img\.gz")"
   elif [ $COUNT -eq 0 ]
   then
-    echo "$(date +%F@%X): WARNING! Could not find a backup matching $p - IGNORED"
+    echo -e "$(date +%F@%X): ${ORANGE}WARNING! Could not find a backup matching $p - IGNORED${NC}"
   else
-    echo "$(date +%F@%X): WARNING! Found $COUNT backups matching $p - IGNORED"
+    echo -e "$(date +%F@%X): ${ORANGE}WARNING! Found $COUNT backups matching $p - IGNORED${NC}"
     ls $SOURCE 2>/dev/null | grep -E "$VARIANT-.*$p.*\.img\.gz" | while read line; do echo "                     -> $line"; done
   fi
 done
 
 if [ -z "$IMAGES" ]
 then
-  echo "$(date +%F@%X): ERROR! No valid backups selected for restore"
+  echo -e "$(date +%F@%X): ${RED}ERROR! No valid backups selected for restore${NC}"
   exit 2
 fi
 
@@ -137,12 +146,12 @@ do
   LAST="$gz"
 done
 if [ $SKIP_CHG_CHECK = Y ]; then
-  echo "$(date +%F@%X): NOTE: Partitions will be restored WITHOUT checking for changes first!"
+  echo -e "$(date +%F@%X): ${ORANGE}NOTE: Partitions will be restored WITHOUT checking for changes first!${NC}"
 fi
 if [ $REBOOT = Y ]; then
-  echo "$(date +%F@%X): NOTE: Device will be rebooted after restoring $LAST!"
+  echo -e "$(date +%F@%X): ${ORANGE}NOTE: Device will be rebooted after restoring $LAST!${NC}"
 fi
-echo -n "$(date +%F@%X): If you wish to commence the restore, enter y otherwise just press [Enter] to exit. "
+echo -e -n "$(date +%F@%X): ${GREEN}If you wish to commence the restore, enter y otherwise just press [Enter] to exit.${NC} "
 read
 if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
   exit
@@ -153,55 +162,82 @@ find $SOURCE -name "$VARIANT-*.img" -exec rm {} \;
 
 for gz in $IMAGES
 do
+  echo "$(date +%F@%X): PROCESSING backup $gz"
+
   echo $gz | grep -q -e '-mtd0-'
   if [ $? -eq 0 ]; then
-    echo "$(date +%F@%X): SORRY! You cannot restore mtd0 usng this script"
+    echo -e "$(date +%F@%X): ${ORANGE}SORRY! You cannot restore mtd0 usng this script${NC}"
     continue
   fi
 
   basename $gz | sed -e "s/^$VARIANT-\(mtd.\)-\(.*\).img.gz$/\1 \2/" | while read -r dev name
   do
+    SHA256CHK=N
     if [ $SKIP_CHG_CHECK = N ]
     then
-      if [ -f $SOURCE/$VARIANT-$dev-$name.img.sha256 ]
+      if [ -f $SOURCE/$VARIANT-$dev-$name.img.sha256= ]
+      then
+        SHA256CHK=Y
+        SHA256OLD="$(cat $SOURCE/$VARIANT-$dev-$name.img.sha256= | cut -d' ' -f1)"
+      elif [ -f $SOURCE/$VARIANT-$dev-$name.img.sha256 ]
       then
         SHA256OLD="$(cat $SOURCE/$VARIANT-$dev-$name.img.sha256 | cut -d' ' -f1)"
       else
-        echo "$(date +%F@%X): SKIPPED restore of $gz: $VARIANT-$dev-$name.img.sha256 does not exist?"
+        echo -e "$(date +%F@%X): ${ORANGE}SKIPPED restore of $gz: $VARIANT-$dev-$name.img.sha256 does not exist?${NC}"
         continue
       fi
-      echo "$(date +%F@%X): CALCULATING current SHA256 checksum for $name"
+      echo "$(date +%F@%X): CALCULATING current SHA256 checksum for $dev"
       SHA256=$(sha256sum "/dev/${dev}ro" | cut -d' ' -f1)
     else
       SHA256OLD="SHA256OLD"
       SHA256="SHA256"
     fi
+
+    target="$(echo $name | cut -d- -f1)"
+
     if [ "$SHA256" = "$SHA256OLD" ]
     then
-      echo "$(date +%F@%X): SKIPPED restore of $gz - Checksums for $name match therefore image unchanged"
+      echo -e "$(date +%F@%X): ${GREEN}SKIPPED restore of $gz - Checksums for $dev match therefore image unchanged${NC}"
     else
-      echo "$(date +%F@%X): EXPANDING $name to temporary file $SOURCE/$VARIANT-$dev-$name.img"
-      gzip -dc $SOURCE/$gz > $SOURCE/$VARIANT-$dev-$name.img
-      if [ $? -eq 0 ]
+      echo "$(date +%F@%X): EXPANDING $dev backup to temporary file $SOURCE/$VARIANT-$dev-$name.img"
+      if [ $SKIP_SHA_CHECK = N -a $SHA256CHK = Y ]
+      then
+        SHA256IMG="$(gzip -dc $SOURCE/$gz | tee $SOURCE/$VARIANT-$dev-$name.img | sha256sum | cut -d' ' -f1)"
+        if [ "$SHA256OLD" = "$SHA256IMG" ]
+        then
+          echo "$(date +%F@%X): VERIFICATION of $SOURCE/$VARIANT-$dev-$name.img checksum SUCCEEDED"
+          VERIFIED=0
+        else
+          echo -e "$(date +%F@%X): ${RED}VERIFICATION of $SOURCE/$VARIANT-$dev-$name.img checksum FAILED!!${NC}"
+          echo "$(date +%F@%X):  -> CALCULATED $SHA256IMG"
+          echo "$(date +%F@%X):  -> SHOULD BE  $SHA256OLD (from $VARIANT-$dev-$name.img.sha256=)"
+          VERIFIED=1
+        fi
+      else
+        gzip -dc $SOURCE/$gz > $SOURCE/$VARIANT-$dev-$name.img
+        VERIFIED=$?
+      fi
+      if [ $VERIFIED -eq 0 ]
       then
         if [ $REBOOT = Y -a "$LAST" = "$gz" ]
         then
-          echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partion $dev ($name) and rebooting"
-          mtd $QUIET -r write $SOURCE/$VARIANT-$dev-$name.img $name && rm $SOURCE/$VARIANT-$dev-$name.img
+          echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partion $dev ($target) and rebooting"
+          mtd $QUIET -r write $SOURCE/$VARIANT-$dev-$name.img $target
         else
-          echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partion $dev ($name)"
-          mtd $QUIET write $SOURCE/$VARIANT-$dev-$name.img $name && rm $SOURCE/$VARIANT-$dev-$name.img
+          echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partion $dev ($target)"
+          mtd $QUIET write $SOURCE/$VARIANT-$dev-$name.img $target
         fi
         if [ $? -eq 0 ]
         then
-          echo "$(date +%F@%X): RESTORED $SOURCE/$VARIANT-$dev-$name.img to partion $dev"
+          echo -e "$(date +%F@%X): ${GREEN}RESTORED $SOURCE/$VARIANT-$dev-$name.img to partion $dev ($target)${NC}"
         else
-          echo "$(date +%F@%X): FAILED to restore $SOURCE/$VARIANT-$dev-$name.img to partion $dev!"
+          echo -e "$(date +%F@%X): ${RED}FAILED to restore $SOURCE/$VARIANT-$dev-$name.img to partion $dev ($target)!${NC}"
         fi
       else
-        echo "$(date +%F@%X): FAILED to expand $name to $SOURCE/$VARIANT-$dev-$name.img!"
+        echo -e "$(date +%F@%X): ${RED}FAILED to successfully expand $dev backup to $SOURCE/$VARIANT-$dev-$name.img!${NC}"
       fi
     fi
+    [ -f $SOURCE/$VARIANT-$dev-$name.img ] && rm $SOURCE/$VARIANT-$dev-$name.img
   done
 done
 
