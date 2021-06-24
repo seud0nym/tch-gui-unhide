@@ -1008,7 +1008,7 @@ fi
 [ $SRV_dumaos -gt 0 ] && /etc/init.d/dumaos restart > /dev/null 2>&1
 [ $SRV_mountd -gt 0 ] && { 
   mnt_path=$(uci get mountd.mountd.path); 
-  for f in $(ls ${mnt_path}* 2>/dev/null);do 
+  for f in $(find ${mnt_path} -type l);do 
     echo "[$SCRIPT]: Attempting to unmount $f..."; 
     umount $f; 
   done; 
