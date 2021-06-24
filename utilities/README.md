@@ -216,7 +216,7 @@ Parameters:
 ## show-bank-plan
 A pretty version of `find /proc/banktable -type f -print -exec cat {} ';'`, with a final analysis to show whether the bank plan is optimal, or not.
 ```
-Usage: ./show-bank-plan
+Usage: ./show-bank-plan [-q]
 ```
 Example output:
 ```
@@ -231,6 +231,11 @@ Example output:
 
 Bank Plan is OPTIMAL
 ```
+
+The script returns 0 if the bank plan is optimal, and 1 if it is not.
+
+If run with the `-q` option, then no output is displayed, and you must rely on the return code.
+
 ## transformer-cli
 Version 17 firmwares do not include `/usr/bin/transformer-cli`, which is very useful for working out what is returned in the various GUI scripts.
 

@@ -1,60 +1,77 @@
 #!/bin/sh
 
-if [ "o$1" = "o-?" ]; then
+usage() {
 cat <<EOH
 Shows the current bank plan, and determines if it is optimal or not.
 
 Usage: $0
 
+Options:
+ -q Quiet mode (no messages)
+
 EOH
 exit
-fi
+}
+
+QUIET=N
+
+while getopts :q option
+do
+  case "${option}" in
+    q) QUIET=Y;;
+    *) usage;;
+  esac
+done
 
 OPTIMAL=0
 for f in $(find /proc/banktable -type f | sort)
 do
   CONTENT=$(cat $f)
-  printf "%-30s : %s " "$f" "$CONTENT"
+  [ $QUIET = N ] && printf "%-30s : %s " "$f" "$CONTENT"
   if [ "$f" = "/proc/banktable/active" ]
   then
     if [ "$CONTENT" = "bank_1" ]
     then
       OPTIMAL=$(( $OPTIMAL + 1 ))
-      echo " OK"
+      [ $QUIET = N ] && echo " OK"
     else 
-      echo " !! [Should be bank_1]"
+      [ $QUIET = N ] && echo " !! [Should be bank_1]"
     fi
   elif [ "$f" = "/proc/banktable/booted" ]
   then
     if [ "$CONTENT" = "bank_2" ]
     then
       OPTIMAL=$(( $OPTIMAL + 1 ))
-      echo " OK"
+      [ $QUIET = N ] && echo " OK"
     else 
-      echo " !! [Should be bank_2]"
+      [ $QUIET = N ] && echo " !! [Should be bank_2]"
     fi
   else
-    echo
+    [ $QUIET = N ] && echo
   fi
 done
-echo
+[ $QUIET = N ] && echo
 if [ $OPTIMAL -eq 2 ]
 then
-  echo "Bank Plan is OPTIMAL"
+  [ $QUIET = N ] && echo "Bank Plan is OPTIMAL"
+  exit 0
 else
-  echo "Bank Plan is NOT optimal!! Run the following command:"
-  echo
-  echo "  ./set-optimal-bank-plan"
-  echo
-  echo "or manually follow the instructions at:"
-  echo "https://hack-technicolor.readthedocs.io/en/stable/Hacking/PostRoot/#bank-planning"
-  echo
-  echo "NOTE: If you are unable to set an optimal bank plan, you may need to do a complete"
-  echo "      reset of the device using the following command:"
-  echo
-  echo "       mtd -r erase rootfs_data"
-  echo 
-  echo "      The device will reboot, and you WILL lose root, but you will be able to set"
-  echo "      the optimal bank plan after re-acquiring root."
-  echo 
+  if [ $QUIET = N ]; then
+    echo "Bank Plan is NOT optimal!! Run the following command:"
+    echo
+    echo "  ./set-optimal-bank-plan"
+    echo
+    echo "or manually follow the instructions at:"
+    echo "https://hack-technicolor.readthedocs.io/en/stable/Hacking/PostRoot/#bank-planning"
+    echo
+    echo "NOTE: If you are unable to set an optimal bank plan, you may need to do a complete"
+    echo "      reset of the device using the following command:"
+    echo
+    echo "       mtd -r erase rootfs_data"
+    echo 
+    echo "      The device will reboot, and you WILL lose root, but you will be able to set"
+    echo "      the optimal bank plan after re-acquiring root."
+    echo 
+  fi
+  exit 1
 fi
