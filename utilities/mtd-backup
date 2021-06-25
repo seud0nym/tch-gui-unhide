@@ -164,11 +164,8 @@ then
   exit
 fi
 
-if [ $DEBUG = Y ]
-then
-  $LOGGER user.debug "Backup commenced"
-  STARTED=$(date +%s)
-fi
+[ $DEBUG = Y ] && $LOGGER user.debug "Backup commenced"
+STARTED=$(date +%s)
 
 if [ ! -d $TARGET ]
 then
@@ -176,13 +173,17 @@ then
   mkdir -p $TARGET
 fi
 
-echo "This directory contains compressed backup images of the device MTD partitions.">$TARGET/README!
-echo "">>$TARGET/README!
-echo "The .sha256= files contain a checksum that was recalculated from the backup image, and can be used to verify the image when it is uncompressed.">>$TARGET/README!
-echo "">>$TARGET/README!
-echo "The .sha256 files contain a checksum that should ONLY be used for determining if an image has been changed.">>$TARGET/README!
-echo "This checksum may not match the actual content of the image, if the image was updated between checksum">>$TARGET/README!
-echo "calculation and actually writing the image!">>$TARGET/README!
+if [ $RECALC_SHA = N ]
+then
+  echo "This directory contains compressed backup images of the device MTD partitions.">$TARGET/README!
+  echo "">>$TARGET/README!
+  echo ".sha256= files (if any) contain a checksum that was recalculated from the backup image, and can be used to verify the image when it is uncompressed.">>$TARGET/README!
+  echo "">>$TARGET/README!
+  echo ".sha256 files (if any) contain a checksum that should ONLY be used for determining if an image has been changed. This checksum may not match the actual content of the image, if the image was updated between checksum calculation and actually writing the image!">>$TARGET/README!
+elif [ -f $TARGET/README! ]
+then
+  rm $TARGET/README!
+fi 
 
 if [ $DUMP_CFG = Y ]
 then
@@ -198,15 +199,9 @@ then
   $LOGGER user.info "WRITING current configuration to $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz"
   SECONDS=$(date +%s)
   uci show 2>/dev/null | grep -v -E '^airiq|^bulkdata|^cwmpd|^env|^ipping|^ledfw|^mobiled.*device|^traceroute|^version|macaddress|user_agent|uuid|\._key=' | gzip > $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz
-  if [ $DEBUG = Y ]
-  then
-    $LOGGER user.debug "WRITING current configuration to $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz took $(( $(date +%s) - $SECONDS )) seconds"
-  fi
+  [ $DEBUG = Y ] && $LOGGER user.debug "WRITING current configuration to $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz took $(( $(date +%s) - $SECONDS )) seconds"
 else
-  if [ $DEBUG = Y ]
-  then
-    $LOGGER user.debug "SKIPPED configuration backup - Not requested"
-  fi
+  [ $DEBUG = Y ] && $LOGGER user.debug "SKIPPED configuration backup - Not requested"
 fi
 
 if [ $DUMP_ENV = Y ]
@@ -223,15 +218,9 @@ then
   $LOGGER user.info "WRITING current environment to $TARGET/$VARIANT-$SERIAL-$VERSION-env"
   SECONDS=$(date +%s)
   uci show env.var > $TARGET/$VARIANT-$SERIAL-$VERSION-env
-  if [ $DEBUG = Y ]
-  then
-    $LOGGER user.debug "WRITING current environment to $TARGET/$VARIANT-$SERIAL-$VERSION-env took $(( $(date +%s) - $SECONDS )) seconds"
-  fi
+  [ $DEBUG = Y ] && $LOGGER user.debug "WRITING current environment to $TARGET/$VARIANT-$SERIAL-$VERSION-env took $(( $(date +%s) - $SECONDS )) seconds"
 else
-  if [ $DEBUG = Y ]
-  then
-    $LOGGER user.debug "SKIPPED environment backup - Not requested"
-  fi
+  [ $DEBUG = Y ] && $LOGGER user.debug "SKIPPED environment backup - Not requested"
 fi
 
 if [ $DUMP_OVL = Y ]
@@ -248,15 +237,9 @@ then
   $LOGGER user.info "WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz"
   SECONDS=$(date +%s)
   tar -C /overlay -czf $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz .
-  if [ $DEBUG = Y ]
-  then
-    $LOGGER user.debug "WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz took $(( $(date +%s) - $SECONDS )) seconds"
-  fi
+  [ $DEBUG = Y ] && $LOGGER user.debug "WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz took $(( $(date +%s) - $SECONDS )) seconds"
 else
-  if [ $DEBUG = Y ]
-  then
-    $LOGGER user.debug "SKIPPED overlay contents backup - Not requested"
-  fi
+  [ $DEBUG = Y ] && $LOGGER user.debug "SKIPPED overlay contents backup - Not requested"
 fi
 
 sed -e '/dev:/d' -e 's/\(mtd.\)[^"]*"\([^"]*\)"/\1 \2/' /proc/mtd | while read -r dev name
@@ -284,16 +267,10 @@ do
     continue
   fi
 
-  if [ $DEBUG = Y ]
-  then
-    $LOGGER user.debug "CALCULATING SHA256 for $dev..."
-    SECONDS=$(date +%s)
-  fi
+  [ $DEBUG = Y ] && $LOGGER user.debug "CALCULATING SHA256 for $dev..."
+  SECONDS=$(date +%s)
   SHA256=$(sha256sum "/dev/${dev}ro" | cut -d' ' -f1)
-  if [ $DEBUG = Y ]
-  then
-    $LOGGER user.debug "CALCULATING SHA256 for $dev took $(( $(date +%s) - $SECONDS )) seconds"
-  fi
+  [ $DEBUG = Y ] && $LOGGER user.debug "CALCULATING SHA256 for $dev took $(( $(date +%s) - $SECONDS )) seconds"
   if [ "$SHA256" = "$SHA256OLD" -a -f $TARGET/$VARIANT-$dev-$name.img.gz ]
   then
     $LOGGER user.info "SKIPPED backup of $dev - Checksums match"
@@ -302,53 +279,43 @@ do
       $LOGGER user.info "RECALCULATING SHA256 for $VARIANT-$dev-$name.img..."
       SECONDS=$(date +%s)
       SHA256=$(cat $TARGET/$VARIANT-$dev-$name.img.gz | gunzip | sha256sum | cut -d' ' -f1)
-      if [ $DEBUG = Y ]
-      then
-        $LOGGER user.debug "CALCULATING SHA256 for $VARIANT-$dev-$name.img took $(( $(date +%s) - $SECONDS )) seconds"
-      fi
+      [ $DEBUG = Y ] && $LOGGER user.debug "CALCULATING SHA256 for $VARIANT-$dev-$name.img took $(( $(date +%s) - $SECONDS )) seconds"
       if [ "$SHA256" != "$SHA256OLD" ]
       then
         $LOGGER user.info "WARNING: $VARIANT-$dev-$name.img calculated checksum does not match stored checksum!!!"
       fi
       $LOGGER user.info "WRITING $VARIANT-$dev-$name.img checksum to $TARGET/$VARIANT-$dev-$name.img.sha256="
       echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256=
+      [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256
+    else
+      [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256
     fi
   else
     if [ ! -z "$SHA256SRC" ]
     then
-      if [ $DEBUG = Y ]
-      then
-        $LOGGER user.debug "DELETING obsolete $SHA256SRC"
-      fi
+      [ $DEBUG = Y ] && $LOGGER user.debug "DELETING obsolete $SHA256SRC"
       rm $SHA256SRC 
     fi
     $LOGGER user.info "WRITING $dev to $TARGET/$VARIANT-$dev-$name.img.gz"
     SECONDS=$(date +%s)
     dd if="/dev/${dev}ro" bs=1M | gzip > $TARGET/$VARIANT-$dev-$name.img.gz
-    if [ $DEBUG = Y ]
-    then
-      $LOGGER user.debug "WRITING $dev to $TARGET/$VARIANT-$dev-$name.img.gz took $(( $(date +%s) - $SECONDS )) seconds"
-    fi
+    [ $DEBUG = Y ] && $LOGGER user.debug "WRITING $dev to $TARGET/$VARIANT-$dev-$name.img.gz took $(( $(date +%s) - $SECONDS )) seconds"
     if [ $RECALC_SHA = N ]
     then
       $LOGGER user.info "WRITING $dev checksum to $TARGET/$VARIANT-$dev-$name.img.sha256"
       echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256
+      [ -f $TARGET/$VARIANT-$dev-$name.img.sha256= ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256=
     else
       $LOGGER user.info "CALCULATING SHA256 for $VARIANT-$dev-$name.img..."
       SECONDS=$(date +%s)
       SHA256=$(cat $TARGET/$VARIANT-$dev-$name.img.gz | gunzip | sha256sum | cut -d' ' -f1)
-      if [ $DEBUG = Y ]
-      then
-        $LOGGER user.debug "CALCULATING SHA256 for $VARIANT-$dev-$name.img took $(( $(date +%s) - $SECONDS )) seconds"
-      fi
+      [ $DEBUG = Y ] && $LOGGER user.debug "CALCULATING SHA256 for $VARIANT-$dev-$name.img took $(( $(date +%s) - $SECONDS )) seconds"
       $LOGGER user.info "WRITING $VARIANT-$dev-$name.img checksum to $TARGET/$VARIANT-$dev-$name.img.sha256="
       echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256=
+      [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256
     fi
   fi
 done
 
-if [ $DEBUG = Y ]
-then
-  $LOGGER user.debug "Backup completed in $(( $(date +%s) - $STARTED )) seconds"
-fi
+[ $DEBUG = Y ] && $LOGGER user.debug "Backup completed in $(( $(date +%s) - $STARTED )) seconds"
 
