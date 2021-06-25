@@ -339,7 +339,7 @@ do
   echo "         a = apply changes and quit"
   echo "         q = quit without applying changes"
   echo
-  echo -n "Enter one of 1-$I/d/m/s/u/a/q: "
+  echo -n "Enter one of 1-$I/d/m/v/s/u/a/q: "
   read FROM
   echo
   case "$FROM" in

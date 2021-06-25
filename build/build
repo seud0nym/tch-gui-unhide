@@ -11,9 +11,12 @@ do
           echo "ERROR: -v option requires a parameter in the format YYYY.MM.DD"
           exit
         else
-          DATE_VERSION="$OPTARG"
-          FULL_VERSION="$DATE_VERSION@$(date +%H:%M)"
-          echo "Overriding Release - using $FULL_VERSION"
+          if [ $DATE_VERSION != $OPTARG ]
+          then
+            DATE_VERSION="$OPTARG"
+            FULL_VERSION="$DATE_VERSION@$(date +%H:%M)"
+            echo "Overriding Release - using $FULL_VERSION"
+          fi
         fi;;
   esac
 done
@@ -99,11 +102,10 @@ do
   if [ -d $d ]
   then
     cd $d
-    FW=$(basename $d)
     TARGET=/tmp/$FW.b64
     if [ -f $d/.source ]
     then
-      echo "echo [\$SCRIPT]: Importing missing GUI code from $(cat $d/.source | xargs) into $FW" > $TARGET
+      echo "echo [\$SCRIPT]: Importing missing GUI code from $(cat $d/.source | xargs)" > $TARGET
     else
       echo "echo [\$SCRIPT]: Importing missing GUI code" > $TARGET
     fi
@@ -126,7 +128,6 @@ do
   do
     if [ -f $f ]
     then
-      echo Removing $f...
       rm -f $f
     fi
   done

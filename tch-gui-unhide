@@ -6,7 +6,7 @@ if [ -f "$SCRIPT" -a "$(echo $* | grep -o -e '-U')" != '-U' ]; then
   ./$SCRIPT -W $*
 else
   if [ ! -f "$SCRIPT" ]; then
-    echo "$(date +%H:%M:%S): Platform script $SCRIPT not found!"
+    echo "$(date +%H:%M:%S): Platform script $SCRIPT not found in $(pwd)!"
   fi
   echo "$(date +%H:%M:%S): Attempting to download latest release for FW $VERSION from GitHub..."
   RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$VERSION.tar.gz)

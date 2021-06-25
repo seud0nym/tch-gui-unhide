@@ -1,6 +1,20 @@
+2021.06.25
+==========
+* tch-gui-unhide: Removed switch from CWMP card
+* tch-gui-unhide: xDSL card not showing, even if enabled [#29]
+* tch-gui-unhide: Default user (i.e. when you access the GUI without a password) was not allowed to see some cards
+* tch-gui-unhide: Check for missing Wi-Fi interfaces when displaying QoS upload shapers
+* tch-gui-unhide: Correctly handle boosters when no backhaul SSID
+* mtd-backup: Excluded unnecessary options from config backup
+* mtd-backup: Recalculate checksum of backed-up image so it can be verified pre-restore
+* mtd-restore: Add options to remove [w] writing message, reboot after last partition restored, and allow skip of checksum comparison to force restore
+* mtd-restore: Verify image checksum before restore
+* show-bank-plan: Add quiet option to check optimal bank plan status via return code only
+
 2021.06.21 (Pre-release)
 ==========
-* Support for 20.1.c firmware
+* tch-gui-unhide: Support for 20.3.c firmware
+* tch-gui-unhide: Reduced number of versions to only major version numbers (17.2, 18.1.c and 20.3.c)
 * tch-gui-unhide: When a device has multiple IPv6 addresses in the Device list, sort them
 * tch-gui-unhide: Stop mobile card background refresh when any modal displayed
 * tch-gui-unhide: Entire Wireless card now auto-refreshes, not just SSID status (to pick up SSID changes propagated from MultiAP controller)
@@ -22,7 +36,7 @@
 * tch-gui-unhide-cards: Added option to make all hidden cards visible
 * tch-gui-unhide-xtra.rsyncd: Moved rsyncd from System Extras to Content Sharing
 * tch-gui-unhide-xtra.samba36-server: Fixed error messages during tch-gui-unhide install when no USB mounted
-* de-telstra: Install System CA certificates automatically after configuring opkg repositories (fixes SSL errors with curl)
+* de-telstra: Install System CA certificates automatically after configuring opkg repositories (fixes SSL errors with curl/wget/opkg commands)
 * de-telstra: Turn off noexec option on file system mounts, which prevented execution of scripts from USB
 * de-telstra: Enable or disable zone-specific NAT ALG helpers (FW 20.3.c)
 * mtd-backup: Now allows backups to a specified directory name on either USB or SSHFS

@@ -108,8 +108,8 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - **Local Network** card now shows IPv6 information
 - **Local Network** screen allows:
     - enabling/disabling of DHCPv6 and SLAAC
-    - IPv6 Unique Local Address prefix (FW 18 only)
-    - IPv6 LAN prefix size (FW 18 only, if prefix assigned by ISP)
+    - IPv6 Unique Local Address prefix (FW 18+ only)
+    - IPv6 LAN prefix size (FW 18+ only, if prefix assigned by ISP)
 - **WiFi** card auto-updates to reflect SSID status (e.g. when Time of Day Wireless Access Controls rules enable or disable SSIDs)
 - **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
 - **Devices** card auto-refreshes, and also shows separately  the count of WiFi devices connected via a WiFi Booster (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
@@ -117,7 +117,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - **Time of Day** card shows the Wireless Control rule count, and correctly applies changes so that they work reliably
 - **System Extras** now allows you to:
     - configure WAN/AFG SSH access
-    - enable/disable iperf service (FW 18 only)
+    - enable/disable iperf service (FW 18+ only)
 - **Management** screen allows:
     - the theme to be changed from within the GUI
     - viewing of running processes
@@ -136,7 +136,8 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - **Telephony** card shows call statistics (number of calls in, missed and out)
 - **Telephony** screen now has a Dial Plans tab to edit the dial plans, and you can optionally show the decrypted SIP passwords on the Profiles tab
 - **Mobile** screen now has a Network Operators tab to modify the allowed Mobile Country Code (MCC) and Mobile Network Code (MNC) combinations, plus shows the device capabilities
-- **QoS** screen now has support for upload shapers (FW 18 only) and shows classify/reclassify rules
+- **Packages** card to manage opkg packages
+- **QoS** screen now has support for upload shapers (FW 18+ only) and shows classify/reclassify rules
 
 ## What else does it do?
 - Properly enables SSH LAN access (because if you don't and then disable it through the GUI, you can lose SSH access).
@@ -188,11 +189,11 @@ Click [`here`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities)
 ### Second, download and extract the scripts
 Download and extract the release archive directly to the device with the following command:
 ```
- curl -k -L https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$(uci get version.@version[0].version | cut -d- -f1).tar.gz | tar -xzvf -
+ curl -k -L https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$(uci get version.@version[0].marketing_version).tar.gz | tar -xzvf -
 ```
 The above command will only work if run from a supported firmware version, with internet access.
 
-Alternatively, you can download the release for your firmware version to your computer and then upload it up to your device using WinSCP or equivalent. Run the `tar -xzvf <filename>` command to extract the release files.
+Alternatively, you can download the release for your firmware version to your computer and then upload it up to your device using WinSCP or equivalent. Run the `tar -xzvf <filename>` command to extract the release files. **WARNING** Do NOT use WinZip to extract the files on your PC and then upload them individually - the scripts will not run!
 
 The best location for the scripts on your device is on a USB stick, so that if you need to reset or re-apply the firmware, the scripts will still be available without needing to upload them to the device again. Otherwise, I normally put them in the /root directory (the root user home directory) so they are available as soon as you log in without changing to another directory. /tmp is also suitable.
 
@@ -278,7 +279,8 @@ tch-gui-unhide-cards
  9 WAN Services      10 Telephony         11 Firewall          12 QoS
 13 Diagnostics       14 Management        15 Content Sharing   16 Printer Sharing
 17 Parental Controls 18 IP Routing        19 Time of Day       20 CWMP
-21 System Extras     22 NAT Helpers       23 xDSL Config       24 (Relay Setup)
+21 System Extras     22 NAT Helpers       23 xDSL Config       24 Packages
+25 (Relay Setup)
 
 NOTE: Titles in () indicate hidden cards. They will always appear above after the last visible card.
 NOTE: 'CWMP' card is only visible if CWMP has not been disabled
@@ -287,12 +289,13 @@ NOTE: 'xDSL Config' card is only visible on DSL connections
 OPTIONS: A single card number between 1 and 24
          d = order cards by the default sequence
          m = hide all optional feature cards
+         v = make all cards visible
          s = order cards by a suggested sequence
          u = undo changes
          a = apply changes and quit
          q = quit without applying changes
 
-Enter one of 1-24/d/m/s/u/a/q:
+Enter one of 1-24/d/m/v/s/u/a/q:
 ```
 
 This screen displays the cards in the currently configured sequence. Any hidden cards are shown after all visible cards, with their titles in brackets.
