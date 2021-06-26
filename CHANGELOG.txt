@@ -1,3 +1,12 @@
+2021.06.26
+==========
+* tch-gui-unhide: Build script did not include some updated/replacement code 
+* tch-gui-unhide: PPPoE proto from wan6 interface was not set correctly
+* tch-gui-unhide: Fix WoL configuration for FW 20.3.ca
+* tch-gui-unhide: Added install date/time to user installed packages
+* de-telstra: Deep Green Mode power setting missing [#31]
+* mtd-backup: Backup the list of user installed packages when saving configuration
+
 2021.06.25
 ==========
 * tch-gui-unhide: Removed switch from CWMP card
