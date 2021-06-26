@@ -39,6 +39,7 @@ return {
         },
         operations = {
             { "uci.network.interface.@wan.proto", "pppoe"},
+            { "uci.network.interface.@wan6.proto", "dhcpv6"},
             { "uci.network.config.wan_mode", "pppoe"},
             { "uci.network.interface.@lan.ifname", gsub(gsub(ifnames, wan_ifname, ""), "%s$", "")},
         },
