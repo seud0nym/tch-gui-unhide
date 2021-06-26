@@ -890,6 +890,7 @@ case "$POWER" in
       pwrctl config --ethapd off
       pwrctl config --eee off
       pwrctl config --autogreeen off
+      pwrctl config --dgm off
       uci set power.ethernet.autogreeen='0'
       uci set power.ethernet.eee='0'
       uci commit power;;
@@ -899,6 +900,7 @@ case "$POWER" in
       pwrctl config --ethapd on
       pwrctl config --eee on
       pwrctl config --autogreeen on
+      pwrctl config --dgm on
       uci set power.ethernet.autogreeen='1'
       uci set power.ethernet.eee='1'
       uci commit power;;
