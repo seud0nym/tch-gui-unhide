@@ -66,7 +66,7 @@ local opkg_columns = {
       param = "description",
       type = "text",
     },
-    { -- [3]
+    { -- [3] Beware CSS applied to this column
       header = T"Version",
       name = "available_version",
       param = "available_version",
@@ -98,13 +98,13 @@ local opkg_columns = {
       param = "description",
       type = "text",
     },
-    { -- [3]
+    { -- [3] Beware CSS applied to this column
       header = T"Installed<br>Version",
       name = "installed_version",
       param = "installed_version",
       type = "text",
     },
-    { -- [4]
+    { -- [4] Beware CSS applied to this column
       header = T"Available<br>Version",
       name = "available_version",
       param = "available_version",
@@ -148,31 +148,37 @@ local opkg_columns = {
       param = "description",
       type = "text",
     },
-    { -- [3]
+    { -- [3] Beware CSS applied to this column
       header = T"Installed<br>Version",
       name = "installed_version",
       param = "installed_version",
       type = "text",
     },
-    { -- [4]
+    { -- [4] Beware CSS applied to this column
       header = T"Available<br>Version",
       name = "available_version",
       param = "available_version",
       type = "text",
     },
     { -- [5]
+      header = T"Installed",
+      name = "installed_time",
+      param = "installed_time",
+      type = "text",
+    },
+    { -- [6]
       header = T"<i>Upgrade</i>",
       name = "pkg_upgrade",
       param = "pkg_upgrade",
       type = "text",
     },
-    { -- [6]
+    { -- [7]
       header = T"<i>Remove</i>",
       name = "pkg_remove",
       param = "pkg_remove",
       type = "text",
     },
-    { -- [7]
+    { -- [8]
       header = T"",
       name = "warning",
       param = "warning",
@@ -209,6 +215,9 @@ local opkg_filter = {
         data.pkg_upgrade = format("<input type='checkbox' class='opkg_cb' name='upgrade_pkg' value='%s' title='Tick to upgrade %s'>",data.paramindex,data.name)
       end
       data.pkg_remove = format("<input type='checkbox' class='opkg_cb' name='remove_pkg' value='%s' title='Tick to remove %s'>",data.paramindex,data.name)
+    end
+    if data.installed_time and data.installed_time ~= "" then
+      data.installed_time = os.date("%d/%m/%Y %T", tonumber(data.installed_time))
     end
     return true
   end,

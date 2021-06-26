@@ -114,7 +114,7 @@ local function checkPackages(grp)
   local cmd
 
   local pattern,package,version,line = "","",""
-  cmd = popen("grep -E '^Package|^Version|^Status' /usr/lib/opkg/status")
+  cmd = popen("grep -E '^Package|^Version|^Status|^Installed-Time' /usr/lib/opkg/status")
   for line in cmd:lines() do
     local key,value = string.match(line, "^(%S+):%s(.*)")
     if key == "Package" then
@@ -123,26 +123,28 @@ local function checkPackages(grp)
       version = value
     elseif key == "Status" then
       if find(value, "not%-installed") then
-        pattern,package,version = "","",""
-      else
-        local system,target,keys = source(package)
-        data["packages"][package] = target
-        data[keys][#data[keys]+1] = package
-        data[target][package] = {
-          name = package,
-          description = "",
-          installed_version = version,
-          available_version = "",
-          warning = "",
-          system = system,
-          action = "",
-        }
-        if pattern == "" then
-          pattern = package .. " - ".. version
-        else
-          pattern = pattern .. "|" .. package .. " - ".. version
-        end
+        package,version = "",""
       end
+    elseif key == "Installed-Time" and package ~= "" and version ~= "" then
+      local system,target,keys = source(package)
+      data["packages"][package] = target
+      data[keys][#data[keys]+1] = package
+      data[target][package] = {
+        name = package,
+        description = "",
+        installed_version = version,
+        installed_time = value,
+        available_version = "",
+        warning = "",
+        system = system,
+        action = "",
+      }
+      if pattern == "" then
+        pattern = package .. " - ".. version
+      else
+        pattern = pattern .. "|" .. package .. " - ".. version
+      end
+      package,version = "",""
     end
   end
   cmd:close()
@@ -161,6 +163,7 @@ local function checkPackages(grp)
           name = pkg,
           description = value,
           installed_version = "",
+          installed_time = "",
           available_version = "",
           warning = "",
           system = source(package),
@@ -198,6 +201,7 @@ local function checkPackages(grp)
           name = pkg,
           description = description or "",
           installed_version = "",
+          installed_time = "",
           available_version = available_version,
           warning = warning,
           system = system,
@@ -562,6 +566,10 @@ local GUI_OPKG_USR_i_ = {
         type = "string",
       },
       installed_version = {
+        access = "readOnly",
+        type = "string",
+      },
+      installed_time = {
         access = "readOnly",
         type = "string",
       },
