@@ -192,7 +192,11 @@ local opkg_filter = {
     if data.warning and data.warning ~= "" then
       data.warning = "<span class='icon-warning-sign' title='"..data.warning.."'></span>"  
     else
-      data.pkg_upgrade = format("<input type='checkbox' class='opkg_cb' name='install_pkg' value='%s' title='Tick to install %s'>",data.paramindex,data.name)
+      if data.paramindex and data.name then
+        data.pkg_upgrade = format("<input type='checkbox' class='opkg_cb' name='install_pkg' value='%s' title='Tick to install %s'>",data.paramindex,data.name)
+      else
+        data.warning = "<span class='icon-warning-sign' title='Failed to extract package name or index???'></span>"  
+      end
     end
     return true
   end,
@@ -211,10 +215,14 @@ local opkg_filter = {
     if data.warning and data.warning ~= "" then
       data.warning = "<span class='icon-warning-sign' title='"..data.warning.."'></span>"  
     else
-      if data.available_version ~= "" then
-        data.pkg_upgrade = format("<input type='checkbox' class='opkg_cb' name='upgrade_pkg' value='%s' title='Tick to upgrade %s'>",data.paramindex,data.name)
+      if data.paramindex and data.name then
+        if data.available_version ~= "" then
+          data.pkg_upgrade = format("<input type='checkbox' class='opkg_cb' name='upgrade_pkg' value='%s' title='Tick to upgrade %s'>",data.paramindex,data.name)
+        end
+        data.pkg_remove = format("<input type='checkbox' class='opkg_cb' name='remove_pkg' value='%s' title='Tick to remove %s'>",data.paramindex,data.name)
+      else
+        data.warning = "<span class='icon-warning-sign' title='Failed to extract package name or index???'></span>"  
       end
-      data.pkg_remove = format("<input type='checkbox' class='opkg_cb' name='remove_pkg' value='%s' title='Tick to remove %s'>",data.paramindex,data.name)
     end
     if data.installed_time and data.installed_time ~= "" then
       data.installed_time = os.date("%d/%m/%Y %T", tonumber(data.installed_time))
