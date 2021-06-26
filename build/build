@@ -44,8 +44,9 @@ tar --exclude README.md -cf - -C lua/ansuel/ .  | tar -xf - -C /tmp/tch-gui-unhi
 tar --exclude README.md -cf - -C lua/additional/common/ .  | tar -xf - -C /tmp/tch-gui-unhide/common/
 for d in $(ls -d lua/additional/[0-9]*)
 do
-  mkdir -p /tmp/tch-gui-unhide/$(basename $d)
-  tar --exclude README.md -cf - -C $d .  | tar -xf - -C /tmp/tch-gui-unhide/$(basename $d)/
+  fwdir=$(basename $d)
+  mkdir -p /tmp/tch-gui-unhide/$fwdir
+  tar --exclude README.md -cf - -C $d .  | tar -xf - -C /tmp/tch-gui-unhide/$fwdir/
 done
 
 TARGET=common/075-Enable-Ajax-Modals
@@ -102,12 +103,13 @@ do
   if [ -d $d ]
   then
     cd $d
+    FW=$(basename $d)
     TARGET=/tmp/$FW.b64
     if [ -f $d/.source ]
     then
-      echo "echo [\$SCRIPT]: Importing missing GUI code from $(cat $d/.source | xargs)" > $TARGET
+      echo "echo [\$SCRIPT]: Importing missing and/or replacement GUI code from $(cat $d/.source | xargs)" > $TARGET
     else
-      echo "echo [\$SCRIPT]: Importing missing GUI code" > $TARGET
+      echo "echo [\$SCRIPT]: Importing missing and/or replacement GUI code" > $TARGET
     fi
     echo "echo $(tar --exclude .source --owner=root --group=root -cf - * | bzip2 | base64 | tr -d "$IFS") | base64 -d | bzcat | tar -xf - -C /" >> $TARGET
     echo >> $TARGET
