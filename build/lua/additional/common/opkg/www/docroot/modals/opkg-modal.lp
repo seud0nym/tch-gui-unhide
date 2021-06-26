@@ -80,8 +80,13 @@ ngx.print('\
       html = {}
       html[#html+1] = ui_helper.createSwitch(T"Custom Feeds", "feeds", content["feeds"], switch_class_enable)
       html[#html+1] = ui_helper.createLabel(T"Last Update", last_update, opkg_last_update_attr)
-      html[#html+1] = ui_helper.createSwitch(T"Scheduled Update", "scheduled", content["scheduled"], switch_class_monitor)
-      html[#html+1] = ui_helper.createCheckboxSwitch(T"Update Now", "run_update", content["run_update"])
+      if content["feeds"] == "1" then
+        html[#html+1] = ui_helper.createSwitch(T"Scheduled Update", "scheduled", content["scheduled"], switch_class_monitor)
+        html[#html+1] = ui_helper.createCheckboxSwitch(T"Update Now", "run_update", content["run_update"])
+      else
+        html[#html+1] = ui_helper.createSimpleInputHidden("scheduled", content["scheduled"])
+        html[#html+1] = ui_helper.createSimpleInputHidden("run_update", "_DUMMY_")
+      end
       html[#html+1] = ui_helper.createLabel(T"Log Messages", untaint(opkg_data["log"]), opkg_log_attr)
       ngx.print(html)
       ngx.print('\
