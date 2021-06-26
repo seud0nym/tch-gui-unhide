@@ -260,6 +260,7 @@ Downloads and installs the latest version of the System CA Certificates.
 Usage: ./update-ca-certificates [options]
 
 Options:
+ -v  Verbose mode
  -C  Adds or removes the scheduled monthly cron job
  -U  Download the latest version of update-ca-certificates from GitHub
 ```

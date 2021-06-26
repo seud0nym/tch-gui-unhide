@@ -9,6 +9,7 @@ Downloads and installs the latest version of the System CA Certificates
 Usage: $0 [options]
 
 Options:
+ -v  Verbose mode
  -C  Adds or removes the scheduled monthly cron job
  -U  Download the latest version of $SCRIPT from GitHub
 
@@ -41,10 +42,13 @@ upgrade() {
 }
 
 CRON=N
+CURL_OPT="-s"
+LGGR_OPT=""
 
-while getopts :CU option
+while getopts :vCU option
 do
  case "${option}" in
+  v)  CURL_OPT=""; LGGR_OPT="-s";;
   C)  CRON=Y;;
   U)  upgrade;;
   *)  usage;;
@@ -77,6 +81,6 @@ fi
 SRC="https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/"
 for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2)
 do
-  curl -sk $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
+  curl -kL $CURL_OPT $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger $LGGR_OPT -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
 done
   
