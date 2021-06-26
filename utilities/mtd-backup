@@ -198,7 +198,7 @@ then
   fi
   $LOGGER user.info "WRITING current configuration to $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz"
   SECONDS=$(date +%s)
-  uci show 2>/dev/null | grep -v -E '^airiq|^bulkdata|^cwmpd|^env|^ipping|^ledfw|^mobiled.*device|^traceroute|^version|macaddress|user_agent|uuid|\._key=' | gzip > $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz
+  uci show 2>/dev/null | grep -v -E '^airiq|^bulkdata|^clash|^cwmpd|^dlnad\.unknown_|^dlna\.sd|^dumaos|^env|^ipping|^kernel|^lcmd|^ledfw|^ltedoctor|^mobiled.*device|^multiap\.cred|^traceroute|^tr143|^uhttpd|^vendorextensions|^wanatmf5loopback|^web\.dumaos|^version|macaddress|reboot_count|serial_number|user_agent|uuid|\._key=' | gzip > $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz
   [ $DEBUG = Y ] && $LOGGER user.debug "WRITING current configuration to $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz took $(( $(date +%s) - $SECONDS )) seconds"
 else
   [ $DEBUG = Y ] && $LOGGER user.debug "SKIPPED configuration backup - Not requested"
