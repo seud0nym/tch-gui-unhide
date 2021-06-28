@@ -51,7 +51,7 @@ if session:hasAccess("/modals/broadband-modal.lp") then
     modalPath = "modals/broadband-modal.lp"
 end
 
-local html = bbch.getBroadbandCardHTML()
+local html = bbch.getBroadbandCardHTML(WS_en)
 
   ngx.print('\
 <div class="span3" id="broadband-card">\

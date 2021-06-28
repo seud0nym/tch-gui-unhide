@@ -84,7 +84,7 @@ function M.getThroughputHTML()
     format("%.2f Mb/s <b>&uarr;</b><br>%.2f Mb/s <b>&darr;</b></span>", TGU_MbPS:get("lan_tx_mbps") or 0, TGU_MbPS:get("lan_rx_mbps") or 0)
 end
 
-function M.getBroadbandCardHTML() 
+function M.getBroadbandCardHTML(wansensing) 
   local html = {}
   if bridged.isBridgedMode() then
     local ifnames = {
@@ -143,6 +143,16 @@ function M.getBroadbandCardHTML()
     }
     content_helper.getExactContent(wan_data)
 
+    local mobile = false
+    local primarywanmode = proxy.get("uci.wansensing.global.primarywanmode")
+    if primarywanmode and primarywanmode[1].value == "MOBILE" then
+      mobile = true
+    end
+    local wired = true
+    if wansensing == "1" and wan_data["dsl_status"] ~= "Up" and wan_data["ethwan_status"] ~= "up" then
+      wired = false
+    end
+  
     local mobiled_state = {
       mob_session_state = "rpc.mobiled.device.@1.network.sessions.@1.session_state"
     }
@@ -171,56 +181,62 @@ function M.getBroadbandCardHTML()
     end
 
     local up = false
-    if wan_ifname and (find(wan_ifname,"ptm") or find(wan_ifname,"atm")) then
-      if wan_data["dsl_status"] == "Up" then
-        up = true
-        html[#html+1] = ui_helper.createSimpleLight("1", "DSL connected")
-        -- After disabling broadband the page immediately refreshes. At this time the state is still up but the line
-        -- rate is already cleared.
-        local rate_up = tonumber(wan_data["dsl_linerate_up"])
-        local rate_down = tonumber(wan_data["dsl_linerate_down"])
-        if rate_up and rate_down then
-          rate_up = floor(rate_up / 10) / 100
-          rate_down = floor(rate_down / 10) / 100
-          html[#html+1] = format('<p class="bbstats"><i class="icon-upload icon-small gray"></i> %.2f<small>Mbps</small> <i class="icon-download icon-small gray"></i> %.2f<small>Mbps</small></p>', rate_up, rate_down)
+    if (mobile and wired) or not mobile then
+      if not wired or (wan_ifname and (find(wan_ifname,"ptm") or find(wan_ifname,"atm"))) then
+        if wan_data["dsl_status"] == "Up" then
+          up = true
+          html[#html+1] = ui_helper.createSimpleLight("1", "DSL connected")
+          -- After disabling broadband the page immediately refreshes. At this time the state is still up but the line
+          -- rate is already cleared.
+          local rate_up = tonumber(wan_data["dsl_linerate_up"])
+          local rate_down = tonumber(wan_data["dsl_linerate_down"])
+          if rate_up and rate_down then
+            rate_up = floor(rate_up / 10) / 100
+            rate_down = floor(rate_down / 10) / 100
+            html[#html+1] = format('<p class="bbstats"><i class="icon-upload icon-small gray"></i> %.2f<small>Mbps</small> <i class="icon-download icon-small gray"></i> %.2f<small>Mbps</small></p>', rate_up, rate_down)
+          end
+        elseif wan_data["dsl_status"] == "NoSignal" then
+          html[#html+1] = ui_helper.createSimpleLight("4", "DSL disconnected")
+        elseif wan_data["dsl0_enabled"] == "0" then
+          html[#html+1] = ui_helper.createSimpleLight("0", "DSL disabled")
+        else
+          html[#html+1] = ui_helper.createSimpleLight("2", "DSL connecting")
         end
-      elseif wan_data["dsl_status"] == "NoSignal" then
-        html[#html+1] = ui_helper.createSimpleLight("4", "DSL disconnected")
-      elseif wan_data["dsl0_enabled"] == "0" then
-        html[#html+1] = ui_helper.createSimpleLight("0", "DSL disabled")
-      else
-        html[#html+1] = ui_helper.createSimpleLight("2", "DSL connecting")
+      end
+      if not wired or (wan_ifname and find(wan_ifname,"eth")) then
+        if wan_data["ethwan_status"] == "up" then
+          up = true
+          html[#html+1] = ui_helper.createSimpleLight("1", "Ethernet connected")
+        else
+          html[#html+1] = ui_helper.createSimpleLight("4", "Ethernet disconnected")
+        end
       end
     end
-    if wan_ifname and find(wan_ifname,"eth") then
-      up = true
-      if wan_data["ethwan_status"] == "up" then
-        html[#html+1] = ui_helper.createSimpleLight("1", "Ethernet connected")
+    if wired then
+      local vlanid = string.match(wan_ifname, ".*%.(%d+)")
+      if not vlanid then
+        local vid = proxy.get("uci.network.device.@".. wan_ifname .. ".vid")
+        if vid and vid[1].value ~= "" then
+          vlanid = vid[1].value
+        end
+      end
+      if vlanid then
+        local vlanifname = proxy.get("uci.network.device.@".. wan_ifname .. ".ifname")
+        if vlanifname and vlanifname[1].value == "" then
+          html[#html+1] = ui_helper.createSimpleLight("2", "VLAN "..vlanid.." disabled")
+        elseif up then
+          html[#html+1] = ui_helper.createSimpleLight("1", "VLAN "..vlanid.." active")
+        else
+          html[#html+1] = ui_helper.createSimpleLight("0", "VLAN "..vlanid.." inactive")
+        end
       else
-        html[#html+1] = ui_helper.createSimpleLight("4", "Ethernet disconnected")
+        html[#html+1] = ui_helper.createSimpleLight("0", "No VLAN defined")
       end
-    end
-    local vlanid = string.match(wan_ifname, ".*%.(%d+)")
-    if not vlanid then
-      local vid = proxy.get("uci.network.device.@".. wan_ifname .. ".vid")
-      if vid and vid[1].value ~= "" then
-        vlanid = vid[1].value
-      end
-    end
-    if vlanid then
-      local vlanifname = proxy.get("uci.network.device.@".. wan_ifname .. ".ifname")
-      if vlanifname and vlanifname[1].value == "" then
-        html[#html+1] = ui_helper.createSimpleLight("2", "VLAN "..vlanid.." disabled")
-      elseif up then
-        html[#html+1] = ui_helper.createSimpleLight("1", "VLAN "..vlanid.." active")
-      else
-        html[#html+1] = ui_helper.createSimpleLight("0", "VLAN "..vlanid.." inactive")
-      end
-    else
-      html[#html+1] = ui_helper.createSimpleLight("0", "No VLAN defined")
     end
     if mobiled_state["mob_session_state"] == "connected" then
       html[#html+1] = ui_helper.createSimpleLight("1", "Mobile Internet connected")
+    elseif mobile then
+      html[#html+1] = ui_helper.createSimpleLight("4", "Mobile Internet disconnected")
     end
     if rpc_ifname then
       html[#html+1] = format('<span class="simple-desc modal-link" data-toggle="modal" data-remote="/modals/broadband-usage-modal.lp" data-id="bb-usage-modal" style="padding-top:5px"><span class="icon-small status-icon">&udarr;</span>%s&ensp;<i class="icon-cloud-upload status-icon"></i> %s&ensp;<i class="icon-cloud-download status-icon"></i> %s</span>', 

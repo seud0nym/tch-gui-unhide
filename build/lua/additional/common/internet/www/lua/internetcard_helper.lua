@@ -1,4 +1,5 @@
 local content_helper = require("web.content_helper")
+local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local untaint_mt = require("web.taint").untaint_mt
 local find, format, gsub = string.find, string.format, string.gsub
@@ -36,6 +37,12 @@ function M.getInternetCardHTML(mode_active)
       mobile_status["state"] = "Mobile Internet connected"
     end
   end
+
+  local mobile = false
+  local primarywanmode = proxy.get("uci.wansensing.global.primarywanmode")
+  if primarywanmode and primarywanmode[1].value == "MOBILE" then
+    mobile = true
+  end
   
   local html = {}
 
@@ -70,165 +77,167 @@ function M.getInternetCardHTML(mode_active)
     html[#html+1] = '</p>'
   end
 
-  -- BRIDGE
-  if mode_active == "bridge" then
-    local cs = {
-      variant = "env.var.variant_friendly_name",
-    }
-    content_helper.getExactContent(cs)
-
-    html[#html+1] = '<p class="subinfos">'
-    html[#html+1] = T'Gateway is in Bridged Mode'
-    html[#html+1] = '</p>'
-  -- DHCP
-  elseif mode_active == "dhcp" then
-    local cs = {
-      uci_wan_auto = "uci.network.interface.@wan.auto",
-      wan6_prefix = "rpc.network.interface.@wan6.ip6prefix",
-      ipaddr = "rpc.network.interface.@wan.ipaddr",
-      ip6addr = "rpc.network.interface.@wan6.ip6addr",
-      ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
-      ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
-      dnsv4 = "rpc.network.interface.@wan.dnsservers",
-      dnsv6 = "rpc.network.interface.@wan6.dnsservers",
-    }
-    content_helper.getExactContent(cs)
-    local dhcp_state = "connecting"
-    local dhcp_state_map = {
-      disabled = T"DHCP disabled",
-      connected = T"DHCP connected",
-      connecting = T"Trying to connect using DHCP...",
-    }
-    local dhcp_light_map = {
-      disabled = "off",
-      connecting = "orange",
-      connected = "green",
-    }
-    if cs["uci_wan_auto"] ~= "0" then
-      cs["uci_wan_auto"] = "1"
-      if cs["ipaddr"]:len() > 0 then
-        dhcp_state = "connected"
-      else
-        dhcp_state = "connecting"
-      end
-    else
-      dhcp_state = "disabled"
-    end
-
-    html[#html+1] = ui_helper.createSimpleLight(nil, dhcp_state_map[dhcp_state], { light = { class = dhcp_light_map[dhcp_state] } })
-    if dhcp_state == "connected" then
-      addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
-    end
-  -- PPOE
-  elseif mode_active == "pppoe" then
-    local content_uci = {
-      wan_proto = "uci.network.interface.@wan.proto",
-      wan_auto = "uci.network.interface.@wan.auto",
-    }
-    content_helper.getExactContent(content_uci)
-    local content_rpc = {
-      wan_ppp_state = "rpc.network.interface.@wan.ppp.state",
-      wan_ppp_error = "rpc.network.interface.@wan.ppp.error",
-      wan6_prefix = "rpc.network.interface.@wan6.ip6prefix",
-      ipaddr = "rpc.network.interface.@wan.ipaddr",
-      ip6addr = "rpc.network.interface.@wan6.ip6addr",
-      ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
-      ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
-      dnsv4 = "rpc.network.interface.@wan.dnsservers",
-      dnsv6 = "rpc.network.interface.@wan6.dnsservers",
-    }
-    content_helper.getExactContent(content_rpc)
-    local ppp_state_map = {
-      disabled = T"PPP disabled",
-      disconnecting = T"PPP disconnecting",
-      connected = T"PPP connected",
-      connecting = T"PPP connecting",
-      disconnected = T"PPP disconnected",
-      error = T"PPP error",
-      AUTH_TOPEER_FAILED = T"PPP authentication failed",
-      NEGOTIATION_FAILED = T"PPP negotiation failed",
-    }
-    setmetatable(ppp_state_map, untaint_mt)
-    local ppp_light_map = {
-      disabled = "off",
-      disconnected = "red",
-      disconnecting = "orange",
-      connecting = "orange",
-      connected = "green",
-      error = "red",
-      AUTH_TOPEER_FAILED = "red",
-      NEGOTIATION_FAILED = "red",
-    }
-    setmetatable(ppp_light_map, untaint_mt)
-    local ppp_status
-    if content_uci.wan_auto ~= "0" then
-      content_uci.wan_auto = "1"
-      ppp_status = format("%s", content_rpc.wan_ppp_state) -- untaint
-      if ppp_status == "" or ppp_status == "authenticating" then
-        ppp_status = "connecting"
-      end
-      if not (content_rpc.wan_ppp_error == "" or content_rpc.wan_ppp_error == "USER_REQUEST") then
-        if ppp_state_map[content_rpc.wan_ppp_error] then
-          ppp_status = content_rpc.wan_ppp_error
-        else
-          ppp_status = "error"
-        end
-      end
-    else
-      ppp_status = "disabled"
-    end
-    html[#html+1] = ui_helper.createSimpleLight(nil, ppp_state_map[ppp_status], { light = { class = ppp_light_map[ppp_status] } })
-    if ppp_status == "connected" then
-      addIPs(content_rpc["ipaddr"], content_rpc["ip6addr"], content_rpc["dnsv4"], content_rpc["dnsv6"], content_rpc["ipv6uniqueglobaladdr"], content_rpc["ipv6uniquelocaladdr"], content_rpc["wan6_prefix"])
-    end
-  -- STATIC
-  elseif mode_active == "static" then
-    local cs = {
-      uci_wan_auto = "uci.network.interface.@wan.auto",
-      wan6_prefix = "rpc.network.interface.@wan6.ip6prefix",
-      ipaddr = "rpc.network.interface.@wan.ipaddr",
-      ip6addr = "rpc.network.interface.@wan6.ip6addr",
-      ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
-      ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
-      dnsv4 = "rpc.network.interface.@wan.dnsservers",
-      dnsv6 = "rpc.network.interface.@wan6.dnsservers",
-    }
-    content_helper.getExactContent(cs)
-    if cs["uci_wan_auto"] ~= "0" then
-      local wan_data = {
-        wan_ifname        = "uci.network.interface.@wan.ifname",
-        dsl0_enabled      = "uci.xdsl.xdsl.@dsl0.enabled",
-        dsl_status        = "sys.class.xdsl.@line0.Status",
-        ethwan_status     = "sys.eth.port.@eth4.status",
+  if not mobile then
+    -- BRIDGE
+    if mode_active == "bridge" then
+      local cs = {
+        variant = "env.var.variant_friendly_name",
       }
-      content_helper.getExactContent(wan_data)
-      if wan_data["wan_ifname"] and (find(wan_data["wan_ifname"],"ptm0") or find(wan_data["wan_ifname"],"atm")) then
-        if wan_data["dsl_status"] == "Up" then
-          html[#html+1] = ui_helper.createSimpleLight("1", "Static IP connected")
-          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
-        elseif wan_data["dsl_status"] == "NoSignal" then
-          html[#html+1] = ui_helper.createSimpleLight("4", "Static IP disconnected")
-          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
-        elseif wan_data["dsl0_enabled"] == "0" then
-          html[#html+1] = ui_helper.createSimpleLight("0", "Static IP disabled")
-          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
+      content_helper.getExactContent(cs)
+
+      html[#html+1] = '<p class="subinfos">'
+      html[#html+1] = T'Gateway is in Bridged Mode'
+      html[#html+1] = '</p>'
+    -- DHCP
+    elseif mode_active == "dhcp" then
+      local cs = {
+        uci_wan_auto = "uci.network.interface.@wan.auto",
+        wan6_prefix = "rpc.network.interface.@wan6.ip6prefix",
+        ipaddr = "rpc.network.interface.@wan.ipaddr",
+        ip6addr = "rpc.network.interface.@wan6.ip6addr",
+        ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
+        ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
+        dnsv4 = "rpc.network.interface.@wan.dnsservers",
+        dnsv6 = "rpc.network.interface.@wan6.dnsservers",
+      }
+      content_helper.getExactContent(cs)
+      local dhcp_state = "connecting"
+      local dhcp_state_map = {
+        disabled = T"DHCP disabled",
+        connected = T"DHCP connected",
+        connecting = T"Trying to connect using DHCP...",
+      }
+      local dhcp_light_map = {
+        disabled = "off",
+        connecting = "orange",
+        connected = "green",
+      }
+      if cs["uci_wan_auto"] ~= "0" then
+        cs["uci_wan_auto"] = "1"
+        if cs["ipaddr"]:len() > 0 then
+          dhcp_state = "connected"
         else
-          html[#html+1] = ui_helper.createSimpleLight("2", "Trying to connect with Static IP...")
-          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
+          dhcp_state = "connecting"
         end
+      else
+        dhcp_state = "disabled"
       end
-      if wan_data["wan_ifname"] and find(wan_data["wan_ifname"],"eth") then
-        if wan_data["ethwan_status"] == "up" then
-          html[#html+1] = ui_helper.createSimpleLight("1", "Static connected")
-          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
-        else
-          html[#html+1] = ui_helper.createSimpleLight("4", "Static IP disconnected")
-          addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
+
+      html[#html+1] = ui_helper.createSimpleLight(nil, dhcp_state_map[dhcp_state], { light = { class = dhcp_light_map[dhcp_state] } })
+      if dhcp_state == "connected" then
+        addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
+      end
+    -- PPOE
+    elseif mode_active == "pppoe" then
+      local content_uci = {
+        wan_proto = "uci.network.interface.@wan.proto",
+        wan_auto = "uci.network.interface.@wan.auto",
+      }
+      content_helper.getExactContent(content_uci)
+      local content_rpc = {
+        wan_ppp_state = "rpc.network.interface.@wan.ppp.state",
+        wan_ppp_error = "rpc.network.interface.@wan.ppp.error",
+        wan6_prefix = "rpc.network.interface.@wan6.ip6prefix",
+        ipaddr = "rpc.network.interface.@wan.ipaddr",
+        ip6addr = "rpc.network.interface.@wan6.ip6addr",
+        ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
+        ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
+        dnsv4 = "rpc.network.interface.@wan.dnsservers",
+        dnsv6 = "rpc.network.interface.@wan6.dnsservers",
+      }
+      content_helper.getExactContent(content_rpc)
+      local ppp_state_map = {
+        disabled = T"PPP disabled",
+        disconnecting = T"PPP disconnecting",
+        connected = T"PPP connected",
+        connecting = T"PPP connecting",
+        disconnected = T"PPP disconnected",
+        error = T"PPP error",
+        AUTH_TOPEER_FAILED = T"PPP authentication failed",
+        NEGOTIATION_FAILED = T"PPP negotiation failed",
+      }
+      setmetatable(ppp_state_map, untaint_mt)
+      local ppp_light_map = {
+        disabled = "off",
+        disconnected = "red",
+        disconnecting = "orange",
+        connecting = "orange",
+        connected = "green",
+        error = "red",
+        AUTH_TOPEER_FAILED = "red",
+        NEGOTIATION_FAILED = "red",
+      }
+      setmetatable(ppp_light_map, untaint_mt)
+      local ppp_status
+      if content_uci.wan_auto ~= "0" then
+        content_uci.wan_auto = "1"
+        ppp_status = format("%s", content_rpc.wan_ppp_state) -- untaint
+        if ppp_status == "" or ppp_status == "authenticating" then
+          ppp_status = "connecting"
         end
+        if not (content_rpc.wan_ppp_error == "" or content_rpc.wan_ppp_error == "USER_REQUEST") then
+          if ppp_state_map[content_rpc.wan_ppp_error] then
+            ppp_status = content_rpc.wan_ppp_error
+          else
+            ppp_status = "error"
+          end
+        end
+      else
+        ppp_status = "disabled"
       end
-    else
-      html[#html+1] = ui_helper.createSimpleLight("0", "Static IP disabled")
-      addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
+      html[#html+1] = ui_helper.createSimpleLight(nil, ppp_state_map[ppp_status], { light = { class = ppp_light_map[ppp_status] } })
+      if ppp_status == "connected" then
+        addIPs(content_rpc["ipaddr"], content_rpc["ip6addr"], content_rpc["dnsv4"], content_rpc["dnsv6"], content_rpc["ipv6uniqueglobaladdr"], content_rpc["ipv6uniquelocaladdr"], content_rpc["wan6_prefix"])
+      end
+    -- STATIC
+    elseif mode_active == "static" then
+      local cs = {
+        uci_wan_auto = "uci.network.interface.@wan.auto",
+        wan6_prefix = "rpc.network.interface.@wan6.ip6prefix",
+        ipaddr = "rpc.network.interface.@wan.ipaddr",
+        ip6addr = "rpc.network.interface.@wan6.ip6addr",
+        ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
+        ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
+        dnsv4 = "rpc.network.interface.@wan.dnsservers",
+        dnsv6 = "rpc.network.interface.@wan6.dnsservers",
+      }
+      content_helper.getExactContent(cs)
+      if cs["uci_wan_auto"] ~= "0" then
+        local wan_data = {
+          wan_ifname        = "uci.network.interface.@wan.ifname",
+          dsl0_enabled      = "uci.xdsl.xdsl.@dsl0.enabled",
+          dsl_status        = "sys.class.xdsl.@line0.Status",
+          ethwan_status     = "sys.eth.port.@eth4.status",
+        }
+        content_helper.getExactContent(wan_data)
+        if wan_data["wan_ifname"] and (find(wan_data["wan_ifname"],"ptm0") or find(wan_data["wan_ifname"],"atm")) then
+          if wan_data["dsl_status"] == "Up" then
+            html[#html+1] = ui_helper.createSimpleLight("1", "Static IP connected")
+            addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
+          elseif wan_data["dsl_status"] == "NoSignal" then
+            html[#html+1] = ui_helper.createSimpleLight("4", "Static IP disconnected")
+            addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
+          elseif wan_data["dsl0_enabled"] == "0" then
+            html[#html+1] = ui_helper.createSimpleLight("0", "Static IP disabled")
+            addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
+          else
+            html[#html+1] = ui_helper.createSimpleLight("2", "Trying to connect with Static IP...")
+            addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
+          end
+        end
+        if wan_data["wan_ifname"] and find(wan_data["wan_ifname"],"eth") then
+          if wan_data["ethwan_status"] == "up" then
+            html[#html+1] = ui_helper.createSimpleLight("1", "Static connected")
+            addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
+          else
+            html[#html+1] = ui_helper.createSimpleLight("4", "Static IP disconnected")
+            addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
+          end
+        end
+      else
+        html[#html+1] = ui_helper.createSimpleLight("0", "Static IP disabled")
+        addIPs(cs["ipaddr"], cs["ip6addr"], cs["dnsv4"], cs["dnsv6"], cs["ipv6uniqueglobaladdr"], cs["ipv6uniquelocaladdr"], cs["wan6_prefix"])
+      end
     end
   end
 
