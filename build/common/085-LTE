@@ -1,5 +1,18 @@
-echo [$SCRIPT]: Fix display bug on Mobile card, hide if no devices found and stop refresh when any modal displayed
+echo [$SCRIPT]: Fix display bug on Mobile card, hide if no devices found, show Mobile Only Mode status and stop refresh when any modal displayed
 sed \
+  -e 's/height: 25/height:20/' \
+  -e '/\.card-label/a margin-bottom:0px;\\' \
+  -e '/local light/i local proxy = require("datamodel")' \
+  -e '/local light/i local primarywanmode = proxy.get("uci.wansensing.global.primarywanmode")' \
+  -e "/content/a ');" \
+  -e '/content/a if primarywanmode then' \
+  -e '/content/a   if primarywanmode[1].value == "MOBILE" then' \
+  -e '/content/a     ngx.print(ui_helper.createSimpleLight("1", T("Mobile Only Mode enabled")) );' \
+  -e '/content/a   else' \
+  -e '/content/a     ngx.print(ui_helper.createSimpleLight("0", T("Mobile Only Mode disabled")) );' \
+  -e '/content/a   end' \
+  -e '/content/a end' \
+  -e "/content/a ngx.print('\\\\" \
   -e '/<script>/a var divs = $("#mobiletab .content").children("div");if(divs.length>0){var p=$("#mobiletab .content .subinfos");divs.appendTo(p);}\\' \
   -e '/var refreshInterval/a window.intervalIDs.push(refreshInterval);\\' \
   -e '/require("web.lte-utils")/a local result = utils.getContent("rpc.mobiled.DeviceNumberOfEntries")' \
