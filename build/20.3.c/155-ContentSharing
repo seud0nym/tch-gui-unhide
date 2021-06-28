@@ -1,0 +1,143 @@
+echo [$SCRIPT]: Add File Sharing User Management
+sed \
+  -e '/-- usb Devices/a\
+local function exec_nqcsctrl(params)\
+  local cmd = io.popen("nqcsctrl "..params.." 2>&1")\
+  if cmd then\
+    local result = cmd:read("*a")\
+    cmd:close()\
+    if find(result, "succeeded") then\
+      message_helper.pushMessage(T(result), "success")\
+    else\
+      message_helper.pushMessage(T(result), "error")\
+    end\
+  else\
+    message_helper.pushMessage(T("Failed to execute command with parameters: "..params), "error")\
+  end\
+end\
+local function get_nqe_users()\
+  local allowedIdx = {}\
+  local tbl = {}\
+  local cmd = io.popen("nqcsctrl EU")\
+  if cmd then\
+    local line,name,desc = nil,"",""\
+    for line in cmd:lines() do\
+      local k,v = match(line, "User ([^:]*): (.*)")\
+      if k and v then\
+        if k == "name" then\
+          name = v\
+        elseif k == "description" then\
+          desc = v\
+        elseif k == "is Admin" then\
+          if v == "Yes" then\
+            tbl[#tbl+1]={name,desc,"**********","1"}\
+          else\
+            tbl[#tbl+1]={name,desc,"**********","0"}\
+          end\
+          allowedIdx[#allowedIdx+1] = { canEdit = false, canDelete = true, }\
+          name,desc = "",""\
+        end\
+      end\
+    end\
+    cmd:close()\
+  end\
+  return tbl, allowedIdx\
+end\
+local nqe_user_columns = {\
+  {\
+     header = T"Name",\
+     name = "name",\
+     param = "name",\
+     type = "text",\
+  },\
+  {\
+     header = T"Description",\
+     name = "description",\
+     param = "description",\
+     type = "text",\
+     readonly = true,\
+  },\
+  {\
+     header = T"Password",\
+     name = "password",\
+     param = "password",\
+     type = "text",\
+  },\
+  {\
+    header = "Is Administrator",\
+    name = "admin",\
+    param = "admin",\
+    type = "switch",\
+  },\
+}\
+local nqe_user_valid = {\
+  name = vNES,\
+  admin = gVCS,\
+}\
+local nqe_user_options = {\
+  tableid = "nqe_user",\
+  canAdd = true,\
+  canEdit = false,\
+  canDelete = true,\
+  createMsg = T"Add a User",\
+}\
+local nqe_user_data\
+local nqe_user_helpmsg = {}\
+if ngx.var.request_method == "POST" then\
+  local postargs = ngx.req.get_post_args()\
+  if postargs.tableid == "nqe_user" then\
+    if postargs.action == "TABLE-NEW" then\
+      nqe_user_options.editing = -1\
+    elseif postargs.action == "TABLE-DELETE" then\
+      local current_index = tonumber(postargs.index) or -1\
+      if current_index > -1 then\
+        nqe_user_data = get_nqe_users()\
+        if nqe_user_data[current_index] and nqe_user_data[current_index][1] ~= "" then\
+          exec_nqcsctrl("-U \\""..nqe_user_data[current_index][1].."\\"")\
+        end\
+      end\
+    else\
+      local name = postargs.name\
+      local password = postargs.password\
+      local admin = postargs.admin\
+      local valid, err = vNES(name)\
+      if valid then\
+        if password == "**********" then\
+          password = ""\
+        end\
+        valid, err = vNES(password)\
+        if valid then\
+          valid, err = gVCS(admin)\
+          if valid then\
+            if postargs.action == "TABLE-ADD" then\
+              if admin == "1" then\
+                admin = "A"\
+              else\
+                admin = ""\
+              end\
+              exec_nqcsctrl(format("+U %s \\"\\" \\"\\" %s %s",name,password,admin))\
+            end\
+          else\
+            nqe_user_helpmsg["admin"] = err\
+          end\
+        else\
+          nqe_user_helpmsg["password"] = err\
+        end\
+      else\
+        nqe_user_helpmsg["name"] = err\
+      end\
+    end\
+  end\
+end\
+nqe_user_data, nqe_user_idx = get_nqe_users()\
+local ngx = ngx\
+local session = ngx.ctx.session\
+local tablesessionindexes = nqe_user_options.tableid .. ".allowedindexes"\
+session:store(tablesessionindexes, nqe_user_idx)' \
+  -e '/"File Server descript/a\
+                tinsert(html, format("<label class=\\"control-label\\">%s</label><div class=\\"controls\\">", T"Users: ")) \
+                tinsert(html, ui_helper.createAlertBlock(T("You will need to create at least one user before you can access the Share."), { alert = { class = \"alert-info\" }, })) \
+                tinsert(html, ui_helper.createTable(nqe_user_columns, nqe_user_data, nqe_user_options, nil, nqe_user_helpmsg)) \
+                tinsert(html, "<\/div>")' \
+  -i /www/docroot/modals/contentsharing-modal.lp
+
