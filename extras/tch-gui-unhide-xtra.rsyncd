@@ -98,6 +98,7 @@ MAP
   fi
 
   # Update the card
+  uci -q set web.card_contentsharing.hide='0'
   sed \
     -e '/^local content/i \local rsync_enabled = "Disabled"' \
     -e '/^local content/i \local rsync = proxy.get("rpc.gui.rsync.enable")' \
