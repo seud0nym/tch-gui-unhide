@@ -136,9 +136,9 @@ check_pwr_setting() {
 apply_service_changes() {
   if [ $SRV_transformer -gt 0 ]; then
     # Need to stop watchdog whilst we restart transformer, because if it does not find /var/run/transformer.pid, it will reboot the system!
-    /etc/init.d/watchdog-tch stop
+    /etc/init.d/watchdog-tch stop >/dev/null 2>&1
     /etc/init.d/transformer restart
-    /etc/init.d/watchdog-tch start
+    /etc/init.d/watchdog-tch start >/dev/null 2>&1
   fi
   [ $SRV_cron -gt 0 ] && /etc/init.d/cron restart
   [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear restart
