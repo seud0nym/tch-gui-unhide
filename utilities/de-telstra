@@ -1034,7 +1034,7 @@ then
   [ "$SAMBA" = "0" -a -e /etc/init.d/samba-nmbd ] && { /etc/init.d/samba-nmbd disable; /etc/init.d/samba-nmbd stop; } > /dev/null 2>&1
   [ "$UPNP" = "0" ] && { /etc/init.d/miniupnpd-tch disable; /etc/init.d/miniupnpd-tch stop; } > /dev/null 2>&1
   { /etc/init.d/lte-doctor-logger disable; /etc/init.d/lte-doctor-logger stop; } > /dev/null 2>&1
-  { /etc/init.d/xl2tpd disable; /etc/init.d/xl2tpd stop; } > /dev/null 2>&1
+  [ ! -e /etc/ipsec.conf ] && { /etc/init.d/xl2tpd disable; /etc/init.d/xl2tpd stop; } > /dev/null 2>&1
 fi
 
 if [ ! -z "$PACKAGES_TO_REMOVE" ]
