@@ -457,6 +457,13 @@ else
   SRV_dropbear=$(( $SRV_dropbear + 4 ))
   echo [$SCRIPT]: SSH access correctly configured
 fi
+if [ "$(uci -q get dropbear.afg)" = "dropbear" ]
+then
+  echo "[$SCRIPT]: Removing SSH AFG/tch-exploit configuration (not needed - SSH LAN correctly configured)"
+  uci delete dropbear.afg
+  uci commit dropbear
+  SRV_dropbear=$(( $SRV_dropbear + 1 ))
+fi
 
 cmp -s /rom/etc/rtfd_persistent_filelist.conf /etc/rtfd_persistent_filelist.conf
 ROOT_PROTECT_NOW="$?"
@@ -1023,7 +1030,7 @@ echo [$SCRIPT]: Applying required service changes...
 }
 [ "$LITE" = 'y' ] && {
   echo [$SCRIPT]: Disabling services to save memory...
-  SRV_cs = 0
+  SRV_cs=0
   SRV_nginx=0
   [ "$DECT" = "0" ] && { /etc/init.d/mmpbxbrcmdect disable; /etc/init.d/mmpbxbrcmdect stop; } > /dev/null 2>&1
   [ "$DLNAD" = "0" ] && { /etc/init.d/dlnad disable; /etc/init.d/dlnad stop; /etc/init.d/mud disable; /etc/init.d/mud stop; SRV_cs=$(( $SRV_cs + 1 )); } > /dev/null 2>&1
@@ -1037,7 +1044,7 @@ echo [$SCRIPT]: Applying required service changes...
   [ "$UPNP" = "0" ] && { /etc/init.d/miniupnpd-tch disable; /etc/init.d/miniupnpd-tch stop; uci -q set web.card_printersharing.hide='1'; SRV_nginx=$(( $SRV_nginx + 1 )); } > /dev/null 2>&1
   { /etc/init.d/lte-doctor-logger disable; /etc/init.d/lte-doctor-logger stop; } > /dev/null 2>&1
   [ ! -e /etc/ipsec.conf ] && { /etc/init.d/xl2tpd disable; /etc/init.d/xl2tpd stop; } > /dev/null 2>&1
-  [ $SRV_cs -ge 2 ] && { uci -q set web.card_contentsharing.hide='1'; SRV_nginx=$(( $SRV_nginx + 1 )); }}
+  [ $SRV_cs -ge 2 ] && { uci -q set web.card_contentsharing.hide='1'; SRV_nginx=$(( $SRV_nginx + 1 )); }
   [ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
 }
 
