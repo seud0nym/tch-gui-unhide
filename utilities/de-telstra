@@ -980,62 +980,62 @@ then
 fi
 
 echo [$SCRIPT]: Applying required service changes...
-if [ "$LITE" = 'R' ]
-then
-  for s in cupsd dumaos lte-doctor-logger mmpbxfwctl mmpbxd mmpbxbrcmdect mud multiap_agent multiap_controller multiap_vendorextensions ndhttpd xl2tpd
+[ "$LITE" = 'R' ] && {
+  for s in cupsd dumaos lte-doctor-logger mmpbxfwctl mmpbxd mmpbxbrcmdect mud multiap_agent multiap_controller multiap_vendorextensions ndhttpd telemetry-daemon xl2tpd
   do 
-    [ -f /etc/init.d/$s -a ! $(/etc/init.d/$s enabled) ] && { /etc/init.d/$s enable; /etc/init.d/$s start; } > /dev/null 2>&1
+    [ -e /etc/init.d/$s -a ! $(/etc/init.d/$s enabled) ] && { /etc/init.d/$s enable; /etc/init.d/$s start; } > /dev/null 2>&1
   done
-fi
-/etc/init.d/watchdog-tch reload  > /dev/null 2>&1
-[ -f /etc/init.d/cwmpd -a $SRV_cwmp -gt 0 ] && { /etc/init.d/cwmpd disable;/etc/init.d/cwmpd stop; } > /dev/null 2>&1
-[ -f /etc/init.d/hotspotd -a $SRV_hotspot -gt 0 ] && { /etc/init.d/hotspotd disable; /etc/init.d/hotspotd stop; } > /dev/null 2>&1
-[ -f /etc/init.d/autoreset -a $SRV_monitor -gt 0 ] && { /etc/init.d/autoreset disable; /etc/init.d/autoreset stop; } > /dev/null 2>&1
-[ -f /etc/init.d/tls-thor -a $SRV_monitor -gt 0 ] && { /etc/init.d/tls-thor disable; /etc/init.d/tls-thor stop; } > /dev/null 2>&1
-[ -f /etc/init.d/wifi-doctor-agent -a $SRV_monitor -gt 0 ] && /etc/init.d/wifi-doctor-agent reload > /dev/null 2>&1
+}
+/etc/init.d/watchdog-tch reload > /dev/null 2>&1
+[ "$DECT_NOW" = "0" -o "$DECT" = "0" ] && /etc/init.d/mmpbxbrcmdect stop > /dev/null 2>&1
+[ "$DECT_NOW" = "0" -a "$DECT" = "1" ] && { /etc/init.d/mmpbxbrcmdect enable; /etc/init.d/mmpbxbrcmdect restart; } > /dev/null 2>&1
+[ "$DLNA_NOW" = "0" -a "$DLNAD" = "1" ] && { /etc/init.d/mud enable; /etc/init.d/mud restart; } > /dev/null 2>&1
+[ "$DLNA_NOW" = "0" -o "$DLNAD" = "0" ] && /etc/init.d/mud stop > /dev/null 2>&1
+[ "$PRNTR_NOW" = "0" -a "$PRNTR" = "1" ] && { /etc/init.d/cupsd enable; /etc/init.d/cupsd restart; } > /dev/null 2>&1
+[ "$PRNTR_NOW" = "0" -o "$PRNTR" = "0" ] && /etc/init.d/cupsd stop > /dev/null 2>&1
 [ $SRV_bulkdata -gt 0 ] && { /etc/init.d/bulkdata disable; /etc/init.d/bulkdata stop; } > /dev/null 2>&1
-[ $SRV_ntp -gt 0 ] && /etc/init.d/sysntpd restart > /dev/null 2>&1
-[ $SRV_system -gt 0 ] && /etc/init.d/system reload > /dev/null 2>&1
-[ $SRV_samba -gt 0 ] && /etc/init.d/samba reload; > /dev/null 2>&1
-[ $SRV_samba -gt 0 -a -e /etc/init.d/samba-nmbd ] && /etc/init.d/samba-nmbd reload; > /dev/null 2>&1
+[ $SRV_cwmp -gt 0 -a -f /etc/init.d/cwmpd ] && { /etc/init.d/cwmpd disable;/etc/init.d/cwmpd stop; } > /dev/null 2>&1
+[ $SRV_dhcp -gt 0 ] && /etc/init.d/dnsmasq reload > /dev/null 2>&1
 [ $SRV_dlna -gt 0 ] && /etc/init.d/dlnad restart > /dev/null 2>&1
 [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear reload > /dev/null 2>&1
-[ $SRV_dhcp -gt 0 ] && /etc/init.d/dnsmasq reload > /dev/null 2>&1
+[ $SRV_dumaos -gt 0 ] && { /etc/init.d/dumaos enable; /etc/init.d/dumaos restart; } > /dev/null 2>&1
 [ $SRV_fw -gt 0 ] && /etc/init.d/firewall reload > /dev/null 2>&1
 [ $SRV_hostapd -gt 0 ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1
-[ $SRV_network -gt 0 ] && /etc/init.d/network reload > /dev/null 2>&1
-[ $SRV_mmpbxd -gt 0 ] && /etc/init.d/mmpbxd restart > /dev/null 2>&1
+[ $SRV_hotspot -gt 0 -a -f /etc/init.d/hotspotd ] && { /etc/init.d/hotspotd disable; /etc/init.d/hotspotd stop; } > /dev/null 2>&1
+[ $SRV_mmpbxd -gt 0 ] && { /etc/init.d/mmpbxd enable; /etc/init.d/mmpbxfwctl enable; /etc/init.d/mmpbxd restart; /etc/init.d/mmpbxfwctl restart; } > /dev/null 2>&1
 [ $SRV_mobiled -gt 0 ] && /etc/init.d/mobiled restart > /dev/null 2>&1
-[ $SRV_multiap -gt 0 ] && { /etc/init.d/multiap_controller restart; /etc/init.d/multiap_agent restart; } > /dev/null 2>&1
-[ $SRV_upnp -gt 0 ] && /etc/init.d/miniupnpd-tch restart > /dev/null 2>&1
-[ $SRV_dumaos -gt 0 ] && /etc/init.d/dumaos restart > /dev/null 2>&1
+[ $SRV_monitor -gt 0 -a -f /etc/init.d/autoreset ] && { /etc/init.d/autoreset disable; /etc/init.d/autoreset stop; } > /dev/null 2>&1
+[ $SRV_monitor -gt 0 -a -f /etc/init.d/tls-thor ] && { /etc/init.d/tls-thor disable; /etc/init.d/tls-thor stop; } > /dev/null 2>&1
+[ $SRV_monitor -gt 0 -a -f /etc/init.d/wifi-doctor-agent ] && /etc/init.d/wifi-doctor-agent reload > /dev/null 2>&1
+[ $SRV_multiap -gt 0 ] && { /etc/init.d/multiap_controller enable; /etc/init.d/multiap_agent enable; /etc/init.d/multiap_vendorextensions enable; /etc/init.d/multiap_controller restart; /etc/init.d/multiap_agent restart; /etc/init.d/multiap_vendorextensions restart; } > /dev/null 2>&1
+[ $SRV_network -gt 0 ] && /etc/init.d/network reload > /dev/null 2>&1
+[ $SRV_ntp -gt 0 ] && /etc/init.d/sysntpd restart > /dev/null 2>&1
+[ $SRV_samba -gt 0 -a -e /etc/init.d/samba-nmbd ] && { /etc/init.d/samba-nmbd enable; /etc/init.d/samba-nmbd reload; } > /dev/null 2>&1
+[ $SRV_samba -gt 0 ] && { /etc/init.d/samba enable; /etc/init.d/samba reload; } > /dev/null 2>&1
+[ $SRV_system -gt 0 ] && /etc/init.d/system reload > /dev/null 2>&1
+[ $SRV_upnp -gt 0 ] && { /etc/init.d/miniupnpd-tch enable; /etc/init.d/miniupnpd-tch restart; } > /dev/null 2>&1
 [ $SRV_mountd -gt 0 ] && { 
   mnt_path=$(uci get mountd.mountd.path); 
   for f in $(find ${mnt_path} -type l);do 
-    echo "[$SCRIPT]: Attempting to unmount $f..."; 
-    umount $f; 
+    pwd | grep -q -v "$f" && echo "[$SCRIPT]: Attempting to unmount $f..." && umount $f;
   done; 
   echo -e "[$SCRIPT]: \033[1;32mNOTE: You should remove and re-insert any mounted USB device\033[0m"; 
 }
-[ "$PRNTR_NOW" = "0" -o "$PRNTR" = "0" ] && /etc/init.d/cupsd stop > /dev/null 2>&1
-[ "$PRNTR_NOW" = "0" -a "$PRNTR" = "1" ] && /etc/init.d/cupsd restart > /dev/null 2>&1
-[ "$DLNA_NOW" = "0" -o "$DLNAD" = "0" ] && /etc/init.d/mud stop > /dev/null 2>&1
-[ "$DLNA_NOW" = "0" -a "$DLNAD" = "1" ] && /etc/init.d/mud restart > /dev/null 2>&1
-if [ "$LITE" = 'y' ]
-then
-  [ $SRV_dumaos -gt 0 -a "$DUMAOS" = "0" ] && { /etc/init.d/dumaos disable; /etc/init.d/ndhttpd disable; /etc/init.d/dumaos stop; /etc/init.d/ndhttpd stop; } > /dev/null 2>&1
-  [ $SRV_dumaos -gt 0 -a "$DUMAOS" = "0" -a -e /etc/init.d/telemetry-daemon ] && { /etc/init.d/telemetry-daemon disable; /etc/init.d/telemetry-daemon stop } > /dev/null 2>&1
-  [ $SRV_multiap -gt 0 -a "$MULTIAP" = "0" ] && { /etc/init.d/multiap_controller disable; /etc/init.d/multiap_agent disable; /etc/init.d/multiap_controller stop; /etc/init.d/multiap_agent stop; /etc/init.d/multiap_vendorextensions disable; /etc/init.d/multiap_vendorextensions stop; } > /dev/null 2>&1
+[ "$LITE" = 'y' ] && {
+  echo [$SCRIPT]: Disabling services to save memory...
   [ "$DECT" = "0" ] && { /etc/init.d/mmpbxbrcmdect disable; /etc/init.d/mmpbxbrcmdect stop; } > /dev/null 2>&1
   [ "$DLNAD" = "0" ] && { /etc/init.d/mud disable; /etc/init.d/mud stop; } > /dev/null 2>&1
+  [ "$DUMAOS" = "0" -a $SRV_dumaos -gt 0 ] && { /etc/init.d/dumaos disable; /etc/init.d/ndhttpd disable; /etc/init.d/dumaos stop; /etc/init.d/ndhttpd stop; } > /dev/null 2>&1
+  [ "$DUMAOS" = "0" -a $SRV_dumaos -gt 0 -a -e /etc/init.d/telemetry-daemon ] && { /etc/init.d/telemetry-daemon disable; /etc/init.d/telemetry-daemon stop; } > /dev/null 2>&1
   [ "$MMPBX" = "0" ] && { /etc/init.d/mmpbxd disable; /etc/init.d/mmpbxfwctl disable; /etc/init.d/mmpbxd stop; /etc/init.d/mmpbxfwctl stop; } > /dev/null 2>&1
+  [ "$MULTIAP" = "0" -a $SRV_multiap -gt 0 ] && { /etc/init.d/multiap_controller disable; /etc/init.d/multiap_agent disable; /etc/init.d/multiap_vendorextensions disable; /etc/init.d/multiap_controller stop; /etc/init.d/multiap_agent stop; /etc/init.d/multiap_vendorextensions stop; } > /dev/null 2>&1
   [ "$PRNTR" = "0" ] && { /etc/init.d/cupsd disable; /etc/init.d/cupsd stop; } > /dev/null 2>&1
   [ "$SAMBA" = "0" -a -e /etc/init.d/samba ] && { /etc/init.d/samba disable; /etc/init.d/samba stop; } > /dev/null 2>&1
   [ "$SAMBA" = "0" -a -e /etc/init.d/samba-nmbd ] && { /etc/init.d/samba-nmbd disable; /etc/init.d/samba-nmbd stop; } > /dev/null 2>&1
   [ "$UPNP" = "0" ] && { /etc/init.d/miniupnpd-tch disable; /etc/init.d/miniupnpd-tch stop; } > /dev/null 2>&1
   { /etc/init.d/lte-doctor-logger disable; /etc/init.d/lte-doctor-logger stop; } > /dev/null 2>&1
   [ ! -e /etc/ipsec.conf ] && { /etc/init.d/xl2tpd disable; /etc/init.d/xl2tpd stop; } > /dev/null 2>&1
-fi
+}
 
 if [ ! -z "$PACKAGES_TO_REMOVE" ]
 then
@@ -1055,7 +1055,6 @@ do
     cp -p /rom$f $f
   fi
 done
-
 
 echo [$SCRIPT]: Cleaning up broken links in /etc/rc.d
 find /etc/rc.d -type l ! -exec test -e {} \; -exec rm {} \;
