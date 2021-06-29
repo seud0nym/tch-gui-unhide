@@ -996,7 +996,8 @@ fi
 [ $SRV_bulkdata -gt 0 ] && { /etc/init.d/bulkdata disable; /etc/init.d/bulkdata stop; } > /dev/null 2>&1
 [ $SRV_ntp -gt 0 ] && /etc/init.d/sysntpd restart > /dev/null 2>&1
 [ $SRV_system -gt 0 ] && /etc/init.d/system reload > /dev/null 2>&1
-[ $SRV_samba -gt 0 ] && { /etc/init.d/samba reload; /etc/init.d/samba-nmbd reload; } > /dev/null 2>&1
+[ $SRV_samba -gt 0 ] && /etc/init.d/samba reload; > /dev/null 2>&1
+[ $SRV_samba -gt 0 -a -e /etc/init.d/samba-nmbd ] && /etc/init.d/samba-nmbd reload; > /dev/null 2>&1
 [ $SRV_dlna -gt 0 ] && /etc/init.d/dlnad restart > /dev/null 2>&1
 [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear reload > /dev/null 2>&1
 [ $SRV_dhcp -gt 0 ] && /etc/init.d/dnsmasq reload > /dev/null 2>&1
@@ -1023,12 +1024,14 @@ fi
 if [ "$LITE" = 'y' ]
 then
   [ $SRV_dumaos -gt 0 -a "$DUMAOS" = "0" ] && { /etc/init.d/dumaos disable; /etc/init.d/ndhttpd disable; /etc/init.d/dumaos stop; /etc/init.d/ndhttpd stop; } > /dev/null 2>&1
+  [ $SRV_dumaos -gt 0 -a "$DUMAOS" = "0" -a -e /etc/init.d/telemetry-daemon ] && { /etc/init.d/telemetry-daemon disable; /etc/init.d/telemetry-daemon stop } > /dev/null 2>&1
   [ $SRV_multiap -gt 0 -a "$MULTIAP" = "0" ] && { /etc/init.d/multiap_controller disable; /etc/init.d/multiap_agent disable; /etc/init.d/multiap_controller stop; /etc/init.d/multiap_agent stop; /etc/init.d/multiap_vendorextensions disable; /etc/init.d/multiap_vendorextensions stop; } > /dev/null 2>&1
   [ "$DECT" = "0" ] && { /etc/init.d/mmpbxbrcmdect disable; /etc/init.d/mmpbxbrcmdect stop; } > /dev/null 2>&1
   [ "$DLNAD" = "0" ] && { /etc/init.d/mud disable; /etc/init.d/mud stop; } > /dev/null 2>&1
   [ "$MMPBX" = "0" ] && { /etc/init.d/mmpbxd disable; /etc/init.d/mmpbxfwctl disable; /etc/init.d/mmpbxd stop; /etc/init.d/mmpbxfwctl stop; } > /dev/null 2>&1
   [ "$PRNTR" = "0" ] && { /etc/init.d/cupsd disable; /etc/init.d/cupsd stop; } > /dev/null 2>&1
-  [ "$SAMBA" = "0" ] && { /etc/init.d/samba disable; /etc/init.d/samba-nmbd disable; /etc/init.d/samba stop; /etc/init.d/samba-nmbd stop; } > /dev/null 2>&1
+  [ "$SAMBA" = "0" -a -e /etc/init.d/samba ] && { /etc/init.d/samba disable; /etc/init.d/samba stop; } > /dev/null 2>&1
+  [ "$SAMBA" = "0" -a -e /etc/init.d/samba-nmbd ] && { /etc/init.d/samba-nmbd disable; /etc/init.d/samba-nmbd stop; } > /dev/null 2>&1
   [ "$UPNP" = "0" ] && { /etc/init.d/miniupnpd-tch disable; /etc/init.d/miniupnpd-tch stop; } > /dev/null 2>&1
   { /etc/init.d/lte-doctor-logger disable; /etc/init.d/lte-doctor-logger stop; } > /dev/null 2>&1
   { /etc/init.d/xl2tpd disable; /etc/init.d/xl2tpd stop; } > /dev/null 2>&1
