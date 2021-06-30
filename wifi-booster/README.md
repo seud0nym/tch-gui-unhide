@@ -76,7 +76,7 @@ Options:
               This is the LAN IP address of the primary device
               (This option is ignored if -R specified)
  -n n.n.n.n  Set LAN DNS Server IP address to n.n.n.n 
-              Specify multiple times for multiple DNS servers. Default is teh LAN Gateway IP address.
+              Specify multiple times for multiple DNS servers. Default is the LAN Gateway IP address.
               (This option is ignored if -R specified)
  -l 0-9      Set MultiAP logging level 
               0=off 2=Default 9=very verbose
