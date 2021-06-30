@@ -76,12 +76,13 @@ Options:
  -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
  -m u|y|n            * MultiAP (EasyMesh):      u=unchanged y=Enable n=Disable
  -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
+ -q u|y|n            * NFC:                     u=unchanged y=Enable n=Disable
  -w u|y|n              WPS on non-Guest and non-Backhaul SSIDs: u=unchanged y=Enable n=Disable
  -F u|y|n              Factory reset root protection: u=unchanged y=Enable n=Disable
                           NOTE: Installation of tch-gui-unhide will ALWAYS enable RTFD protection!
  -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un -wn -Fy
  -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn -Fy
- -M                    Minimum memory mode: Equivalent to: -an -cn -fn -rn -tn -en -un -mn -gn -Fy
+ -M                    Minimum memory mode: Equivalent to: -an -cn -fn -rn -tn -en -un -mn -gn -qn -Fy
                         PLUS stops and disables the associated services
  -R                    Reset to device defaults
                         (equivalent to: -h mymodem -d modem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy -Fn)
@@ -192,12 +193,13 @@ It does what it says. It is a copy of the commands from https://hack-technicolor
 Usage: ./reset-to-factory-defaults-with-root [options]
 
 Options:
- -b           Make a full backup of your booted bank configuration (requires attached USB device).
- -c           Disable CWMPD configuration during first boot after reset.
- -f filename  Flash 'filename' into the mounted bank after reset and before reboot,
-                If 'filename' ends with .rbi, it will be unpacked first, either to an attached USB device, or /tmp if no USB detected.
  -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
- -i           Keep the existing IP address after reset and reboot.
+ -i           Keep existing IP address after reset and reboot.
+ -c           Disable CWMP configuration during first boot after reset.
+ -b           Make a full backup of your booted bank configuration (requires attached USB device).
+ -f filename  Flash 'filename' into the mounted bank after reset and before reboot.
+                If 'filename' ends with .rbi, it will be unpacked first, either to an attached USB device, or /tmp if no USB detected.
+ -y           Bypass confirmation prompt (answers 'y')
  -n           Do NOT reboot.
  -U           Download the latest version of reset-to-factory-defaults-with-root rom GitHub
 ```
