@@ -9,12 +9,13 @@ but with some additional options.
 Usage: $0 [options]
 
 Options:
- -b           Make a full backup of your booted bank configuration (requires attached USB device).
- -c           Disable CWMPD configuration during first boot after reset.
- -f filename  Flash 'filename' into the mounted bank ($BOOTED) after reset and before reboot,
-                If 'filename' ends with .rbi, it will be unpacked first, either to an attached USB device, or /tmp if no USB detected.
  -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
  -i           Keep existing IP address [$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)] after reset and reboot.
+ -c           Disable CWMP configuration during first boot after reset.
+ -b           Make a full backup of your booted bank configuration (requires attached USB device).
+ -f filename  Flash 'filename' into the mounted bank ($BOOTED) after reset and before reboot.
+                If 'filename' ends with .rbi, it will be unpacked first, either to an attached USB device, or /tmp if no USB detected.
+ -y           Bypass confirmation prompt (answers 'y')
  -n           Do NOT reboot.
  -U           Download the latest version of $SCRIPT from GitHub
 
@@ -53,7 +54,9 @@ FIRMWARE=""
 REBOOT="Y"
 IPADDR=""
 CWMP=""
-while getopts :bf:I:incU option
+YES=N
+
+while getopts :bf:I:incyU option
 do
  case "${option}" in
   b)  BKUP="Y";;
@@ -69,6 +72,7 @@ do
   i)  IPADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)";;
   n)  REBOOT="N";;
   c)  CWMP="uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop;";;
+  y)  YES=Y;;
   U)  upgrade;;
   *)  usage;;
  esac
@@ -164,10 +168,14 @@ if [ $? -eq 0 ]; then
   echo
 fi
 echo -n "ACTION:  Enter y to continue, or anything else to exit now "
-read
-if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]
-then
-  exit
+if [ $YES = N ]; then
+  read
+  if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]
+  then
+    exit
+  fi
+else
+  echo
 fi
 
 if [ $RBI = y ]
