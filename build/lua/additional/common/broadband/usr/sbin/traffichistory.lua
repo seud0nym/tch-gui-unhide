@@ -194,7 +194,7 @@ local function DataAggregator(datadir, histdir)
 end
 
 -- lock file directory
-local lock = lfs.lock_dir(datadir)
+local lock = lfs.lock_dir(datadir, 90)
 if lock then
   pcall(DataAggregator, datadir, histdir)
   -- unlock file directory
@@ -204,4 +204,5 @@ else
     print("Failed to acquire local on "..datadir) 
   end
   os.execute("logger -t traffichistory -p 132 Failed to acquire lock on "..datadir)
+  os.execute("ps | grep ")
 end
