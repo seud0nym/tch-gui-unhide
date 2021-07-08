@@ -131,11 +131,13 @@ lua -e "
   for i,filter in pairs(status.filters) do
     blocklists[filter.url]=true
   end
-  for i,filter in pairs(status.whitelist_filters) do
-    whitelists[filter.url]=true
+  if status.whitelist_filters then
+    for i,filter in pairs(status.whitelist_filters) do
+      whitelists[filter.url]=true
+    end
   end
   toadd={}
-  curl=popen('curl -s https://v.firebog.net/hosts/lists.php?type=tick')
+  curl=popen('curl -sk https://v.firebog.net/hosts/lists.php?type=tick')
   for url in curl:lines() do
     if not blocklists[url] then
       toadd[#toadd+1]={ name='Added from https://firebog.net', url=url, whitelist=false }
