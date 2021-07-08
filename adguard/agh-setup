@@ -1,0 +1,781 @@
+#!/bin/sh
+# Make sure that we are running on Telstra firmware
+if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]
+then
+  echo "ERROR! This script is intended for devices with Telstra firmware. Exiting"
+  exit 1
+fi
+
+SCRIPT="AdGuard-Home-Setup"
+
+usage() {
+cat <<EOH
+Installs AdGuard Home and replaces dnsmasq for DNS and DHCP.
+
+By default, it will be installed on a permanently mounted USB device, unless
+the -i option is specified.
+
+Usage: agh-setup [options]
+
+options:
+ -n username  The AdGuard Home web user name.
+                If not specified, the user name defaults to: root
+ -p password  The plain text AdGuard Home web password. The password will be
+                hashed by calling https://bcrypt.org/api/generate-hash.json
+ -h 'hash'    The Bcrypt password hash representing the AdGuard Home web
+                password. If not specified and -p is also not specifed, the
+                password defaults to: agh-admin
+                The hash value MUST be specified within single quotes.
+                You can generate the hash using an online generator, such as:
+                  - https://bcrypt.org/
+                  - https://www.appdevtools.com/bcrypt-generator
+                  - https://wtools.io/bcrypt-generator-online
+                If you supply a password hash, you should use the -p option
+                to specify the matching password, so that AdGuard Home status
+                can be checked post-installation, and any static leases
+                currently defined in dnsmasq can be loaded into AdGuard Home.
+ -i           Install AdGuard Home on INTERNAL storage rather than USB.
+                WARNING! This option requires the working directory to be 
+                created on tmpfs, which is cleared on reboot. However, this
+                script will set up a cron sync job, so that the most you 
+                should lose will be the events and changes in the last 
+                minute before an unexpected system reboot.
+ -x c|g|i|u|x Exclude features:
+                -xc   Do not update System CA certificates
+                        NOTE: If certificates are not up to date, AdGuard Home
+                              will FAIL to download filters
+                -xg   Do not get the latest version of AdGuard Home if it has
+                        already been downloaded
+                -xi   Do not enable DNS hijacking/interception
+                -xu   Do not download utility scripts
+                -xx   Same as -xc -xg -xi -xu
+ -s           Skips the free memory check.
+                If there is not enough free memory, the installation will be
+                aborted. Use this option to install anyway.
+ -r           Removes AdGuard Home and re-enables dnsmasq.
+ -u           Uninstalls AdGuard Home (but does not remove it) and re-enables
+                dnsmasq.
+
+NOTE: The -r and -u options are mutually exclusive. If both are specified, the
+      LAST specified will take precedence. If either is specified, all other
+      options are ignored.
+
+EOH
+exit
+}
+
+GREEN='\033[1;32m'
+ORANGE='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+DFLT_PSWD='agh-admin'
+DFLT_HASH='$2a$10$NYfg4LYdisfCFeuhd5k25OFOvY/8HxFMEon1xaiSBkdXzeclmJUzq'
+USERNAME='root'
+PASSWORD="$DFLT_PSWD"
+PWD_HASH="$DFLT_HASH"
+CA_CERT=Y
+DEL_AGH=Y
+DOWNLOAD=Y
+INTERCEPTION=Y
+UTILITIES=Y
+EXTERNAL=Y
+REMOVE=N
+QUERYLOG_INTERVAL=90
+SKIP_MEM_CHK=N
+INSTALL_ROOT="/root"
+
+while getopts :ih:n:p:rsux: option
+do
+ case "${option}" in
+  i)  EXTERNAL=N;QUERYLOG_INTERVAL=1;;
+  h)  PWD_HASH="$OPTARG";;
+  n)  USERNAME="$OPTARG";;
+  p)  PASSWORD="$OPTARG";;
+  r)  REMOVE=Y;DEL_AGH=Y;;
+  s)  SKIP_MEM_CHK=Y;;
+  u)  REMOVE=Y;DEL_AGH=N;;
+  x)  case "$OPTARG" in
+        c)  CA_CERT=N;;
+        g)  DOWNLOAD=N;;
+        i)  INTERCEPTION=N;;
+        u)  UTILITIES=N;;
+        x)  CA_CERT=N;DOWNLOAD=N;INTERCEPTION=N;UTILITIES=N;;
+        *)  echo -e "${RED}[$SCRIPT] Unknown -x$OPTARG option! Aborting...${NC}"; exit 2;;
+      esac;;
+  *)  usage;;
+ esac
+done
+shift $((OPTIND-1))
+
+IPv4=$(ip -o a | grep -E '^[0-9]*: br-lan * inet ' | tr -s ' ' | cut -d' ' -f4 | cut -d/ -f1)
+IPv6=$(ip -o a | grep -v -E '^[0-9]*: (lo|if|wl|br-lan)' | grep ' inet6 '| grep -v -E ' inet6 f[de]'  | tr -s ' ' | cut -d' ' -f4 | cut -d/ -f1 | xargs)
+
+configure_dnmasq() {
+  local DNSMASQ="$1"
+  local DHCP_SERVER=""
+  local PEER_DNS=""
+  local LIST_ACTION=""
+
+  if [ "$DNSMASQ" = "enable" ]; then
+    PEER_DNS="1"
+    LIST_ACTION="del"
+    DHCP_SERVER="server"
+  else
+    PEER_DNS="0"
+    LIST_ACTION="add"
+    DHCP_SERVER="disabled"
+  fi
+
+  echo -e "${GREEN}[$SCRIPT] Configuring IPv4 WAN DNS...${NC}"
+  uci set network.wan.peerdns="$PEER_DNS"
+  uci -q delete network.wan.dns
+
+  if [ ! -z "$IPv6" ]; then
+    echo -e "${GREEN}[$SCRIPT] Configuring IPv6 DNS...${NC}"
+    uci set network.wan6.peerdns="$PEER_DNS"
+    for addr in $IPv6
+    do
+      uci -q ${LIST_ACTION}_list network.lan.dns="$addr"
+      uci -q ${LIST_ACTION}_list network.wan6.dns="$addr"
+    done
+  fi
+
+  echo -e "${GREEN}[$SCRIPT] Applying network changes...${NC}"
+  uci commit network
+  /etc/init.d/network reload >/dev/null 2>&1
+
+  echo -e "${GREEN}[$SCRIPT] Configuring dnsmasq...${NC}"
+  uci set dhcp.lan.dhcpv4="$DHCP_SERVER"
+  uci set dhcp.lan.dhcpv6="$DHCP_SERVER"
+  uci set dhcp.lan.ra="$DHCP_SERVER"
+  uci commit dhcp
+  # Have to restart even if disabling to apply changes to transformer
+  /etc/init.d/dnsmasq restart
+  if [ "$DNSMASQ" = "enable" ]; then
+    /etc/init.d/dnsmasq enable
+    echo -e "[$SCRIPT] dnsmasq enabled and restarted${NC}"
+
+    echo -e "${GREEN}[$SCRIPT] Re-allocating port 443 back to nginx...${NC}"
+    sed -e  's/\(#*\)\(listen *443 ssl;\)/\2/' -i /etc/nginx/nginx.conf
+  else
+    /etc/init.d/dnsmasq disable
+    /etc/init.d/dnsmasq stop
+    echo -e "[$SCRIPT] dnsmasq disabled and stopped${NC}"
+
+    echo -e "${GREEN}[$SCRIPT] Freeing port 443...${NC}"
+    sed -e 's/\( [^#]\)\(listen *443 ssl;\)/  #\2/' -i /etc/nginx/nginx.conf
+  fi
+  /etc/init.d/nginx restart
+}
+
+if [ $REMOVE = Y ]; then
+  AGH_CMD=$(grep -o -m 1 -E '/.*/AdGuardHome/AdGuardHome ' /etc/init.d/AdGuardHome 2>/dev/null)
+  if [ $? -eq 0 ]; then
+    echo -e "${GREEN}[$SCRIPT] Uninstalling AdGuard Home...${NC}"
+    $AGH_CMD -s stop
+    $AGH_CMD -s uninstall
+
+    configure_dnmasq enable
+
+    if [ $DEL_AGH = Y ]; then
+      echo -e "${GREEN}[$SCRIPT] Deleting AdGuard Home installation...${NC}"
+      rm -rf $(dirname $AGH_CMD)
+      [ ! -z "$(echo $AGH_CMD | grep -E '^/root')" ] && rm -rf /tmp/data /tmp/AdGuardHome.yaml leases.db 2>/dev/null
+    fi
+
+    if [ -e /etc/init.d/sync-adguard-home-data ]; then
+      echo -e "${GREEN}[$SCRIPT] Removing data directory sync hack...${NC}"
+      /etc/init.d/sync-adguard-home-data uninstall
+      rm /etc/init.d/sync-adguard-home-data
+    fi
+
+    if [ -e /etc/hotplug.d/mount/00-adguardhome ]; then
+      echo -e "${GREEN}[$SCRIPT] Removing USB mount hotplug...${NC}"
+      rm /etc/hotplug.d/mount/00-adguardhome
+    fi
+
+    grep -q "agh-lists-update" /etc/crontabs/root
+    if [ $? -eq 0 ]
+    then
+      echo -e "${GREEN}[$SCRIPT] Removing scheduled block list update...${NC}"
+      sed -e "/agh-lists-update/d" -i /etc/crontabs/root
+    fi    
+
+    echo -e "${GREEN}[$SCRIPT] Done${NC}"
+    exit
+  else
+    echo -e "${RED}[$SCRIPT] AdGuard Home installation not found! Aborting...${NC}"
+    exit 1
+  fi
+fi
+
+if [ -e /etc/init.d/AdGuardHome ]; then
+  echo -e "${RED}[$SCRIPT] Existing AdGuard Home installation found! Aborting...${NC}"
+  exit 2
+fi
+
+if [ \( "$DFLT_HASH" = "$PWD_HASH" -a "$DFLT_PSWD" != "$PASSWORD" \) ]; then
+  PWD_HASH=""
+fi
+if [ \( "$DFLT_HASH" != "$PWD_HASH" -a "$DFLT_PSWD" = "$PASSWORD" \) ]; then
+  echo -e "${RED}[$SCRIPT] You need to specify -p when you specify -h, so that AdGuard Home status can be checked post-installation.${NC}"
+  exit 2
+fi
+if [ -z "$PWD_HASH" ]; then
+  if [ -z "$PASSWORD" ]; then
+    echo -e "${RED}[$SCRIPT] No password hash specified! Aborting...${NC}"
+    exit 2
+  fi
+else
+  echo "$PWD_HASH" | grep -q -E '^\$2[a-z]\$[0-9][0-9]\$'
+  if [ $? -ne 0 ];then
+    echo -e "${RED}[$SCRIPT] Password hash missing or incorrect! Make sure you use 10 Rounds when generating the hash. Aborting...${NC}"
+    exit 2
+  fi
+fi
+
+MOUNT_PATH=$(uci get mountd.mountd.path)
+USB="$(ls $MOUNT_PATH | head -n1)"
+
+if [ $EXTERNAL = Y ]; then
+  if [ -z "$USB" ]; then
+    echo -e "${RED}[$SCRIPT] No USB device found! Aborting...${NC}"
+    exit 2
+  fi
+  grep $(readlink -f "${MOUNT_PATH}${USB}") /proc/mounts | grep -q noexec
+  if [ $? -eq 0 ]; then
+    echo -e "${RED}[$SCRIPT] USB device has been mounted with noexec option! Unable to use as install path.${NC}"
+    echo -e "${ORANGE}[$SCRIPT] You can fix this by running de-telstra${NC}"
+    echo -e "${RED}[$SCRIPT] Aborting...${NC}"
+    exit 2
+  fi
+  INSTALL_ROOT="${MOUNT_PATH}${USB}"
+  WORKING_DIR="${MOUNT_PATH}${USB}/AdGuardHome/data"
+else
+  INSTALL_ROOT="/root"
+  WORKING_DIR="/tmp/AdGuardHomeWork"
+fi
+cd $INSTALL_ROOT
+
+DOMAIN=$(uci -q get dhcp.main.domain)
+if [ $? -ne 0 -o -z "$DOMAIN" ]; then
+  echo -e "${ORANGE}[$SCRIPT] Failed to determine LAN domain name? Defaulting to gateway${NC}"
+  DOMAIN="gateway"
+fi
+
+if [ $CA_CERT = Y ]; then
+  echo -e "${GREEN}[$SCRIPT] Downloading latest version of update-ca-certificates...${NC}"
+  curl -kL -o /tmp/update-ca-certificates https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/update-ca-certificates
+  if [ $? -eq 0 ]
+  then
+    chmod +x /tmp/update-ca-certificates
+    echo "[$SCRIPT] Successfully downloaded update-ca-certificates."
+  else
+    echo -e "${RED}[$SCRIPT] Failed to download update-ca-certificates! Aborting...${NC}"
+    exit 2
+  fi
+  echo -e "${GREEN}[$SCRIPT] Running update-ca-certificates...${NC}"
+  sh /tmp/update-ca-certificates -v
+  rm /tmp/update-ca-certificates
+fi
+
+if [ $EXTERNAL = N ]; then
+  opkg list-installed | grep -q -E '^rsync '
+  if [ $? -ne 0 ]; then
+    echo -e "${GREEN}[$SCRIPT] Installing on internal storage requires the rsync backup hack...${NC}"
+    OPKG_FEEDS=$(lua -e '
+      require("web.taint")
+      proxy = require("datamodel")
+      feeds = proxy.get("rpc.gui.opkg.feeds_configured")
+      if feeds then
+        print(feeds[1].value)
+      else
+        print("-1")
+      end
+    ')
+    if [ "$OPKG_FEEDS" == "-1" ]; then
+      echo -e "${RED}[$SCRIPT] ERROR! tch-gui-unhide does not seem to be installed. Aborting...${NC}"
+      exit 2
+    elif [ "$OPKG_FEEDS" == "0" ]; then
+      echo -e "${ORANGE}[$SCRIPT] WARNING! Need to configure opkg. This make take a little while...${NC}"
+      OPKG_FEEDS=$(lua -e '
+        require("web.taint")
+        proxy = require("datamodel")
+        proxy.set("rpc.gui.opkg.feeds_configured", "1")
+        feeds = proxy.get("rpc.gui.opkg.feeds_configured")
+        print(feeds[1].value)
+      ')
+      if [ "$OPKG_FEEDS" = "1" ]; then
+        echo -e "${GREEN}[$SCRIPT] opkg successfully configured...${NC}"
+      else
+        echo -e "${RED}[$SCRIPT] ERROR! Failed to configure opkg. Aborting...${NC}"
+        exit 2
+      fi
+    fi
+
+    echo -e "${GREEN}[$SCRIPT] Updating package lists...${NC}"
+    opkg update
+
+    echo -e "${GREEN}[$SCRIPT] Installing required packages...${NC}"
+    opkg install rsync
+    if [ $? -ne 0 ]; then
+      echo -e "${RED}[$SCRIPT] ERROR! Failed to install required packages. Aborting...${NC}"
+      exit 2
+    fi
+  fi
+fi
+
+if [ -z "$PWD_HASH" -a ! -z "$PASSWORD" ]; then
+  echo -e "${GREEN}[$SCRIPT] Generating password hash...${NC}"
+  results=$(lua -e "
+    dkjson=require('dkjson')
+    cmd=io.popen('curl -sLX POST --data \"password=$PASSWORD&cost=10\" https://bcrypt.org/api/generate-hash.json')
+    json=cmd:read('*a')
+    cmd:close()
+    obj=dkjson.decode(json)
+    print(obj.ok,obj.password,obj.hash,obj.msg)
+  ")
+  shift $#
+  set -- $results
+  HASHD_OK="$1"; shift
+  CHCK_PWD="$1"; shift
+  NEW_HASH="$1"; shift
+  HASH_MSG="$*"
+  if [ "$HASHD_OK" = "true" ]; then
+    if [ "$CHCK_PWD" = "$PASSWORD" ]; then
+      PWD_HASH="$NEW_HASH"
+    else
+      echo -e "${RED}[$SCRIPT] Returned password ($CHCK_PWD) is not the same as the sent password ($PASSWORD)??? Aborting...${NC}"
+      exit 2
+    fi
+  else
+    echo -e "${RED}[$SCRIPT] Password hash failed with message: $HASH_MSG Aborting...${NC}"
+    exit 2
+  fi
+fi
+
+if [ $INTERCEPTION = Y ]; then
+  echo -e "${GREEN}[$SCRIPT] Downlading latest version of intercept-dns...${NC}"
+  curl -kL -o /tmp/intercept-dns https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/intercept-dns
+  if [ $? -eq 0 ]
+  then
+    chmod +x /tmp/intercept-dns
+    echo "[$SCRIPT] Successfully downloaded intercept-dns."
+  else
+    echo -e "${RED}[$SCRIPT] Failed to download intercept-dns! Aborting...${NC}"
+    exit 2
+  fi
+fi
+
+if [ $DOWNLOAD = Y -o ! -d AdGuardHome ]; then
+  echo -e "${GREEN}[$SCRIPT] Downloading latest release of AdGuard Home...${NC}"
+  curl -kL https://static.adguard.com/adguardhome/release/AdGuardHome_linux_armv5.tar.gz | tar -xzf -
+  if [ $? -ne 0 ]; then
+    echo -e "${RED}[$SCRIPT] Failed to download AdGuard Home! Aborting...${NC}"
+    exit 2
+  fi
+fi
+
+[ ! -d $WORKING_DIR ] && mkdir -p $WORKING_DIR
+
+echo -e "${GREEN}[$SCRIPT] Disabling dnsmasq to free up RAM and port 53...${NC}"
+configure_dnmasq disable
+
+RAM_FREE=$(free | grep buffers: | tr -s ' ' | cut -d' ' -f4)
+echo -e "[$SCRIPT] Reported Free RAM = ${RAM_FREE}KB"
+if [ $SKIP_MEM_CHK = N -a $RAM_FREE -lt 40000 ];then
+  echo -e "${RED}[$SCRIPT] Insufficient free RAM! You need to shut down unnecessary services to free memory${NC}"
+  echo -e "${ORANGE}[$SCRIPT] (Re-run with the -s option to skip this check.)${NC}"
+  echo -e "[$SCRIPT] Re-enabling dnsmasq...${NC}"
+  configure_dnmasq
+  echo -e "${RED}[$SCRIPT] Aborting...${NC}"
+  exit 2
+fi
+
+echo -e "${GREEN}[$SCRIPT] Extracting IP addresses from current configuration...${NC}"
+DHCP_SETTINGS=$(lua -e '
+  require("web.taint")
+  bit = require("bit")
+  proxy = require("datamodel")
+  posix = require("tch.posix")
+  function num2ipv4(ip)
+    local ret = bit.band(ip, 255)
+    ip = bit.rshift(ip,8)
+    for i=1,3 do
+      ret = bit.band(ip,255) .. "." .. ret
+      ip = bit.rshift(ip,8)
+    end
+    return ret
+  end
+  function ipv42num(ipstr)
+    local ip = posix.inet_pton(posix.AF_INET, ipstr)
+    if not ip then
+      return nil
+    end
+    local b1, b2, b3, b4 = ip:byte(1,4)
+    return bit.tobit((b1*16777216) + (b2*65536) + (b3*256) + b4)
+  end
+  values = proxy.get(
+    "uci.network.interface.@lan.ipaddr",
+    "uci.network.interface.@lan.netmask",
+    "uci.dhcp.dhcp.@lan.start",
+    "uci.dhcp.dhcp.@lan.limit",
+    "rpc.network.interface.@lan.ip6prefix_assignment",
+    "uci.dhcp.dhcp.@lan.leasetime"
+  )
+  netmask = ipv42num(values[2].value)
+  network = bit.band(ipv42num(values[1].value), netmask)
+  ipmax = bit.bor(network, bit.bnot(netmask)) - 1
+  ipstart = bit.bor(network, bit.band(tonumber(values[3].value), bit.bnot(netmask)))
+  ipend = ipstart + tonumber(values[4].value) - 1
+  if ipend > ipmax then
+    ipend = ipmax
+  end
+  ipv6start = string.match(values[5].value or "", "(.*)/(%d+)") or ""
+  time,precision = string.match(values[6].value, "^(%d+)([wdhms])$")
+  if not precision then
+    time = 3600
+  elseif precision == "w" then
+    time = time * 604800
+  elseif precision == "d" then
+    time = time * 86400
+  elseif precision == "h" then
+    time = time * 3600
+  elseif precision == "m" then
+    time = time * 60
+  end
+  print(values[1].value,values[2].value,num2ipv4(ipstart),num2ipv4(ipend),time,ipv6start)
+')
+shift $#
+set -- $DHCP_SETTINGS
+GATEWAY=$1
+NETMASK=$2
+DHCPv4_START=$3
+DHCPv4_END=$4
+LEASE_TIME=$5
+if [ ! -z "$6" ]; then
+  DHCPv6_START=$6
+  SLAAC="true"
+else
+  DHCPv6_START='""'
+  SLAAC="false"
+fi
+
+BIND_HOSTS="|  - 127.0.0.1|"
+for addr in $IPv4 $IPv6
+do
+  BIND_HOSTS="${BIND_HOSTS}  - ${addr}|"
+done
+if [ "$BIND_HOSTS" = "|  - 127.0.0.1|" ]; then
+  BIND_HOSTS="  - 0.0.0.0"
+fi
+BIND_HOSTS="$(echo "$BIND_HOSTS" | tr '|' '\n')"
+
+echo -e "${GREEN}[$SCRIPT] Configuring AdGuard Home...${NC}"
+cat <<YAML_END >$INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml
+bind_host: $GATEWAY
+bind_port: 8008
+beta_bind_port: 0
+users:
+- name: $USERNAME
+  password: $PWD_HASH
+auth_attempts: 5
+block_auth_min: 15
+http_proxy: ""
+language: ""
+rlimit_nofile: 0
+debug_pprof: false
+web_session_ttl: 720
+dns:
+  bind_hosts:$BIND_HOSTS
+  port: 53
+  statistics_interval: 1
+  querylog_enabled: true
+  querylog_file_enabled: true
+  querylog_interval: $QUERYLOG_INTERVAL
+  querylog_size_memory: 1000
+  anonymize_client_ip: false
+  protection_enabled: true
+  blocking_mode: default
+  blocking_ipv4: ""
+  blocking_ipv6: ""
+  blocked_response_ttl: 10
+  parental_block_host: family-block.dns.adguard.com
+  safebrowsing_block_host: standard-block.dns.adguard.com
+  ratelimit: 20
+  ratelimit_whitelist: []
+  refuse_any: true
+  upstream_dns:
+  - https://dns10.quad9.net/dns-query
+  upstream_dns_file: ""
+  bootstrap_dns:
+  - 9.9.9.10
+  - 149.112.112.10
+  - 2620:fe::10
+  - 2620:fe::fe:10
+  all_servers: false
+  fastest_addr: false
+  allowed_clients: []
+  disallowed_clients: []
+  blocked_hosts:
+  - version.bind
+  - id.server
+  - hostname.bind
+  cache_size: 4194304
+  cache_ttl_min: 0
+  cache_ttl_max: 0
+  bogus_nxdomain: []
+  aaaa_disabled: false
+  enable_dnssec: false
+  edns_client_subnet: false
+  max_goroutines: 300
+  ipset: []
+  filtering_enabled: true
+  filters_update_interval: 24
+  parental_enabled: false
+  safesearch_enabled: false
+  safebrowsing_enabled: false
+  safebrowsing_cache_size: 1048576
+  safesearch_cache_size: 1048576
+  parental_cache_size: 1048576
+  cache_time: 30
+  rewrites: []
+  blocked_services: []
+  local_domain_name: $DOMAIN
+  resolve_clients: true
+  local_ptr_upstreams: []
+tls:
+  enabled: false
+  server_name: ""
+  force_https: false
+  port_https: 443
+  port_dns_over_tls: 853
+  port_dns_over_quic: 784
+  port_dnscrypt: 0
+  dnscrypt_config_file: ""
+  allow_unencrypted_doh: false
+  strict_sni_check: false
+  certificate_chain: ""
+  private_key: ""
+  certificate_path: ""
+  private_key_path: ""
+filters:
+- enabled: true
+  url: https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt
+  name: AdGuard DNS filter
+  id: 1
+- enabled: true
+  url: https://adaway.org/hosts.txt
+  name: AdAway Default Blocklist
+  id: 2
+- enabled: false
+  url: https://www.malwaredomainlist.com/hostslist/hosts.txt
+  name: MalwareDomainList.com Hosts List
+  id: 4
+whitelist_filters: []
+user_rules: []
+dhcp:
+  enabled: true
+  interface_name: br-lan
+  dhcpv4:
+    gateway_ip: $GATEWAY
+    subnet_mask: $NETMASK
+    range_start: $DHCPv4_START
+    range_end: $DHCPv4_END
+    lease_duration: $LEASE_TIME
+    icmp_timeout_msec: 1000
+    options: []
+  dhcpv6:
+    range_start: $DHCPv6_START
+    lease_duration: $LEASE_TIME
+    ra_slaac_only: false
+    ra_allow_slaac: $SLAAC
+clients: []
+log_compress: false
+log_localtime: false
+log_max_backups: 0
+log_max_size: 100
+log_max_age: 3
+log_file: ""
+verbose: false
+schema_version: 10
+YAML_END
+
+echo -e "${GREEN}[$SCRIPT] Checking AdGuard Home configuration...${NC}"
+AdGuardHome/AdGuardHome --check-config -c $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml
+if [ $? -ne 0 ]; then
+  echo -e "${RED}[$SCRIPT] Configuration error? Aborting...${NC}"
+  exit 2
+fi
+
+if [ $EXTERNAL = Y ]; then
+  echo -e "${GREEN}[$SCRIPT] Configuring hotplug so that USB removal will fall back to dnsmasq...${NC}"
+  cat<<"PLUG_EOF" > /etc/hotplug.d/mount/00-adguardhome
+#!/bin/sh
+
+# script triggered by mountd
+# mountd provides environment variables ACTION, DEVICE, NAME
+# f.e. ACTION=add DEVICE=sda1 NAME=USB-A1
+
+adguardhome_log () {
+  local msg="${1}"
+  logger -t hotplug.d-mount-adguardhome "${msg}"
+}
+
+adguardhome_init () {
+  adguardhome_log "Stopping AdGuard Home on $ACTION $NAME (Device $DEVICE)"
+  /etc/init.d/AdGuardHome stop
+}
+
+configure_dnmasq() {
+  local IPv4=$(ip -o a | grep -E '^[0-9]*: br-lan * inet ' | tr -s ' ' | cut -d' ' -f4 | cut -d/ -f1)
+  local IPv6=$(ip -o a | grep -v -E '^[0-9]*: (lo|if|wl|br-lan)' | grep ' inet6 '| grep -v -E ' inet6 f[de]'  | tr -s ' ' | cut -d' ' -f4 | cut -d/ -f1 | xargs)
+  local DHCP_SERVER=""
+  local PEER_DNS=""
+  local LIST_ACTION=""
+
+  if [ "$1" = "enable" ]; then
+    PEER_DNS="1"
+    LIST_ACTION="del"
+    DHCP_SERVER="server"
+  else
+    PEER_DNS="0"
+    LIST_ACTION="add"
+    DHCP_SERVER="disabled"
+  fi
+
+  uci set network.wan.peerdns="$PEER_DNS"
+  uci -q delete network.wan.dns
+
+  if [ ! -z "$IPv6" ]; then
+    uci set network.wan6.peerdns="$PEER_DNS"
+    for addr in $IPv6
+    do
+      uci -q ${LIST_ACTION}_list network.lan.dns="$addr"
+      uci -q ${LIST_ACTION}_list network.wan6.dns="$addr"
+    done
+  fi
+  uci commit network
+  /etc/init.d/network reload >/dev/null 2>&1
+
+  uci set dhcp.lan.dhcpv4="$DHCP_SERVER"
+  uci set dhcp.lan.dhcpv6="$DHCP_SERVER"
+  uci set dhcp.lan.ra="$DHCP_SERVER"
+  uci commit dhcp
+  # Have to restart even if disabling to apply changes to transformer
+  /etc/init.d/dnsmasq restart
+  /etc/init.d/dnsmasq $1
+  [ "$1" = "disable" ] && /etc/init.d/dnsmasq stop
+  adguardhome_log "dnsmasq ${1}d"
+}
+
+if [ -e /etc/init.d/AdGuardHome ]; then
+  adguardhome_init
+
+  AGH_CMD=$(grep -o -m 1 -E '/.*/AdGuardHome/AdGuardHome ' /etc/init.d/AdGuardHome 2>/dev/null)
+  echo $AGH_CMD | grep -q -E "$NAME|$DEVICE"
+  if [ $? -eq 0 -a -e $AGH_CMD ]; then
+    if [ "${ACTION}" == "add" ]; then
+      configure_dnmasq disable
+      /etc/init.d/AdGuardHome start
+    elif [ "${ACTION}" == "remove" ]; then
+      configure_dnmasq enable
+    fi
+  else
+    adguardhome_log "AdGuardHome not configured for $NAME or $DEV??"
+    configure_dnmasq enable
+  fi
+else
+  adguardhome_log "/etc/init.d/AdGuardHome not found? Ignoring $ACTION $NAME"
+fi
+PLUG_EOF
+  chmod 755 /etc/hotplug.d/mount/00-adguardhome
+else
+  echo -e "${GREEN}[$SCRIPT] Configuring rsync backup of AdGuard Home data...${NC}"
+  cat <<INIT_EOF >/etc/init.d/sync-adguard-home-data
+#!/bin/sh /etc/rc.common
+START=40
+STOP=91
+EXTRA_COMMANDS="uninstall"
+EXTRA_HELP="    uninstall Removes the cron job and disables this init script"
+boot() {
+  logger -t sync-adguard-home-data Creating sync directories
+  [ ! -d /root/AdGuardHomeWork ] && { mkdir -p /root/AdGuardHomeWork; echo "This directory is automatically synced between /root/AdGuardHomeWork and $WORKING_DIR. DO NOT DELETE!">/root/AdGuardHomeWork; }
+  [ ! -d $WORKING_DIR ] && mkdir -p $WORKING_DIR
+  logger -t sync-adguard-home-data Restoring AdGuardHome data directory
+  rsync -qa --delete /root/AdGuardHomeWork/ $WORKING_DIR/
+  logger -t sync-adguard-home-data Configuring sync cron job
+  sed -e "/rsync -qa --delete .*AdGuardHomeWork/d" -i /etc/crontabs/root
+  echo "* * * * * rsync -qa --delete $WORKING_DIR/ /root/AdGuardHomeWork/">>/etc/crontabs/root
+}
+stop() {
+  logger -t sync-adguard-home-data Backing up AdGuardHome data directory
+  rsync -qa --delete $WORKING_DIR/ /root/AdGuardHomeWork/
+}
+uninstall() {
+  stop
+  logger -t sync-adguard-home-data Removing cron job
+  sed -e "/rsync -qa --delete .*AdGuardHomeWork/d" -i /etc/crontabs/root
+  /etc/init.d/cron restart
+  logger -t sync-adguard-home-data Disabling
+  disable
+}
+INIT_EOF
+  chmod +x /etc/init.d/sync-adguard-home-data
+  /etc/init.d/sync-adguard-home-data enable
+  /etc/init.d/sync-adguard-home-data boot
+  /etc/init.d/cron restart
+fi
+
+echo -e "${GREEN}[$SCRIPT] Installing AdGuard Home...${NC}"
+AdGuardHome/AdGuardHome -s install -c $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml -w $WORKING_DIR
+
+if [ $INTERCEPTION = Y ]; then
+  echo -e "${GREEN}[$SCRIPT] Running intercept-dns...${NC}"
+  sh /tmp/intercept-dns -d $IPv4
+  rm /tmp/intercept-dns
+fi
+
+echo -e "${GREEN}[$SCRIPT] Checking AdGuard Home status...${NC}"
+AGH_RUNNING='false'
+STATUS_CHK=0
+while [ $STATUS_CHK -lt 5 ]; do
+  curl -su $USERNAME:$PASSWORD http://${GATEWAY}:8008/control/status | grep -q '"running":true'
+  if [ $? -eq 0 ]; then
+    AGH_RUNNING='true'
+    break
+  else
+    sleep 1s
+    STATUS_CHK=$(( $STATUS_CHK + 1 ))
+  fi
+done
+
+if [ $AGH_RUNNING = 'true' ]; then
+  echo -e "${GREEN}[$SCRIPT] Loading static leases...${NC}"
+  for host in $(uci show dhcp | grep '@host.*=host$' | cut -d= -f1)
+  do
+    SLEASE_MAC="$(uci -q get $host.mac)"
+    SLEASE_IP="$(uci -q get $host.ip)"
+    SLEASE_NAME="$(uci -q get $host.name)"
+    if [ ! -z "$SLEASE_IP" -a ! -z "$SLEASE_MAC" -a ! -z "$SLEASE_NAME" ]; then
+      echo -e "[$SCRIPT] Loading static lease for $SLEASE_IP ($SLEASE_MAC - $SLEASE_NAME)"
+      curl -u $USERNAME:$PASSWORD -X POST --data "{ \"mac\":\"$SLEASE_MAC\", \"ip\":\"$SLEASE_IP\", \"hostname\":\"$SLEASE_NAME\" }" http://${GATEWAY}:8008/control/dhcp/add_static_lease
+    else
+      echo -e "${ORANGE}[$SCRIPT] SKIPED loading static lease - missing parameter (MAC=$SLEASE_MAC: IP=$SLEASE_IP HOST NAME=$SLEASE_NAME)${NC}"
+    fi
+  done
+
+  if [ $UTILITIES = Y ]; then
+    for s in agh-change-password agh-lists-update
+    do
+      echo -e "${GREEN}[$SCRIPT] Downloading utility script: $s to $INSTALL_ROOT/AdGuardHome ${NC}"
+      curl -kL -o AdGuardHome/$s https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/$s
+      chmod +x AdGuardHome/$s
+    done
+  fi
+
+  echo -e "${GREEN}[$SCRIPT] Done. You can now access AdGuard Home on http://${GATEWAY}:8008${NC}"
+else
+  echo -e "${RED}[$SCRIPT] Something went wrong??? Could not connect to AdGuard Home!${NC}"
+fi

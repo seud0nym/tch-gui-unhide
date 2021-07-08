@@ -1,0 +1,154 @@
+#!/bin/sh
+# Make sure that we are running on Telstra firmware
+if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]
+then
+  echo "ERROR! This script is intended for devices with Telstra firmware. Exiting"
+  exit 1
+fi
+
+SCRIPT="$(basename $0)"
+
+usage() {
+cat <<EOH
+Updates AdGuard Home with the latest block lists from https://firebog.net/.
+
+Also adds the anudeepND Domain WhiteList if it has not already been added.
+
+Usage: $SCRIPT [-p password [-C]]|[-U]
+
+Parameters:
+ -p password  The AdGuard Home web password.
+                Required unless -U is specified.
+ -C           Adds or removes the scheduled weekly cron job
+ -U           Download the latest version of $SCRIPT from GitHub
+
+If -U is specified, it must be the only option. The password option (-p)
+is MANDATORY unless -U is specified, OR if you are removing the cron job.
+The username will be determined automatically from the AdGuard Home 
+configuration.
+
+EOH
+exit
+}
+
+upgrade() {
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ]
+  then
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/$SCRIPT
+    if [ $? -eq 0 ]
+    then
+      chmod +x $SCRIPT
+      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
+    else
+      echo "[$SCRIPT] Failed to download $SCRIPT."
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]
+  then
+    echo "[$SCRIPT] ERROR! Not found on GitHub???"
+  elif [ "$RESPONSE_CODE" = 000 ]
+  then
+    echo "[$SCRIPT] ERROR! No Internet connection???"
+  else
+    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
+  fi
+  exit
+}
+
+PASSWORD=''
+CRON=N
+
+while getopts :p:z:CU option
+do
+ case "${option}" in
+  p)  PASSWORD="$OPTARG";;
+  z)  PASSWORD="$(echo $OPTARG | base64 -d | gzip -d)";;
+  C)  CRON=Y;;
+  U)  upgrade;;
+  *)  usage;;
+ esac
+done
+shift $((OPTIND-1))
+
+if [ -z "$PASSWORD" ]; then
+  grep -q "$SCRIPT" /etc/crontabs/root
+  if [ $CRON = N -o $? -ne 0 ]; then
+    echo "[$SCRIPT] ERROR: Password (-p) not specified"
+    usage
+    exit 2
+  fi
+fi
+
+AGH_YAML=$(grep -o -m 1 -E '"-c" "/.*/AdGuardHome/AdGuardHome.yaml"' /etc/init.d/AdGuardHome | cut -d'"' -f4)
+if [ $? -ne 0 ]; then
+  echo "[$SCRIPT] ERROR: Unable to locate AdGuard Home configuration file!"
+  exit 2
+fi
+
+USERNAME=$(grep -E -e '- name: .*' $AGH_YAML | cut -d: -f2 | xargs)
+if [ -z "$USERNAME" ]; then
+  echo "[$SCRIPT] ERROR: Unable to extract username from $AGH_YAML???"
+  exit 2
+fi
+
+HOST=$(grep '^bind_host:' $AGH_YAML | cut -d: -f2 | xargs)
+if [ -z "$HOST" ]; then
+  echo "[$SCRIPT] ERROR: Unable to retrieve IP address from $AGH_YAML???"
+  exit 2
+fi
+
+PORT=$(grep '^bind_port:' $AGH_YAML | cut -d: -f2 | xargs)
+if [ -z "$PORT" ]; then
+  echo "[$SCRIPT] ERROR: Unable to retrieve port number from $AGH_YAML???"
+  exit 2
+fi
+
+if [ $CRON = Y ]
+then
+  grep -q "$SCRIPT" /etc/crontabs/root
+  if [ $? -eq 0 ]
+  then
+    sed -e "/$SCRIPT/d" -i /etc/crontabs/root
+    echo "[$SCRIPT] Scheduled backup has been removed."
+  else
+    mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
+    hh=$(awk 'BEGIN{srand();print int(rand()*3)+2;}')
+    echo "$mm $hh * * 6 $(cd $(dirname $0); pwd)/$SCRIPT -z '$(echo $PASSWORD | gzip | base64)'" >> /etc/crontabs/root
+    echo "[$SCRIPT] Block list update has been scheduled to execute at $hh:$(printf '%02d' $mm)am every Saturday."
+  fi
+  exit
+fi
+
+lua -e "
+  json=require('dkjson')
+  popen=io.popen
+  blocklists={}
+  whitelists={}
+  curl=popen('curl -su \"$USERNAME:$PASSWORD\" http://$HOST:$PORT/control/filtering/status')
+  raw=curl:read('*a')
+  curl:close()
+  status=json.decode(raw)
+  for i,filter in pairs(status.filters) do
+    blocklists[filter.url]=true
+  end
+  for i,filter in pairs(status.whitelist_filters) do
+    whitelists[filter.url]=true
+  end
+  toadd={}
+  curl=popen('curl -s https://v.firebog.net/hosts/lists.php?type=tick')
+  for url in curl:lines() do
+    if not blocklists[url] then
+      toadd[#toadd+1]={ name='Added from https://firebog.net', url=url, whitelist=false }
+    end
+  end
+  curl:close()
+  if not whitelists['https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt'] then
+    toadd[#toadd+1]={ name='anudeepND Domain WhiteList', url='https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt', whitelist=true }
+  end
+  for _,list in pairs(toadd) do
+    data=json.encode(list):gsub('\"', '\\\\\"')
+    add_url='curl -u \"$USERNAME:$PASSWORD\" -X POST --data \"'..data..'\" http://$HOST:$PORT/control/filtering/add_url'
+    print(string.format('Adding %s %s',(list.whitelist and 'whitelist' or 'blocklist'),list.url))
+    os.execute(add_url)
+  end
+"
