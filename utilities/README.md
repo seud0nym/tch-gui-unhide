@@ -84,6 +84,7 @@ Options:
  -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn -Fy
  -M                    Minimum memory mode: Equivalent to: -an -cn -fn -rn -tn -en -un -mn -gn -qn -Fy
                         PLUS stops and disables the associated services
+ -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks
  -R                    Reset to device defaults
                         (equivalent to: -h mymodem -d modem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy -Fn)
  -o                    Configures opkg

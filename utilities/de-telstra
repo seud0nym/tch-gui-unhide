@@ -61,6 +61,7 @@ Options:
  -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn -Fy
  -M                    Minimum memory mode: Equivalent to: -an -cn -fn -rn -tn -en -un -mn -gn -qn -Fy
                         PLUS stops and disables the associated services
+ -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks
  -R                    Reset to device defaults
                         (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy -Fn)
  -o                    Configures opkg
@@ -154,6 +155,7 @@ DECT='u'
 DLNAD='u'
 DOMAIN='u'
 DUMAOS='u'
+GUEST='y'
 HOST='u'
 LITE='n'
 MMPBX='u'
@@ -175,7 +177,7 @@ MONITORING='n'
 NTP='n'
 NOEXEC='n'
 
-while getopts :a:c:d:e:f:g:h:k:m:n:op:q:r:t:u:w:AF:MRSU option
+while getopts :a:c:d:e:f:g:h:k:m:n:op:q:r:t:u:w:AF:GMRSU option
 do
  case "${option}" in
   a)  case "${OPTARG}" in y) ALG='1';; n) ALG='0';; u) ALG='u';; *) ALG='u'; echo 'ERROR: -a valid options are y, n, or u'; exit 1;; esac;;
@@ -197,6 +199,7 @@ do
   w)  case "${OPTARG}" in y) WPS='1';; n) WPS='0';; u) WPS='u';; *) WPS='u'; echo 'ERROR: -w valid options are y, n, or u'; exit 1;; esac;;
   A)  HOST='d'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; PRNTR='0'; UPNP='0'; WPS='0'; ROOT_PROTECT='1';;
   F)  case "${OPTARG}" in y) ROOT_PROTECT='1';; n) ROOT_PROTECT='0';; u) ROOT_PROTECT='u';; *) ROOT_PROTECT='u'; echo 'ERROR: -F valid options are y, n, or u'; exit 1;; esac;;
+  G)  GUEST='n';;
   M)  LITE='y'; ALG='0'; DECT='0'; DLNAD='0'; DUMAOS='0'; MMPBX='0'; MULTIAP='0'; NFC='0'; PRNTR='0'; SAMBA='0'; UPNP='0'; WPS='0'; ROOT_PROTECT='1';;
   R)  LITE='R'; HOST='mymodem'; DOMAIN='modem'; NS='a'; ALG='1'; DLNAD='1'; DUMAOS='0'; SAMBA='1'; MULTIAP='1'; POWER='y'; PRNTR='1'; MMPBX='1'; DECT='1'; UPNP='1'; ROOT_PROTECT='0';;
   S)  HOST='s'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; PRNTR='0'; UPNP='0'; WPS='0'; ROOT_PROTECT='1';;
@@ -318,6 +321,7 @@ then
     echo [$SCRIPT]: - Telstra AIR QoS entries already removed
   else
     echo [$SCRIPT]: - Deleting Telstra AIR QoS entries
+    uci -q del_list qos.@reclassify[0].srcif='fonopen'
     uci -q del_list qos.reclassify_1.srcif='fonopen'
     uci -q delete $(uci show qos | grep "classify.*target='FON'" | cut -d. -f1-2)
     uci -q delete qos.FON
@@ -1010,6 +1014,55 @@ then
   fi
 fi
 
+if [ $GUEST = n ]
+then
+  uci -q delete dhcp.guest
+  SRV_dhcp=$(( $SRV_dhcp + 1 ))
+  for nw in $(uci show network | grep -E '\.Guest.*=interface'  | cut -d= -f1)
+  do
+    nwname=$(echo $nw | cut -d. -f2)
+    ifname=$(uci get $nw.ifname)
+    ipaddr=$(uci get $nw.ipaddr)
+
+    echo [$SCRIPT]: Removing $nwname network...
+
+    uci -q del_list dhcp.main.interface="$nwname"
+    uci -q delete dhcp.${nwname}_private
+    SRV_dhcp=$(( $SRV_dhcp + 2 ))
+
+    uci -q del_list parental.general.lan_intf="$nwname"
+    SRV_fw=$(( $SRV_fw + 1 ))
+
+    for q in $(uci show qos | grep "'$nwname'" | cut -d= -f1)
+    do
+      uci -q del_list $q="$nwname"
+      SRV_qos=$(( $SRV_qos + 1 ))
+    done
+
+    fw=$(uci show firewall | grep -m1 -E "'$nwname'|'$ipaddr'" | cut -d. -f1-2)
+    while [ ! -z "$fw" ]
+    do
+      uci -q delete $fw
+      SRV_fw=$(( $SRV_fw + 1 ))
+      fw=$(uci show firewall | grep -m1 -E "'$nwname'|'$ipaddr'" | cut -d. -f1-2)
+    done
+
+    ap=$(uci show wireless | grep "iface='$ifname'" | cut -d. -f1-2)
+    uci -q delete $ap
+    uci -q delete wireless.$ifname
+    SRV_hostapd=$(( $SRV_hostapd + 1 ))
+
+    uci -q delete $nw
+    SRV_network=$(( $SRV_network + 1 ))
+  done
+  uci commit dhcp
+  uci commit parental
+  uci commit qos
+  uci commit wireless
+  uci commit network
+  uci commit firewall
+fi
+
 echo [$SCRIPT]: Applying required service changes...
 [ "$LITE" = 'R' ] && {
   for s in cupsd dumaos lte-doctor-logger mmpbxfwctl mmpbxd mmpbxbrcmdect mud multiap_agent multiap_controller multiap_vendorextensions ndhttpd telemetry-daemon xl2tpd
@@ -1030,8 +1083,6 @@ echo [$SCRIPT]: Applying required service changes...
 [ $SRV_dlna -gt 0 ] && /etc/init.d/dlnad restart > /dev/null 2>&1
 [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear reload > /dev/null 2>&1
 [ $SRV_dumaos -gt 0 ] && { /etc/init.d/dumaos enable; /etc/init.d/dumaos restart; } > /dev/null 2>&1
-[ $SRV_fw -gt 0 ] && /etc/init.d/firewall reload > /dev/null 2>&1
-[ $SRV_hostapd -gt 0 ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1
 [ $SRV_hotspot -gt 0 -a -e /etc/init.d/hotspotd ] && { /etc/init.d/hotspotd disable; /etc/init.d/hotspotd stop; } > /dev/null 2>&1
 [ $SRV_mmpbxd -gt 0 ] && { /etc/init.d/mmpbxd enable; /etc/init.d/mmpbxfwctl enable; /etc/init.d/mmpbxd restart; /etc/init.d/mmpbxfwctl restart; } > /dev/null 2>&1
 [ $SRV_mobiled -gt 0 ] && /etc/init.d/mobiled restart > /dev/null 2>&1
@@ -1039,13 +1090,16 @@ echo [$SCRIPT]: Applying required service changes...
 [ $SRV_monitor -gt 0 -a -e /etc/init.d/tls-thor ] && { /etc/init.d/tls-thor disable; /etc/init.d/tls-thor stop; } > /dev/null 2>&1
 [ $SRV_monitor -gt 0 -a -e /etc/init.d/wifi-doctor-agent ] && /etc/init.d/wifi-doctor-agent reload > /dev/null 2>&1
 [ $SRV_multiap -gt 0 ] && { /etc/init.d/multiap_controller enable; /etc/init.d/multiap_agent enable; /etc/init.d/multiap_vendorextensions enable; /etc/init.d/multiap_controller restart; /etc/init.d/multiap_agent restart; /etc/init.d/multiap_vendorextensions restart; } > /dev/null 2>&1
-[ $SRV_network -gt 0 ] && /etc/init.d/network reload > /dev/null 2>&1
+[ $SRV_qos -gt 0 ] && /etc/init.d/qos reload > /dev/null 2>&1
 [ $SRV_nfc -gt 0 ] && /etc/init.d/nfcd restart > /dev/null 2>&1
 [ $SRV_ntp -gt 0 ] && /etc/init.d/sysntpd restart > /dev/null 2>&1
-[ $SRV_samba -gt 0 -a -e /etc/init.d/samba-nmbd ] && { /etc/init.d/samba-nmbd enable; /etc/init.d/samba-nmbd reload; } > /dev/null 2>&1
 [ $SRV_samba -gt 0 ] && { /etc/init.d/samba enable; /etc/init.d/samba reload; } > /dev/null 2>&1
+[ $SRV_samba -gt 0 -a -e /etc/init.d/samba-nmbd ] && { /etc/init.d/samba-nmbd enable; /etc/init.d/samba-nmbd reload; } > /dev/null 2>&1
 [ $SRV_system -gt 0 ] && /etc/init.d/system reload > /dev/null 2>&1
 [ $SRV_upnp -gt 0 ] && { /etc/init.d/miniupnpd-tch enable; /etc/init.d/miniupnpd-tch restart; } > /dev/null 2>&1
+[ $SRV_hostapd -gt 0 ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1
+[ $SRV_network -gt 0 ] && /etc/init.d/network reload > /dev/null 2>&1
+[ $SRV_fw -gt 0 ] && /etc/init.d/firewall reload > /dev/null 2>&1
 [ $SRV_mountd -gt 0 ] && { 
   mnt_path=$(uci get mountd.mountd.path); 
   for f in $(find ${mnt_path} -type l);do 
