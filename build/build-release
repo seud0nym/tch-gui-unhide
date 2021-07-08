@@ -42,7 +42,7 @@ do
     transformer="utilities/transformer-cli"
   fi
   dumaos=""
-  if [ "$major" = "18.1.c" ]
+  if [ "$major" != "17.2" ]
   then
     dumaos="utilities/dumaos"
   fi
