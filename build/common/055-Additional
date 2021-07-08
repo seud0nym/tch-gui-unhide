@@ -5,6 +5,7 @@ firewall
 gateway
 internet
 iproutes
+lan
 lte
 management
 multiap
