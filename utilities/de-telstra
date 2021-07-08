@@ -23,9 +23,11 @@ Options:
           k            - Keep default public authorized keys
           m            - Keep Telstra monitoring and data collection enabled
           n            - Keep Telstra NTP servers
-          x            - Keep noexec on ext2/3/4, fat, hfsplus, hfsplusjournal and ntfs filesystems
-                           (i.e. prevent execution of scripts/programs on USB devices)
-          T            - Keep all default Telstra configuration (Equivalent to: -ka -kc -kk -km -kn -kx) 
+          x            - Keep noexec on ext2/3/4, fat, hfsplus, hfsplusjournal
+                          and ntfs filesystems (i.e. prevent execution of
+                          scripts/programs on USB devices)
+          T            - Keep all default Telstra configuration (Equivalent
+                          to: -ka -kc -kk -km -kn -kx)
  -h u|d|s|<hostname>
     where u            Leave hostname unchanged
           d            Set the hostname to $VARIANT
@@ -42,7 +44,8 @@ Options:
           g            Set the DNS servers to Google
           f            Set the DNS servers to OpenDNS Family Shield
           o            Set the DNS servers to OpenDNS
-          <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
+          <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated
+                        IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
  -a u|y|n              WAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable
  -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
  -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
@@ -54,16 +57,19 @@ Options:
  -m u|y|n            * MultiAP (EasyMesh):      u=unchanged y=Enable n=Disable
  -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
  -q u|y|n            * NFC:                     u=unchanged y=Enable n=Disable
- -w u|y|n              WPS on non-Guest and non-Backhaul SSIDs: u=unchanged y=Enable n=Disable
- -F u|y|n              Factory reset root protection: u=unchanged y=Enable n=Disable
-                          NOTE: Installation of tch-gui-unhide will ALWAYS enable RTFD protection!
+ -w u|y|n              WPS:                     u=unchanged y=Enable n=Disable
+                         (on non-Guest and non-Backhaul SSIDs)
+ -F u|y|n              RTFD root protection:    u=unchanged y=Enable n=Disable
+                        NOTE: tch-gui-unhide will ALWAYS enable RTFD protection
  -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un -wn -Fy
  -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn -Fy
- -M                    Minimum memory mode: Equivalent to: -an -cn -fn -rn -tn -en -un -mn -gn -qn -Fy
+ -M                    Minimum memory mode: Equivalent to:
+                              -an -cn -fn -rn -tn -en -un -mn -gn -qn -Fy
                         PLUS stops and disables the associated services
- -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks
- -R                    Reset to device defaults
-                        (equivalent to: -hmymodem -dmodem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy -Fn)
+ -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and
+                        guest networks
+ -R                    Reset to device defaults: Equivalent to:
+                        -hmymodem -dmodem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy -Fn
  -o                    Configures opkg
  -U                    Download the latest version of $SCRIPT from GitHub
 
@@ -163,7 +169,7 @@ MULTIAP='u'
 NFC='u'
 NS='u'
 OPKG='n'
-POWER='u' 
+POWER='u'
 PRNTR='u'
 ROOT_PROTECT='u'
 SAMBA='u'
@@ -333,7 +339,7 @@ fi
 if [ "$NTP" = 'n' ]
 then
   for s in $(uci -q get system.ntp.server | tr " " "$IFS")
-  do 
+  do
     echo $s | grep -q -i telstra
     if [ $? -eq 0 ]
     then
@@ -622,7 +628,7 @@ then
         IPv4PATTERN="([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
         echo "$WANDNS1" | grep -q -E $IPv4PATTERN
         if [ $? -eq 1 ]
-        then 
+        then
           echo [$SCRIPT]: WARNING! Invalid IP address $WANDNS1 IGNORED
           WANDNS1=""
         fi
@@ -630,7 +636,7 @@ then
         then
           echo "$WANDNS2" | grep -q -E $IPv4PATTERN
           if [ $? -eq 1 ]
-          then 
+          then
             echo [$SCRIPT]: WARNING! Invalid IP address $WANDNS2 IGNORED
             WANDNS2=""
           fi
@@ -650,7 +656,7 @@ then
           if [ "$WANDNS_NOW" = "$WANDNS1 $WANDNS2" ]
           then
             echo [$SCRIPT]: DNS Servers unchanged \[ $WANDNS_NOW \]
-          else 
+          else
             uci -q delete network.wan.dns
             SRV_network=$(( $SRV_network + 2 ))
             if [ ! -z "$WANDNS1" ]
@@ -786,7 +792,7 @@ else
       else
         uci set wireless.$ap.wps_state="$WPS"
         SRV_hostapd=$(( $SRV_hostapd + 1 ))
-        echo [$SCRIPT]: WPS State on SSID $(uci get wireless.$iface.ssid) $(status2text $WPS) 
+        echo [$SCRIPT]: WPS State on SSID $(uci get wireless.$iface.ssid) $(status2text $WPS)
       fi
     fi
   done
@@ -812,7 +818,7 @@ then
         if [ "$ALG" = "0" ]
         then
           echo [$SCRIPT]: $G ALG Disabled
-        else 
+        else
           echo [$SCRIPT]: $G ALG Enabled
         fi
         uci set $key.enable="$ALG"
@@ -1066,7 +1072,7 @@ fi
 echo [$SCRIPT]: Applying required service changes...
 [ "$LITE" = 'R' ] && {
   for s in cupsd dumaos lte-doctor-logger mmpbxfwctl mmpbxd mmpbxbrcmdect mud multiap_agent multiap_controller multiap_vendorextensions ndhttpd telemetry-daemon xl2tpd
-  do 
+  do
     [ -e /etc/init.d/$s -a ! $(/etc/init.d/$s enabled) ] && { /etc/init.d/$s enable; /etc/init.d/$s start; } > /dev/null 2>&1
   done
 }
@@ -1100,12 +1106,12 @@ echo [$SCRIPT]: Applying required service changes...
 [ $SRV_hostapd -gt 0 ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1
 [ $SRV_network -gt 0 ] && /etc/init.d/network reload > /dev/null 2>&1
 [ $SRV_fw -gt 0 ] && /etc/init.d/firewall reload > /dev/null 2>&1
-[ $SRV_mountd -gt 0 ] && { 
-  mnt_path=$(uci get mountd.mountd.path); 
-  for f in $(find ${mnt_path} -type l);do 
+[ $SRV_mountd -gt 0 ] && {
+  mnt_path=$(uci get mountd.mountd.path);
+  for f in $(find ${mnt_path} -type l);do
     pwd | grep -q -v "$f" && echo "[$SCRIPT]: Attempting to unmount $f..." && umount $f;
-  done; 
-  echo -e "[$SCRIPT]: \033[1;32mNOTE: You should remove and re-insert any mounted USB device\033[0m"; 
+  done;
+  echo -e "[$SCRIPT]: \033[1;32mNOTE: You should remove and re-insert any mounted USB device\033[0m";
 }
 [ "$LITE" = 'y' ] && {
   echo [$SCRIPT]: Disabling services to save memory...

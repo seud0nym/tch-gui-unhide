@@ -4,7 +4,7 @@ SCRIPT="$(basename $0)"
 
 usage() {
 cat <<EOH
-Downloads and installs the latest version of the System CA Certificates
+Downloads and installs the latest version of the System CA Certificates.
 
 Usage: $0 [options]
 

@@ -7,22 +7,25 @@ SCRIPT="$(basename $0)"
 usage() {
 cat <<EOH
 Configures DNS interception:
- - Hijacks IPv4 DNS requests to ensure that they are handled by this device, or by a specified DNS Server
+ - Hijacks IPv4 DNS requests to ensure that they are handled by this device,
+    or by a specified DNS Server
  - Rejects DNS-over-TLS (DoT) requests over IPv4 and IPv6
  - Rejects DNS-over-HTTPS (DoH) to known HTTPS DNS Servers over IPv4 and IPv6
- - Configures a scheduled weekly cron job to maintain IP Sets of known HTTPS DNS Servers
+ - Configures a scheduled weekly cron job to maintain IP Sets of known HTTPS
+    DNS Servers
 
-NOTE: IPv6 DNS requests can NOT be hijacked (no kernel nat6 support). IPv6 DoT and DoH ARE intercepted. 
+NOTE: IPv6 DNS requests can NOT be hijacked (no kernel nat6 support). IPv6 DoT
+      and DoH ARE intercepted.
 
 Usage: $0 [options]
 
 Options:
- -d n.n.n.n   The IPv4 address of the local DNS Server to which DNS queries will be redirected.
-                If not specified, defaults to the router.
- -x n.n.n.n   Exclude the specified IPv4 address from DNS interception. May be specified multiple times
-                to exclude multiple IPv4 addresses.
-                The local DNS Server specified with -d is automatically excluded and does not need to
-                be re-specified with -x. 
+ -d n.n.n.n   The IPv4 address of the local DNS Server to which DNS queries
+                will be redirected. If not specified, defaults to the router.
+ -x n.n.n.n   Exclude the specified IPv4 address from DNS interception. May be
+                specified multiple times to exclude multiple IPv4 addresses.
+                The local DNS Server specified with -d is automatically
+                excluded and does not need to be re-specified with -x.
  -6           Do NOT apply blocking to IPv6 DNS requests.
  -r           Remove DNS interception.
  -U           Download the latest version of $SCRIPT from GitHub

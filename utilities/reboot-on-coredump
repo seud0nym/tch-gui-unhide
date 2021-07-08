@@ -2,8 +2,8 @@
 
 usage() {
 cat <<EOH
-Enables or disables reboot on core dump. 
-If you have a process that is continually crashing and core dumping, 
+Enables or disables reboot on core dump.
+If you have a process that is continually crashing and core dumping,
 use this script to disable reboot on coredump.
 
 Usage: $0 -on|-off
@@ -31,7 +31,7 @@ then
   if [ "$ENABLED" = "0" ]
   then
     echo "Reboot on core dump currently DISABLED - re-run script with -on option to enable"
-else 
+else
     echo "Reboot on core dump currently ENABLED - re-run script with -off option to disable"
 fi
 else

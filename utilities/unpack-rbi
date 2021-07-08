@@ -14,10 +14,12 @@ Usage: $0 source [target]
 
 Parameters:
  source   the .rbi file to be unpacked. (Required)
- target   either a filename or directory to which the .rbi file will be unpacked. (Optional)
+ target   either a filename or directory to which the .rbi file will be
+            unpacked. (Optional)
 
-If the target filename or directory is not specified, the file will be written to the /tmp 
-directory with the same name but with an extension of '.bin'.
+If the target filename or directory is not specified, the file will be
+written to the /tmp directory with the same name but with an extension
+of '.bin'.
 
 EOH
 exit

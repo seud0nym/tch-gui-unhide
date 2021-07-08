@@ -7,8 +7,10 @@ Enables or disables DumaOS on devices that have it installed.
 Usage: $0 -on|-off
 
 Parameters:
- -on    Enables DumaOS and disables reboot on core dump, then starts the DumaOS service.
- -off   Disables DumaOS and enables reboot on core dump, then stops the DumaOS service.
+ -on    Enables DumaOS and disables reboot on core dump, then starts
+          the DumaOS service.
+ -off   Disables DumaOS and enables reboot on core dump, then stops
+          the DumaOS service.
 
 EOH
 exit
@@ -31,7 +33,7 @@ then
     if [ "$ENABLED" = "0" ]
     then
       echo "DumaOS currently DISABLED - re-run script with -on option to enable"
-	  else 
+	  else
       echo "DumaOS currently ENABLED - re-run script with -off option to disable"
 	  fi
   else

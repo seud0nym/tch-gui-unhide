@@ -2,8 +2,10 @@
 
 if [ "o$1" = "o-?" ]; then
 cat <<EOH
-Sets the optimal bank plan. 
-Effectively the same as the procedure from https://hack-technicolor.readthedocs.io/en/stable/Hacking/PostRoot/#bank-planning.
+Sets the optimal bank plan.
+
+Effectively the same as the procedure described in
+https://hack-technicolor.rtfd.io/en/stable/Hacking/PostRoot/#bank-planning.
 
 Usage: $0
 
@@ -11,13 +13,13 @@ EOH
 exit
 fi
 
-echo "Enter y to attempt to set the optimal bank plan, or anything else to exit now"
+echo -n "Enter y to attempt to set the optimal bank plan, or anything else to exit now: "
 read
 if [ "$REPLY" = "y" -o "$REPLY" = "Y" ]
 then
   echo Ensure two banks match in sizes
   BANK_COUNT=$(grep -c bank_ /proc/mtd)
-  if [ $BANK_COUNT = 2 ] && [ "$(grep bank_1 /proc/mtd | cut -d' ' -f2)" =  "$(grep bank_2 /proc/mtd | cut -d' ' -f2)" ] 
+  if [ $BANK_COUNT = 2 ] && [ "$(grep bank_1 /proc/mtd | cut -d' ' -f2)" =  "$(grep bank_2 /proc/mtd | cut -d' ' -f2)" ]
   then
     BANK1_SIZE="$(grep bank_1 /proc/mtd | cut -d' ' -f2)"
     BANK2_SIZE="$(grep bank_2 /proc/mtd | cut -d' ' -f2)"

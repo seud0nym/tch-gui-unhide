@@ -7,28 +7,33 @@ BOOTED=$(cat /proc/banktable/booted)
 
 usage() {
 cat <<EOH
-Restores MTD partitions from an attached USB device or SSHFS filesystem. Only changed partitions are restored (unless -s is specified).
+Restores MTD partitions from an attached USB device or SSHFS filesystem. Only
+changed partitions are restored (unless -s is specified).
 
-USB devices have priority over SSHFS filesystems. 
+USB devices have priority over SSHFS filesystems.
 
 Usage: $0 [options] [partition ...]
 
 Options:
- -d directory   The name of the directory on the USB device or SSHFS filesystem containing the backups.
-                  If not specified, defaults to: backups or backups-$VERSION
+ -d directory   The name of the directory on the USB device or SSHFS
+                  filesystem containing the backups. If not specified,
+                  defaults to: backups or backups-$VERSION
  -f             Restore rootfs_data and $BOOTED
- -q             Quiet mode (i.e. no [w] on writing partition)
  -r             Reboot after last partition successfully restored
  -s             Skip check for changed partitions and always restore
- -v             Skip verification of image checksum 
-                  (if it exists i.e. if mtd-backup was NOT executed with the -s option)
+ -v             Skip verification of image checksum (if it exists i.e. if
+                  mtd-backup was NOT executed with the -s option)
+ -q             Quiet mode (i.e. no [w] on writing partition)
  -U             Download the latest version of $SCRIPT from GitHub
-                  Do NOT specify any other parameters or options if doing a version upgrade.
+                  Do NOT specify any other parameters or options if doing a
+                  version upgrade.
 Parameters:
  partition      One or more partitions to restored.
-                  Specify either the device (e.g. mtd2) or name (e.g. rootfs_data or data)
+                  Specify either the device (e.g. mtd2) or name
+                    (e.g. rootfs_data or data)
                   Do not specify the device variant prefix (e.g. $VARIANT-)
-                  If not specified and -f not specified, defaults to mtd2-rootfs_data
+                  If not specified and -f not specified, defaults to:
+                    mtd2-rootfs_data
 
 EOH
 exit

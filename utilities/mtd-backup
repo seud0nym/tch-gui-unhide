@@ -8,21 +8,28 @@ BOOTED=$(cat /proc/banktable/booted)
 
 usage() {
 cat <<EOH
-Backs up the MTD partitions to an attached USB device or SSHFS attached filesystem. Only unchanged partitions are backed up after the first execution.
+Backs up the MTD partitions to an attached USB device or SSHFS attached
+filesystem. Only unchanged partitions are backed up after the first
+execution.
 
-USB devices have priority over SSHFS filesystems. 
+USB devices have priority over SSHFS filesystems.
 
 Usage: $0 [options]
 
 Options:
- -d directory   The name of the directory on the USB device or SSHFS filesystem.
+ -d directory   The name of the directory on the USB device or SSHFS
+                  filesystem.
                   If not specified, defaults to: backups
- -c             Save the current UCI configuration into the $VARIANT-$SERIAL-$VERSION-config.gz file
- -e             Save the current environment into the $VARIANT-$SERIAL-$VERSION-env file
+ -c             Save the current UCI configuration into the
+                  $VARIANT-$SERIAL-$VERSION-config.gz file
+ -e             Save the current environment into the
+                  $VARIANT-$SERIAL-$VERSION-env file
  -l             Write log messages to stderr as well as the system log
- -o             Save the overlay content into the $VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz file
- -s             Skip recalculation of the checksum of the backed-up partition, and just save the checksum
-                  calculated to determine if the image has changed.
+ -o             Save the overlay content into the
+                  $VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz file
+ -s             Skip recalculation of the checksum of the backed-up partition,
+                  and just save the checksum calculated to determine if the
+                  image has changed.
  -0             Skip backup of mtd0 if a backup already exists
  -v             Verbose mode
  -y             Bypass confirmation prompt (answers 'y')
@@ -105,7 +112,7 @@ then
     fi
     exit 2
   else
-  TARGET=${SSHFS}/${DIR}
+    TARGET=${SSHFS}/${DIR}
   fi
 else
   TARGET=${MOUNT_PATH}${USB}/${DIR}
@@ -183,7 +190,7 @@ then
 elif [ -f $TARGET/README! ]
 then
   rm $TARGET/README!
-fi 
+fi
 
 if [ $DUMP_CFG = Y ]
 then
@@ -298,7 +305,7 @@ do
     if [ ! -z "$SHA256SRC" ]
     then
       [ $DEBUG = Y ] && $LOGGER user.debug "DELETING obsolete $SHA256SRC"
-      rm $SHA256SRC 
+      rm $SHA256SRC
     fi
     $LOGGER user.info "WRITING $dev to $TARGET/$VARIANT-$dev-$name.img.gz"
     SECONDS=$(date +%s)
