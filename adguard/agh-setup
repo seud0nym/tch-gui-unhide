@@ -383,6 +383,9 @@ echo -e "${GREEN}[$SCRIPT] Disabling dnsmasq to free up RAM and port 53...${NC}"
 configure_dnmasq disable
 
 RAM_FREE=$(free | grep buffers: | tr -s ' ' | cut -d' ' -f4)
+if [ -z "$RAM_FREE" ];then
+  RAM_FREE=$(free | grep Mem: | tr -s ' ' | cut -d' ' -f7)
+fi
 echo -e "[$SCRIPT] Reported Free RAM = ${RAM_FREE}KB"
 if [ $SKIP_MEM_CHK = N -a $RAM_FREE -lt 40000 ];then
   echo -e "${RED}[$SCRIPT] Insufficient free RAM! You need to shut down unnecessary services to free memory${NC}"
