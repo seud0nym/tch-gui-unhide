@@ -1,5 +1,5 @@
 # Replacing dnsmasq with AdGuard Home on a Telstra Technicolor Gateway Device
-The following instructions are based on the this post on the OpenWRT forums: https://forum.openwrt.org/t/howto-running-adguard-home-on-openwrt/51678
+The following instructions are based on this post on the OpenWRT forums: https://forum.openwrt.org/t/howto-running-adguard-home-on-openwrt/51678
 
 The instructions have been adapted for use on the Telstra branded Technicolor devices.
 
@@ -21,9 +21,9 @@ The setup script implements 2 different solutions to this issue:
    - Obviously, it must be permanently mounted, or you will not have DNS resolution on your network.
 2. You can optionally specify the **-i** option to install AdGuard Home on internal storage.
    - The working directory will be set to tmpfs, but by default this means that *ALL* statistics, downloaded block lists and DHCP static and dynamic leases will be **lost** on reboot.
-   - To work around this limitation, the script will install rsync to synchronize the AdGuard Home working directory back to permanent storage every minute and on shutdown (rsync is very efficient and well suited for this). On boot, the permanent copy will be synced back to tmpfs before starting AdGuard Home. The worst case scenario should be that you could lose up to 1 minute of logs, leases and statistics.
+   - To work around this limitation, the script will install rsync to synchronize the AdGuard Home working directory back to permanent storage every minute and on shutdown. On boot, the permanent copy will be synced back to tmpfs before starting AdGuard Home. The worst case scenario should be that you could lose up to 1 minute of logs, leases and statistics.
 
-### Other Internal Storage Considerations
+#### Other Internal Storage Considerations
 - By default, this installation option will reduce log retention to 24 hours, to try and reduce the likelihood of running out of space.
 - You will need to carefully monitor internal storage to make sure you do not run out of space. You can disable log retention in AdGuard Home if this becomes an issue.
 
@@ -74,6 +74,7 @@ The following optional configuration parameters may be specified **after** the d
   - If not specified, the user name defaults to: root
 - -p password
   - The plain text AdGuard Home web password.
+  - If not specified, the password defaults to: agh-admin
   - The password will be hashed by calling https://bcrypt.org/api/generate-hash.json
 - -h 'hash'
   - The Bcrypt password hash representing the AdGuard Home web password.
