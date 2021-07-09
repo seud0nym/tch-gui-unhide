@@ -880,9 +880,10 @@ fi
 
 if [ $SRV_multiap -ge 0 ]
 then
+  BHAUL_AP=$(uci show wireless | grep -E "wireless\.ap.*\.iface='wl1_2'" | cut -d. -f2)
   AGENT_NOW="$(uci -q get multiap.agent.enabled)"
   CTRLR_NOW="$(uci -q get multiap.controller.enabled)"
-  BHAUL_AP_NOW="$(uci -q get wireless.ap6.state)"
+  BHAUL_AP_NOW="$(uci -q get wireless.$BHAUL_AP.state)"
   BHAUL_IF_NOW="$(uci -q get wireless.wl1_2.state)"
   if [ "$MULTIAP" = "u" -o \( "$AGENT_NOW" = "$MULTIAP" -a "$CTRLR_NOW" = "$MULTIAP" -a "$BHAUL_AP_NOW" = "$MULTIAP" -a "$BHAUL_IF_NOW" = "$MULTIAP" \) ]
   then
@@ -892,7 +893,7 @@ then
     uci set multiap.controller.enabled="$MULTIAP"
     uci commit multiap
     SRV_multiap=$(( $SRV_multiap + 2 ))
-    uci set wireless.ap6.state="$MULTIAP"
+    uci set wireless.$BHAUL_AP.state="$MULTIAP"
     uci set wireless.wl1_2.state="$MULTIAP"
     SRV_hostapd=$(( $SRV_hostapd + 2 ))
     SRV_network=$(( $SRV_network + 1 ))
