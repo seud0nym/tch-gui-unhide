@@ -3,12 +3,18 @@ for RULE in $(uci show web | grep '=card' | cut -d= -f1)
 do
   CARD=$(uci -q get ${RULE}.card)
   FILE=$(ls /www/cards/ | grep "..._${CARD#*_}")
-  if [ "$CARD" != "$FILE" ]
+  if [ -z "$FILE" ]
+  then
+    echo "[$SCRIPT]:  - Removing obsolete configuration $RULE"
+    uci delete $RULE
+    SRV_nginx=$(( $SRV_nginx + 1 ))
+  elif [ "$CARD" != "$FILE" ]
   then
     echo "[$SCRIPT]:  - Renaming $FILE to $CARD"
     mv /www/cards/$FILE /www/cards/$CARD
   fi
 done
+uci commit web
 
 if [ -z "$ALLCARDRULES" -a -f tch-gui-unhide-cards ]
 then
