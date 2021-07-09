@@ -3,57 +3,70 @@
 DATE_VERSION=$(date +%Y.%m.%d)
 FULL_VERSION=$(date +%Y.%m.%d@%H:%M)
 
-while getopts v: option
+DEBUG=''
+
+GREEN='\033[1;32m'
+ORANGE='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+while getopts :v:D option
 do
   case $option in
     v)  echo $OPTARG | grep -q -E '^[0-9][0-9][0-9][0-9]\.[0-1][0-9]\.[0-3][0-9]$'
         if [ $? -eq 1 ]; then
-          echo "ERROR: -v option requires a parameter in the format YYYY.MM.DD"
+          echo "${RED}ERROR: -v option requires a parameter in the format YYYY.MM.DD${NC}"
           exit
         else
           if [ $DATE_VERSION != $OPTARG ]
           then
             DATE_VERSION="$OPTARG"
             FULL_VERSION="$DATE_VERSION@$(date +%H:%M)"
-            echo "Overriding Release - using $FULL_VERSION"
+            echo "${ORANGE}Overriding Release - using $FULL_VERSION${NC}"
           fi
         fi;;
+    D)  DEBUG="-v";;
   esac
 done
 shift $((OPTIND-1))
 
 DIR=$(pwd)
 
-echo Cleaning up..
+echo "${GREEN}Cleaning up..${NC}"
 rm -rf /tmp/tch-gui-unhide /tmp/*.b64
 
-echo Fixing line endings...
+echo "${GREEN}Fixing line endings...${NC}"
 DOS=$(find . -type f | xargs file | grep CRLF | cut -d: -f1 | xargs)
 if [ ! -z "$DOS" ]
 then
   for f in $DOS
   do
+    [ ! -z "$DEBUG" ] && echo $f
     dos2unix $f
   done
   find . -name 'd2utmp*' -exec rm -f {} \;
 fi
 
-echo Combining source files into single tree...
+echo "${GREEN}Combining source files into single tree...${NC}"
 mkdir -p /tmp/tch-gui-unhide/common
-tar --exclude README.md -cf - -C lua/ansuel/ .  | tar -xf - -C /tmp/tch-gui-unhide/common/
-tar --exclude README.md -cf - -C lua/additional/common/ .  | tar -xf - -C /tmp/tch-gui-unhide/common/
+[ ! -z "$DEBUG" ] && echo Copying lua/ansuel/ to /tmp/tch-gui-unhide/common/
+tar --exclude README.md -cf - -C lua/ansuel/ .  | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/common/
+[ ! -z "$DEBUG" ] && echo Copying lua/additional/common/ to /tmp/tch-gui-unhide/common/
+tar --exclude README.md -cf - -C lua/additional/common/ .  | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/common/
 for d in $(ls -d lua/additional/[0-9]*)
 do
   fwdir=$(basename $d)
   mkdir -p /tmp/tch-gui-unhide/$fwdir
-  tar --exclude README.md -cf - -C $d .  | tar -xf - -C /tmp/tch-gui-unhide/$fwdir/
+[ ! -z "$DEBUG" ] && echo Copying $d to /tmp/tch-gui-unhide/$fwdir/
+  tar --exclude README.md -cf - -C $d .  | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$fwdir/
 done
 
 TARGET=common/075-Enable-Ajax-Modals
-echo Updating $TARGET...
+echo "${GREEN}Updating $TARGET...${NC}"
 rm $TARGET
 for a in $(find /tmp/tch-gui-unhide/common/*/www/docroot/ajax -type f)
 do
+  [ ! -z "$DEBUG" ] && echo $a
   AJAX=$(basename $a)
   RULE="$(basename $a .lua | sed -e 's/-//g')ajax"
   echo "if [ \"\$(uci -q get web.$RULE)\" != \"rule\" ]" >> $TARGET
@@ -70,10 +83,10 @@ do
 done
 echo "" >> $TARGET
 
-echo Updating rpc.gui.UnhideVersion...
+echo "${GREEN}Updating rpc.gui.UnhideVersion...${NC}"
 sed -e "s/current_version = \"\"/current_version = \"$FULL_VERSION\"/" -i $(find /tmp/tch-gui-unhide/common -name gui.map)
 
-echo Fixing file and directory attributes...
+echo "${GREEN}Fixing file and directory attributes...${NC}"
 find /tmp/tch-gui-unhide/ -type d -exec chmod 755 {} \;
 find /tmp/tch-gui-unhide/ -type f -name '*.map' -exec chmod 644 {} \;
 find /tmp/tch-gui-unhide/ -type f -name '*.lp'  -exec chmod 644 {} \;
@@ -83,11 +96,12 @@ do
   chmod 755 $d/*
 done
 
-echo Building bzipped Base64 tar images...
+echo "${GREEN}Building bzipped Base64 tar images...${NC}"
 for d in $(ls /tmp/tch-gui-unhide/common)
 do
   if [ -d /tmp/tch-gui-unhide/common/$d ]
   then
+    [ ! -z "$DEBUG" ] && echo "Building /tmp/$d.b64"
     cd /tmp/tch-gui-unhide/common/$d
     echo "echo [\$SCRIPT]: Deploy modified $d GUI code" > /tmp/$d.b64
     echo "echo $(tar --owner=root --group=root -cf - * | bzip2 | base64 | tr -d "$IFS") | base64 -d | bzcat | tar -xf - -C /" >> /tmp/$d.b64
@@ -95,6 +109,7 @@ do
     cd $DIR
   fi
 done
+[ ! -z "$DEBUG" ] && echo "Building /tmp/themes.b64"
 echo "echo [\$SCRIPT]: Deploy theme files" > /tmp/themes.b64
 echo "echo $(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -cf - -C themes . | bzip2 | base64 | tr -d "$IFS") | base64 -d | bzcat | tar -xf - -C /" >> /tmp/themes.b64
 echo "" >> /tmp/themes.b64
@@ -105,6 +120,7 @@ do
     cd $d
     FW=$(basename $d)
     TARGET=/tmp/$FW.b64
+    [ ! -z "$DEBUG" ] && echo "Building /tmp/$FW.b64"
     if [ -f $d/.source ]
     then
       echo "echo [\$SCRIPT]: Importing missing and/or replacement GUI code from $(cat $d/.source | xargs)" > $TARGET
@@ -134,13 +150,14 @@ do
     fi
   done
 
-  echo Writing $TARGET...
+  echo "${GREEN}Writing $TARGET...${NC}"
   echo "#!/bin/sh" > $TARGET
   echo "echo 000@\$(date +%H:%M:%S): Built for firmware version $MAJOR - Release $DATE_VERSION" >> $TARGET
   echo "RELEASE='$FULL_VERSION'" >> $TARGET
 
   for s in $(find common $MAJOR -type f -a ! -name .do-not-delete ! -name .include -printf '%f/%h\n' | cat - $MAJOR/.include 2>/dev/null | grep -v '^#' | sort)
   do
+    [ ! -z "$DEBUG" ] && echo "Processing $s"
     FILENAME="$(echo $s | cut -d/ -f1)"
     SEQUENCE="$(echo $FILENAME | cut -d- -f1)"
     DIRECTORY="$(echo $s | cut -d/ -f2-)"
@@ -148,6 +165,7 @@ do
     then
       for b in $(cat "$DIRECTORY/$FILENAME")
       do
+        [ ! -z "$DEBUG" ] && echo " - Appending /tmp/$b.b64"
         sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" /tmp/$b.b64 >> $TARGET
       done
       IMPORTS=$(ls /tmp/$MAJOR*.b64 2>/dev/null)
@@ -156,6 +174,7 @@ do
         for b in $IMPORTS
         do
           FW_TARGET=$(basename $b .b64)
+          [ ! -z "$DEBUG" ] && echo " - Appending conditional import (Target=$FW_TARGET) $b"
           echo "echo \"\$VERSION\" | grep -q \"^$FW_TARGET\"" >> $TARGET
           echo "if [ \$? -eq 0 ]; then" >> $TARGET
           sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" $b >> $TARGET
@@ -165,9 +184,11 @@ do
     else
       if [ $FILENAME = "165-Themes" ]
       then
+        [ ! -z "$DEBUG" ] && echo " - Appending /tmp/themes.b64"
         sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" /tmp/themes.b64 >> $TARGET
       elif [ $FILENAME = "200-Services" ]
       then
+        [ ! -z "$DEBUG" ] && echo " - Adding version to copyright"
         echo "if [ \$THEME_ONLY = n ]; then" >> $TARGET
         echo "  MKTING_VERSION=\$(uci get version.@version[0].marketing_name)" >> $TARGET
         echo "  for l in \$(grep -l -r 'current_year); ngx.print(' /www 2>/dev/null)" >> $TARGET
@@ -178,11 +199,12 @@ do
         echo "fi" >> $TARGET
         echo >> $TARGET
       fi
+      [ ! -z "$DEBUG" ] && echo " - Appending $DIRECTORY/$FILENAME"
       sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
     fi
   done
 done
 
-echo Cleaning up..
+echo "${GREEN}Cleaning up..${NC}"
 rm -rf /tmp/tch-gui-unhide/common /tmp/*.b64
-echo Build Complete @ $(date +%H:%M:%S) for version $FULL_VERSION
+echo "${GREEN}Build Complete @ $(date +%H:%M:%S) for version $FULL_VERSION${NC}"
