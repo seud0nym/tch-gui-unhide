@@ -49,12 +49,6 @@ do
 
   echo Writing "../${major}.tar.gz"...
   tar --xform='s,utilities/,,' --owner=root --group=root --mode=755 -czf "../${major}.tar.gz" -C .. tch-gui-unhide tch-gui-unhide-$major tch-gui-unhide-cards $common $dumaos $transformer
-
-  for minor in $(find $major -mindepth 1 -type d | tr '/' '.')
-  do
-    echo Writing "../${minor}.tar.gz"...
-    tar --xform='s,utilities/,,' --owner=root --group=root --mode=755 -czf "../${minor}.tar.gz" -C .. tch-gui-unhide tch-gui-unhide-$major tch-gui-unhide-cards $common $dumaos $transformer
-  done
 done
 
 echo Done.

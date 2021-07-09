@@ -1,8 +1,24 @@
+2021.07.09
+==========
+* tch-gui-unhide: Show Mobile Only Mode status on card
+* tch-gui-unhide: Correctly update Broadband and Internet cards based on Mobile Only Mode and WAN Sensing
+* tch-gui-unhide: Added file sharing user management for FW 20.3.c
+* tch-gui-unhide: Fixed bug on Content Sharing card when USB device partition index is not 1
+* tch-gui-unhide: LAN card and screen correctly display when AdGuard Home has replaced dnsmasq
+* de-telstra: Do not disable xl2tpd if strongswan installed
+* de-telstra: Disable NFC in minimum memory mode (if installed)
+* de-telstra: Enable services as required if features turned on
+* de-telstra: Some services changed in FW 20.3.c
+* de-telstra: Attempt to hide cards if services stopped
+* de-telstra: Removed additional SSH AFG/tch-exploit configuration (not needed because de-telstra will configure SSH LAN correctly)
+* de-telstra: Fixed bug where Telstra Air QoS changes were not applied
+* de-telstra: Add option to remove the Guest Wi-Fi SSIDs, Guest Networks and associated firewall rules and zones
+
 2021.06.26
 ==========
 * tch-gui-unhide: Build script did not include some updated/replacement code 
 * tch-gui-unhide: PPPoE proto from wan6 interface was not set correctly
-* tch-gui-unhide: Fix WoL configuration for FW 20.3.ca
+* tch-gui-unhide: Fix WoL configuration for FW 20.3.c
 * tch-gui-unhide: Added install date/time to user installed packages
 * de-telstra: Deep Green Mode power setting missing [#31]
 * mtd-backup: Backup the list of user installed packages when saving configuration
