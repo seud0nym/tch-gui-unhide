@@ -49,3 +49,53 @@ sed \
   -e '/DLNA name"/a\                tinsert(html, "</fieldset>")' \
   -i /www/docroot/modals/contentsharing-modal.lp
 
+
+echo [$SCRIPT]: Enable or disable SAMBA service when file and printer sharing completely enabled or disabled
+sed \
+  -e '/if samba_available and type/i\
+    if samba_available and type(post_data["samba_filesharing"]) == "userdata" then\
+      local fs = untaint(post_data["samba_filesharing"])\
+      local ps = proxy.get("uci.printersharing.config.enabled")\
+      local svc_status\
+      if not ps then\
+        svc_status = fs\
+      else\
+        ps = string.untaint(ps[1].value)\
+        if ps == fs then\
+          svc_status = ps\
+        elseif (ps == "0" and fs == "1") or (ps == "1" and fs == "0") then\
+          svc_status = "1"\
+        end\
+      end\
+      if svc_status then\
+        local svc = proxy.get("uci.samba.samba.enabled")\
+        if svc and svc[1].value ~= svc_status then\
+          proxy.set("uci.samba.samba.enabled", svc_status)\
+          proxy.apply()\
+        end\
+      end\
+    end' \
+  -i /www/docroot/modals/contentsharing-modal.lp
+sed \
+  -e '/proxy.apply/i\
+  local ps = string.untaint(postArgs.printersharing_enabled)\
+  local fs = proxy.get("uci.samba.samba.filesharing")\
+  local svc_status\
+  if not fs then\
+    svc_status = ps\
+  else\
+    fs = string.untaint(fs[1].value)\
+    if ps == fs then\
+      svc_status = ps\
+    elseif (ps == "0" and fs == "1") or (ps == "1" and fs == "0") then\
+      svc_status = "1"\
+    end\
+  end\
+  if svc_status then\
+    local svc = proxy.get("uci.samba.samba.enabled")\
+    if svc and svc[1].value ~= svc_status then\
+      proxy.set("uci.samba.samba.enabled", svc_status)\
+    end\
+  end' \
+  -i /www/docroot/modals/printersharing-modal.lp
+
