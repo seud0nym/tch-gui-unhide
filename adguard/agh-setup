@@ -608,7 +608,9 @@ YAML_END
 echo -e "${GREEN}[$SCRIPT] Checking AdGuard Home configuration...${NC}"
 AdGuardHome/AdGuardHome --check-config -c $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml
 if [ $? -ne 0 ]; then
-  echo -e "${RED}[$SCRIPT] Configuration error? Aborting...${NC}"
+  echo -e "${RED}[$SCRIPT] Configuration error? Restoring dnsmasq...${NC}"
+  configure_dnmasq enable
+  echo -e "${RED}[$SCRIPT] Aborting...${NC}"
   exit 2
 fi
 
@@ -781,4 +783,7 @@ if [ $AGH_RUNNING = 'true' ]; then
   echo -e "${GREEN}[$SCRIPT] Done. You can now access AdGuard Home on http://${GATEWAY}:8008${NC}"
 else
   echo -e "${RED}[$SCRIPT] Something went wrong??? Could not connect to AdGuard Home!${NC}"
+  echo -e "${RED}[$SCRIPT] Restoring dnsmasq...${NC}"
+  configure_dnmasq enable
+  echo -e "${RED}[$SCRIPT] Installation failed!${NC}"
 fi
