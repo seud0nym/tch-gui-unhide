@@ -458,7 +458,7 @@ DHCPv4_START=$3
 DHCPv4_END=$4
 LEASE_TIME=$5
 if [ ! -z "$6" ]; then
-  DHCPv6_START=$6
+  DHCPv6_START="$(echo $6 | sed -e 's/:$/:1/')"
   SLAAC="true"
 else
   DHCPv6_START='""'
