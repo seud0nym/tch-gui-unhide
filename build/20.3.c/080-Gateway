@@ -1,0 +1,6 @@
+echo [$SCRIPT]: Fix Heading and Import/Export visibility on Gateway Card
+sed \
+  -e "s/createHeader(T(symbolv2)/createHeader(T\"$VARIANT\"/" \
+  -e 's/(configuration and currentuser == "test") or not configuration/true/' \
+  -i /www/docroot/modals/gateway-modal.lp
+
