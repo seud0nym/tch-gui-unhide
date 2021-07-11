@@ -49,7 +49,7 @@ Options:
  -a u|y|n              WAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable
  -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
  -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
- -p u|y|n              Power Saving:            u=unchanged y=Enable n=Disable
+ -p u|y|n|d            Power Saving:            u=unchanged y=Enable n=Disable d=Default
  -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
  -t u|y|n              Telephony:               u=unchanged y=Enable n=Disable
  -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
@@ -197,7 +197,7 @@ do
   m)  case "${OPTARG}" in y) MULTIAP='1';; n) MULTIAP='0';; u) MULTIAP='u';; *) MULTIAP='u'; echo 'ERROR: -m valid options are y, n, or u'; exit 1;; esac;;
   n)  NS=${OPTARG};;
   o)  OPKG='y';;
-  p)  case "${OPTARG}" in y) POWER='y';; n) POWER='n';; u) POWER='u';; *) POWER='u'; echo 'ERROR: -p valid options are y, n, or u'; exit 1;; esac;;
+  p)  case "${OPTARG}" in y) POWER='y';; n) POWER='n';; u) POWER='u';; d) POWER='d';; *) POWER='u'; echo 'ERROR: -p valid options are y, n, u or d'; exit 1;; esac;;
   q)  case "${OPTARG}" in y) NFC='1';; n) NFC='0';; u) NFC='u';; *) NFC='u'; echo 'ERROR: -q valid options are y, n, or u'; exit 1;; esac;;
   r)  case "${OPTARG}" in y) PRNTR='1';; n) PRNTR='0';; u) PRNTR='u';; *) PRNTR='u'; echo 'ERROR: -r valid options are y, n, or u'; exit 1;; esac;;
   t)  case "${OPTARG}" in y) MMPBX='1';; n) MMPBX='0';; u) MMPBX='u';; *) MMPBX='u'; echo 'ERROR: -t valid options are y, n, or u'; exit 1;; esac;;
@@ -934,7 +934,7 @@ then
   fi
 fi
 
-PWR_STATUS=$(pwrctl show | grep ENABLED | grep -v "Switch Deep Green Mode" | wc -l)
+PWR_STATUS=$(pwrctl show | grep -i ENABLED | wc -l)
 if [ \( $PWR_STATUS -eq 0 -a "$POWER" = "n" \) -o \( $PWR_STATUS -gt 0 -a "$POWER" = "y" \) ]
 then
   POWER='u'
@@ -942,24 +942,76 @@ fi
 case "$POWER" in
   u)  echo [$SCRIPT]: Power saving settings unchanged \[$(status2text $PWR_STATUS)\];;
   n)  echo [$SCRIPT]: Disabling power saving...
-      pwrctl config --cpuspeed 0
-      pwrctl config --wait off
-      pwrctl config --ethapd off
-      pwrctl config --eee off
-      pwrctl config --autogreeen off
-      pwrctl config --dgm off
-      uci set power.ethernet.autogreeen='0'
-      uci set power.ethernet.eee='0'
+      if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]
+      then
+        pwrctl config --cpuspeed 0
+        pwrctl config --wait off
+        pwrctl config --ethapd off
+        pwrctl config --eee off
+        pwrctl config --autogreeen off
+        pwrctl config --dgm off
+        uci set power.ethernet.autogreeen='0'
+        uci set power.ethernet.eee='0'
+      else
+        pwrctl config --net off
+        pwrctl config --phy off
+        pwrctl config --eee off
+        pwrctl config --apd off
+        pwrctl config --dgm off
+        uci set power.ethernet.net='0'
+        uci set power.ethernet.phy='0'
+        uci set power.ethernet.eee='0'
+        uci set power.ethernet.apd='0'
+        uci set power.ethernet.dgm='0'
+      fi
       uci commit power;;
   y)  echo [$SCRIPT]: Enabling power saving...
-      pwrctl config --cpuspeed 1
-      pwrctl config --wait on
-      pwrctl config --ethapd on
-      pwrctl config --eee on
-      pwrctl config --autogreeen on
-      pwrctl config --dgm on
-      uci set power.ethernet.autogreeen='1'
-      uci set power.ethernet.eee='1'
+      if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]
+      then
+        pwrctl config --cpuspeed 1
+        pwrctl config --wait on
+        pwrctl config --ethapd on
+        pwrctl config --eee on
+        pwrctl config --autogreeen on
+        pwrctl config --dgm on
+        uci set power.ethernet.autogreeen='1'
+        uci set power.ethernet.eee='1'
+      else
+        pwrctl config --net on
+        pwrctl config --phy on
+        pwrctl config --eee on
+        pwrctl config --apd on
+        pwrctl config --dgm on
+        uci set power.ethernet.net='1'
+        uci set power.ethernet.phy='1'
+        uci set power.ethernet.eee='1'
+        uci set power.ethernet.apd='1'
+        uci set power.ethernet.dgm='1'
+      fi
+      uci commit power;;
+  d)  echo [$SCRIPT]: Resetting power saving to defaults...
+      if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]
+      then
+        pwrctl config --cpuspeed 1
+        pwrctl config --wait on
+        pwrctl config --ethapd on
+        pwrctl config --eee on
+        pwrctl config --autogreeen on
+        pwrctl config --dgm on
+        uci set power.ethernet.autogreeen='1'
+        uci set power.ethernet.eee='1'
+      else
+        pwrctl config --net off
+        pwrctl config --phy off
+        pwrctl config --eee on
+        pwrctl config --apd on
+        pwrctl config --dgm on
+        uci set power.ethernet.net='0'
+        uci set power.ethernet.phy='0'
+        uci set power.ethernet.eee='1'
+        uci set power.ethernet.apd='1'
+        uci set power.ethernet.dgm='1'
+      fi
       uci commit power;;
 esac
 
