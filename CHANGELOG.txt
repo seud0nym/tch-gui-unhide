@@ -1,3 +1,9 @@
+2021.07.11
+==========
+* tch-gui-unhide: Local Network screen would not allow changes to be saved
+* tch-gui-unhide: Configuration Import/Export missing from device modal on FW 20.3.c
+* de-telstra: Power configuration changed in FW 20.3.c
+
 2021.07.10
 ==========
 * tch-gui-unhide: Show Mobile Only Mode status on card
