@@ -16,18 +16,16 @@ sed \
 
 echo [$SCRIPT]: Adding IPv6 Prefix Size and ULA Prefix
 sed \
- -e '/^local gVIES/a \local gVNIR = post_helper.getValidateNumberInRange' \
- -e '/^local gVIES/a \local gOV = post_helper.getOptionalValidation' \
  -e '/^local gVIES/a \local vIAS6 = gOV(post_helper.validateIPAndSubnet(6))' \
- -e '/^local gVIES/a \local function validateULAPrefix(value, object, key)' \
- -e '/^local gVIES/a \  local valid, msg = vIAS6(value, object, key)' \
- -e '/^local gVIES/a \  if valid and value ~= "" and (string.sub(string.lower(value),1,2) ~= "fd" or string.sub(value,-3,-1) ~= "/48") then' \
- -e '/^local gVIES/a \    return nil, "ULA Prefix must be within the prefix fd00::/8, with a range of /48"' \
- -e '/^local gVIES/a \  end' \
- -e '/^local gVIES/a \  return valid, msg' \
- -e '/^local gVIES/a \end' \
- -e '/slaacState = "uci/i \    ip6assign = "uci.network.interface.@" .. curintf .. ".ip6assign",' \
- -e '/slaacState = "uci/a \    ula_prefix = "uci.network.globals.ula_prefix",' \
+ -e '/^local function validateIPv6/i \local function validateULAPrefix(value, object, key)' \
+ -e '/^local function validateIPv6/i \  local valid, msg = vIAS6(value, object, key)' \
+ -e '/^local function validateIPv6/i \  if valid and value ~= "" and (string.sub(string.lower(value),1,2) ~= "fd" or string.sub(value,-3,-1) ~= "/48") then' \
+ -e '/^local function validateIPv6/i \    return nil, "ULA Prefix must be within the prefix fd00::/8, with a range of /48"' \
+ -e '/^local function validateIPv6/i \  end' \
+ -e '/^local function validateIPv6/i \  return valid, msg' \
+ -e '/^local function validateIPv6/i \end' \
+ -e '/slaacState = "uci/i \  ip6assign = "uci.network.interface.@" .. curintf .. ".ip6assign",' \
+ -e '/slaacState = "uci/a \  ula_prefix = "uci.network.globals.ula_prefix",' \
  -e '/local number_attr/i \              local ula_attr = {' \
  -e '/local number_attr/i \                controls = {' \
  -e '/local number_attr/i \                  style = "width:220px",' \
@@ -39,13 +37,13 @@ sed \
  -e '/local number_attr/i \                  style = "width:180px",' \
  -e '/local number_attr/i \                }' \
  -e '/local number_attr/i \              }' \
- -e '/if content\["localIPv6"\] ~=/i \              if curintf == "lan" then' \
- -e "/if content\[\"localIPv6\"\] ~=/i \                ngx.print(ui_helper.createInputText(T\"IPv6 ULA Prefix<span class='icon-question-sign' title='IPv6 equivalent of IPv4 private addresses. Must start with fd followed by 40 random bits and a /48 range (e.g. fd12:3456:789a::/48)'></span>\", \"ula_prefix\", content[\"ula_prefix\"], ula_attr, helpmsg[\"ula_prefix\"]))" \
- -e '/if content\["localIPv6"\] ~=/i \              end' \
- -e '/if content\["localIPv6"\] ~=/i \              local ip6prefix = proxy.get("rpc.network.interface.@wan6.ip6prefix")' \
- -e '/if content\["localIPv6"\] ~=/i \              if ip6prefix and ip6prefix[1].value ~= "" then' \
- -e "/if content\[\"localIPv6\"\] ~=/i \                ngx.print(ui_helper.createInputText(T\"IPv6 Prefix Size<span class='icon-question-sign' title='Delegate a prefix of the given length to this interface'></span>\", \"ip6assign\", content[\"ip6assign\"], number_attr, helpmsg[\"ip6assign\"]))" \
- -e '/if content\["localIPv6"\] ~=/i \              end' \
+ -e '/"IPv6 State"/i \              if curintf == "lan" then' \
+ -e "/\"IPv6 State\"/i \                ngx.print(ui_helper.createInputText(T\"IPv6 ULA Prefix<span class='icon-question-sign' title='IPv6 equivalent of IPv4 private addresses. Must start with fd followed by 40 random bits and a /48 range (e.g. fd12:3456:789a::/48)'></span>\", \"ula_prefix\", content[\"ula_prefix\"], ula_attr, helpmsg[\"ula_prefix\"]))" \
+ -e '/"IPv6 State"/i \              end' \
+ -e '/"IPv6 State"/i \              local ip6prefix = proxy.get("rpc.network.interface.@wan6.ip6prefix")' \
+ -e '/"IPv6 State"/i \              if ip6prefix and ip6prefix[1].value ~= "" then' \
+ -e "/\"IPv6 State\"/i \                ngx.print(ui_helper.createInputText(T\"IPv6 Prefix Size<span class='icon-question-sign' title='Delegate a prefix of the given length to this interface'></span>\", \"ip6assign\", content[\"ip6assign\"], number_attr, helpmsg[\"ip6assign\"]))" \
+ -e '/"IPv6 State"/i \              end' \
  -e '/slaacState = gVIES(/a \    ip6assign = gOV(gVNIR(0,128)),' \
  -e '/slaacState = gVIES(/a \    ula_prefix = validateULAPrefix,' \
  -e '/^(function() {/i \function rand(max){return Math.floor(Math.random()*max);}' \

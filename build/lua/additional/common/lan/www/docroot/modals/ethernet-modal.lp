@@ -169,6 +169,21 @@ local mapParam = {
   localIPv6 = "uci.network.interface.@" .. curintf .. ".ipv6"
 }
 
+local function isQtnGuestWiFi(intf)
+  if wireless_radio[untaint(intf)] then
+     local radio = proxy.get(format("rpc.wireless.ssid.@%s.radio", intf))
+     local isRemote = proxy.get(format("rpc.wireless.radio.@%s.remotely_managed", radio[1].value))
+     if isRemote and isRemote[1].value == "1" then
+        for _, v in ipairs(proxy.getPN("rpc.wireless.ap.", true)) do
+          local isGuest = proxy.get(v.path.."ap_isolation")
+          if isGuest and isGuest[1].value == "1" then
+            return true
+          end
+        end
+     end
+  end
+end
+
 local function validateIPv6(value, object, key)
   local valid, msg = vB(value, object, key)
   if valid then
@@ -424,6 +439,15 @@ local function isNonPublicIPRange(ip)
       return nil
 end
 
+local function find_dns (dns, list)
+  for i,v in ipairs(list) do
+    if i > 1 and dns == v[1] then
+      return true
+    end
+  end
+  return false
+end
+
 local function validateDNSv6(value, object, key)
   if value ~= "" and find_dns(value, dns_list[2]) ~= true then
     if mapParams[key] ~= nil then
@@ -559,21 +583,6 @@ local function validateDNS(value, object, key)
 
   dns_servers = {""}
   return true
-end
-
-local function isQtnGuestWiFi(intf)
-  if wireless_radio[untaint(intf)] then
-     local radio = proxy.get(format("rpc.wireless.ssid.@%s.radio", intf))
-     local isRemote = proxy.get(format("rpc.wireless.radio.@%s.remotely_managed", radio[1].value))
-     if isRemote and isRemote[1].value == "1" then
-        for _, v in ipairs(proxy.getPN("rpc.wireless.ap.", true)) do
-          local isGuest = proxy.get(v.path.."ap_isolation")
-          if isGuest and isGuest[1].value == "1" then
-            return true
-          end
-        end
-     end
-  end
 end
 
 local function validateLeaseTime(value, postdata, key)
@@ -1080,9 +1089,7 @@ local uri = ngx.var.uri
                 )
               end
 
-              ngx.print(
-                ui_helper.createSwitch(T"IPv6 State", "localIPv6", content["localIPv6"], switch_class_enable)
-              )
+              ngx.print(ui_helper.createSwitch(T"IPv6 State", "localIPv6", content["localIPv6"], switch_class_enable))
 
               if cur_dhcp_intf == "lan" and not bridged.isBridgedMode() and not adguard then
                 ngx.print(
