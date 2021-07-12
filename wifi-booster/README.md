@@ -17,12 +17,14 @@ You should download the latest release of `tch-gui-unhide`, and execute the foll
     - To RTFD and preserve the current LAN IP address: `./reset-to-factory-defaults-with-root -i -c -b`
     - **OR**
     - To RTFD and set a new LAN IP address (e.g. 192.168.0.2): `./reset-to-factory-defaults-with-root -I 192.168.0.2 -c -b`
-2. Harden your device, shutdown unnecessary services, and remove Telstra SSIDs and monitoring e.g.
-    - `./de-telstra -S -tn -en`
+2. Harden your device, shutdown unnecessary services, remove Guest and Telstra SSIDs, and Telstra monitoring e.g.
+    - `./de-telstra -S -M -G -my`
+    - Use `./de-telstra -?` to see all options.
 3. Change the root password
     - `passwd`
 4. Apply tch-gui-unhide e.g.
     - `./tch-gui-unhide -hs -y`
+    - Use `./tch-gui-unhide -?` to see all options.
 5. Download and apply the `bridged-booster` configuration script
 
 ### Previous Configuration Script Versions
