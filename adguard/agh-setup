@@ -18,43 +18,45 @@ the -i option is specified.
 Usage: agh-setup [options]
 
 options:
- -n username  The AdGuard Home web user name.
-                If not specified, the user name defaults to: root
- -p password  The plain text AdGuard Home web password. The password will be
-                hashed by calling https://bcrypt.org/api/generate-hash.json
- -h 'hash'    The Bcrypt password hash representing the AdGuard Home web
-                password. If not specified and -p is also not specifed, the
-                password defaults to: agh-admin
-                The hash value MUST be specified within single quotes.
-                You can generate the hash using an online generator, such as:
-                  - https://bcrypt.org/
-                  - https://www.appdevtools.com/bcrypt-generator
-                  - https://wtools.io/bcrypt-generator-online
-                If you supply a password hash, you should use the -p option
-                to specify the matching password, so that AdGuard Home status
-                can be checked post-installation, and any static leases
-                currently defined in dnsmasq can be loaded into AdGuard Home.
- -i           Install AdGuard Home on INTERNAL storage rather than USB.
-                WARNING! This option requires the working directory to be 
-                created on tmpfs, which is cleared on reboot. However, this
-                script will set up a cron sync job, so that the most you 
-                should lose will be the events and changes in the last 
-                minute before an unexpected system reboot.
- -x c|g|i|u|x Exclude features:
-                -xc   Do not update System CA certificates
-                        NOTE: If certificates are not up to date, AdGuard Home
-                              will FAIL to download filters
-                -xg   Do not get the latest version of AdGuard Home if it has
-                        already been downloaded
-                -xi   Do not enable DNS hijacking/interception
-                -xu   Do not download utility scripts
-                -xx   Same as -xc -xg -xi -xu
- -s           Skips the free memory check.
-                If there is not enough free memory, the installation will be
-                aborted. Use this option to install anyway.
- -r           Removes AdGuard Home and re-enables dnsmasq.
- -u           Uninstalls AdGuard Home (but does not remove it) and re-enables
-                dnsmasq.
+ -n username   The AdGuard Home web user name.
+                  If not specified, the user name defaults to: root
+ -p password   The plain text AdGuard Home web password. The password will be
+                  hashed by calling https://bcrypt.org/api/generate-hash.json
+ -h 'hash'     The Bcrypt password hash representing the AdGuard Home web
+                  password. If not specified and -p is also not specifed, the
+                  password defaults to: agh-admin
+                  The hash value MUST be specified within single quotes.
+                  You can generate the hash using an online generator, such as:
+                    - https://bcrypt.org/
+                    - https://www.appdevtools.com/bcrypt-generator
+                    - https://wtools.io/bcrypt-generator-online
+                  If you supply a password hash, you should use the -p option
+                  to specify the matching password, so that AdGuard Home status
+                  can be checked post-installation, and any static leases
+                  currently defined in dnsmasq can be loaded into AdGuard Home.
+ -i            Install AdGuard Home on INTERNAL storage rather than USB.
+                  WARNING! This option requires the working directory to be 
+                  created on tmpfs, which is cleared on reboot. However, this
+                  script will set up a cron sync job, so that the most you 
+                  should lose will be the events and changes in the last 
+                  minute before an unexpected system reboot.
+ -x c|g|i|u|y|x Exclude features:
+                  -xc   Do not update System CA certificates
+                          NOTE: If certificates are not up to date, AdGuard Home
+                                will FAIL to download filters
+                  -xg   Do not get the latest version of AdGuard Home if it has
+                          already been downloaded
+                  -xi   Do not enable DNS hijacking/interception
+                  -xu   Do not download utility scripts
+                  -xy   Do not replace an existing AdGuard Home Configuration
+                          file (no effect if the .yaml file does not exist)
+                  -xx   Same as -xc -xg -xi -xy -xu
+ -s            Skips the free memory check.
+                  If there is not enough free memory, the installation will be
+                  aborted. Use this option to install anyway.
+ -r            Removes AdGuard Home and re-enables dnsmasq.
+ -u            Uninstalls AdGuard Home (but does not remove it) and re-enables
+                  dnsmasq.
 
 NOTE: The -r and -u options are mutually exclusive. If both are specified, the
       LAST specified will take precedence. If either is specified, all other
@@ -81,6 +83,7 @@ INTERCEPTION=Y
 UTILITIES=Y
 EXTERNAL=Y
 REMOVE=N
+OVERWRITE=Y
 QUERYLOG_INTERVAL=90
 SKIP_MEM_CHK=N
 INSTALL_ROOT="/root"
@@ -100,7 +103,8 @@ do
         g)  DOWNLOAD=N;;
         i)  INTERCEPTION=N;;
         u)  UTILITIES=N;;
-        x)  CA_CERT=N;DOWNLOAD=N;INTERCEPTION=N;UTILITIES=N;;
+        y)  OVERWRITE=N;;
+        x)  CA_CERT=N;DOWNLOAD=N;INTERCEPTION=N;UTILITIES=N;OVERWRITE=N;;
         *)  echo -e "${RED}[$SCRIPT] Unknown -x$OPTARG option! Aborting...${NC}"; exit 2;;
       esac;;
   *)  usage;;
@@ -475,8 +479,9 @@ if [ "$BIND_HOSTS" = "|  - 127.0.0.1|" ]; then
 fi
 BIND_HOSTS="$(echo "$BIND_HOSTS" | tr '|' '\n')"
 
-echo -e "${GREEN}[$SCRIPT] Configuring AdGuard Home...${NC}"
-cat <<YAML_END >$INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml
+if [  $OVERWRITE = y -o ! -e $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml ]; then
+  echo -e "${GREEN}[$SCRIPT] Configuring AdGuard Home...${NC}"
+  cat <<YAML_END >$INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml
 bind_host: $GATEWAY
 bind_port: 8008
 beta_bind_port: 0
@@ -494,7 +499,7 @@ dns:
   bind_hosts:$BIND_HOSTS
   port: 53
   statistics_interval: 1
-  querylog_enabled: true
+  querylog_enabled: false
   querylog_file_enabled: true
   querylog_interval: $QUERYLOG_INTERVAL
   querylog_size_memory: 1000
@@ -604,6 +609,9 @@ log_file: ""
 verbose: false
 schema_version: 10
 YAML_END
+else
+  echo -e "${ORANGE}[$SCRIPT] Existing AdGuard Home configuration NOT overwritten${NC}"
+fi
 
 echo -e "${GREEN}[$SCRIPT] Checking AdGuard Home configuration...${NC}"
 AdGuardHome/AdGuardHome --check-config -c $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml
@@ -675,8 +683,10 @@ configure_dnmasq() {
   adguardhome_log "dnsmasq ${1}d"
 }
 
-if [ -e /etc/init.d/AdGuardHome ]; then
+if [ -e /etc/init.d/AdGuardHome -a -d /mnt/usb/$NAME/AdGuardHome ]; then
   adguardhome_init
+  
+  sed -e "s|/tmp/run/mountd/sd[^/]*/|/tmp/run/mountd/$DEVICE/|g" -e "s|/mnt/usb/USB-[^/]*/|/mnt/usb/$NAME/|g" -i /etc/init.d/AdGuardHome
 
   AGH_CMD=$(grep -o -m 1 -E '/.*/AdGuardHome/AdGuardHome ' /etc/init.d/AdGuardHome 2>/dev/null)
   echo $AGH_CMD | grep -q -E "$NAME|$DEVICE"

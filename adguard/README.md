@@ -67,6 +67,14 @@ curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adgua
 ```
 When this command successfully completes, AdGuard Home will be installed and running from your internal storage. The web interface will be accessible at http://[router ip address]:8008. The default username is root and the default  password is agh-admin.
 
+## Manual Download of Setup Script
+If you are uncomfortable running the script without reviewing it first, simply download it and execute it manually:
+```
+curl -skL -o agh-setup https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/agh-setup
+chmod +x agh-setup
+```
+You can execute `./agh-setup -?` to see all available installation options (some of which are also described below).
+
 # Optional Installation Parameters
 The following optional configuration parameters may be specified **after** the doubles dashes (**--**) in the above commands:
 - -u username
@@ -97,8 +105,11 @@ The following optional configuration parameters may be specified **after** the d
       - Do not enable DNS hijacking/interception
     - -xu
       - Do not download utility scripts
+    - -xy
+      - Do not replace an existing AdGuard Home Configuration file 
+      - Has no effect if the AdGuardHome.yaml file does not exist
     - -xx
-      - Same as **-xc -xg -xi -xu**
+      - Same as **-xc -xg -xi -xu -xy**
 - -s
   - Skips the free memory check
   - If there is not enough free memory, the installation will be aborted.
@@ -112,7 +123,12 @@ Run the following command on your device:
 ```
 curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/agh-setup | sh -s -- -r
 ```
+Or, if you downloaded the script manually, you can run `./agh-setup -r`.
+
 When the script completes, AdGuard Home will have been removed and dnsmasq re-enabled with default settings.
+
+## Uninstalling Without Removing AdGuard Home
+Use the `-u` option instead of `-r` to prevent deleting the AdGuard Home directory. If you then decide to re-install, the you can skip downloading it again by specifying the `-xg` option when running the setup script.
 
 # Other Utilities
 These utility scripts will be automatically downloaded to the AdGuardHome directory (unless you specify the **-xu** or **-xx** installation options).
