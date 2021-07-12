@@ -17,5 +17,10 @@ sed \
   -e 's|<a href="%s" target="_self">|<a href="#" data-remote="%s">|' \
   -e 's|@wwan.up")\[1\].value|@wwan.up")|' \
   -e 's|if wwan_up|if wwan_up and wwan_up[1].value|' \
+  -e '/ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)/,/^\s*$/d' \
+  -e '/proxy.set("rpc.system.lock.free", "0")/i end' \
   /www/docroot/traffic.lp > /www/docroot/modals/diagnostics-traffic-modal.lp
+
+echo [$SCRIPT]: Only lock files for 600 seconds
+sed -e 's/lfs.lock_dir(datadir)/lfs.lock_dir(datadir,600)/' -i /usr/share/transformer/mappings/rpc/system.lock.map
 
