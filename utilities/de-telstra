@@ -49,7 +49,7 @@ Options:
  -a u|y|n              WAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable
  -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
  -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
- -p u|y|n|d            Power Saving:            u=unchanged y=Enable n=Disable d=Default
+ -p u|y|n|d          ! Power Saving:            u=unchanged y=Enable n=Disable d=Default
  -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
  -t u|y|n              Telephony:               u=unchanged y=Enable n=Disable
  -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
@@ -69,12 +69,13 @@ Options:
  -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and
                         guest networks
  -R                    Reset to device defaults: Equivalent to:
-                        -hmymodem -dmodem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy -Fn
+                        -hmymodem -dmodem -na -ay -cy -fy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn
  -o                    Configures opkg
  -U                    Download the latest version of $SCRIPT from GitHub
 
 NOTE #1: Default for all optional parameters is u (unchanged)
 NOTE #2: Options marked with * are only applicable if the service is installed
+NOTE #3: Enabling power saving on FW 20.3.c will power down WAN/LAN ports!!
 
 EOH
 exit
@@ -207,7 +208,7 @@ do
   F)  case "${OPTARG}" in y) ROOT_PROTECT='1';; n) ROOT_PROTECT='0';; u) ROOT_PROTECT='u';; *) ROOT_PROTECT='u'; echo 'ERROR: -F valid options are y, n, or u'; exit 1;; esac;;
   G)  GUEST='n';;
   M)  LITE='y'; ALG='0'; DECT='0'; DLNAD='0'; DUMAOS='0'; MMPBX='0'; MULTIAP='0'; NFC='0'; PRNTR='0'; SAMBA='0'; UPNP='0'; WPS='0'; ROOT_PROTECT='1';;
-  R)  LITE='R'; HOST='mymodem'; DOMAIN='modem'; NS='a'; ALG='1'; DLNAD='1'; DUMAOS='0'; SAMBA='1'; MULTIAP='1'; POWER='y'; PRNTR='1'; MMPBX='1'; DECT='1'; UPNP='1'; ROOT_PROTECT='0';;
+  R)  LITE='R'; HOST='mymodem'; DOMAIN='modem'; NS='a'; ALG='1'; DLNAD='1'; DUMAOS='0'; SAMBA='1'; MULTIAP='1'; POWER='d'; PRNTR='1'; MMPBX='1'; DECT='1'; UPNP='1'; ROOT_PROTECT='0'; NFC='y';;
   S)  HOST='s'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; PRNTR='0'; UPNP='0'; WPS='0'; ROOT_PROTECT='1';;
   U)  upgrade;;
   ?)  usage;;

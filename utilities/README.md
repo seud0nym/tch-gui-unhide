@@ -20,7 +20,7 @@ In addition, it automatically:
 
 Optionally, it can also:
 - Set the hostname of the device and the domain of the LAN. Default Telstra host names (except telstra.wifi, which is used by EasyMesh) are removed.
-- Set the device DNS servers
+- Set the device IPv4 DNS servers
 - Disable or enable content and printer sharing, and the DLNA server
 - Disable or enable all WAN ALGs (FTP, TFTP, SNMP, PPTP, IRC, AMANDA, RTSP, SIP)
 - Disable or enable telephony, and enables VoLTE backup voice service and SMS reception
@@ -33,12 +33,12 @@ Optionally, it can also:
 - Configure the opkg package manager so that you can install additional packages on the device
 - Stop and disable all services associated with optional features for a minimal memory configuration
 - Protect against loss of root when doing a factory reset, by preserving the password files and dropbear (SSH) configuration
+- Completely remove the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks
 
 It does NOT remove the hidden BH-xxxxxx SSID from the DJA0230 or DJA0231, as this is not related to Telstra AIR. It is the wireless backhaul for EasyMesh.
 ```
 Usage: ./de-telstra [options]
 
-Options:
 Options:
  -k a|c|e|k|m|n        Override default hardening configuration:
     where a            - Keep Telstra AIR enabled
@@ -69,7 +69,7 @@ Options:
  -a u|y|n              WAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable
  -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
  -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
- -p u|y|n              Power Saving:            u=unchanged y=Enable n=Disable
+ -p u|y|n|d          ! Power Saving:            u=unchanged y=Enable n=Disable d=Default
  -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
  -t u|y|n              Telephony:               u=unchanged y=Enable n=Disable
  -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
@@ -77,20 +77,25 @@ Options:
  -m u|y|n            * MultiAP (EasyMesh):      u=unchanged y=Enable n=Disable
  -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
  -q u|y|n            * NFC:                     u=unchanged y=Enable n=Disable
- -w u|y|n              WPS on non-Guest and non-Backhaul SSIDs: u=unchanged y=Enable n=Disable
- -F u|y|n              Factory reset root protection: u=unchanged y=Enable n=Disable
-                          NOTE: Installation of tch-gui-unhide will ALWAYS enable RTFD protection!
+ -w u|y|n              WPS:                     u=unchanged y=Enable n=Disable
+                         (on non-Guest and non-Backhaul SSIDs)
+ -F u|y|n              RTFD root protection:    u=unchanged y=Enable n=Disable
+                        NOTE: tch-gui-unhide will ALWAYS enable RTFD protection
  -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un -wn -Fy
  -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn -Fy
  -M                    Minimum memory mode: Equivalent to: -an -cn -fn -rn -tn -en -un -mn -gn -qn -Fy
                         PLUS stops and disables the associated services
  -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks
- -R                    Reset to device defaults
-                        (equivalent to: -h mymodem -d modem -na -ay -cy -fy -py -ry -ty -ey -uy -my -gy -wy -Fn)
+ -R                    Reset to device defaults: 
+                        Equivalent to: -hmymodem -dmodem -na -ay -cy -fy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn
  -o                    Configures opkg
  -U                    Download the latest version of de-telstra from GitHub
 ```
-Note that the options to disable/enable EasyMesh and DumaOS are only applicable to devices with those services installed.
+#### Notes
+1. The default for all optional parameters is u (unchanged).
+2. The options to disable/enable NFC, EasyMesh and DumaOS are only applicable to devices with those services installed.
+#### Warning!
+* Enabling power saving on FW 20.3.c will power down WAN/LAN ports!!
 
 ## dumaos
 Enables or disables DumaOS on a DJA0231 running the 18.1.c.0514 or later firmware, or a DJA0230 running 18.1.c.0549 or later. It also disables or enables reboot on core dump, because if DumaOS gets into trouble, the router will just continually reboot.
