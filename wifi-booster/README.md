@@ -100,7 +100,7 @@ On the primary device, you must manually configure the following items:
 # How to download and execute the script
 Execute this command on your device via a PuTTY session or equivalent (an active WAN/Internet connection is required):
 ```
-wget https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/wifi-booster/bridged-booster 
+curl -skLo bridged-booster https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/wifi-booster/bridged-booster
 ```
 
 Alternatively, download the script manually and load it up to your device using WinSCP or equivalent.
