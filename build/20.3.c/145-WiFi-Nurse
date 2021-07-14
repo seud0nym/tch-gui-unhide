@@ -1,0 +1,8 @@
+echo [$SCRIPT]: Fix WiFi Nurse
+sed \
+  -e 's/rpc\.wireless\.ap\.@ap1/rpc.wireless.ap.@ap2/' \
+  -e '/ipairs(ssid_list)/a\  if ssid_name_2G and ssid_name_5G and string.sub(ssid_name_5G,1,3) ~= "BH-" then\
+    break\
+  end' \
+  -i /www/docroot/modals/wifi-nurse-modal.lp
+
