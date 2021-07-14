@@ -1,4 +1,4 @@
-if [ "$VERSION" = "17.2.0284" ]; then
+if [ "$FW_BASE" = "17.2" ]; then
 echo [$SCRIPT]: Add missing getRandomKey function
 cat <<GRK > /www/lua/randomKey.lua
 local M = {}
