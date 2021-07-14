@@ -6,35 +6,34 @@ gettext.textdomain('webui-core')
 local bit = require("bit")
 local proxy = require("datamodel")
 local lfs = require("lfs")
-local bridged = require("bridgedmode_helper")
+local pairs, string ,ipairs, ngx = pairs, string, ipairs, ngx
+local session = ngx.ctx.session
 local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local content_helper = require("web.content_helper")
 local uinetwork = require("web.uinetwork_helper")
 local hosts_ac = uinetwork.getAutocompleteHostsList()
-local ipv42num = post_helper.ipv42num
-local broadcast_ip =post_helper.ipv42num("255.255.255.255")
 local tonumber, tostring = tonumber, tostring
-local pairs, string ,ipairs, ngx = pairs, string, ipairs, ngx
+local content, helpmsg
 local match, format = string.match, string.format
 local find, untaint, gsub = string.find, string.untaint, string.gsub
-local session = ngx.ctx.session
-
-local content, helpmsg
+local ipv42num = post_helper.ipv42num
+local broadcast_ip =post_helper.ipv42num("255.255.255.255")
+local bridged = require("bridgedmode_helper")
 
 -- Shortcuts to validation helpers to make lines shorter
 local aIPV = post_helper.advancedIPValidation
+local vB = post_helper.validateBoolean
+local vIP4N = post_helper.validateIPv4Netmask
+local vQTN = post_helper.validateQTN
 local gAV = post_helper.getAndValidation
 local gOV = post_helper.getOptionalValidation
 local gVIC = post_helper.getValidateInCheckboxgroup
 local gVIES = post_helper.getValidateInEnumSelect
 local gVNIR = post_helper.getValidateNumberInRange
 local sLIPV = post_helper.staticLeaseIPValidation
-local vB = post_helper.validateBoolean
-local vIP4N = post_helper.validateIPv4Netmask
 local vNES = post_helper.validateNonEmptyString
-local vQTN = post_helper.validateQTN
 local vSIDN = post_helper.validateStringIsDomainName
 local vSIIP = post_helper.validateStringIsIP
 local vSIIP4 = post_helper.validateStringIsIPv4
@@ -63,6 +62,10 @@ local dns_list = {
     {"8.8.4.4", T"Google (8.8.4.4)"},
     {"1.1.1.1", T"Cloudflare (1.1.1.1)"},
     {"1.0.0.1", T"Cloudflare (1.0.0.1)"},
+    {"1.1.1.2", T"Cloudflare (1.1.1.2)"},
+    {"1.0.0.2", T"Cloudflare (1.0.0.2)"},
+    {"1.1.1.3", T"Cloudflare (1.1.1.3)"},
+    {"1.0.0.3", T"Cloudflare (1.0.0.3)"},
     {"208.67.222.222", T"OpenDNS (208.67.222.222)"},
     {"208.67.220.220", T"OpenDNS (208.67.220.220)"},
     {"9.9.9.9", T"Quad9 (9.9.9.9)"},
@@ -163,12 +166,6 @@ for k,v in ipairs(all_intfs) do
   end
 end
 
-local IP6assign = "uci.network.interface.@" .. curintf .. ".ip6assign"
-
-local mapParam = {
-  localIPv6 = "uci.network.interface.@" .. curintf .. ".ipv6"
-}
-
 local function isQtnGuestWiFi(intf)
   if wireless_radio[untaint(intf)] then
      local radio = proxy.get(format("rpc.wireless.ssid.@%s.radio", intf))
@@ -184,28 +181,34 @@ local function isQtnGuestWiFi(intf)
   end
 end
 
+local IP6assign = "uci.network.interface.@" .. curintf .. ".ip6assign"
+
+local mapParam = {
+  localIPv6 = "uci.network.interface.@" .. curintf .. ".ipv6"
+}
+
 local function validateIPv6(value, object, key)
   local valid, msg = vB(value, object, key)
   if valid then
-      if value == "0" then
-        -- In case we disable IPv6, we must first invalidate the existing prefix so that local devices know not to use IPv6 anymore
-        -- Do this here by set the ip6assign pref and only on ipv6 state change
-        local ipv6 = proxy.get(mapParam["localIPv6"]) -- get current value in datamodel to know if we're switching state
-        if ipv6 and ipv6.value ~= "0" then -- default is enabled so anything non 0 is enabled
-          proxy.set(IP6assign, "0") -- the value will be set back to its current value by process_query
-          proxy.apply()
-          ngx.sleep(3) -- ugly but need to give it the time to complete
-        end
-      else
-        proxy.set(IP6assign, "64")
+    if value == "0" then
+      -- In case we disable IPv6, we must first invalidate the existing prefix so that local devices know not to use IPv6 anymore
+      -- Do this here by set the ip6assign pref and only on ipv6 state change
+      local ipv6 = proxy.get(mapParam["localIPv6"]) -- get current value in datamodel to know if we're switching state
+      if ipv6 and untaint(ipv6[1].value) ~= "0" then -- default is enabled so anything non 0 is enabled
+        proxy.set(IP6assign, "0") -- the value will be set back to its current value by process_query
         proxy.apply()
+        ngx.sleep(3) -- ugly but need to give it the time to complete
+    end
+    else
+      proxy.set(IP6assign, "64")
+      proxy.apply()
+    end
+    if isQtnGuestWiFi(pppDev) then
+      local ucipath = content_helper.getMatchedContent("uci.network.device.",{ifname = pppIntf})
+      if ucipath and #ucipath > 0 then
+        proxy.set(ucipath[1].path .. "ipv6", value)
       end
-      if isQtnGuestWiFi(pppDev) then
-        local ucipath = content_helper.getMatchedContent("uci.network.device.",{ifname = pppIntf})
-        if ucipath and #ucipath > 0 then
-            proxy.set(ucipath[1].path .. "ipv6", value)
-        end
-      end
+    end
   end
   return valid, msg
 end
@@ -268,6 +271,7 @@ local function sleases_mac_validation(value, object, key)
     if string.lower(value) == "ff:ff:ff:ff:ff:ff" then
       return nil, T"The requested MAC Address can't be the broadcast MAC"
     else
+      value = value:match("^%x%x%-%x%x%-%x%x%-%x%x%-%x%x%-%x%x$") and value:gsub("-",":") or value
       object[key] = string.lower(value)
     end
   end
@@ -309,8 +313,10 @@ local sleases_valid = {
 
 local sleases_options = {
   tableid = "sleases",
-  basepath = "uci.dhcp.host.",
+  basepath = "uci.dhcp.host.@.",
   createMsg = T"Add new static lease",
+  objectName  = post_helper.getRandomKey(),
+  addNamedObject = true,
 }
 
 
@@ -732,6 +738,15 @@ local function validateGWIP(value, object, key)
     return nil, errmsg
   end
 
+--   local isWan, intf = post_helper.isWANIP(value, all_intfs)
+--   if isWan then
+--     return nil, T(symbolv1 .. " IP should not be in ".. intf .." IP Range")
+--   end
+
+--   local isLan, intf = post_helper.isLANIP(value, all_intfs, curintf)
+--   if isLan then
+--     return nil, T(symbolv1 .. " IP should not be in ".. intf .." IP Range")
+--   end
   local ip = ipv42num(value)
 
   for _,intf in pairs(lan_intfs) do
@@ -938,16 +953,18 @@ end
 if not match(content["leaseTime"],"^0*([1-9]%d*[smhdw])$") then
   content["leaseTime"] = content["leaseTime"] .. "s"
 end
-local baseip = ipv42num(content["localdevIP"])
 local netmask = ipv42num(content["localdevmask"])
+local baseip = ipv42num(content["localdevIP"])
 local start = tonumber(content["dhcpStart"])
 local numips = tonumber(content["dhcpLimit"])
 local ipstart,ipend,network
 if start and numips and not helpmsg["localdevIP"] and not helpmsg["localdevmask"] and not helpmsg["dhcpStart"] and not helpmsg["dhcpLimit"] then
   ipstart,ipend,network = calculateDHCPStartAddress(baseip,netmask,start,numips)
-  session:store("dhcpStartAddr",ipstart)
-  session:store("dhcpEndAddr",ipend)
-  session:store("networkAddr",network)
+  if ipstart then
+    session:store("dhcpStartAddr",ipstart)
+    session:store("dhcpEndAddr",ipend)
+    session:store("networkAddr",network)
+  end
 else
   ipstart = ngx.req.get_post_args().dhcpStartAddress
   ipend = ngx.req.get_post_args().dhcpEndAddress
