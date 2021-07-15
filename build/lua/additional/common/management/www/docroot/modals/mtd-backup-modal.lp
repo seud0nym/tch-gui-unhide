@@ -52,7 +52,7 @@ if usbpath then
   for file in lfs.dir(usbpath) do
     local basename = match(file, "(.*%.img)%.sha256")
     if basename then
-      local f = io.open(usbpath..file, "r")
+      local f = io.open(usbpath.."/"..file, "r")
       if f then
         local sha256 = f:read()
         f:close()
@@ -63,7 +63,7 @@ if usbpath then
 
   for file in lfs.dir(usbpath) do
     if file ~= "." and file ~= ".." and file ~= "README!" then
-      local attributes = lfs.attributes(usbpath..file)
+      local attributes = lfs.attributes(usbpath.."/"..file)
       local basename = match(file, "(.*%.img)%.gz")
       if basename then
         images[#images + 1] = { file, os.date("%Y/%m/%d %H:%M:%S", attributes.modification), comma_value(attributes.size), checksum[basename], }
