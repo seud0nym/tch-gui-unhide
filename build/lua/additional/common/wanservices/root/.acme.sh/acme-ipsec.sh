@@ -250,8 +250,10 @@ HW18
     if [ $OK = 0 ]; then
       _log user.info "Installing System CA certificates..."
       SRC='https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/'
-      IPK=$(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-certificates' | cut -d' ' -f2)
-      curl -sk $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
+      for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2)
+      do
+        curl -skL $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
+      done
       _log user.info "Updating local package list..."
       opkg update | logger -s -t rpc.gui.opkg -p user.info
       _log user.info "Installing socat..."
@@ -263,6 +265,9 @@ HW18
       fi
     fi
   fi
+  _dbg "Checking CA bundle..."
+  curl -skLz /etc/ssl/certs/ca-certificates.crt -o /etc/ssl/certs/ca-certificates.crt https://curl.se/ca/cacert.pem
+  export SSL_CERT_FILE='/etc/ssl/cert.pem'
   _dbg "Checking acme.sh..."
   if [ -f acme.sh ]; then
     _dbg ">> acme.sh found. Checking for updates..."

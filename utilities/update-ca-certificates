@@ -81,6 +81,11 @@ fi
 SRC="https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/"
 for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2)
 do
-  curl -kL $CURL_OPT $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger $LGGR_OPT -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
+  curl $CURL_OPT -kL $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger $LGGR_OPT -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
 done
-  
+
+curl $CURL_OPT -kLz /etc/ssl/certs/ca-certificates.crt -o /etc/ssl/certs/ca-certificates.crt https://curl.se/ca/cacert.pem | logger $LGGR_OPT -t rpc.gui.opkg -p user.info
+
+export SSL_CERT_FILE='/etc/ssl/cert.pem'
+grep -q SSL_CERT_FILE /etc/profile || sed -e "/ENV/a\export SSL_CERT_FILE='/etc/ssl/cert.pem'" -i /etc/profile
+
