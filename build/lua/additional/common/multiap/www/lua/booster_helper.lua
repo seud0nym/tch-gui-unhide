@@ -121,6 +121,12 @@ function M.getBoosterCardHTML(agent_enabled, controller_enabled, modalPath)
   local html = {}
   
   html[#html+1] = ui_helper.createSimpleLight(controller_enabled, controllerStatus)
+  if controller_enabled == "1" then
+    local modalLink = format('class="modal-link" data-toggle="modal" data-remote="%s" data-id="booster-modal"',modalPath)
+    html[#html+1] = '<p class="subinfos">'
+    html[#html+1] = format(N("<strong %1$s>%2$d booster</strong> found","<strong %1$s>%2$d boosters</strong> found",boosters),modalLink,boosters)
+    html[#html+1] = '</p>'
+  end
   html[#html+1] = ui_helper.createSimpleLight(agent_enabled, agentStatus)
   if controller_enabled ~= "1" and synced > 0 then
     html[#html+1] = '<p class="subinfos">'
@@ -129,12 +135,6 @@ function M.getBoosterCardHTML(agent_enabled, controller_enabled, modalPath)
   end
   if backhaulStatus then
     html[#html+1] = ui_helper.createSimpleLight(content["apstate"], backhaulStatus)
-  end
-  if controller_enabled == "1" then
-    local modalLink = format('class="modal-link" data-toggle="modal" data-remote="%s" data-id="booster-modal"',modalPath)
-    html[#html+1] = '<p class="subinfos">'
-    html[#html+1] = format(N("<strong %1$s>%2$d booster</strong> found","<strong %1$s>%2$d boosters</strong> found",boosters),modalLink,boosters)
-    html[#html+1] = '</p>'
   end
 
   return html, modalPath
