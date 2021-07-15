@@ -1,7 +1,7 @@
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local ipairs, string = ipairs, string
-local format = string.format
+local format, match, untaint = string.format, string.match, string.untaint
 
 local M = {}
 
@@ -25,6 +25,7 @@ function M.getSSIDList()
         else
           local ap_display_name = proxy.get(path .. "ap_display_name")[1].value
           local radio_name = values[1].value
+          local tx_power_adjust = proxy.get("rpc.wireless.radio.@"..radio_name..".tx_power_adjust")
           local radio_suffix
           local display_ssid
           local sortby
@@ -48,8 +49,11 @@ function M.getSSIDList()
           ssid_list[#ssid_list+1] = {
             id = format("SSID%s", #ssid_list),
             ssid = display_ssid,
-            state = values[3].value,
-            sort = sortby
+            state = untaint(values[3].value),
+            sort = sortby,
+            network = untaint(values[4].value),
+            tx_power_adjust = tx_power_adjust and tx_power_adjust[1].value or "0",
+            iface = match(path, ".*@([^.]*)"),
           }
         end
       end
@@ -72,18 +76,42 @@ end
 
 function M.getWiFiCardHTML() 
   local ssid_list = M.getSSIDList()
+  local bs_lan = "disabled"
   local html = {}
+  local bs = {}
+  local i,v
 
-  for i,v in ipairs(ssid_list) do
-    if i <= 5 then
-      local attributes = {
-        light = {
-          id = v.id
-        }
-      }
-      html[#html+1] = ui_helper.createSimpleLight(v.state or "0", v.ssid, attributes)
+  for _,v in ipairs(proxy.getPN("uci.wireless.wifi-ap.", true)) do
+    local path = v.path
+    local values = proxy.get(path .. "iface", path .. "bandsteer_id")
+    local iface = untaint(values[1].value)
+    local bs_id = values[2].value
+    if bs_id == "off" then
+      bs[iface] = "0"
+    else
+      local state = proxy.get("uci.wireless.wifi-bandsteer.@" .. bs_id .. ".state")
+      if state and state[1].value == "0" then
+        bs[iface] = "0"
+      else
+        bs[iface] = "1"
+      end
     end
   end
+
+  for i,v in ipairs(ssid_list) do
+    if bs_lan == "disabled" and v.network == "lan" and bs[v.iface] == "1" then
+      bs_lan = "enabled"
+    end
+    if i <= 5 then
+      if v.tx_power_adjust == "0" then
+        html[#html+1] = ui_helper.createSimpleLight(v.state or "0", v.ssid)
+      else
+        html[#html+1] = ui_helper.createSimpleLight(v.state or "0", format("<span>%s</span> <span style='color:gray;font-size:xx-small;'>%s dBm</span>", v.ssid, v.tx_power_adjust))
+      end
+    end
+  end
+
+  html[#html+1] = ui_helper.createSimpleLight(bs_lan == "enabled" and "1" or "0", "Band Steering " .. bs_lan)
 
   return html
 end
