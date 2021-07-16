@@ -59,6 +59,7 @@ if opkg_data["last_update"] ~= "-1" then
 <script>\
   $.post("/ajax/opkg-list.lua?group=available", [tch.elementCSRFtoken()], function(data){\
     $("#opkgs_place_holder").html(data["html"]);\
+    $("#searchControlGroup").removeClass("hide");\
     $(".btn-Install").on("click", function(){\
       postAction("install",$(this).data("index"),$(this).data("name"));\
     });\

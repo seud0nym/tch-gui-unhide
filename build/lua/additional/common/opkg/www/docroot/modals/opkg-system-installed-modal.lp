@@ -60,6 +60,7 @@ ngx.print(ui_helper.createHeader(T"Packages", true, false))   ngx.print('\
 <script>\
   $.post("/ajax/opkg-list.lua?group=system", [tch.elementCSRFtoken()], function(data){\
     $("#opkgs_place_holder").html(data["html"]);\
+    $("#searchControlGroup").removeClass("hide");\
     $(".btn-Upgrade").on("click", function(){\
       postAction("upgrade",$(this).data("index"),$(this).data("name"));\
     });\

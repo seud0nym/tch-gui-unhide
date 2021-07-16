@@ -23,7 +23,7 @@ local function genAttrib(opkg, type)
   return {
     button = {
       id = type.."-"..opkg.paramindex,
-      title = format(type, opkg.name),
+      title = format(type, opkg.name or ""),
       class = "btn-mini btn-"..type,
       ["data-index"] = opkg.paramindex,
       ["data-name"] = opkg.name,

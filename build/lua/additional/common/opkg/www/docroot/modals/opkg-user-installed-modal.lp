@@ -68,6 +68,7 @@ if opkg_data["user_installed"] ~= "0" then
 <script>\
   $.post("/ajax/opkg-list.lua?group=user", [tch.elementCSRFtoken()], function(data){\
     $("#opkgs_place_holder").html(data["html"]);\
+    $("#searchControlGroup").removeClass("hide");\
     $(".btn-Remove").on("click", function(){\
       postAction("remove",$(this).data("index"),$(this).data("name"));\
     });\

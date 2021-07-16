@@ -3,13 +3,14 @@
 gettext.textdomain('webui-core')
 
 ngx.print('\
-<div class="control-group">\
+<div class="control-group" id="searchControlGroup">\
   <label class="control-label">Filter</label>\
   <div class="controls">\
     <input data-type="search" name="Filter" class="edit-input span3 no-save" placeholder="Search For Packages..." id="searchInput" type="text">\
   </div>\
 </div>\
 <script>\
+  $("#searchControlGroup").addClass("hide");\
   (function() {\
     $("#searchInput").keyup(function () {\
       var data = this.value.toUpperCase().split(" ");\
