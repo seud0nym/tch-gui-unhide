@@ -45,7 +45,7 @@ if [ $FIX_DFLT_USR = y ]; then
     uci -q delete web.uidefault.defaultuser
   fi
   uci commit web
-  SRV_web=$(( $SRV_web + 2 ))
+  SRV_nginx=$(( $SRV_nginx + 2 ))
 fi
 
 if [ $FIX_PARENT_BLK = y ]; then
