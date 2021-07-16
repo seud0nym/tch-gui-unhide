@@ -54,6 +54,7 @@ This script will automate the following functions:
     - Not required, as there is no WAN connection in a bridged device.
 - Disables the IPv4 and IPv6 DHCP servers
     - Not required, as there should only be one DHCP server on the network.
+- Disables multi-cast snooping
 - Disables the intercept daemon
     - The intercept daemon is used for captive portals, initial setup wizards and offline alerts (wansensing). It is capable of DNS spoofing to a dummy IP and L4 port interception (e.g. intercept guest lan users connecting towards wan). If it is not disabled on the "booster" device, it can sometimes intercept DNS resolution and cause all DNS queries to return 198.18.1.1.
 - Disables the Back-haul SSID
