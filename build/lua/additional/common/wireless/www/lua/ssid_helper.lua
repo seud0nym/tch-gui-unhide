@@ -1,4 +1,5 @@
 local proxy = require("datamodel")
+local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
 local ipairs, string = ipairs, string
 local format, match, untaint = string.format, string.match, string.untaint
@@ -28,6 +29,7 @@ function M.getSSIDList()
           local tx_power_adjust = proxy.get("rpc.wireless.radio.@"..radio_name..".tx_power_adjust")
           local radio_suffix
           local display_ssid
+          local isguest
           local sortby
           if radio_name == "radio_2G" then
             radio_suffix = " (2.4G)"
@@ -43,12 +45,15 @@ function M.getSSIDList()
           end
           if values[4].value:sub(1,5) == "Guest" then
             sortby = "yyyyy"
+            isguest = "1"
           else
             sortby = display_ssid:lower()
+            isguest = "0"
           end
           ssid_list[#ssid_list+1] = {
             id = format("SSID%s", #ssid_list),
             ssid = display_ssid,
+            isguest = isguest,
             state = untaint(values[3].value),
             sort = sortby,
             network = untaint(values[4].value),
@@ -86,7 +91,7 @@ function M.getWiFiCardHTML()
     local values = proxy.get(path .. "iface", path .. "bandsteer_id")
     local iface = untaint(values[1].value)
     local bs_id = values[2].value
-    if bs_id == "off" then
+    if bs_id == "" or bs_id == "off" then
       bs[iface] = "0"
     else
       local state = proxy.get("uci.wireless.wifi-bandsteer.@" .. bs_id .. ".state")
@@ -107,6 +112,33 @@ function M.getWiFiCardHTML()
         html[#html+1] = ui_helper.createSimpleLight(v.state or "0", v.ssid)
       else
         html[#html+1] = ui_helper.createSimpleLight(v.state or "0", format("<span>%s</span> <span style='color:gray;font-size:xx-small;'>%s dBm</span>", v.ssid, v.tx_power_adjust))
+      end
+    end
+  end
+
+  if bs_lan == "disabled" then
+    local multiap_agent = proxy.get("uci.multiap.agent.enabled")
+    local multiap_controller = proxy.get("uci.multiap.controller.enabled")
+    local multiap_enabled = multiap_agent and multiap_controller and multiap_agent[1].value == "1" and multiap_controller[1].value == "1"
+    if multiap_enabled then
+      local multiap_cred_path = "uci.multiap.controller_credentials."
+      local multiap_cred_data = content_helper.convertResultToObject(multiap_cred_path .. "@.", proxy.get(multiap_cred_path))
+      local multiap_cred = {}
+      for i,v in ipairs(multiap_cred_data) do
+        if v.fronthaul == '1' then
+          if match(v.frequency_bands, "radio_2G") then
+            multiap_cred.primary = v.paramindex
+          else
+            multiap_cred.secondary = v.paramindex
+          end
+        end
+      end
+      local multiap_cred_secondary_path = multiap_cred.secondary and multiap_cred_path .."@" .. multiap_cred.secondary
+      if multiap_cred_secondary_path then
+        local multiap_cred_secondary_state = proxy.get(multiap_cred_secondary_path .. ".state")
+        if multiap_cred_secondary_state and multiap_cred_secondary_state[1].value == "0" then
+          bs_lan = "enabled"
+        end
       end
     end
   end
