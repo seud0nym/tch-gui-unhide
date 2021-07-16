@@ -128,7 +128,7 @@ SRV_qos=0
 SRV_samba=0
 SRV_system=0
 SRV_watchdog=0
-SRV_web=0
+SRV_nginx=0
 SRV_upnp=0
 
 if [ -e /etc/init.d/dumaos ]
@@ -289,7 +289,7 @@ else
     uci -q delete web.fon
     uci -q del_list web.ruleset_main.rules='fon'
     uci commit web
-    SRV_web=$(( $SRV_web + 2 ))
+    SRV_nginx=$(( $SRV_nginx + 2 ))
     for wl in $(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | cut -d. -f2)
     do
       ap=$(uci show wireless | grep iface=\'$wl\' | cut -d. -f2)
@@ -1165,6 +1165,7 @@ echo [$SCRIPT]: Applying required service changes...
 [ $SRV_monitor -gt 0 -a -e /etc/init.d/tls-thor ] && { /etc/init.d/tls-thor disable; /etc/init.d/tls-thor stop; } > /dev/null 2>&1
 [ $SRV_monitor -gt 0 -a -e /etc/init.d/wifi-doctor-agent ] && /etc/init.d/wifi-doctor-agent reload > /dev/null 2>&1
 [ $SRV_multiap -gt 0 ] && { /etc/init.d/multiap_controller enable; /etc/init.d/multiap_agent enable; /etc/init.d/multiap_vendorextensions enable; /etc/init.d/multiap_controller restart; /etc/init.d/multiap_agent restart; /etc/init.d/multiap_vendorextensions restart; } > /dev/null 2>&1
+[ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
 [ $SRV_qos -gt 0 ] && /etc/init.d/qos reload > /dev/null 2>&1
 [ $SRV_nfc -gt 0 ] && /etc/init.d/nfcd restart > /dev/null 2>&1
 [ $SRV_ntp -gt 0 ] && /etc/init.d/sysntpd restart > /dev/null 2>&1
