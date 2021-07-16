@@ -143,7 +143,6 @@ if [ $RESTORE = n ]; then
   echo -e " - ${ORANGE}DISABLE 4G Mobile Backup${NC}"
   echo -e " - ${ORANGE}DISABLE IPv4 and IPv6 DHCP servers${NC}"
   echo -e " - ${ORANGE}DISABLE the intercept daemon${NC}"
-  echo -e " - ${ORANGE}DISABLE multicast snooping${NC}"
   if [ "$wl0" = wan -o "$wl1" = wan -o "$wl1_2" = wan ]; then
   echo -e " - ${GREEN}RESET Wireless networks from wan to lan${NC}"
   fi
@@ -217,9 +216,6 @@ if [ $RESTORE = n ]; then
   uci set intercept.config.enabled='0'
   uci commit intercept
   /etc/init.d/intercept disable
-
-  echo -e "${ORANGE}Disabling multicast snooping${NC}"
-  /etc/init.d/mcsnooper disable
 
   if [ "$wl0" = wan -o "$wl1" = wan -o "$wl1_2" = wan ]; then
     echo -e " - ${GREEN}Resetting Wireless networks from wan to lan${NC}"
@@ -309,8 +305,6 @@ if [ $RESTORE = n ]; then
     /etc/init.d/odhcpd reload
     echo -e "${ORANGE}Stopping intercept daemon...${NC}"
     /etc/init.d/intercept stop
-    echo -e "${ORANGE}Stopping mcsnooper daemon...${NC}"
-    /etc/init.d/mcsnooper stop
     echo -e "${ORANGE}Applying QoS changes...${NC}"
     /etc/init.d/qos restart
     if [ ! -z $UHTTPD ]; then
@@ -357,7 +351,6 @@ else # RESTORE
   echo -e " - ${GREEN}ENABLE DumaOS NDHTTP daemon${NC}"
   fi
   echo -e " - ${GREEN}ENABLE QoS${NC}"
-  echo -e " - ${GREEN}ENABLE multicast snooping${NC}"
   echo -e " - ${GREEN}ENABLE the intercept daemon${NC}"
   echo -e " - ${GREEN}ENABLE IPv4 and IPv6 DHCP servers${NC}"
   echo -e " - ${GREEN}ENABLE 4G Mobile Backup${NC}"
@@ -490,9 +483,6 @@ else # RESTORE
   done
   uci commit qos
 
-  echo -e "${Green}Enabling multicast snooping${NC}"
-  /etc/init.d/mcsnooper enable
-
   echo -e "${GREEN}Enabling intercept daemon${NC}"
   uci set intercept.config.enabled='1'
   uci commit intercept
@@ -537,8 +527,6 @@ else # RESTORE
     echo -e "${GREEN}Applying DHCP server changes...${NC}"
     /etc/init.d/dnsmasq restart
     /etc/init.d/odhcpd reload
-    echo -e "${GREEN}Starting mcsnooper daemon...${NC}"
-    /etc/init.d/mcsnooper restart
     echo -e "${GREEN}Starting intercept daemon...${NC}"
     /etc/init.d/intercept restart
     echo -e "${GREEN}Applying QoS changes...${NC}"
