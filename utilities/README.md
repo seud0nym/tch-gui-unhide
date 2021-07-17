@@ -46,13 +46,16 @@ Options:
           k            - Keep default public authorized keys
           m            - Keep Telstra monitoring and data collection enabled
           n            - Keep Telstra NTP servers
-          x            - Keep noexec on ext2/3/4, fat, hfsplus, hfsplusjournal and ntfs filesystems
-                           (i.e. prevent execution of scripts/programs on USB devices)
-          T            - Keep all default Telstra configuration (Equivalent to: -ka -kc -kk -km -kn -kx)
+          s            - Keep WAN Supervision as BFD
+          x            - Keep noexec on ext2/3/4, fat, hfsplus, hfsplusjournal
+                          and ntfs filesystems (i.e. prevent execution of
+                          scripts/programs on USB devices)
+          T            - Keep all default Telstra configuration (Equivalent
+                          to: -ka -kc -kk -km -kn -ks -kx)
  -h u|d|s|<hostname>
     where u            Leave hostname unchanged
-          d            Set the hostname to DJA0231
-          s            Set the hostname to DJA0231-7E5F7A
+          d            Set the hostname to $VARIANT
+          s            Set the hostname to $VARIANT-$MAC_HEX
           <hostname>   Use the specified hostname
  -d u|g|<domainname>
     where u            Leave domain name unchanged
@@ -65,29 +68,33 @@ Options:
           g            Set the DNS servers to Google
           f            Set the DNS servers to OpenDNS Family Shield
           o            Set the DNS servers to OpenDNS
-          <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
+          <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated
+                        IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
  -a u|y|n              WAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable
  -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
- -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
- -p u|y|n|d          ! Power Saving:            u=unchanged y=Enable n=Disable d=Default
- -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
- -t u|y|n              Telephony:               u=unchanged y=Enable n=Disable
  -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
- -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
- -m u|y|n            * MultiAP (EasyMesh):      u=unchanged y=Enable n=Disable
+ -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
  -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
+ -m u|y|n            * MultiAP (EasyMesh):      u=unchanged y=Enable n=Disable
+ -p u|y|n|d          ! Power Saving:            u=unchanged y=Enable n=Disable d=Default
  -q u|y|n            * NFC:                     u=unchanged y=Enable n=Disable
+ -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
+ -s u|b|d|n            WAN Supervision:         u=unchanged b=BFD d=DNS n=Disable 
+ -t u|y|n              Telephony:               u=unchanged y=Enable n=Disable
+ -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
  -w u|y|n              WPS:                     u=unchanged y=Enable n=Disable
                          (on non-Guest and non-Backhaul SSIDs)
  -F u|y|n              RTFD root protection:    u=unchanged y=Enable n=Disable
                         NOTE: tch-gui-unhide will ALWAYS enable RTFD protection
- -A                    Equivalent to: -hd -dg -an -cn -fn -rn -un -wn -Fy
- -S                    Equivalent to: -hs -dg -an -cn -fn -rn -un -wn -Fy
- -M                    Minimum memory mode: Equivalent to: -an -cn -fn -rn -tn -en -un -mn -gn -qn -Fy
+ -A                    Equivalent to: -hd -dg -an -cn -fn -rn -sd -un -wn -Fy
+ -S                    Equivalent to: -hs -dg -an -cn -fn -rn -sd -un -wn -Fy
+ -M                    Minimum memory mode: Equivalent to:
+                              -an -cn -fn -rn -tn -en -un -mn -gn -qn -Fy
                         PLUS stops and disables the associated services
- -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks
- -R                    Reset to device defaults: 
-                        Equivalent to: -hmymodem -dmodem -na -ay -cy -fy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn
+ -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and
+                        guest networks
+ -R                    Reset to device defaults: Equivalent to:
+                        -hmymodem -dmodem -na -ay -cy -fy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn -sb
  -o                    Configures opkg
  -U                    Download the latest version of de-telstra from GitHub
 ```
