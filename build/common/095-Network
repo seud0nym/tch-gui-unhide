@@ -19,10 +19,17 @@ sed \
   -i /usr/share/transformer/mappings/uci/network.map
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
-echo [$SCRIPT]: Make Telstra bridge mode compatible with Ansuel network cards and modals
+echo [$SCRIPT]: Make Telstra bridged mode compatible with Ansuel network cards and modals
 sed \
   -e "/uci.network.interface.@lan.ifname/i \        [\"uci.network.config.wan_mode\"] = 'bridge'," \
   -i /www/lua/bridgedmode_helper.lua
+
+echo [$SCRIPT]: Check for fake WAN in bridged mode \(nqe bind errors fix\)
+sed \
+  -e 's/if (proxy.get("uci.network.interface.@wan.")) then/local ifname = proxy.get("uci.network.interface.@wan.ifname")\
+    if ifname and ifname[1].value ~= "lo" then/' \
+  -i /www/lua/bridgedmode_helper.lua
+
 echo [$SCRIPT]: Allow reset to Routed Mode without RTFD
 sed \
   -e '/configBridgedMode/i \function M.configRoutedMode()' \

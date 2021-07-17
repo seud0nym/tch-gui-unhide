@@ -104,7 +104,7 @@ function M.getBroadbandCardHTML(wansensing)
       connected = "green",
     }
 
-    local connected_iface = ""
+    local connected_iface = "<br>"
     local v
     for v in string.gmatch(ifnames.iface, "[^%s]+") do
       local iface = untaint(match(v, "([^%.]+)")) -- try to remove the potential vlan id from the interface name
@@ -123,7 +123,7 @@ function M.getBroadbandCardHTML(wansensing)
         end
       end
     end
-    if connected_iface == "" then
+    if connected_iface == "<br>" then
       connected_iface = "NONE"
     end
 

@@ -6,7 +6,7 @@ gettext.textdomain('webui-core')
 local proxy = require("datamodel")
 local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")
 
-if wan_ifname and wan_ifname ~= "" then
+if wan_ifname and wan_ifname[1].value ~= "" and wan_ifname[1].value ~= "lo" then
   local content_helper = require("web.content_helper")
   local dyntab_helper = require("web.dyntab_helper")
   local imh = require("internetmode_helper")

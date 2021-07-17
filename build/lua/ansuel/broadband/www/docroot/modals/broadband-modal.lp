@@ -152,7 +152,7 @@ if not tabdata.current.ajax then
             id = "btn-bridged"
           }
         }
-        html[#html + 1] = ui_helper.createButton("Bridged Mode", "Bridged Mode", "icon-cog", bridged_button)
+        html[#html + 1] = ui_helper.createButton("Change Mode", "Bridged", "icon-cog", bridged_button)
         html[#html + 1] = '<div class="control-group controls">'
         html[#html + 1] = ui_helper.createAlertBlock(T"Switching to <strong>Bridged Mode</strong> and restarting, please wait...", bridged_rebooting)
         html[#html + 1] = ui_helper.createAlertBlock(T"Are you sure you want to switch to <strong>Bridged Mode</strong>?", bridged_confirming)
@@ -183,7 +183,7 @@ if not tabdata.current.ajax then
             id = "btn-routed"
           }
         }
-        html[#html + 1] = ui_helper.createButton("Routed Mode", "Routed Mode", "icon-cog", routed_button)
+        html[#html + 1] = ui_helper.createButton("Change Mode", "Routed", "icon-cog", routed_button)
         html[#html + 1] = '<div class="control-group controls">'
         html[#html + 1] = ui_helper.createAlertBlock(T"Switching to <strong>Routed Mode</strong> and restarting, please wait...", routed_rebooting)
         html[#html + 1] = ui_helper.createAlertBlock(T"Are you sure you want to switch back to <strong>Routed Mode</strong>?", routed_confirming)

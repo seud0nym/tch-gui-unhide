@@ -270,6 +270,10 @@ if [ $RESTORE = n ]; then
     uci -q delete dhcp.$ifname
   done
   uci -q delete network.@ppp_placeholder[0]
+  # Partial fix for nqe bind errors 
+  uci set network.wan=interface
+  uci set network.wan.auto='0'
+  uci set network.wan.ifname='lo'
   uci commit network
   uci commit dhcp
 
@@ -437,6 +441,7 @@ else # RESTORE
   uci set network.wan6.soltimeout='240'
   uci set network.wwan=interface
   uci set network.wwan.enabled='0'
+  uci -q delete network.wan
   uci set network.wan=interface
   uci set network.wan.auto='1'
   uci set network.eth4=device
