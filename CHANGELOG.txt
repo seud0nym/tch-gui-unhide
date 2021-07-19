@@ -1,4 +1,15 @@
-2021.07.11
+2021.07.19
+==========
+* tch-gui-unhide: Fixed missed condition change when attempting to fix Diagnostics traffic monitor chart
+* tch-gui-unhide: Fixed bug in Management Backups tab
+* tch-gui-unhide: Added transmit power adjustment (if any) and band steering status to Wi-Fi card
+* tch-gui-unhide: Hide package filter field until list displayed
+* tch-gui-unhide: Changed calculation of CPU utilization
+* de-telstra: Added WAN Supervision setting
+* de-telstra: Fixed setting of SAMBA service
+* update-ca-certificates: Get latest CA bundle from https://curl.se/ca/cacert.pem
+
+2021.07.14
 ==========
 * tch-gui-unhide: Added warning about new power options in 20.3.c that power down network interfaces [#35]
 * tch-gui-unhide: Fixed "attempt to set status 500 via ngx.exit after sending out the response status 200" in Diagnostics traffic monitor chart
