@@ -108,7 +108,7 @@ function M.getWiFiCardHTML()
       bs_lan = "enabled"
     end
     if i <= 5 then
-      if v.tx_power_adjust == "0" then
+      if not v.tx_power_adjust or v.tx_power_adjust == "" or v.tx_power_adjust == "0" then
         html[#html+1] = ui_helper.createSimpleLight(v.state or "0", v.ssid)
       else
         html[#html+1] = ui_helper.createSimpleLight(v.state or "0", format("<span>%s</span> <span style='color:gray;font-size:xx-small;'>%s dBm</span>", v.ssid, v.tx_power_adjust))
