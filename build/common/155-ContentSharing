@@ -1,6 +1,7 @@
 echo [$SCRIPT]: Add Mounted USB Devices to Content Sharing card
 sed \
   -e 's/\t/  /g' \
+  -e 's/class = "span4"/style = "width:100%;"/' \
   -e '/dlna_name/d' \
   -e '/samba_name/d' \
   -e '/^local content /i\
