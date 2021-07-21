@@ -1,3 +1,10 @@
+2021.07.21
+==========
+* tch-gui-unhide: Fixed bug that sometimes prevented wireless card (and all subsequent cards) from showing
+* tch-gui-unhide: Fixed size of CPU Usage display to stop it bouncing around
+* tch-gui-unhide: Fixed various issues with cron management
+* tch-gui-unhide: Added scheduled theme change (e.g. automatically change to light theme at 6am, and night theme at 6pm)
+
 2021.07.19
 ==========
 * tch-gui-unhide: Fixed missed condition change when attempting to fix Diagnostics traffic monitor chart
