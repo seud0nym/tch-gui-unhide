@@ -6,9 +6,10 @@ gettext.textdomain('webui-core')
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
+local untaint = string.untaint
 
 local function validateCronTimes(value, object, key)
-  if not value:match("^%*$") 
+  if not value:match("^%*$")
     and not value:match("^[0-9]+-[0-9]+$")
     and not value:match("^[0-9]+$")
     and not value:match("[0-9]+,")
@@ -88,13 +89,10 @@ local cron_options = {
   canAdd = true,
   canDelete = true,
   tableid = "crontable",
-  basepath = "rpc.gui.cron.entries.",
+  basepath = "rpc.gui.cron.entries.@.",
 }
 
 cron_options.onAdd = function(index, content)
-  --We increment as the add function write a line
-  index = index+1
-
   if content.command == "" then
     cron_options.errmsg = T"Command input can't be empty"
     return nil
@@ -106,20 +104,22 @@ cron_options.onAdd = function(index, content)
     hour = content.hour or "*",
     day = content.day or "*",
     month = content.month or "*",
-    week = content.week or "*",
+    weekday = content.weekday or "*",
     command = content.command,
   }
 
-  for key,value in pairs(tbl) do
-    local path = string.format("%s%s.%s",cron_options.basepath,index,key)
-    proxy.set(path,value)
+  local key,v
+  for key,v in pairs(tbl) do
+    local value = untaint(v)
+    local path = string.format("rpc.gui.cron.entries.%s.%s",index,key)
+    local result, err = proxy.set(path,value)
   end
 
-  proxy.set("rpc.gui.cron.editCronRuleNumber",tostring(index))
+  proxy.set("rpc.gui.cron.writecrontab","1")
 end
 
 cron_options.onModify = function(index, content)
-  proxy.set("rpc.gui.cron.editCronRuleNumber",index)
+  proxy.set("rpc.gui.cron.writecrontab","1")
 end
 
 local cron_data, cron_helpmsg = post_helper.handleTableQuery(cron_columns, cron_options, nil, nil, cron_valid)
@@ -127,12 +127,12 @@ local cron_data, cron_helpmsg = post_helper.handleTableQuery(cron_columns, cron_
   ngx.print('\
 ');  ngx.print(ui_helper.createHeader(T"Management", false, true) ); ngx.print('\
 <div class="modal-body update">\
-');  
+');
   local lp = require("web.lp")
   lp.setpath("/www/snippets/")
   lp.include("tabs-management.lp")
   ngx.print('\
-');  
+');
 -- dummy form so that refresh button knows which page to reload, keep it
   ngx.print('\
   <form class="form-horizontal" method="post" action="modals/system-cron-modal.lp">\
@@ -156,4 +156,4 @@ $("#crontable td:contains(/sbin/trafficmon.lua)").siblings(":last").children(".b
 $("#crontable td:contains(/usr/sbin/traffichistory.lua)").siblings(":last").children(".btn-table-delete").hide(); \
 $("#crontable td:contains(/root/.acme.sh/acme-ipsec.sh)").siblings(":last").children(".btn-table-edit,.btn-table-delete").hide(); \
 </script>\
-'); 
+');
