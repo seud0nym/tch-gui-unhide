@@ -548,13 +548,18 @@ else
 fi
 
 DOMAIN_NOW="$(uci -q get dhcp.main.domain)"
-if [ "$DOMAIN" = "u" -o "$DOMAIN_NOW" = "$DOMAIN" ]; then
+LOCAL_NOW="$(uci -q get dhcp.main.local)"
+if [ "$DOMAIN" = "u" -o \( "$DOMAIN_NOW" = "$DOMAIN" -a "$LOCAL_NOW" = "/$DOMAIN/" -a "$LOCAL_NOW" = "/$DOMAIN_NOW/" \) ]; then
   echo [$SCRIPT]: Domain name unchanged \[$DOMAIN_NOW\]
 else
+  if [ "$DOMAIN" = "u" -a "$LOCAL_NOW" != "/$DOMAIN_NOW/" ]; then
+    $DOMAIN="$DOMAIN_NOW"
+  fi
   echo [$SCRIPT]: Setting the domain to $DOMAIN
   uci set dhcp.main.domain="$DOMAIN"
+  uci set dhcp.main.local="/$DOMAIN/"
   uci commit dhcp
-  SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
+  SRV_dnsmasq=$(( $SRV_dnsmasq + 2 ))
 fi
 
 uci -q get network.wan > /dev/null
