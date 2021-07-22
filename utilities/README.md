@@ -57,9 +57,10 @@ Options:
           d            Set the hostname to $VARIANT
           s            Set the hostname to $VARIANT-$MAC_HEX
           <hostname>   Use the specified hostname
- -d u|g|<domainname>
+ -d u|g|l|<domainname>
     where u            Leave domain name unchanged
           g            Set the domain name to gateway
+          l            Set the domain name to lan
           <domainname> Set the domain name to <domainname>
  -n u|a|c|g|f|o|<n.n.n.n>
     where u            Leave DNS servers unchanged

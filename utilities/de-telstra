@@ -33,9 +33,10 @@ Options:
           d            Set the hostname to $VARIANT
           s            Set the hostname to $VARIANT-$MAC_HEX
           <hostname>   Use the specified hostname
- -d u|g|<domainname>
+ -d u|g|l|<domainname>
     where u            Leave domain name unchanged
           g            Set the domain name to gateway
+          l            Set the domain name to lan
           <domainname> Set the domain name to <domainname>
  -n u|a|c|g|f|o|<n.n.n.n>
     where u            Leave DNS servers unchanged
@@ -185,7 +186,7 @@ do
  case "${option}" in
   a)  case "${OPTARG}" in y) ALG='1';; n) ALG='0';; u) ALG='u';; *) ALG='u'; echo 'ERROR: -a valid options are y, n, or u'; exit 1;; esac;;
   c)  case "${OPTARG}" in y) DLNAD='1';; n) DLNAD='0';; u) DLNAD='u';; *) DLNAD='u'; echo 'ERROR: -c valid options are y, n, or u'; exit 1;; esac;;
-  d)  case "${OPTARG}" in g|G) DOMAIN='gateway';; u) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
+  d)  case "${OPTARG}" in g|G) DOMAIN='gateway';; l|L) DOMAIN='lan';; u) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
   e)  case "${OPTARG}" in y) DECT='1';; n) DECT='0';; u) DECT='u';; *) DECT='u'; echo 'ERROR: -e valid options are y, n, or u'; exit 1;; esac;;
   f)  case "${OPTARG}" in y) SAMBA='1';; n) SAMBA='0';; u) SAMBA='u';; *) SAMBA='u'; echo 'ERROR: -f valid options are y, n, or u'; exit 1;; esac;;
   g)  case "${OPTARG}" in y) DUMAOS='1';; n) DUMAOS='0';; u) DUMAOS='u';; *) DUMAOS='u'; echo 'ERROR: -g valid options are y, n, or u'; exit 1;; esac;;
