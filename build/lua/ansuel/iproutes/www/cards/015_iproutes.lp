@@ -82,18 +82,6 @@ end
               ngx.print('\
             </span>\
 			')
-            local dosprotect = proxy.get("uci.dosprotect.globals.enabled")
-            if dosprotect and dosprotect[1].value ~="" then
-                local dosprotect = dosprotect[1].value or "0"
-                local dosprotect_status
-
-                if dosprotect and dosprotect == "1" then
-                    dosprotect_status = T"DoS Protect enabled"
-                else
-                    dosprotect_status = T"DoS Protect disabled"
-                end
-                ngx.print( ui_helper.createSimpleLight(dosprotect, dosprotect_status) )
-            end
 
             local flowcache = proxy.get("uci.fcctlsettings.state.enabled")
             if flowcache and flowcache[1].value ~="" then

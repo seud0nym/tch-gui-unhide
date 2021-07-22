@@ -90,6 +90,18 @@ if session:hasAccess("/modals/firewall-modal.lp") then
           html[#html+1] = "<br>"
         end
 
+        local dosprotect = proxy.get("uci.dosprotect.globals.enabled")
+        if dosprotect and dosprotect[1].value ~="" then
+          local dosprotect = dosprotect[1].value or "0"
+          local dosprotect_status
+          if dosprotect and dosprotect == "1" then
+            dosprotect_status = T"DoS Protect enabled"
+          else
+            dosprotect_status = T"DoS Protect disabled"
+          end
+          html[#html+1] = ui_helper.createSimpleLight(dosprotect, dosprotect_status)
+        end
+
         for _,v in ipairs(proxy.getPN("uci.firewall.redirect.", true)) do
           local path = v.path
           local values = proxy.get(path.."name", path.."enabled")

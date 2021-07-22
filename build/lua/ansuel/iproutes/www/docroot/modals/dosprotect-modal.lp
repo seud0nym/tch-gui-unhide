@@ -23,17 +23,16 @@ local dos_valid = {
 local dos_content, dos_helpmessage = post_helper.handleQuery(dos_Params, dos_valid)
 
   ngx.print('\
-\
 ');  ngx.print(ui_helper.createHeader(T"DoS Protect Option", false, false))   ngx.print('\
 <div class="modal-body update">\
 ');  
-    local lp = require("web.lp")
-    lp.setpath("/www/snippets/")
-    lp.include("tabs-internet.lp")
+  local lp = require("web.lp")
+  lp.setpath("/www/snippets/")
+  lp.include("tabs-firewall.lp")
   ngx.print('\
   <form class="form-horizontal" method="post" action="modals/dosprotect-modal.lp">\
     ');  
-        ngx.print(ui_helper.createMessages(message_helper.popMessages()))
+      ngx.print(ui_helper.createMessages(message_helper.popMessages()))
       ngx.print('\
     <fieldset>\
       ');  
@@ -42,7 +41,7 @@ local dos_content, dos_helpmessage = post_helper.handleQuery(dos_Params, dos_val
 			html[#html + 1] = ui_helper.createSwitch(T"Enabled", "dos_enable", dos_content["dos_enable"])
 			html[#html + 1] = ui_helper.createSwitch(T"Reverse Path Filter", "dos_rpfilter", dos_content["dos_rpfilter"])
 			ngx.print(html)
-        ngx.print('\
+      ngx.print('\
     </fieldset>\
   </form>\
 </div>\

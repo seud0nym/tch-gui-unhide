@@ -21,6 +21,11 @@ if not nat_alg_card_hidden or nat_alg_card_hidden[1].value == "1" then
   items[#items+1] = {"nat-alg-helper-modal.lp", T"NAT Helpers"}
 end
 
+local dosprotect = proxy.get("uci.dosprotect.globals.enabled")
+if dosprotect and dosprotect[1].value ~="" then
+  items[#items+1] = {"dosprotect-modal.lp", T"DoS Protect"}
+end
+
 local html = {}
 
 local uri = ngx.var.uri
