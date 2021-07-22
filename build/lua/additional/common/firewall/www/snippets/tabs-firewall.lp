@@ -9,11 +9,11 @@ local format, len, sub = string.format, string.len, string.sub
 local items = {
   {"firewall-modal.lp", T"Configuration"},
   {"firewall-zones-modal.lp", T"Zones"},
-  {"firewall-user-rules-modal.lp", T"User Defined Rules"},
+  {"firewall-user-rules-modal.lp", T"User Rules"},
   {"firewall-rules-modal.lp", T"System Rules"},
   {"firewall-port-forwarding-modal.lp", T"Port Forwarding"},
   {"firewall-cone-modal.lp", T"Cone NAT"},
-  {"firewall-iptables-modal.lp", T"Firewall Rules"},
+  {"firewall-iptables-modal.lp", T"IP Tables"},
 }
 
 local nat_alg_card_hidden = proxy.get("uci.web.card.@card_natalghelper.hide")
