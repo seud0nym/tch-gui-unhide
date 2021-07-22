@@ -47,7 +47,7 @@ function M.getInternetCardHTML(mode_active)
   local html = {}
 
   local function addIPs(ipaddr, ip6addr, dnsv4, dnsv6, ipv6uniqueglobaladdr, ipv6uniquelocaladdr, ip6prefix)
-    html[#html+1] = '<p class="subinfos" style="margin-bottom:4px;line-height:17px;">'
+    html[#html+1] = '<p class="subinfos" style="margin-bottom:3px;">'
     html[#html+1] = format(T'WAN IP: <strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>', ipaddr)
     if ip6addr and ip6addr ~= "" then
       local addr = ip6addr
@@ -62,11 +62,11 @@ function M.getInternetCardHTML(mode_active)
     end
     html[#html+1] = '</p>'
     if ip6prefix and ip6prefix ~= "" then
-      html[#html+1] = '<p class="subinfos" style="margin-bottom:4px;line-height:17px;">'
+      html[#html+1] = '<p class="subinfos" style="margin-bottom:3px;">'
       html[#html+1] = format(T'Prefix: <strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>', ip6prefix)
       html[#html+1] = '</p>'
     end
-    html[#html+1] = '<p class="subinfos" style="line-height:17px;">'
+    html[#html+1] = '<p class="subinfos">'
     html[#html+1] = format(T'DNS: <strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>', gsub(gsub(dnsv4, "^%s*(.-)%s*$", "%1"),",",", "))
     if ip6addr and ip6addr ~= "" and dnsv6 and dnsv6 ~= "" then
       if dnsv4 and dnsv4 ~= "" then
