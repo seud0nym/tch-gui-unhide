@@ -407,7 +407,7 @@ local function getDomainNamePath()
   for _,dnsmidx in pairs(proxy.getPN("uci.dhcp.dnsmasq.", true)) do
     for _,dnsmif in pairs(proxy.get(dnsmidx.path.."interface.")) do
       if dnsmif.value == "lan" then
-        return dnsmidx.path .. "domain"
+        return dnsmidx.path .. "domain", dnsmidx.path .. "local"
       end
     end
   end
@@ -567,7 +567,7 @@ local function validateDNS(value, object, key)
   if dnsIndex == 0 then
     -- no dhcp_option for DNS
     if dns_str ~= "" then
-      local index = proxy.add(baseDHCPOptions)                                                                                                                                                              
+      local index = proxy.add(baseDHCPOptions)
       mapParams["dnsServer"] = baseDHCPOptions .. "@" .. index .. ".value"
       object[key] = "6," .. dns_str    -- DHCP option for DNS server is option 6
       return true
@@ -786,7 +786,6 @@ local function isChecked(key, checked)
   return false
 end
 
-
 local function validatedhcpIgnore(value, object, key)
   local valid, msg = gOV(value, object, key)
   if not valid then
@@ -849,7 +848,6 @@ if bridged.isBridgedMode() then
     mapValid.dhcpv4State = validateByPass
 end
 
-
 function get_lan_ula()
   local ula = proxy.get("rpc.network.interface.@lan.ipv6uniquelocaladdr")
   if ula == nil or ula[1].value == nil then
@@ -859,15 +857,14 @@ function get_lan_ula()
   return split(format("%s",ula[1].value), "&")[1]
 end
 
-
 -- Check if there is a custom DNS server, if so, then retrieve its index
 -- we'll update the parameters list to include it for retrieval
 content_helper.addListContent(dhcp, { options = baseDHCPOptions } )
 for i,v in ipairs(dhcp.options) do
-    if v:find("^6,") == 1 then
-        dnsIndex = i
-        mapParams["dnsServer"] = baseDHCPOptions .. "@" .. dnsIndex .. ".value"
-    end
+  if v:find("^6,") == 1 then
+    dnsIndex = i
+    mapParams["dnsServer"] = baseDHCPOptions .. "@" .. dnsIndex .. ".value"
+  end
 end
 
 content_helper.addListContent(dhcp_dns, { dnses = baseDHCPDNS } )
@@ -883,13 +880,13 @@ lan_ula = get_lan_ula()
 
 content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
 if (ngx.var.request_method == "POST")  and not next(helpmsg) then
-   local dhcp_options_path = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcp_option."
-   local dhcp_options = content_helper.convertResultToObject(dhcp_options_path,proxy.get(dhcp_options_path))
-    for _,v in ipairs(dhcp_options) do
-      if v.value:match("^3,") then
-        proxy.del(dhcp_options_path..v.paramindex..".")
-      end
+  local dhcp_options_path = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcp_option."
+  local dhcp_options = content_helper.convertResultToObject(dhcp_options_path,proxy.get(dhcp_options_path))
+  for _,v in ipairs(dhcp_options) do
+    if v.value:match("^3,") then
+      proxy.del(dhcp_options_path..v.paramindex..".")
     end
+  end
 end
 
 if #dns_servers == 1 and content["dnsServer"] ~= nil and content["dnsServer"] ~= "" then
@@ -984,9 +981,9 @@ local function resetreboot(path, value)
   ngx.exit(ngx.HTTP_OK)
 end
 
-  if ngx.var.request_method == "POST" then
-    local gwIP = session:retrieve("old_ip")
-    session:store("old_ip",(content["localdevIP"]))
+if ngx.var.request_method == "POST" then
+  local gwIP = session:retrieve("old_ip")
+  session:store("old_ip",(content["localdevIP"]))
 
   -- Redirect the GUI only if the local GW device IP Address is changed for the "lan" interface
   if curintf == "lan" and content["localdevIP"]~= gwIP and not next(helpmsg) then%>
@@ -996,16 +993,32 @@ end
     <%session:logout()
   end
 
-    local content1 = ngx.req.get_post_args()
-    local action = content1["action"]
-    if action == "BRIDGED" then
-        if not bridged.isBridgedMode() then
-            bridged.configBridgedMode()
-            return resetreboot("rpc.system.reboot", "GUI")
-        end
+  local content1 = ngx.req.get_post_args()
+  local action = content1["action"]
+  if action == "BRIDGED" then
+    if not bridged.isBridgedMode() then
+      bridged.configBridgedMode()
+      return resetreboot("rpc.system.reboot", "GUI")
     end
+  end
+
+  if curintf == "lan" then
+    local _,local_path = getDomainNamePath()
+    local localValue = untaint(proxy.get(local_path)[1].value)
+    local localName = format("/%s/", content["localdomain"])
+    local domainName = session:retrieve("old_domain")
+    session:store("old_domain",(content["localdomain"]))
+
+    if (content["localdomain"] ~= domainName or localValue ~= localName) and not next(helpmsg) then
+      proxy.set(local_path, localName)
+      proxy.apply()
+    end
+  end
 else
   session:store("old_ip",(content["localdevIP"]))
+  if curintf == "lan" then
+    session:store("old_domain",(content["localdomain"]))
+  end
 end
 
 local adguard = false
@@ -1020,7 +1033,6 @@ local uri = ngx.var.uri
 %>
 
 <% ngx.print(ui_helper.createHeader(T"Local Network", true, false)) %>
-
    <div class="modal-body update">
      <form class="form-horizontal" method="post" action="<%= ngx.var.request_uri %>">
      <%
