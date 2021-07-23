@@ -7,14 +7,15 @@ local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
-local proxy = require("datamodel")
-local vSII = post_helper.validateStringIsIP
+
 local role = ngx.ctx.session:getrole()
 local uniqueKey = post_helper.getRandomKey()
+
 local gAV = post_helper.getAndValidation
+local vSII = post_helper.validateStringIsIP
 
 local dyn_route_columns = {
-    {
+  {
     header = T"Interface",
     name = "Iface",
     param = "Iface",
@@ -65,22 +66,22 @@ local dyn_route_columns = {
 }
 
 local dyn_route_options = {
-    canEdit = false,
-    canAdd = false,
-    canDelete = false,
-    tableid = "dynamicroutes",
-    basepath = "sys.class.iproutes.",
+  canEdit = false,
+  canAdd = false,
+  canDelete = false,
+  tableid = "dynamicroutes",
+  basepath = "sys.class.iproutes.",
 }
 
 local dyn_route_data, dyn_route_helpmsg = post_helper.handleTableQuery(dyn_route_columns, dyn_route_options)
 
 local function split(x, sep)
-    local sep, fields = sep or ":", {}
-    local pattern = string.format("([^%s]+)", sep)
-    for field in x:gmatch(pattern) do
-      fields[#fields+1] = field
-    end
-    return fields
+  local sep, fields = sep or ":", {}
+  local pattern = string.format("([^%s]+)", sep)
+  for field in x:gmatch(pattern) do
+    fields[#fields+1] = field
+  end
+  return fields
 end
 
 local network_rpc_path = "rpc.network.interface."
@@ -151,140 +152,56 @@ local function validateDuplicateRoute(object)
 end
 
 local static_route_options = {
-    tableid = "staticroutes",
-    basepath = "uci.network.route.@.",
-    createMsg = T"Add new static IPv4 route",
-    objectName  = "static_route_" .. uniqueKey,
-    addNamedObject = true,
-    valid = validateDuplicateRoute,
+  tableid = "staticroutes",
+  basepath = "uci.network.route.@.",
+  createMsg = T"Add new static IPv4 route",
+  objectName  = "static_route_" .. uniqueKey,
+  addNamedObject = true,
+  valid = validateDuplicateRoute,
 }
 
 local function validateGW(ipAddress, object)
-    local gwIP, ipErr = vSII(ipAddress)
-    if gwIP then
-      return gAV(post_helper.advancedIPValidation, post_helper.reservedIPValidation, post_helper.validateLXC)(ipAddress, object)
-    end
-    return nil, T"Invalid gateway IP."
+  local gwIP, ipErr = vSII(ipAddress)
+  if gwIP then
+    return gAV(post_helper.advancedIPValidation, post_helper.reservedIPValidation, post_helper.validateLXC)(ipAddress, object)
+  end
+  return nil, T"Invalid gateway IP."
 end
 
 local static_route_valid = {
-    Destination = post_helper.validateIPAndSubnet,
-    Mask = post_helper.validateIPv4Netmask,
-    Gateway = validateGW,
-    Metric = post_helper.getValidateNumberInRange(-9999, 9999),
-    Interface = post_helper.getValidateInEnumSelect(wan_intfs),
+  Destination = post_helper.validateIPAndSubnet,
+  Mask = post_helper.validateIPv4Netmask,
+  Gateway = validateGW,
+  Metric = post_helper.getValidateNumberInRange(-9999, 9999),
+  Interface = post_helper.getValidateInEnumSelect(wan_intfs),
 }
 
 local static_route_data, static_route_helpmsg = post_helper.handleTableQuery(static_route_columns, static_route_options, nil, nil, static_route_valid)
 
-local dns_columns = {
-  {
-    header = T"Interface",
-    name = "Ifname",
-    param = "Ifname",
-    type = "text",
-    readonly = true,
-    attr = { input = { class="span2 centered" } },
-  },
-  {
-    header = T"DNS Used",
-	name = "dnsservers",
-	param = "dnsservers",
-    type = "text",
-    readonly = true,
-    attr = { input = { class="span2 centered" } },
-  },
-  {
-    header = T"Custom DNS",
-	name = "static_dns_servers",
-	param = "static_dns_servers",
-    type = "text",
-    attr = { input = { class="span2 centered" } },
-  },
-}
-
-local dns_options = {
-    canEdit = true,
-    canAdd = false,
-    canDelete = false,
-    tableid = "dnsinfo",
-    basepath = "rpc.network.interface.",
-}
-
-local function validateCustoDns(value, object, key)
-	
-	local ret, err
-	local servers = split(value,",")
-	for _, server in pairs(servers) do
-		ret, err = vSII(server)
-		if not ret then
-			return nil, err
-		end
-	end
-
-	return true
-end
-
-local dns_valid = {
-	static_dns_servers = validateCustoDns,
-}
-
-local dns_filer = function(data)
-
-	if data.type == "wan" or data.type == "lan" then
-
-		data.Ifname = data.paramindex:gsub("^@","")
-
-		return true
-	end
-
-	return false
-end
-
-local dns_data, dns_helpmsg = post_helper.handleTableQuery(dns_columns, dns_options, dns_filer,nil,dns_valid)
-  ngx.print('\
-\
-');  ngx.print(ui_helper.createHeader(T"IP Routing", false, true))   ngx.print('\
-\
+ngx.print(ui_helper.createHeader(T"IP Routing", false, true))   ngx.print('\
 <div class="modal-body update">\
 ');
 	local lp = require("web.lp")
-    lp.setpath("/www/snippets/")
-    lp.include("tabs-internet.lp")
-ngx.print('\
+  lp.setpath("/www/snippets/")
+  lp.include("tabs-internet.lp")
+  ngx.print('\
   <form class="form-horizontal" method="post" action="modals/iproutes-modal.lp">\
-    ');  
-        ngx.print(ui_helper.createMessages(message_helper.popMessages()))
+  ');  
+    ngx.print(ui_helper.createMessages(message_helper.popMessages()))
+    ngx.print('\
+    <fieldset>\
+      <legend>');  ngx.print(T"IPv4 Dynamic Routes"); ngx.print('</legend>\
+      ');  
+      ngx.print(ui_helper.createTable(dyn_route_columns, dyn_route_data, dyn_route_options, nil, dyn_route_helpmsg))
       ngx.print('\
-    <fieldset>\
-      <legend>');  ngx.print( T"IPv4 Routes" ); ngx.print('</legend>\
-      ');  
-        ngx.print(
-          ui_helper.createTable(dyn_route_columns, dyn_route_data, dyn_route_options, nil, dyn_route_helpmsg)
-        )
-        ngx.print('\
     </fieldset>\
-\
     <fieldset>\
-      <legend>');  ngx.print( T"IPv4 Static Routes Configuration" ); ngx.print('</legend>\
+      <legend>');  ngx.print(T"IPv4 Static Routes"); ngx.print('</legend>\
       ');  
-        ngx.print(
-          ui_helper.createTable(static_route_columns, static_route_data, static_route_options, nil, static_route_helpmsg)
-        )
-        ngx.print('\
+      ngx.print(ui_helper.createTable(static_route_columns, static_route_data, static_route_options, nil, static_route_helpmsg))
+      ngx.print('\
     </fieldset>\
-\
-    <fieldset>\
-      <legend>');  ngx.print( T"DNS" ); ngx.print('</legend>\
-      ');  
-        ngx.print(
-          ui_helper.createTable(dns_columns, dns_data, dns_options, nil , dns_helpmsg)
-        )
-        ngx.print('\
-    </fieldset>\
-\
   </form>\
 </div>\
-\
-');  ngx.print( ui_helper.createFooter() ); ngx.print('\
+'); ngx.print(ui_helper.createFooter()); ngx.print('\
 '); 
