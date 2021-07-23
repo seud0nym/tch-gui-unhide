@@ -1,0 +1,6 @@
+echo [$SCRIPT]: Fix IP Route modals for FW 17.2
+sed \
+  -e 's/\.@\././' \
+  -e '/objectName/,/addNamedObject/d' \
+  -i /www/docroot/modals/iproutes-modal.lp
+

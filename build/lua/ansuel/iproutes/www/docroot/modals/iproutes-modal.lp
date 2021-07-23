@@ -1,5 +1,5 @@
 --pretranslated: do not change this file
- 
+
 -- Localization
 gettext.textdomain('webui-core')
 local format = string.format
@@ -8,21 +8,7 @@ local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 
-local role = ngx.ctx.session:getrole()
-local uniqueKey = post_helper.getRandomKey()
-
-local gAV = post_helper.getAndValidation
-local vSII = post_helper.validateStringIsIP
-
 local dyn_route_columns = {
-  {
-    header = T"Interface",
-    name = "Iface",
-    param = "Iface",
-    type = "text",
-    readonly = true,
-    attr = { input = { class="span2 centered" } },
-  },
   {
     header = T"Destination",
     name = "Destination",
@@ -48,17 +34,25 @@ local dyn_route_columns = {
     attr = { input = { class="span2 centered" } },
   },
   {
-    header = T"Source",
-    name = "Source",
-    param = "Source",
+    header = T"Metric",
+    name = "Metric",
+    param = "Metric",
     type = "text",
     readonly = true,
     attr = { input = { class="span2 centered" } },
   },
   {
-    header = T"Metric",
-    name = "Metric",
-    param = "Metric",
+    header = T"Interface",
+    name = "Iface",
+    param = "Iface",
+    type = "text",
+    readonly = true,
+    attr = { input = { class="span2 centered" } },
+  },
+  {
+    header = T"Source",
+    name = "Source",
+    param = "Source",
     type = "text",
     readonly = true,
     attr = { input = { class="span2 centered" } },
@@ -73,20 +67,24 @@ local dyn_route_options = {
   basepath = "sys.class.iproutes.",
 }
 
-local dyn_route_data, dyn_route_helpmsg = post_helper.handleTableQuery(dyn_route_columns, dyn_route_options)
+local dyn_route_attributes = {
+  group = {
+    id = "dynamicroutescontainer"
+  }
+}
+
+local dyn_route_data, dyn_route_helpmsg = content_helper.loadTableData("sys.class.iproutes.", dyn_route_columns)
 
 local function split(x, sep)
   local sep, fields = sep or ":", {}
-  local pattern = string.format("([^%s]+)", sep)
+  local pattern = format("([^%s]+)", sep)
   for field in x:gmatch(pattern) do
     fields[#fields+1] = field
   end
   return fields
 end
 
-local network_rpc_path = "rpc.network.interface."
-local network_rpc_content = content_helper.getMatchedContent (network_rpc_path)
-
+local network_rpc_content = content_helper.getMatchedContent ("rpc.network.interface.")
 local wan_intfs = {}
 for _, v in ipairs (network_rpc_content) do
    local path = split(split(format("%s",v.path),"@")[2],".")
@@ -130,7 +128,6 @@ local static_route_columns = {
     header = T"Interface",
     name = "Iface",
     param = "interface",
-    default = "voip",
     type = "select",
     values = wan_intfs,
     attr = { select = { class="span2 centered" } },
@@ -151,22 +148,22 @@ local function validateDuplicateRoute(object)
   return true
 end
 
+local function validateGW(ipAddress, object)
+  local gwIP, ipErr = post_helper.validateStringIsIP(ipAddress)
+  if gwIP then
+    return post_helper.getAndValidation(post_helper.advancedIPValidation, post_helper.reservedIPValidation, post_helper.validateLXC)(ipAddress, object)
+  end
+  return nil, T"Invalid Gateway IP"
+end
+
 local static_route_options = {
   tableid = "staticroutes",
   basepath = "uci.network.route.@.",
   createMsg = T"Add new static IPv4 route",
-  objectName  = "static_route_" .. uniqueKey,
+  objectName = "static_route_" .. post_helper.getRandomKey(),
   addNamedObject = true,
   valid = validateDuplicateRoute,
 }
-
-local function validateGW(ipAddress, object)
-  local gwIP, ipErr = vSII(ipAddress)
-  if gwIP then
-    return gAV(post_helper.advancedIPValidation, post_helper.reservedIPValidation, post_helper.validateLXC)(ipAddress, object)
-  end
-  return nil, T"Invalid gateway IP."
-end
 
 local static_route_valid = {
   Destination = post_helper.validateIPAndSubnet,
@@ -186,22 +183,27 @@ ngx.print(ui_helper.createHeader(T"IP Routing", false, true))   ngx.print('\
   lp.include("tabs-internet.lp")
   ngx.print('\
   <form class="form-horizontal" method="post" action="modals/iproutes-modal.lp">\
-  ');  
+  ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('\
     <fieldset>\
-      <legend>');  ngx.print(T"IPv4 Dynamic Routes"); ngx.print('</legend>\
-      ');  
-      ngx.print(ui_helper.createTable(dyn_route_columns, dyn_route_data, dyn_route_options, nil, dyn_route_helpmsg))
+      <legend>');  ngx.print(T"IPv4 Routes"); ngx.print('</legend>\
+      ');
+      ngx.print(ui_helper.createTable(dyn_route_columns, dyn_route_data, dyn_route_options, dyn_route_attributes, dyn_route_helpmsg))
       ngx.print('\
     </fieldset>\
     <fieldset>\
       <legend>');  ngx.print(T"IPv4 Static Routes"); ngx.print('</legend>\
-      ');  
+      ');
       ngx.print(ui_helper.createTable(static_route_columns, static_route_data, static_route_options, nil, static_route_helpmsg))
       ngx.print('\
     </fieldset>\
   </form>\
 </div>\
 '); ngx.print(ui_helper.createFooter()); ngx.print('\
-'); 
+<script>\
+setTimeout(function() {\
+  $("#dynamicroutescontainer").load("modals/iproutes-modal.lp #dynamicroutes");\
+}, 250);\
+</script>\
+');

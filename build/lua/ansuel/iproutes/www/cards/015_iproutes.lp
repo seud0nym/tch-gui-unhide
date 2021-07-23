@@ -68,7 +68,7 @@ if session:hasAccess(modalPath) then
         <span class="simple-desc">\
           <i href="#">&nbsp</i>\
           ');
-          ngx.print(format(N('<strong %s>%d</strong><span %s> IPv4 Dynamic Route</span>','<strong %s>%d</strong><span %s> IPv4 Dynamic Routes</span>',dyn_count),routes_modal_link,dyn_count,routes_modal_link))
+          ngx.print(format(N('<strong %s>%d</strong><span %s> IPv4 Route</span>','<strong %s>%d</strong><span %s> IPv4 Routes</span>',dyn_count),routes_modal_link,dyn_count,routes_modal_link))
           ngx.print('\
         </span>\
         <span class="simple-desc">\
