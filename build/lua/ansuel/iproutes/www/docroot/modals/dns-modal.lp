@@ -88,14 +88,10 @@ local address_columns = {
 }
 
 local function validateCustomAddress(value, object, key) 
-  local ret, err
-  ret, err = vSIDN(object.domain)
+  local ret, err = vSIIP(value)
   if ret then
-    ret, err = vSIIP(object.value)
-    if ret then
-      object.value = format("/%s/%s", object.domain, object.value)
-      return true
-    end
+    object.value = format("/%s/%s", object.domain, value)
+    return true
   end
   return ret, err
 end
