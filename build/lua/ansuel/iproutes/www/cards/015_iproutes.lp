@@ -10,6 +10,7 @@ local session = ngx.ctx.session
 local modalPath = "/modals/iproutes-modal.lp"
 
 if session:hasAccess(modalPath) then
+  local bridge_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/bridge-grouping-modal.lp" data-id="dns-modal"'
   local dns_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dns-modal.lp" data-id="dns-modal"'
   local routes_modal_link = format('class="modal-link" data-toggle="modal" data-remote="%s" data-id="device-modal"',modalPath)
 
@@ -59,6 +60,14 @@ if session:hasAccess(modalPath) then
     end
   end
 
+  local bridge_count = 0
+  for _,v in pairs(proxy.getPN("uci.network.interface.", true)) do
+    local type = proxy.get(v.path.."type")
+    if type and type[1].value == "bridge" then
+      bridge_count = bridge_count + 1
+    end
+  end
+
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
@@ -87,6 +96,12 @@ if session:hasAccess(modalPath) then
           <i href="#">&nbsp</i>\
           ');
           ngx.print(format(N('<strong %s>%d</strong><span %s> Custom DNS Entry</span>','<strong %s>%d</strong><span %s> Custom DNS Entries</span>',custom_dns_count),dns_modal_link,custom_dns_count,dns_modal_link))
+          ngx.print('\
+        </span>\
+        <span class="simple-desc">\
+          <i href="#">&nbsp</i>\
+          ');
+          ngx.print(format(N('<strong %s>%d</strong><span %s> Layer 2 Bridge</span>','<strong %s>%d</strong><span %s> Layer 2 Bridges</span>',bridge_count),bridge_modal_link,bridge_count,bridge_modal_link))
           ngx.print('\
         </span>\
       </div>\
