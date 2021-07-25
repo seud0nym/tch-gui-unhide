@@ -1,27 +1,35 @@
 #!/bin/sh
 
+GREEN='\033[1;32m'
+GREY='\033[90m'
+ORANGE='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
 usage() {
 cat <<EOH
 Resets the device to factory defaults, and prepares a run-once root access
 setup script to be executed on the next boot.
 
-It is the same as the procedure as described in
+It is basically the same as the procedure as described in
 http://hack-technicolor.rtfd.io/en/stable/Upgrade/#preserving-root-access,
 but with some additional options.
 
 Usage: $0 [options]
 
 Options:
- -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
- -i           Keep existing IP address [$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)] after reset and
-                reboot.
- -c           Disable CWMP configuration during first boot after reset.
  -b           Make a full backup of your booted bank configuration (requires 
                 attached USB device).
+ -c           Disable CWMP configuration during first boot after reset.
  -f filename  Flash 'filename' into the mounted bank ($BOOTED) after reset and 
                 before reboot. If 'filename' ends with .rbi, it will be 
                 unpacked first, either to an attached USB device, or /tmp if 
                 no USB detected.
+ -i           Keep existing IP address [$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)] after reset and
+                reboot.
+ -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
+ -k           Keep existing SSH keys after reset and reboot.
+ -v           Show the reset script after it has been written
  -y           Bypass confirmation prompt (answers 'y')
  -n           Do NOT reboot.
  -U           Download the latest version of $SCRIPT from GitHub
@@ -32,24 +40,20 @@ exit
 
 upgrade() {
   RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
-  if [ "$RESPONSE_CODE" = 200 ]
-  then
+  if [ "$RESPONSE_CODE" = 200 ]; then
     curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
-    if [ $? -eq 0 ]
-    then
+    if [ $? -eq 0 ]; then
       chmod +x $SCRIPT
-      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
+      echo -e "${GREEN}Successfully downloaded $SCRIPT.${NC}"
     else
-      echo "[$SCRIPT] Failed to download $SCRIPT."
+      echo -e "${RED}Failed to download $SCRIPT.${NC}"
     fi
-  elif [ "$RESPONSE_CODE" = 404 ]
-  then
-    echo "[$SCRIPT] ERROR! Not found on GitHub???"
-  elif [ "$RESPONSE_CODE" = 000 ]
-  then
-    echo "ERROR! No Internet connection???"
+  elif [ "$RESPONSE_CODE" = 404 ]; then
+    echo -e "${RED}ERROR! Not found on GitHub???${NC}"
+  elif [ "$RESPONSE_CODE" = 000 ]; then
+    echo -e "${RED}ERROR! No Internet connection???${NC}"
   else
-    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
+    echo -e "${RED}ERROR! Unknown response code $RESPONSE_CODE${NC}"
   fi
   exit
 }
@@ -57,28 +61,31 @@ upgrade() {
 ACTIVE="$(cat /proc/banktable/active)"
 BOOTED="$(cat /proc/banktable/booted)"
 BKUP=""
-FIRMWARE=""
-REBOOT="Y"
-IPADDR=""
 CWMP=""
+FIRMWARE=""
+IPADDR=""
+KEYS=""
+REBOOT="Y"
+VERBOSE=N
 YES=N
 
-while getopts :bf:I:incyU option
+while getopts :bcf:iI:knvyU option
 do
  case "${option}" in
   b)  BKUP="Y";;
+  c)  CWMP="echo 'Disabling CWMP';uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop;";;
   f)  FIRMWARE="${OPTARG}";;
+  i)  IPADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)";;
   I)  echo "${OPTARG}" | grep -q -E "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
-      if [ $? -eq 1 ]
-      then
-        echo ERROR! Invalid IP address: $OPTARG
+      if [ $? -eq 1 ]; then
+        echo -e "${RED}ERROR! Invalid IP address: $OPTARG${NC}"
         exit
       else
         IPADDR="${OPTARG}"
       fi;;
-  i)  IPADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)";;
+  k)  KEYS="Y";;
   n)  REBOOT="N";;
-  c)  CWMP="uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop;";;
+  v)  VERBOSE=Y;;
   y)  YES=Y;;
   U)  upgrade;;
   *)  usage;;
@@ -88,11 +95,9 @@ done
 MOUNT_PATH=$(uci get mountd.mountd.path)
 USB="$(ls $MOUNT_PATH | head -n1)"
 
-if [ ! -z "$BKUP" ]
-then
-  if [ -z "$USB" ]
-  then
-    echo "WARNING: Backup requested, but no attached USB device found!"
+if [ ! -z "$BKUP" ]; then
+  if [ -z "$USB" ]; then
+    echo -e "${ORANGE}WARNING: Backup requested, but no attached USB device found!${NC}"
     echo "         Are you REALLY sure you wish to proceed?"
   else
     SOURCE="$(cat /proc/banktable/booted)"
@@ -100,22 +105,17 @@ then
     echo "NOTE:    $SOURCE will be backed up to $TARGET"
   fi
 else
-  echo "NOTE:    NO backup requested"
+  echo -e "NOTE:    ${ORANGE}NO backup requested${NC}"
 fi
 
 RBI=n
-if [ ! -z "$FIRMWARE" ]
-then
-  if [ -f "$FIRMWARE" ]
-  then
-    if [ "$ACTIVE" = "bank_1" -a "$BOOTED" = "bank_2" ]
-    then
+if [ ! -z "$FIRMWARE" ]; then
+  if [ -f "$FIRMWARE" ]; then
+    if [ "$ACTIVE" = "bank_1" -a "$BOOTED" = "bank_2" ]; then
       echo "$FIRMWARE" | grep -q -E '\.rbi$'
-      if [ $? -eq 0 ]
-      then
+      if [ $? -eq 0 ]; then
         RBI=y
-        if [ -z "$USB" ]
-        then
+        if [ -z "$USB" ]; then
           echo "NOTE:    $FIRMWARE will be unpacked to /tmp before flashing. Do you have enough space?"
         else
           echo "NOTE:    $FIRMWARE will be unpacked to ${MOUNT_PATH}${USB} before flashing. Do you have enough space?"
@@ -123,15 +123,14 @@ then
         echo "NOTE:    $(basename $FIRMWARE .rbi).bin will be flashed into $BOOTED after reset"
       else
         echo "$FIRMWARE" | grep -q -E '\.bin$'
-        if [ $? -eq 1 ]
-        then
-          echo "WARNING: Flash image files normally end with '.bin'."
+        if [ $? -eq 1 ]; then
+          echo -e "${ORANGE}WARNING: Flash image files normally end with '.bin'.${NC}"
           echo "         Are you REALLY sure you wish to proceed?"
         fi
         echo "NOTE:    $FIRMWARE will be flashed into $BOOTED after reset"
       fi
     else
-      echo "WARNING: Bank plan is NOT optimal! Active bank is $ACTIVE and booted bank is $BOOTED!"
+      echo -e "${ORANGE}WARNING: Bank plan is NOT optimal! Active bank is $ACTIVE and booted bank is $BOOTED!${NC}"
       echo "         Are you REALLY sure you wish to proceed?"
     fi
   else
@@ -140,45 +139,44 @@ then
   fi
 fi
 
-echo "NOTE:    root access will be preserved. root password will be reset to root"
-if [ -z "$IPADDR" ]
-then
-  LANCONFIG=""
-else
+echo -e "NOTE:    root access will be preserved. root password will be reset to ${ORANGE}root${NC}"
+LANCONFIG="echo 'Configuring root SSH access'"
+if [ ! -z "$IPADDR" ]; then
   IPPREFIX="$(echo $IPADDR | cut -d. -f1-3)"
   for GUESTIP in $(uci show network | grep "network\.Guest.*ipaddr=" | cut -d"'" -f2 | cut -d. -f1-3 | sort -u)
   do
-    if [ "$IPPREFIX" = "$GUESTIP" ]
-    then
-      echo "ABORTING: $IPADDR conflicts with the Guest IP address range!"
+    if [ "$IPPREFIX" = "$GUESTIP" ]; then
+      echo -e "${RED}ABORTING: $IPADDR conflicts with the Guest IP address range!${NC}"
       exit
     fi
   done
   echo "NOTE:    IP address will be set to '$IPADDR'"
-  LANCONFIG="uci set network.lan.ipaddr='$IPADDR';uci commit network;/etc/init.d/network reload;"
+  LANCONFIG="echo 'Setting LAN IP address to $IPADDR';uci set network.lan.ipaddr='$IPADDR';uci commit network;/etc/init.d/network reload;echo 'Configuring root SSH access'"
 fi
-if [ ! -z "$CWMP" ]
-then
+if [ ! -z "$CWMP" ]; then
   echo "NOTE:    CWMP will be STOPPED during the reboot (first boot only)"
 fi
-if [ "$REBOOT" = "Y" ]
-then
-  echo "WARNING: Device will attempt to reboot!"
+if [ ! -z "$KEYS" ]; then
+  echo "NOTE:    SSH keys will be restored after reset:"
+  KEYS="echo 'Restoring SSH keys';echo '$(tar -czvf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
+  echo
+fi
+if [ "$REBOOT" = "Y" ]; then
+  echo -e "${ORANGE}WARNING: Device will attempt to reboot!${NC}"
 fi
 echo
-echo "WARNING: You are resetting to factory defaults!"
-echo "         Any customisation or settings you have changed will be lost!"
+echo -e "${ORANGE}WARNING: You are resetting to factory defaults!${NC}"
+echo -e "${ORANGE}         Any customisation or settings you have changed will be lost!${NC}"
 echo
 grep -q 'tch-gui-unhide' /www/docroot/gateway.lp
 if [ $? -eq 0 ]; then
   echo "NOTE:    You will also need to re-run tch-gui-unhide after rebooting!"
   echo
 fi
-echo -n "ACTION:  Enter y to continue, or anything else to exit now "
+echo -n -e "${GREEN}ACTION:  Enter y to continue, or anything else to exit now${NC} "
 if [ $YES = N ]; then
   read
-  if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]
-  then
+  if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
     exit
   fi
 else
@@ -187,20 +185,17 @@ fi
 
 if [ $RBI = y ]
 then
-  if [ -z "$USB" ]
-  then
+  if [ -z "$USB" ]; then
     target="/tmp/$(basename $FIRMWARE .rbi).bin"
   else
     target="${MOUNT_PATH}${USB}/$(basename $FIRMWARE .rbi).bin"
   fi
   echo "About to unpack $FIRMWARE to $target"
-  echo -n "Enter y to continue, or anything else to abort: "
+  echo -n -e "${GREEN}ACTION:  Enter y to continue, or anything else to abort: ${NC}"
   read CONFIRM
 
-  if [ "$CONFIRM" = "y" ]
-  then
-    if [ -f "$target" ]
-    then
+  if [ "$CONFIRM" = "y" ]; then
+    if [ -f "$target" ]; then
       echo "Removing existing $target before extracting $FIRMWARE"
       rm $target
     fi
@@ -217,7 +212,7 @@ then
   tar -C /overlay -czf $TARGET $SOURCE
 fi
 
-echo "Resetting..."
+echo -e "${GREEN}Resetting...${NC}"
 # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#clean-up
 rm -rf /overlay/`cat /proc/banktable/booted`
 # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
@@ -226,6 +221,7 @@ chmod 755 /overlay/$(cat /proc/banktable/booted) /overlay/$(cat /proc/banktable/
 echo -e "echo root:root | chpasswd
 sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
 sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
+$LANCONFIG
 uci -q set \$(uci show firewall | grep -m 1 \$(fw3 -q print | \
 egrep 'iptables -t filter -A zone_lan_input -p tcp -m tcp --dport 22 -m comment --comment \"!fw3: .+\" -j DROP' | \
 sed -n -e 's/^iptables.\+fw3: \(.\+\)\".\+/\1/p') | \
@@ -241,23 +237,29 @@ uci set dropbear.afg.RootPasswordAuth='on'
 uci set dropbear.afg.RootLogin='1'
 uci set dropbear.lan.enable='0'
 uci commit dropbear
+$KEYS
 /etc/init.d/dropbear enable
 /etc/init.d/dropbear restart
-$CWMP$LANCONFIG
+$CWMP
 rm /overlay/\$(cat /proc/banktable/booted)/etc/rc.local
 source /rom/etc/rc.local
 " > /overlay/$(cat /proc/banktable/booted)/etc/rc.local
 chmod +x /overlay/$(cat /proc/banktable/booted)/etc/rc.local
 sync
 
-if [ ! -z "$FIRMWARE" ]
-then
+if [ $VERBOSE = Y ]; then
+  echo -e "${GREY}"
+  cat /overlay/$(cat /proc/banktable/booted)/etc/rc.local
+  echo -e "${NC}"
+fi
+
+if [ ! -z "$FIRMWARE" ]; then
+  echo -e "${GREEN}Writing $FIRMWARE into $(cat /proc/banktable/booted)...${NC}"
   mtd write "$FIRMWARE" $(cat /proc/banktable/booted)
 fi
 
-if [ "$REBOOT" = "Y" ]
-then
-  echo Attempting to reboot...
+if [ "$REBOOT" = "Y" ]; then
+  echo -e "${GREEN}Attempting to reboot...${NC}"
   echo "######################################################"
   echo "# NOTE: If the reboot fails with an error message,   #"
   echo "#       you can just manually power cycle the device #"

@@ -202,20 +202,24 @@ Parameters:
 ```
 
 ## reset-to-factory-defaults-with-root
-It does what it says. It is a copy of the commands from https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access, with a confirmation prompt and immediate reboot.
+It does what it says. It is basically a copy of the commands from https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access, with some extra options, a confirmation prompt and immediate reboot.
 ```
 Usage: ./reset-to-factory-defaults-with-root [options]
 
 Options:
- -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
- -i           Keep existing IP address after reset and reboot.
- -c           Disable CWMP configuration during first boot after reset.
  -b           Make a full backup of your booted bank configuration (requires attached USB device).
- -f filename  Flash 'filename' into the mounted bank after reset and before reboot.
-                If 'filename' ends with .rbi, it will be unpacked first, either to an attached USB device, or /tmp if no USB detected.
+ -c           Disable CWMP configuration during first boot after reset.
+ -f filename  Flash 'filename' into the mounted bank ($BOOTED) after reset and 
+                before reboot. If 'filename' ends with .rbi, it will be 
+                unpacked first, either to an attached USB device, or /tmp if 
+                no USB detected.
+ -i           Keep existing IP address after reset and reboot.
+ -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
+ -k           Keep existing SSH keys after reset and reboot.
+ -v           Show the reset script after it has been written
  -y           Bypass confirmation prompt (answers 'y')
  -n           Do NOT reboot.
- -U           Download the latest version of reset-to-factory-defaults-with-root rom GitHub
+ -U           Download the latest version of reset-to-factory-defaults-with-root from GitHub
 ```
 
 ## set-optimal-bank-plan
