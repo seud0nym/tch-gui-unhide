@@ -334,7 +334,7 @@ if [ -z "$PWD_HASH" -a ! -z "$PASSWORD" ]; then
   echo -e "${GREEN}[$SCRIPT] Generating password hash...${NC}"
   results=$(lua -e "
     dkjson=require('dkjson')
-    cmd=io.popen('curl -sLX POST --data \"password=$PASSWORD&cost=10\" https://bcrypt.org/api/generate-hash.json')
+    cmd=io.popen('curl -skLX POST --data \"password=$PASSWORD&cost=10\" https://bcrypt.org/api/generate-hash.json')
     json=cmd:read('*a')
     cmd:close()
     obj=dkjson.decode(json)
@@ -469,15 +469,15 @@ else
   SLAAC="false"
 fi
 
-BIND_HOSTS="|  - 127.0.0.1|"
-for addr in $IPv4 $IPv6
-do
-  BIND_HOSTS="${BIND_HOSTS}  - ${addr}|"
-done
-if [ "$BIND_HOSTS" = "|  - 127.0.0.1|" ]; then
-  BIND_HOSTS="  - 0.0.0.0"
-fi
-BIND_HOSTS="$(echo "$BIND_HOSTS" | tr '|' '\n')"
+# BIND_HOSTS="|  - 127.0.0.1|"
+# for addr in $IPv4 $IPv6
+# do
+#   BIND_HOSTS="${BIND_HOSTS}  - ${addr}|"
+# done
+# if [ "$BIND_HOSTS" = "|  - 127.0.0.1|" ]; then
+#   BIND_HOSTS="  - 0.0.0.0"
+# fi
+# BIND_HOSTS="$(echo "$BIND_HOSTS" | tr '|' '\n')"
 
 if [  $OVERWRITE = y -o ! -e $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring AdGuard Home...${NC}"
@@ -496,7 +496,8 @@ rlimit_nofile: 0
 debug_pprof: false
 web_session_ttl: 720
 dns:
-  bind_hosts:$BIND_HOSTS
+  bind_hosts:
+  - 0.0.0.0
   port: 53
   statistics_interval: 1
   querylog_enabled: false
