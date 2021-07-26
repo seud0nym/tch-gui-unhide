@@ -328,7 +328,7 @@ mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
 hh=$(awk 'BEGIN{srand();print int(rand()*2)+3;}')
 echo -e "${GREEN}[$SCRIPT] Creating scheduled cron job to update DoH IP Sets every Sunday at $hh:$(printf '%02d' $mm)${NC}"
 sed -e '/99-ipset-doh/d' -i /etc/crontabs/root
-echo "$mm $hh * * 7 /usr/sbin/doh-ipsets-maintain" >> /etc/crontabs/root
+echo "$mm $hh * * 6 /usr/sbin/doh-ipsets-maintain" >> /etc/crontabs/root
 /etc/init.d/cron restart
 
 echo -e "${GREEN}[$SCRIPT] Populating ipsets${NC}"
