@@ -56,8 +56,7 @@ do
 done
 shift $((OPTIND-1))
 
-if [ $CRON = Y ]
-then
+if [ $CRON = Y ]; then
   grep -q "$SCRIPT" /etc/crontabs/root
   if [ $? = 0 ]
   then
@@ -86,6 +85,9 @@ done
 
 curl $CURL_OPT -kLz /etc/ssl/certs/ca-certificates.crt -o /etc/ssl/certs/ca-certificates.crt https://curl.se/ca/cacert.pem | logger $LGGR_OPT -t rpc.gui.opkg -p user.info
 
-export SSL_CERT_FILE='/etc/ssl/cert.pem'
-grep -q SSL_CERT_FILE /etc/profile || sed -e "/ENV/a\export SSL_CERT_FILE='/etc/ssl/cert.pem'" -i /etc/profile
+if [ -z "$ENV" ]; then
+  grep -q SSL_CERT_FILE /etc/profile || echo "export SSL_CERT_FILE='/etc/ssl/cert.pem'" >> /etc/profile
+else
+  grep -q SSL_CERT_FILE $ENV || echo "SSL_CERT_FILE='/etc/ssl/cert.pem'" >> $ENV
+fi
 
