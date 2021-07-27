@@ -89,20 +89,18 @@ if admin and assistant then
           if assistant:enabled() then
             ngx.print(ui_helper.createSimpleLight("1", T"Remote assistance enabled"))
             if admin then
+              local pattern = '<strong>%s</strong>'
+              local url = assistant:URL()
               ngx.print('<p class="subinfos" style="font-size:x-small;line-height:normal;">' )
-              ngx.print(T"Port:")
-              ngx.print(format(' <strong id="port">%s</strong>', assistant:port()))
+              ngx.print(T"URL: ")
+              ngx.print(format(pattern, url or assistant:URL6() or "?"))
               ngx.print('<br/>')
-              ngx.print(T"Username:")
-              ngx.print(format(' <strong id="username">%s</strong>', assistant:username()))
+              ngx.print(T"Username: ")
+              ngx.print(format(pattern, assistant:username()))
               if assistant:isRandomPassword() then
-                local tremove = table.remove
-                for i = 1, 4, 1 do
-                  tremove(content, 1)
-                end
-                ngx.print("<br/>")
-                ngx.print(T"Password:")
-                ngx.print(format(' <strong id="password">%s</strong>', assistant:password()))
+                ngx.print(T" Password: ")
+                ngx.print(format(pattern, assistant:password()))
+              else
               end
             end
             ngx.print('</p>')
