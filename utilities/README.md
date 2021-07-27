@@ -40,7 +40,7 @@ It does NOT remove the hidden BH-xxxxxx SSID from the DJA0230 or DJA0231, as thi
 Usage: ./de-telstra [options]
 
 Options:
- -k a|c|e|k|m|n        Override default hardening configuration:
+ -k a|c|e|k|m|n|s|x    Override default hardening configuration:
     where a            - Keep Telstra AIR enabled
           c            - Keep CWMP installed
           k            - Keep default public authorized keys

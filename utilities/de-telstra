@@ -16,7 +16,7 @@ Hardens root access and applies optional service configuration changes.
 Usage: $0 [options]
 
 Options:
- -k a|c|e|k|m|n        Override default hardening configuration:
+ -k a|c|e|k|m|n|s|x    Override default hardening configuration:
     where a            - Keep Telstra AIR enabled
           c            - Keep CWMP installed
           k            - Keep default public authorized keys
