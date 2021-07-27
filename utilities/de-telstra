@@ -48,6 +48,7 @@ Options:
           <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated
                         IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
  -a u|y|n              WAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable
+ -b u|y|n            * LAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable (FW 20.3.c)
  -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
  -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
  -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
@@ -154,6 +155,7 @@ PACKAGES_TO_REMOVE=""
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
 ALG='u'
+ALG_LAN='u'
 DECT='u'
 DLNAD='u'
 DOMAIN='u'
@@ -181,10 +183,11 @@ MONITORING='n'
 NTP='n'
 NOEXEC='n'
 
-while getopts :a:c:d:e:f:g:h:k:m:n:op:q:r:s:t:u:w:AF:GMRSU option
+while getopts :a:b:c:d:e:f:g:h:k:m:n:op:q:r:s:t:u:w:AF:GMRSU option
 do
  case "${option}" in
   a)  case "${OPTARG}" in y) ALG='1';; n) ALG='0';; u) ALG='u';; *) ALG='u'; echo 'ERROR: -a valid options are y, n, or u'; exit 1;; esac;;
+  b)  case "${OPTARG}" in y) ALG_LAN='1';; n) ALG_LAN='0';; u) ALG_LAN='u';; *) ALG_LAN='u'; echo 'ERROR: -b valid options are y, n, or u'; exit 1;; esac;;
   c)  case "${OPTARG}" in y) DLNAD='1';; n) DLNAD='0';; u) DLNAD='u';; *) DLNAD='u'; echo 'ERROR: -c valid options are y, n, or u'; exit 1;; esac;;
   d)  case "${OPTARG}" in g|G) DOMAIN='gateway';; l|L) DOMAIN='lan';; u) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
   e)  case "${OPTARG}" in y) DECT='1';; n) DECT='0';; u) DECT='u';; *) DECT='u'; echo 'ERROR: -e valid options are y, n, or u'; exit 1;; esac;;
@@ -793,6 +796,23 @@ else # 20.3.c
     uci -q delete $ZONE.helper
     if [ "$ALG" = "0" ]; then
       echo [$SCRIPT]: $G All WAN ALGs Disabled
+    else
+      for g in ftp tftp snmp pptp sip irc amanda rtsp
+      do
+        uci add_list $ZONE.helper="$g"
+        echo [$SCRIPT]: $G ALG Enabled
+      done
+    fi
+    uci commit firewall
+    SRV_fw=$(( $SRV_fw + 1 ))
+  fi
+  if [ "$ALG_LAN" = "u" ]; then
+    echo [$SCRIPT]: LAN ALGs unchanged \[$(uci -q get $(uci show firewall | grep @zone | grep "wan='1'" | cut -d. -f1-2).helper | wc -w) Enabled\]
+  else
+    ZONE=$(uci show firewall | grep @zone | grep -m 1 "name='lan'" | cut -d. -f1-2)
+    uci -q delete $ZONE.helper
+    if [ "$ALG_LAN" = "0" ]; then
+      echo [$SCRIPT]: $G All LAN ALGs Disabled
     else
       for g in ftp tftp snmp pptp sip irc amanda rtsp
       do

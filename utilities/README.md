@@ -72,6 +72,7 @@ Options:
           <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated
                         IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
  -a u|y|n              WAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable
+ -b u|y|n            * LAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable (FW 20.3.c)
  -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
  -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
  -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
