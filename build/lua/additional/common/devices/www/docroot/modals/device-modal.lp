@@ -261,7 +261,7 @@ local devices_filter = function(data)
       end
     end 
   end
-  if find(data["IPv6"]," ")  then
+  if data["IPv6"] and find(data["IPv6"]," ") then
     local addresses = splitter.split(untaint(data["IPv6"])," ")
     sort(addresses, function(a,b)
       return a < b
