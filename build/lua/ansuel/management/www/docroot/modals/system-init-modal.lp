@@ -6,6 +6,7 @@ gettext.textdomain('webui-core')
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
+local toupper = string.upper
 
 local function sendcmd(cmd,service)
   ngx.log(ngx.INFO, "Calling "..service.." "..cmd)
@@ -105,7 +106,9 @@ local init_options = {
 	canDelete = false,
 	tableid = "inittable",
 	basepath = "rpc.gui.init.files.",
-	sorted = sortcol,
+	sorted = function(a, b)
+  	return toupper(a[sortcol] or "") < toupper(b[sortcol] or "")
+	end,
 }
 
 local init_filter = function(data)
