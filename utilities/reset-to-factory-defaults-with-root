@@ -73,7 +73,7 @@ while getopts :bcf:iI:knvyU option
 do
  case "${option}" in
   b)  BKUP="Y";;
-  c)  CWMP="echo 'Disabling CWMP';uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop;";;
+  c)  CWMP="Y";;
   f)  FIRMWARE="${OPTARG}";;
   i)  IPADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)";;
   I)  echo "${OPTARG}" | grep -q -E "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
@@ -130,7 +130,7 @@ if [ ! -z "$FIRMWARE" ]; then
         echo "NOTE:    $FIRMWARE will be flashed into $BOOTED after reset"
       fi
     else
-      echo -e "${ORANGE}WARNING: Bank plan is NOT optimal! Active bank is $ACTIVE and booted bank is $BOOTED!${NC}"
+      echo -e "${RED}WARNING: Bank plan is NOT optimal! Active bank is $ACTIVE and booted bank is $BOOTED!${NC}"
       echo "         Are you REALLY sure you wish to proceed?"
     fi
   else
@@ -139,7 +139,7 @@ if [ ! -z "$FIRMWARE" ]; then
   fi
 fi
 
-echo -e "NOTE:    root access will be preserved. root password will be reset to ${ORANGE}root${NC}"
+echo -e "NOTE:    root access will be preserved. root password will be reset to ${GREEN}root${NC}"
 LANCONFIG="echo 'Configuring root SSH access'"
 if [ ! -z "$IPADDR" ]; then
   IPPREFIX="$(echo $IPADDR | cut -d. -f1-3)"
@@ -150,15 +150,16 @@ if [ ! -z "$IPADDR" ]; then
       exit
     fi
   done
-  echo "NOTE:    IP address will be set to '$IPADDR'"
-  LANCONFIG="echo 'Setting LAN IP address to $IPADDR';uci set network.lan.ipaddr='$IPADDR';uci commit network;/etc/init.d/network reload;echo 'Configuring root SSH access'"
+  echo -e "NOTE:    IP address will be set to '${GREEN}$IPADDR${NC}'"
+  LANCONFIG="echo 'Setting LAN IP address to $IPADDR';uci set network.lan.ipaddr='$IPADDR';uci commit network;/etc/init.d/network reload;"
 fi
 if [ ! -z "$CWMP" ]; then
-  echo "NOTE:    CWMP will be STOPPED during the reboot (first boot only)"
+  echo "NOTE:    CWMP will be STOPPED during the reboot"
+  CWMPCONFIG="echo 'Disabling CWMP';uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop;"
 fi
 if [ ! -z "$KEYS" ]; then
   echo "NOTE:    SSH keys will be restored after reset:"
-  KEYS="echo 'Restoring SSH keys';echo '$(tar -czvf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
+  KEYSCONFIG="echo 'Restoring SSH keys';echo '$(tar -czvf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
   echo
 fi
 if [ "$REBOOT" = "Y" ]; then
@@ -221,10 +222,9 @@ chmod 755 /overlay/$(cat /proc/banktable/booted) /overlay/$(cat /proc/banktable/
 echo -e "echo root:root | chpasswd
 sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
 sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
-$LANCONFIG
 uci -q set \$(uci show firewall | grep -m 1 \$(fw3 -q print | \
-egrep 'iptables -t filter -A zone_lan_input -p tcp -m tcp --dport 22 -m comment --comment \"!fw3: .+\" -j DROP' | \
-sed -n -e 's/^iptables.\+fw3: \(.\+\)\".\+/\1/p') | \
+egrep 'iptables -t filter -A zone_lan_input -p tcp -m tcp --dport 22 -m comment --comment \"!fw3: .+\" -j DROP' 2>/dev/null | \
+sed -n -e 's/^iptables.\+fw3: \(.\+\)\".\+/\1/p') 2>/dev/null | \
 sed -n -e \"s/\(.\+\).name='.\+'$/\1/p\").target='ACCEPT'
 uci add dropbear dropbear
 uci rename dropbear.@dropbear[-1]=afg
@@ -237,10 +237,11 @@ uci set dropbear.afg.RootPasswordAuth='on'
 uci set dropbear.afg.RootLogin='1'
 uci set dropbear.lan.enable='0'
 uci commit dropbear
-$KEYS
+$KEYSCONFIG
 /etc/init.d/dropbear enable
 /etc/init.d/dropbear restart
-$CWMP
+$CWMPCONFIG
+$LANCONFIG
 rm /overlay/\$(cat /proc/banktable/booted)/etc/rc.local
 source /rom/etc/rc.local
 " > /overlay/$(cat /proc/banktable/booted)/etc/rc.local
