@@ -21,6 +21,7 @@ Options:
  -b           Make a full backup of your booted bank configuration (requires 
                 attached USB device).
  -c           Disable CWMP configuration during first boot after reset.
+ -e           Disable any 'noexec' flags on USB mounted filesystems.
  -f filename  Flash 'filename' into the mounted bank ($BOOTED) after reset and 
                 before reboot. If 'filename' ends with .rbi, it will be 
                 unpacked first, either to an attached USB device, or /tmp if 
@@ -29,10 +30,10 @@ Options:
                 reboot.
  -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
  -k           Keep existing SSH keys after reset and reboot.
- -v           Show the reset script after it has been written
- -y           Bypass confirmation prompt (answers 'y')
+ -v           Show the reset script after it has been written.
+ -y           Bypass confirmation prompt (answers 'y').
  -n           Do NOT reboot.
- -U           Download the latest version of $SCRIPT from GitHub
+ -U           Download the latest version of $SCRIPT from GitHub.
 
 EOH
 exit
@@ -65,15 +66,17 @@ CWMP=""
 FIRMWARE=""
 IPADDR=""
 KEYS=""
+NOEXEC=""
 REBOOT="Y"
 VERBOSE=N
 YES=N
 
-while getopts :bcf:iI:knvyU option
+while getopts :bcef:iI:knvyU option
 do
  case "${option}" in
   b)  BKUP="Y";;
   c)  CWMP="Y";;
+  e)  NOEXEC="Y";;
   f)  FIRMWARE="${OPTARG}";;
   i)  IPADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)";;
   I)  echo "${OPTARG}" | grep -q -E "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
@@ -139,8 +142,8 @@ if [ ! -z "$FIRMWARE" ]; then
   fi
 fi
 
-echo -e "NOTE:    root access will be preserved. root password will be reset to ${GREEN}root${NC}"
-LANCONFIG="echo 'Configuring root SSH access'"
+echo -e "NOTE:    root access will be preserved. root password will be reset to '${GREEN}root${NC}'"
+LAN_CFG="echo 'Configuring root SSH access'"
 if [ ! -z "$IPADDR" ]; then
   IPPREFIX="$(echo $IPADDR | cut -d. -f1-3)"
   for GUESTIP in $(uci show network | grep "network\.Guest.*ipaddr=" | cut -d"'" -f2 | cut -d. -f1-3 | sort -u)
@@ -151,15 +154,19 @@ if [ ! -z "$IPADDR" ]; then
     fi
   done
   echo -e "NOTE:    IP address will be set to '${GREEN}$IPADDR${NC}'"
-  LANCONFIG="echo 'Setting LAN IP address to $IPADDR';uci set network.lan.ipaddr='$IPADDR';uci commit network;/etc/init.d/network reload;"
+  LAN_CFG="echo 'Setting LAN IP address to $IPADDR';uci set network.lan.ipaddr='$IPADDR';uci commit network;/etc/init.d/network reload;"
 fi
 if [ ! -z "$CWMP" ]; then
-  echo "NOTE:    CWMP will be STOPPED during the reboot"
-  CWMPCONFIG="echo 'Disabling CWMP';uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop;"
+  echo -e "NOTE:    CWMP will be ${ORANGE}stopped${NC} during the reboot"
+  CWMP_CFG="echo 'Disabling CWMP';uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop;"
+fi
+if [ ! -z "$NOEXEC" ]; then
+  echo -e "NOTE:    Any 'noexec' flags will be ${GREEN}removed${NC} from USB filesystem mounts after reset"
+  NOEXEC_CFG="echo 'Removing noexec mount flags';sed -e 's/noexec,//' -e 's/,noexec//' -i /etc/config/mountd"
 fi
 if [ ! -z "$KEYS" ]; then
-  echo "NOTE:    SSH keys will be restored after reset:"
-  KEYSCONFIG="echo 'Restoring SSH keys';echo '$(tar -czvf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
+  echo -e "NOTE:    SSH keys will be ${GREEN}restored${NC} after reset:"
+  KEYS_CFG="echo 'Restoring SSH keys';echo '$(tar -czvf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
   echo
 fi
 if [ "$REBOOT" = "Y" ]; then
@@ -237,11 +244,12 @@ uci set dropbear.afg.RootPasswordAuth='on'
 uci set dropbear.afg.RootLogin='1'
 uci set dropbear.lan.enable='0'
 uci commit dropbear
-$KEYSCONFIG
+$KEYS_CFG
 /etc/init.d/dropbear enable
 /etc/init.d/dropbear restart
-$CWMPCONFIG
-$LANCONFIG
+$CWMP_CFG
+$LAN_CFG
+$NOEXEC_CFG
 rm /overlay/\$(cat /proc/banktable/booted)/etc/rc.local
 source /rom/etc/rc.local
 " > /overlay/$(cat /proc/banktable/booted)/etc/rc.local

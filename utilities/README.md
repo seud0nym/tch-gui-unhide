@@ -209,6 +209,7 @@ Usage: ./reset-to-factory-defaults-with-root [options]
 Options:
  -b           Make a full backup of your booted bank configuration (requires attached USB device).
  -c           Disable CWMP configuration during first boot after reset.
+ -e           Disable any 'noexec' flags on USB mounted filesystems.
  -f filename  Flash 'filename' into the mounted bank ($BOOTED) after reset and 
                 before reboot. If 'filename' ends with .rbi, it will be 
                 unpacked first, either to an attached USB device, or /tmp if 
@@ -216,10 +217,10 @@ Options:
  -i           Keep existing IP address after reset and reboot.
  -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
  -k           Keep existing SSH keys after reset and reboot.
- -v           Show the reset script after it has been written
- -y           Bypass confirmation prompt (answers 'y')
+ -v           Show the reset script after it has been written.
+ -y           Bypass confirmation prompt (answers 'y').
  -n           Do NOT reboot.
- -U           Download the latest version of reset-to-factory-defaults-with-root from GitHub
+ -U           Download the latest version of reset-to-factory-defaults-with-root from GitHub.
 ```
 
 ## set-optimal-bank-plan
