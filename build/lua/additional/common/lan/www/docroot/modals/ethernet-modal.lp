@@ -1,4 +1,5 @@
-<%
+--pretranslated: do not change this file
+
 -- Localization
 gettext.textdomain('webui-core')
 
@@ -985,12 +986,12 @@ if ngx.var.request_method == "POST" then
   local gwIP = session:retrieve("old_ip")
   session:store("old_ip",(content["localdevIP"]))
 
-  -- Redirect the GUI only if the local GW device IP Address is changed for the "lan" interface
-  if curintf == "lan" and content["localdevIP"]~= gwIP and not next(helpmsg) then%>
-    <script type="text/javascript">
-      window.location="http://<%=content["localdevIP"]%>";
-    </script>
-    <%session:logout()
+  -- Redirect the GUI only if the local GW device IP address is changed for the "lan" interface
+  if curintf == "lan" and content["localdevIP"]~= gwIP and not next(helpmsg) then ngx.print('\
+    <script type="text/javascript">\
+      window.location="http://');  ngx.print(content["localdevIP"]); ngx.print('";\
+    </script>\
+    ');  session:logout()
   end
 
   local content1 = ngx.req.get_post_args()
@@ -1030,18 +1031,17 @@ if content["dhcpv4State"] == "disabled" and content["dhcpv6State"] == "disabled"
 end
 
 local uri = ngx.var.uri
-%>
 
-<% ngx.print(ui_helper.createHeader(T"Local Network", true, false)) %>
-   <div class="modal-body update">
-     <form class="form-horizontal" method="post" action="<%= ngx.var.request_uri %>">
-     <%
+ngx.print(ui_helper.createHeader(T"Local Network", true, false, nil, help_link))   ngx.print('\
+   <div class="modal-body update">\
+     <form class="form-horizontal" method="post" action="');  ngx.print( ngx.var.request_uri ); ngx.print('">\
+     ');
      -- Do not display the navlist on the list if only 1 lan interface
      if #lan_intfs> 1 and (not bridged.isBridgedMode()) then
-     %>
-     <div class="span2">
-        <ul class="nav nav-list">
-        <%
+       ngx.print('\
+     <div class="span2">\
+        <ul class="nav nav-list">\
+        ');
         local html = { format('<li class="nav-header">%s</li>', T"LAN Interfaces") }
         for k,v in ipairs(lan_intfs) do
             local active = ""
@@ -1052,87 +1052,87 @@ local uri = ngx.var.uri
             html[#html+1] = format('<li class="%s"><a id = "%s" href="#" data-remote="%s">%s</a></li>', active, v.index, url, v.name)
         end
         ngx.print(html)
-        %>
-        </ul>
-     </div>
-     <div class="span9">
-        <%
-        end
-        ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-        %>
-          <fieldset>
-            <% if not bridged.isBridgedMode() then %>
-            <div class="span4">
-            <% end %>
-              <legend><%= T"Global Information" %></legend>
-              <%
-              local advanced = {
-                group = {
-                  class = "advanced hide"
-                },
-                input = {
-                  class = "span2"
-                }
+        ngx.print('\
+        </ul>\
+     </div>\
+     <div class="span9">\
+        ');
+      end
+      ngx.print(ui_helper.createMessages(message_helper.popMessages()))
+      ngx.print('\
+        <fieldset>\
+          ');  if not bridged.isBridgedMode() then   ngx.print('\
+          <div class="span4">\
+          ');  end   ngx.print('\
+            <legend>');  ngx.print( T"Global Information" ); ngx.print('</legend>\
+            ');
+            local advanced = {
+              group = {
+                class = "advanced hide"
+              },
+              input = {
+                class = "span2"
               }
-              local switch_class_enable = {
-                input = {
-                  class = "monitor-changes",
-                }
+            }
+            local switch_class_enable = {
+              input = {
+                class = "monitor-changes",
               }
-              local number_attr = {
-                group = {
-                  class = "monitor-localIPv6 monitor-1 monitor-hidden-localIPv6",
-                },
-                input = {
-                  type = "number",
-                  min = "0",
-                  max = "128",
-                  style = "width:100px",
-                }
+            }
+            local number_attr = {
+              group = {
+                class = "monitor-localIPv6 monitor-1 monitor-hidden-localIPv6",
+              },
+              input = {
+                type = "number",
+                min = "0",
+                max = "128",
+                style = "width:100px",
               }
-              local stdattributes = {
-                group = {
-                  class = "advanced hide",
-                },
-                select = {
-                  class = "monitor-changes span2"
-                }
+            }
+            local stdattributes = {
+              group = {
+                class = "advanced hide",
+              },
+              select = {
+                class = "monitor-changes span2"
               }
-              -- Labels that shows the Local Device IP address & network subnet
+            }
+            -- Labels that shows the Local Device IP address & network subnet
+            ngx.print(
+              ui_helper.createInputText(T"Local Device IP Address", "localdevIP", content["localdevIP"], {input = {class = "span2"}}, helpmsg["localdevIP"]),
+              ui_helper.createInputText(T"Local Network Subnet", "localdevmask", content["localdevmask"], advanced, helpmsg["localdevmask"])
+            )
+
+            if curintf == "lan" then
+              if bridged.isBridgedMode() then
+                ngx.print(ui_helper.createInputText(T"Local Gateway", "localgw", content["localgw"], advanced, helpmsg["localgw"]))
+              end
+              ngx.print(ui_helper.createInputText(T"Local Domain Name", "localdomain", content["localdomain"], advanced, helpmsg["localdomain"]))
+            end
+
+            if cur_dhcp_intf == "lan" and not bridged.isBridgedMode() and not adguard then
               ngx.print(
-                ui_helper.createInputText(T"Local Device IP Address", "localdevIP", content["localdevIP"], {input = {class = "span2"}}, helpmsg["localdevIP"]),
-                ui_helper.createInputText(T"Local Network Subnet", "localdevmask", content["localdevmask"], advanced, helpmsg["localdevmask"])
+                ui_helper.createInputSelect(T"IPv4 Primary DNS", "dnsServer", dns_list[1], content["dnsServer"], stdattributes),
+                ui_helper.createInputSelect(T"IPv4 Secondary DNS", "ipv4_dns_sec", dns_list[1], content["dns_v4_sec"], stdattributes)
               )
+            end
 
-              if curintf == "lan" then
-                if bridged.isBridgedMode() then
-                  ngx.print(ui_helper.createInputText(T"Local Gateway", "localgw", content["localgw"], advanced, helpmsg["localgw"]))
-                end
-                ngx.print(ui_helper.createInputText(T"Local Domain Name", "localdomain", content["localdomain"], advanced, helpmsg["localdomain"]))
-              end
+            ngx.print(ui_helper.createSwitch(T"IPv6 State", "localIPv6", content["localIPv6"], switch_class_enable))
 
-              if cur_dhcp_intf == "lan" and not bridged.isBridgedMode() and not adguard then
-                ngx.print(
-                  ui_helper.createInputSelect(T"IPv4 Primary DNS", "dnsServer", dns_list[1], content["dnsServer"], stdattributes),
-                  ui_helper.createInputSelect(T"IPv4 Secondary DNS", "ipv4_dns_sec", dns_list[1], content["dns_v4_sec"], stdattributes)
-                )
-              end
-
-              ngx.print(ui_helper.createSwitch(T"IPv6 State", "localIPv6", content["localIPv6"], switch_class_enable))
-
-              if cur_dhcp_intf == "lan" and not bridged.isBridgedMode() and not adguard then
-                ngx.print(
-                  ui_helper.createInputSelect(T"IPv6 Primary DNS", "dns_v6_pri", dns_list[2], content["dns_v6_pri"], stdattributes),
-                  ui_helper.createInputSelect(T"IPv6 Secondary DNS", "dns_v6_sec", dns_list[2], content["dns_v6_sec"], stdattributes)
-                )
-              end
+            if cur_dhcp_intf == "lan" and not bridged.isBridgedMode() and not adguard then
+              ngx.print(
+                ui_helper.createInputSelect(T"IPv6 Primary DNS", "dns_v6_pri", dns_list[2], content["dns_v6_pri"], stdattributes),
+                ui_helper.createInputSelect(T"IPv6 Secondary DNS", "dns_v6_sec", dns_list[2], content["dns_v6_sec"], stdattributes)
+              )
+            end
 
             if not bridged.isBridgedMode() then
-              %>
-            </div>
-            <div class="span4">
-              <legend><%= T"DHCP Settings" %></legend>
-              <%
+                ngx.print('\
+            </div>\
+            <div class="span4">\
+              <legend>');  ngx.print( T"DHCP Settings" ); ngx.print('</legend>\
+              ');
               if adguard then
                 ngx.print(format(T'Configure DHCP through <a style="color:inherit;text-decoration:none;" target="_blank" href="http://%s:8008"><b>AdGuard Home</b></a>', content["localdevIP"]))
               else
@@ -1148,24 +1148,24 @@ local uri = ngx.var.uri
                   ui_helper.createLabel(T"Network Address", network, advanced),
                   ui_helper.createInputText(T"DHCP Start Address", "dhcpStartAddress", ipstart, advanced, helpmsg["dhcpStart"]),
                   ui_helper.createInputText(T"DHCP End Address", "dhcpEndAddress", ipend, advanced, helpmsg["dhcpLimit"]),
-                  ui_helper.createInputText(T"Lease Time", "leaseTime", content["leaseTime"], advanced, helpmsg["leaseTime"])
-                 ,[[<div class="monitor-localIPv6 monitor-1 monitor-hidden-localIPv6">]]
-                 ,ui_helper.createSwitch(T"DHCPv6 Server", "dhcpv6State", content["dhcpv6State"], switchDHCP)
-                 ,ui_helper.createSwitch(T"SLAAC + RA<span class='icon-question-sign' title='IPv6 Stateless Address Auto-Configuration + Router Advertisement'></span>", "slaacState", content["slaacState"], switchDHCP)
-                 ,[[</div>]]
-                )
+                  ui_helper.createInputText(T"Lease Time", "leaseTime", content["leaseTime"], advanced, helpmsg["leaseTime"]),
+                  [[<div class="monitor-localIPv6 monitor-1 monitor-hidden-localIPv6">]],
+                  ui_helper.createSwitch(T"DHCPv6 Server", "dhcpv6State", content["dhcpv6State"], switchDHCP),
+                  ui_helper.createSwitch(T"SLAAC + RA<span class='icon-question-sign' title='IPv6 Stateless Address Auto-Configuration + Router Advertisement'></span>", "slaacState", content["slaacState"], switchDHCP),
+                  [[</div>]]
+                );
               end
-               %>
-            </div>
-              <%
+                 ngx.print('\
+            </div>\
+              ');
               -- Do not display the static lease when the interface is not lan
               if curintf == "lan" then
                 if not adguard then
-              %>
-              </fieldset>
-              <fieldset>
-                  <legend><%= T"Static Leases" %></legend>
-                  <%
+                ngx.print('\
+              </fieldset>\
+              <fieldset>\
+                  <legend>');  ngx.print( T"Static leases" ); ngx.print('</legend>\
+                  ');
                     local confilictipchange_alert = {
                       alert = {
                           class = "alert hide",
@@ -1175,12 +1175,14 @@ local uri = ngx.var.uri
                     ngx.print(
                       ui_helper.createAlertBlock(T"The latest added/modified static lease is set to an IP that is already in use, please perform a reboot to apply the changes", confilictipchange_alert),
                       ui_helper.createTable(sleases_columns, sleases_data, sleases_options, nil, sleases_helpmsg))
-                  %>
-              </fieldset>
-              <% end %>
-              <fieldset>
-                <legend><%= T"Network Mode" %></legend>
-                <%
+                    ngx.print('\
+              </fieldset>\
+                ');
+              end
+              ngx.print('\
+              <fieldset>\
+                <legend>');  ngx.print( T"Network mode" ); ngx.print('</legend>\
+                ');
                 local html = {}
                 local rebooting = {
                   alert = {
@@ -1252,160 +1254,146 @@ local uri = ngx.var.uri
               html[#html + 1] = ui_helper.createAlertBlock(T[[Note: your gateway is in Bridged Mode. If you want the gateway to run in Routed Mode again, you can revert without factory reset <a href="javascript:tch.loadModal('/modals/broadband-modal.lp')">here</a>]], infomessage)
               ngx.print(html)
             end
-          %>
-          </fieldset>
-          <%
+            ngx.print('\
+          </fieldset>\
+          ');
           -- Do not display the navlist on the list if only 1 lan interface
           if #lan_intfs> 1 and (not bridged.isBridgedMode()) then
-          %>
-          </div>
-          <%
+            ngx.print('\
+          </div>\
+          ');
           end
-          %>
-          <input type="hidden" name="isAdvanced" id="isAdvanced" value="0">
-        </form>
-   </div>
-
-<script type='text/javascript'>
-$(function() {
-    var iPv6StateOnlyChanged = 0;
-    $("input, select").on("change", function(){
-       if(this.id == "localIPv6" && iPv6StateOnlyChanged == 0)
-         iPv6StateOnlyChanged = 1;
-       else
-         iPv6StateOnlyChanged = 2;
-    });
-    //Override the save button click event to update the IPv6 state alone.
-    $("#save-config").click(function(){
-         if(iPv6StateOnlyChanged == 1){
-          var params = [];
-          params.push({
-            name : "action",
-            value : "SAVE"
-          },
-          {
-            name : "iPv6StateOnlyChanged",
-            value : "yes"
-          },
-          {
-            name : "localIPv6",
-            value : $("#localIPv6").val()
-          }, tch.elementCSRFtoken());
-          var target = $(".modal form").attr("action");
-          tch.showProgress(waitMsg);
-          $.post(target, params, function(response){
-            //The following block of code used to display the success/error message and manage the footer.
-            $(".alert").remove();
-            $("form").prepend(response);
-            $("#modal-changes").attr("style","display:none");
-            $("#modal-no-change").attr("style","display:block");
-            iPv6StateOnlyChanged = 0;
-            tch.removeProgress();
-          });
-          return false;
-         }
-     });
-
-
-    $("#save-config").click(function(){
-      if($("#Hide_Advanced_id").is(":visible"))
-        $("#isAdvanced").val("1");
-      else
-        $("#isAdvanced").val("0");
-    });
-
-});
-$("[name ='sleases_mac']").change(function () {
-    if ((this.value) == "custom") {
-          $(this).replaceWith($('<input/>',{'type':'text', 'name':'sleases_mac'}));
-    }
-});
-
-<% if dhcpDefaultExist then %>
-$("#btn-dhcp-reset").click(function(){
-  <%for k,v in pairs(dhcpDefaultExist) do %>
-    $("#<%=k%>").val("<%=v%>");
-  <%end%>
-  $("#localIPv6").prev().removeClass("switcherOn").closest(".switch").removeClass("switchOn");
-  $("#dhcpState").prev().addClass("switcherOn").closest(".switch").addClass("switchOn");
-  $("#modal-changes").show();
-  $("#modal-no-change").hide();
-});
-<%end%>
-  <% if inUseFlag == true then%>
-  $("#confilictipchange-msg").show();
-  <%end %>
-</script>
-
-<% ngx.print(ui_helper.createFooter()) %>
-
-<script src="/js/srp-min.js" ></script>
-<script>
-(function() {
-  $('input[name="localdevIP"]').keydown(function(){
-    var msg = $("#lanipchange-msg");
-    var msg_dst = $(this);
-    msg_dst.after(msg);
-    msg.removeClass("hide");
-  });
-
-  var refreshTimeOut = 5000;
-  var refreshDelay = 3000;
-  var target = $(".modal form").attr("action");
-
-  function wait_for_webserver_running() {
-    $.ajax({ url: "/", timeout: refreshTimeOut })
-    .done(function(data) {
-      document.open("text/html");
-      document.write(data);
-      document.close();
-    })
-    .fail(function() {
-      window.setTimeout(wait_for_webserver_running, refreshDelay);
-    });
-  }
-
-  function wait_for_webserver_down() {
-    $.ajax({ url: target, timeout: refreshTimeOut })
-    .done(function() {
-      window.setTimeout(wait_for_webserver_down, refreshDelay);
-    })
-    .fail(function() {
-      window.setTimeout(wait_for_webserver_running, refreshDelay);
-    });
-  }
-
-  function resetreboot(msg, msg_dst, action) {
-    msg_dst.after(msg);
-    msg.removeClass("hide");
-    msg[0].scrollIntoView();
-    $.post(
-      target,
-      { action: action, CSRFtoken: $("meta[name=CSRFtoken]").attr("content") },
-      wait_for_webserver_down,
-      "json"
-    );
-    return false;
-  }
-
-  $("#btn-bridged").click(function() {
-    $("#confirming-msg").removeClass("hide");
-    $("#bridged-changes").removeClass("hide");
-    $(".modal-body").animate({'scrollTop':"+=100px"}, "fast")
-  });
-
-  $("#bridged-confirm").click(function() {
-    $("#confirming-msg").addClass("hide");
-    $("#bridged-changes").addClass("hide");
-    $("#btn-bridged").addClass("hide");
-    return resetreboot($("#rebooting-msg"), $("#btn-bridged"), "BRIDGED");
-  });
-
-  $("#bridged-cancel").click(function() {
-    $("#confirming-msg").addClass("hide");
-    $("#bridged-changes").addClass("hide");
-    $("#rebooting-msg").addClass("hide");
-  });
-
-}());
-</script>
+            ngx.print('\
+          <input type="hidden" name="isAdvanced" id="isAdvanced" value="0">\
+        </form>\
+   </div>\
+<script type="text/javascript">\
+$(function() {\
+    var iPv6StateOnlyChanged = 0;\
+    $("input, select").on("change", function(){\
+       if(this.id == "localIPv6" && iPv6StateOnlyChanged == 0)\
+         iPv6StateOnlyChanged = 1;\
+       else\
+         iPv6StateOnlyChanged = 2;\
+    });\
+    //Override the save button click event to update the IPv6 state alone.\
+    $("#save-config").click(function(){\
+         if(iPv6StateOnlyChanged == 1){\
+          var params = [];\
+          params.push({\
+            name : "action",\
+            value : "SAVE"\
+          },\
+          {\
+            name : "iPv6StateOnlyChanged",\
+            value : "yes"\
+          },\
+          {\
+            name : "localIPv6",\
+            value : $("#localIPv6").val()\
+          }, tch.elementCSRFtoken());\
+          var target = $(".modal form").attr("action");\
+          tch.showProgress(waitMsg);\
+          $.post(target, params, function(response){\
+            //The following block of code used to display the success/error message and manage the footer.\
+            $(".alert").remove();\
+            $("form").prepend(response);\
+            $("#modal-changes").attr("style","display:none");\
+            $("#modal-no-change").attr("style","display:block");\
+            iPv6StateOnlyChanged = 0;\
+            tch.removeProgress();\
+          });\
+          return false;\
+         }\
+     });\
+    $("#save-config").click(function(){\
+      if($("#Hide_Advanced_id").is(":visible"))\
+        $("#isAdvanced").val("1");\
+      else\
+        $("#isAdvanced").val("0");\
+    });\
+});\
+$("[name =\'sleases_mac\']").change(function () {\
+  if ((this.value) == "custom") {\
+    $(this).replaceWith($(\'<input/>\',{\'type\':\'text\', \'name\':\'sleases_mac\'}));\
+  }\
+});\
+');  if dhcpDefaultExist then ngx.print('\
+$("#btn-dhcp-reset").click(function(){\
+  ');  for k,v in pairs(dhcpDefaultExist) do   ngx.print('\
+    $("#');  ngx.print(k); ngx.print('").val("');  ngx.print(v); ngx.print('");\
+  ');  end  ngx.print('\
+  $("#localIPv6").prev().removeClass("switcherOn").closest(".switch").removeClass("switchOn");\
+  $("#dhcpState").prev().addClass("switcherOn").closest(".switch").addClass("switchOn");\
+  $("#modal-changes").show();\
+  $("#modal-no-change").hide();\
+});\
+');  end  ngx.print('\
+  ');  if inUseFlag == true then  ngx.print('\
+  $("#confilictipchange-msg").show();\
+  ');  end   ngx.print('\
+</script>\
+');  ngx.print(ui_helper.createFooter())   ngx.print('\
+<script src="/js/srp-min.js"></script>\
+<script>\
+(function() {\
+  $(\'input[name="localdevIP"]\').keydown(function(){\
+    var msg = $("#lanipchange-msg");\
+    var msg_dst = $(this);\
+    msg_dst.after(msg);\
+    msg.removeClass("hide");\
+  });\
+  var refreshTimeOut = 5000;\
+  var refreshDelay = 3000;\
+  var target = $(".modal form").attr("action");\
+  function wait_for_webserver_running() {\
+    $.ajax({ url: "/", timeout: refreshTimeOut })\
+    .done(function(data) {\
+      document.open("text/html");\
+      document.write(data);\
+      document.close();\
+    })\
+    .fail(function() {\
+      window.setTimeout(wait_for_webserver_running, refreshDelay);\
+    });\
+  }\
+  function wait_for_webserver_down() {\
+    $.ajax({ url: target, timeout: refreshTimeOut })\
+    .done(function() {\
+      window.setTimeout(wait_for_webserver_down, refreshDelay);\
+    })\
+    .fail(function() {\
+      window.setTimeout(wait_for_webserver_running, refreshDelay);\
+    });\
+  }\
+  function resetreboot(msg, msg_dst, action) {\
+    msg_dst.after(msg);\
+    msg.removeClass("hide");\
+    msg[0].scrollIntoView();\
+    $.post(\
+      target,\
+      { action: action, CSRFtoken: $("meta[name=CSRFtoken]").attr("content") },\
+      wait_for_webserver_down,\
+      "json"\
+    );\
+    return false;\
+  }\
+  $("#btn-bridged").click(function() {\
+    $("#confirming-msg").removeClass("hide");\
+    $("#bridged-changes").removeClass("hide");\
+    $(".modal-body").animate({"scrollTop":"+=100px"}, "fast")\
+  });\
+  $("#bridged-confirm").click(function() {\
+    $("#confirming-msg").addClass("hide");\
+    $("#bridged-changes").addClass("hide");\
+    $("#btn-bridged").addClass("hide");\
+    return resetreboot($("#rebooting-msg"), $("#btn-bridged"), "BRIDGED");\
+  });\
+  $("#bridged-cancel").click(function() {\
+    $("#confirming-msg").addClass("hide");\
+    $("#bridged-changes").addClass("hide");\
+    $("#rebooting-msg").addClass("hide");\
+  });\
+}());\
+</script>\
+');

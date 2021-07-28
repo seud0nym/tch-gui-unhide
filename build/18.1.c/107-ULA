@@ -46,15 +46,15 @@ sed \
  -e '/"IPv6 State"/i \              end' \
  -e '/slaacState = gVIES(/a \    ip6assign = gOV(gVNIR(0,128)),' \
  -e '/slaacState = gVIES(/a \    ula_prefix = validateULAPrefix,' \
- -e '/^(function() {/i \function rand(max){return Math.floor(Math.random()*max);}' \
- -e '/^(function() {/i \function rand16() {return rand(2**16).toString(16);}' \
- -e '/^(function() {/a \  var gen_ula_span = document.createElement("SPAN");' \
- -e '/^(function() {/a \  gen_ula_span.setAttribute("id","random_ula_prefix");' \
- -e '/^(function() {/a \  gen_ula_span.setAttribute("class","btn icon-random");' \
- -e '/^(function() {/a \  gen_ula_span.setAttribute("style","padding:5px 3px 8px 3px;");' \
- -e '/^(function() {/a \  gen_ula_span.setAttribute("title","Click to generate a random ULA prefix");' \
- -e '/^(function() {/a \  $("#ula_prefix").after(gen_ula_span);' \
- -e '/^(function() {/a \  $("#random_ula_prefix").click(function(){var i=$("#ula_prefix");i.val((parseInt("fd00",16)+rand(2**8)).toString(16)+":"+rand16()+":"+rand16()+"::/48");var e=jQuery.Event("keydown");e.which=e.keyCode=13;i.trigger(e);});' \
+ -e '/^(function() {/i \function rand(max){return Math.floor(Math.random()*max);}\\' \
+ -e '/^(function() {/i \function rand16() {return rand(2**16).toString(16);}\\' \
+ -e '/^(function() {/a \  var gen_ula_span = document.createElement("SPAN");\\' \
+ -e '/^(function() {/a \  gen_ula_span.setAttribute("id","random_ula_prefix");\\' \
+ -e '/^(function() {/a \  gen_ula_span.setAttribute("class","btn icon-random");\\' \
+ -e '/^(function() {/a \  gen_ula_span.setAttribute("style","padding:5px 3px 8px 3px;");\\' \
+ -e '/^(function() {/a \  gen_ula_span.setAttribute("title","Click to generate a random ULA prefix");\\' \
+ -e '/^(function() {/a \  $("#ula_prefix").after(gen_ula_span);\\' \
+ -e '/^(function() {/a \  $("#random_ula_prefix").click(function(){var i=$("#ula_prefix");i.val((parseInt("fd00",16)+rand(2**8)).toString(16)+":"+rand16()+":"+rand16()+"::/48");var e=jQuery.Event("keydown");e.which=e.keyCode=13;i.trigger(e);});\\' \
  -i /www/docroot/modals/ethernet-modal.lp
 
  
