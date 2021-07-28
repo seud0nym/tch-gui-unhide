@@ -1,4 +1,4 @@
-<%
+--pretranslated: do not change this file
 
 -- Enable localization
 gettext.textdomain('webui-voice')
@@ -177,37 +177,35 @@ local entry_valid = {
   allow = vB
 }
 
-%>
-<%= ui_helper.createHeader(T"Telephony", false, true) %>
-<div class="modal-body update">
-<%
-  local lp = require("web.lp")
-  lp.setpath("/www/snippets/")
-  lp.include("tabs-voice.lp")
-%>
-  <form class="form-horizontal" method="post" action="<%= uri %>" >
-    <%= ui_helper.createMessages(message_helper.popMessages()) %>
-    <fieldset>
-      <legend><%= T"Dial Plans" %></legend>
-      <%
+ngx.print(ui_helper.createHeader(T"Telephony", false, true, nil, help_link)); ngx.print('\
+<div class="modal-body update">\
+');
+local lp = require("web.lp")
+lp.setpath("/www/snippets/")
+lp.include("tabs-voice.lp")
+ngx.print('\
+  <form class="form-horizontal" method="post" action="'); ngx.print(uri); ngx.print('">\
+  '); ngx.print(ui_helper.createMessages(message_helper.popMessages())); ngx.print('\
+    <fieldset>\
+      <legend>'); ngx.print(T"Dial Plans"); ngx.print('</legend>\
+        ')
         local plan_attributes = {
-            select = {
-                class ="monitor-changes no-save",
-            },
+          select = {
+            class ="monitor-changes no-save",
+          },
         }
         ngx.print(ui_helper.createInputSelect(T"Dial Plan Name", "dial_plan", plans, plan_name, plan_attributes))
-      %>
-    </fieldset>
-    <fieldset id="dial_plan_config">
-      <legend><%= T"Dial Plan Configuration" %></legend>
-      <%
+        ngx.print('\
+    </fieldset>\
+    <fieldset id="dial_plan_config">\
+      <legend>'); ngx.print(T"Dial Plan Configuration"); ngx.print('</legend>\
+        ')
         local no_match_actions = {
           { "allow", T"Allow" },
         }
         local selection_modes = {
           { "legacy", T"Legacy" },
         }
-        
         for _,p in ipairs(plans) do
           local plan = p[1]
           local eon_attributes = {
@@ -256,11 +254,11 @@ local entry_valid = {
           ngx.print(ui_helper.createInputText(T"Closed Inter-digit Timer", plan.."-closed_inter_digit_timer", details["closed_inter_digit_timer"], timer_attributes))
           ngx.print(ui_helper.createLabel(T"Network", details["network"], input_attributes))
         end
-      %>
-    </fieldset>
-    <fieldset>
-      <legend><%= T"Dial Plan Entries" %></legend>
-      <%
+      ngx.print('\
+    </fieldset>\
+    <fieldset>\
+      <legend>'); ngx.print(T"Dial Plan Entries"); ngx.print('</legend>\
+        ')
         for _,p in ipairs(plans) do
           local name = p[1]
           local plan = "dial_plan_" .. name
@@ -286,34 +284,33 @@ local entry_valid = {
           }
           ngx.print(ui_helper.createTable(entry_columns, entry_data, entry_options, entry_attributes, entry_helpmsg))
         end
-      %>
-    </fieldset>
-  </form>
-</div>
-<div class="loading-wrapper hide"><img src="/img/spinner.gif" /></div>
-<%= ui_helper.createFooter() %>
---[[
-<script>
-$(document).ready(function() {
-    $("#save-config").attr("id","save-form");
-    $("#save-form").click(function(){
-      $(".loading-wrapper").removeClass("hide");
-      var selected_plan = $("#dial_plan").val();
-      var form = $(".modal form");
-      var params = $('#dial_plan_config').serializeArray();
-      params.push({
-        name : "dial_plan",
-        value : selected_plan
-      }, {
-        name : "action",
-        value : "SAVE"
-      }, {
-        name : "fromModal",
-        value : "YES"
-      }, tch.elementCSRFtoken());
-      var target = form.attr("action");
-      tch.loadModal(target, params, function (){});
-    });
-});
-</script>
-]]
+      ngx.print('\
+    </fieldset>\
+  </form>\
+</div>\
+<div class="loading-wrapper hide"><img src="/img/spinner.gif" /></div>\
+'); ngx.print(ui_helper.createFooter()); ngx.print('\
+<script>\
+$(document).ready(function() {\
+    $("#save-config").attr("id","save-form");\
+    $("#save-form").click(function(){\
+      $(".loading-wrapper").removeClass("hide");\
+      var selected_plan = $("#dial_plan").val();\
+      var form = $(".modal form");\
+      var params = $("#dial_plan_config").serializeArray();\
+      params.push({\
+        name : "dial_plan",\
+        value : selected_plan\
+      }, {\
+        name : "action",\
+        value : "SAVE"\
+      }, {\
+        name : "fromModal",\
+        value : "YES"\
+      }, tch.elementCSRFtoken());\
+      var target = form.attr("action");\
+      tch.loadModal(target, params, function (){});\
+    });\
+});\
+</script>\
+');

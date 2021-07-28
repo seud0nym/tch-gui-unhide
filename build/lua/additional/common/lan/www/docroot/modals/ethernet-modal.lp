@@ -1032,7 +1032,8 @@ end
 
 local uri = ngx.var.uri
 
-ngx.print(ui_helper.createHeader(T"Local Network", true, false, nil, help_link))   ngx.print('\
+ngx.print(ui_helper.createHeader(T"Local Network", true, false));
+ngx.print('\
    <div class="modal-body update">\
      <form class="form-horizontal" method="post" action="');  ngx.print( ngx.var.request_uri ); ngx.print('">\
      ');
