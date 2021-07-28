@@ -1,4 +1,5 @@
-<%
+--pretranslated: do not change this file
+
 local lfs = require("lfs")
 if lfs.attributes("/etc/config/mmpbx", "mode") ~= "file" then
   return
@@ -46,15 +47,15 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
   local switchName = "mmpbx_enable"
 
   local html, disabled = tch.getTelephonyCardHTML(mmpbx_state)
-%>
-<div class="span3">
-  <div class="smallcard">
-    <% ngx.print(ui_helper.createCardHeader(T"Telephony", modalPath, switchName, mmpbx_state)) %>
-    <div class="content">
-      <div id="telephony-card-content">
-        <% ngx.print(html) %>
-      </div>
-      <%
+  ngx.print('\
+<div class="span3">\
+  <div class="smallcard">\
+    '); ngx.print(ui_helper.createCardHeader(T"Telephony", modalPath, switchName, mmpbx_state)); ngx.print('\
+    <div class="content">\
+      <div id="telephony-card-content">\
+      '); ngx.print(html); ngx.print('\
+      </div>\
+      ');
         ngx.print('<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-dect-modal.lp" data-id="mmpbx-dect-modal">')
         ngx.print(ui_helper.createSimpleLight(emission_state, emission_info))
         ngx.print('</span>')
@@ -63,25 +64,25 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
           ngx.print(format(N('<strong>%d</strong> disabled profile','<strong>%d</strong> disabled profiles',disabled),disabled))
           ngx.print('</p>')
         end
-      %>
-    </div>
-  </div>
-</div>
-<script>
-$(".header input#mmpbx_enable").on("change",function(){$("#waiting").addClass("do-not-show").removeClass("hide")});
-<% if mmpbx_state == "1" then %>
-  var tFuncID;
-  function updateTelephonyCard(){
-    $.post("/ajax/telephony-status.lua", [tch.elementCSRFtoken()], function(data){
-      $("#telephony-card-content").html(data["html"]);
-    }, "json")
-    .fail(function(response){
-      if(response.status==403||response.status==404){clearInterval(tFuncID);}
-    });
-  }
-  $().ready(function(){tFuncID=setInterval(updateTelephonyCard,3000);window.intervalIDs.push(tFuncID);});
-<% end %>
-</script>
-<%
-end
-%>
+        ngx.print('\
+    </div>\
+  </div>\
+</div>\
+<script>\
+$(".header input#mmpbx_enable").on("change",function(){$("#waiting").addClass("do-not-show").removeClass("hide")});\
+'); if mmpbx_state == "1" then ngx.print('\
+  var tFuncID;\
+  function updateTelephonyCard(){\
+    $.post("/ajax/telephony-status.lua", [tch.elementCSRFtoken()], function(data){\
+      $("#telephony-card-content").html(data["html"]);\
+    }, "json")\
+    .fail(function(response){\
+      if(response.status==403||response.status==404){clearInterval(tFuncID);}\
+    });\
+  }\
+  $().ready(function(){tFuncID=setInterval(updateTelephonyCard,3000);window.intervalIDs.push(tFuncID);});\
+'); end; ngx.print('\
+</script>\
+');
+  end
+
