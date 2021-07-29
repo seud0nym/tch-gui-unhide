@@ -56,6 +56,15 @@ sed \
   -e '/id="waiting"/a \    <script>$(".smallcard .header,.modal-link").click(function(){$("#waiting").fadeIn();});</script>\\' \
   -i /www/docroot/gateway.lp
 
+echo [$SCRIPT]: Add improved debugging when errors cause cards to fail to load
+sed \
+  -e '/lp.include(v)/i\         local success,msg = xpcall(function()' \
+  -e '/lp.include(v)/a\         end, function(err)' \
+  -e '/lp.include(v)/a\          ngx.print("<pre>", debug.traceback(),"</pre>")' \
+  -e '/lp.include(v)/a\          ngx.log(ngx.ERR, debug.traceback())' \
+  -e '/lp.include(v)/a\         end)' \
+  -i /www/docroot/gateway.lp
+
 echo [$SCRIPT]: Fix uptime on basic Broadband tab
 sed -e 's/days > 1/days > 0/' -i /www/docroot/broadband.lp
 
