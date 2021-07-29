@@ -169,7 +169,7 @@ ngx.print('\
         class = "alert alert-warn"
       },
     }
-    ngx.print(ui_helper.createAlertBlock(T"NOTE: There is a known bug which prevents the last helper being removed from a zone. You can use the de-telstra script with the -an option to remove all WAN zone NAT ALG helpers.",alert_warn))
+    ngx.print(ui_helper.createAlertBlock(T"NOTE: There is a known bug which prevents the last helper being removed from a zone. You can use the de-telstra script with the -an option to remove all WAN zone NAT ALG helpers and/or the -bn option to remove all LAN zone NAT ALG helpers.",alert_warn))
 
     for _,v in pairs(paths) do
       local tableid = "helper_" .. v.index
