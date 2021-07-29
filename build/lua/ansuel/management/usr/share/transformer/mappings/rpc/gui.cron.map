@@ -197,8 +197,8 @@ GUI_CRON_i_.set = {
     return editCron(param,value,key)
   end,
   weekday = function(mapping,param,value,key)
-    if not value:match("[0-7-%*-%--%/,]+") then
-      return nil, "Weekday can only contain 0-7, commas, -, / and *"
+    if not value:match("[0-6-%*-%--%/,]+") then
+      return nil, "Weekday can only contain 0-6, commas, -, / and *"
     end
     return editCron(param,value,key)
   end,
