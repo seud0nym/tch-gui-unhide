@@ -116,6 +116,12 @@ function process(target)
     if not i then
       append[#append+1] = {
         name = hostname,
+        use_global_settings = true,
+        filtering_enabled = true,
+        parental_enabled = true,
+        safebrowsing_enabled = true,
+        safesearch_enabled = true,
+        use_global_blocked_services = true,
         ids = {}
       }
       index[hostname] = {
@@ -126,6 +132,12 @@ function process(target)
       update[#update+1] = {
         name = hostname,
         data = {
+          use_global_settings = true,
+          filtering_enabled = true,
+          parental_enabled = true,
+          safebrowsing_enabled = true,
+          safesearch_enabled = true,
+          use_global_blocked_services = true,
           name = hostname,
           ids = {}
         }
