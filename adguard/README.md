@@ -28,13 +28,13 @@ The setup script implements 2 different solutions to this issue:
 - You will need to carefully monitor internal storage to make sure you do not run out of space. You can disable log retention in AdGuard Home if this becomes an issue.
 
 ## DHCP Incompatibility with Guest Networks
-The default dnsmasq service provides both DNS forwarding and DHCP. It allows different DHCP pools, so that the different interfaces (LAN and Guest networks) can have different IP address ranges. The DNS and DHCP functions are tightly integrated and it does not appear to be possible to turn off DNS forwarding and leave DHCP enabled. Disabling dnsmasq for DNS forwarding also automatically disables the DHCP Server.
+The default dnsmasq service provides both DNS forwarding and DHCP. It allows different DHCP pools, so that the different interfaces (LAN and Guest networks) can have different IP address ranges.
 
-The AdGuard Home DHCP Server listens on all interfaces (including the Guest networks) but can only serve addresses from a single pool. Therefore, if you utilise the Guest Wi-Fi facility, you cannot use the AdGuard Home DHCP Server. Devices connecting to the Guest Wi-Fi networks will be unable to acquire a valid IP address for their subnet.
+The AdGuard Home DHCP Server listens on all interfaces (including the Guest networks) but can only serve addresses from a single pool. Therefore, devices connecting to the Guest Wi-Fi networks would be unable to acquire a valid IP address for their subnet.
 
-Since it is not possible to configure dnsmasq to only operate as a DHCP server, you cannot run Guest SSIDs if you are using AdGuard Home.
+This script disables dnsmasq to maximize free memory and enables the AdGuard Home DHCP server, therefore you *cannot* run Guest SSIDs.
 
-*If you require Guest Wi-Fi facilities, then you should **NOT** install AdGuard Home on your device.*
+*If you require Guest Wi-Fi facilities, then you should **NOT** use this script to install AdGuard Home on your device.*
 
 You can use the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script with **-G** option to remove the Guest Wi-FI SSIDs, networks and firewall rules and zones, if you are not using Guest Wi-Fi.
 
@@ -178,3 +178,17 @@ NOTE:
 - If -U is specified, it must be the only option.
 - The password option (-p) is *MANDATORY* unless -U is specified, **OR** if you are removing the cron job.
 - The username will be determined automatically from the AdGuard Home configuration.
+
+# Other Scripts
+
+These scripts are not automatically downloaded, as they are not applicable to the standard installation.
+
+## agh-clients.lua
+This script extracts the hosts and IP addresses known to the router and updates the client list in an AdGuard Home installation. It's primary purpose is to correctly resolve IPv6 addresses to their internal LAN host names.
+
+The script requires 2 parameters for each server to be updated: the address:port of the AdGuard Home server and the AdGuard Home username:password. You can update multiple AdGuardHome servers by repeating the address and credentials for each server 
+
+It is designed to be run as a scheduled cron task every few minutes. For example, the following cron task added to `/etc/crontabs/root` will update 2 different AdGuard Home servers (running independently on IP addresses 192.168.0.123 and 192.168.0.234) every 6 minutes:
+```
+*/6 * * * * /usr/bin/lua /mnt/usb/USB-A1/agh-clients.lua 192.168.0.123:8008 root:agh-admin 192.168.0.234:8008 root:agh-backup
+```
