@@ -53,10 +53,11 @@ So, I set out to enable whatever hidden features were included with the firmware
 - On the **Diagnostics** screen, the following extra tabs are enabled:
     - Network Connections
     - TCP Dump
-- The **IP Extras** card is enabled to:
+- The **IP Extras** card (now called **IP Routing**) is enabled to:
     - show IPv4 Routes
     - allow configuration of IPv4 static routes
     - show DNS servers
+    - show Layer 2 bridge details
 - The **CWMP** card is enabled to show the status of and configure CWMP (only if CWMP is enabled)
 - The **System Extras** card is enabled to:
     - Allow you to trigger a BOOTP upgrade (**BEWARE! Do not press this button unless you know what you are doing!**)
@@ -138,6 +139,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - **Mobile** screen now has a Network Operators tab to modify the allowed Mobile Country Code (MCC) and Mobile Network Code (MNC) combinations, plus shows the device capabilities
 - **Packages** card to manage opkg packages
 - **QoS** screen now has support for upload shapers (FW 18+ only) and shows classify/reclassify rules
+- **IP Routing** screen allows you to define custom DNS entries
 
 ## What else does it do?
 - Properly enables SSH LAN access (because if you don't and then disable it through the GUI, you can lose SSH access).

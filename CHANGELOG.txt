@@ -1,3 +1,24 @@
+2021.07.29
+==========
+* tch-gui-unhide: Fixed Internet card not displaying sometimes when it should be
+* tch-gui-unhide: Fixed bugs that prevented editing static routes
+* tch-gui-unhide: Fixed bug that prevented cards from displaying when using remote assistance
+* tch-gui-unhide: Fixed bug when displaying devices if nil IPv6 address encountered
+* tch-gui-unhide: Fixed intermittent issue that caused init scripts screen to not load
+* tch-gui-unhide: Re-worked IP Routing card and tabs
+* tch-gui-unhide: Moved DoS Protect to Firewall
+* tch-gui-unhide: Added the ability to create custom DNS entries
+* tch-gui-unhide: Set dhcp.main.local to match dhcp.main.domain
+* tch-gui-unhide: Pre-translated some replacement legacy LUA files to try and improve performance
+* tch-gui-unhide: Added improved debugging when errors cause cards to fail to load
+* de-telstra: Set dhcp.main.local to match dhcp.main.domain
+* de-telstra: Added extra shortcut to set domain name to 'lan'
+* de-telstra: Added option to enable/disable LAN ALG NAT helpers (FW 20.3.c)
+* intercept-dns: Cron entry for weekly update of DoH lists should be day 6, not 7 (fixes cron parse error in log)
+* reset-to-factory-defaults-with-root: Added option to keep existing SSH keys after reset and reboot
+* reset-to-factory-defaults-with-root: Added option to remove 'noexec' on USB filesystem mounts after reset and reboot (mainly for FW 20.3.c)
+* update-ca-certificates: Fixed setting of curl SSL_CERT_FILE environment variable
+
 2021.07.21
 ==========
 * tch-gui-unhide: Fixed bug that sometimes prevented wireless card (and all subsequent cards) from showing
