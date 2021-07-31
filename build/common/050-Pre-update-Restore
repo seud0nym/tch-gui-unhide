@@ -5,28 +5,32 @@ do
   CARD="${CARDFILE#*_}"
   CARDRULE="card_$(basename $CARD .lp)"
   MODAL=$(grep createCardHeader $CARDFILE | grep -o "modals/.*\.lp")
+  MODALRULE=""
   HIDDEN=$(uci -q get web.${CARDRULE}.hide)
-  if [ -z "$MODAL" ]
-  then
+  if [ -z "$MODAL" ]; then
     MODAL=$(grep '\(modalPath\|modal_link\)' $CARDFILE | grep -m 1 -o "modals/.*\.lp")
   fi
-  MODALRULE=$(uci show web | grep $MODAL | grep -m 1 -v card_ | cut -d. -f2)
-  if [ ! -z "$MODALRULE" -a ! -z "$(uci -q get web.$MODALRULE.roles | grep -v -E 'admin|guest')" ]
-  then
-    echo "[$SCRIPT]:  - Converting $CARD card visibility from modal-based visibility"
-    HIDDEN=1
-    uci add_list web.$MODALRULE.roles='admin'
-    SRV_nginx=$(( $SRV_nginx + 1 ))
+  if [ ! -z "$MODAL" ]; then
+    MODALRULE=$(uci show web | grep $MODAL | grep -m 1 -v card_ | cut -d. -f2)
+    if [ ! -z "$MODALRULE" -a ! -z "$(uci -q get web.$MODALRULE.roles | grep -v -E 'admin|guest')" ]; then
+      echo "[$SCRIPT]:  - Converting $CARD card visibility from modal-based visibility"
+      HIDDEN=1
+      uci add_list web.$MODALRULE.roles='admin'
+      SRV_nginx=$(( $SRV_nginx + 1 ))
+    fi
   fi
-  if [ -z "$HIDDEN" -o \( "$HIDDEN" != "0" -a "$HIDDEN" != "1" \) ]
-  then
+  if [ -z "$HIDDEN" -o \( "$HIDDEN" != "0" -a "$HIDDEN" != "1" \) ]; then
     HIDDEN=0
   fi
   uci set web.${CARDRULE}=card
   uci set web.${CARDRULE}.card="$(basename $CARDFILE)"
-  uci set web.${CARDRULE}.modal="$MODALRULE"
   uci set web.${CARDRULE}.hide="$HIDDEN"
-  SRV_nginx=$(( $SRV_nginx + 4 ))
+  if [ -z "$MODALRULE" ]; then
+    uci -q delete web.${CARDRULE}.modal
+  else
+    uci set web.${CARDRULE}.modal="$MODALRULE"
+  fi
+  SRV_nginx=$(( $SRV_nginx + 1 ))
 done
 uci commit web
 

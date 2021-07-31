@@ -68,20 +68,19 @@ for CARDFILE in $(find /www/cards/ -maxdepth 1 -type f | sort)
 do
   CARD="$(basename $CARDFILE)"
   CARDRULE=$(uci show web | grep "^web\.card_.*${CARDFILE#*_}" | cut -d. -f2)
-  if [ -z "$CARDRULE" -o -z "$(uci -q get web.${CARDRULE}.modal)" ]
-  then
+  if [ -z "$CARDRULE" -o -z "$(uci -q get web.${CARDRULE}.modal)" ]; then
     CARDRULE="card_$(basename ${CARDFILE#*_} .lp)"
     MODAL=$(grep createCardHeader $CARDFILE | grep -o "modals/.*\.lp")
-    if [ -z "$MODAL" ]
-    then
+    if [ -z "$MODAL" ]; then
       MODAL=$(grep '\(modalPath\|modal_link\)' $CARDFILE | grep -m 1 -o "modals/.*\.lp")
     fi
-    MODALRULE=$(uci show web | grep $MODAL | grep -m 1 -v card_ | cut -d. -f2)
     uci set web.${CARDRULE}=card
     uci set web.${CARDRULE}.card="$CARD"
-    uci set web.${CARDRULE}.modal="$MODALRULE"
     uci set web.${CARDRULE}.hide='0'
-    SRV_nginx=$(( $SRV_nginx + 4 ))
+    if [ ! -z "$MODAL" ]; then
+      uci set web.${CARDRULE}.modal="$(uci show web | grep $MODAL | grep -m 1 -v card_ | cut -d. -f2)"
+    fi
+    SRV_nginx=$(( $SRV_nginx + 1 ))
   fi
 done
 
