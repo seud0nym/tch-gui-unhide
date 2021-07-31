@@ -1,7 +1,4 @@
-echo "************************************************************"
-echo "* Done!! You should clear your browser cache of images and *"
-echo "* files, otherwise you won't see the theme changes.        *"
-echo "************************************************************"
+echo [$SCRIPT]: Done!!!
 echo
 echo "++ TIP #1: Bookmark http://$(uci get network.lan.ipaddr)/gateway.lp"
 echo "++         to bypass the Telstra Basic web GUI..."
