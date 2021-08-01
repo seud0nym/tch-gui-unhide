@@ -169,8 +169,9 @@ local mapParams = {
   uci_ppp_username = "uci.network.interface.@ppp.username",
   uci_ppp_password = "uci.network.interface.@ppp.password",
   uci_wan_masq = "uci.firewall.zone."..zonenum..".masq",
-  uci_wan6_auto = "uci.network.interface.@wan.ipv6", -- use uci_wan6_auto param name instead of more consistent uci_wan_ipv6 for consistency with dhcp/static, and because internet-dns-servers.lp uses it to show/hide IPv6 DNS Servers table
-	uci_wan6_forceprefix = "uci.network.interface.@wan6.forceprefix",
+  uci_wan_ipv6 = "uci.network.interface.@wan.ipv6",
+  uci_wan6_auto = "uci.network.interface.@wan6.auto",
+  uci_wan6_forceprefix = "uci.network.interface.@wan6.forceprefix",
   uci_wan_mac = "uci.network.interface.@wan.macaddr",
   uci_wan_peerdns = "uci.network.interface.@wan.peerdns",
   uci_wan6_peerdns = "uci.network.interface.@wan6.peerdns",
@@ -260,7 +261,7 @@ end
 
 local function IPv6andUsername(value, object, key)
 	local valid, msg = vB(value)
-	local ipv6_state = proxy.get("uci.network.interface.@wan.ipv6")[1].value
+	local ipv6_state = proxy.get("uci.network.interface.@wan6.auto")[1].value
 	if valid and ipv6_state ~= value then
     local ipv6_realm = proxy.get("uci.env.var.ppp_realm_ipv6")
     local ipv4_realm = proxy.get("uci.env.var.ppp_realm_ipv4")
@@ -272,6 +273,7 @@ local function IPv6andUsername(value, object, key)
 			proxy.set("uci.network.device.@waneth4.ipv6", "1")
 			proxy.set("uci.network.device.@wanptm0.ipv6", "1")
 		else
+			proxy.set("uci.network.interface.@wan.ipv6", "0")
 			proxy.set("uci.network.interface.@wan6.auto", "0")
 			if ipv4_realm then
 				proxy.set("uci.network.interface.@wan.username", ipv4_realm[1].value)
@@ -283,6 +285,12 @@ local function IPv6andUsername(value, object, key)
 	end
 	return valid, msg
 end
+
+local ipv6_ppp_map = {
+  { "0", T"IPv6 disabled" },
+  { "1", T"IPv6 enabled" },
+  { "auto", T"Both IPv6 and DHCPv6 client enabled (auto)" }
+}
 
 local reqaddress_map = {
   { "try", T"Try" },
@@ -328,6 +336,7 @@ local mapValid = {
   uci_wan_mac = gOV(post_helper.validateStringIsMAC),
   uci_wan_peerdns = vB,
   uci_wan6_peerdns = vB,
+  uci_wan_ipv6 = gVIES(ipv6_ppp_map),
   uci_wan6_reqaddress = gVIES(reqaddress_map),
   uci_wan6_reqprefix = gVIES(reqprefix_map),
   uci_wan6_ifname = gVIES(ifname_map),
@@ -536,13 +545,14 @@ html[#html + 1] = ui_helper.createLight(T"Status", nil, ppp_state_map[ppp_status
 ajax_attr.span.id = "uptime"
 ajax_attr.span.class = "span4 simple-desc"
 if not ( mapPPPstats["uptime"] == "" ) then
-    html[#html + 1] = ui_helper.createLabel(T"Uptime", post_helper.secondsToTime(mapPPPstats["uptime"]),  ajax_attr)
+  html[#html + 1] = ui_helper.createLabel(T"Uptime", post_helper.secondsToTime(mapPPPstats["uptime"]),  ajax_attr)
 end
 -- Switch PPP on/off
-html[#html + 1] = ui_helper.createSwitch(T"IPv4 Enabled on Boot", "uci_wan_auto", content.uci_wan_auto)
-html[#html + 1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
+html[#html+1] = ui_helper.createSwitch(T"IPv4 Enabled on Boot", "uci_wan_auto", content.uci_wan_auto)
+html[#html+1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
 html[#html+1] = ui_helper.createSwitch(T"Auto-discover IPv4 DNS", "uci_wan_peerdns", content["uci_wan_peerdns"])
-html[#html + 1] = ui_helper.createSwitch(T"IPv6 Enabled on Boot", "uci_wan6_auto", content.uci_wan6_auto, switch_class_enable)
+html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled on Boot", "uci_wan6_auto", content.uci_wan6_auto, switch_class_enable)
+html[#html+1] = ui_helper.createInputSelect(T"IPv6 on the PPP link<span class='icon-question-sign' title='Behaviour of IPv6 on the PPP link. Recommended setting is auto when IPv6 enabled.'></span>", "uci_wan_ipv6", ipv6_ppp_map, content.uci_wan_ipv6, ipv6_input)
 html[#html+1] = ui_helper.createInputSelect(T"IPv6 Interface<span class='icon-question-sign' title='Some RSPs may require the interface to be set to @wan'></span>", "uci_wan6_ifname", ifname_map, content.uci_wan6_ifname, ipv6_input)
 html[#html+1] = ui_helper.createInputSelect(T"IPv6 Address Request<span class='icon-question-sign' title='Behaviour for requesting addresses. The device default is \"Force\", but some RSPs require it to be \"Try\".'></span>", "uci_wan6_reqaddress", reqaddress_map, content.uci_wan6_reqaddress, ipv6_input)
 html[#html+1] = ui_helper.createInputSelect(T"IPv6 Prefix Request<span class='icon-question-sign' title='Behaviour for requesting prefixes (numbers denote hinted prefix length). Use \"None\" if you only want a single IPv6 address for the AP itself without a subnet for routing.'></span>", "uci_wan6_reqprefix", reqprefix_map, content.uci_wan6_reqprefix, ipv6_input)
@@ -563,7 +573,7 @@ local class_username = {
 html[#html + 1] = "<div class='control-group'><label class='control-label'>" .. T"Username" .. "</label><div class='controls'>"
 html[#html + 1] = ui_helper.createSimpleInputText("uci_wan_username", content["uci_wan_username"], class_username, helpmsg["uci_wan_username"])
 if content_uci["wan_domain"] ~= "" then
-    html[#html + 1] = " @ " .. content_uci["wan_domain"]
+  html[#html + 1] = " @ " .. content_uci["wan_domain"]
 end
 html[#html + 1] = "</div></div>"
 -- PPP password

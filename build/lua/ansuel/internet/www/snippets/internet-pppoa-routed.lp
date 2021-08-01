@@ -1,20 +1,18 @@
 --pretranslated: do not change this file
 
--- NG-84683; NG-89573
-
 -- Enable localization
 gettext.textdomain('webui-core')
 
 local proxy = require("datamodel")
 local content_helper = require("web.content_helper")
-local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
-local ajax_helper = require("web.ajax_helper")
-local match, format, find, upper = string.match, string.format, string.find, string.upper
-
--- Process POST query
 local post_helper = require("web.post_helper")
+local ajax_helper = require("web.ajax_helper")
+local ui_helper = require("web.ui_helper")
+local string = string
+local format, match, find, upper = string.format, string.match, string.find, string.upper
 local session = ngx.ctx.session
+local untaint_mt = require("web.taint").untaint_mt
 
 local ppp_state_map = {
   disabled = T"Disabled",
@@ -27,7 +25,6 @@ local ppp_state_map = {
   NEGOTIATION_FAILED = T"Negotiation failed",
 }
 
-local untaint_mt = require("web.taint").untaint_mt
 setmetatable(ppp_state_map, untaint_mt)
 
 local ppp_light_map = {
@@ -59,7 +56,7 @@ local ajax_attr_light = {
     }
 }
 
-function get_dhcp_state(wan_auto, wan_ppp, wan_error, ipaddr)
+function get_ppp_state(wan_auto, wan_ppp, wan_error, ipaddr)
     -- Figure out interface state
 	if wan_auto ~= "0" then
 	  -- WAN enabled
@@ -97,7 +94,6 @@ end
 local function dns_filter(tab)
 	local ipv4_dns = ""
 	local ipv6_dns = ""
-
 	for _,v in ipairs(tab) do
 		if match(v, "^(%d+)%.(%d+)%.(%d+)%.(%d+)$") then
 			ipv4_dns=ipv4_dns..format("%s,", v)
@@ -105,7 +101,6 @@ local function dns_filter(tab)
 			ipv6_dns=ipv6_dns..format("%s,", v)
 		end
 	end
-
 	if #ipv4_dns > 1 then
 		ipv4_dns = string.sub(ipv4_dns,1,#ipv4_dns-1)
 	end
@@ -214,19 +209,16 @@ local function validateUsername (value, postdata)
     if not err then
         return err,msg
     end
-
     local content_uci = {
         wan_domain = "uci.network.interface.@wan.domain",
     }
     content_helper.getExactContent(content_uci)
-
     if content_uci["wan_domain"] ~= "" then
         if find(value, "@") then
             return nil, T"Invalid username, domain locked"
         end
         postdata["uci_wan_username"] = format('%s@%s', value, content_uci["wan_domain"])
     end
-
     return true
 end
 
@@ -236,19 +228,22 @@ end
 
 local function IPv6andUsername(value, object, key)
   local valid, msg = vB(value)
-
   local ipv6_state = proxy.get("uci.network.interface.@wan.ipv6")[1].value
   if valid and ipv6_state ~= value then
-    local ipv6_realm = proxy.get("uci.env.var.ppp_realm_ipv6")[1].value
-    local ipv4_realm = proxy.get("uci.env.var.ppp_realm_ipv4")[1].value
+    local ipv6_realm = proxy.get("uci.env.var.ppp_realm_ipv6")
+    local ipv4_realm = proxy.get("uci.env.var.ppp_realm_ipv4")
     if value == "1" then
       proxy.set("uci.network.interface.@wan6.auto", "1")
-      proxy.set("uci.network.interface.@wan.username", ipv6_realm)
+			if ipv6_realm then
+				proxy.set("uci.network.interface.@wan.username", ipv6_realm[1].value)
+			end
       proxy.set("uci.network.device.@waneth4.ipv6", "1")
       proxy.set("uci.network.device.@wanptm0.ipv6", "1")
     else
       proxy.set("uci.network.interface.@wan6.auto", "0")
-      proxy.set("uci.network.interface.@wan.username", ipv4_realm)
+			if ipv4_realm then
+				proxy.set("uci.network.interface.@wan.username", ipv4_realm[1].value)
+			end
       proxy.set("uci.network.device.@waneth4.ipv6", "0")
       proxy.set("uci.network.device.@wanptm0.ipv6", "0")
     end
@@ -292,9 +287,10 @@ local content_rpc = {
   dnsv6 = "rpc.network.interface.@wan6.dnsservers",
 }
 
+
 ajax_helper.handleAjaxQuery(content_rpc, function(c)
     -- this will add the HTML for the light
-    local ds = get_dhcp_state(content["uci_wan_auto"], proxy.get("rpc.network.interface.@wan.ppp.state")[1].value, proxy.get("rpc.network.interface.@wan.ppp.error")[1].value, c["ipaddr"])
+    local ds = get_ppp_state(content["uci_wan_auto"], proxy.get("rpc.network.interface.@wan.ppp.state")[1].value, proxy.get("rpc.network.interface.@wan.ppp.error")[1].value, c["ipaddr"])
 	local dnstab = split(proxy.get("rpc.network.interface.@loopback.dnsservers")[1].value, "[^%,]+")
 	local dnsv4, dnsv6 = dns_filter(dnstab)
     ajax_attr_light.light.class = ppp_light_map[ds]
@@ -389,7 +385,7 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   ajax_attr_light.light.class = ppp_light_map[ppp_status]
   html[#html + 1] = ui_helper.createLight(T"Status", nil, ppp_state_map[ppp_status], ajax_attr_light)
   -- Switch PPP on/off
-  html[#html + 1] = ui_helper.createSwitch(T"Enabled", "uci_wan_auto", content.uci_wan_auto)
+  html[#html+1] = ui_helper.createSwitch(T"IPv4 Enabled on Boot", "uci_wan_auto", content.uci_wan_auto)
   html[#html + 1] = ui_helper.createSwitch(T"NAT", "uci_wan_masq", content.uci_wan_masq)
   html[#html + 1] = ui_helper.createSwitch(T"IPv6", "uci_wan_ipv6", content.uci_wan_ipv6)
   -- PPP username
@@ -399,20 +395,18 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
       class = "span6",
     }
   }
-
 html[#html + 1] = "<div class='control-group'><label class='control-label'>" .. T"Username" .. "</label><div class='controls'>"
 html[#html + 1] = ui_helper.createSimpleInputText("uci_wan_username", content["uci_wan_username"], class_username, helpmsg["uci_wan_username"])
 if content_uci["wan_domain"] ~= "" then
   html[#html + 1] = " @ " .. content_uci["wan_domain"]
 end
 html[#html + 1] = "</div></div>"
-
 -- PPP password
 local class_password = class_username
 html[#html + 1] = ui_helper.createInputText(T"Password", "uci_wan_password", content["uci_wan_password"], class_username, helpmsg["uci_wan_password"])
 
 ajax_attr.span.id = "ipaddr"
-html[#html+1] = ui_helper.createLabel(T"IP address", content_rpc["ipaddr"],ajax_attr)
+html[#html+1] = ui_helper.createLabel(T"IPv4 address", content_rpc["ipaddr"], ajax_attr)
 ajax_attr.span.id = "nexthop"
 html[#html+1] = ui_helper.createLabel(T"Gateway", content_rpc["nexthop"],ajax_attr)
 ajax_attr.span.id = "dns"
@@ -434,8 +428,8 @@ if content_rpc["ip6prefix"] and content_rpc["ip6prefix"]:len() > 0 then
 	html[#html+1] = ui_helper.createLabel(T"IPv6 Prefix", content_rpc["ip6prefix"],ajax_attr)
 end
 if content_rpc["dnsv6"] and content_rpc["dnsv6"]:len() > 0 then
-	ajax_attr.span.id = "dnsv6"
-	html[#html+1] = ui_helper.createLabel(T"IPv6 DNS", content_rpc["dnsv6"],ajax_attr)
+  ajax_attr.span.id = "dnsv6"
+  html[#html+1] = ui_helper.createLabel(T"IPv6 DNS Servers", content_rpc["dnsv6"],ajax_attr)
 end
 
   -- ATM VP/VC
