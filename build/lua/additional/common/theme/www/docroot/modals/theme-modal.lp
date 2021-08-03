@@ -8,8 +8,9 @@ local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local theme_helper = require("theme-schedule_helper")
 local ui_helper = require("web.ui_helper")
-local untaint = string.untaint
+local gsub, match, untaint = string.gsub, string.match, string.untaint
 local gVIES = post_helper.getValidateInEnumSelect
+local vB =post_helper.validateBoolean
 
 local theme_names = {
     {"light", T"Light"},
@@ -127,6 +128,36 @@ local times = {
   {"23:30", T"11:30pm"},
   {"23:45", T"11:45pm"},
 }
+local card_titles = {
+  broadband = "Broadband",
+  contentsharing = "Content Sharing",
+  Devices = "Devices",
+  diagnostics = "Diagnostics",
+  eco = "Eco Settings",
+  firewall = "Firewall",
+  gateway = gsub(untaint(proxy.get("uci.env.var.variant_friendly_name")[1].value), "TLS", ""),
+  internet = "Internet Access",
+  iproutes = "IP Routing",
+  LAN = "Local Network",
+  lte = "Mobile",
+  natalghelper = "NAT Helpers",
+  opkg = "Packages",
+  parental = "Parental Controls",
+  printersharing = "Printer Sharing",
+  qos = "QoS",
+  relaysetup = "Relay Setup",
+  speedservice = "Speed Test",
+  system = "System Extras",
+  telephony = "Telephony",
+  tod = "Time of Day",
+  usermgr = "Management",
+  WANDown = "WAN Download",
+  wanservices = "WAN Services",
+  WANUp = "WAN Upload",
+  wireless = "Wi-Fi",
+  wireless_boosters = "Wi-Fi Boosters",
+  xdsl = "xDSL Config",
+}
 
 local mapParams = {
   theme_name = "rpc.gui.theme.THEME",
@@ -138,7 +169,27 @@ local mapValid = {
   theme_colour = gVIES(theme_colours),
   card_icons = gVIES(card_icons_options),
 }
+
+local cards = {}
+local v
+for _,v in ipairs(proxy.getPN("uci.web.card.", true)) do
+  local name = match(v.path,"uci%.web%.card%.@card_([^%.]*)%.")
+  local title = card_titles[name] or name
+  local hide = v.path.."hide"
+  local values = proxy.get(v.path.."card", hide)
+  cards[#cards+1] = { untaint(values[1].value), name, title, untaint(values[2].value) }
+  mapParams[name] = hide
+  mapValid[name] = vB
+end
+
 local theme_settings, helpmsg = post_helper.handleQuery(mapParams, mapValid)
+
+table.sort(cards, function(a,b)
+  if a[4] == b[4] then
+    return a[1] < b[1]
+  end
+  return a[4] < b[4]
+end)
 
 local light, night = theme_helper.getThemeSchedule()
 local on_schedule = "0"
@@ -181,6 +232,18 @@ if ngx.var.request_method == "POST" then
         end
       end
       proxy.set("rpc.gui.cron.writecrontab","1")
+    end
+
+    local gateway = untaint(vars["gateway"])
+    if gateway == "1" then
+      proxy.set("uci.web.card.@card_CPU.hide", "1")
+      proxy.set("uci.web.card.@card_RAM.hide", "1")
+    end
+
+    local broadband = untaint(vars["broadband"])
+    if broadband == "1" then
+      proxy.set("uci.web.card.@card_WANDown.hide", "1")
+      proxy.set("uci.web.card.@card_WANUp.hide", "1")
     end
   end
 end
@@ -225,6 +288,33 @@ ngx.print('\
           html[#html + 1] = ui_helper.createInputSelect(T"Base Theme", "theme_name", theme_names, theme_settings["theme_name"], not_scheduled_attr, helpmsg["theme_name"])
           html[#html + 1] = ui_helper.createInputSelect(T"Highlight Colour", "theme_colour", theme_colours, theme_settings["theme_colour"], nil, helpmsg["theme_colour"])
           html[#html + 1] = ui_helper.createInputSelect(T"Card Icons", "card_icons", card_icons_options, theme_settings["card_icons"], nil, helpmsg["card_icons"])
+          ngx.print(html)
+          ngx.print('\
+      </fieldset>\
+      <fieldset>\
+        <legend>');  ngx.print( T"Card Visibility" ); ngx.print('</legend>\
+        ');
+          local on_off_attr = {
+            group = {
+              style = "float:left;width:25%;"
+            },
+            values = {
+              off = "1",
+              on = "0"
+            }
+          }
+          local alert_info = {
+            alert = {
+              class = "alert alert-info"
+            },
+          }
+
+          local html = {}
+          html[#html + 1] = ui_helper.createAlertBlock(T"You can also adjust card visibility and sequencing using the <b>tch-gui-unhide-cards</b> command line utility.",alert_info)
+    
+          for _,v in pairs(cards) do
+            html[#html + 1] = ui_helper.createSwitch(T(v[3]), v[2], theme_settings[v[2]], on_off_attr)
+          end
           ngx.print(html)
           ngx.print('\
       </fieldset>\
