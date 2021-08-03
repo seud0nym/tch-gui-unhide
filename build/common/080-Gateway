@@ -50,18 +50,19 @@ else
   echo [$SCRIPT]: Update available button will NOT be shown in GUI
 fi
 
-echo [$SCRIPT]: Add auto-refresh management and wait indicator when opening modals
+echo [$SCRIPT]: Add auto-refresh management, chart library, and wait indicator when opening modals
 sed \
   -e '/<title>/i \    <script src="/js/tch-gui-unhide.js"></script>\\' \
-  -e '/id="waiting"/a \    <script>$(".smallcard .header,.modal-link").click(function(){$("#waiting").fadeIn();});</script>\\' \
+  -e '/<title>/i \    <script src="/js/chart-min.js"></script>\\' \
+  -e '/id="waiting"/a \    <script>$(".smallcard .header,.modal-link").click(function(){if ($(this).attr("data-remote")||$(this).find("[data-remote]").length>0){$("#waiting").fadeIn();}});</script>\\' \
   -i /www/docroot/gateway.lp
 
 echo [$SCRIPT]: Add improved debugging when errors cause cards to fail to load
 sed \
   -e '/lp.include(v)/i\         local success,msg = xpcall(function()' \
   -e '/lp.include(v)/a\         end, function(err)' \
-  -e '/lp.include(v)/a\          ngx.print("<pre>", debug.traceback(),"</pre>")' \
-  -e '/lp.include(v)/a\          ngx.log(ngx.ERR, debug.traceback())' \
+  -e '/lp.include(v)/a\          ngx.print("<pre>", debug.traceback(err),"</pre>")' \
+  -e '/lp.include(v)/a\          ngx.log(ngx.ERR, debug.traceback(err))' \
   -e '/lp.include(v)/a\         end)' \
   -i /www/docroot/gateway.lp
 

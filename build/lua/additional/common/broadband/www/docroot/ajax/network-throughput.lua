@@ -1,11 +1,13 @@
 local json = require("dkjson")
 local bbch = require("broadbandcard_helper")
 
-local wanHTML, lanHTML = bbch.getThroughputHTML()
+local wanHTML, lanHTML, wan_tx_mbps, wan_rx_mbps = bbch.getThroughputHTML()
 
 local data = {
   wan = wanHTML,
   lan = lanHTML,
+  wan_tx_mbps = wan_tx_mbps, 
+  wan_rx_mbps = wan_rx_mbps,
 }
 
 local buffer = {}

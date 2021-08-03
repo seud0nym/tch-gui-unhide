@@ -1,5 +1,11 @@
 #!/bin/sh
 
+VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
+
+GREEN='\033[1;32m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
 BATCH=""
 QUIET="n"
 VERBOSE="n"
@@ -61,8 +67,8 @@ done
 
 if [ -z "$CARDS" ]
 then
-  echo "ERROR: No card configurations found!"
-  echo "Have you run tch-gui-unhide yet? You must execute tch-gui-unhide BEFORE configuring card sequence and visibility."
+  echo -e "${RED}ERROR: No card configurations found!${NC}"
+  echo -e "Have you run tch-gui-unhide yet? You must execute tch-gui-unhide ${GREEN}BEFORE${NC} configuring card sequence and visibility."
   exit
 fi
 
@@ -101,34 +107,38 @@ apply_defaults() {
     TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
     HIDE=$HIDDEN
     case "${FILE#*_}" in
-      broadband.lp) SEQ="002";;
-      contentsharing.lp) SEQ="012";;
-      cwmpconf.lp) SEQ="090";;
-      Devices.lp) SEQ="006";;
-      diagnostics.lp) SEQ="009";;
-      eco.lp) SEQ="020";;
-      firewall.lp) SEQ="008";;
-      fon.lp) SEQ="010";;
-      gateway.lp) SEQ="001";;
-      internet.lp) SEQ="003";;
-      iproutes.lp) SEQ="015";;
-      LAN.lp) SEQ="005";;
-      lte.lp) if [ "$(uci -q get version.@version[0].marketing_version)" = '17.2' ]; then SEQ="010"; else SEQ="003"; fi;;
-      natalghelper.lp) SEQ="092";;
-      opkg.lp) SEQ="011";;
-      parental.lp) SEQ="013";;
-      printersharing.lp) SEQ="012";;
-      qos.lp) SEQ="008";;
-      relaysetup.lp) SEQ="018";;
-      system.lp) SEQ="091";;
-      telephony.lp) SEQ="008";;
-      tod.lp) SEQ="015";;
-      usermgr.lp) SEQ="011";;
-      wanservices.lp) SEQ="007";;
+      broadband.lp)         SEQ="002";;
+      contentsharing.lp)    SEQ="012";;
+      CPU.lp)               SEQ="000";;
+      cwmpconf.lp)          SEQ="090";;
+      Devices.lp)           SEQ="006";;
+      diagnostics.lp)       SEQ="009";;
+      eco.lp)               SEQ="020";;
+      firewall.lp)          SEQ="008";;
+      fon.lp)               SEQ="010";;
+      gateway.lp)           SEQ="001";;
+      internet.lp)          SEQ="003";;
+      iproutes.lp)          SEQ="015";;
+      LAN.lp)               SEQ="005";;
+      lte.lp)               if [ "$(uci -q get version.@version[0].marketing_version)" = '17.2' ]; then SEQ="010"; else SEQ="003"; fi;;
+      natalghelper.lp)      SEQ="092";;
+      opkg.lp)              SEQ="011";;
+      parental.lp)          SEQ="013";;
+      printersharing.lp)    SEQ="012";;
+      qos.lp)               SEQ="008";;
+      RAM.lp)               SEQ="000";;
+      relaysetup.lp)        SEQ="018";;
+      system.lp)            SEQ="091";;
+      telephony.lp)         SEQ="008";;
+      tod.lp)               SEQ="015";;
+      usermgr.lp)           SEQ="011";;
+      WANDown.lp)           SEQ="000";;
+      wanservices.lp)       SEQ="007";;
+      WANUp.lp)             SEQ="000";;
       wireless_boosters.lp) SEQ="004";;
-      wireless.lp) SEQ="004";;
-      xdsl.lp) SEQ="093";;
-      *) SEQ=$(basename $FILE | cut -c1-3);;
+      wireless.lp)          SEQ="004";;
+      xdsl.lp)              SEQ="093";;
+      *)                    SEQ=$(basename $FILE | cut -c1-3);;
     esac
     if [ -z "$TMP" ]
     then
@@ -151,18 +161,18 @@ apply_minimal() {
     TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
     HIDE=$HIDDEN
     case "${FILE#*_}" in
-      contentsharing.lp) [ "$(uci -q get dlnad.config.enabled)" != "1" -a "$(uci -q get samba.samba.filesharing)" != "1" ] && HIDE=1;;
-      cwmpconf.lp) [ ! -f /etc/init.d/cwmpd ] && HIDE=1;;
-      natalghelper.lp) HIDE=1;;
-      parental.lp) HIDE=1;;
-      printersharing.lp) [ "$(uci -q get printersharing.config.enabled)" != "1" ] && HIDE=1;;
-      qos.lp) HIDE=1;;
-      relaysetup.lp) HIDE=1;;
-      telephony.lp) [ "$(uci -q get mmpbx.global.enabled)" != "1" ] && HIDE=1;;
-      tod.lp) HIDE=1;;
-      system.lp) HIDE=1;;
-      wanservices.lp) [ "$(uci -q get firewall.dmzredirects.enabled)" != "1" -a "$(uci -q get ddns.myddns_ipv4.enabled)" != "1" -a "$(uci -q get ddns.myddns_ipv6.enabled)" != "1" -a "$(uci -q get upnpd.config.enable_natpmp)" != "1" -a "$(uci -q get upnpd.config.enable_upnp)" != "1" ] && HIDE=1;;
-      wireless_boosters.lp) [ "$(uci -q get multiap.agent.enabled)" != "1" -a "$(uci -q get multiap.controller.enabled)" != "1" ] && HIDE=1;;
+      contentsharing.lp)      [ "$(uci -q get dlnad.config.enabled)" != "1" -a "$(uci -q get samba.samba.filesharing)" != "1" ] && HIDE=1;;
+      cwmpconf.lp)            [ ! -f /etc/init.d/cwmpd ] && HIDE=1;;
+      natalghelper.lp)        HIDE=1;;
+      parental.lp)            HIDE=1;;
+      printersharing.lp)      [ "$(uci -q get printersharing.config.enabled)" != "1" ] && HIDE=1;;
+      qos.lp)                 HIDE=1;;
+      relaysetup.lp)          HIDE=1;;
+      telephony.lp)           [ "$(uci -q get mmpbx.global.enabled)" != "1" ] && HIDE=1;;
+      tod.lp)                 HIDE=1;;
+      system.lp)              HIDE=1;;
+      wanservices.lp)         [ "$(uci -q get firewall.dmzredirects.enabled)" != "1" -a "$(uci -q get ddns.myddns_ipv4.enabled)" != "1" -a "$(uci -q get ddns.myddns_ipv6.enabled)" != "1" -a "$(uci -q get upnpd.config.enable_natpmp)" != "1" -a "$(uci -q get upnpd.config.enable_upnp)" != "1" ] && HIDE=1;;
+      wireless_boosters.lp)   [ "$(uci -q get multiap.agent.enabled)" != "1" -a "$(uci -q get multiap.controller.enabled)" != "1" ] && HIDE=1;;
       *) SEQ=$(basename $FILE | cut -c1-3);;
     esac
     if [ -z "$TMP" ]
@@ -186,35 +196,39 @@ apply_suggested() {
     TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
     HIDE=$HIDDEN
     case "${FILE#*_}" in
-      gateway.lp) SEQ="001";;
-      broadband.lp) SEQ="002";;
-      internet.lp) SEQ="003";;
-      lte.lp) SEQ="004";;
-      nfc.lp) SEQ="004";;
-      fon.lp) SEQ="005";;
-      wireless.lp) SEQ="006";;
+      CPU.lp)               SEQ="000";;
+      RAM.lp)               SEQ="000";;
+      WANDown.lp)           SEQ="000";;
+      WANUp.lp)             SEQ="000";;
+      gateway.lp)           SEQ="001";;
+      broadband.lp)         SEQ="002";;
+      internet.lp)          SEQ="003";;
+      lte.lp)               SEQ="004";;
+      nfc.lp)               SEQ="004";;
+      fon.lp)               SEQ="005";;
+      wireless.lp)          SEQ="006";;
       wireless_boosters.lp) SEQ="007";;
-      LAN.lp) SEQ="008";;
-      Devices.lp) SEQ="009";;
-      firewall.lp) SEQ="010";;
-      natalghelper.lp) SEQ="011"; HIDE="$HIDE_EXTRA";;
-      system.lp) SEQ="012";;
-      wanservices.lp) SEQ="013";;
-      iproutes.lp) SEQ="014";;
-      telephony.lp) SEQ="015";;
-      qos.lp) SEQ="016";;
-      usermgr.lp) SEQ="017";;
-      opkg.lp) SEQ="018";;
-      eco.lp) SEQ="019";;
-      contentsharing.lp) SEQ="020";;
-      printersharing.lp) SEQ="021"; HIDE="$HIDE_EXTRA";;
-      parental.lp) SEQ="022";;
-      tod.lp) SEQ="023";;
-      diagnostics.lp) SEQ="024";;
-      xdsl.lp) SEQ="025";;
-      relaysetup.lp) SEQ="026"; HIDE="$HIDE_EXTRA";;
-      cwmpconf.lp) SEQ="027"; if [ ! -f /etc/init.d/cwmpd ]; then HIDE=1; fi;;
-      *) SEQ=$(basename $FILE | cut -c1-3);;
+      LAN.lp)               SEQ="008";;
+      Devices.lp)           SEQ="009";;
+      firewall.lp)          SEQ="010";;
+      natalghelper.lp)      SEQ="011"; HIDE="$HIDE_EXTRA";;
+      system.lp)            SEQ="012";;
+      wanservices.lp)       SEQ="013";;
+      iproutes.lp)          SEQ="014";;
+      telephony.lp)         SEQ="015";;
+      qos.lp)               SEQ="016";;
+      usermgr.lp)           SEQ="017";;
+      opkg.lp)              SEQ="018";;
+      eco.lp)               SEQ="019";;
+      contentsharing.lp)    SEQ="020";;
+      printersharing.lp)    SEQ="021"; HIDE="$HIDE_EXTRA";;
+      parental.lp)          SEQ="022";;
+      tod.lp)               SEQ="023";;
+      diagnostics.lp)       SEQ="024";;
+      xdsl.lp)              SEQ="025";;
+      relaysetup.lp)        SEQ="026"; HIDE="$HIDE_EXTRA";;
+      cwmpconf.lp)          SEQ="027"; if [ ! -f /etc/init.d/cwmpd ]; then HIDE=1; fi;;
+      *)                    SEQ=$(basename $FILE | cut -c1-3);;
     esac
     if [ -z "$TMP" ]
     then
@@ -291,7 +305,7 @@ do
   clear
   echo "tch-gui-unhide-cards"
   echo
-  echo "$MESSAGE"
+  echo -e "${RED}$MESSAGE${NC}"
   echo
   MESSAGE=""
   I=0
@@ -304,7 +318,7 @@ do
     then
       TITLE="($TITLE)"
     fi
-    printf "%2d %-18s" $I "$TITLE"
+    printf "%2d %-20s" $I "$TITLE"
     if [ $(( $I % 4 )) -eq 0 ]
     then
       echo
@@ -327,19 +341,23 @@ do
   fi
   echo
   echo "NOTE: Titles in () indicate hidden cards. They will always appear above after the last visible card." 
-  echo "NOTE: 'CWMP' card is only visible if CWMP has not been disabled"
-  echo "NOTE: 'xDSL Config' card is only visible on DSL connections"
+  echo -e "NOTE: '${GREEN}CWMP${NC}' card is only visible if CWMP has NOT been disabled"
+  echo -e "NOTE: '${GREEN}CPU${NC}' and '${GREEN}RAM${NC}' chart cards ${GREEN}REQUIRE${NC} the '${GREEN}$VARIANT${NC}' card to be VISIBLE"
+  echo -e "NOTE: '${GREEN}WAN Download${NC}' and '${GREEN}WAN Upload${NC}' chart cards ${GREEN}REQUIRE${NC} the 'Broadband${NC}' card to be VISIBLE"
+  echo -e "NOTE: '${GREEN}Internet${NC}' card is ${GREEN}NOT${NC} visible on bridged devices"
+  echo -e "NOTE: '${GREEN}Mobile${NC}' card is only visible if supported by device and has not been disabled"
+  echo -e "NOTE: '${GREEN}xDSL Config${NC}' card is only visible on DSL connections"
   echo
-  echo "OPTIONS: A single card number between 1 and $I"
-  echo "         d = order cards by the default sequence"
-  echo "         m = hide all optional feature cards"
-  echo "         v = make all cards visible"
-  echo "         s = order cards by a suggested sequence"
-  echo "         u = undo changes"
-  echo "         a = apply changes and quit"
-  echo "         q = quit without applying changes"
+  echo -e "OPTIONS: A single card ${GREEN}number between 1 and $I${NC} (you will then be able to choose to move, hide or unhide the card)"
+  echo -e "         ${GREEN}d${NC} = order cards by the default sequence"
+  echo -e "         ${GREEN}m${NC} = hide all optional feature cards"
+  echo -e "         ${GREEN}v${NC} = make all cards visible"
+  echo -e "         ${GREEN}s${NC} = order cards by a suggested sequence"
+  echo -e "         ${GREEN}u${NC} = undo changes"
+  echo -e "         ${GREEN}a${NC} = apply changes and quit"
+  echo -e "         ${GREEN}q${NC} = quit without applying changes"
   echo
-  echo -n "Enter one of 1-$I/d/m/v/s/u/a/q: "
+  echo -ne "${GREEN}Enter one of 1-$I/d/m/v/s/u/a/q:${NC} "
   read FROM
   echo
   case "$FROM" in
@@ -353,7 +371,7 @@ do
     v)  apply_visible;;
     *)  if [ "$FROM" -ge 1 -a "$FROM" -le "$I" ]
         then
-          printf "For card #$FROM, enter h to hide, u to unhide, or new position number: "
+          echo -ne "For card #$FROM, enter ${GREEN}h{$NC} to hide, ${GREEN}u${NC} to unhide, or new position ${GREEN}number between 1 and $I${NC}: "
           read TO
           if [ "$TO" = "h" -o "$TO" = "u" ]
           then
@@ -363,6 +381,7 @@ do
             else
               TO=0
             fi
+
             TMP=""
             I=0
             for CARD in $(echo "$CARDS" | tr ' ' ';' | sort)

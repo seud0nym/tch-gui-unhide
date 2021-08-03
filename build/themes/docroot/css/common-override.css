@@ -2,6 +2,13 @@
 .bbstats{margin:0px 0px -6px 20px;}
 .card_bg:after{visibility:var(--ICONS);}
 .card_bg.mirror:after{transform:matrix(-1,0,0,1,0,0);}
+.chartcard{position:relative;}
+.chartcard .chartdata{position:absolute;top:30px;right:10px;font-size:24px;}
+.chartcard .cpu_data{color:blue;}
+.chartcard .ram_data{color:#942974;}
+.chartcard .wandn_data{color:green;}
+.chartcard .wanup_data{color:#ffc20f;}
+.chartcard .unit{font-size:xx-small;}
 .copyright{margin-bottom:0px;}
 .header .btn{margin-left:5px;}
 .iptables-head{font-size:smaller;font-variant:small-caps;}
@@ -40,7 +47,11 @@ table[id^="helper"]>tbody>tr>td{text-transform:uppercase;}
 legend+.control-group{margin-top:unset;}
 u{text-decoration:none;}
 [class^="icon-"],[class*=" icon-"]{display:inline-block;width:18px;}
-@media screen and (min-width: 768px) and (max-width: 979px){.span3 {width:47%;}}
+@media screen and (min-width: 768px) and (max-width: 979px){
+  .smallcard .content{height:160px;}
+  .smallcard .subinfos{margin-left:20px !important;}
+  .span3 {width:47%;}
+}
 @media screen and (min-width: 1200px){
   #classify .additional-edit input.span1{width:200px;}
   #classify .additional-edit input.span2{width:450px;}

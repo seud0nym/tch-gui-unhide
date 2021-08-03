@@ -79,9 +79,11 @@ function M.getThroughputHTML()
   end
 
   local wan_intf = getCurrentWANInterface()
+  local tx_mbps, rx_mbps = TGU_MbPS:get(wan_intf.."_tx_mbps") or 0, TGU_MbPS:get(wan_intf.."_rx_mbps") or 0
   return 
-    format("%.2f Mb/s <b>&uarr;</b><br>%.2f Mb/s <b>&darr;</b></span>", TGU_MbPS:get(wan_intf.."_tx_mbps") or 0, TGU_MbPS:get(wan_intf.."_rx_mbps") or 0),
-    format("%.2f Mb/s <b>&uarr;</b><br>%.2f Mb/s <b>&darr;</b></span>", TGU_MbPS:get("lan_tx_mbps") or 0, TGU_MbPS:get("lan_rx_mbps") or 0)
+    format("%.2f Mb/s <b>&uarr;</b><br>%.2f Mb/s <b>&darr;</b></span>", tx_mbps, rx_mbps),
+    format("%.2f Mb/s <b>&uarr;</b><br>%.2f Mb/s <b>&darr;</b></span>", TGU_MbPS:get("lan_tx_mbps") or 0, TGU_MbPS:get("lan_rx_mbps") or 0),
+    tx_mbps, rx_mbps
 end
 
 function M.getBroadbandCardHTML(wansensing) 

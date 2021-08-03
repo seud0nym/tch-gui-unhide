@@ -18,6 +18,18 @@ do
       uci add_list web.$MODALRULE.roles='admin'
       SRV_nginx=$(( $SRV_nginx + 1 ))
     fi
+  elif [ "$CARDRULE" = "card_CPU" ]; then
+    MODALRULE='gatewaymodal'
+    HIDDEN=$(uci -q get web.card_gateway.hide)
+  elif [ "$CARDRULE" = "card_RAM" ]; then
+    MODALRULE='gatewaymodal'
+    HIDDEN=$(uci -q get web.card_gateway.hide)
+  elif [ "$CARDRULE" = "card_WANDown" ]; then
+    MODALRULE='broadbandmodal'
+    HIDDEN=$(uci -q get web.card_broadband.hide)
+  elif [ "$CARDRULE" = "card_WANUp" ]; then
+    MODALRULE='broadbandmodal'
+    HIDDEN=$(uci -q get web.card_broadband.hide)
   fi
   if [ -z "$HIDDEN" -o \( "$HIDDEN" != "0" -a "$HIDDEN" != "1" \) ]; then
     HIDDEN=0
