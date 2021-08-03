@@ -68,6 +68,13 @@ for CARDFILE in $(find /www/cards/ -maxdepth 1 -type f | sort)
 do
   CARD="$(basename $CARDFILE)"
   CARDRULE=$(uci show web | grep "^web\.card_.*${CARDFILE#*_}" | cut -d. -f2)
+  if [ "$CARD" = "016_speedservice.lp" ]; then
+    rm $CARDFILE
+    if [ ! -z "$CARDRULE" ]; then
+      uci -q delete web.${CARDRULE}
+    fi
+    continue
+  fi
   if [ -z "$CARDRULE" -o -z "$(uci -q get web.${CARDRULE}.modal)" ]; then
     CARDRULE="card_$(basename ${CARDFILE#*_} .lp)"
     MODAL=$(grep createCardHeader $CARDFILE | grep -o "modals/.*\.lp")
