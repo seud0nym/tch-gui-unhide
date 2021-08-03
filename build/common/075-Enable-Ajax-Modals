@@ -1,3 +1,25 @@
+if [ "$(uci -q get web.acmelogajax)" != "rule" ]
+then
+  echo [$SCRIPT]: Enabling acme-log.lua
+  uci add_list web.ruleset_main.rules='acmelogajax'
+  uci set web.acmelogajax='rule'
+  uci set web.acmelogajax.target='/ajax/acme-log.lua'
+  uci set web.acmelogajax.normally_hidden='1'
+  uci add_list web.acmelogajax.roles='admin'
+  uci commit web
+  SRV_nginx=$(( $SRV_nginx + 4 ))
+fi
+if [ "$(uci -q get web.boosterstatusajax)" != "rule" ]
+then
+  echo [$SCRIPT]: Enabling booster-status.lua
+  uci add_list web.ruleset_main.rules='boosterstatusajax'
+  uci set web.boosterstatusajax='rule'
+  uci set web.boosterstatusajax.target='/ajax/booster-status.lua'
+  uci set web.boosterstatusajax.normally_hidden='1'
+  uci add_list web.boosterstatusajax.roles='admin'
+  uci commit web
+  SRV_nginx=$(( $SRV_nginx + 4 ))
+fi
 if [ "$(uci -q get web.broadbandstatusajax)" != "rule" ]
 then
   echo [$SCRIPT]: Enabling broadband-status.lua
@@ -9,17 +31,6 @@ then
   uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
 fi
-if [ "$(uci -q get web.networkthroughputajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling network-throughput.lua
-  uci add_list web.ruleset_main.rules='networkthroughputajax'
-  uci set web.networkthroughputajax='rule'
-  uci set web.networkthroughputajax.target='/ajax/network-throughput.lua'
-  uci set web.networkthroughputajax.normally_hidden='1'
-  uci add_list web.networkthroughputajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
 if [ "$(uci -q get web.devicesstatusajax)" != "rule" ]
 then
   echo [$SCRIPT]: Enabling devices-status.lua
@@ -28,17 +39,6 @@ then
   uci set web.devicesstatusajax.target='/ajax/devices-status.lua'
   uci set web.devicesstatusajax.normally_hidden='1'
   uci add_list web.devicesstatusajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
-if [ "$(uci -q get web.vendorajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling vendor.lua
-  uci add_list web.ruleset_main.rules='vendorajax'
-  uci set web.vendorajax='rule'
-  uci set web.vendorajax.target='/ajax/vendor.lua'
-  uci set web.vendorajax.normally_hidden='1'
-  uci add_list web.vendorajax.roles='admin'
   uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
 fi
@@ -64,14 +64,14 @@ then
   uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
 fi
-if [ "$(uci -q get web.boosterstatusajax)" != "rule" ]
+if [ "$(uci -q get web.networkthroughputajax)" != "rule" ]
 then
-  echo [$SCRIPT]: Enabling booster-status.lua
-  uci add_list web.ruleset_main.rules='boosterstatusajax'
-  uci set web.boosterstatusajax='rule'
-  uci set web.boosterstatusajax.target='/ajax/booster-status.lua'
-  uci set web.boosterstatusajax.normally_hidden='1'
-  uci add_list web.boosterstatusajax.roles='admin'
+  echo [$SCRIPT]: Enabling network-throughput.lua
+  uci add_list web.ruleset_main.rules='networkthroughputajax'
+  uci set web.networkthroughputajax='rule'
+  uci set web.networkthroughputajax.target='/ajax/network-throughput.lua'
+  uci set web.networkthroughputajax.normally_hidden='1'
+  uci add_list web.networkthroughputajax.roles='admin'
   uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
 fi
@@ -97,6 +97,17 @@ then
   uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
 fi
+if [ "$(uci -q get web.ssidstatusajax)" != "rule" ]
+then
+  echo [$SCRIPT]: Enabling ssid-status.lua
+  uci add_list web.ruleset_main.rules='ssidstatusajax'
+  uci set web.ssidstatusajax='rule'
+  uci set web.ssidstatusajax.target='/ajax/ssid-status.lua'
+  uci set web.ssidstatusajax.normally_hidden='1'
+  uci add_list web.ssidstatusajax.roles='admin'
+  uci commit web
+  SRV_nginx=$(( $SRV_nginx + 4 ))
+fi
 if [ "$(uci -q get web.telephonystatusajax)" != "rule" ]
 then
   echo [$SCRIPT]: Enabling telephony-status.lua
@@ -108,25 +119,14 @@ then
   uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
 fi
-if [ "$(uci -q get web.acmelogajax)" != "rule" ]
+if [ "$(uci -q get web.vendorajax)" != "rule" ]
 then
-  echo [$SCRIPT]: Enabling acme-log.lua
-  uci add_list web.ruleset_main.rules='acmelogajax'
-  uci set web.acmelogajax='rule'
-  uci set web.acmelogajax.target='/ajax/acme-log.lua'
-  uci set web.acmelogajax.normally_hidden='1'
-  uci add_list web.acmelogajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
-if [ "$(uci -q get web.ssidstatusajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling ssid-status.lua
-  uci add_list web.ruleset_main.rules='ssidstatusajax'
-  uci set web.ssidstatusajax='rule'
-  uci set web.ssidstatusajax.target='/ajax/ssid-status.lua'
-  uci set web.ssidstatusajax.normally_hidden='1'
-  uci add_list web.ssidstatusajax.roles='admin'
+  echo [$SCRIPT]: Enabling vendor.lua
+  uci add_list web.ruleset_main.rules='vendorajax'
+  uci set web.vendorajax='rule'
+  uci set web.vendorajax.target='/ajax/vendor.lua'
+  uci set web.vendorajax.normally_hidden='1'
+  uci add_list web.vendorajax.roles='admin'
   uci commit web
   SRV_nginx=$(( $SRV_nginx + 4 ))
 fi
