@@ -48,6 +48,7 @@ legend+.control-group{margin-top:unset;}
 u{text-decoration:none;}
 [class^="icon-"],[class*=" icon-"]{display:inline-block;width:18px;}
 @media screen and (min-width: 768px) and (max-width: 979px){
+  .chartcard .chartdata{top:22px;}
   .smallcard .content{height:160px;}
   .smallcard .subinfos{margin-left:20px !important;}
   .span3 {width:47%;}
