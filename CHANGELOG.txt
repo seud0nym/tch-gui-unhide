@@ -1,3 +1,13 @@
+2021.08.05
+==========
+* tch-gui-unhide: Modified style sheet and javascript loading so that they auto-refresh on version change (you should no longer need to clear the browser cache when updating to a new version)
+* tch-gui-unhide: Added support for network.wan.ipv6 configuration on PPPoE connections
+* tch-gui-unhide: Added ability to disable and enable cards from the Theme tab in Management
+* tch-gui-unhide: Added 4 new chart cards for status visualization: CPU percentage utilization, RAM percentage utilization, WAN Download MB/s and WAN Upload MB/s
+* tch-gui-unhide: Added Network Registration status and Service status to Mobile card
+* tch-gui-unhide: Correctly configure cards that do not load a modal
+* reset-to-factory-defaults-with-root: Added option to set the root password after reset and reboot (defaults to root)
+
 2021.07.29
 ==========
 * tch-gui-unhide: Fixed Internet card not displaying sometimes when it should be

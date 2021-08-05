@@ -96,6 +96,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - **Management** of Init scripts and cron tasks schedules
 
 ### Additional (new) GUI Features
+- **Chart Cards** showing CPU utilization, RAM, and WAN Download/Upload Mb/s over the last minute
 - **Gateway** card now has current device status for CPU usage, free RAM and temperature
 - **Broadband** card auto-updates and shows todays upload/download volume
 - **Broadband** screen has a new tab to show daily and monthly usage history
@@ -121,6 +122,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
     - enable/disable iperf service (FW 18+ only)
 - **Management** screen allows:
     - the theme to be changed from within the GUI
+    - cards to be hidden or made visible
     - viewing of running processes
     - init process management
     - cron tab management
@@ -261,8 +263,8 @@ The firmware version will be checked during execution. If it does not match the 
 
 The script will restart and reload services for which it has modified configuration. Subsequent executions will not re-apply configuration already set correctly, and therefore will not restart services unnecessarily.
 
-### Finally, clear your browser cache
-To see the updated logo and icons and to correctly apply the updated style sheet, you will probably need to clear cached images and files from your browser.
+### Finally, clear your browser cache if there are any display issues
+This may not be necessary after, but if your do not see the updated logo and icons, you will probably need to clear cached images and files from your browser to correctly apply the updated style sheets.
 
 ## Other Important Things To Note
 - The script changes will not persist a reset or restore. If you factory reset your device, or restore to it a state before you applied the script, or upgrade/install firmware, you will need to run the script again!
@@ -276,19 +278,24 @@ The screen will look something like this:
 ```
 tch-gui-unhide-cards
 
- 1 DJA0231            2 Broadband          3 Internet Access    4 Mobile
- 5 Wi-Fi              6 Wi-Fi Boosters     7 Local Network      8 Devices
- 9 WAN Services      10 Telephony         11 Firewall          12 QoS
-13 Diagnostics       14 Management        15 Content Sharing   16 Printer Sharing
-17 Parental Controls 18 IP Routing        19 Time of Day       20 CWMP
-21 System Extras     22 NAT Helpers       23 xDSL Config       24 Packages
-25 (Relay Setup)
+ 1 CPU                  2 RAM                  3 WAN Download         4 WAN Upload
+ 5 DJA0230              6 Broadband            7 Internet Access      8 Mobile
+ 9 Wi-Fi               10 Wi-Fi Boosters      11 Local Network       12 Devices
+13 WAN Services        14 Firewall            15 QoS                 16 Telephony
+17 Diagnostics         18 Management          19 Packages            20 Content Sharing
+21 Printer Sharing     22 Parental Controls   23 IP Routing          24 Time of Day
+25 Relay Setup         26 Eco Settings        27 System Extras       28 NAT Helpers
+29 xDSL Config
 
 NOTE: Titles in () indicate hidden cards. They will always appear above after the last visible card.
-NOTE: 'CWMP' card is only visible if CWMP has not been disabled
+NOTE: 'CWMP' card is only visible if CWMP has NOT been disabled
+NOTE: 'CPU' and 'RAM' chart cards REQUIRE the 'DJA0230' card to be VISIBLE
+NOTE: 'WAN Download' and 'WAN Upload' chart cards REQUIRE the 'Broadband' card to be VISIBLE
+NOTE: 'Internet' card is NOT visible on bridged devices
+NOTE: 'Mobile' card is only visible if supported by device and has not been disabled
 NOTE: 'xDSL Config' card is only visible on DSL connections
 
-OPTIONS: A single card number between 1 and 24
+OPTIONS: A single card number between 1 and 29 (you will then be able to choose to move, hide or unhide the card)
          d = order cards by the default sequence
          m = hide all optional feature cards
          v = make all cards visible
@@ -297,7 +304,7 @@ OPTIONS: A single card number between 1 and 24
          a = apply changes and quit
          q = quit without applying changes
 
-Enter one of 1-24/d/m/v/s/u/a/q:
+Enter one of 1-29/d/m/v/s/u/a/q:
 ```
 
 This screen displays the cards in the currently configured sequence. Any hidden cards are shown after all visible cards, with their titles in brackets.
