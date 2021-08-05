@@ -1,25 +1,62 @@
-echo [$SCRIPT]: Fix display bug on Mobile card, hide if no devices found, show Mobile Only Mode status and stop refresh when any modal displayed
+LTE_CARD="$(find /www/cards -type f -name '*lte.lp')"
+echo [$SCRIPT]: Fix display bug on Mobile card, hide if no devices found and stop refresh when any modal displayed
 sed \
-  -e 's/height: 25/height:20/' \
-  -e '/\.card-label/a margin-bottom:0px;\\' \
-  -e '/local light/i local proxy = require("datamodel")' \
-  -e '/local light/i local primarywanmode = proxy.get("uci.wansensing.global.primarywanmode")' \
-  -e "/content/a ');" \
-  -e '/content/a if primarywanmode then' \
-  -e '/content/a   if primarywanmode[1].value == "MOBILE" then' \
-  -e '/content/a     ngx.print(ui_helper.createSimpleLight("1", T("Mobile Only Mode enabled")) );' \
-  -e '/content/a   else' \
-  -e '/content/a     ngx.print(ui_helper.createSimpleLight("0", T("Mobile Only Mode disabled")) );' \
-  -e '/content/a   end' \
-  -e '/content/a end' \
-  -e "/content/a ngx.print('\\\\" \
   -e '/<script>/a var divs = $("#mobiletab .content").children("div");if(divs.length>0){var p=$("#mobiletab .content .subinfos");divs.appendTo(p);}\\' \
   -e '/var refreshInterval/a window.intervalIDs.push(refreshInterval);\\' \
   -e '/require("web.lte-utils")/a local result = utils.getContent("rpc.mobiled.DeviceNumberOfEntries")' \
   -e '/require("web.lte-utils")/a local devices = tonumber(result.DeviceNumberOfEntries)' \
   -e '/require("web.lte-utils")/a if devices and devices > 0 then' \
   -e '$ a end' \
-  -i $(find /www/cards -type f -name '*lte.lp')
+  -i $LTE_CARD
+echo [$SCRIPT]: Show Mobile Only Mode status
+sed \
+  -e 's/height: 25/height:20/' \
+  -e '/\.card-label/a margin-bottom:0px;\\' \
+  -e '/local light/i local proxy = require("datamodel")' \
+  -e '/local light/i local primarywanmode = proxy.get("uci.wansensing.global.primarywanmode")' \
+  -e "/card_bg/a ');" \
+  -e '/card_bg/a if primarywanmode then' \
+  -e '/card_bg/a   if primarywanmode[1].value == "MOBILE" then' \
+  -e '/card_bg/a     ngx.print(ui_helper.createSimpleLight("1", T("Mobile Only Mode enabled")) );' \
+  -e '/card_bg/a   else' \
+  -e '/card_bg/a     ngx.print(ui_helper.createSimpleLight("0", T("Mobile Only Mode disabled")) );' \
+  -e '/card_bg/a   end' \
+  -e '/card_bg/a end' \
+  -e "/card_bg/a ngx.print('\\\\" \
+  -i $LTE_CARD
+
+echo [$SCRIPT]: Show LTE Network Registration and Service status
+sed \
+  -e 's/\(, signal_quality\)/\1, registration_status, service_status/' \
+  -e '/radio_interface_map/a\			result = utils.getContent(rpc_path .. "network.serving_system.nas_state")' \
+  -e '/radio_interface_map/a\			registration_status = utils.nas_state_map[result.nas_state]' \
+  -e '/radio_interface_map/a\			result = utils.getContent(rpc_path .. "network.serving_system.service_state")' \
+  -e '/radio_interface_map/a\			service_status = utils.service_state_map[result.service_state]' \
+  -e '/local data =/a\	registration_status = registration_status or "",' \
+  -e '/local data =/a\	service_status = service_status or "",' \
+  -i /www/docroot/ajax/mobiletab.lua
+sed \
+  -e '/"subinfos"/a\				<div style="height: 20px;" data-bind="visible: registrationStatus().length > 0">\\' \
+  -e "/\"subinfos\"/a\					<label class=\"card-label\">');  ngx.print( T\"Network\"..\":\" ); ngx.print('</label>\\\\" \
+  -e '/"subinfos"/a\					<div class="controls">\\' \
+  -e '/"subinfos"/a\						<strong data-bind="text: registrationStatus"></strong>\\' \
+  -e '/"subinfos"/a\					</div>\\' \
+  -e '/"subinfos"/a\				</div>\\' \
+  -e '/"subinfos"/a\				<div style="height: 20px;" data-bind="visible: serviceStatus().length > 0">\\' \
+  -e "/\"subinfos\"/a\					<label class=\"card-label\">');  ngx.print( T\"Service\"..\":\" ); ngx.print('</label>\\\\" \
+  -e '/"subinfos"/a\					<div class="controls">\\' \
+  -e '/"subinfos"/a\						<strong data-bind="text: serviceStatus"></strong>\\' \
+  -e '/"subinfos"/a\					</div>\\' \
+  -e '/"subinfos"/a\				</div>\\' \
+  -e '/this.deviceStatus/a\			this.registrationStatus = ko.observable("");\\' \
+  -e '/this.deviceStatus/a\			this.serviceStatus = ko.observable("");\\' \
+  -e '/elementCSRFtoken/a\					if(data.registration_status != undefined) {\\' \
+  -e '/elementCSRFtoken/a\						self.registrationStatus(data.registration_status);\\' \
+  -e '/elementCSRFtoken/a\					}\\' \
+  -e '/elementCSRFtoken/a\					if(data.service_status != undefined) {\\' \
+  -e '/elementCSRFtoken/a\						self.serviceStatus(data.service_status);\\' \
+  -e '/elementCSRFtoken/a\					}\\' \
+  -i $LTE_CARD
 
 echo [$SCRIPT]: Add Device Capabilities and LTE Band Selection to Mobile Configuration screen
 sed \
