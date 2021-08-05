@@ -218,6 +218,8 @@ Options:
  -i           Keep existing IP address after reset and reboot.
  -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
  -k           Keep existing SSH keys after reset and reboot.
+ -p password  Set the password after reset and reboot. If not specified, it
+                defaults to root.
  -v           Show the reset script after it has been written.
  -y           Bypass confirmation prompt (answers 'y').
  -n           Do NOT reboot.

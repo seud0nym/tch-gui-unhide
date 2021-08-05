@@ -30,6 +30,8 @@ Options:
                 reboot.
  -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
  -k           Keep existing SSH keys after reset and reboot.
+ -p password  Set the password after reset and reboot. If not specified, it
+                defaults to root.
  -v           Show the reset script after it has been written.
  -y           Bypass confirmation prompt (answers 'y').
  -n           Do NOT reboot.
@@ -67,11 +69,12 @@ FIRMWARE=""
 IPADDR=""
 KEYS=""
 NOEXEC=""
+ROOTPWD="root"
 REBOOT="Y"
 VERBOSE=N
 YES=N
 
-while getopts :bcef:iI:knvyU option
+while getopts :bcef:iI:knp:vyU option
 do
  case "${option}" in
   b)  BKUP="Y";;
@@ -88,6 +91,7 @@ do
       fi;;
   k)  KEYS="Y";;
   n)  REBOOT="N";;
+  p)  ROOTPWD="${OPTARG}";;
   v)  VERBOSE=Y;;
   y)  YES=Y;;
   U)  upgrade;;
@@ -142,7 +146,7 @@ if [ ! -z "$FIRMWARE" ]; then
   fi
 fi
 
-echo -e "NOTE:    root access will be preserved. root password will be reset to '${GREEN}root${NC}'"
+echo -e "NOTE:    root access will be preserved. root password will be reset to '${GREEN}${ROOTPWD}${NC}'"
 LAN_CFG="echo 'Configuring root SSH access'"
 if [ ! -z "$IPADDR" ]; then
   IPPREFIX="$(echo $IPADDR | cut -d. -f1-3)"
@@ -226,7 +230,7 @@ rm -rf /overlay/`cat /proc/banktable/booted`
 # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
 mkdir -p /overlay/$(cat /proc/banktable/booted)/etc
 chmod 755 /overlay/$(cat /proc/banktable/booted) /overlay/$(cat /proc/banktable/booted)/etc
-echo -e "echo root:root | chpasswd
+echo -e "echo root:$ROOTPWD | chpasswd
 sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
 sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
 uci -q set \$(uci show firewall | grep -m 1 \$(fw3 -q print | \
