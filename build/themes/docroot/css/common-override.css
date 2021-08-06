@@ -4,7 +4,7 @@
 .card_bg.mirror:after{transform:matrix(-1,0,0,1,0,0);}
 .chartcard{position:relative;}
 .chartcard .chartdata{position:absolute;top:30px;right:10px;font-size:24px;}
-.chartcard .cpu_data{color:blue;}
+.chartcard .cpu_data{color:#008ed4;}
 .chartcard .ram_data{color:#942974;}
 .chartcard .wandn_data{color:green;}
 .chartcard .wanup_data{color:#ffc20f;}
