@@ -15,7 +15,10 @@ Configures DNS interception:
     DNS Servers
 
 NOTE: IPv6 DNS requests can NOT be hijacked (no kernel nat6 support). IPv6 DoT
-      and DoH ARE intercepted.
+      and DoH ARE blocked.
+
+NOTE: You can now configure DNS Interception through the user interface if 
+      tch-gui-unhide has been installed.
 
 Usage: $0 [options]
 
@@ -27,7 +30,8 @@ Options:
                 The local DNS Server specified with -d is automatically
                 excluded and does not need to be re-specified with -x.
  -6           Do NOT apply blocking to IPv6 DNS requests.
- -r           Remove DNS interception.
+ -r           Disables DNS interception.
+ --status     Shows and verifies DNS interception status
  -U           Download the latest version of $SCRIPT from GitHub
 
 EOH
@@ -64,12 +68,14 @@ DNS_SERVER=""
 EXC_IP4=""
 IPv6="y"
 REMOVE="n"
+STATUS="n"
 
 GREEN='\033[1;32m'
+ORANGE='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-while getopts :d:x:r6U option
+while getopts :d:x:r6U-: option
 do
   case "${option}" in
     d)  echo "$OPTARG" | grep -q -E "$IPv4_PATTERN"
@@ -78,7 +84,10 @@ do
           exit
         else
           DNS_SERVER="$OPTARG"
-          EXC_IP4="$(echo $EXC_IP4 $OPTARG | xargs)"
+          ip route get $DNS_SERVER | grep -q br-lan
+          if [ $? -eq 0 ]; then
+            EXC_IP4="$(echo $EXC_IP4 $DNS_SERVER | xargs)"
+          fi
         fi;;
     x)  echo "$OPTARG" | grep -q -E "$IPv4_PATTERN"
         if [ $? -eq 1 ]; then
@@ -90,40 +99,124 @@ do
     r)  REMOVE="y";;
     6)  IPv6="n";;
     U)  upgrade;;
+    -)  case "$OPTARG" in status) STATUS="y";; *) usage;; esac;;
     ?)  usage;;
   esac
 done
 
-echo -e "${GREEN}[$SCRIPT] Removing existing firewall configuration${NC}"
-# Same as https://openwrt.org/docs/guide-user/firewall/fw3_configurations/intercept_dns
-uci -q delete firewall.dns_int
-uci -q delete firewall.dns_masq
-uci -q delete firewall.dot_fwd
-uci -q delete firewall.doh
-uci -q delete firewall.doh6
-uci -q delete firewall.doh_fwd
-uci -q delete firewall.doh6_fwd
-# Additional
-uci -q delete firewall.dns_xcptn
-uci -q delete firewall.ipsets_restore
-uci -q delete firewall.doh_ipsets_restore # Used by previous version of this script
-uci -q delete firewall.dot_fwd.xcptn
-uci -q delete firewall.doh_fwd_xcptn
+if [ $STATUS = "y" ]; then
+  okay=1
+  pattern=" -> %-40s = "
 
-echo -e "${GREEN}[$SCRIPT] Removing the cron job${NC}"
-sed -e '/doh-ipsets-maintain/d' -i /etc/crontabs/root
+  echo -e "${GREEN}[$SCRIPT] Status:${NC}"
+  for cfg in dns_int.enabled dns_int.dest_ip dns_masq.enabled dns_masq.dest_ip dot_fwd.enabled dot_fwd.family doh.enabled doh6.enabled doh_fwd.enabled doh6_fwd.enabled dns_xcptn.enabled dot_fwd_xcptn.enabled doh_fwd_xcptn.enabled ipsets_restore.enabled
+  do
+    val="$(uci -q get firewall.$cfg)"
+    case "$cfg" in
+      dns_int.enabled)  if [ -z "$val" ]; then dns_int="1";  val="1"; else dns_int="$val";  fi;;
+      dns_int.dest_ip)  dest_ip="$val"; [ -n "$dest_ip" ] && { ip route get $dest_ip | grep -q br-lan; dest_lan="$?"; };;
+      dns_masq.enabled) if [ -z "$val" ]; then dns_masq="1"; val="1"; else dns_masq="$val"; fi;;
+      dot_fwd.family)   ipv6="$val";;
+    esac
+    if [ "$val" = "$dns_int" ]
+      then prefix="$GREEN"
+      else prefix="$RED"
+    fi
+    if [ "$cfg" = "dns_masq.dest_ip" -a \( \( -z "$val" -a -n "$dest_ip" \) -o \( -n "$val" -a -z "$dest_ip" \) \) ]; then
+      state=" ${RED}[ERROR]${NC}"
+      okay=0
+    elif [ "$val" != "0" -a "$val" != "1" -a "$val" != "" -a "$cfg" != "${cfg%%.enabled}" ]; then
+      state="${RED}[ERROR]${NC}"
+      okay=0
+    elif [ "$val" = "0" -a "$cfg" = "dns_masq.enabled" -a -z "$dest_ip" ]; then
+      state="${GREEN}[DISABLED]${NC}"
+    elif [ "$val" = "0" -a "$cfg" != "${cfg#doh6}" -a "$ipv6" = "ipv4" ]; then
+      state="${GREEN}[DISABLED]${NC}"
+    elif [ "$val" = "1" -a "$cfg" != "${cfg#doh6}" -a "$ipv6" = "ipv4" ]; then
+      state="${RED}[ENABLED]${NC}"
+      okay=0
+    elif [ "$val" = "1" -o \( "$val" = "" -a "$cfg" != "${cfg%%.enabled}" \) ]; then
+      state="${prefix}[ENABLED]${NC}"
+      [ "$prefix" = "$RED" ] && okay=0
+    elif [ "$val" = "0" ]; then
+      state="${prefix}[DISABLED]${NC}"
+      [ "$prefix" = "$RED" ] && okay=0
+    else
+      state=""
+    fi
+    printf "$pattern" "firewall.$cfg" 
+    echo -e "$val $state"
+  done
 
-echo -e "${GREEN}[$SCRIPT] Removing the scripts and IP Set backups${NC}"
-for f in /usr/sbin/ipsets-restore /usr/sbin/doh-ipsets-maintain /etc/firewall.ipset.doh /etc/firewall.ipset.doh6 /etc/firewall.ipset.dns_xcptn
-do
-  if [ -f $f ]
-  then
-    rm $f
+  printf "$pattern" "/etc/firewall.ipset.dns_xcptn"
+  xcptns="$(cat /etc/firewall.ipset.dns_xcptn | cut -d" " -f3 | xargs)"
+  if [ "$dns_int" = "1" ]; then
+    found_dest_ip=0
+    for ip in $xcptns 
+    do
+      [ "$dest_lan" = 0 -a "$ip" = "$dest_ip" ] && found_dest_ip=1
+      ip route get $ip | grep -q br-lan
+      if [ $? -eq 0 ]; then
+        echo -en "${GREEN}"
+      else
+        echo -en "${RED}"
+        okay=0
+      fi
+      echo -en "${ip}${NC} "
+    done
+    [ "$dest_lan" = 0 -a $found_dest_ip = 0 ] && echo -en "[${RED}$dest_ip NOT EXCLUDED]${NC}"
+    echo
+  elif [ "$dns_int" = "0" -a $(echo $xcptns | wc -w) -gt 0 ]; then
+    echo -e "${RED}${xcptns}${NC}"
+    okay=0
+  else
+    echo -e "${ORANGE}${xcptns}${NC}"
   fi
-done
 
-if [ $REMOVE = y ]
-then
+  printf "$pattern" "/etc/crontabs/root"
+  cron=$(grep doh-ipsets-maintain /etc/crontabs/root)
+  if [ \( "$dns_int" = "0" -a "$cron" != "${cron###}" \) -o \( "$dns_int" = "1" -a "$cron" = "${cron###}" \) ]; then
+    echo -en "${GREEN}"
+  else
+    echo -en "${RED}"
+    okay=0
+  fi
+  echo -e "${cron}${NC}"
+
+  if [ $okay = 1 ]; then
+    echo -e " ${GREEN}== Configuration is OKAY ==${NC}"
+  else
+    echo -e " ${RED}!! Errors found in Configuration !!${NC}"
+  fi
+
+  exit
+fi
+
+echo -e "${GREEN}[$SCRIPT] Disabling existing DNS intercept configuration${NC}"
+# Same as https://openwrt.org/docs/guide-user/firewall/fw3_configurations/intercept_dns
+uci -q set firewall.dns_int.enabled='0'
+uci -q set firewall.dns_masq.enabled='0'
+uci -q set firewall.dot_fwd.enabled='0'
+uci -q set firewall.doh.enabled='0'
+uci -q set firewall.doh6.enabled='0'
+uci -q set firewall.doh_fwd.enabled='0'
+uci -q set firewall.doh6_fwd.enabled='0'
+
+# Additional
+uci -q set firewall.dns_xcptn.enabled='0'
+uci -q set firewall.dot_fwd_xcptn.enabled='0'
+uci -q set firewall.doh_fwd_xcptn.enabled='0'
+uci -q set firewall.ipsets_restore.enabled='0'
+uci -q delete firewall.doh_ipsets_restore # Used by previous version of this script
+
+uci -q delete firewall.dns_int.dest_ip
+uci -q delete firewall.dns_masq.dest_ip
+echo > /etc/firewall.ipset.dns_xcptn
+
+echo -e "${GREEN}[$SCRIPT] Disabling the cron job${NC}"
+sed -e 's/^\([^#].*doh-ipsets-maintain\)$/#\1/' -i /etc/crontabs/root
+
+if [ $REMOVE = y ]; then
   echo -e "${GREEN}[$SCRIPT] Commiting changes${NC}"
   uci commit firewall
   /etc/init.d/firewall restart 2>&1 | grep -v _key
@@ -134,94 +227,97 @@ then
 fi
 
 # Intercept DNS traffic
-uci set firewall.dns_int="redirect"
-if [ -z "$DNS_SERVER" ]
-then
+uci set firewall.dns_xcptn='ipset'
+uci set firewall.dns_xcptn.name='dns_xcptn'
+uci set firewall.dns_xcptn.family='ipv4'
+uci set firewall.dns_xcptn.storage='hash'
+uci set firewall.dns_xcptn.match='ip'
+uci set firewall.dns_xcptn.enabled='1'
+echo -n > /etc/firewall.ipset.dns_xcptn
+uci set firewall.dns_int='redirect'
+uci set firewall.dns_int.family='ipv4'
+uci set firewall.dns_int.src='lan'
+uci set firewall.dns_int.src_dport='53'
+uci set firewall.dns_int.proto='tcp udp'
+uci set firewall.dns_int.dest='wan'
+uci set firewall.dns_int.target='DNAT'
+uci set firewall.dns_int.ipset='!dns_xcptn src'
+uci set firewall.dns_int.enabled='1'
+if [ -z "$DNS_SERVER" ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring IPv4 DNS Interception${NC}"
-  uci set firewall.dns_int.name="Intercept-DNS"
+  uci set firewall.dns_int.name='Intercept-DNS'
+  uci -q delete firewall.dns_int.dest_ip
+
+  uci -q delete firewall.dns_masq.dest_ip
+  uci -q set firewall.dns_masq.enabled='0'
 else
   echo -e "${GREEN}[$SCRIPT] Configuring IPv4 DNS Redirection to $DNS_SERVER${NC}"
-  uci set firewall.dns_int.name="Redirect-DNS"
+  uci set firewall.dns_int.name='Redirect-DNS'
   uci set firewall.dns_int.dest_ip="$DNS_SERVER"
 
-  uci set firewall.dns_masq="nat"
-  uci set firewall.dns_masq.name="Masquerade-DNS"
-  uci set firewall.dns_masq.family="ipv4"
-  uci set firewall.dns_masq.src="lan"
+  uci set firewall.dns_masq='nat'
+  uci set firewall.dns_masq.name='Masquerade-DNS'
+  uci set firewall.dns_masq.family='ipv4'
+  uci set firewall.dns_masq.src='lan'
   uci set firewall.dns_masq.dest_ip="$DNS_SERVER"
-  uci set firewall.dns_masq.dest_port="53"
-  uci set firewall.dns_masq.proto="tcp udp"
-  uci set firewall.dns_masq.target="MASQUERADE"
+  uci set firewall.dns_masq.dest_port='53'
+  uci set firewall.dns_masq.proto='tcp udp'
+  uci set firewall.dns_masq.target='MASQUERADE'
+  uci set firewall.dns_masq.enabled='1'
 fi
-uci set firewall.dns_int.family="ipv4"
-uci set firewall.dns_int.src="lan"
-uci set firewall.dns_int.src_dport="53"
-uci set firewall.dns_int.proto="tcp udp"
-uci set firewall.dns_int.dest="wan"
-uci set firewall.dns_int.target="DNAT"
-if [ ! -z "$EXC_IP4" ]
-then
+if [ ! -z "$EXC_IP4" ]; then
   echo -e "${GREEN}[$SCRIPT]  - Excluding IP Addresses: $EXC_IP4${NC}"
-  uci set firewall.dns_xcptn="ipset"
-  uci set firewall.dns_xcptn.name="dns_xcptn"
-  uci set firewall.dns_xcptn.family="ipv4"
-  uci set firewall.dns_xcptn.storage="hash"
-  uci set firewall.dns_xcptn.match="ip"
-
-  if [ -f /etc/firewall.ipset.dns_xcptn ]
-  then
-    rm /etc/firewall.ipset.dns_xcptn
-  fi
   for ip in $EXC_IP4
   do
     echo "add dns_xcptn $ip" >> /etc/firewall.ipset.dns_xcptn
   done
-
-  uci set firewall.dns_int.ipset="!dns_xcptn src"
 fi
 
 # Filter DoT traffic
-if [ ! -z "$EXC_IP4" ]
-then
+if [ ! -z "$EXC_IP4" ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring IPv4 DNS over TLS acceptance for excluded addresses${NC}"
-  uci set firewall.dot_fwd_xcptn="rule"
-  uci set firewall.dot_fwd_xcptn.name="Allow-DoT"
-  uci set firewall.dot_fwd_xcptn.src="lan"
-  uci set firewall.dot_fwd_xcptn.dest="wan"
-  uci set firewall.dot_fwd_xcptn.dest_port="853"
-  uci set firewall.dot_fwd_xcptn.proto="tcp udp"
-  uci set firewall.dot_fwd_xcptn.target="ACCEPT"
-  uci set firewall.dot_fwd_xcptn.family="ipv4"
-  uci set firewall.dot_fwd_xcptn.ipset="dns_xcptn src"
+  uci set firewall.dot_fwd_xcptn='rule'
+  uci set firewall.dot_fwd_xcptn.name='Allow-DoT'
+  uci set firewall.dot_fwd_xcptn.src='lan'
+  uci set firewall.dot_fwd_xcptn.dest='wan'
+  uci set firewall.dot_fwd_xcptn.dest_port='853'
+  uci set firewall.dot_fwd_xcptn.proto='tcp udp'
+  uci set firewall.dot_fwd_xcptn.target='ACCEPT'
+  uci set firewall.dot_fwd_xcptn.family='ipv4'
+  uci set firewall.dot_fwd_xcptn.ipset='dns_xcptn src'
+  uci set firewall.dot_fwd_xcptn.enabled='1'
 fi
 echo -e "${GREEN}[$SCRIPT] Configuring DNS over TLS rejection${NC}"
-uci set firewall.dot_fwd="rule"
-uci set firewall.dot_fwd.name="Deny-DoT"
-uci set firewall.dot_fwd.src="lan"
-uci set firewall.dot_fwd.dest="wan"
-uci set firewall.dot_fwd.dest_port="853"
-uci set firewall.dot_fwd.proto="tcp udp"
-uci set firewall.dot_fwd.target="REJECT"
-if [ "$IPv6" = "n" ]
-then
-  uci set firewall.dot_fwd.family="ipv4"
+uci set firewall.dot_fwd='rule'
+uci set firewall.dot_fwd.name='Deny-DoT'
+uci set firewall.dot_fwd.src='lan'
+uci set firewall.dot_fwd.dest='wan'
+uci set firewall.dot_fwd.dest_port='853'
+uci set firewall.dot_fwd.proto='tcp udp'
+uci set firewall.dot_fwd.target='REJECT'
+uci set firewall.dot_fwd.enabled='1'
+if [ "$IPv6" = "n" ]; then
+  uci set firewall.dot_fwd.family='ipv4'
+else
+  uci -q delete firewall.dot_fwd.family
 fi
 
 # Configure IP sets
 echo -e "${GREEN}[$SCRIPT] Creating DNS over HTTPS IP Set for IPv4${NC}"
-uci set firewall.doh="ipset"
-uci set firewall.doh.name="doh"
-uci set firewall.doh.family="ipv4"
-uci set firewall.doh.storage="hash"
-uci set firewall.doh.match="ip"
-if [ "$IPv6" = "y" ]
-then
+uci set firewall.doh='ipset'
+uci set firewall.doh.name='doh'
+uci set firewall.doh.family='ipv4'
+uci set firewall.doh.storage='hash'
+uci set firewall.doh.match='ip'
+uci set firewall.doh.enabled='1'
+if [ "$IPv6" = "y" ]; then
   echo -e "${GREEN}[$SCRIPT] Creating DNS over HTTPS IP Set for IPv6${NC}"
-  uci set firewall.doh6="ipset"
-  uci set firewall.doh6.name="doh6"
-  uci set firewall.doh6.family="ipv6"
-  uci set firewall.doh6.storage="hash"
-  uci set firewall.doh6.match="ip"
+  uci set firewall.doh6='ipset'
+  uci set firewall.doh6.name='doh6'
+  uci set firewall.doh6.family='ipv6'
+  uci set firewall.doh6.storage='hash'
+  uci set firewall.doh6.match='ip'
+  uci set firewall.doh6.enabled='1'
 fi
 
 echo -e "${GREEN}[$SCRIPT] Creating script to restore IP Sets on firewall restart${NC}"
@@ -229,6 +325,7 @@ uci set firewall.ipsets_restore='include'
 uci set firewall.ipsets_restore.type='script'
 uci set firewall.ipsets_restore.path='/usr/sbin/ipsets-restore'
 uci set firewall.ipsets_restore.reload='0'
+uci set firewall.ipsets_restore.enabled='1'
 
 cat<<"END-RESTORE" > /usr/sbin/ipsets-restore
 #!/bin/sh
@@ -244,42 +341,43 @@ END-RESTORE
 chmod +x /usr/sbin/ipsets-restore
 
 # Filter DoH traffic
-if [ ! -z "$EXC_IP4" ]
-then
+if [ ! -z "$EXC_IP4" ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring IPv4 DNS over HTTPS acceptance for excluded addresses${NC}"
-  uci set firewall.doh_fwd_xcptn="rule"
-  uci set firewall.doh_fwd_xcptn.name="Allow-DoH"
-  uci set firewall.doh_fwd_xcptn.src="lan"
-  uci set firewall.doh_fwd_xcptn.dest="wan"
-  uci set firewall.doh_fwd_xcptn.dest_port="443"
-  uci set firewall.doh_fwd_xcptn.proto="tcp udp"
-  uci set firewall.doh_fwd_xcptn.family="ipv4"
-  uci set firewall.doh_fwd_xcptn.ipset="dns_xcptn src"
-  uci set firewall.doh_fwd_xcptn.target="ACCEPT"
+  uci set firewall.doh_fwd_xcptn='rule'
+  uci set firewall.doh_fwd_xcptn.name='Allow-DoH'
+  uci set firewall.doh_fwd_xcptn.src='lan'
+  uci set firewall.doh_fwd_xcptn.dest='wan'
+  uci set firewall.doh_fwd_xcptn.dest_port='443'
+  uci set firewall.doh_fwd_xcptn.proto='tcp udp'
+  uci set firewall.doh_fwd_xcptn.family='ipv4'
+  uci set firewall.doh_fwd_xcptn.ipset='dns_xcptn src'
+  uci set firewall.doh_fwd_xcptn.target='ACCEPT'
+  uci set firewall.doh_fwd_xcptn.enabled='1'
 fi
 
 echo -e "${GREEN}[$SCRIPT] Configuring IPv4 DNS over HTTPS rejection${NC}"
-uci set firewall.doh_fwd="rule"
-uci set firewall.doh_fwd.name="Deny-DoH"
-uci set firewall.doh_fwd.src="lan"
-uci set firewall.doh_fwd.dest="wan"
-uci set firewall.doh_fwd.dest_port="443"
-uci set firewall.doh_fwd.proto="tcp udp"
-uci set firewall.doh_fwd.family="ipv4"
-uci set firewall.doh_fwd.ipset="doh dest"
-uci set firewall.doh_fwd.target="REJECT"
-if [ "$IPv6" = "y" ]
-then
+uci set firewall.doh_fwd='rule'
+uci set firewall.doh_fwd.name='Deny-DoH'
+uci set firewall.doh_fwd.src='lan'
+uci set firewall.doh_fwd.dest='wan'
+uci set firewall.doh_fwd.dest_port='443'
+uci set firewall.doh_fwd.proto='tcp udp'
+uci set firewall.doh_fwd.family='ipv4'
+uci set firewall.doh_fwd.ipset='doh dest'
+uci set firewall.doh_fwd.target='REJECT'
+uci set firewall.doh_fwd.enabled='1'
+if [ "$IPv6" = "y" ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring IPv6 DNS over HTTPS rejection${NC}"
-  uci set firewall.doh6_fwd="rule"
-  uci set firewall.doh6_fwd.name="Deny-v6-DoH"
-  uci set firewall.doh6_fwd.src="lan"
-  uci set firewall.doh6_fwd.dest="wan"
-  uci set firewall.doh6_fwd.dest_port="443"
-  uci set firewall.doh6_fwd.proto="tcp udp"
-  uci set firewall.doh6_fwd.family="ipv6"
-  uci set firewall.doh6_fwd.ipset="doh6 dest"
-  uci set firewall.doh6_fwd.target="REJECT"
+  uci set firewall.doh6_fwd='rule'
+  uci set firewall.doh6_fwd.name='Deny-v6-DoH'
+  uci set firewall.doh6_fwd.src='lan'
+  uci set firewall.doh6_fwd.dest='wan'
+  uci set firewall.doh6_fwd.dest_port='443'
+  uci set firewall.doh6_fwd.proto='tcp udp'
+  uci set firewall.doh6_fwd.family='ipv6'
+  uci set firewall.doh6_fwd.ipset='doh6 dest'
+  uci set firewall.doh6_fwd.target='REJECT'
+  uci set firewall.doh6_fwd.enabled='1'
 fi
 
 echo -e "${GREEN}[$SCRIPT] Commiting firewall changes${NC}"
@@ -327,7 +425,7 @@ chmod +x /usr/sbin/doh-ipsets-maintain
 mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
 hh=$(awk 'BEGIN{srand();print int(rand()*2)+3;}')
 echo -e "${GREEN}[$SCRIPT] Creating scheduled cron job to update DoH IP Sets every Sunday at $hh:$(printf '%02d' $mm)${NC}"
-sed -e '/99-ipset-doh/d' -i /etc/crontabs/root
+sed -e '/doh-ipsets-maintain/d' -i /etc/crontabs/root
 echo "$mm $hh * * 6 /usr/sbin/doh-ipsets-maintain" >> /etc/crontabs/root
 /etc/init.d/cron restart
 

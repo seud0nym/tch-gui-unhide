@@ -118,6 +118,9 @@ Parameters:
 If you enable DumaOS *after* running the `tch-gui-unhide` script, you will need to re-run `tch-gui-unhide` to enable the button to access DumaOS. Similarly, if you disable DumaOS, you will need to re-run `tch-gui-unhide` to remove the button. 
 
 ## intercept-dns
+
+**NOTE:** tch-gui-unhide releases *after* 2021.08.05 allow you to enable and manage DNS interception through a tab on the Firewall.
+
 Configures DNS interception:
 - Hijacks IPv4 DNS requests to ensure that they are handled by the router, or by a specified DNS Server
 - Rejects DNS-over-TLS (DoT) requests over IPv4 and IPv6
@@ -125,6 +128,7 @@ Configures DNS interception:
 - Configures a scheduled weekly cron job to maintain IP Sets of known HTTPS DNS Servers
 
 This script is based upon the configuration specified in https://openwrt.org/docs/guide-user/firewall/fw3_configurations/intercept_dns, with modifications to support the OpenWRT version in use on the Telstra Technicolor devices.
+
 ```
 Usage: ./intercept-dns [options]
 
@@ -136,7 +140,8 @@ Options:
                 The local DNS Server specified with -d is automatically excluded and does not need to
                 be re-specified with -x. 
  -6           Do NOT apply blocking to IPv6 DNS requests.
- -r           Remove DNS interception.
+ -r           Disables DNS interception.
+ --status     Shows and verifies DNS interception status
  -U           Download the latest version of intercept-dns rom GitHub
 ```
 The list of known DoH hosts is retrieved from https://github.com/dibdot/DoH-IP-blocklists.
