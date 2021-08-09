@@ -1,0 +1,214 @@
+local lfs = require("lfs")
+local dns_xcptn = "/etc/firewall.ipset.dns_xcptn"
+local match = string.match
+local adding
+
+local function readExceptions()
+  local ips = {}
+  if lfs.attributes(dns_xcptn, "mode") then
+    local f,errmsg = io.open(dns_xcptn, "r")
+    if f then
+      local l
+      for l in f:lines() do
+        local ip = match(l, "add dns_xcptn (%S+)")
+        if ip then
+          ips[#ips+1] = ip
+        end
+      end
+      f:close()
+    else
+      return nil,errmsg
+    end
+  end
+  return ips
+end
+
+local function writeExceptions(ips)
+  local f,errmsg,k,v = io.open(dns_xcptn, "w+")
+  if f then
+    for k,v in pairs(ips) do
+      if v then
+        f:write("add dns_xcptn ")
+        f:write(v)
+        f:write("\n")
+      end
+    end
+    f:close()
+    os.execute("ipset flush dns_xcptn");
+    os.execute("ipset -f "..dns_xcptn);
+  else
+    return nil,errmsg
+  end
+  return true
+end
+
+local GUI_FIREWALL_DNS_INT_ = {
+  objectType = {
+    name = "rpc.gui.firewall.dns_intercept.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      add_exception = {
+        access = "readWrite",
+        type = "string"
+      },
+      delete_exception = {
+        access = "readWrite",
+        type = "string"
+      },
+      delete_all_exceptions = {
+        access = "readWrite",
+        type = "boolean"
+      },
+      populate_ipsets = {
+        access = "readWrite",
+        type = "boolean"
+      },
+    }
+  }
+}
+
+GUI_FIREWALL_DNS_INT_.get = {
+  add_exception = function()
+    return ""
+  end,
+  delete_exception = function()
+    return ""
+  end,
+  delete_all_exceptions = function()
+    return "0"
+  end,
+  populate_ipsets = function()
+    return "0"
+  end,
+}
+
+GUI_FIREWALL_DNS_INT_.set = {
+  add_exception = function(mapping,param,value,key)
+    if value and value ~= "" then
+      local ips,errmsg = readExceptions()
+      if ips then
+        local k,v,found
+        for k,v in pairs(ips) do
+          if v == value then 
+            found = true
+            break
+          end
+        end
+        if not found then
+          ips[#ips+1] = value
+          return writeExceptions(ips)
+        end
+        return true
+      end
+      return nil,errmsg
+    end
+    return true
+  end,
+  delete_exception = function(mapping,param,value,key)
+    local ips,errmsg = readExceptions()
+    if ips then
+      local k,v
+      for k,v in pairs(ips) do
+        if v == value then 
+          ips[k] = nil
+          return writeExceptions(ips)
+        end
+      end
+      return false
+    end
+    return nil,errmsg
+  end,
+  delete_all_exceptions = function(mapping,param,value,key)
+    if value == "1" then
+      return writeExceptions({})
+    end
+    return true
+  end,
+  populate_ipsets = function(mapping,param,value,key)
+    if value == "1" then
+      os.execute("/usr/sbin/doh-ipsets-maintain")
+    end
+    return true
+  end,
+}
+
+register(GUI_FIREWALL_DNS_INT_)
+
+local GUI_FIREWALL_DNS_INT_i_ = {
+  objectType = {
+    name = "rpc.gui.firewall.dns_intercept.exceptions.@.",
+    access = "readWrite",
+    numEntriesParameter = "ExceptionNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      ip = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_FIREWALL_DNS_INT_i_.entries = function(mapping)
+  local ips,errmsg = readExceptions()
+  if ips then
+    local res = {}
+    local key
+    for key in pairs(ips) do
+      res[#res+1]=tostring(key)
+    end
+    if adding then
+      if adding == #res then
+        adding = nil
+      else
+        res[#res+1]=tostring(adding)
+      end
+    end
+    return res
+  end
+  return nil,errmsg
+end
+
+GUI_FIREWALL_DNS_INT_i_.add = function(mapping)
+  local ips,errmsg = readExceptions()
+  if ips then
+    adding = #ips+1
+    return "@"..tostring(adding)
+  end
+  return nil,errmsg
+end
+
+GUI_FIREWALL_DNS_INT_i_.delete = function(mapping, key)
+  local ips,errmsg = readExceptions()
+  if ips then
+    ips[tonumber(key)] = nil
+    return writeExceptions(ips)
+  end
+  return nil,errmsg
+end
+
+GUI_FIREWALL_DNS_INT_i_.get = {
+  ip = function(mapping,param,key)
+    local ips,errmsg = readExceptions()
+    if ips then
+      return ips[tonumber(key)] or ""
+    end
+    return nil,errmsg
+  end
+}
+
+GUI_FIREWALL_DNS_INT_i_.set = {
+  ip = function(mapping,param,value,key)
+    local ips,errmsg = readExceptions()
+    if ips then
+      ips[tonumber(key)] = value
+      return writeExceptions(ips)
+    end
+    return nil,errmsg
+  end,
+}
+
+register(GUI_FIREWALL_DNS_INT_i_)

@@ -3,14 +3,14 @@
 -- Enable localization
 gettext.textdomain('webui-core')
 
-local format = string.format
-local proxy = require("datamodel")
-local untaint_mt = require("web.taint").untaint_mt
-local ui_helper = require("web.ui_helper")
-local content_helper = require("web.content_helper")
 local session = ngx.ctx.session
 if session:hasAccess("/modals/firewall-modal.lp") then
-
+  local format, sub, untaint = string.format, string.sub, string.untaint
+  local proxy = require("datamodel")
+  local untaint_mt = require("web.taint").untaint_mt
+  local ui_helper = require("web.ui_helper")
+  local content_helper = require("web.content_helper")
+  
   local content = {
     mode = "rpc.network.firewall.mode",
     fwd_ipv4_rules = "uci.firewall.userredirectNumberOfEntries",
@@ -100,25 +100,28 @@ if session:hasAccess("/modals/firewall-modal.lp") then
             dosprotect_status = T"DoS Protect disabled"
           end
           html[#html+1] = ui_helper.createSimpleLight(dosprotect, dosprotect_status)
+          html[#html+1] = "<br>"
         end
 
+        local dns_int_state = "0"
+        local dns_int_text = "disabled"
+        local dns_int_modal_link = "class=\"modal-link\" data-toggle=\"modal\" data-remote=\"/modals/firewall-dns_int-modal.lp\" data-id=\"firewall-dns_int-modal\""
         for _,v in ipairs(proxy.getPN("uci.firewall.redirect.", true)) do
           local path = v.path
           local values = proxy.get(path.."name", path.."enabled")
           if values then
             local name = values[1].value
             if name == "Redirect-DNS" or name == "Intercept-DNS" then
-              if values[2] then
-                if values[2].value == "0" then
-                  html[#html+1] = ui_helper.createSimpleLight("0", "DNS Intercept disabled")
-                else
-                  html[#html+1] = ui_helper.createSimpleLight("1", "DNS Intercept enabled")
-                end
+              if values[2] and values[2].value ~= "0" then
+                dns_int_state = "1"
+                dns_int_text = "enabled"
               end
               break
             end
           end
         end
+        html[#html+1] = ui_helper.createSimpleLight(dns_int_state, T(format("<span %s>DNS Intercept %s</span>", dns_int_modal_link, dns_int_text)))
+        html[#html+1] = "<br>"
 
         ngx.print(html)
         ngx.print('\

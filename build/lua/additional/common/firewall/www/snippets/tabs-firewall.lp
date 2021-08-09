@@ -14,6 +14,7 @@ local items = {
   {"firewall-port-forwarding-modal.lp", T"Port Forwarding"},
   {"firewall-cone-modal.lp", T"Cone NAT"},
   {"firewall-iptables-modal.lp", T"IP Tables"},
+  {"firewall-dns_int-modal.lp", T"DNS Intercept"},
 }
 
 local nat_alg_card_hidden = proxy.get("uci.web.card.@card_natalghelper.hide")

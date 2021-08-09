@@ -59,6 +59,194 @@ if [ $SRV_firewall -gt 0 ]; then
   /etc/init.d/firewall reload 2> /dev/null
 fi
 
+echo [$SCRIPT]: Fix missing values on uci.firewall.include. and uci.firewall.ipset.
+sed \
+  -e 's/"type", "family"/"type", "path", "family"/' \
+  -e 's/\("hashsize", "timeout",\)$/\1 "match",/' \
+  -i /usr/share/transformer/mappings/uci/firewall.map
+
 echo [$SCRIPT]: Add transformer mapping for uci.firewall.nat.
-sed -n '/-- uci.firewall.redirect/,/MultiMap/p' /usr/share/transformer/mappings/uci/firewall.map |  sed -e 's/redirect/nat/g' >> /usr/share/transformer/mappings/uci/firewall.map
+sed -n '/-- uci.firewall.redirect/,/MultiMap/p' /usr/share/transformer/mappings/uci/firewall.map | sed -e 's/redirect/nat/g' >> /usr/share/transformer/mappings/uci/firewall.map
+
+echo [$SCRIPT]: Checking firewall configuration for DNS interception
+if [ "$(uci -q get firewall.dns_xcptn)" != "ipset" ]; then
+  uci set firewall.dns_xcptn='ipset'
+  uci set firewall.dns_xcptn.name='dns_xcptn'
+  uci set firewall.dns_xcptn.family='ipv4'
+  uci set firewall.dns_xcptn.storage='hash'
+  uci set firewall.dns_xcptn.match='ip'
+  uci set firewall.dns_xcptn.enabled='0'
+fi
+if [ ! -e /etc/firewall.ipset.dns_xcptn ]
+then
+  echo -n > /etc/firewall.ipset.dns_xcptn
+fi
+if [ "$(uci -q get firewall.dns_int)" != "redirect" ]; then
+  uci set firewall.dns_int='redirect'
+  uci set firewall.dns_int.name='Intercept-DNS'
+  uci set firewall.dns_int.family='ipv4'
+  uci set firewall.dns_int.src='lan'
+  uci set firewall.dns_int.src_dport='53'
+  uci set firewall.dns_int.proto='tcp udp'
+  uci set firewall.dns_int.dest='wan'
+  uci set firewall.dns_int.target='DNAT'
+  uci set firewall.dns_int.ipset='!dns_xcptn src'
+  uci set firewall.dns_int.enabled='0'
+fi
+if [ "$(uci -q get firewall.dns_masq)" != "nat" ]; then
+  uci set firewall.dns_masq='nat'
+  uci set firewall.dns_masq.name='Masquerade-DNS'
+  uci set firewall.dns_masq.family='ipv4'
+  uci set firewall.dns_masq.src='lan'
+  uci set firewall.dns_masq.dest_port='53'
+  uci set firewall.dns_masq.proto='tcp udp'
+  uci set firewall.dns_masq.target='MASQUERADE'
+  uci set firewall.dns_masq.enabled='0'
+fi
+if [ "$(uci -q get firewall.dot_fwd_xcptn)" != "rule" ]; then
+  uci set firewall.dot_fwd_xcptn='rule'
+  uci set firewall.dot_fwd_xcptn.name='Allow-DoT'
+  uci set firewall.dot_fwd_xcptn.src='lan'
+  uci set firewall.dot_fwd_xcptn.dest='wan'
+  uci set firewall.dot_fwd_xcptn.dest_port='853'
+  uci set firewall.dot_fwd_xcptn.proto='tcp udp'
+  uci set firewall.dot_fwd_xcptn.target='ACCEPT'
+  uci set firewall.dot_fwd_xcptn.family='ipv4'
+  uci set firewall.dot_fwd_xcptn.ipset='dns_xcptn src'
+  uci set firewall.dot_fwd_xcptn.enabled='0'
+fi
+if [ "$(uci -q get firewall.dot_fwd)" != "rule" ]; then
+  uci set firewall.dot_fwd='rule'
+  uci set firewall.dot_fwd.name='Deny-DoT'
+  uci set firewall.dot_fwd.src='lan'
+  uci set firewall.dot_fwd.dest='wan'
+  uci set firewall.dot_fwd.dest_port='853'
+  uci set firewall.dot_fwd.proto='tcp udp'
+  uci set firewall.dot_fwd.target='REJECT'
+  uci set firewall.dot_fwd.enabled='0'
+fi
+if [ ! -e /etc/firewall.ipset.doh ]
+then
+  echo -n > /etc/firewall.ipset.doh
+fi
+if [ "$(uci -q get firewall.doh)" != "ipset" ]; then
+  uci set firewall.doh='ipset'
+  uci set firewall.doh.name='doh'
+  uci set firewall.doh.family='ipv4'
+  uci set firewall.doh.storage='hash'
+  uci set firewall.doh.match='ip'
+  uci set firewall.doh.enabled='0'
+fi
+if [ ! -e /etc/firewall.ipset.doh6 ]
+then
+  echo -n > /etc/firewall.ipset.doh6
+fi
+if [ "$(uci -q get firewall.doh6)" != "ipset" ]; then
+  uci set firewall.doh6='ipset'
+  uci set firewall.doh6.name='doh6'
+  uci set firewall.doh6.family='ipv6'
+  uci set firewall.doh6.storage='hash'
+  uci set firewall.doh6.match='ip'
+  uci set firewall.doh6.enabled='0'
+fi
+if [ "$(uci -q get firewall.ipsets_restore)" != "include" ]; then
+  uci set firewall.ipsets_restore='include'
+  uci set firewall.ipsets_restore.type='script'
+  uci set firewall.ipsets_restore.path='/usr/sbin/ipsets-restore'
+  uci set firewall.ipsets_restore.reload='0'
+  uci set firewall.ipsets_restore.enabled='0'
+fi
+if [ ! -e /usr/sbin/ipsets-restore ]; then
+  cat<<"END-RESTORE" > /usr/sbin/ipsets-restore
+#!/bin/sh
+for set in $(ipset -n list)
+do
+  if [ -f /etc/firewall.ipset.$set ]
+  then
+    ipset flush $set
+    ipset -f /etc/firewall.ipset.$set restore
+  fi
+done
+END-RESTORE
+  chmod +x /usr/sbin/ipsets-restore
+fi
+if [ "$(uci -q get firewall.doh_fwd_xcptn)" != "rule" ]; then
+  uci set firewall.doh_fwd_xcptn='rule'
+  uci set firewall.doh_fwd_xcptn.name='Allow-DoH'
+  uci set firewall.doh_fwd_xcptn.src='lan'
+  uci set firewall.doh_fwd_xcptn.dest='wan'
+  uci set firewall.doh_fwd_xcptn.dest_port='443'
+  uci set firewall.doh_fwd_xcptn.proto='tcp udp'
+  uci set firewall.doh_fwd_xcptn.family='ipv4'
+  uci set firewall.doh_fwd_xcptn.ipset='dns_xcptn src'
+  uci set firewall.doh_fwd_xcptn.target='ACCEPT'
+  uci set firewall.doh_fwd_xcptn.enabled='0'
+fi
+if [ "$(uci -q get firewall.doh_fwd)" != "rule" ]; then
+  uci set firewall.doh_fwd='rule'
+  uci set firewall.doh_fwd.name='Deny-DoH'
+  uci set firewall.doh_fwd.src='lan'
+  uci set firewall.doh_fwd.dest='wan'
+  uci set firewall.doh_fwd.dest_port='443'
+  uci set firewall.doh_fwd.proto='tcp udp'
+  uci set firewall.doh_fwd.family='ipv4'
+  uci set firewall.doh_fwd.ipset='doh dest'
+  uci set firewall.doh_fwd.target='REJECT'
+  uci set firewall.doh_fwd.enabled='0'
+fi
+if [ "$(uci -q get firewall.doh6_fwd)" != "rule" ]; then
+  uci set firewall.doh6_fwd='rule'
+  uci set firewall.doh6_fwd.name='Deny-v6-DoH'
+  uci set firewall.doh6_fwd.src='lan'
+  uci set firewall.doh6_fwd.dest='wan'
+  uci set firewall.doh6_fwd.dest_port='443'
+  uci set firewall.doh6_fwd.proto='tcp udp'
+  uci set firewall.doh6_fwd.family='ipv6'
+  uci set firewall.doh6_fwd.ipset='doh6 dest'
+  uci set firewall.doh6_fwd.target='REJECT'
+  uci set firewall.doh6_fwd.enabled='0'
+fi
+if [ ! -e /usr/sbin/doh-ipsets-maintain ]; then
+  cat<<"END-MAINTAIN" > /usr/sbin/doh-ipsets-maintain
+#!/bin/sh
+
+if [ "$(uci -q get firewall.doh)" = "ipset" ]
+then
+  if [ -f /tmp/doh-ipv4.txt ]
+  then
+    rm /tmp/doh-ipv4.txt
+  fi
+  curl -s -k -L https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv4.txt > /tmp/doh-ipv4.txt
+  if [ -f /tmp/doh-ipv4.txt ]
+  then
+    sed -e 's/\([^ ]*\) .*/add doh \1/' /tmp/doh-ipv4.txt > /etc/firewall.ipset.doh
+    rm /tmp/doh-ipv4.txt
+    ipset flush doh
+    ipset -f /etc/firewall.ipset.doh restore
+  fi
+fi
+
+if [ "$(uci -q get firewall.doh6)" = "ipset" ]
+then
+  if [ -f /tmp/doh-ipv6.txt ]
+  then
+    rm /tmp/doh-ipv6.txt
+  fi
+  curl -s -k -L https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv6.txt > /tmp/doh-ipv6.txt
+  if [ -f /tmp/doh-ipv6.txt ]
+  then
+    sed -e 's/\([^ ]*\) .*/add doh6 \1/' /tmp/doh-ipv6.txt > /etc/firewall.ipset.doh6
+    rm /tmp/doh-ipv6.txt
+    ipset flush doh6
+    ipset -f /etc/firewall.ipset.doh6 restore
+  fi
+fi
+END-MAINTAIN
+  chmod +x /usr/sbin/doh-ipsets-maintain
+fi
+if [ $(grep doh-ipsets-maintain /etc/crontabs/root | wc -l) -eq 0 ]; then
+  mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
+  hh=$(awk 'BEGIN{srand();print int(rand()*2)+3;}')
+  echo "#$mm $hh * * 6 /usr/sbin/doh-ipsets-maintain" >> /etc/crontabs/root
+fi
 
