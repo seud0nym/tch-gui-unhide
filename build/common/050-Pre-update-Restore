@@ -20,16 +20,16 @@ do
     fi
   elif [ "$CARDRULE" = "card_CPU" ]; then
     MODALRULE='gatewaymodal'
-    HIDDEN=$(uci -q get web.card_gateway.hide)
+    [ -z "$HIDDEN" ] && HIDDEN=$(uci -q get web.card_gateway.hide)
   elif [ "$CARDRULE" = "card_RAM" ]; then
     MODALRULE='gatewaymodal'
-    HIDDEN=$(uci -q get web.card_gateway.hide)
+    [ -z "$HIDDEN" ] && HIDDEN=$(uci -q get web.card_gateway.hide)
   elif [ "$CARDRULE" = "card_WANDown" ]; then
     MODALRULE='broadbandmodal'
-    HIDDEN=$(uci -q get web.card_broadband.hide)
+    [ -z "$HIDDEN" ] && HIDDEN=$(uci -q get web.card_broadband.hide)
   elif [ "$CARDRULE" = "card_WANUp" ]; then
     MODALRULE='broadbandmodal'
-    HIDDEN=$(uci -q get web.card_broadband.hide)
+    [ -z "$HIDDEN" ] && HIDDEN=$(uci -q get web.card_broadband.hide)
   fi
   if [ -z "$HIDDEN" -o \( "$HIDDEN" != "0" -a "$HIDDEN" != "1" \) ]; then
     HIDDEN=0
