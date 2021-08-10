@@ -76,6 +76,9 @@ These scripts will be automatically run by `tch-gui-unhide` if they exist in the
 # opkg Configuration
 Once you have correctly configured `opkg` using one of the following methods, you need to run the `opkg update` command before installing packages.
 
+## Packages Card in User Interface (after tch-gui-unhide applied)
+If you have applied `tch-gui-unhide`, you can configure `opkg` and install/remove packages through the user interface.
+
 ## de-telstra
 If you are are a [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) user, simply run it with `-o` option to correctly configure `opkg` on your device.
 
