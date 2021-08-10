@@ -16,7 +16,7 @@ restore_www() {
     SRV_cron=$(( $SRV_cron + 1 ))
   fi
   # Add individual files to be restored here
-  for t in /etc/init.d/power
+  for t in /etc/init.d/power /usr/lib/lua/web/post_helper.lua
   do
     s=/rom$t
     if [ -f $s ]; then

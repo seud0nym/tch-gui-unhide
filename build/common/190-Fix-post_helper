@@ -1,0 +1,129 @@
+grep -q '^function M.getRandomKey' /usr/lib/lua/web/post_helper.lua
+if [ $? -eq 1 ];then
+  echo [$SCRIPT]: Add missing getRandomKey post_helper function
+  sed -e '/^return M$/i\
+--Generate random key for new rule\
+--@return 16 digit random key.\
+function M.getRandomKey()\
+  local bytes\
+  local key = ("%02X"):rep(16)\
+  local fd = io.open("/dev/urandom", "r")\
+  if fd then\
+    bytes = fd:read(16)\
+    fd:close()\
+  end\
+  return key:format(bytes:byte(1, 16))\
+end\' -i /usr/lib/lua/web/post_helper.lua
+fi
+
+grep -q '^function M.validateStringIsIPv4' /usr/lib/lua/web/post_helper.lua
+if [ $? -eq 1 ];then
+  echo [$SCRIPT]: Add missing validateStringIsIPv4 post_helper function
+  sed -e '/^return M$/i\
+-- Validate the given IP address is a valid IPv4 address.\
+-- @string value The IPv4 address.\
+-- @return true given IP address is valid IPv4 address, nil+error message.\
+function M.validateStringIsIPv4(ip)\
+  local chunks = {ip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")}\
+  if #chunks == 4 then\
+    for _,v in pairs(chunks) do\
+      if tonumber(v) > 255 then\
+        return nil, "Invalid IPv4 address"\
+      end\
+    end\
+    return true\
+  end\
+  return nil, "Invalid IPv4 address"\
+end\' -i /usr/lib/lua/web/post_helper.lua
+fi
+
+grep -q '^function M.reservedIPValidation' /usr/lib/lua/web/post_helper.lua
+if [ $? -eq 1 ];then
+  echo [$SCRIPT]: Add missing reservedIPValidation post_helper function
+  sed -e '/^return M$/i\
+-- Validate the given IP address is not in the Reserved IP list.\
+-- @string value The IPv4 address.\
+-- @return true valid IP address not present in Reserved IP list, nil+error message.\
+function M.reservedIPValidation(ip)\
+  if inet.isValidIPv4(untaint(ip)) then\
+    local reservedIPList = proxy.get("uci.dhcp.host.")\
+    reservedIPList = content_helper.convertResultToObject("uci.dhcp.host.", reservedIPList) or {}\
+    for _, v in ipairs(reservedIPList) do\
+      if match(v.name, "^ReservedStatic") and v.mac == "" then\
+        if ip == v.ip then\
+          return nil, T"The IP is internally used for other services."\
+        end\
+      end\
+    end\
+    return true\
+  end\
+  return nil, T"Invalid input."\
+end\' -i /usr/lib/lua/web/post_helper.lua
+fi
+
+grep -q '^function M.validateDMZ' /usr/lib/lua/web/post_helper.lua
+if [ $? -eq 1 ];then
+  echo [$SCRIPT]: Add missing validateDMZ post_helper function
+  sed -e '/^return M$/i\
+--- Validator that will check whether the given IP address is in Network Range.\
+--- Validate the given IP address is not in the Reserved IP list.\
+-- @return true or nil+error message\
+function M.validateDMZ(value, object)\
+  local network = {\
+    gateway_ip = "uci.network.interface.@lan.ipaddr",\
+    netmask = "uci.network.interface.@lan.netmask",\
+  }\
+  if object.DMZ_enable == "1" then\
+    content_helper.getExactContent(network)\
+    local isDestIP, errormsg = post_helper.getValidateStringIsDeviceIPv4(network.gateway_ip, network.netmask)(value)\
+    if not isDestIP then\
+      return nil, errormsg\
+    end\
+    isDestIP, errormsg = post_helper.reservedIPValidation(value)\
+    if not isDestIP then\
+      return nil, errormsg\
+    end\
+    isDestIP, errormsg = post_helper.validateQTN(value)\
+    if not isDestIP then\
+      return nil, errormsg\
+    end\
+  end\
+  return true\
+end\' -i /usr/lib/lua/web/post_helper.lua
+fi
+
+grep -q '^function M.validateLXC' /usr/lib/lua/web/post_helper.lua
+if [ $? -eq 1 ];then
+  echo [$SCRIPT]: Add missing validateLXC post_helper function
+  sed -e '/^return M$/i\
+--- Validate the given IP/MAC is LXC''s IP/MAC\
+-- @param value IP/MAC address\
+-- @return true if the value is not an LXC''s IP/MAC Address\
+-- @return nil+error message if the given input is LXC''s IP/MAC Address\
+function M.validateLXC(value)\
+  if not value then\
+    return nil, "Invalid input"\
+  end\
+  local lxcMac = { mac = "uci.env.var.local_eth_mac_lxc" }\
+  local lxcAvailable = content_helper.getExactContent(lxcMac)\
+  if not lxcAvailable then\
+    return true\
+  end\
+  if M.validateStringIsMAC(value) then\
+    if lower(lxcMac.mac) == lower(value) then\
+      return nil, format(T"Cannot assign, %s in use by system.", value)\
+    end\
+    return true\
+  elseif inet.isValidIPv4(untaint(value)) then\
+    local lxcIP = content_helper.getMatchedContent("sys.proc.net.arp.",{ hw_address = lower(lxcMac.mac)})\
+    for _, v in ipairs(lxcIP) do\
+      if v.ip_address == value then\
+        return nil, format(T"Cannot assign, %s in use by system.", value)\
+      end\
+    end\
+    return true\
+  end\
+  return nil, T"Invalid input."\
+end\' -i /usr/lib/lua/web/post_helper.lua
+fi
+
