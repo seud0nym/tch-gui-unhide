@@ -41,7 +41,7 @@ cleanup() {
 }
 
 echo "${GREEN}Fixing line endings...${NC}"
-DOS=$(find . -type f | xargs file | grep CRLF | cut -d: -f1 | xargs)
+DOS=$(find . ../extras -type f | xargs file | grep CRLF | cut -d: -f1 | xargs)
 if [ -n "$DOS" ]
 then
   for f in $DOS
