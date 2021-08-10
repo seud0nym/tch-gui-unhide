@@ -63,7 +63,7 @@ if [ $RESTORE = y ]; then
     fi
   done
   uci commit web
-  sed -e '/lua_shared_dict *TGU_MbPS/d' -i /etc/nginx/nginx.conf
+  sed -e '/lua_shared_dict *TGU_/d' -i /etc/nginx/nginx.conf
   SRV_nginx=$(( $SRV_nginx + 1 ))
   apply_service_changes
   echo "************************************************************"

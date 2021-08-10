@@ -70,6 +70,13 @@ if [ $? -eq 1 ]; then
   SRV_nginx=$(( $SRV_nginx + 1 ))
 fi
 
+grep -q -E "lua_shared_dict *TGU_Theme" /etc/nginx/nginx.conf
+if [ $? -eq 1 ]; then
+  echo [$SCRIPT]: Creating shared dictionary for theme
+  sed -e '/^http/a\    lua_shared_dict TGU_Theme 10m;' -i /etc/nginx/nginx.conf
+  SRV_nginx=$(( $SRV_nginx + 1 ))
+fi
+
 echo [$SCRIPT]: Preserving password files and SSH configuration to prevent root loss on RTFD
 for f in /etc/passwd /etc/shadow /etc/config/dropbear /etc/dropbear/* /etc/rc.d/*dropbear
 do

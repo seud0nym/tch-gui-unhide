@@ -25,6 +25,7 @@ local theme_colours = {
     {"purple", T"Purple"},
     {"red", T"Red"},
     {"monochrome", T"Monochrome"},
+    {"MONOCHROME", T"Monochrome (with Monochrome charts)"},
 }
 local card_icons_options = {
     {"visible", T"Visible"},
@@ -312,11 +313,13 @@ ngx.print('\
           }
 
           local html = {}
-          html[#html + 1] = ui_helper.createAlertBlock(T"You can also adjust card visibility and sequencing using the <b>tch-gui-unhide-cards</b> command line utility.",alert_info)
-    
+          html[#html + 1] = ui_helper.createAlertBlock(T"The CPU and RAM charts depend on the "..card_titles.gateway.." card, and the WAN charts depend on the "..card_titles.broadband.." card. Hiding the base cards will also hide their dependents.",alert_info)
+          html[#html + 1] = '<fieldset>'
           for _,v in pairs(cards) do
             html[#html + 1] = ui_helper.createSwitch(T(v[3]), v[2], theme_settings[v[2]], on_off_attr)
           end
+          html[#html + 1] = '</fieldset>'
+          html[#html + 1] = ui_helper.createAlertBlock(T"You can also adjust card visibility and sequencing using the <b>tch-gui-unhide-cards</b> command line utility.",alert_info)
           ngx.print(html)
           ngx.print('\
       </fieldset>\

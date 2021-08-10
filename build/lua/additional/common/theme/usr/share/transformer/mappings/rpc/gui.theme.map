@@ -98,7 +98,7 @@ GUI_THEME_.set = {
     end
   end,
   COLOR = function(mapping,param,value,key)
-    if value == "blue" or value == "green" or value == "orange" or value == "purple" or value == "red" or value == "monochrome" then
+    if value == "blue" or value == "green" or value == "orange" or value == "purple" or value == "red" or value == "monochrome"  or value == "MONOCHROME" then
       return setPreference("COLOR", value)
     else
       return nil, "Invalid color '" .. value .. "'"

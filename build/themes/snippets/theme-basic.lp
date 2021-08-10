@@ -3,7 +3,7 @@
 gettext.textdomain('webui-core')
 
 local content_helper = require("web.content_helper")
-local format = string.format
+local find, format, lower = string.find, string.format, string.lower
 local favicon = '<link href="/img/%sfavicon.ico" rel="shortcut icon" type="image/x-icon"/>'
 local stylesheet = '<link href="/css/%s%s" rel="stylesheet">'
 
@@ -20,17 +20,17 @@ local html = {}
 html[#html+1] = format(stylesheet, "icons-" .. settings["ICONS"], ".css")
 html[#html+1] = format(stylesheet, "common-override", ".css")
 
-if settings["THEME"]:find("^telstra") then
+if find(settings["THEME"],"^telstra") then
   html[#html+1] = format(favicon, "telstra/")
   html[#html+1] = format(stylesheet, "telstra", "/colour-text.css")
 else
   html[#html+1] = format(stylesheet, "common-basic-override", ".css")
   html[#html+1] = format(favicon, "")
-  if settings["COLOR"] ~= "monochrome" then
+  if lower(settings["COLOR"]) ~= "monochrome" then
     html[#html+1] = format(stylesheet, "colour-" .. settings["COLOR"], ".css")
   end
   html[#html+1] = format(stylesheet, settings["THEME"], "/colour-text.css")
-  if settings["COLOR"] == "monochrome" then
+  if lower(settings["COLOR"]) == "monochrome" then
     html[#html+1] = format(stylesheet, settings["THEME"], "/colour-monochrome.css")
   end
   html[#html+1] = format(stylesheet, settings["THEME"], "/basic-override.css")
