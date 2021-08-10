@@ -197,7 +197,7 @@ then
   if [ -f $TARGET/$VARIANT-$SERIAL-config.gz ]
   then
     FIX_VER=$(cat $TARGET/$VARIANT-$SERIAL-config.gz | gunzip | grep 'marketing_version' | cut -d"'" -f2)
-    if [ ! -z "$FIX_VER" ]
+    if [ -n "$FIX_VER" ]
     then
       $LOGGER user.info "RENAMING existing configuration backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-config.gz"
       mv $TARGET/$VARIANT-$SERIAL-config.gz $TARGET/$VARIANT-$SERIAL-$FIX_VER-config.gz
@@ -220,7 +220,7 @@ then
   if [ -f $TARGET/$VARIANT-$SERIAL-env ]
   then
     FIX_VER=$(grep env.var.friendly_sw_version_activebank $TARGET/$VARIANT-$SERIAL-env | cut -d"'" -f2 | cut -d- -f1)
-    if [ ! -z "$FIX_VER" ]
+    if [ -n "$FIX_VER" ]
     then
       $LOGGER user.info "RENAMING existing environment backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-env"
       mv $TARGET/$VARIANT-$SERIAL-env $TARGET/$VARIANT-$SERIAL-$FIX_VER-env
@@ -239,7 +239,7 @@ then
   if [ -f $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz ]
   then
     FIX_VER=$(cat $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz | tar  -xzOf - ./bank_2/etc/config/version | grep 'marketing_version' | cut -d"'" -f2 )
-    if [ ! -z "$FIX_VER" ]
+    if [ -n "$FIX_VER" ]
     then
       $LOGGER user.info "RENAMING existing overlay contents backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-overlay-files-backup.tgz"
       mv $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz $TARGET/$VARIANT-$SERIAL-$FIX_VER-overlay-files-backup.tgz
@@ -272,7 +272,7 @@ do
     SHA256OLD=""
   fi
 
-  if [ "$dev" = "mtd0" -a $MTD0 = N -a ! -z "$SHA256SRC" -a ! -z "$SHA256OLD" -a -f $TARGET/$VARIANT-$dev-$name.img.gz ]
+  if [ "$dev" = "mtd0" -a $MTD0 = N -a -n "$SHA256SRC" -a -n "$SHA256OLD" -a -f $TARGET/$VARIANT-$dev-$name.img.gz ]
   then
     $LOGGER user.info "SKIPPED backup of $dev - Already exists and -0 option specified"
     continue
@@ -302,7 +302,7 @@ do
       [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256
     fi
   else
-    if [ ! -z "$SHA256SRC" ]
+    if [ -n "$SHA256SRC" ]
     then
       [ $DEBUG = Y ] && $LOGGER user.debug "DELETING obsolete $SHA256SRC"
       rm $SHA256SRC

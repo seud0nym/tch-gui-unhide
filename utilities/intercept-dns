@@ -265,7 +265,7 @@ else
   uci set firewall.dns_masq.target='MASQUERADE'
   uci set firewall.dns_masq.enabled='1'
 fi
-if [ ! -z "$EXC_IP4" ]; then
+if [ -n "$EXC_IP4" ]; then
   echo -e "${GREEN}[$SCRIPT]  - Excluding IP Addresses: $EXC_IP4${NC}"
   for ip in $EXC_IP4
   do
@@ -274,7 +274,7 @@ if [ ! -z "$EXC_IP4" ]; then
 fi
 
 # Filter DoT traffic
-if [ ! -z "$EXC_IP4" ]; then
+if [ -n "$EXC_IP4" ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring IPv4 DNS over TLS acceptance for excluded addresses${NC}"
   uci set firewall.dot_fwd_xcptn='rule'
   uci set firewall.dot_fwd_xcptn.name='Allow-DoT'
@@ -341,7 +341,7 @@ END-RESTORE
 chmod +x /usr/sbin/ipsets-restore
 
 # Filter DoH traffic
-if [ ! -z "$EXC_IP4" ]; then
+if [ -n "$EXC_IP4" ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring IPv4 DNS over HTTPS acceptance for excluded addresses${NC}"
   uci set firewall.doh_fwd_xcptn='rule'
   uci set firewall.doh_fwd_xcptn.name='Allow-DoH'

@@ -148,10 +148,10 @@ if [ $RESTORE = n ]; then
   fi
   echo -e " - ${ORANGE}DISABLE the Backhaul SSID${NC}"
   echo -e " - ${ORANGE}DISABLE QoS${NC}"
-  if [ ! -z $UHTTPD ]; then
+  if [ -n $UHTTPD ]; then
   echo -e " - ${ORANGE}DISABLE DumaOS UHTTP daemon${NC}"
   fi
-  if [ ! -z $NDHTTPD ]; then
+  if [ -n $NDHTTPD ]; then
   echo -e " - ${ORANGE}DISABLE DumaOS NDHTTP daemon${NC}"
   fi
   if [ $LAN_IP_ADDR != $IP_ADDR ]; then
@@ -235,11 +235,11 @@ if [ $RESTORE = n ]; then
   done
   uci commit qos
 
-  if [ ! -z $UHTTPD ]; then
+  if [ -n $UHTTPD ]; then
     echo -e "${ORANGE}Disabling DumaOS UHTTP daemon${NC}"
     $UHTTPD disable
   fi
-  if [ ! -z $NDHTTPD ]; then
+  if [ -n $NDHTTPD ]; then
     echo -e "${ORANGE}Disabling DumaOS NDHTTP daemon${NC}"
     $NDHTTPD disable
   fi
@@ -311,11 +311,11 @@ if [ $RESTORE = n ]; then
     /etc/init.d/intercept stop
     echo -e "${ORANGE}Applying QoS changes...${NC}"
     /etc/init.d/qos restart
-    if [ ! -z $UHTTPD ]; then
+    if [ -n $UHTTPD ]; then
       echo -e "${ORANGE}Stopping DumaOS UHTTP daemon...${NC}"
       $UHTTPD stop
     fi
-    if [ ! -z $NDHTTPD ]; then
+    if [ -n $NDHTTPD ]; then
       echo -e "${ORANGE}Stopping DumaOS NDHTTP daemon${NC}"
       $NDHTTPD stop
     fi
@@ -348,10 +348,10 @@ else # RESTORE
   fi
   echo -e " - ${ORANGE}REMOVE LAN DNS"
   echo -e " - ${ORANGE}REMOVE LAN Gateway IP address"
-  if [ ! -z $UHTTPD ]; then
+  if [ -n $UHTTPD ]; then
   echo -e " - ${GREEN}ENABLE DumaOS UHTTP daemon${NC}"
   fi
-  if [ ! -z $NDHTTPD ]; then
+  if [ -n $NDHTTPD ]; then
   echo -e " - ${GREEN}ENABLE DumaOS NDHTTP daemon${NC}"
   fi
   echo -e " - ${GREEN}ENABLE QoS${NC}"
@@ -472,11 +472,11 @@ else # RESTORE
   done
   uci commit dhcp
 
-  if [ ! -z $UHTTPD ]; then
+  if [ -n $UHTTPD ]; then
     echo -e "${GREEN}Enabling DumaOS UHTTP daemon${NC}"
     $UHTTPD enable
   fi
-  if [ ! -z $NDHTTPD ]; then
+  if [ -n $NDHTTPD ]; then
     echo -e "${GREEN}Enabling DumaOS NDHTTP daemon${NC}"
     $NDHTTPD enable
   fi
@@ -536,11 +536,11 @@ else # RESTORE
     /etc/init.d/intercept restart
     echo -e "${GREEN}Applying QoS changes...${NC}"
     /etc/init.d/qos restart
-    if [ ! -z $UHTTPD ]; then
+    if [ -n $UHTTPD ]; then
       echo -e "${GREEN}Starting DumaOS UHTTP daemon...${NC}"
       $UHTTPD start
     fi
-    if [ ! -z $NDHTTPD ]; then
+    if [ -n $NDHTTPD ]; then
       echo -e "${GREEN}Starting DumaOS NDHTTP daemon${NC}"
       $NDHTTPD start
     fi

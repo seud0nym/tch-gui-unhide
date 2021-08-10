@@ -41,7 +41,7 @@ SRV_transformer=$(( $SRV_transformer + 1 ))
 SRV_firewall=0
 # Version 2021.02.22 set an incorrect value for synflood_rate, so have to fix it
 synflood_rate="$(uci -q get firewall.@defaults[0].synflood_rate)" 
-if [ ! -z "$synflood_rate" ]; then
+if [ -n "$synflood_rate" ]; then
   echo $synflood_rate | grep -q -E '^[0-9]+/s$'
   if [ $? = 1 ]; then
     synflood_rate="$(echo $synflood_rate | grep -o -E '^[0-9]+')" 
@@ -50,7 +50,7 @@ if [ ! -z "$synflood_rate" ]; then
   fi
 fi
 # Version 2021.02.22 allowed setting of tcp_syncookies but it is not enabled in kernel, so have to remove it
-if [ ! -z "$(uci -q get firewall.@defaults[0].tcp_syncookies)" ]; then
+if [ -n "$(uci -q get firewall.@defaults[0].tcp_syncookies)" ]; then
   uci -q delete firewall.@defaults[0].tcp_syncookies
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi

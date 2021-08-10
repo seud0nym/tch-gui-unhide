@@ -47,14 +47,14 @@ if [ $RESTORE = y ]; then
   for s in $(echo $RULES | tr " " "\n" | grep -v dumaos | sort -u)
   do
     TARGET=$(uci -q get web.$s.target)
-    if [ ! -z "$TARGET" -a ":$TARGET" != ":/" -a ! -f /www/docroot$TARGET -a ! -f /www$TARGET -a ! -f /www/docroot/ajax$TARGET ]; then
+    if [ -n "$TARGET" -a ":$TARGET" != ":/" -a ! -f /www/docroot$TARGET -a ! -f /www$TARGET -a ! -f /www/docroot/ajax$TARGET ]; then
       echo [$SCRIPT]: Removing config entry web.$s
       uci -q delete web.$s
       uci -q del_list web.ruleset_main.rules="$s"
       SRV_nginx=$(( $SRV_nginx + 2 ))
     else
       ROLE=$(uci -q get web.$s.roles)
-      if [ ! -z "$ROLE" -a "$ROLE" = "nobody" ]; then
+      if [ -n "$ROLE" -a "$ROLE" = "nobody" ]; then
         echo [$SCRIPT]: Resetting admin role on config entry web.$s.roles
         uci -q delete web.$s.roles
         uci add_list web.$s.roles="admin"

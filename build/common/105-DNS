@@ -3,7 +3,7 @@ then
   echo [$SCRIPT]: Adding custom IPv4 DNS Servers
   sed -e 's/\r//g' ipv4-DNS-Servers | sort -r | while read -r host ip
   do 
-    if [ ! -z "$ip" ]
+    if [ -n "$ip" ]
     then 
       sed -e "/127.0.0.1/a\    {\"$ip\", T\"$host ($ip)\"}," -i /www/docroot/modals/ethernet-modal.lp
     fi
@@ -15,7 +15,7 @@ then
   echo [$SCRIPT]: Adding custom IPv6 DNS Servers
   sed -e 's/\r//g' ipv6-DNS-Servers | sort | while read -r host ip
   do 
-    if [ ! -z "$ip" ]
+    if [ -n "$ip" ]
     then 
       ipv6=$(echo $ip  | tr ':' '-')
       sed -e "/2001-4860-4860--8888/i\    {\"$ipv6\", T\"$host ($ip)\"}," -i /www/docroot/modals/ethernet-modal.lp

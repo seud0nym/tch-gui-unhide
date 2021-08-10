@@ -35,7 +35,7 @@ echo "[$SCRIPT]:  - The GUI screens will be prettied up a bit and the $THEME the
 if [ -f /www/docroot/landingpage.lp ]; then
 echo "[$SCRIPT]:  - The Telstra Landing Page will be $(echo $KEEPLP | sed -e 's/y/left UNCHANGED/' -e 's/n/themed and de-branded/')"
 fi
-if [ ! -z "$TITLE" ]; then
+if [ -n "$TITLE" ]; then
 echo "[$SCRIPT]:  - The browser tabs titles will be set to $TITLE"
 fi
 if [ "$SIP_PWDS" = y ]; then

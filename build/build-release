@@ -19,7 +19,7 @@ fi
 
 echo Fixing utilities line endings...
 DOS=$(find ../utilities/ -type f | xargs file | grep CRLF | cut -d: -f1 | xargs)
-if [ ! -z "$DOS" ]
+if [ -n "$DOS" ]
 then
   for f in $DOS
   do

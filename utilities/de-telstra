@@ -591,7 +591,7 @@ if [ $? -eq 0 ]; then
           echo -e "[$SCRIPT]: \033[1;31mWARNING! Invalid IP address $WANDNS1 IGNORED\033[0m"
           WANDNS1=""
         fi
-        if [ ! -z "$WANDNS2" ]; then
+        if [ -n "$WANDNS2" ]; then
           echo "$WANDNS2" | grep -q -E $IPv4PATTERN
           if [ $? -eq 1 ]; then
             echo -e "[$SCRIPT]: \033[1;31mWARNING! Invalid IP address $WANDNS2 IGNORED\033[0m"
@@ -613,11 +613,11 @@ if [ $? -eq 0 ]; then
           else
             uci -q delete network.wan.dns
             SRV_network=$(( $SRV_network + 2 ))
-            if [ ! -z "$WANDNS1" ]; then
+            if [ -n "$WANDNS1" ]; then
               uci add_list network.wan.dns="$WANDNS1"
               SRV_network=$(( $SRV_network + 1 ))
             fi
-            if [ ! -z "$WANDNS2" ]; then
+            if [ -n "$WANDNS2" ]; then
               uci add_list network.wan.dns="$WANDNS2"
               SRV_network=$(( $SRV_network + 1 ))
             fi
@@ -749,7 +749,7 @@ else
   for iface in $(uci show wireless | grep ssid= | grep -v -E \(Guest\|BH-\) | cut -d. -f2)
   do
     ap="$(uci show wireless | grep =\'$iface\' | cut -d. -f2)"
-    if [ ! -z "$ap" ]; then
+    if [ -n "$ap" ]; then
       wps_state="$(uci -q get wireless.$ap.wps_state)"
       if [ "$wps_state" = "$WPS" ]; then
         echo [$SCRIPT]: WPS State unchanged on SSID $(uci get wireless.$iface.ssid) \[$(status2text $WPS)\]
@@ -1057,7 +1057,7 @@ if [ $GUEST = n ]; then
     done
 
     fw=$(uci show firewall | grep -m1 -E "'$nwname'|'$ipaddr'" | cut -d. -f1-2)
-    while [ ! -z "$fw" ]
+    while [ -n "$fw" ]
     do
       uci -q delete $fw
       SRV_fw=$(( $SRV_fw + 1 ))
@@ -1143,7 +1143,7 @@ echo [$SCRIPT]: Applying required service changes...
   [ ! -e /etc/ipsec.conf ] && { /etc/init.d/xl2tpd disable; /etc/init.d/xl2tpd stop; } > /dev/null 2>&1
 }
 
-if [ ! -z "$PACKAGES_TO_REMOVE" ]; then
+if [ -n "$PACKAGES_TO_REMOVE" ]; then
   echo [$SCRIPT]: Removing packages that are no longer required \($PACKAGES_TO_REMOVE\)
   opkg --force-removal-of-dependent-packages remove $PACKAGES_TO_REMOVE
 fi

@@ -102,7 +102,7 @@ done
 MOUNT_PATH=$(uci get mountd.mountd.path)
 USB="$(ls $MOUNT_PATH | head -n1)"
 
-if [ ! -z "$BKUP" ]; then
+if [ -n "$BKUP" ]; then
   if [ -z "$USB" ]; then
     echo -e "${ORANGE}WARNING: Backup requested, but no attached USB device found!${NC}"
     echo "         Are you REALLY sure you wish to proceed?"
@@ -116,7 +116,7 @@ else
 fi
 
 RBI=n
-if [ ! -z "$FIRMWARE" ]; then
+if [ -n "$FIRMWARE" ]; then
   if [ -f "$FIRMWARE" ]; then
     if [ "$ACTIVE" = "bank_1" -a "$BOOTED" = "bank_2" ]; then
       echo "$FIRMWARE" | grep -q -E '\.rbi$'
@@ -148,7 +148,7 @@ fi
 
 echo -e "NOTE:    root access will be preserved. root password will be reset to '${GREEN}${ROOTPWD}${NC}'"
 LAN_CFG="echo 'Configuring root SSH access'"
-if [ ! -z "$IPADDR" ]; then
+if [ -n "$IPADDR" ]; then
   IPPREFIX="$(echo $IPADDR | cut -d. -f1-3)"
   for GUESTIP in $(uci show network | grep "network\.Guest.*ipaddr=" | cut -d"'" -f2 | cut -d. -f1-3 | sort -u)
   do
@@ -160,15 +160,15 @@ if [ ! -z "$IPADDR" ]; then
   echo -e "NOTE:    IP address will be set to '${GREEN}$IPADDR${NC}'"
   LAN_CFG="echo 'Setting LAN IP address to $IPADDR';uci set network.lan.ipaddr='$IPADDR';uci commit network;/etc/init.d/network reload;"
 fi
-if [ ! -z "$CWMP" ]; then
+if [ -n "$CWMP" ]; then
   echo -e "NOTE:    CWMP will be ${ORANGE}stopped${NC} during the reboot"
   CWMP_CFG="echo 'Disabling CWMP';uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop;"
 fi
-if [ ! -z "$NOEXEC" ]; then
+if [ -n "$NOEXEC" ]; then
   echo -e "NOTE:    Any 'noexec' flags will be ${GREEN}removed${NC} from USB filesystem mounts after reset"
   NOEXEC_CFG="echo 'Removing noexec mount flags';sed -e 's/noexec,//' -e 's/,noexec//' -i /etc/config/mountd"
 fi
-if [ ! -z "$KEYS" ]; then
+if [ -n "$KEYS" ]; then
   echo -e "NOTE:    SSH keys will be ${GREEN}restored${NC} after reset:"
   KEYS_CFG="echo 'Restoring SSH keys';echo '$(tar -czvf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
   echo
@@ -218,7 +218,7 @@ then
   fi
 fi
 
-if [ ! -z "$USB" -a ! -z "$SOURCE" -a ! -z "$TARGET" ]
+if [ -n "$USB" -a -n "$SOURCE" -a -n "$TARGET" ]
 then
   echo "Backing up $SOURCE to $TARGET ..."
   tar -C /overlay -czf $TARGET $SOURCE
@@ -266,7 +266,7 @@ if [ $VERBOSE = Y ]; then
   echo -e "${NC}"
 fi
 
-if [ ! -z "$FIRMWARE" ]; then
+if [ -n "$FIRMWARE" ]; then
   echo -e "${GREEN}Writing $FIRMWARE into $(cat /proc/banktable/booted)...${NC}"
   mtd write "$FIRMWARE" $(cat /proc/banktable/booted)
 fi

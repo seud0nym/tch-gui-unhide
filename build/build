@@ -35,18 +35,18 @@ DIR=$(pwd)
 cleanup() {
   for f in $1 $2 $3 $4 $5 $6 $7 $8 $9
   do
-    [ ! -z "$DEBUG" ] && echo " - Deleting $f"
+    [ -n "$DEBUG" ] && echo " - Deleting $f"
     rm -rf $f
   done
 }
 
 echo "${GREEN}Fixing line endings...${NC}"
 DOS=$(find . -type f | xargs file | grep CRLF | cut -d: -f1 | xargs)
-if [ ! -z "$DOS" ]
+if [ -n "$DOS" ]
 then
   for f in $DOS
   do
-    [ ! -z "$DEBUG" ] && echo $f
+    [ -n "$DEBUG" ] && echo $f
     dos2unix $f
   done
   find . -name 'd2utmp*' -exec rm -f {} \;
@@ -62,12 +62,12 @@ echo "" >> /tmp/themes.b64
 
 for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1)
 do
-  if [ ! -z "$1" -a "$1" != "$MAJOR" ]
+  if [ -n "$1" -a "$1" != "$MAJOR" ]
   then
     continue
   fi
 
-  [ ! -z "$DEBUG" ] && echo Cleaning up..
+  [ -n "$DEBUG" ] && echo Cleaning up..
   cleanup /tmp/tch-gui-unhide/$MAJOR/*
 
   echo "${GREEN}Combining source files into single tree for $MAJOR...${NC}"
@@ -76,23 +76,23 @@ do
   for d in $(echo | cat common/$SOURCE - $MAJOR/$SOURCE 2>/dev/null | sort -u)
   do
     if [ -d lua/ansuel/$d ]; then
-      [ ! -z "$DEBUG" ] && echo Copying lua/ansuel/$d to /tmp/tch-gui-unhide/$MAJOR/
+      [ -n "$DEBUG" ] && echo Copying lua/ansuel/$d to /tmp/tch-gui-unhide/$MAJOR/
       tar --exclude README.md -cf - -C lua/ansuel/$d/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
     fi
     if [ -d lua/additional/common/$d ]; then
-      [ ! -z "$DEBUG" ] && echo Copying lua/additional/common/$d to /tmp/tch-gui-unhide/$MAJOR/
+      [ -n "$DEBUG" ] && echo Copying lua/additional/common/$d to /tmp/tch-gui-unhide/$MAJOR/
       tar --exclude README.md -cf - -C lua/additional/common/$d/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
     fi
   done
   if [ -d lua/additional/$MAJOR ]; then
-    [ ! -z "$DEBUG" ] && echo Copying lua/additional/$MAJOR to /tmp/tch-gui-unhide/$MAJOR/
+    [ -n "$DEBUG" ] && echo Copying lua/additional/$MAJOR to /tmp/tch-gui-unhide/$MAJOR/
     tar --exclude README.md --exclude .include -cf - -C lua/additional/$MAJOR/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
   fi
   if [ -e lua/additional/$MAJOR/.include ]; then
     for f in $(cat lua/additional/$MAJOR/.include | grep -v '^#')
     do
       p="$(echo $f | tr : ' ')"
-      [ ! -z "$DEBUG" ] && echo Copying $p to /tmp/tch-gui-unhide/$MAJOR/
+      [ -n "$DEBUG" ] && echo Copying $p to /tmp/tch-gui-unhide/$MAJOR/
       tar --exclude README.md --transform='s/^\.\.\/[^\/]*//' -cf - -C $p | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
     done
   fi
@@ -102,7 +102,7 @@ do
   rm $TARGET
   for a in $(find /tmp/tch-gui-unhide/$MAJOR/www/docroot/ajax -type f | sort)
   do
-    [ ! -z "$DEBUG" ] && echo $a
+    [ -n "$DEBUG" ] && echo $a
     AJAX=$(basename $a)
     RULE="$(basename $a .lua | sed -e 's/-//g')ajax"
     echo "if [ \"\$(uci -q get web.$RULE)\" != \"rule\" ]" >> $TARGET
@@ -135,13 +135,13 @@ do
 
   for s in $(find common $MAJOR -type f -a ! -name .do-not-delete ! -name .include -printf '%f/%h\n' | cat - $MAJOR/.include 2>/dev/null | grep -v '^#' | sort)
   do
-    [ ! -z "$DEBUG" ] && echo "Processing $s"
+    [ -n "$DEBUG" ] && echo "Processing $s"
     FILENAME="$(echo $s | cut -d/ -f1)"
     SEQUENCE="$(echo $FILENAME | cut -d- -f1)"
     DIRECTORY="$(echo $s | cut -d/ -f2-)"
     if [ $FILENAME = "055-Additional" ]; then
       if [ $DIRECTORY = "common" ]; then
-        [ ! -z "$DEBUG" ] && echo " - Compressing and appending /tmp/tch-gui-unhide/$MAJOR"
+        [ -n "$DEBUG" ] && echo " - Compressing and appending /tmp/tch-gui-unhide/$MAJOR"
         echo "echo BLD@\$(date +%H:%M:%S): Deploying modified GUI code" >> $TARGET
         echo "echo '$(tar --owner=root --group=root -cf - -C /tmp/tch-gui-unhide/$MAJOR . | bzip2 --best | base64)' | base64 -d | bzcat | tar -xf - -C /" >> $TARGET
         echo >> $TARGET
@@ -149,11 +149,11 @@ do
     else
       if [ $FILENAME = "165-Themes" ]; then
         if [ $DIRECTORY = "common" ]; then
-          [ ! -z "$DEBUG" ] && echo " - Appending /tmp/themes.b64"
+          [ -n "$DEBUG" ] && echo " - Appending /tmp/themes.b64"
           sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" /tmp/themes.b64 >> $TARGET
         fi
       elif [ $FILENAME = "200-Services" ]; then
-        [ ! -z "$DEBUG" ] && echo " - Adding version to copyright and auto-refreshing cache"
+        [ -n "$DEBUG" ] && echo " - Adding version to copyright and auto-refreshing cache"
         echo "if [ \$THEME_ONLY = n ]; then" >> $TARGET
         echo "  MKTING_VERSION=\$(uci get version.@version[0].marketing_name)" >> $TARGET
         echo "  echo BLD@\$(date +%H:%M:%S): Adding tch-gui-unhide version to copyright" >> $TARGET
@@ -169,7 +169,7 @@ do
         echo "fi" >> $TARGET
         echo >> $TARGET
       fi
-      [ ! -z "$DEBUG" ] && echo " - Appending $DIRECTORY/$FILENAME"
+      [ -n "$DEBUG" ] && echo " - Appending $DIRECTORY/$FILENAME"
       sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
     fi
   done

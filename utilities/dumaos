@@ -17,7 +17,7 @@ exit
 }
 
 ENABLED="$(uci -q get dumaos.tr69.dumaos_enabled)"
-if [ -f /etc/init.d/dumaos -a ! -z "$ENABLED" ]
+if [ -f /etc/init.d/dumaos -a -n "$ENABLED" ]
 then
   while getopts :onff option
   do

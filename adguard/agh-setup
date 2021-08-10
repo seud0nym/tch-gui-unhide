@@ -135,7 +135,7 @@ configure_dnmasq() {
   uci set network.wan.peerdns="$PEER_DNS"
   uci -q delete network.wan.dns
 
-  if [ ! -z "$IPv6" ]; then
+  if [ -n "$IPv6" ]; then
     echo -e "${GREEN}[$SCRIPT] Configuring IPv6 DNS...${NC}"
     uci set network.wan6.peerdns="$PEER_DNS"
     for addr in $IPv6
@@ -185,7 +185,7 @@ if [ $REMOVE = Y ]; then
     if [ $DEL_AGH = Y ]; then
       echo -e "${GREEN}[$SCRIPT] Deleting AdGuard Home installation...${NC}"
       rm -rf $(dirname $AGH_CMD)
-      [ ! -z "$(echo $AGH_CMD | grep -E '^/root')" ] && rm -rf /tmp/data /tmp/AdGuardHome.yaml leases.db 2>/dev/null
+      [ -n "$(echo $AGH_CMD | grep -E '^/root')" ] && rm -rf /tmp/data /tmp/AdGuardHome.yaml leases.db 2>/dev/null
     fi
 
     if [ -e /etc/init.d/sync-adguard-home-data ]; then
@@ -330,7 +330,7 @@ if [ $EXTERNAL = N ]; then
   fi
 fi
 
-if [ -z "$PWD_HASH" -a ! -z "$PASSWORD" ]; then
+if [ -z "$PWD_HASH" -a -n "$PASSWORD" ]; then
   echo -e "${GREEN}[$SCRIPT] Generating password hash...${NC}"
   results=$(lua -e "
     dkjson=require('dkjson')
@@ -461,7 +461,7 @@ NETMASK=$2
 DHCPv4_START=$3
 DHCPv4_END=$4
 LEASE_TIME=$5
-if [ ! -z "$6" ]; then
+if [ -n "$6" ]; then
   DHCPv6_START="$(echo $6 | sed -e 's/:$/:1/')"
   SLAAC="true"
 else
@@ -662,7 +662,7 @@ configure_dnmasq() {
   uci set network.wan.peerdns="$PEER_DNS"
   uci -q delete network.wan.dns
 
-  if [ ! -z "$IPv6" ]; then
+  if [ -n "$IPv6" ]; then
     uci set network.wan6.peerdns="$PEER_DNS"
     for addr in $IPv6
     do
@@ -774,7 +774,7 @@ if [ $AGH_RUNNING = 'true' ]; then
     SLEASE_MAC="$(uci -q get $host.mac)"
     SLEASE_IP="$(uci -q get $host.ip)"
     SLEASE_NAME="$(uci -q get $host.name)"
-    if [ ! -z "$SLEASE_IP" -a ! -z "$SLEASE_MAC" -a ! -z "$SLEASE_NAME" ]; then
+    if [ -n "$SLEASE_IP" -a -n "$SLEASE_MAC" -a -n "$SLEASE_NAME" ]; then
       echo -e "[$SCRIPT] Loading static lease for $SLEASE_IP ($SLEASE_MAC - $SLEASE_NAME)"
       curl -u $USERNAME:$PASSWORD -X POST --data "{ \"mac\":\"$SLEASE_MAC\", \"ip\":\"$SLEASE_IP\", \"hostname\":\"$SLEASE_NAME\" }" http://${GATEWAY}:8008/control/dhcp/add_static_lease
     else

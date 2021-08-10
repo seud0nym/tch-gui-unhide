@@ -1,0 +1,4 @@
+opkg install strongswan-default strongswan-mod-eap-mschapv2 strongswan-mod-dhcp strongswan-mod-farp
+
+
+ opkg list-installed | grep -E "$(echo $(find /rom/usr/lib/opkg/info/*.control  -exec basename {} .control \;;find /usr/lib/ipk -type f -exec basename {} \; | cut -d_ -f1)| xargs | sed -e 's/ /|/g')"

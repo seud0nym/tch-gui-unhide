@@ -70,7 +70,7 @@ do
   CARDRULE=$(uci show web | grep "^web\.card_.*${CARDFILE#*_}" | cut -d. -f2)
   if [ "$CARD" = "016_speedservice.lp" ]; then
     rm $CARDFILE
-    if [ ! -z "$CARDRULE" ]; then
+    if [ -n "$CARDRULE" ]; then
       uci -q delete web.${CARDRULE}
     fi
     continue
@@ -84,7 +84,7 @@ do
     uci set web.${CARDRULE}=card
     uci set web.${CARDRULE}.card="$CARD"
     uci set web.${CARDRULE}.hide='0'
-    if [ ! -z "$MODAL" ]; then
+    if [ -n "$MODAL" ]; then
       uci set web.${CARDRULE}.modal="$(uci show web | grep $MODAL | grep -m 1 -v card_ | cut -d. -f2)"
     fi
     SRV_nginx=$(( $SRV_nginx + 1 ))
