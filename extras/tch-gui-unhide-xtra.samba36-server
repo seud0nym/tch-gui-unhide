@@ -1,5 +1,12 @@
 #!/bin/sh
 
+if [ "$(basename $0)" = "tch-gui-unhide-xtra.samba36-server" -o -z "$FW_BASE" ]; then
+  echo "ERROR: This script must NOT be executed!"
+  echo "       Place it in the same directory as tch-gui-unhide and it will"
+  echo "       be applied automatically when you run tch-gui-unhide."
+  exit
+fi
+
 # The tch-gui-unhide-xtra scripts should output a single line to indicate success or failure
 # as the calling script has left a hanging echo -n. Include a leading space for clarity.
 
@@ -28,8 +35,7 @@ if [ $? -eq 0 ]; then
     fi
 
     sed -e 's/"name" }/"name", "users" }/' -i /usr/share/transformer/mappings/uci/samba.map
-    if [ ! -f /usr/share/transformer/mappings/rpc/gui.samba.map ]
-    then
+    if [ ! -f /usr/share/transformer/mappings/rpc/gui.samba.map ]; then
       cat <<MAP > /usr/share/transformer/mappings/rpc/gui.samba.map
   local GUI_SAMBA_ = {
     objectType = {

@@ -1,13 +1,18 @@
 #!/bin/sh
 
+if [ "$(basename $0)" = "tch-gui-unhide-xtra.minidlna" -o -z "$FW_BASE" ]; then
+  echo "ERROR: This script must NOT be executed!"
+  echo "       Place it in the same directory as tch-gui-unhide and it will"
+  echo "       be applied automatically when you run tch-gui-unhide."
+  exit
+fi
+
 # The tch-gui-unhide-xtra scripts should output a single line to indicate success or failure
 # as the calling script has left a hanging echo -n. Include a leading space for clarity.
 
-if [ -f /etc/init.d/minidlna ]
-then
+if [ -f /etc/init.d/minidlna ]; then
   echo " Replacing dlnad with minidlna..."
-  if [ "$(uci get dlnad.config.enabled)" = "1" ]
-  then
+  if [ "$(uci get dlnad.config.enabled)" = "1" ]; then
     # Shut down dlnad
     uci set dlnad.config.enabled='0'
     uci commit dlnad
@@ -15,16 +20,14 @@ then
   fi
 
   # Create the commit/apply rules
-  if [ ! -f /usr/share/transformer/commitapply/uci_minidlna.ca ]
-  then
+  if [ ! -f /usr/share/transformer/commitapply/uci_minidlna.ca ]; then
     echo '^minidlna /etc/init.d/minidlna restart'>/usr/share/transformer/commitapply/uci_minidlna.ca
     chmod 644 /usr/share/transformer/commitapply/uci_minidlna.ca
     SRV_transformer=$(( $SRV_transformer + 1 ))
   fi
 
   # Create the UCI transformer mapping
-  if [ ! -f /usr/share/transformer/mappings/uci/minidlna.map ]
-  then
+  if [ ! -f /usr/share/transformer/mappings/uci/minidlna.map ]; then
     cat <<MAP > /usr/share/transformer/mappings/uci/minidlna.map
 local config_minidlna = "minidlna"
 
@@ -53,8 +56,7 @@ MAP
   fi
 
   # Create the mount hotplug to restart minidlna when USB added/removed
-  if [ ! -f /etc/hotplug.d/mount/00-minidlna ]
-  then
+  if [ ! -f /etc/hotplug.d/mount/00-minidlna ]; then
     cat<<"PLUG" > /etc/hotplug.d/mount/00-minidlna
 #!/bin/sh
 
@@ -190,8 +192,7 @@ PLUG
     -i /www/docroot/modals/contentsharing-modal.lp
 else
   grep -q '/var/run/minidlna_d.pid' /lib/functions/contentsharing.sh
-  if [ $? -ne 0 ]
-  then
+  if [ $? -ne 0 ]; then
     echo " minidlna removed - Restoring default content sharing functions"
     sed \
       -e 's|/etc/init.d/minidlna |/etc/init.d/minidlna-procd |' \
@@ -200,18 +201,15 @@ else
   else
     echo " SKIPPED because minidlna not installed"
   fi
-  if [ -f /usr/share/transformer/commitapply/uci_minidlna.ca ]
-  then
+  if [ -f /usr/share/transformer/commitapply/uci_minidlna.ca ]; then
     rm /usr/share/transformer/commitapply/uci_minidlna.ca
     SRV_transformer=$(( $SRV_transformer + 1 ))
   fi
-  if [ -f /usr/share/transformer/mappings/uci/minidlna.map ]
-  then
+  if [ -f /usr/share/transformer/mappings/uci/minidlna.map ]; then
     rm /usr/share/transformer/mappings/uci/minidlna.map
     SRV_transformer=$(( $SRV_transformer + 1 ))
   fi
-  if [ -f /etc/hotplug.d/mount/00-minidlna ]
-  then
+  if [ -f /etc/hotplug.d/mount/00-minidlna ]; then
     rm /etc/hotplug.d/mount/00-minidlna
   fi
 fi
