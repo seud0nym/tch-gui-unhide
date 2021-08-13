@@ -2,6 +2,7 @@
 .bbstats{margin:0px 0px -6px 20px;}
 .card_bg:after{visibility:var(--ICONS);}
 .card_bg.mirror:after{transform:matrix(-1,0,0,1,0,0);}
+.card-visibility-switch{float:left;width:25%;}
 .chartcard{position:relative;}
 .chartcard .chartdata{position:absolute;top:30px;right:10px;font-size:24px;}
 .chartcard .unit{font-size:xx-small;}
@@ -43,13 +44,13 @@ table[id^="helper"]>tbody>tr>td{text-transform:uppercase;}
 legend+.control-group{margin-top:unset;}
 u{text-decoration:none;}
 [class^="icon-"],[class*=" icon-"]{display:inline-block;width:18px;}
-@media screen and (min-width: 768px) and (max-width: 979px){
+@media screen and (min-width:768px) and (max-width:979px){
   .chartcard .chartdata{top:22px;}
   .smallcard .content{height:160px;}
   .smallcard .subinfos{margin-left:20px !important;}
   .span3 {width:47%;}
 }
-@media screen and (min-width: 1200px){
+@media screen and (min-width:1200px){
   #classify .additional-edit input.span1{width:200px;}
   #classify .additional-edit input.span2{width:450px;}
   #sipnet .span2{width:105px;}
@@ -58,4 +59,7 @@ u{text-decoration:none;}
   #sipProfileTable>tbody>tr>td:nth-child(3) input,#sipProfileTable>tbody>tr>td:nth-child(4) input{width:95px;}
   #sipProfileTable>tbody>tr>td:nth-child(5) input{width:150px;}
   #sipProfileTable>tbody>tr>td:nth-child(6) input{width:95px;}
+}
+@media screen and (min-width:1500px){
+  .card-visibility-switch{float:left;width:20%;}
 }

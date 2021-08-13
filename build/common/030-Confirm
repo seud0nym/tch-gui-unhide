@@ -31,20 +31,22 @@ fi
 echo "[$SCRIPT]:  - Allow editing of various settings that are not exposed in the stock GUI"
 echo "[$SCRIPT]:  - Unhide various cards and tabs contained in the stock GUI that are normally hidden"
 echo "[$SCRIPT]:  - Add new cards and screens, and modified cards and screens from the Ansuel tch-nginx-gui"
-echo "[$SCRIPT]:  - The GUI screens will be prettied up a bit and the $THEME theme applied with $COLOR highlights and $ICONS card icons"
-if [ -f /www/docroot/landingpage.lp ]; then
-echo "[$SCRIPT]:  - The Telstra Landing Page will be $(echo $KEEPLP | sed -e 's/y/left UNCHANGED/' -e 's/n/themed and de-branded/')"
+echo "[$SCRIPT]:  - Pretty up the GUI screens a bit"
+echo "[$SCRIPT]:  - Apply the $THEME theme with $COLOR highlights and $ICONS card icons"
+echo "[$SCRIPT]:  - Allow $ACROSS cards across the page on wide screens"
+if [ -f /www/docroot/landingpage.lp -a $KEEPLP = n ]; then
+echo "[$SCRIPT]:  - Theme and de-brand the Telstra Landing Page"
 fi
 if [ -n "$TITLE" ]; then
-echo "[$SCRIPT]:  - The browser tabs titles will be set to $TITLE"
+echo "[$SCRIPT]:  - Set the browser tabs titles to $TITLE"
 fi
 if [ "$SIP_PWDS" = y ]; then
 echo "[$SCRIPT]:  - SIP Profile passwords will be decrypted and displayed in text fields rather than password fields"
 fi
 if [ "$UPDATE_BTN" = y ]; then
-echo "[$SCRIPT]:  - New release checking is ENABLED and 'Update Available' will be shown in GUI when new version released"
+echo "[$SCRIPT]: New release checking is ENABLED and 'Update Available' will be shown in GUI when new version released"
 else
-echo "[$SCRIPT]:  - New release checking is DISABLED! 'Update Available' will NOT be shown in GUI when new version released"
+echo "[$SCRIPT]: New release checking is DISABLED! 'Update Available' will NOT be shown in GUI when new version released"
 fi
 
 echo [$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop.

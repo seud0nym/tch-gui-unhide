@@ -299,7 +299,7 @@ ngx.print('\
         ');
           local on_off_attr = {
             group = {
-              style = "float:left;width:25%;"
+              class = "card-visibility-switch"
             },
             values = {
               off = "1",

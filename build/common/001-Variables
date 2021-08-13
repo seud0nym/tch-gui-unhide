@@ -81,6 +81,13 @@ else
   SIP_PWDS=n
 fi
 
+grep -q '@media screen and (min-width:1200px) and (max-width:1499px){' /www/docroot/css/responsive.css
+if [ $? -eq 0 ]; then
+  ACROSS=5
+else
+  ACROSS=4
+fi
+
 INSTALLED_RELEASE="$(grep -o -m 1 -E '[0-9][0-9][0-9][0-9]\.[0-9][0-9]\.[0-9][0-9]@[0-9][0-9]:[0-9][0-9]:[0-9][0-9]' /usr/share/transformer/mappings/rpc/gui.map 2>/dev/null)"
 
 grep -q 'rpc.gui.UpdateAvailable' /www/docroot/gateway.lp

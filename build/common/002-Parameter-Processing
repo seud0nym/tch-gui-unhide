@@ -5,9 +5,10 @@ THEME_ONLY='n'
 
 FILENAME=$(basename $0)
 
-while getopts :c:d:f:h:i:l:p:rt:uv:yTVW option
+while getopts :a:c:d:f:h:i:l:p:rt:uv:yTVW option
 do
  case "${option}" in
+   a) if [ "${OPTARG}" -ge 4 -a "${OPTARG}" -le 6 ]; then ACROSS=$OPTARG; else echo "ERROR: Cards across must be either 4, 5 or 6"; exit 2; fi;;
    c) case "$(echo ${OPTARG} | sed 's/\(.\)\(.*\)/\1/')" in
         b) COLOR=blue;; 
         g) COLOR=green;; 
@@ -18,8 +19,8 @@ do
         M) COLOR=MONOCHROME;;
         *) echo "ERROR: Unknown color option - $OPTARG"; exit 2;;
       esac;;
-   d) case "${OPTARG}" in y|Y) FIX_DFLT_USR=y; DFLT_USR='admin';; n|N) FIX_DFLT_USR=y; DFLT_USR='';;  *) echo 'WARNING: -d valid options are y or n';; esac;;
-   f) case "${OPTARG}" in y|Y) FIX_FW_UPGRD=y; FW_UPGRD='1';;     n|N) FIX_FW_UPGRD=y; FW_UPGRD='0';; *) echo 'WARNING: -f valid options are y or n';; esac;;
+   d) case "${OPTARG}" in y|Y) FIX_DFLT_USR=y; DFLT_USR='admin';; n|N) FIX_DFLT_USR=y; DFLT_USR='';;  *) echo 'WARNING: -d valid options are y or n'; exit 2;; esac;;
+   f) case "${OPTARG}" in y|Y) FIX_FW_UPGRD=y; FW_UPGRD='1';;     n|N) FIX_FW_UPGRD=y; FW_UPGRD='0';; *) echo 'WARNING: -f valid options are y or n'; exit 2;; esac;;
    h) case "${OPTARG}" in
         d) TITLE="$VARIANT";;
         n) TITLE="$HOSTNAME";;
@@ -115,6 +116,8 @@ do
       echo " -v y|n           : Enable (y) check for new releases and show 'Update Available' button in GUI, or Disable (n)"
       echo "                     (Default is current setting or (y) for first time installs)"
       echo " Theme Options:"
+      echo " -a 4|5           : Set the number of cards across on screen width greater than 1200px"
+      echo "                     (Default is current setting, or 4 for first time installs)"
       echo " -c b|o|g|p|r|m|M : Set the theme highlight colour"
       echo "                     b=blue o=orange g=green p=purple r=red m=monochrome M=monochrome (with monochrome charts)"
       echo "                     (Default is current setting, or (m) for light theme or (b) for night theme)"
