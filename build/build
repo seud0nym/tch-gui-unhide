@@ -123,9 +123,10 @@ do
   sed -e "s/current_version = \"\"/current_version = \"$FULL_VERSION\"/" -i /tmp/tch-gui-unhide/$MAJOR/usr/share/transformer/mappings/rpc/gui.map
 
   echo "${GREEN}Fixing file and directory attributes...${NC}"
+  find /tmp/tch-gui-unhide/$MAJOR/ -type f \( -name '*.map' -o -name '*.lp' -o -name '*.lua' -o -name '*.js' \) -exec chmod 644 {} \;
+  find /tmp/tch-gui-unhide/$MAJOR/ -type f \( -name 'acme-ipsec.sh' \) -exec chmod 755 {} \;
+  find /tmp/tch-gui-unhide/$MAJOR/ -type d \( -name 'init.d' -o -name 'sbin' \) -exec chmod -R 755 {} \;
   find /tmp/tch-gui-unhide/$MAJOR/ -type d -exec chmod 755 {} \;
-  find /tmp/tch-gui-unhide/$MAJOR/ -type d -name 'init.d' -o -name 'sbin' -exec chmod -R 755 {} \;
-  find /tmp/tch-gui-unhide/$MAJOR/ -type f -name '*.map' -o -name '*.lp' -o -name '*.lua' -o -name '*.js' -exec chmod 644 {} \;
 
   TARGET=../tch-gui-unhide-$MAJOR
   echo "${GREEN}Writing $TARGET...${NC}"
