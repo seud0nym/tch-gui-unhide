@@ -175,7 +175,7 @@ end
 GUI_FIREWALL_DNS_INT_i_.add = function(mapping)
   local ips,errmsg = readExceptions()
   if ips then
-    adding = #ips+1
+    local adding = #ips+1
     return "@"..tostring(adding)
   end
   return nil,errmsg
@@ -208,7 +208,7 @@ GUI_FIREWALL_DNS_INT_i_.set = {
       return writeExceptions(ips)
     end
     return nil,errmsg
-  end,
+  end
 }
 
 register(GUI_FIREWALL_DNS_INT_i_)
