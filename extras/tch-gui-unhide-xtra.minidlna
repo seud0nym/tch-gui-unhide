@@ -10,7 +10,7 @@ fi
 # The tch-gui-unhide-xtra scripts should output a single line to indicate success or failure
 # as the calling script has left a hanging echo -n. Include a leading space for clarity.
 
-if [ -f /etc/init.d/minidlna ]; then
+if [ -f /etc/init.d/minidlna -a -z "$XTRAS_REMOVE" ]; then
   echo " Replacing dlnad with minidlna..."
   if [ "$(uci get dlnad.config.enabled)" = "1" ]; then
     # Shut down dlnad

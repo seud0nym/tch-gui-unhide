@@ -11,7 +11,7 @@ fi
 # as the calling script has left a hanging echo -n. Include a leading space for clarity.
 
 which smbd >/dev/null
-if [ $? -eq 0 ]; then
+if [ $? -eq 0 -a -z "$XTRAS_REMOVE" ]; then
   smbd -V | grep -q '^Version 3\.6\.'
   if [ $? -eq 0 ]; then
     conf="/etc/samba/smb.conf.template"
