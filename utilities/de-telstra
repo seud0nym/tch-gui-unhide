@@ -252,10 +252,13 @@ if [ -z "$(uci -q get autoreset.vsparc_enabled)" -a -z "$(uci -q get autoreset.t
 else
   if [ "$MONITORING" = 'n' ]; then
     echo [$SCRIPT]: - Disabling Telstra monitoring
-    uci -q delete autoreset.vsparc_enabled
-    uci -q delete autoreset.thor_enabled
-    uci commit autoreset
-    SRV_monitor=$(( $SRV_monitor + 2 ))
+    uci -q get autoreset
+    if [ $? -eq 0 ]; then
+      uci -q delete autoreset.vsparc_enabled
+      uci -q delete autoreset.thor_enabled
+      uci commit autoreset
+      SRV_monitor=$(( $SRV_monitor + 2 ))
+    fi
     uci -q delete wifi_doctor_agent.acs
     uci -q delete wifi_doctor_agent.config
     uci -q delete wifi_doctor_agent.as_config
@@ -728,14 +731,17 @@ else
   echo [$SCRIPT]: DECT Emission Mode $(status2text $DECT)
 fi
 
-SUPERVISION_NOW="$(uci -q get supervision.global.enabled)"
-if [ "$SUPERVISION" = "u" -o "$SUPERVISION_NOW" = "$SUPERVISION" ]; then
-  echo [$SCRIPT]: WAN Supervision unchanged \[$SUPERVISION_NOW\]
-else
-  uci set supervision.global.enabled="$SUPERVISION"
-  uci commit supervision
-  SRV_supervision=$(( $SRV_supervision + 1 ))
-  echo [$SCRIPT]: WAN Supervision Mode = $SUPERVISION
+uci -q get supervision
+if [ $? -eq 0 ]; then
+  SUPERVISION_NOW="$(uci -q get supervision.global.enabled)"
+  if [ "$SUPERVISION" = "u" -o "$SUPERVISION_NOW" = "$SUPERVISION" ]; then
+    echo [$SCRIPT]: WAN Supervision unchanged \[$SUPERVISION_NOW\]
+  else
+    uci set supervision.global.enabled="$SUPERVISION"
+    uci commit supervision
+    SRV_supervision=$(( $SRV_supervision + 1 ))
+    echo [$SCRIPT]: WAN Supervision Mode = $SUPERVISION
+  fi
 fi
 
 if [ "$WPS" = "u" ]; then
