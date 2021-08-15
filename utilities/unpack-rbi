@@ -1,7 +1,6 @@
 #!/bin/sh
 
-if [ -z "$1" ]
-then
+if [ -z "$1" ]; then
   echo "ERROR: You must specify the source .rbi file as the first parameter."
   echo
 fi
@@ -18,34 +17,37 @@ Parameters:
             unpacked. (Optional)
 
 If the target filename or directory is not specified, the file will be
-written to the /tmp directory with the same name but with an extension
-of '.bin'.
+written to either a mounted USB device, or if no USB device is found,
+the /tmp directory. The file will have the same name but will have an
+extension of '.bin'.
 
 EOH
 exit
 fi
 
 echo "$1" | grep -q -E '\.rbi$'
-if [ $? -eq 1 ]
-then
+if [ $? -eq 1 ]; then
   echo "ERROR: Can only unpack files ending in .rbi"
   exit
 fi
 
-if [ -z "$2" ]
-then
-  target="/tmp/$(basename $1 .rbi).bin"
+if [ -z "$2" ]; then
+  MOUNT_PATH=$(uci -q get mountd.mountd.path)
+  USB="$(ls $MOUNT_PATH | head -n1)"
+  if [ -z "$USB" ]; then
+    target="/tmp/$(basename $1 .rbi).bin"
+  else
+    target="${MOUNT_PATH}${USB}/$(basename $1 .rbi).bin"
+  fi
 else
   if [ -d "$2" ]
   then
-    if [ "$2" = '.' ]
-    then
+    if [ "$2" = '.' ]; then
       target="$(basename $1 .rbi).bin"
     else
       target="$(echo $2 | sed -e 's,/*$,,')/$(basename $1 .rbi).bin"
     fi
-  elif [ -f "$2" ]
-  then
+  elif [ -f "$2" ]; then
     target="$2"
   else
     echo "ERROR: $2 is not a directory or a file!"
@@ -57,7 +59,16 @@ echo "About to unpack $1 to $target"
 echo -n "Enter y to continue, or anything else to abort: "
 read CONFIRM
 
-if [ "$CONFIRM" = "y" ]
-then
+if [ "$CONFIRM" = "y" ]; then
   cat "$1" | (bli_parser && echo "Please wait..." && (bli_unseal | dd bs=4 skip=1 seek=1 of="$target"))
+  srce_size=$(du "$1" | cut -f1)
+  dest_size=$(du "$target" | cut -f1)
+  if [ $dest_size -le $srce_size ]; then
+    echo "ERROR: Unpack failed? $1 is ${srce_size}Kb. $target should be larger but is ${dest_size}Kb!"
+    rm "$target"
+    exit 1
+  fi
+  exit 0
 fi
+
+exit 2

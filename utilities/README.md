@@ -281,7 +281,7 @@ Parameters:
  source   the .rbi file to be unpacked. (Required)
  target   either a filename or directory to which the .rbi file will be unpacked. (Optional)
 ```
-The second parameter is optional, and is either a filename or directory to which the *.rbi* file will be unpacked. If the filename or directory is not specified, the file will be written to the /tmp directory with the same name but with an extension of *.bin*.
+The second parameter is optional, and is either a filename or directory to which the *.rbi* file will be unpacked. If the filename or directory is not specified, the file will be written to either a mounted USB device, or if no USB device is found, the /tmp directory. The file will have the same name but will have an extension of '.bin'.
 
 ## update-ca-certificates
 Downloads and installs the latest version of the System CA Certificates. 

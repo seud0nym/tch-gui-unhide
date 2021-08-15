@@ -212,6 +212,13 @@ then
       rm $target
     fi
     cat "$FIRMWARE" | (bli_parser && echo "Unpacking $FIRMWARE. Please wait... (This will take a while)" && (bli_unseal | dd bs=4 skip=1 seek=1 of="$target"))
+    srce_size=$(du "$FIRMWARE" | cut -f1)
+    dest_size=$(du "$target" | cut -f1)
+    if [ $dest_size -le $srce_size ]; then
+      echo -e "${RED}ERROR: Unpack failed? $FIRMWARE is ${srce_size}Kb. $target should be larger but is ${dest_size}Kb!${NC}"
+      rm "$target"
+      exit 1
+    fi
     FIRMWARE="$target"
   else
     exit
