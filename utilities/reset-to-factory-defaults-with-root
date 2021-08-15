@@ -1,5 +1,7 @@
 #!/bin/sh
 
+SCRIPT="$(basename $0)"
+
 GREEN='\033[1;32m'
 GREY='\033[90m'
 ORANGE='\033[0;33m'
