@@ -60,6 +60,3 @@ u{text-decoration:none;}
   #sipProfileTable>tbody>tr>td:nth-child(5) input{width:150px;}
   #sipProfileTable>tbody>tr>td:nth-child(6) input{width:95px;}
 }
-@media screen and (min-width:1500px){
-  .card-visibility-switch{float:left;width:20%;}
-}
