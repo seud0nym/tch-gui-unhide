@@ -1,133 +1,31 @@
-if [ "$(uci -q get web.acmelogajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling acme-log.lua
-  uci add_list web.ruleset_main.rules='acmelogajax'
-  uci set web.acmelogajax='rule'
-  uci set web.acmelogajax.target='/ajax/acme-log.lua'
-  uci set web.acmelogajax.normally_hidden='1'
-  uci add_list web.acmelogajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
-if [ "$(uci -q get web.boosterstatusajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling booster-status.lua
-  uci add_list web.ruleset_main.rules='boosterstatusajax'
-  uci set web.boosterstatusajax='rule'
-  uci set web.boosterstatusajax.target='/ajax/booster-status.lua'
-  uci set web.boosterstatusajax.normally_hidden='1'
-  uci add_list web.boosterstatusajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
-if [ "$(uci -q get web.broadbandstatusajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling broadband-status.lua
-  uci add_list web.ruleset_main.rules='broadbandstatusajax'
-  uci set web.broadbandstatusajax='rule'
-  uci set web.broadbandstatusajax.target='/ajax/broadband-status.lua'
-  uci set web.broadbandstatusajax.normally_hidden='1'
-  uci add_list web.broadbandstatusajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
-if [ "$(uci -q get web.devicesstatusajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling devices-status.lua
-  uci add_list web.ruleset_main.rules='devicesstatusajax'
-  uci set web.devicesstatusajax='rule'
-  uci set web.devicesstatusajax.target='/ajax/devices-status.lua'
-  uci set web.devicesstatusajax.normally_hidden='1'
-  uci add_list web.devicesstatusajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
-if [ "$(uci -q get web.gatewaystatusajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling gateway-status.lua
-  uci add_list web.ruleset_main.rules='gatewaystatusajax'
-  uci set web.gatewaystatusajax='rule'
-  uci set web.gatewaystatusajax.target='/ajax/gateway-status.lua'
-  uci set web.gatewaystatusajax.normally_hidden='1'
-  uci add_list web.gatewaystatusajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
-if [ "$(uci -q get web.internetstatusajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling internet-status.lua
-  uci add_list web.ruleset_main.rules='internetstatusajax'
-  uci set web.internetstatusajax='rule'
-  uci set web.internetstatusajax.target='/ajax/internet-status.lua'
-  uci set web.internetstatusajax.normally_hidden='1'
-  uci add_list web.internetstatusajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
-if [ "$(uci -q get web.networkthroughputajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling network-throughput.lua
-  uci add_list web.ruleset_main.rules='networkthroughputajax'
-  uci set web.networkthroughputajax='rule'
-  uci set web.networkthroughputajax.target='/ajax/network-throughput.lua'
-  uci set web.networkthroughputajax.normally_hidden='1'
-  uci add_list web.networkthroughputajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
-if [ "$(uci -q get web.opkgcfgajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling opkg-cfg.lua
-  uci add_list web.ruleset_main.rules='opkgcfgajax'
-  uci set web.opkgcfgajax='rule'
-  uci set web.opkgcfgajax.target='/ajax/opkg-cfg.lua'
-  uci set web.opkgcfgajax.normally_hidden='1'
-  uci add_list web.opkgcfgajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
-if [ "$(uci -q get web.opkglistajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling opkg-list.lua
-  uci add_list web.ruleset_main.rules='opkglistajax'
-  uci set web.opkglistajax='rule'
-  uci set web.opkglistajax.target='/ajax/opkg-list.lua'
-  uci set web.opkglistajax.normally_hidden='1'
-  uci add_list web.opkglistajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
-if [ "$(uci -q get web.ssidstatusajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling ssid-status.lua
-  uci add_list web.ruleset_main.rules='ssidstatusajax'
-  uci set web.ssidstatusajax='rule'
-  uci set web.ssidstatusajax.target='/ajax/ssid-status.lua'
-  uci set web.ssidstatusajax.normally_hidden='1'
-  uci add_list web.ssidstatusajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
-if [ "$(uci -q get web.telephonystatusajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling telephony-status.lua
-  uci add_list web.ruleset_main.rules='telephonystatusajax'
-  uci set web.telephonystatusajax='rule'
-  uci set web.telephonystatusajax.target='/ajax/telephony-status.lua'
-  uci set web.telephonystatusajax.normally_hidden='1'
-  uci add_list web.telephonystatusajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
-if [ "$(uci -q get web.vendorajax)" != "rule" ]
-then
-  echo [$SCRIPT]: Enabling vendor.lua
-  uci add_list web.ruleset_main.rules='vendorajax'
-  uci set web.vendorajax='rule'
-  uci set web.vendorajax.target='/ajax/vendor.lua'
-  uci set web.vendorajax.normally_hidden='1'
-  uci add_list web.vendorajax.roles='admin'
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 4 ))
-fi
-
+echo [$SCRIPT]: Checking ajax visibility
+for f in $(find /www/docroot/ajax -type f | grep -vE 'internet.lua|wirelesscard.lua')
+do
+  AJAX=$(basename $f)
+  uci show web | grep -q "/ajax/$AJAX"
+  if [ $? -eq 1 ]
+  then
+    CREATE_RULE=y
+    RULE="$(basename $f .lua | sed -e 's/-//g')ajax"
+  else
+    CREATE_RULE=n
+    RULE=$(uci show web | grep "/ajax/$AJAX" | grep -m 1 -v card_ | cut -d. -f2)
+  fi
+  if [ $CREATE_RULE = y ]
+  then
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Creating Rule $RULE: target=/ajax/$AJAX"
+    echo "[$SCRIPT]: - Enabling $AJAX"
+    uci add_list web.ruleset_main.rules=$RULE
+    uci set web.$RULE=rule
+    uci set web.$RULE.target=/ajax/$AJAX
+    uci set web.$RULE.normally_hidden='1'
+    uci add_list web.$RULE.roles='admin'
+    SRV_nginx=$(( $SRV_nginx + 4 ))
+  elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]
+  then
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing Rule $RULE: target=/ajax/$AJAX Setting role to admin"
+    uci -q delete web.$RULE.roles
+    uci add_list web.$RULE.roles='admin'
+    SRV_nginx=$(( $SRV_nginx + 2 ))
+  fi
+done

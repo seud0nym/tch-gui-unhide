@@ -97,28 +97,6 @@ do
     done
   fi
 
-  TARGET=common/075-Enable-Ajax-Modals
-  echo "${GREEN}Updating $TARGET...${NC}"
-  rm $TARGET
-  for a in $(find /tmp/tch-gui-unhide/$MAJOR/www/docroot/ajax -type f | sort)
-  do
-    [ -n "$DEBUG" ] && echo $a
-    AJAX=$(basename $a)
-    RULE="$(basename $a .lua | sed -e 's/-//g')ajax"
-    echo "if [ \"\$(uci -q get web.$RULE)\" != \"rule\" ]" >> $TARGET
-    echo "then" >> $TARGET
-    echo "  echo [\$SCRIPT]: Enabling $AJAX" >> $TARGET
-    echo "  uci add_list web.ruleset_main.rules='$RULE'" >> $TARGET
-    echo "  uci set web.$RULE='rule'" >> $TARGET
-    echo "  uci set web.$RULE.target='/ajax/$AJAX'" >> $TARGET
-    echo "  uci set web.$RULE.normally_hidden='1'" >> $TARGET
-    echo "  uci add_list web.$RULE.roles='admin'" >> $TARGET
-    echo "  uci commit web" >> $TARGET
-    echo "  SRV_nginx=\$(( \$SRV_nginx + 4 ))" >> $TARGET
-    echo "fi" >> $TARGET
-  done
-  echo "" >> $TARGET
-
   echo "${GREEN}Updating rpc.gui.UnhideVersion...${NC}"
   sed -e "s/current_version = \"\"/current_version = \"$FULL_VERSION\"/" -i /tmp/tch-gui-unhide/$MAJOR/usr/share/transformer/mappings/rpc/gui.map
 
