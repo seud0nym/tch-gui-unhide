@@ -1,0 +1,21 @@
+local config_minidlna = "minidlna"
+
+-- uci.minidlna
+mapper("uci_1to1").registerConfigMap(config_minidlna)
+
+-- uci.minidlna.config
+local minidlna_config = {
+  config = config_minidlna,
+  section = "config",
+  type = "minidlna",
+  options = {
+    "album_art_names", "db_dir", "enable_tivo", "enabled", "friendly_name",
+    "inotify", "interface", "log_dir", "model_number", "notify_interval",
+    "port", "root_container", "serial", "strict_dlna", "wide_links"
+  },
+  lists = {
+    "media_dir"
+  }
+}
+
+mapper("uci_1to1").registerSimpleMap(minidlna_config) 

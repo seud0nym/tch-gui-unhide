@@ -1,0 +1,58 @@
+local lfs = require("lfs")
+
+local init_cmd = "/etc/init.d/rsyncd"
+local pid_file_cmd = "grep 'pid file' /etc/rsyncd.conf"
+local status_cmd = init_cmd .. " enabled"
+local start_cmd = init_cmd .. " restart|logger; " .. init_cmd .. " enable"
+local stop_cmd = init_cmd .. " stop|logger; " .. init_cmd .. " disable"
+
+local function isRunning()
+  local cfg = io.popen(pid_file_cmd, 'r')
+  local line = cfg:read()
+  cfg:close()
+  local pid_file = line:match("pid *file *= *([^ ]*)")
+  local pid_file_exists = lfs.attributes(pid_file, 'mode')
+  if pid_file_exists then
+    return true
+  else
+    return false
+  end
+end
+
+local GUI_RSYNC_ = {
+  objectType = {
+    name = "rpc.gui.rsync.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      enable = {
+        access = "readWrite",
+        type = "boolean",
+      }
+    }
+  }
+}
+
+GUI_RSYNC_.get = {
+  enable = function()
+    local enabled = os.execute(status_cmd)
+    if isRunning() and enabled == 0 then
+      return "1"
+    else
+      return "0"
+    end
+  end
+}
+
+GUI_RSYNC_.set = {
+  enable = function(mapping,param,value,key)
+    if value == "1" then
+      os.execute(start_cmd)
+    else
+      os.execute(stop_cmd)
+    end
+  end
+}
+
+register(GUI_RSYNC_)

@@ -1,0 +1,28 @@
+  local GUI_SAMBA_ = {
+    objectType = {
+      name = "rpc.gui.samba.",
+      access = "readOnly",
+      minEntries = 1,
+      maxEntries = 1,
+      parameters = {
+        passwd = {
+          access = "readWrite",
+          type = "string"
+        },
+      }
+    }
+  }
+
+  GUI_SAMBA_.get = {
+    passwd = "",
+  }
+
+  GUI_SAMBA_.set = {
+    passwd = function(mapping, param, value)
+      local command = string.format("echo -e '%s\\n%s\\n'|smbpasswd -s samba|logger",value,value)
+      os.execute("echo 'rpc.gui.samba: Changing samba password'|logger")
+      return os.execute(command)
+    end,
+  }
+
+  register(GUI_SAMBA_)

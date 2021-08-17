@@ -1,0 +1,26 @@
+#!/bin/sh
+
+if [ -z "$1" ]; then
+  echo "Missing required parameter! Must be one of $(ls ../tch-gui-unhide-xtra.* | cut -d. -f4 | xargs)"
+  exit 2
+elif [ ! -f ../tch-gui-unhide-xtra.$1 ]; then
+  echo "../tch-gui-unhide-xtra.$1 not found?"
+  exit 2
+fi
+
+if [ ! -d $1 ]; then
+  mkdir $1
+fi
+
+cp ../tch-gui-unhide-xtra.$1 $1/$1.sh
+
+grep -n 'cat *<<' $1/$1.sh | sed -e 's/:\|<\|>\|"\|cat//g' | sort -n -r | while read -r line name file
+do 
+  echo Extracting $file
+  s=$(( $line + 1))
+  d="$1$(dirname $file)"
+  f="$(basename $file)"
+  mkdir -p $d
+  sed -e "/<<[ \"]*$name/,/^$name/!d;//d" $1/$1.sh | sed -e 's/\\\\ *$/\\/' > $d/$f
+  sed -e "$s,/^$name/{/^$name/b;d}" -i $1/$1.sh
+done

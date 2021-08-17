@@ -1,0 +1,48 @@
+#!/bin/sh
+
+# script triggered by mountd
+# mountd provides environment variables ACTION, DEVICE, NAME
+# f.e. ACTION=add DEVICE=sda1 NAME=USB-A1
+
+# Source UCI and CS functions
+. $IPKG_INSTROOT/lib/functions/contentsharing.sh
+
+# minidlna_log <msg>
+# Send <msg> to the logger with tag 'hotplug.d-mount-minidlna'.
+#
+minidlna_log () {
+  local msg="${1}"
+  logger -t hotplug.d-mount-minidlna "${msg}"
+}
+
+# minidlna_init
+#
+minidlna_init () {
+  minidlna_log "ACTION=${ACTION} DEVICE=${DEVICE} NAME=${NAME}"
+}
+
+# Start of execution
+
+if [ "${ACTION}" == "add" ]; then
+  minidlna_init
+
+  if cs_is_dlna_running ; then
+    minidlna_log "Added disk ${disk} ... reload"
+    cs_reload_dlna
+  else
+    minidlna_log "Added disk ${disk} ... restart"
+    cs_restart_dlna
+  fi
+fi
+
+if [ "${ACTION}" == "remove" ]; then
+  minidlna_init
+
+  if cs_is_dlna_running ; then
+    minidlna_log "Removed disk ${disk} ... reload"
+    cs_reload_dlna
+  else
+    minidlna_log "Removed disk ${disk} ... restart"
+    cs_restart_dlna
+  fi
+fi
