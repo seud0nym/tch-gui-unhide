@@ -204,5 +204,5 @@ else
     print("Failed to acquire local on "..datadir) 
   end
   os.execute("logger -t traffichistory -p 132 Failed to acquire lock on "..datadir)
-  os.execute("ps | grep ")
+  os.execute("ps | logger -t traffichistory -p 132")
 end
