@@ -1,4 +1,1 @@
-echo [$SCRIPT]: Applying service changes if required...
 apply_service_changes
-
-chmod 644 /usr/share/transformer/mappings/rpc/gui.*

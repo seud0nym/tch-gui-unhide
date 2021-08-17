@@ -1,5 +1,7 @@
+echo [$SCRIPT]: Adding management tabs
 for f in /www/docroot/modals/assistance-modal.lp /www/docroot/modals/usermgr-modal.lp
 do
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Updating $f"
   sed \
     -e '/^if not bridged.isBridgedMode/i \  local lp = require("web.lp")' \
     -e '/^if not bridged.isBridgedMode/i \  lp.setpath("/www/snippets/")' \
@@ -7,6 +9,4 @@ do
     -e '/^if not bridged.isBridgedMode/,/^end/d' \
     -i $f
 done
-
-SRV_transformer=$(( $SRV_transformer + 2 ))
 

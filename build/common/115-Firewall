@@ -44,6 +44,7 @@ synflood_rate="$(uci -q get firewall.@defaults[0].synflood_rate)"
 if [ -n "$synflood_rate" ]; then
   echo $synflood_rate | grep -q -E '^[0-9]+/s$'
   if [ $? = 1 ]; then
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Fixing configuration firewall.@defaults[0].synflood_rate"
     synflood_rate="$(echo $synflood_rate | grep -o -E '^[0-9]+')" 
     uci set firewall.@defaults[0].synflood_rate="$synflood_rate/s"
     SRV_firewall=$(( $SRV_firewall + 1 ))
@@ -51,6 +52,7 @@ if [ -n "$synflood_rate" ]; then
 fi
 # Version 2021.02.22 allowed setting of tcp_syncookies but it is not enabled in kernel, so have to remove it
 if [ -n "$(uci -q get firewall.@defaults[0].tcp_syncookies)" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Deleting configuration firewall.@defaults[0].tcp_syncookies"
   uci -q delete firewall.@defaults[0].tcp_syncookies
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
@@ -70,6 +72,7 @@ sed -n '/-- uci.firewall.redirect/,/MultiMap/p' /usr/share/transformer/mappings/
 
 echo [$SCRIPT]: Checking firewall configuration for DNS interception
 if [ "$(uci -q get firewall.dns_xcptn)" != "ipset" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dns_xcptn"
   uci set firewall.dns_xcptn='ipset'
   uci set firewall.dns_xcptn.name='dns_xcptn'
   uci set firewall.dns_xcptn.family='ipv4'
@@ -79,9 +82,11 @@ if [ "$(uci -q get firewall.dns_xcptn)" != "ipset" ]; then
 fi
 if [ ! -e /etc/firewall.ipset.dns_xcptn ]
 then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating file /etc/firewall.ipset.dns_xcptn"
   echo -n > /etc/firewall.ipset.dns_xcptn
 fi
 if [ "$(uci -q get firewall.dns_int)" != "redirect" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dns_int"
   uci set firewall.dns_int='redirect'
   uci set firewall.dns_int.name='Intercept-DNS'
   uci set firewall.dns_int.family='ipv4'
@@ -94,6 +99,7 @@ if [ "$(uci -q get firewall.dns_int)" != "redirect" ]; then
   uci set firewall.dns_int.enabled='0'
 fi
 if [ "$(uci -q get firewall.dns_masq)" != "nat" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dns_masq"
   uci set firewall.dns_masq='nat'
   uci set firewall.dns_masq.name='Masquerade-DNS'
   uci set firewall.dns_masq.family='ipv4'
@@ -104,6 +110,7 @@ if [ "$(uci -q get firewall.dns_masq)" != "nat" ]; then
   uci set firewall.dns_masq.enabled='0'
 fi
 if [ "$(uci -q get firewall.dot_fwd_xcptn)" != "rule" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dot_fwd_xcptn"
   uci set firewall.dot_fwd_xcptn='rule'
   uci set firewall.dot_fwd_xcptn.name='Allow-DoT'
   uci set firewall.dot_fwd_xcptn.src='lan'
@@ -116,6 +123,7 @@ if [ "$(uci -q get firewall.dot_fwd_xcptn)" != "rule" ]; then
   uci set firewall.dot_fwd_xcptn.enabled='0'
 fi
 if [ "$(uci -q get firewall.dot_fwd)" != "rule" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dot_fwd"
   uci set firewall.dot_fwd='rule'
   uci set firewall.dot_fwd.name='Deny-DoT'
   uci set firewall.dot_fwd.src='lan'
@@ -127,9 +135,11 @@ if [ "$(uci -q get firewall.dot_fwd)" != "rule" ]; then
 fi
 if [ ! -e /etc/firewall.ipset.doh ]
 then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating file /etc/firewall.ipset.doh"
   echo -n > /etc/firewall.ipset.doh
 fi
 if [ "$(uci -q get firewall.doh)" != "ipset" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.doh"
   uci set firewall.doh='ipset'
   uci set firewall.doh.name='doh'
   uci set firewall.doh.family='ipv4'
@@ -139,9 +149,11 @@ if [ "$(uci -q get firewall.doh)" != "ipset" ]; then
 fi
 if [ ! -e /etc/firewall.ipset.doh6 ]
 then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating file /etc/firewall.ipset.doh6"
   echo -n > /etc/firewall.ipset.doh6
 fi
 if [ "$(uci -q get firewall.doh6)" != "ipset" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.doh"
   uci set firewall.doh6='ipset'
   uci set firewall.doh6.name='doh6'
   uci set firewall.doh6.family='ipv6'
@@ -150,6 +162,7 @@ if [ "$(uci -q get firewall.doh6)" != "ipset" ]; then
   uci set firewall.doh6.enabled='0'
 fi
 if [ "$(uci -q get firewall.ipsets_restore)" != "include" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.ipsets_restore"
   uci set firewall.ipsets_restore='include'
   uci set firewall.ipsets_restore.type='script'
   uci set firewall.ipsets_restore.path='/usr/sbin/ipsets-restore'
@@ -157,6 +170,7 @@ if [ "$(uci -q get firewall.ipsets_restore)" != "include" ]; then
   uci set firewall.ipsets_restore.enabled='0'
 fi
 if [ ! -e /usr/sbin/ipsets-restore ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating script /usr/sbin/ipsets-restore"
   cat<<"END-RESTORE" > /usr/sbin/ipsets-restore
 #!/bin/sh
 for set in $(ipset -n list)
@@ -171,6 +185,7 @@ END-RESTORE
   chmod +x /usr/sbin/ipsets-restore
 fi
 if [ "$(uci -q get firewall.doh_fwd_xcptn)" != "rule" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.doh_fwd_xcptn"
   uci set firewall.doh_fwd_xcptn='rule'
   uci set firewall.doh_fwd_xcptn.name='Allow-DoH'
   uci set firewall.doh_fwd_xcptn.src='lan'
@@ -183,6 +198,7 @@ if [ "$(uci -q get firewall.doh_fwd_xcptn)" != "rule" ]; then
   uci set firewall.doh_fwd_xcptn.enabled='0'
 fi
 if [ "$(uci -q get firewall.doh_fwd)" != "rule" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.doh_fwd"
   uci set firewall.doh_fwd='rule'
   uci set firewall.doh_fwd.name='Deny-DoH'
   uci set firewall.doh_fwd.src='lan'
@@ -195,6 +211,7 @@ if [ "$(uci -q get firewall.doh_fwd)" != "rule" ]; then
   uci set firewall.doh_fwd.enabled='0'
 fi
 if [ "$(uci -q get firewall.doh6_fwd)" != "rule" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.doh6_fwd"
   uci set firewall.doh6_fwd='rule'
   uci set firewall.doh6_fwd.name='Deny-v6-DoH'
   uci set firewall.doh6_fwd.src='lan'
@@ -207,6 +224,7 @@ if [ "$(uci -q get firewall.doh6_fwd)" != "rule" ]; then
   uci set firewall.doh6_fwd.enabled='0'
 fi
 if [ ! -e /usr/sbin/doh-ipsets-maintain ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating script /usr/sbin/doh-ipsets-maintain"
   cat<<"END-MAINTAIN" > /usr/sbin/doh-ipsets-maintain
 #!/bin/sh
 
@@ -247,6 +265,7 @@ fi
 if [ $(grep doh-ipsets-maintain /etc/crontabs/root | wc -l) -eq 0 ]; then
   mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
   hh=$(awk 'BEGIN{srand();print int(rand()*2)+3;}')
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Adding /usr/sbin/doh-ipsets-maintain cron job for Sunday $hh:$mm"
   echo "#$mm $hh * * 6 /usr/sbin/doh-ipsets-maintain" >> /etc/crontabs/root
 fi
 

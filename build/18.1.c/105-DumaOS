@@ -9,8 +9,6 @@ then
       -e "/id=\"basicview\"/i\            html[#html + 1] = '</a>'" \
       -e '/<div class="header span12">/a <script>if(window.self !== window.top){$("div.header").hide();}</script>\\' \
       -i /www/docroot/gateway.lp
-  else
-    echo [$SCRIPT]: DumaOS button NOT added - DumaOS is disabled
   fi
 fi
 

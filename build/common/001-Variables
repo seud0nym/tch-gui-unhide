@@ -135,12 +135,15 @@ check_pwr_setting() {
   text="$3"
   if [ -z "$(uci -q get power.$section.$option)" ]; then
     pwrctl show | grep "$text" | grep -q DISABLED
-    uci set power.$section.$option="$?"
+    value=$?
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - power.$section.$option=$value"
+    uci set power.$section.$option="$value"
     SRV_power=$(( $SRV_power + 1 ))
   fi
 }
 
 apply_service_changes() {
+  echo [$SCRIPT]: Applying service changes if required...
   if [ $SRV_transformer -gt 0 ]; then
     # Need to stop watchdog whilst we restart transformer, because if it does not find /var/run/transformer.pid, it will reboot the system!
     /etc/init.d/watchdog-tch stop >/dev/null 2>&1
@@ -152,6 +155,7 @@ apply_service_changes() {
   [ $SRV_system -gt 0 ] && /etc/init.d/system reload
   [ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
 
+  echo [$SCRIPT]: Applying power settings...
   if [ -z "$(uci -q get power.cpu)" ];then
     uci set power.cpu='cpu'
   fi

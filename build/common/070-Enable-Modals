@@ -32,7 +32,7 @@ fi
 #  - speedservice-modal.lp
 #  - wireless-qrcode-modal.lp (fails with a nil password index error)
 echo [$SCRIPT]: Checking modal visibility
-for f in $(ls /www/docroot/modals | grep -E -v \(diagnostics-airiq-modal.lp\|mmpbx-sipdevice-modal.lp\|mmpbx-statistics-modal.lp\|speedservice-modal.lp\|wireless-qrcode-modal.lp\) )
+for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal.lp\|mmpbx-sipdevice-modal.lp\|mmpbx-statistics-modal.lp\|speedservice-modal.lp\|wireless-qrcode-modal.lp\) )
 do
   MODAL=$(basename $f)
   uci show web | grep -q "/modals/$MODAL"
@@ -46,7 +46,8 @@ do
   fi
   if [ $CREATE_RULE = y ]
   then
-    echo [$SCRIPT]: Enabling $MODAL
+    echo "[$SCRIPT]: - Enabling $MODAL"
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Creating Rule $RULE: target=/modals/$MODAL"
     uci add_list web.ruleset_main.rules=$RULE
     uci set web.$RULE=rule
     uci set web.$RULE.target=/modals/$MODAL
@@ -55,13 +56,25 @@ do
     SRV_nginx=$(( $SRV_nginx + 4 ))
   elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]
   then
-    echo [$SCRIPT]: Enabling $MODAL 
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing Rule $RULE: target=/modals/$MODAL Setting role to admin"
     uci -q delete web.$RULE.roles
     uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 2 ))
   fi
 done
-uci commit web
+
+echo [$SCRIPT]: Checking configured web rules exist
+for c in $(uci show web | grep '^web\..*\.target=' | grep -vE 'dumaos|homepage')
+do 
+  f=/www/docroot$(echo "$c" | cut -d"'" -f2)
+  if [ ! -f "$f" ]; then
+    RULE=$(echo $c | cut -d. -f2)
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Deleting rule $RULE for missing target $f"
+    uci -q delete web.$RULE
+    uci -q del_list web.ruleset_main.rules=$RULE
+    SRV_nginx=$(( $SRV_nginx + 2 ))
+  fi
+done
 
 echo [$SCRIPT]: Processing any additional cards
 for CARDFILE in $(find /www/cards/ -maxdepth 1 -type f | sort)
@@ -71,6 +84,7 @@ do
   if [ "$CARD" = "016_speedservice.lp" ]; then
     rm $CARDFILE
     if [ -n "$CARDRULE" ]; then
+      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Deleting rule $RULE for missing target $f"
       uci -q delete web.${CARDRULE}
     fi
     continue
@@ -81,6 +95,7 @@ do
     if [ -z "$MODAL" ]; then
       MODAL=$(grep '\(modalPath\|modal_link\)' $CARDFILE | grep -m 1 -o "modals/.*\.lp")
     fi
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Card Rule $CARDRULE: card=$CARD hide=0"
     uci set web.${CARDRULE}=card
     uci set web.${CARDRULE}.card="$CARD"
     uci set web.${CARDRULE}.hide='0'
@@ -90,4 +105,6 @@ do
     SRV_nginx=$(( $SRV_nginx + 1 ))
   fi
 done
+
+uci commit web
 

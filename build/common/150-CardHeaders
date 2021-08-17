@@ -1,9 +1,13 @@
 echo [$SCRIPT]: Add cogs to card headers
 for f in $(grep -l createCardHeaderNoIcon /www/cards/*)
 do
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Updating $f"
   sed -e 's/createCardHeaderNoIcon/createCardHeader/' -i $f
 done
-[ -f /www/cards/*_cwmpconf.lp ] && sed -e 's/switchName, content\["cwmp_state"\], {input = {id = "cwmp_card_state"}}/nil, nil, nil/' -i /www/cards/090_cwmpconf.lp
+if [ -f /www/cards/*_cwmpconf.lp ]; then
+  echo [$SCRIPT]: Removing CWMP card switch
+  sed -e 's/switchName, content\["cwmp_state"\], {input = {id = "cwmp_card_state"}}/nil, nil, nil/' -i /www/cards/090_cwmpconf.lp
+fi
 
 echo [$SCRIPT]: Fix mobile signal placement
 sed \

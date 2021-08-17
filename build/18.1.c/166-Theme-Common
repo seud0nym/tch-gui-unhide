@@ -43,5 +43,6 @@ then
 fi
 if [ -f /www/snippets/tabs-home.lp ]
 then
+  echo [$SCRIPT]: "Removing 'Boost Your Wi-Fi' tab from basic view"
   sed -e '/^else/,/T"Boost Your Wi-Fi"/d' -i /www/snippets/tabs-home.lp
 fi

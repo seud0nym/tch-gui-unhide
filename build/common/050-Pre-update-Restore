@@ -34,6 +34,7 @@ do
   if [ -z "$HIDDEN" -o \( "$HIDDEN" != "0" -a "$HIDDEN" != "1" \) ]; then
     HIDDEN=0
   fi
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Card Rule $CARDRULE: card=$(basename $CARDFILE) hide=$HIDDEN modal=$MODALRULE"
   uci set web.${CARDRULE}=card
   uci set web.${CARDRULE}.card="$(basename $CARDFILE)"
   uci set web.${CARDRULE}.hide="$HIDDEN"

@@ -5,15 +5,28 @@ do
   FILE=$(ls /www/cards/ | grep "..._${CARD#*_}")
   if [ -z "$FILE" ]
   then
-    echo "[$SCRIPT]:  - Removing obsolete configuration $RULE"
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]:  - Removing obsolete configuration $RULE"
     uci delete $RULE
     SRV_nginx=$(( $SRV_nginx + 1 ))
   elif [ "$CARD" != "$FILE" ]
   then
-    echo "[$SCRIPT]:  - Renaming $FILE to $CARD"
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]:  - Renaming $FILE to $CARD"
     mv /www/cards/$FILE /www/cards/$CARD
   fi
 done
+
+echo [$SCRIPT]: Checking configured cards exist
+for c in $(uci show web | grep '^web\.card_.*\.card=')
+do 
+  f=/www/cards/$(echo "$c" | cut -d"'" -f2)
+  if [ ! -f "$f" ]; then
+    CARDRULE=$(echo $c | cut -d. -f2)
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Deleting card configuration $CARDRULE for missing card $f"
+    uci -q delete web.$CARDRULE
+    SRV_nginx=$(( $SRV_nginx + 1 ))
+  fi
+done
+
 uci commit web
 
 if [ -z "$ALLCARDRULES" -a -f tch-gui-unhide-cards ]

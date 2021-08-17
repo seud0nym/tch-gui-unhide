@@ -1,3 +1,4 @@
+echo [$SCRIPT]: Fixing titles
 sed -e "s/Gateway/LAN/g" -i /www/cards/005_LAN.lp
 sed -e "s,<title>');  ngx.print( T\"Login\" ); ngx.print('</title>,<title>$TITLE Login</title>," -i /www/docroot/login.lp
 

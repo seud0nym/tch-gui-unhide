@@ -5,7 +5,10 @@ else
   echo [$SCRIPT]: Change the title in browser tabs to $TITLE
   for f in /www/docroot/gateway.lp /www/lua/hni_helper.lua /www/snippets/header.lp
   do
+    if [ -f "$f" ]; then
+      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]:  - $f"
       sed -e "s,title>.*</title,title>$TITLE</title," -i $f
+    fi
   done
   sed -e "s,<title>');  ngx.print( T\"Change password\" ); ngx.print('</title>,<title>$TITLE - Change Password</title>," -i /www/docroot/password.lp
 fi

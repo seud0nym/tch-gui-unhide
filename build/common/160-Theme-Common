@@ -28,11 +28,13 @@ sed -e 's/xf0ad/xf0b1;"/' -i $(ls /www/cards/*_xdsl.lp)
 [ -f /www/cards/*_nfc.lp ] && sed -e 's/class="content"/class="content card_bg mirror" data-bg-text="\&#xf0b2;"/' -i $(ls /www/cards/*_nfc.lp)
 [ -f /www/cards/*_fon.lp ] && sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf143;"/' -i $(ls /www/cards/*_fon.lp)
 
+echo [$SCRIPT]: Fix some responsive span widths
 sed \
   -e 's/:56px/:80px/' \
   -e 's/:170px/:150px/' \
   -i /www/docroot/css/responsive.css
 
+echo [$SCRIPT]: Add theme processing
 for f in $(grep -l -r '</head>\\' /www 2>/dev/null | grep -v '\(airiq\|help\|landingpage\)')
 do
   grep -q 'lp.include("../snippets/theme' $f
@@ -45,8 +47,10 @@ do
     fi
     req=$(grep -n 'local lp = require("web.lp")' $f | cut -d: -f1)
     if [ -z "$req" ]; then
+      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $LP theme style sheets to $f"
       sed -e "/<\/head>\\\/i '); local lp = require(\"web.lp\"); lp.include(\"../snippets/theme-$LP.lp\"); ngx.print('\\\\" -i $f
     else
+      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $LP theme style sheets to $f"
       head=$(grep -n '</head>\\' $f | cut -d: -f1)
       if [ $head -lt $req ]; then
         sed -e "/<\/head>\\\/i '); local lp = require(\"web.lp\"); lp.include(\"../snippets/theme-$LP.lp\"); ngx.print('\\\\" -e "${req}d" -i $f

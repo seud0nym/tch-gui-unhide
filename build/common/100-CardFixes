@@ -4,9 +4,9 @@ sed \
   -e 's/access and/session:hasAccess(card.modal) or/' \
   -i /www/lua/cards.lua
 
+echo [$SCRIPT]: Removing obsolete help links
 for m in $(grep -l 'local help_link = ' /www/docroot/modals/*)
 do
-  echo [$SCRIPT]: Remove obsolete help link in $m
   sed -e 's/\(local help_link = \)\(.*\)/\1nil/' -i "$m"
 done
 
