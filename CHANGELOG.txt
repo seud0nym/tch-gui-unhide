@@ -1,3 +1,18 @@
+2021.08.18
+==========
+* tch-gui-unhide: Made charts easier to read in night theme [#38], and added monochrome chart option
+* tch-gui-unhide: New tab in Firewall for managing DNS interception
+* tch-gui-unhide: Fixed missing post_helper functions
+* tch-gui-unhide: Fixed chart card visibility incorrectly reset to match dependent card visibility during installation
+* tch-gui-unhide: Added option (-a5) to show 5 cards across on screens wider than 1200px
+* tch-gui-unhide-xtra.adblock: Added support for the adblock package
+* de-telstra: Fixed "uci: Entry not found" messages on FW 17.2
+* de-telstra: Added support for defaults (Documentation to come later)
+* intercept-dns: Modified to be compatible with new user interface, and added --status option to show status and verify interception
+* reset-to-factory-defaults-with-root: Added check to ensure that the unpacked file to be flashed is larger than source .rbi file 
+* reset-to-factory-defaults-with-root: Added support for defaults (Documentation to come later)
+* unpack-rbi: Added check to ensure that the unpacked file is larger than source .rbi file 
+
 2021.08.05
 ==========
 * tch-gui-unhide: Modified style sheet and javascript loading so that they auto-refresh on version change (you should no longer need to clear the browser cache when updating to a new version)

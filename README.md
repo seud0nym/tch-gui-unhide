@@ -213,11 +213,14 @@ It is recommended that you apply whatever hardening (such as the [`de-telstra`](
 ./tch-gui-unhide <options>
 ```
 The script accepts the following options:
+- -a 4|5
+    - Set the number of cards across on screen width greater than 1200px
+    - The default is the current setting, or 4 for first time installs.
 - -t l|n|t|m
     - Set a light (*-tl*), night (*-tn*), or default Telstra Classic (*-tt*) or Telstra Modern (*-tm*) theme
     - The default is the current setting, or Telstra Classic if no theme has been applied
-- -c b|o|g|p|r|m
-    - Set the theme highlight colour: *-cb*=blue *-co*=orange *-cg*=green *-cp*=purple *-cr*=red *-cm*=monochrome
+- -c b|o|g|p|r|m|M
+    - Set the theme highlight colour: *-cb*=blue *-co*=orange *-cg*=green *-cp*=purple *-cr*=red *-cm*=monochrome *-cM*=monochrome (with monochrome charts)
     - The default is the current setting, or *-cm* for the light theme or *-cb* for the night theme
 - -i y|n
     - Show (*y*) or hide (*n*) the card icons.
