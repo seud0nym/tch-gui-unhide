@@ -43,9 +43,12 @@ local function findPath(basepath, option)
 end
 
 local function proxySet(path, value)
-  local success, errmsg = proxy.set(path, value)
+  local success, errors = proxy.set(path, value)
   if not success then
-    message_helper.pushMessage(T("Failed to set "..path.." to "..value..": "..errmsg), "error")
+    local err
+    for _,err in ipairs(errors) do
+      message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)), "error")
+    end
   end
   return success
 end

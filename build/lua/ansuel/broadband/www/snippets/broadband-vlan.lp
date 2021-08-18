@@ -20,13 +20,11 @@ else
 end
 
 local function set(path, value)
-  local retval, errmsg = proxy.set(path, value)
+  local retval, errors = proxy.set(path, value)
   if not retval then
-    local v,y
-    for _,v in pairs(errmsg) do
-      for _,y in pairs(v) do
-        message_helper.pushMessage("Error setting "..path..": "..y, "error")
-      end
+    local err
+    for _,err in ipairs(errors) do
+      message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)), "error")
     end
   end
 end

@@ -6,6 +6,7 @@ gettext.textdomain('webui-core')
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
+local message_helper = require("web.uimessage_helper")
 local untaint = string.untaint
 
 local function validateCronTimes(value, object, key)
@@ -112,9 +113,15 @@ cron_options.onAdd = function(index, content)
   for key,v in pairs(tbl) do
     local value = untaint(v)
     local path = string.format("rpc.gui.cron.entries.%s.%s",index,key)
-    local result, err = proxy.set(path,value)
+    local result, errors = proxy.set(path,value)
+    if not result then
+      local err
+      for _,err in ipairs(errors) do
+        message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)), "error")
+      end
+    end
   end
-
+  
   proxy.set("rpc.gui.cron.writecrontab","1")
 end
 
@@ -137,6 +144,7 @@ local cron_data, cron_helpmsg = post_helper.handleTableQuery(cron_columns, cron_
   ngx.print('\
   <form class="form-horizontal" method="post" action="modals/system-cron-modal.lp">\
   </form>\
+  '); ngx.print(ui_helper.createMessages(message_helper.popMessages())); ngx.print('\
   <fieldset id="system-cron-tab">\
     <legend>');  ngx.print( T"Scheduled Tasks" ); ngx.print('</legend>')
     local alert_warn = {
