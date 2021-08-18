@@ -130,6 +130,7 @@ local times = {
   {"23:45", T"11:45pm"},
 }
 local card_titles = {
+  adblock = "Adblock",
   broadband = "Broadband",
   contentsharing = "Content Sharing",
   cwmpconf = "CWMP",

@@ -3,8 +3,42 @@ This is where extra functionality scripts can be found. These are not incorporat
 
 Extras scripts that rely on packages to be installed require `opkg` to be configured correctly on your device. See **opkg Configuration** [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#opkg-Configuration).
 
+## tch-gui-unhide-xtra.adblock
+Creates a GUI interface for the [`Adblock`](https://openwrt.org/packages/pkgdata/adblock) package that allows you to block ads at the router level.
+#### Download
+https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.adblock
+#### Firmware Applicability
+Should be applicable to all firmware versions supported by `tch-gui-unhide`, as long as you install the firmware-specific prerequisites.
+#### Prerequisites 
+###### CA Certificates
+The System CA Certificates must be updated. You can do this either by preferably running the [`update-ca-certificates`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#update-ca-certificates) script, or by manually installing the CA certificates packages using `opkg install ca-certificates ca-bundle`. The `update-ca-certificates` script will install the latest available certificates (and gives you the option to schedule a regular job to update them), whereas the opkg packages may not contain the latest certificates.
+###### adblock
+Requires adblock version 3.5 to be installed using the `opkg` command. Different firmware versions have different dependencies:
+###### Firmware 20.3.c
+`opkg install adblock uclient-fetch`
+###### Firmware 18.1.c
+`opkg install adblock uclient-fetch libustream-openssl`
+###### Firmware 17.2
+The version of adblock in the standard 17.2 repository is incompatible with this extra script, but you can manually download and install the Homeware 18 version on the 17.2 firmware:  
+`curl -k https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages/adblock_3.5.5-4_all.ipk -o/tmp/adblock_3.5.5-4_all.ipk`   
+`opkg install /tmp/adblock_3.5.5-4_all.ipk`  
+`uci set adblock.global.adb_fetchutil='curl'`  
+`uci commit adblock`
+#### Changes External to the GUI
+Creates the the following transformer UCI mappings and commit/apply scripts to support the GUI changes:
+- /usr/share/transformer/commitapply/uci_adblock.ca
+- /usr/share/transformer/mappings/rpc/gui.adblock.map
+- /usr/share/transformer/mappings/uci/adblock.map
+#### Removal Instructions
+1. Delete `tch-gui-unhide-xtra.adblock`
+2. Remove adblock and dependencies: `opkg remove adblock uclient-fetch`
+    - If you are on firmware 17.2 or 18.1.c, then also: `opkg remove libustream-openssl`
+3. Re-run `tch-gui-unhide` to remove the GUI changes, and the additional transformer mappings
+
 ## tch-gui-unhide-xtra.minidlna
 Replaces the stock DLNA server management in the GUI so that it supports OpenWRT minidlna.
+#### Firmware Applicability
+Should be applicable to all firmware versions supported by `tch-gui-unhide`.
 #### Download
 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.minidlna
 #### Prerequisites 
@@ -14,13 +48,15 @@ Creates the the following transformer UCI mappings and commit/apply scripts to s
 - /usr/share/transformer/commitapply/uci_minidlna.ca
 - /usr/share/transformer/mappings/uci/minidlna.map
 #### Removal Instructions
-1. Do not delete `tch-gui-unhide-xtra.minidlna`
+1. Do **not** delete `tch-gui-unhide-xtra.minidlna`
 2. Remove minidlna: `opkg remove minidlna`
-3. Re-run `tch-gui-unhide` to remove the GUI changes, and the additional transformer mappings
+3. Re-run `tch-gui-unhide` to remove the GUI changes, custom configuration and the additional transformer mappings
 4. Now you can delete `tch-gui-unhide-xtra.minidlna`
 
 ## tch-gui-unhide-xtra.rsyncd
 Adds the ability to enable and disable the rsync daemon from the GUI.
+#### Firmware Applicability
+Should be applicable to all firmware versions supported by `tch-gui-unhide`.
 #### Download
 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.rsyncd
 #### Prerequisites 
@@ -31,13 +67,14 @@ Install rsyncd using the opkg command: `opkg install rsync rsyncd`
 - Adds the *tmp* module to /etc/rsyncd.conf to allow read/write access to the /tmp directory via rsync (e.g. `rsync 192.168.0.1::tmp`)
 - Adds the *usb* module to /etc/rsyncd.conf to allow read/write access to the USB device via rsync (e.g. `rsync 192.168.0.1::usb`)
 #### Removal Instructions
-1. Do not delete `tch-gui-unhide-xtra.rsyncd`
+1. Delete `tch-gui-unhide-xtra.rsyncd`
 2. Remove rsyncd: `opkg remove rsync rsyncd`
 3. Re-run `tch-gui-unhide` to remove the GUI changes, and the additional transformer mappings
-4. Now you can delete `tch-gui-unhide-xtra.rsyncd`
 
 ## tch-gui-unhide-xtra.samba36-server
-Correctly configures OpenWRT SAMBA 3.6 and adds ability to change the password via the GUI.
+Correctly configures OpenWRT SAMBA 3.6 to provide SMBv2 for Windows 10 inter-operability. This update adds the ability to change the password via the GUI.
+#### Firmware Applicability
+You should only install SAMBA 3.6 on the 17.2 and 18.1.c firmware. The 20.3.c firmware contains NQE rather than SAMBA, and does not require the SAMBA 3.6 update to upgrade to SMBv2 and inter-operate with Windows 10.
 #### Download
 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.samba36-server
 #### Prerequisites
@@ -86,7 +123,7 @@ If you are are a [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/
 Edit the `/etc/opkg/distfeeds.conf` file and insert a `#` before the repository listed, otherwise you will get errors when updating, because that repository does not exist.
 
 Edit the following files to configure `opkg`:
-### Firmware Versions starting with 17
+#### Firmware Versions starting with 17
 - /etc/opkg.conf
 ```
 dest root /
@@ -107,7 +144,7 @@ src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/pack
 src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony
 ```
 
-### Firmware Versions starting with 18
+#### Firmware Versions starting with 18 and later
 - /etc/opkg.conf
 ```
 dest root /
@@ -129,3 +166,15 @@ src/gz chaos_calmer_routing_macoers https://www.macoers.com/repository/homeware/
 src/gz chaos_calmer_telephony_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/telephony
 src/gz chaos_calmer_core_macoers https://www.macoers.com/repository/homeware/18/brcm63xx-tch/VANTW/target/packages
 ```
+
+## Post Configuration
+After configuring opkg, you need to update the package lists. You need to do this each time before you install any packages:
+```
+opkg update
+```
+
+You should also update the system CA certificates. You can do this either by:
+* preferably downloading and running the [`update-ca-certificates`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#update-ca-certificates) script; **or**
+* manually installing the CA certificates packages using: `opkg install ca-certificates ca-bundle`
+
+The `update-ca-certificates` script will install the latest available certificates (and gives you the option to schedule a regular job to update them), whereas the opkg packages may not contain the latest certificates.

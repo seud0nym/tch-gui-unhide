@@ -1,0 +1,770 @@
+#!/bin/sh
+
+if [ "$(basename $0)" = "tch-gui-unhide-xtra.adblock" -o -z "$FW_BASE" ]; then
+  echo "ERROR: This script must NOT be executed!"
+  echo "       Place it in the same directory as tch-gui-unhide and it will"
+  echo "       be applied automatically when you run tch-gui-unhide."
+  exit
+fi
+
+# The tch-gui-unhide-xtra scripts should output a single line to indicate success or failure
+# as the calling script has left a hanging echo -n. Include a leading space for clarity.
+
+if [ -f /etc/init.d/adblock -a -z "$XTRAS_REMOVE" -a "$(opkg list-installed | grep adblock | cut -d' ' -f3 | cut -d. -f1-2)" = "3.5" ]; then
+  echo " Adding adblock support..."
+
+  if [ ! -f /usr/share/transformer/commitapply/uci_adblock.ca ]; then
+    cat <<"CA" > /usr/share/transformer/commitapply/uci_adblock.ca
+^adblock /etc/init.d/adblock restart
+CA
+    SRV_transformer=$(( $SRV_transformer + 1 ))
+  fi
+
+  if [ ! -f /usr/share/transformer/mappings/uci/adblock.map ]; then
+    cat <<"UCI" > /usr/share/transformer/mappings/uci/adblock.map
+local config_adblock = "adblock"
+
+-- uci.adblock
+mapper("uci_1to1").registerConfigMap(config_adblock)
+
+-- uci.adblock.global
+local adblock_global = {
+  config = config_adblock,
+  section = "global",
+  type = "adblock",
+  options = { "adb_enabled" }
+}
+
+mapper("uci_1to1").registerSimpleMap(adblock_global)
+
+-- uci.adblock.extra
+local adblock_extra = {
+  config = config_adblock,
+  section = "extra",
+  type = "adblock",
+  options = { "adb_debug","adb_forcesrt","adb_forcedns","adb_backup","adb_maxqueue" }
+}
+
+mapper("uci_1to1").registerSimpleMap(adblock_extra)
+
+-- uci.adblock.source.{i}
+local adblock_source = {
+  config = config_adblock,
+  type = "source",
+  options = { "enabled","adb_src","adb_src_rset","adb_src_desc" },
+  lists = { "adb_src_cat" }
+}
+
+mapper("uci_1to1").registerNamedMultiMap(adblock_source)
+UCI
+    chmod 644 /usr/share/transformer/mappings/uci/adblock.map
+    SRV_transformer=$(( $SRV_transformer + 1 ))
+  fi
+
+  if [ ! -f /usr/share/transformer/mappings/rpc/gui.adblock.map ]; then
+    cat <<"RPC" > /usr/share/transformer/mappings/rpc/gui.adblock.map
+local dkjson = require("dkjson")
+local lfs = require("lfs")
+local uci_helper = mapper("ucihelper")
+local socket = require("socket")
+local adding = {
+  black = nil, 
+  white = nil,
+}
+
+local adblock_cache = {
+  status = "",
+  version = "",
+  overall_domains = "",
+  last_rundate = "",
+  updated = 0,
+}
+
+local function adblockIsRunning()
+  local cmd = io.popen("/usr/bin/pgrep adblock | wc -l", "r")
+  local procs = cmd:read("*n")
+  cmd:close()
+  return (procs ~= 0)
+end
+
+local function getRuntimeStatusFilename()
+  local rtfile = uci_helper.get_from_uci({config="adblock",sectionname="extra",option="adb_rtfile"})
+  if not rtfile or rtfile == "" then
+    rtfile = "/tmp/adb_runtime.json"
+  end
+  return rtfile
+end
+
+local function getRuntimeStatusJSON()
+  local f = io.open(getRuntimeStatusFilename(),"r")
+  local j = f:read("*a")
+  f:close()
+  return j
+end
+
+local function getAdblockCachedValue(param,level)
+  local rtfile = getRuntimeStatusFilename()
+  local modified = lfs.attributes(rtfile,"modification")
+  if modified then
+    if modified > adblock_cache.updated then
+      while (adblockIsRunning()) do
+        socket.sleep(2)
+      end
+      local j = getRuntimeStatusJSON()
+      if j and j ~= "" then
+        local json = dkjson.decode(j)
+        adblock_cache["status"] = json.data.adblock_status
+        adblock_cache["version"] = json.data.adblock_version
+        adblock_cache["overall_domains"] = json.data.overall_domains
+        adblock_cache["last_rundate"] = json.data.last_rundate
+        adblock_cache["updated"] = modified
+      else
+        socket.sleep(2)
+        return getAdblockCachedValue(param,level+1)
+      end
+    end
+  else
+    local enabled = uci_helper.get_from_uci({config="adblock",sectionname="global",option="adb_enabled"})
+    if enabled and enabled == "1" then
+      adblock_cache["status"] = "enabled"
+    else
+      adblock_cache["status"] = "disabled"
+    end
+    adblock_cache["version"] = "unknown"
+    adblock_cache["overall_domains"] = "unknown"
+    adblock_cache["last_rundate"] = "unknown"
+  end
+  if param == "query" then
+    return ""
+  end
+  return adblock_cache[param]
+end
+
+local GUI_ADBLOCK_ = {
+  objectType = {
+    name = "rpc.gui.adblock.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      status = {
+        access = "readOnly",
+        type = "string"
+      },
+      version = {
+        access = "readOnly",
+        type = "string"
+      },
+      overall_domains = {
+        access = "readOnly",
+        type = "boolean"
+      },
+      last_rundate = {
+        access = "readOnly",
+        type = "boolean"
+      },
+      query = {
+        access = "readWrite",
+        type = "string"
+      },
+    }
+  }
+}
+
+GUI_ADBLOCK_.get = function(mapping,param,key)
+  return getAdblockCachedValue(param,1)
+end
+
+GUI_ADBLOCK_.set = {
+  query = function(mapping,param,value,key)
+    if value == "" then
+      return false
+    end
+    local cmd = io.popen("/etc/init.d/adblock query " .. value, "r")
+    local result = cmd:read("*a")
+    cmd:close()
+    return nil, result
+  end,
+}
+
+register(GUI_ADBLOCK_)
+
+local format = string.format
+local filepattern = "/etc/adblock/adblock.%slist"
+
+local function readList(list)
+  local hosts,keys = {},{}
+  local f,errmsg = io.open(format(filepattern,list))
+  if f then
+    local host
+    for host in f:lines() do
+      local index = #hosts+1
+      hosts[index] = host
+      keys[index] = tostring(index)
+    end
+    f:close()
+    if adding[list] then
+      if adding[list] == #keys then
+        adding[list] = nil
+      else
+        keys[#keys+1]=tostring(adding[list])
+      end
+    end
+  else 
+    return nil,nil,errmsg
+  end
+  return hosts,keys
+end
+
+local function writeList(list,hosts)
+  local f,errmsg,k,v = io.open(format(filepattern,list),"w+")
+  if f then
+    for k,v in pairs(hosts) do
+      if v then
+        f:write(v)
+        f:write("\n")
+      end
+    end
+    f:close()
+    os.execute("/etc/init.d/adblock reload")
+  else
+    return nil,errmsg
+  end
+  return true
+end
+
+local function listEntries(list)
+  local _,keys = readList(list)
+  return keys
+end
+
+local function addToList(list)
+  local hosts,_,errmsg = readList(list)
+  if hosts then
+    adding[list] = #hosts+1
+    return "@"..tostring(adding[list])
+  end
+  return nil,errmsg
+end
+
+local function deleteFromList(list,key)
+  local hosts,_,errmsg = readList(list)
+  if hosts then
+    hosts[tonumber(key)] = nil
+    return writeList(list,hosts)
+  end
+  return nil,errmsg
+end
+
+local function getListValue(list,param,key)
+  if param == "host" then
+    local hosts = readList(list)
+    return hosts[tonumber(key)] or ""
+  else
+    return nil,"Invalid param " .. param
+  end
+end
+
+local function setListValue(list,param,value,key)
+  if param == "host" then
+    local hosts,_,errmsg = readList(list)
+    if hosts then
+      hosts[tonumber(key)] = value
+      return writeList(list,hosts)
+    end
+    return nil,errmsg
+  else
+    return nil,"Invalid param " .. param
+  end
+end
+
+local GUI_ADBLOCK_BLACKLIST_i_ = {
+  objectType = {
+    name = "rpc.gui.adblock.blacklist.@.",
+    access = "readWrite",
+    numEntriesParameter = "BlackListNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      host = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_ADBLOCK_BLACKLIST_i_.entries = function(mapping)
+  return listEntries("black")
+end
+
+GUI_ADBLOCK_BLACKLIST_i_.add = function(mapping)
+  return addToList("black")
+end
+
+GUI_ADBLOCK_BLACKLIST_i_.delete = function(mapping,key)
+  return deleteFromList("black",key)
+end
+
+GUI_ADBLOCK_BLACKLIST_i_.get = function(mapping,param,key)
+  return getListValue("black",param,key)
+end
+
+GUI_ADBLOCK_BLACKLIST_i_.set = function(mapping,param,value,key)
+  return setListValue("black",param,value,key)
+end
+
+register(GUI_ADBLOCK_BLACKLIST_i_)
+
+local GUI_ADBLOCK_WHITELIST_i_ = {
+  objectType = {
+    name = "rpc.gui.adblock.whitelist.@.",
+    access = "readWrite",
+    numEntriesParameter = "WhiteListNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      host = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_ADBLOCK_WHITELIST_i_.entries = function(mapping)
+  return listEntries("white")
+end
+
+GUI_ADBLOCK_WHITELIST_i_.add = function(mapping)
+  return addToList("white")
+end
+
+GUI_ADBLOCK_WHITELIST_i_.delete = function(mapping,key)
+  return deleteFromList("white",key)
+end
+
+GUI_ADBLOCK_WHITELIST_i_.get = function(mapping,param,key)
+  return getListValue("white",param,key)
+end
+
+GUI_ADBLOCK_WHITELIST_i_.set = function(mapping,param,value,key)
+  return setListValue("white",param,value,key)
+end
+
+register(GUI_ADBLOCK_WHITELIST_i_)
+RPC
+    chmod 644 /usr/share/transformer/mappings/rpc/gui.adblock.map
+    SRV_transformer=$(( $SRV_transformer + 1 ))
+  fi
+
+  if [ ! -f /www/lua/adblock_helper.lua ]
+  then
+    cat <<"HLP" > /www/lua/adblock_helper.lua
+local content_helper = require("web.content_helper")
+local ui_helper = require("web.ui_helper")
+local untaint = string.untaint
+
+local light_map = {
+  disabled = "0",
+  enabled = "1",
+  running = "2",
+  paused = "4",
+}
+
+local M = {}
+
+function M.getAdblockStatus()
+  local content = {
+    status = "rpc.gui.adblock.status",
+    last_rundate = "rpc.gui.adblock.last_rundate",
+    overall_domains = "rpc.gui.adblock.overall_domains",
+  }
+  content_helper.getExactContent(content)
+
+  return light_map[untaint(content.status)], T("Ad blocking " .. content.status), untaint(content.overall_domains), untaint(content.last_rundate)
+end
+
+function M.getAdblockCardHTML()
+  local status,status_text,overall_domains,last_rundate = M.getAdblockStatus()
+  local html = {}
+  html[#html+1] = ui_helper.createSimpleLight(status,status_text)
+  html[#html+1] = '<p class="subinfos">'
+  html[#html+1] = 'Domains: ' .. overall_domains
+  html[#html+1] = '<br>'
+  html[#html+1] = 'Last Updated: ' .. last_rundate
+  html[#html+1] = '</p>'
+  return html
+end
+
+return M
+HLP
+    chmod 644 /www/lua/adblock_helper.lua
+  fi
+
+  # The modals are named adblck-* otherwise some browser extensions block it!
+  if [ ! -f /www/docroot/modals/adblck-config-modal.lp ]
+  then
+    cat <<"CFG" > /www/docroot/modals/adblck-config-modal.lp
+--pretranslated: do not change this file
+
+-- Enable localization
+gettext.textdomain('webui-code')
+
+local post_helper = require("web.post_helper")
+local ui_helper = require("web.ui_helper")
+
+local vB = post_helper.validateBoolean
+local vNES = post_helper.validateNonEmptyString
+
+local mapParams = {
+  adb_enabled = "uci.adblock.global.adb_enabled",
+  adb_backup = "uci.adblock.extra.adb_backup",
+  adb_debug = "uci.adblock.extra.adb_debug",
+}
+
+local mapValid = {
+  adb_enabled = vB,
+  adb_backup = vB,
+  adb_debug = vB,
+}
+
+local config,helpmsg = post_helper.handleQuery(mapParams,mapValid)
+
+ngx.print('\
+');  ngx.print(ui_helper.createHeader("Adblock",false,true) ); ngx.print('\
+<div class="modal-body update">\
+  <ul class="nav nav-tabs">\
+    <li class="active"><a href="#" data-remote="/modals/adblck-config-modal.lp">Configuration</a></li>\
+    <li><a href="#" data-remote="/modals/adblck-lists-modal.lp">Lists</a></li>\
+  </ul>\
+  <form class="form-horizontal" method="post" action="modals/adblck-config-modal.lp">\
+    ');
+      local html = {}
+      html[#html+1] = "<fieldset><legend>" .. T"Configuration" .. "</legend>"
+      html[#html+1] = ui_helper.createSwitch(T"Enable Adblock","adb_enabled",config["adb_enabled"])
+      html[#html+1] = ui_helper.createSwitch(T"Enable Backup","adb_backup",config["adb_backup"])
+      html[#html+1] = ui_helper.createSwitch(T"Enable Debugging","adb_debug",config["adb_debug"])
+      html[#html+1] = "</fieldset>"
+      ngx.print(html)
+      ngx.print('\
+  </form>\
+</div>\
+'); ngx.print(ui_helper.createFooter()); ngx.print('\
+');
+CFG
+    chmod 644 /www/docroot/modals/adblck-config-modal.lp
+  fi
+  if [ ! -f /www/docroot/modals/adblck-lists-modal.lp ]
+  then
+    cat <<"LST" > /www/docroot/modals/adblck-lists-modal.lp
+--pretranslated: do not change this file
+
+-- Enable localization
+gettext.textdomain('webui-code')
+
+local post_helper = require("web.post_helper")
+local content_helper = require("web.content_helper")
+local ui_helper = require("web.ui_helper")
+local message_helper = require("web.uimessage_helper")
+local proxy = require("datamodel")
+
+local qry_result = "<style>.whitelist_cb{margin-bottom:5px}</style>"
+if ngx.req.get_method() == "POST" then
+  local format, untaint = string.format, string.untaint
+  local args = ngx.req.get_post_args()
+  
+  local query = untaint(args.check_filtered)
+  if query and query ~= "" then
+    local _,result,host = proxy.set("rpc.gui.adblock.query", query)
+    for host in string.gmatch(untaint(result[1]["errmsg"])," %+ (%S+)") do 
+      qry_result = format("%s<br><input type='checkbox' class='whitelist_cb' name='wl_host' value='%s' title='Tick to whitelist %s'>%s",qry_result,host,host,host)
+    end
+  end
+
+  local whitelist = untaint(args.wl_host)
+  if whitelist then
+    local host
+    if type(whitelist) == "string" or type(whitelist) == "userdata" then
+      whitelist = { whitelist }
+    end
+    for _,host in pairs(whitelist) do
+      local key, errors = proxy.add("rpc.gui.adblock.whitelist.")
+      if not key then
+        local err
+        for _,err in ipairs(errors) do
+          message_helper.pushMessage(T(string.format("Failed to add %s to whitelist: %s (%s)",host,err.errmsg,err.errcode)), "error")
+        end
+      else
+        local path = "rpc.gui.adblock.whitelist.".. key .. ".host";
+        local result, errors = proxy.set(path, host)
+        if result then
+          message_helper.pushMessage(T("Added "..host.." to whitelist"), "success")
+        else
+          local err
+          for _,err in ipairs(errors) do
+            message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,host,err.errmsg,err.errcode)), "error")
+          end
+        end
+      end
+    end
+  end
+end
+
+local vB = post_helper.validateBoolean
+local vNES = post_helper.validateNonEmptyString
+
+local content = {
+  status = "rpc.gui.adblock.status",
+  blacklist_enabled = "uci.adblock.source.@blacklist.enabled",
+}
+content_helper.getExactContent(content)
+
+local editable = content.status == "enabled"
+
+local list_valid = {
+  domain = vNES
+}
+
+local list_columns = {
+  {
+    header = T"Host Name",
+    name = "host",
+    param = "host",
+    type = "text",
+    attr = { input = { class="span2",maxlength="127" } }
+  },
+}
+
+local blacklist_options = {
+  tableid = "adb_blacklist",
+  basepath = "rpc.gui.adblock.blacklist.@.",
+  canAdd = editable,
+  canDelete = editable,
+  canEdit = editable,
+  createMsg = T"Add new black-listed host",
+  onAdd = function(index, content)
+    proxy.set("rpc.gui.adblock.blacklist."..index..".host", content.host)
+  end
+}
+
+local whitelist_options = {
+  tableid = "adb_whitelist",
+  basepath = "rpc.gui.adblock.whitelist.@.",
+  canAdd = editable,
+  canDelete = editable,
+  canEdit = editable,
+  createMsg = T"Add new white-listed host",
+  onAdd = function(index, content)
+    proxy.set("rpc.gui.adblock.whitelist."..index..".host", content.host)
+  end
+}
+
+local blacklist_data,blacklist_helpmsg = post_helper.handleTableQuery(list_columns,blacklist_options,nil,nil,list_valid)
+local whitelist_data,whitelist_helpmsg = post_helper.handleTableQuery(list_columns,whitelist_options,nil,nil,list_valid)
+
+local source_valid = {
+  enabled = vB
+}
+
+local source_columns = {
+  {
+    header = T"Name",
+    name = "paramindex",
+    param = "paramindex",
+    type = "text",
+    readonly = true,
+  },
+  {
+    header = T"Source",
+    name = "adb_src",
+    param = "adb_src",
+    type = "text",
+    readonly = true,
+  },
+  {
+    header = T"Description",
+    name = "adb_src_desc",
+    param = "adb_src_desc",
+    type = "text",
+    readonly = true,
+  },
+  {
+    header = T"Enabled",
+    name = "enabled",
+    param = "enabled",
+    type = "switch",
+  },
+}
+
+local source_options = {
+  tableid = "adb_sources",
+  basepath = "uci.adblock.source.@.",
+  canAdd = false,
+  canDelete = false,
+  canEdit = editable,
+  sorted = "paramindex",
+}
+
+local source_data,source_helpmsg = post_helper.handleTableQuery(source_columns,source_options,nil,nil,source_valid)
+
+local warn_box = {
+  alert = {
+    class = "alert alert-warn",
+    style = "text-align:center",
+  }
+}
+
+ngx.print('\
+');  ngx.print(ui_helper.createHeader("Adblock",false,true) ); ngx.print('\
+<div class="modal-body update">\
+  <ul class="nav nav-tabs">\
+    <li><a href="#" data-remote="/modals/adblck-config-modal.lp">Configuration</a></li>\
+    <li class="active"><a href="#" data-remote="/modals/adblck-lists-modal.lp">Lists</a></li>\
+  </ul>\
+  <form class="form-horizontal" method="post" action="modals/adblck-lists-modal.lp">\
+    '); ngx.print(ui_helper.createMessages(message_helper.popMessages())); ngx.print('\
+    ');
+      local html = {}
+      if editable then
+        html[#html+1] = "</fieldset>"
+        html[#html+1] = "<fieldset><legend>" .. T"Check Filtering" .. "</legend>"
+        html[#html+1] = ui_helper.createInputText("Host or Domain Name", "check_filtered","")
+        html[#html+1] = "<pre>"
+        html[#html+1] = qry_result
+        html[#html+1] = "</pre>"
+        html[#html+1] = "</fieldset>"
+      else
+        html[#html + 1] = ui_helper.createAlertBlock(T("Adblock status is currently '"..content.status.."'. Status must be 'enabled' for querying and editing."), warn_box)
+      end
+      if content.blacklist_enabled == "1" then
+        html[#html+1] = "<fieldset><legend>" .. T"Custom Black List" .. "</legend>"
+        html[#html+1] = ui_helper.createTable(list_columns,blacklist_data,blacklist_options,nil,blacklist_helpmsg)
+        html[#html+1] = "</fieldset>"
+      end
+      html[#html+1] = "<fieldset><legend>" .. T"Custom White List" .. "</legend>"
+      html[#html+1] = ui_helper.createTable(list_columns,whitelist_data,whitelist_options,nil,whitelist_helpmsg)
+      html[#html+1] = "</fieldset>"
+      html[#html+1] = "<fieldset><legend>" .. T"Sources" .. "</legend>"
+      if editable then
+        html[#html + 1] = ui_helper.createAlertBlock(T"Do not enable too many lists, or you could run out or memory!", warn_box)
+      end
+      html[#html+1] = ui_helper.createTable(source_columns,source_data,source_options,nil,source_helpmsg)
+      html[#html+1] = "</fieldset>"
+      ngx.print(html)
+      ngx.print('\
+  </form>\
+</div>\
+'); ngx.print(ui_helper.createFooter()); ngx.print('\
+<script>\
+  $(".whitelist_cb").on("change", function(){\
+    $("#modal-no-change").addClass("hide");\
+    $("#modal-changes").removeClass("hide");\
+  });\
+</script>\
+');
+
+LST
+    chmod 644 /www/docroot/modals/adblck-lists-modal.lp
+  fi
+  if [ ! -f /www/docroot/ajax/adblck-status.lua ]
+  then
+    cat <<"AJX" > /www/docroot/ajax/adblck-status.lua
+local json = require("dkjson")
+local adblock_helper = require("adblock_helper")
+local html = adblock_helper.getAdblockCardHTML()
+
+local data = {
+  html = table.concat(html, "\n"),
+}
+
+local buffer = {}
+if json.encode (data, { indent = false, buffer = buffer }) then
+  ngx.say(buffer)
+else
+  ngx.say("{}")
+end
+ngx.exit(ngx.HTTP_OK)
+AJX
+    chmod 644 /www/docroot/ajax/adblck-status.lua
+  fi
+
+  if [ ! -f /www/cards/008_adblock.lp ]
+  then
+    cat <<"CRD" > /www/cards/008_adblock.lp
+--pretranslated: do not change this file
+
+-- Enable localization
+gettext.textdomain('webui-core')
+
+local adblock_helper = require("adblock_helper")
+local ui_helper = require("web.ui_helper")
+local session = ngx.ctx.session
+local modalPath = "/modals/adblck-config-modal.lp"
+
+if session:hasAccess(modalPath) then
+  local html = adblock_helper.getAdblockCardHTML()
+  ngx.print('\
+  <div class = "span3">\
+    <div class = "smallcard">\
+      '); ngx.print(ui_helper.createCardHeader(T"Adblock",modalPath)); ngx.print('\
+      <div class="content card_bg adblock-card-content" data-bg-text="&#xf0b0;";">\
+        ');
+        ngx.print(html);
+        ngx.print('\
+      </div>\
+    </div>\
+  </div>\
+  <script>\
+  var adbFuncID;\
+  function updateAdblockCard(){\
+    $.post("/ajax/adblck-status.lua", [tch.elementCSRFtoken()], function(data){\
+      $(".adblock-card-content").html(data["html"]);\
+    }, "json")\
+    .fail(function(response){\
+      if(response.status==403||response.status==404){clearInterval(adbFuncID);}\
+    });\
+  }\
+  $().ready(function(){adbFuncID=setInterval(updateAdblockCard,28000);});\
+  </script>\
+');
+end
+CRD
+    chmod 644 /www/cards/008_adblock.lp
+  fi
+
+  grep -q "/etc/init.d/adblock" /etc/crontabs/root
+  if [ $? -eq 1 ]; then
+    mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
+    hh=$(awk 'BEGIN{srand();print int(rand()*3)+2;}')
+    echo "$mm $hh * * * /etc/init.d/adblock reload" >> /etc/crontabs/root
+    SRV_cron=$(( $SRV_cron + 1 ))
+  fi
+
+  grep -q "json_load_file()" /etc/init.d/adblock
+  if [ $? -eq 1 ]; then
+    sed -e '/boot()/i\json_load_file() { json_load "$(cat $1)"; }' -i /etc/init.d/adblock
+  fi
+
+  q=$(grep -n 'query "${1}"' /etc/init.d/adblock | cut -d: -f1)
+  p=$(( $q - 1 ))
+  if [ "$(grep -n '[ -s "${adb_pidfile}" ] && return 1' /etc/init.d/adblock  | cut -d: -f1 | grep -E "^$p$")" = "$p" ]; then
+    sed \
+      -e '/query "${1}"/i\        local rtfile_content rtfile="$(uci_get adblock extra adb_rtfile)"' \
+      -e '/query "${1}"/i\        rtfile="${rtfile:-"/tmp/adb_runtime.json"}"' \
+      -e '/query "${1}"/i\        rtfile_content=$(cat "$rtfile")' \
+      -e '/query "${1}"/a\        echo "$rtfile_content" > "$rtfile"' \
+      -i /etc/init.d/adblock
+  fi
+else
+  grep -q "/etc/init.d/adblock" /etc/crontabs/root
+  if [ $? -eq 0 ]; then
+    echo " adblock removed - Cleaning up"
+    rm $(find /usr/share/transformer/ /www -type f -name '*adbl*' | grep -v '/www/nd-js/blockadblock.js' | xargs)
+    sed -e '/\/etc\/init.d\/adblock/d' -i /etc/crontabs/root
+    SRV_transformer=$(( $SRV_transformer + 1 ))
+    SRV_cron=$(( $SRV_cron + 1 ))
+  else
+    echo " SKIPPED because adblock 3.5 not installed"
+  fi
+fi

@@ -107,6 +107,7 @@ apply_defaults() {
     TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
     HIDE=$HIDDEN
     case "${FILE#*_}" in
+      adblock.lp)           SEQ="008";;
       broadband.lp)         SEQ="002";;
       contentsharing.lp)    SEQ="012";;
       CPU.lp)               SEQ="000";;
@@ -210,24 +211,25 @@ apply_suggested() {
       wireless_boosters.lp) SEQ="007";;
       LAN.lp)               SEQ="008";;
       Devices.lp)           SEQ="009";;
-      firewall.lp)          SEQ="010";;
-      natalghelper.lp)      SEQ="011"; HIDE="$HIDE_EXTRA";;
-      system.lp)            SEQ="012";;
-      wanservices.lp)       SEQ="013";;
-      iproutes.lp)          SEQ="014";;
-      telephony.lp)         SEQ="015";;
-      qos.lp)               SEQ="016";;
-      usermgr.lp)           SEQ="017";;
-      opkg.lp)              SEQ="018";;
-      eco.lp)               SEQ="019";;
-      contentsharing.lp)    SEQ="020";;
-      printersharing.lp)    SEQ="021"; HIDE="$HIDE_EXTRA";;
-      parental.lp)          SEQ="022";;
-      tod.lp)               SEQ="023";;
-      diagnostics.lp)       SEQ="024";;
-      xdsl.lp)              SEQ="025";;
-      relaysetup.lp)        SEQ="026"; HIDE="$HIDE_EXTRA";;
-      cwmpconf.lp)          SEQ="027"; if [ ! -f /etc/init.d/cwmpd ]; then HIDE=1; fi;;
+      adblock.lp)           SEQ="010";;
+      firewall.lp)          SEQ="011";;
+      natalghelper.lp)      SEQ="012"; HIDE="$HIDE_EXTRA";;
+      system.lp)            SEQ="013";;
+      wanservices.lp)       SEQ="014";;
+      iproutes.lp)          SEQ="015";;
+      telephony.lp)         SEQ="016";;
+      qos.lp)               SEQ="017";;
+      usermgr.lp)           SEQ="018";;
+      opkg.lp)              SEQ="019";;
+      eco.lp)               SEQ="020";;
+      contentsharing.lp)    SEQ="021";;
+      printersharing.lp)    SEQ="022"; HIDE="$HIDE_EXTRA";;
+      parental.lp)          SEQ="023";;
+      tod.lp)               SEQ="024";;
+      diagnostics.lp)       SEQ="025";;
+      xdsl.lp)              SEQ="026";;
+      relaysetup.lp)        SEQ="027"; HIDE="$HIDE_EXTRA";;
+      cwmpconf.lp)          SEQ="028"; if [ ! -f /etc/init.d/cwmpd ]; then HIDE=1; fi;;
       *)                    SEQ=$(basename $FILE | cut -c1-3);;
     esac
     if [ -z "$TMP" ]
@@ -371,7 +373,7 @@ do
     v)  apply_visible;;
     *)  if [ "$FROM" -ge 1 -a "$FROM" -le "$I" ]
         then
-          echo -ne "For card #$FROM, enter ${GREEN}h{$NC} to hide, ${GREEN}u${NC} to unhide, or new position ${GREEN}number between 1 and $I${NC}: "
+          echo -ne "For card #$FROM, enter ${GREEN}h${NC} to hide, ${GREEN}u${NC} to unhide, or new position ${GREEN}number between 1 and $I${NC}: "
           read TO
           if [ "$TO" = "h" -o "$TO" = "u" ]
           then
