@@ -63,22 +63,28 @@ upgrade() {
   exit
 }
 
-ACTIVE="$(cat /proc/banktable/active)"
-BOOTED="$(cat /proc/banktable/booted)"
-BKUP=""
-CWMP=""
-FIRMWARE=""
-IPADDR=""
-KEYS=""
-NOEXEC=""
-ROOTPWD="root"
-REBOOT="Y"
-VERBOSE=N
-YES=N
+set_defaults() {
+  BKUP=""
+  CWMP=""
+  FIRMWARE=""
+  IPADDR=""
+  KEYS=""
+  NOEXEC=""
+  ROOTPWD="root"
+  REBOOT="Y"
+  VERBOSE=N
+  YES=N
+}
 
-while getopts :bcef:iI:knp:vyU option
+set_defaults
+if [ -f .defaults.reset-to-factory-defaults-with-root ]; then
+  . ./.defaults.reset-to-factory-defaults-with-root
+fi
+
+while getopts :bcef:iI:knp:vyU-: option
 do
  case "${option}" in
+  -)  case "${OPTARG}" in no-defaults) set_defaults;; *) usage;; esac;;
   b)  BKUP="Y";;
   c)  CWMP="Y";;
   e)  NOEXEC="Y";;
@@ -101,6 +107,8 @@ do
  esac
 done
 
+ACTIVE="$(cat /proc/banktable/active)"
+BOOTED="$(cat /proc/banktable/booted)"
 MOUNT_PATH=$(uci get mountd.mountd.path)
 USB="$(ls $MOUNT_PATH | head -n1)"
 
