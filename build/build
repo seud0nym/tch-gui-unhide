@@ -157,4 +157,9 @@ done
 echo "${GREEN}Cleaning up..${NC}"
 cleanup /tmp/tch-gui-unhide /tmp/*.b64
 
+echo "${GREEN}Building extras..${NC}"
+cd ../extras/src
+./make
+cd -
+
 echo "${GREEN}Build Complete @ $(date +%H:%M:%S) for version $FULL_VERSION${NC}"
