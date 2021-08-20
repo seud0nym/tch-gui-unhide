@@ -24,6 +24,10 @@ The version of adblock in the standard 17.2 repository is incompatible with this
 `opkg install /tmp/adblock_3.5.5-4_all.ipk`  
 `uci set adblock.global.adb_fetchutil='curl'`  
 `uci commit adblock`
+#### Post-Installation Configuration
+- Configure IPv4 DNS Servers under Local Network to "RSP/ISP DNS Servers"
+- Configure your preferred DNS Servers under Internet Access
+- Enable DNS Intercept under Firewall (leave DNS Server Address blank)
 #### Changes External to the GUI
 Creates the the following transformer UCI mappings and commit/apply scripts to support the GUI changes:
 - /usr/share/transformer/commitapply/uci_adblock.ca
