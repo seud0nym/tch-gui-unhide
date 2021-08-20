@@ -1,5 +1,5 @@
 --pretranslated: do not change this file
- 
+
 -- Enable localization
 gettext.textdomain('webui-core')
 
@@ -67,8 +67,8 @@ if ngx.req.get_method() == "POST" then
       end
     elseif action == "TABLE-ADD" then
       inShaperAdd = true
-    end    
-  end  
+    end
+  end
 end
 
 local function onAddShaper(current_section_index,content)
@@ -155,18 +155,24 @@ local ssid = {}
 local wifi = proxy.getPN("uci.wireless.wifi-iface.", true)
 for _,v in ipairs(wifi) do
   local ifname = match(v.path, "uci%.wireless%.wifi%-iface%.@([^%.]+)%.")
-	local wlname = proxy.get(v.path .. "ssid")
-  local radio_name = proxy.get("rpc.wireless.ssid.@"..ifname..".radio")[1].value
+  local wlname = proxy.get(v.path .. "ssid")
   if wlname then
     wlname = wlname[1].value
   else
     wlname = ifname
   end
-  if radio_name == "radio_2G" then
-    ssid[ifname] = wlname .. " (2.4G)"
-  else
-    ssid[ifname] = wlname .. " (5G)"
-  end    
+  local radio_name = proxy.get("rpc.wireless.ssid.@"..ifname..".radio")
+  if not radio_name then
+    radio_name = proxy.get("rpc.wireless.ssid.@"..wlname..".radio")
+  end
+  if radio_name then
+    radio_name = radio_name[1].value
+    if radio_name == "radio_2G" then
+      ssid[ifname] = wlname .. " (2.4G)"
+    else
+      ssid[ifname] = wlname .. " (5G)"
+    end
+  end
 end
 
 local qosDevices = proxy.getPN("uci.qos.device.", true)
