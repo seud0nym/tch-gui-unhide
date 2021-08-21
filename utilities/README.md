@@ -156,18 +156,19 @@ USB devices have priority over SSHFS filesystems.
 Usage: ./mtd-backup [options]
 
 Options:
- -d directory   The name of the directory on the USB device or SSHFS filesystem.
-                  If not specified, defaults to: backups
- -c             Save the current UCI configuration into the VARIANT-SERIAL-VERSION-config.gz file
- -e             Save the current environment into the VARIANT-SERIAL-VERSION-env file
- -l             Write log messages to stderr as well as the system log
- -o             Save the overlay content into the VARIANT-SERIAL-VERSION-overlay-files-backup.tgz file
- -s             Skip recalculation of the checksum of the backed-up partition, and just save the checksum
-                  calculated to determine if the image has changed.
- -v             Verbose mode
- -y             Bypass confirmation prompt (answers 'y')
- -C             Adds or removes the scheduled daily backup cron job
- -P             Reports the backup path
+ -d directory    The name of the directory on the USB device or SSHFS filesystem.
+                   If not specified, defaults to: backups
+ -c              Save the current UCI configuration into the VARIANT-SERIAL-VERSION-config.gz file
+ -e              Save the current environment into the VARIANT-SERIAL-VERSION-env file
+ -o              Save the overlay content into the VARIANT-SERIAL-VERSION-overlay-files-backup.tgz file
+ -s              Skip recalculation of the checksum of the backed-up partition, and just save the checksum calculated to determine if the image has changed.
+ -0              Skip backup of mtd0 if a backup already exists
+ --no-drop-cache Skips flushing the RAM page cache after backup
+ -l              Write log messages to stderr as well as the system log
+ -v              Verbose mode
+ -y              Bypass confirmation prompt (answers 'y')
+ -C              Adds or removes the scheduled daily backup cron job
+ -P              Reports the backup path
  -U             Download the latest version of mtd-backup from GitHub
 ```
 When run with the -C option (which should be the only option), the scheduled job will be added if it does not already exist, or removed if it does exist in the schedule. By default, the backup will run every day at a random time between 2:00am and 5:00am. You can modify the schedule through the Management card in `tch-gui-unhide`, or by directly modifying the /etc/crontab/root file.

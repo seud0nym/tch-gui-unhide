@@ -17,25 +17,26 @@ USB devices have priority over SSHFS filesystems.
 Usage: $0 [options]
 
 Options:
- -d directory   The name of the directory on the USB device or SSHFS
-                  filesystem.
-                  If not specified, defaults to: backups
- -c             Save the current UCI configuration into the
-                  $VARIANT-$SERIAL-$VERSION-config.gz file
- -e             Save the current environment into the
-                  $VARIANT-$SERIAL-$VERSION-env file
- -l             Write log messages to stderr as well as the system log
- -o             Save the overlay content into the
-                  $VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz file
- -s             Skip recalculation of the checksum of the backed-up partition,
-                  and just save the checksum calculated to determine if the
-                  image has changed.
- -0             Skip backup of mtd0 if a backup already exists
- -v             Verbose mode
- -y             Bypass confirmation prompt (answers 'y')
- -C             Adds or removes the scheduled daily backup cron job
- -P             Reports the backup path
- -U             Download the latest version of $SCRIPT from GitHub
+ -d directory    The name of the directory on the USB device or SSHFS
+                   filesystem.
+                   If not specified, defaults to: backups
+ -c              Save the current UCI configuration into the
+                   $VARIANT-$SERIAL-$VERSION-config.gz file
+ -e              Save the current environment into the
+                   $VARIANT-$SERIAL-$VERSION-env file
+ -o              Save the overlay content into the
+                   $VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz file
+ -s              Skip recalculation of the checksum of the backed-up partition,
+                   and just save the checksum calculated to determine if the
+                   image has changed.
+ -0              Skip backup of mtd0 if a backup already exists
+ --no-drop-cache Skips flushing the RAM page cache after backup
+ -l              Write log messages to stderr as well as the system log
+ -v              Verbose mode
+ -y              Bypass confirmation prompt (answers 'y')
+ -C              Adds or removes the scheduled daily backup cron job
+ -P              Reports the backup path
+ -U              Download the latest version of $SCRIPT from GitHub
 
 EOH
 exit
@@ -43,21 +44,17 @@ exit
 
 upgrade() {
   RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
-  if [ "$RESPONSE_CODE" = 200 ]
-  then
+  if [ "$RESPONSE_CODE" = 200 ]; then
     curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
-    if [ $? -eq 0 ]
-    then
+    if [ $? -eq 0 ]; then
       chmod +x $SCRIPT
       echo "[$SCRIPT] Successfully downloaded $SCRIPT."
     else
       echo "[$SCRIPT] Failed to download $SCRIPT."
     fi
-  elif [ "$RESPONSE_CODE" = 404 ]
-  then
+  elif [ "$RESPONSE_CODE" = 404 ]; then
     echo "[$SCRIPT] ERROR! Not found on GitHub???"
-  elif [ "$RESPONSE_CODE" = 000 ]
-  then
+  elif [ "$RESPONSE_CODE" = 000 ]; then
     echo "[$SCRIPT] ERROR! No Internet connection???"
   else
     echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
@@ -71,15 +68,17 @@ DIR="backups"
 DUMP_CFG=N
 DUMP_ENV=N
 DUMP_OVL=N
+FLUSH=Y
 LOGGER="/usr/bin/logger -t mtd-backup -p"
 MTD0=Y
 PATH_ONLY=N
 RECALC_SHA=Y
 YES=N
 
-while getopts :cd:elosvy0CPU option
+while getopts :cd:elosvy0CPU- option
 do
  case "${option}" in
+  -)  case "${OPTARG}" in no-drop-cache) FLUSH=N;; *) usage;; esac;;
   C)  CRON=Y;;
   P)  PATH_ONLY=Y;;
   c)  DUMP_CFG=Y;;
@@ -99,13 +98,10 @@ shift $((OPTIND-1))
 
 MOUNT_PATH=$(uci get mountd.mountd.path)
 USB="$(ls $MOUNT_PATH | head -n1)"
-if [ -z "$USB" ]
-then
+if [ -z "$USB" ]; then
   SSHFS=$(grep -m 1 fuse\.sshfs /proc/mounts | cut -d" " -f2)
-  if [ -z "$SSHFS" ]
-  then
-    if [ $PATH_ONLY = Y ]
-    then
+  if [ -z "$SSHFS" ]; then
+    if [ $PATH_ONLY = Y ]; then
       echo "[$SCRIPT] ERROR! No USB device or mounted SSHFS filesystem found"
     else
       $LOGGER user.err "ABORTING! No USB device or mounted SSHFS filesystem found"
@@ -118,17 +114,14 @@ else
   TARGET=${MOUNT_PATH}${USB}/${DIR}
 fi
 
-if [ $PATH_ONLY = Y ]
-then
+if [ $PATH_ONLY = Y ]; then
   echo $TARGET
   exit
 fi
 
-if [ $CRON = Y ]
-then
+if [ $CRON = Y ]; then
   grep -q "$SCRIPT" /etc/crontabs/root
-  if [ $? = 0 ]
-  then
+  if [ $? = 0 ]; then
     CRON_ACTION=remove
   else
     CRON_ACTION=add
@@ -151,16 +144,14 @@ if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
   exit
 fi
 
-if [ $CRON = Y ]
-then
-  if [ $CRON_ACTION = remove ]
-  then
+if [ $CRON = Y ]; then
+  if [ $CRON_ACTION = remove ]; then
     sed -e "/$SCRIPT/d" -i /etc/crontabs/root
     echo "[$SCRIPT] Scheduled backup has been removed."
   else
     mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
-    hh=$(awk 'BEGIN{srand();print int(rand()*3)+2;}')
-    echo "$mm $hh * * * $(cd $(dirname $0); pwd)/$SCRIPT -d $DIR -c -e -o -y" >> /etc/crontabs/root
+    hh=$(awk 'BEGIN{srand();print int(rand()*3)+4;}')
+    echo "$mm $hh * * * $(cd $(dirname $0); pwd)/$SCRIPT -d $DIR -ceoy" >> /etc/crontabs/root
     echo "[$SCRIPT] Backup has been scheduled to execute at $hh:$(printf '%02d' $mm)am every day."
     echo "[$SCRIPT] Execution messages will be written to the system log, and can be viewed with the following command:"
     echo
@@ -174,31 +165,25 @@ fi
 [ $DEBUG = Y ] && $LOGGER user.debug "Backup commenced"
 STARTED=$(date +%s)
 
-if [ ! -d $TARGET ]
-then
+if [ ! -d $TARGET ]; then
   $LOGGER user.info "Backup target $TARGET not found - Creating..."
   mkdir -p $TARGET
 fi
 
-if [ $RECALC_SHA = N ]
-then
+if [ $RECALC_SHA = N ]; then
   echo "This directory contains compressed backup images of the device MTD partitions.">$TARGET/README!
   echo "">>$TARGET/README!
   echo ".sha256= files (if any) contain a checksum that was recalculated from the backup image, and can be used to verify the image when it is uncompressed.">>$TARGET/README!
   echo "">>$TARGET/README!
   echo ".sha256 files (if any) contain a checksum that should ONLY be used for determining if an image has been changed. This checksum may not match the actual content of the image, if the image was updated between checksum calculation and actually writing the image!">>$TARGET/README!
-elif [ -f $TARGET/README! ]
-then
+elif [ -f $TARGET/README! ]; then
   rm $TARGET/README!
 fi
 
-if [ $DUMP_CFG = Y ]
-then
-  if [ -f $TARGET/$VARIANT-$SERIAL-config.gz ]
-  then
+if [ $DUMP_CFG = Y ]; then
+  if [ -f $TARGET/$VARIANT-$SERIAL-config.gz ]; then
     FIX_VER=$(cat $TARGET/$VARIANT-$SERIAL-config.gz | gunzip | grep 'marketing_version' | cut -d"'" -f2)
-    if [ -n "$FIX_VER" ]
-    then
+    if [ -n "$FIX_VER" ]; then
       $LOGGER user.info "RENAMING existing configuration backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-config.gz"
       mv $TARGET/$VARIANT-$SERIAL-config.gz $TARGET/$VARIANT-$SERIAL-$FIX_VER-config.gz
     fi
@@ -215,13 +200,10 @@ else
   [ $DEBUG = Y ] && $LOGGER user.debug "SKIPPED configuration backup - Not requested"
 fi
 
-if [ $DUMP_ENV = Y ]
-then
-  if [ -f $TARGET/$VARIANT-$SERIAL-env ]
-  then
+if [ $DUMP_ENV = Y ]; then
+  if [ -f $TARGET/$VARIANT-$SERIAL-env ]; then
     FIX_VER=$(grep env.var.friendly_sw_version_activebank $TARGET/$VARIANT-$SERIAL-env | cut -d"'" -f2 | cut -d- -f1)
-    if [ -n "$FIX_VER" ]
-    then
+    if [ -n "$FIX_VER" ]; then
       $LOGGER user.info "RENAMING existing environment backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-env"
       mv $TARGET/$VARIANT-$SERIAL-env $TARGET/$VARIANT-$SERIAL-$FIX_VER-env
     fi
@@ -234,13 +216,10 @@ else
   [ $DEBUG = Y ] && $LOGGER user.debug "SKIPPED environment backup - Not requested"
 fi
 
-if [ $DUMP_OVL = Y ]
-then
-  if [ -f $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz ]
-  then
+if [ $DUMP_OVL = Y ]; then
+  if [ -f $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz ]; then
     FIX_VER=$(cat $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz | tar  -xzOf - ./bank_2/etc/config/version | grep 'marketing_version' | cut -d"'" -f2 )
-    if [ -n "$FIX_VER" ]
-    then
+    if [ -n "$FIX_VER" ]; then
       $LOGGER user.info "RENAMING existing overlay contents backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-overlay-files-backup.tgz"
       mv $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz $TARGET/$VARIANT-$SERIAL-$FIX_VER-overlay-files-backup.tgz
     fi
@@ -255,16 +234,13 @@ fi
 
 sed -e '/dev:/d' -e 's/\(mtd.\)[^"]*"\([^"]*\)"/\1 \2/' /proc/mtd | while read -r dev name
 do
-  if [ "$name" = "rootfs_data" -o "$name" = "$BOOTED" ]
-  then
+  if [ "$name" = "rootfs_data" -o "$name" = "$BOOTED" ]; then
     name="$name-$VERSION"
   fi
-  if [ -f $TARGET/$VARIANT-$dev-$name.img.sha256= ]
-  then
+  if [ -f $TARGET/$VARIANT-$dev-$name.img.sha256= ]; then
     SHA256SRC=$TARGET/$VARIANT-$dev-$name.img.sha256=
     SHA256OLD="$(cat $SHA256SRC | cut -d' ' -f1)"
-  elif [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ]
-  then
+  elif [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ]; then
     SHA256SRC=$TARGET/$VARIANT-$dev-$name.img.sha256
     SHA256OLD="$(cat $SHA256SRC | cut -d' ' -f1)"
   else
@@ -272,8 +248,7 @@ do
     SHA256OLD=""
   fi
 
-  if [ "$dev" = "mtd0" -a $MTD0 = N -a -n "$SHA256SRC" -a -n "$SHA256OLD" -a -f $TARGET/$VARIANT-$dev-$name.img.gz ]
-  then
+  if [ "$dev" = "mtd0" -a $MTD0 = N -a -n "$SHA256SRC" -a -n "$SHA256OLD" -a -f $TARGET/$VARIANT-$dev-$name.img.gz ]; then
     $LOGGER user.info "SKIPPED backup of $dev - Already exists and -0 option specified"
     continue
   fi
@@ -282,17 +257,14 @@ do
   SECONDS=$(date +%s)
   SHA256=$(sha256sum "/dev/${dev}ro" | cut -d' ' -f1)
   [ $DEBUG = Y ] && $LOGGER user.debug "CALCULATING SHA256 for $dev took $(( $(date +%s) - $SECONDS )) seconds"
-  if [ "$SHA256" = "$SHA256OLD" -a -f $TARGET/$VARIANT-$dev-$name.img.gz ]
-  then
+  if [ "$SHA256" = "$SHA256OLD" -a -f $TARGET/$VARIANT-$dev-$name.img.gz ]; then
     $LOGGER user.info "SKIPPED backup of $dev - Checksums match"
-    if [ $RECALC_SHA = Y -a "$SHA256SRC" = "$TARGET/$VARIANT-$dev-$name.img.sha256" ]
-    then
+    if [ $RECALC_SHA = Y -a "$SHA256SRC" = "$TARGET/$VARIANT-$dev-$name.img.sha256" ]; then
       $LOGGER user.info "RECALCULATING SHA256 for $VARIANT-$dev-$name.img..."
       SECONDS=$(date +%s)
       SHA256=$(cat $TARGET/$VARIANT-$dev-$name.img.gz | gunzip | sha256sum | cut -d' ' -f1)
       [ $DEBUG = Y ] && $LOGGER user.debug "CALCULATING SHA256 for $VARIANT-$dev-$name.img took $(( $(date +%s) - $SECONDS )) seconds"
-      if [ "$SHA256" != "$SHA256OLD" ]
-      then
+      if [ "$SHA256" != "$SHA256OLD" ]; then
         $LOGGER user.info "WARNING: $VARIANT-$dev-$name.img calculated checksum does not match stored checksum!!!"
       fi
       $LOGGER user.info "WRITING $VARIANT-$dev-$name.img checksum to $TARGET/$VARIANT-$dev-$name.img.sha256="
@@ -302,8 +274,7 @@ do
       [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256
     fi
   else
-    if [ -n "$SHA256SRC" ]
-    then
+    if [ -n "$SHA256SRC" ]; then
       [ $DEBUG = Y ] && $LOGGER user.debug "DELETING obsolete $SHA256SRC"
       rm $SHA256SRC
     fi
@@ -311,8 +282,7 @@ do
     SECONDS=$(date +%s)
     dd if="/dev/${dev}ro" bs=1M | gzip > $TARGET/$VARIANT-$dev-$name.img.gz
     [ $DEBUG = Y ] && $LOGGER user.debug "WRITING $dev to $TARGET/$VARIANT-$dev-$name.img.gz took $(( $(date +%s) - $SECONDS )) seconds"
-    if [ $RECALC_SHA = N ]
-    then
+    if [ $RECALC_SHA = N ]; then
       $LOGGER user.info "WRITING $dev checksum to $TARGET/$VARIANT-$dev-$name.img.sha256"
       echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256
       [ -f $TARGET/$VARIANT-$dev-$name.img.sha256= ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256=
@@ -327,6 +297,12 @@ do
     fi
   fi
 done
+
+if [ $FLUSH = Y ]; then
+  $LOGGER user.info "Flushing page cache..."
+  sync
+  echo 1 > /proc/sys/vm/drop_caches
+fi
 
 [ $DEBUG = Y ] && $LOGGER user.debug "Backup completed in $(( $(date +%s) - $STARTED )) seconds"
 
