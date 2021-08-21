@@ -20,8 +20,31 @@ sed \
   -e 's/count == 5/count < 5/' \
   -e '/ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)/,/^\s*$/d' \
   -e '/proxy.set("rpc.system.lock.free", "0")/i end' \
+  -e 's/\(iface_total\[v.iface  .. "_" .. direct\]\)/(tonumber(string.untaint(\1)) or 0)/' \
   /www/docroot/traffic.lp > /www/docroot/modals/diagnostics-traffic-modal.lp
+
+# Initial invocation of transformer code will fail if history directory does not exist
+if [ ! -d /root/trafficmon/history ]; then
+  echo [$SCRIPT]: Create directory to retain traffic monitor daily history
+  mkdir -p /root/trafficmon/history
+fi
+if [ ! -f /root/trafficmon/history/.wan_rollover ]; then
+  echo [$SCRIPT]: Create WAN traffic monitor history configuration file
+  echo "1" > /root/trafficmon/history/.wan_rollover
+fi
+if [ ! -f /root/trafficmon/history/.wwan_rollover ]; then
+  echo [$SCRIPT]: Create WWAN traffic monitor history configuration file
+  echo "1" > /root/trafficmon/history/.wwan_rollover
+fi
+
+grep -q "/usr/sbin/traffichistory.lua" /etc/crontabs/root
+if [ $? -eq 1 ]; then
+  echo [$SCRIPT]: Create cron job to retain traffic monitor daily history
+  echo "9,19,29,39,49,59 * * * * /usr/sbin/traffichistory.lua" >> /etc/crontabs/root
+  SRV_cron=$(( $SRV_cron + 1 ))
+fi
 
 echo [$SCRIPT]: Only lock files for 600 seconds
 sed -e 's/lfs.lock_dir(datadir)/lfs.lock_dir(datadir,600)/' -i /usr/share/transformer/mappings/rpc/system.lock.map
+SRV_transformer=$(( $SRV_transformer + 1 ))
 
