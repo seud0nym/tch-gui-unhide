@@ -118,7 +118,7 @@ if [ $STATUS = "y" ]; then
       dns_masq.enabled) if [ -z "$val" ]; then dns_masq="1"; val="1"; else dns_masq="$val"; fi;;
       dot_fwd.family)   ipv6="$val";;
     esac
-    if [ "$val" = "$dns_int" ]
+    if [ "$val" = "$dns_int" -o \( -z "$val" -a "$dns_int" = 1 \) ]
       then prefix="$GREEN"
       else prefix="$RED"
     fi
@@ -148,30 +148,51 @@ if [ $STATUS = "y" ]; then
     echo -e "$val $state"
   done
 
-  printf "$pattern" "/etc/firewall.ipset.dns_xcptn"
-  xcptns="$(cat /etc/firewall.ipset.dns_xcptn | cut -d" " -f3 | xargs)"
-  if [ "$dns_int" = "1" ]; then
-    found_dest_ip=0
-    for ip in $xcptns 
-    do
-      [ "$dest_lan" = 0 -a "$ip" = "$dest_ip" ] && found_dest_ip=1
-      ip route get $ip | grep -q br-lan
-      if [ $? -eq 0 ]; then
-        echo -en "${GREEN}"
+  for ipset in dns_xcptn doh doh6
+  do
+    printf "$pattern" "/etc/firewall.ipset.$ipset"
+    members="$(cat /etc/firewall.ipset.$ipset | cut -d" " -f3 | xargs)"
+    members_cnt="$(echo $members | wc -w)"
+    members_def="$(ipset list $ipset | grep -vE '^Nam|^Typ|^Rev|^Hea|^Siz|^Ref|^Mem' | wc -l)"
+    members_ref="$(ipset list $ipset | grep '^Ref' | cut -d' ' -f2)"
+    if [ "$dns_int" = "1" ]; then
+      if [ $members_ref -eq 0 ]; then
+        if [ "$ipset" = doh6 -a "$ipv6" = "ipv4" ]; then
+          echo -en "${GREEN}[Not referenced - Intercepting IPv4 only]${NC} "
+        else
+          echo -en "${RED}[Set not referenced?]${NC} "
+          okay=0
+        fi
       else
-        echo -en "${RED}"
-        okay=0
+        echo -en "${GREEN}[References: $members_ref]${NC} "
       fi
-      echo -en "${ip}${NC} "
-    done
-    [ "$dest_lan" = 0 -a $found_dest_ip = 0 ] && echo -en "[${RED}$dest_ip NOT EXCLUDED]${NC}"
-    echo
-  elif [ "$dns_int" = "0" -a $(echo $xcptns | wc -w) -gt 0 ]; then
-    echo -e "${RED}${xcptns}${NC}"
-    okay=0
-  else
-    echo -e "${ORANGE}${xcptns}${NC}"
-  fi
+      if [ $members_cnt -eq $members_def ]; then
+        echo -en "${GREEN}[Members: $members_def]${NC} "
+      fi
+      if [ "$ipset" = dns_xcptn ]; then
+        found_dest_ip=0
+        for ip in $members 
+        do
+          [ "$dest_lan" = 0 -a "$ip" = "$dest_ip" ] && found_dest_ip=1
+          ip route get $ip | grep -q br-lan
+          if [ $? -eq 0 ]; then
+            echo -en "${GREEN}"
+          else
+            echo -en "${RED}[NOT IN SUBNET!]"
+            okay=0
+          fi
+          echo -en "${ip}${NC} "
+        done
+        [ "$dest_lan" = 0 -a $found_dest_ip = 0 ] && echo -en "[${RED}$dest_ip NOT EXCLUDED]${NC}"
+      fi
+      echo
+    elif [ "$dns_int" = "0" -a $members_cnt -gt 0 ]; then
+      echo -e "${RED}${members}${NC}"
+      okay=0
+    else
+      echo -e "${ORANGE}${members}${NC}"
+    fi
+  done
 
   printf "$pattern" "/etc/crontabs/root"
   cron=$(grep doh-ipsets-maintain /etc/crontabs/root)
