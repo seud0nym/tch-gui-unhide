@@ -2,13 +2,15 @@
 
 for d in $(find . -maxdepth 1 -type d ! -path . -printf '%P ')
 do
-  target="../tch-gui-unhide-xtra.$d"
   source="$d/$d.sh"
-  echo Creating $target...
-  cp "$source" "$target"
-  grep -n 'cat *<<' "$source" | sed -e 's/:\|<\|>\|"\|cat//g' | sort -nr | while read -r line name file
-  do 
-    sed -e "${line}r $d$file" -i "$target"
-  done
+  if [ -f "$source" ]; then
+    target="../tch-gui-unhide-xtra.$d"
+    echo Creating $target...
+    cp "$source" "$target"
+    grep -n 'cat *<<' "$source" | sed -e 's/:\|<\|>\|"\|cat//g' | sort -nr | while read -r line name file
+    do 
+      sed -e "${line}r $d$file" -i "$target"
+    done
+  fi
 done
 
