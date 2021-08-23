@@ -9,7 +9,10 @@ FILENAME=$(basename $0)
 while getopts :a:c:d:f:h:i:l:p:rt:uv:yTVW-: option
 do
  case "${option}" in
-   -) [ "${OPTARG}" = "debug" ] && DEBUG="V";;
+   -) case "${OPTARG}" in 
+        debug)  DEBUG="V";; 
+        *)      usage;; 
+      esac;;
    a) if [ "${OPTARG}" -eq 4 -o "${OPTARG}" -eq 5 ]; then ACROSS=$OPTARG; else echo "ERROR: Cards across must be either 4 or 5"; exit 2; fi;;
    c) case "$(echo ${OPTARG} | sed 's/\(.\)\(.*\)/\1/')" in
         b) COLOR=blue;; 
