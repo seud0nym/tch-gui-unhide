@@ -597,8 +597,8 @@ local function validateLeaseTime(value, postdata, key)
       postdata[key] = "infinite" -- included to ensure uci parameter is set as infinite
       return true
    else
-      local success, msg = vSILT(value)
-      if success then
+      local isLeaseTime, msg = vSILT(value)
+      if isLeaseTime then
          postdata["leaseTime"] = match(untaint(value), "^0*([1-9]%d*[smhdw]?)$")
          return true
       else
@@ -738,16 +738,18 @@ local function validateGWIP(value, object, key)
   if not val then
     return nil, errmsg
   end
-
---   local isWan, intf = post_helper.isWANIP(value, all_intfs)
---   if isWan then
---     return nil, T(symbolv1 .. " IP should not be in ".. intf .." IP Range")
---   end
-
---   local isLan, intf = post_helper.isLANIP(value, all_intfs, curintf)
---   if isLan then
---     return nil, T(symbolv1 .. " IP should not be in ".. intf .." IP Range")
---   end
+  if post_helper.isWANIP then
+    local isWan, intf = post_helper.isWANIP(value, all_intfs)
+    if isWan then
+      return nil, T("Gateway IP should not be in ".. intf .." IP Range")
+    end
+  end
+  if post_helper.isLANIP then
+    local isLan, intf = post_helper.isLANIP(value, all_intfs, curintf)
+    if isLan then
+      return nil, T("Gateway IP should not be in ".. intf .." IP Range")
+    end
+  end
   local ip = ipv42num(value)
 
   for _,intf in pairs(lan_intfs) do
@@ -822,15 +824,6 @@ local mapValid = {
   dns_v6_pri = validateDNSv6,
   dns_v6_sec = validateDNSv6,
 }
-
-local function find_dns (dns, list)
-  for i,v in ipairs(list) do
-    if i > 1 and dns == v[1] then
-      return true
-    end
-  end
-  return false
-end
 
 local function split(x,sep)
     x = tostring(x)
@@ -1047,10 +1040,12 @@ ngx.print('\
         for k,v in ipairs(lan_intfs) do
             local active = ""
             if v.index == curintf then
-                active = "active"
+              active = "active"
             end
-            local url = "modals/ethernet-modal.lp?intf=" .. v.index
-            html[#html+1] = format('<li class="%s"><a id = "%s" href="#" data-remote="%s">%s</a></li>', active, v.index, url, v.name)
+            if v.index ~= "loopback" then
+              local url = "modals/ethernet-modal.lp?intf=" .. v.index
+              html[#html+1] = format('<li class="%s"><a id = "%s" href="#" data-remote="%s">%s</a></li>', active, v.index, url, v.name)
+            end
         end
         ngx.print(html)
         ngx.print('\
@@ -1112,21 +1107,7 @@ ngx.print('\
               ngx.print(ui_helper.createInputText(T"Local Domain Name", "localdomain", content["localdomain"], advanced, helpmsg["localdomain"]))
             end
 
-            if cur_dhcp_intf == "lan" and not bridged.isBridgedMode() and not adguard then
-              ngx.print(
-                ui_helper.createInputSelect(T"IPv4 Primary DNS", "dnsServer", dns_list[1], content["dnsServer"], stdattributes),
-                ui_helper.createInputSelect(T"IPv4 Secondary DNS", "ipv4_dns_sec", dns_list[1], content["dns_v4_sec"], stdattributes)
-              )
-            end
-
             ngx.print(ui_helper.createSwitch(T"IPv6 State", "localIPv6", content["localIPv6"], switch_class_enable))
-
-            if cur_dhcp_intf == "lan" and not bridged.isBridgedMode() and not adguard then
-              ngx.print(
-                ui_helper.createInputSelect(T"IPv6 Primary DNS", "dns_v6_pri", dns_list[2], content["dns_v6_pri"], stdattributes),
-                ui_helper.createInputSelect(T"IPv6 Secondary DNS", "dns_v6_sec", dns_list[2], content["dns_v6_sec"], stdattributes)
-              )
-            end
 
             if not bridged.isBridgedMode() then
                 ngx.print('\
@@ -1149,12 +1130,28 @@ ngx.print('\
                   ui_helper.createLabel(T"Network Address", network, advanced),
                   ui_helper.createInputText(T"DHCP Start Address", "dhcpStartAddress", ipstart, advanced, helpmsg["dhcpStart"]),
                   ui_helper.createInputText(T"DHCP End Address", "dhcpEndAddress", ipend, advanced, helpmsg["dhcpLimit"]),
-                  ui_helper.createInputText(T"Lease Time", "leaseTime", content["leaseTime"], advanced, helpmsg["leaseTime"]),
+                  ui_helper.createInputText(T"Lease Time", "leaseTime", content["leaseTime"], advanced, helpmsg["leaseTime"])
+                )
+                if cur_dhcp_intf == "lan" and not adguard then
+                  ngx.print(
+                    ui_helper.createInputSelect(T"IPv4 Primary DNS", "dnsServer", dns_list[1], content["dnsServer"], stdattributes),
+                    ui_helper.createInputSelect(T"IPv4 Secondary DNS", "ipv4_dns_sec", dns_list[1], content["dns_v4_sec"], stdattributes)
+                  )
+                end
+                ngx.print(
                   [[<div class="monitor-localIPv6 monitor-1 monitor-hidden-localIPv6">]],
                   ui_helper.createSwitch(T"DHCPv6 Server", "dhcpv6State", content["dhcpv6State"], switchDHCP),
-                  ui_helper.createSwitch(T"SLAAC + RA<span class='icon-question-sign' title='IPv6 Stateless Address Auto-Configuration + Router Advertisement'></span>", "slaacState", content["slaacState"], switchDHCP),
+                  ui_helper.createSwitch(T"SLAAC + RA<span class='icon-question-sign' title='IPv6 Stateless Address Auto-Configuration + Router Advertisement'></span>", "slaacState", content["slaacState"], switchDHCP)
+                )
+                if cur_dhcp_intf == "lan" and not adguard then
+                  ngx.print(
+                    ui_helper.createInputSelect(T"IPv6 Primary DNS", "dns_v6_pri", dns_list[2], content["dns_v6_pri"], stdattributes),
+                    ui_helper.createInputSelect(T"IPv6 Secondary DNS", "dns_v6_sec", dns_list[2], content["dns_v6_sec"], stdattributes)
+                  )
+                end
+                ngx.print(
                   [[</div>]]
-                );
+                )
               end
                  ngx.print('\
             </div>\

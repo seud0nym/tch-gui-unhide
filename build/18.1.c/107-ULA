@@ -37,13 +37,13 @@ sed \
  -e '/local number_attr/i \                  style = "width:180px",' \
  -e '/local number_attr/i \                }' \
  -e '/local number_attr/i \              }' \
- -e '/"IPv6 State"/i \              if curintf == "lan" then' \
- -e "/\"IPv6 State\"/i \                ngx.print(ui_helper.createInputText(T\"IPv6 ULA Prefix<span class='icon-question-sign' title='IPv6 equivalent of IPv4 private addresses. Must start with fd followed by 40 random bits and a /48 range (e.g. fd12:3456:789a::/48)'></span>\", \"ula_prefix\", content[\"ula_prefix\"], ula_attr, helpmsg[\"ula_prefix\"]))" \
- -e '/"IPv6 State"/i \              end' \
- -e '/"IPv6 State"/i \              local ip6prefix = proxy.get("rpc.network.interface.@wan6.ip6prefix")' \
- -e '/"IPv6 State"/i \              if ip6prefix and ip6prefix[1].value ~= "" then' \
- -e "/\"IPv6 State\"/i \                ngx.print(ui_helper.createInputText(T\"IPv6 Prefix Size<span class='icon-question-sign' title='Delegate a prefix of the given length to this interface'></span>\", \"ip6assign\", content[\"ip6assign\"], number_attr, helpmsg[\"ip6assign\"]))" \
- -e '/"IPv6 State"/i \              end' \
+ -e '/"IPv6 State"/a \              if curintf == "lan" then' \
+ -e "/\"IPv6 State\"/a \                ngx.print(ui_helper.createInputText(T\"IPv6 ULA Prefix<span class='icon-question-sign' title='IPv6 equivalent of IPv4 private addresses. Must start with fd followed by 40 random bits and a /48 range (e.g. fd12:3456:789a::/48)'></span>\", \"ula_prefix\", content[\"ula_prefix\"], ula_attr, helpmsg[\"ula_prefix\"]))" \
+ -e '/"IPv6 State"/a \              end' \
+ -e '/"IPv6 State"/a \              local ip6prefix = proxy.get("rpc.network.interface.@wan6.ip6prefix")' \
+ -e '/"IPv6 State"/a \              if ip6prefix and ip6prefix[1].value ~= "" then' \
+ -e "/\"IPv6 State\"/a \                ngx.print(ui_helper.createInputText(T\"IPv6 Prefix Size<span class='icon-question-sign' title='Delegate a prefix of the given length to this interface'></span>\", \"ip6assign\", content[\"ip6assign\"], number_attr, helpmsg[\"ip6assign\"]))" \
+ -e '/"IPv6 State"/a \              end' \
  -e '/slaacState = gVIES(/a \    ip6assign = gOV(gVNIR(0,128)),' \
  -e '/slaacState = gVIES(/a \    ula_prefix = validateULAPrefix,' \
  -e '/^(function() {/i \function rand(max){return Math.floor(Math.random()*max);}\\' \
