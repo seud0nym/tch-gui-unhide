@@ -13,7 +13,8 @@ else
   sed -e "s,<title>');  ngx.print( T\"Change password\" ); ngx.print('</title>,<title>$TITLE - Change Password</title>," -i /www/docroot/password.lp
 fi
 
-echo [$SCRIPT]: Change Gateway to $VARIANT
+echo "[$SCRIPT]: Change 'Gateway' to '$VARIANT'"
 sed -e "s/Gateway/$VARIANT/g" -i /www/cards/001_gateway.lp
 sed -e "s/Gateway/$VARIANT/g" -i /www/cards/003_internet.lp
+sed -e "s/Device/$VARIANT/g" -i /www/docroot/modals/ethernet-modal.lp
 

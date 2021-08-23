@@ -1,5 +1,7 @@
 --pretranslated: do not change this file
 
+-- NOTE: All occurences of the string "Device" in this file will be replaced with the variant (e.g. DJA0231)
+
 -- Localization
 gettext.textdomain('webui-core')
 
@@ -49,16 +51,10 @@ for k, v in pairs(hosts_ac) do
   hosts_mac[#hosts_mac+1] = {mac, mac}
 end
 
-local wanpeerdns = proxy.get("uci.network.interface.@wan.peerdns")
-if wanpeerdns and wanpeerdns[1].value ~= "0" then
-  wanpeerdns = T("RSP/ISP DNS Servers")
-else
-  wanpeerdns = T("Custom WAN DNS Servers")
-end
 local dns_list = {
   { -- IPv4 DNS servers
     {"", T""},
-    {"127.0.0.1", wanpeerdns},
+    {"127.0.0.1", T"Device"},
     {"8.8.8.8", T"Google (8.8.8.8)"},
     {"8.8.4.4", T"Google (8.8.4.4)"},
     {"1.1.1.1", T"Cloudflare (1.1.1.1)"},
@@ -708,7 +704,7 @@ local function validateDHCPStart(value, object)
         local validatorNumberInRange = gVNIR(1,limit)
 
         if dhcpstart == baseip then
-           return nil, T"DHCP Start Address should not be Local Device IP Address"
+           return nil, T"DHCP Start Address should not be the Device IP Address"
         elseif dhcpstart == network then
            return nil, T"DHCP Start Address should not be a Network Address"
         end
@@ -741,13 +737,13 @@ local function validateGWIP(value, object, key)
   if post_helper.isWANIP then
     local isWan, intf = post_helper.isWANIP(value, all_intfs)
     if isWan then
-      return nil, T("Gateway IP should not be in ".. intf .." IP Range")
+      return nil, T("Device IP should not be in ".. intf .." IP Range")
     end
   end
   if post_helper.isLANIP then
     local isLan, intf = post_helper.isLANIP(value, all_intfs, curintf)
     if isLan then
-      return nil, T("Gateway IP should not be in ".. intf .." IP Range")
+      return nil, T("Device IP should not be in ".. intf .." IP Range")
     end
   end
   local ip = ipv42num(value)
@@ -767,7 +763,7 @@ local function validateGWIP(value, object, key)
 
       if network and ipmax then
         if ip >= network and ip <= ipmax then
-              return nil, T"Gateway IP should not be in " .. intf.name .. T" IP Range"
+              return nil, T"Device IP should not be in " .. intf.name .. T" IP Range"
         end
       end
     end
@@ -884,7 +880,7 @@ if (ngx.var.request_method == "POST")  and not next(helpmsg) then
 end
 
 if #dns_servers == 1 and content["dnsServer"] ~= nil and content["dnsServer"] ~= "" then
-    dns_servers = split(format("%s", content["dnsServer"]), ",")
+  dns_servers = split(format("%s", content["dnsServer"]), ",")
 end
 
 -- set the local host IP
@@ -979,7 +975,6 @@ if ngx.var.request_method == "POST" then
   local gwIP = session:retrieve("old_ip")
   session:store("old_ip",(content["localdevIP"]))
 
-  -- Redirect the GUI only if the local GW device IP address is changed for the "lan" interface
   if curintf == "lan" and content["localdevIP"]~= gwIP and not next(helpmsg) then ngx.print('\
     <script type="text/javascript">\
       window.location="http://');  ngx.print(content["localdevIP"]); ngx.print('";\
@@ -1030,7 +1025,6 @@ ngx.print('\
    <div class="modal-body update">\
      <form class="form-horizontal" method="post" action="');  ngx.print( ngx.var.request_uri ); ngx.print('">\
      ');
-     -- Do not display the navlist on the list if only 1 lan interface
      if #lan_intfs> 1 and (not bridged.isBridgedMode()) then
        ngx.print('\
      <div class="span2">\
@@ -1094,9 +1088,8 @@ ngx.print('\
                 class = "monitor-changes span2"
               }
             }
-            -- Labels that shows the Local Device IP address & network subnet
             ngx.print(
-              ui_helper.createInputText(T"Local Device IP Address", "localdevIP", content["localdevIP"], {input = {class = "span2"}}, helpmsg["localdevIP"]),
+              ui_helper.createInputText(T"Device IP Address", "localdevIP", content["localdevIP"], {input = {class = "span2"}}, helpmsg["localdevIP"]),
               ui_helper.createInputText(T"Local Network Subnet", "localdevmask", content["localdevmask"], advanced, helpmsg["localdevmask"])
             )
 
@@ -1118,7 +1111,6 @@ ngx.print('\
               if adguard then
                 ngx.print(format(T'Configure DHCP through <a style="color:inherit;text-decoration:none;" target="_blank" href="http://%s:8008"><b>AdGuard Home</b></a>', content["localdevIP"]))
               else
-                -- Labels that shows DHCP info
                 local switchDHCP = {
                   values = {
                     on = "server",
@@ -1156,7 +1148,6 @@ ngx.print('\
                  ngx.print('\
             </div>\
               ');
-              -- Do not display the static lease when the interface is not lan
               if curintf == "lan" then
                 if not adguard then
                 ngx.print('\
@@ -1249,13 +1240,12 @@ ngx.print('\
               html[#html + 1] = "<legend>LAN Domain Name Server Configuration</legend>"
               html[#html + 1] = ui_helper.createTable(ipv4DNScolumns, ipv4DNSdata, ipv4DNSoptions, nil, ipv4DNShelpmsg)
               html[#html + 1] = "<legend>Network Mode</legend>"
-              html[#html + 1] = ui_helper.createAlertBlock(T[[Note: your gateway is in Bridged Mode. If you want the gateway to run in Routed Mode again, you can revert without factory reset <a href="javascript:tch.loadModal('/modals/broadband-modal.lp')">here</a>]], infomessage)
+              html[#html + 1] = ui_helper.createAlertBlock(T[[Note: your Device is in Bridged Mode. If you want the Device to run in Routed Mode again, you can revert without factory reset <a href="javascript:tch.loadModal('/modals/broadband-modal.lp')">here</a>]], infomessage)
               ngx.print(html)
             end
             ngx.print('\
           </fieldset>\
           ');
-          -- Do not display the navlist on the list if only 1 lan interface
           if #lan_intfs> 1 and (not bridged.isBridgedMode()) then
             ngx.print('\
           </div>\
