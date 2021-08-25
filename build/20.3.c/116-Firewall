@@ -7,7 +7,7 @@ sed \
   -e '/local alg_modal_link/a \                if wan and wan[1].value == "1" then' \
   -e '/local alg_modal_link/a \                  local helpers = proxy.get(v.path .. "helper.")' \
   -e '/local alg_modal_link/a \                  if helpers then' \
-  -e '/local alg_modal_link/a \                    html[#html+1] = format(N("<strong %1$s>%2$d WAN NAT ALG Helper</strong> enabled","<strong %1$s>%2$d WAN NAT ALG Helpers</strong> enabled", #helpers), alg_modal_link, #helpers)' \
+  -e '/local alg_modal_link/a \                    html[#html+1] = format(N("<strong %1$s>%2$d NAT ALG Helper</strong> enabled","<strong %1$s>%2$d NAT ALG Helpers</strong> enabled", #helpers), alg_modal_link, #helpers)' \
   -e '/local alg_modal_link/a \                    html[#html+1] = "<br>"' \
   -e '/local alg_modal_link/a \                  end' \
   -e '/local alg_modal_link/a \                end' \
