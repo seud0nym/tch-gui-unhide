@@ -3,47 +3,76 @@
 -- Enable localization
 gettext.textdomain('webui-core')
 
+local proxy = require("datamodel")
+local ui_helper = require("web.ui_helper")
+local content_helper = require("web.content_helper")
+local format, toupper, untaint = string.format, string.upper, string.untaint
+
 local ngx = ngx
 local session = ngx.ctx.session
 local modalPath = "/modals/nat-alg-helper-modal.lp"
 
 if session:hasAccess(modalPath) then
-  local proxy = require("datamodel")
-  local ui_helper = require("web.ui_helper")
-  local alg_modal_link = "class=\"modal-link\" data-toggle=\"modal\" data-remote=\"/modals/nat-alg-helper-modal.lp\" data-id=\"nat-alg-helper-modal\""
-  local format, toupper, untaint = string.format, string.upper, string.untaint
-  local html = {}
+  local helpers = {}
+  -- Populated by 102-NAT-ALG
+  local available = {}
 
-  local zones = proxy.getPN("uci.firewall.zone.", true)
-  for k,v in ipairs(zones) do
-    local name = proxy.get(v.path .. "name")
-    local wan = proxy.get(v.path .. "wan")
-    if name and (name[1].value == "lan" or (wan and wan[1].value == "1")) then
-      local helpers = proxy.get(v.path .. "helper.")
-      if helpers then
-        local light = "0"
-        if #helpers > 0 then
-          light = "1"
-        end
-        html[#html+1] = ui_helper.createSimpleLight(light, format(N("<strong %1$s>%2$d %s NAT ALG Helper</strong> enabled","<strong %1$s>%2$d %s NAT ALG Helpers</strong> enabled", #helpers), alg_modal_link, #helpers, toupper(untaint(name[1].value))))
+  local v
+  for _,v in pairs(proxy.getPN("uci.firewall_helpers.helper.", true)) do
+    local helper = proxy.get(v.path .. "name", v.path .. "enable")
+    if helper then
+      local name = untaint(helper[1].value)
+      if available[name] then
+        helpers[#helpers+1] = { name = toupper(name), enable = untaint(helper[2].value) }
       end
     end
   end
 
-  if #html > 0 then
-    ngx.print('\
+  table.sort(helpers, function(a,b)
+    return a.name < b.name
+  end)
+
+  local mid = math.floor((#helpers / 2) + 0.5)
+  local attributes = { span = { class = "helper-card" } }
+  local htmlLeft = {}
+  local htmlRight = {}
+  for _,v in pairs(helpers) do
+    local state = v.enable
+    local text
+    if state ~= "0" then
+      text =" enabled<br>"
+      state = "1"
+    else
+      text = " disabled<br>"
+    end
+    if #htmlLeft < mid then
+      htmlLeft[#htmlLeft+1] = ui_helper.createSimpleLight(state, v.name, attributes) .. text
+    else
+      htmlRight[#htmlRight+1] = ui_helper.createSimpleLight(state, v.name, attributes) .. text
+    end
+  end
+
+  ngx.print('\
   <div class="span3">\
     <div class="smallcard">\
-      ');  ngx.print( ui_helper.createCardHeader(T"NAT Helpers", modalPath) ); ngx.print('\
-      <div class="content card_bg" data-bg-text="&#xf0ec;">\
-        ');  
-        ngx.print(html)
-        ngx.print('\
+      '); ngx.print(ui_helper.createCardHeader(T"NAT Helpers", modalPath)); ngx.print('\
+      <div class="content card_bg" data-bg-text="&#xf0ad;">\
+        <div style="display:flex;flex-direction:row;">\
+          <div style="padding-right:3px">\
+            ');
+            ngx.print(htmlLeft);
+            ngx.print('\
+          </div>\
+          <div>\
+            ');
+            ngx.print(htmlRight);
+            ngx.print('\
+          </div>\
+        </div>\
       </div>\
     </div>\
   </div>\
-  ');  
-  end
+');  
 end
-  ngx.print('\
+ngx.print('\
 '); 

@@ -47,8 +47,7 @@ Options:
           o            Set the DNS servers to OpenDNS
           <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated
                         IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
- -a u|y|n              WAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable
- -b u|y|n            * LAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable (FW 20.3.c)
+ -a u|y|n              ALG NAT Helpers:         u=Unchanged y=Enable n=Disable
  -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
  -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
  -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
@@ -107,7 +106,6 @@ upgrade() {
 # Options
 set_defaults() {
   ALG='u'
-  ALG_LAN='u'
   DECT='u'
   DLNAD='u'
   DOMAIN='u'
@@ -146,7 +144,7 @@ do
  case "${option}" in
   -)  case "${OPTARG}" in no-defaults) set_defaults;; *) usage;; esac;;
   a)  case "${OPTARG}" in y) ALG='1';; n) ALG='0';; u) ALG='u';; *) ALG='u'; echo 'ERROR: -a valid options are y, n, or u'; exit 1;; esac;;
-  b)  case "${OPTARG}" in y) ALG_LAN='1';; n) ALG_LAN='0';; u) ALG_LAN='u';; *) ALG_LAN='u'; echo 'ERROR: -b valid options are y, n, or u'; exit 1;; esac;;
+  b)  echo 'WARNING: -b option deprecated. Use -a instead!'; exit 1;;
   c)  case "${OPTARG}" in y) DLNAD='1';; n) DLNAD='0';; u) DLNAD='u';; *) DLNAD='u'; echo 'ERROR: -c valid options are y, n, or u'; exit 1;; esac;;
   d)  case "${OPTARG}" in g|G) DOMAIN='gateway';; l|L) DOMAIN='lan';; u) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
   e)  case "${OPTARG}" in y) DECT='1';; n) DECT='0';; u) DECT='u';; *) DECT='u'; echo 'ERROR: -e valid options are y, n, or u'; exit 1;; esac;;
@@ -803,34 +801,41 @@ if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
     done
   fi
 else # 20.3.c
+  LAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "name='lan'" | cut -d. -f1-2)
+  WAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "wan='1'" | cut -d. -f1-2)
   if [ "$ALG" = "u" ]; then
-    echo [$SCRIPT]: WAN ALGs unchanged \[$(uci -q get $(uci show firewall | grep @zone | grep "wan='1'" | cut -d. -f1-2).helper | wc -w) Enabled\]
-  else
-    ZONE=$(uci show firewall | grep @zone | grep -m 1 "wan='1'" | cut -d. -f1-2)
-    uci -q delete $ZONE.helper
-    if [ "$ALG" = "0" ]; then
-      echo [$SCRIPT]: $G All WAN ALGs Disabled
+    LAN_HELP=$(uci -qd"$IFS" get $LAN_ZONE.helper | sort | xargs)
+    WAN_HELP=$(uci -qd"$IFS" get $WAN_ZONE.helper | sort | xargs)
+    if [ "$LAN_HELP" = "$WAN_HELP" ]; then
+      echo [$SCRIPT]: ALGs unchanged \[$(uci -q get $(uci show firewall | grep @zone | grep "wan='1'" | cut -d. -f1-2).helper | wc -w) Enabled\]
     else
-      for g in ftp tftp snmp pptp sip irc amanda rtsp
-      do
-        uci add_list $ZONE.helper="$g"
-        echo [$SCRIPT]: $G ALG Enabled
-      done
+      if [ -z "$WAN_HELP" ]; then
+        if [ -n "$LAN_HELP" ]; then
+          uci -q delete $WAN_ZONE.helper
+          uci -q delete $LAN_ZONE.helper
+        fi
+      else
+        uci -q delete $LAN_ZONE.helper
+        for h in $WAN_HELP
+        do
+          uci add_list $LAN_ZONE.helper="$h"
+        done
+      fi
+      uci commit firewall
+      SRV_fw=$(( $SRV_fw + 1 ))
+      echo [$SCRIPT]: ALGs fixed \[$(echo $WAN_HELP | wc -w) Enabled\]
     fi
-    uci commit firewall
-    SRV_fw=$(( $SRV_fw + 1 ))
-  fi
-  if [ "$ALG_LAN" = "u" ]; then
-    echo [$SCRIPT]: LAN ALGs unchanged \[$(uci -q get $(uci show firewall | grep @zone | grep "wan='1'" | cut -d. -f1-2).helper | wc -w) Enabled\]
   else
-    ZONE=$(uci show firewall | grep @zone | grep -m 1 "name='lan'" | cut -d. -f1-2)
-    uci -q delete $ZONE.helper
-    if [ "$ALG_LAN" = "0" ]; then
-      echo [$SCRIPT]: $G All LAN ALGs Disabled
+    uci -q delete $LAN_ZONE.helper
+    uci -q delete $WAN_ZONE.helper
+    if [ "$ALG" = "0" ]; then
+      echo [$SCRIPT]: All ALGs Disabled
     else
       for g in ftp tftp snmp pptp sip irc amanda rtsp
       do
-        uci add_list $ZONE.helper="$g"
+        G=$(echo $g | tr "[a-z]" "[A-Z]")
+        uci add_list $LAN_ZONE.helper="$g"
+        uci add_list $WAN_ZONE.helper="$g"
         echo [$SCRIPT]: $G ALG Enabled
       done
     fi

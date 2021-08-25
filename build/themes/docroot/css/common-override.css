@@ -11,6 +11,7 @@
 .iptables-head{font-size:smaller;font-variant:small-caps;}
 .iptables-head th:nth-child(n+1):nth-child(-n+2){text-align:right;}
 .simple-desc{display:block;padding-top:2px;}
+.simple-desc.helper-card{display:inline-block;font-size:smaller;letter-spacing:-1px;vertical-align:unset;}
 .smallcard .content{font-size:14px;height:125px;}
 .smallcard .subinfos{font-size:14px;margin-top:1px;margin-bottom:0px;line-height:18px;}
 .span3{width:270px;}
@@ -25,7 +26,7 @@
 #fw-iptables tr>td:nth-child(n+1):nth-child(-n+2),#fw-iptables tr:not(.iptables-chain)>th:nth-child(n+1):nth-child(-n+2){text-align:right;}
 #fw-iptables tr{white-space:nowrap;}
 #fw_userrules>thead>tr>th:nth-child(3),#fw_userrules>tbody>tr>td:nth-child(3),#fw_userrules_v6>thead>tr>th:nth-child(3),#fw_userrules_v6>tbody>tr>td:nth-child(3){display:none;}
-table[id^="helper"]>tbody>tr>td{text-transform:uppercase;}
+#helper_list>tbody>tr>td:not(:nth-child(2)){text-transform:uppercase;}
 #hide-unhide-non-connected-device{display:none;}
 #mobiletab .content .card-label{font-size:14px;}
 #opkgs>tbody>tr>td:nth-child(1){white-space:nowrap;}
