@@ -130,6 +130,7 @@ fi
 # Keep count of changes so we know whether to restart services
 SRV_cron=0
 SRV_dropbear=0
+SRV_firewall=0
 SRV_nginx=0
 SRV_power=0
 SRV_system=0
@@ -160,6 +161,7 @@ apply_service_changes() {
   [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear restart
   [ $SRV_system -gt 0 ] && /etc/init.d/system reload
   [ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
+  [ $SRV_firewall -gt 0 ] && /etc/init.d/firewall reload 2> /dev/null
 
   echo [$SCRIPT]: Applying power settings...
   if [ -z "$(uci -q get power.cpu)" ];then

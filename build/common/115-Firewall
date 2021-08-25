@@ -38,7 +38,6 @@ sed \
   -i /usr/share/transformer/mappings/rpc/network.firewall.userrule_v6.map
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
-SRV_firewall=0
 # Version 2021.02.22 set an incorrect value for synflood_rate, so have to fix it
 synflood_rate="$(uci -q get firewall.@defaults[0].synflood_rate)" 
 if [ -n "$synflood_rate" ]; then
@@ -55,10 +54,6 @@ if [ -n "$(uci -q get firewall.@defaults[0].tcp_syncookies)" ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Deleting configuration firewall.@defaults[0].tcp_syncookies"
   uci -q delete firewall.@defaults[0].tcp_syncookies
   SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ $SRV_firewall -gt 0 ]; then
-  uci commit firewall
-  /etc/init.d/firewall reload 2> /dev/null
 fi
 
 echo [$SCRIPT]: Fix missing values on uci.firewall.include. and uci.firewall.ipset.
@@ -79,6 +74,7 @@ if [ "$(uci -q get firewall.dns_xcptn)" != "ipset" ]; then
   uci set firewall.dns_xcptn.storage='hash'
   uci set firewall.dns_xcptn.match='ip'
   uci set firewall.dns_xcptn.enabled='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ ! -e /etc/firewall.ipset.dns_xcptn ]
 then
@@ -97,6 +93,7 @@ if [ "$(uci -q get firewall.dns_int)" != "redirect" ]; then
   uci set firewall.dns_int.target='DNAT'
   uci set firewall.dns_int.ipset='!dns_xcptn src'
   uci set firewall.dns_int.enabled='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ "$(uci -q get firewall.dns_masq)" != "nat" ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dns_masq"
@@ -108,6 +105,7 @@ if [ "$(uci -q get firewall.dns_masq)" != "nat" ]; then
   uci set firewall.dns_masq.proto='tcp udp'
   uci set firewall.dns_masq.target='MASQUERADE'
   uci set firewall.dns_masq.enabled='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ "$(uci -q get firewall.dot_fwd_xcptn)" != "rule" ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dot_fwd_xcptn"
@@ -121,6 +119,7 @@ if [ "$(uci -q get firewall.dot_fwd_xcptn)" != "rule" ]; then
   uci set firewall.dot_fwd_xcptn.family='ipv4'
   uci set firewall.dot_fwd_xcptn.ipset='dns_xcptn src'
   uci set firewall.dot_fwd_xcptn.enabled='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ "$(uci -q get firewall.dot_fwd)" != "rule" ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dot_fwd"
@@ -132,6 +131,7 @@ if [ "$(uci -q get firewall.dot_fwd)" != "rule" ]; then
   uci set firewall.dot_fwd.proto='tcp udp'
   uci set firewall.dot_fwd.target='REJECT'
   uci set firewall.dot_fwd.enabled='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ ! -e /etc/firewall.ipset.doh ]
 then
@@ -146,6 +146,7 @@ if [ "$(uci -q get firewall.doh)" != "ipset" ]; then
   uci set firewall.doh.storage='hash'
   uci set firewall.doh.match='ip'
   uci set firewall.doh.enabled='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ ! -e /etc/firewall.ipset.doh6 ]
 then
@@ -160,6 +161,7 @@ if [ "$(uci -q get firewall.doh6)" != "ipset" ]; then
   uci set firewall.doh6.storage='hash'
   uci set firewall.doh6.match='ip'
   uci set firewall.doh6.enabled='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ "$(uci -q get firewall.ipsets_restore)" != "include" ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.ipsets_restore"
@@ -168,6 +170,7 @@ if [ "$(uci -q get firewall.ipsets_restore)" != "include" ]; then
   uci set firewall.ipsets_restore.path='/usr/sbin/ipsets-restore'
   uci set firewall.ipsets_restore.reload='0'
   uci set firewall.ipsets_restore.enabled='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ ! -e /usr/sbin/ipsets-restore ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating script /usr/sbin/ipsets-restore"
@@ -196,6 +199,7 @@ if [ "$(uci -q get firewall.doh_fwd_xcptn)" != "rule" ]; then
   uci set firewall.doh_fwd_xcptn.ipset='dns_xcptn src'
   uci set firewall.doh_fwd_xcptn.target='ACCEPT'
   uci set firewall.doh_fwd_xcptn.enabled='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ "$(uci -q get firewall.doh_fwd)" != "rule" ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.doh_fwd"
@@ -209,6 +213,7 @@ if [ "$(uci -q get firewall.doh_fwd)" != "rule" ]; then
   uci set firewall.doh_fwd.ipset='doh dest'
   uci set firewall.doh_fwd.target='REJECT'
   uci set firewall.doh_fwd.enabled='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ "$(uci -q get firewall.doh6_fwd)" != "rule" ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.doh6_fwd"
@@ -222,6 +227,7 @@ if [ "$(uci -q get firewall.doh6_fwd)" != "rule" ]; then
   uci set firewall.doh6_fwd.ipset='doh6 dest'
   uci set firewall.doh6_fwd.target='REJECT'
   uci set firewall.doh6_fwd.enabled='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ ! -e /usr/sbin/doh-ipsets-maintain ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating script /usr/sbin/doh-ipsets-maintain"
@@ -269,3 +275,4 @@ if [ $(grep doh-ipsets-maintain /etc/crontabs/root | wc -l) -eq 0 ]; then
   echo "#$mm $hh * * 6 /usr/sbin/doh-ipsets-maintain" >> /etc/crontabs/root
 fi
 
+[ $SRV_firewall -gt 0 ] && uci commit firewall
