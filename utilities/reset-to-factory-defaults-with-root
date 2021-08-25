@@ -250,6 +250,8 @@ chmod 755 /overlay/$(cat /proc/banktable/booted) /overlay/$(cat /proc/banktable/
 echo -e "echo root:$ROOTPWD | chpasswd
 sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
 sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
+$LAN_CFG
+$CWMP_CFG
 uci -q set \$(uci show firewall | grep -m 1 \$(fw3 -q print | \
 egrep 'iptables -t filter -A zone_lan_input -p tcp -m tcp --dport 22 -m comment --comment \"!fw3: .+\" -j DROP' 2>/dev/null | \
 sed -n -e 's/^iptables.\+fw3: \(.\+\)\".\+/\1/p') 2>/dev/null | \
@@ -268,8 +270,6 @@ uci commit dropbear
 $KEYS_CFG
 /etc/init.d/dropbear enable
 /etc/init.d/dropbear restart
-$CWMP_CFG
-$LAN_CFG
 $NOEXEC_CFG
 rm /overlay/\$(cat /proc/banktable/booted)/etc/rc.local
 source /rom/etc/rc.local
