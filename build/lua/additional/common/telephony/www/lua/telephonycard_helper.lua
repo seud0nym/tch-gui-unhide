@@ -64,12 +64,23 @@ function M.getTelephonyCardHTML(mmpbx_state)
           local callsIn = 0
           local callsMissed = 0
           local callsOut = 0
-          if incoming and incoming[1] and incomingConnected and incomingConnected[1] then
+          if not incoming then
+            incoming = proxy.get(profilestats_rpc_path..name..".IncomingCallsReceived") -- 20.3.c
+          end
+          if not incomingConnected then
+            incomingConnected = proxy.get(profilestats_rpc_path..name..".IncomingCallsConnected") -- 20.3.c
+          end
+          if incoming and incomingConnected then
             callsIn = incomingConnected[1].value
             callsMissed = incoming[1].value - callsIn
           end
-          if outgoing and outgoing[1] then
+          if outgoing then
             callsOut = outgoing[1].value
+          else
+            outgoing = proxy.get(profilestats_rpc_path..name..".OutgoingCallsAttempted") -- 20.3.c
+            if outgoing then
+              callsOut = outgoing[1].value
+            end
           end
           html[#html+1] = format('<span %s>', modal_link)
           html[#html+1] = ui_helper.createSimpleLight("1", value .. T" registered")
