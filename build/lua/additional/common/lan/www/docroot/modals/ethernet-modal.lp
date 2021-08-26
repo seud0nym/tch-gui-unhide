@@ -277,20 +277,20 @@ end
 
 -- Function to check the input IP is in Reserved IP list
 local function reserved_ip_validation(value)
-    local reservedList = {}
-    local reservedIPList = proxy.get("uci.dhcp.host.")
-    reservedIPList = content_helper.convertResultToObject("uci.dhcp.host.", reservedIPList)
-    if reservedIPList then
-      for _,v in pairs(reservedIPList) do
-        if v["name"]:find("^ReservedStatic") ~= nil then
-          reservedList[#reservedList + 1] = v["ip"]
-          if value == v["ip"] then
-            return nil
-          end
+  local reservedList = {}
+  local reservedIPList = proxy.get("uci.dhcp.host.")
+  reservedIPList = content_helper.convertResultToObject("uci.dhcp.host.", reservedIPList)
+  if reservedIPList then
+    for _,v in pairs(reservedIPList) do
+      if v["name"]:find("^ReservedStatic") ~= nil then
+        reservedList[#reservedList + 1] = v["ip"]
+        if value == v["ip"] then
+          return nil
         end
       end
     end
-    return true
+  end
+  return true
 end
 
 local function sleases_ip_validation(value, object, key)
@@ -315,7 +315,6 @@ local sleases_options = {
   objectName  = post_helper.getRandomKey(),
   addNamedObject = true,
 }
-
 
 local syshosts_data = proxy.get("sys.hosts.host.")
 local sleases_filter = function(data)
@@ -393,10 +392,10 @@ local dhcp_intfs_path = "uci.dhcp.dhcp."
 local all_dhcp_intfs = content_helper.convertResultToObject(dhcp_intfs_path .. "@.", proxy.get(dhcp_intfs_path))
 
 for k,v in ipairs(all_dhcp_intfs) do
-    if v.interface == curintf then
-        cur_dhcp_intf = v.paramindex
-        break
-    end
+  if v.interface == curintf then
+    cur_dhcp_intf = v.paramindex
+    break
+  end
 end
 
 local function getDomainNamePath()
@@ -434,12 +433,12 @@ local baseDHCPDNS = "uci.dhcp.dhcp.@" .. cur_dhcp_intf .. ".dns."
 local dns_servers = {""}
 
 local function isNonPublicIPRange(ip)
-    if ip >= ipv42num("10.0.0.0") and ip <= ipv42num("10.255.255.255") or
-       ip >= ipv42num("172.16.0.0") and ip <= ipv42num("172.31.255.255") or
-       ip >= ipv42num("192.168.0.0") and ip <= ipv42num("192.168.255.255") then
-      return true
-    end
-      return nil
+  if ip >= ipv42num("10.0.0.0") and ip <= ipv42num("10.255.255.255") or
+      ip >= ipv42num("172.16.0.0") and ip <= ipv42num("172.31.255.255") or
+      ip >= ipv42num("192.168.0.0") and ip <= ipv42num("192.168.255.255") then
+    return true
+  end
+  return nil
 end
 
 local function find_dns (dns, list)
@@ -1018,6 +1017,27 @@ if content["dhcpv4State"] == "disabled" and content["dhcpv6State"] == "disabled"
   end
 end
 
+local dns_int = false
+local dns_int_dest_ip = ""
+if curintf == "lan" then
+  for _,v in ipairs(proxy.getPN("uci.firewall.redirect.", true)) do
+    local values = proxy.get(v.path.."name")
+    if values then
+      local name = untaint(values[1].value)
+      if name and (name == "Intercept-DNS" or name == "Redirect-DNS") then
+        values = proxy.get(v.path.."enabled", v.path.."dest_ip")
+        if values then
+          dns_int = values[1].value ~= "0"
+          dns_int_dest_ip = untaint(values[2].value)
+          if not dns_int_dest_ip or dns_int_dest_ip == "" then
+            dns_int_dest_ip = untaint(content["localdevIP"])
+          end
+        end
+      end
+    end
+  end
+end
+
 local uri = ngx.var.uri
 
 ngx.print(ui_helper.createHeader(T"Local Network", true, false));
@@ -1103,7 +1123,21 @@ ngx.print('\
             ngx.print(ui_helper.createSwitch(T"IPv6 State", "localIPv6", content["localIPv6"], switch_class_enable))
 
             if not bridged.isBridgedMode() then
-                ngx.print('\
+              local info_attr = {
+                alert = {
+                  class = "alert-info"
+                },
+              }
+              ngx.print(ui_helper.createAlertBlock(T"DNS Servers defined on this screen only affect what is provided to LAN client devices via DHCP. To configure custom DNS Servers for the device, use the Internet Access card.", info_attr))
+              if dns_int and content["dnsServer"] ~= dns_int_dest_ip then
+                local warn_attr = {
+                  alert = {
+                    class = "alert-danger"
+                  },
+                }
+                ngx.print(ui_helper.createAlertBlock(T("DNS Intercept is enabled, so IPv4 Primary DNS should be set to '"..dns_int_dest_ip.."'."), warn_attr))
+              end
+              ngx.print('\
             </div>\
             <div class="span4">\
               <legend>');  ngx.print( T"DHCP Settings" ); ngx.print('</legend>\
@@ -1125,10 +1159,20 @@ ngx.print('\
                   ui_helper.createInputText(T"Lease Time", "leaseTime", content["leaseTime"], advanced, helpmsg["leaseTime"])
                 )
                 if cur_dhcp_intf == "lan" and not adguard then
-                  ngx.print(
-                    ui_helper.createInputSelect(T"IPv4 Primary DNS", "dnsServer", dns_list[1], content["dnsServer"], stdattributes),
-                    ui_helper.createInputSelect(T"IPv4 Secondary DNS", "ipv4_dns_sec", dns_list[1], content["dns_v4_sec"], stdattributes)
-                  )
+                  if not dns_int then
+                    ngx.print(
+                      ui_helper.createInputSelect(T"IPv4 Primary DNS", "dnsServer", dns_list[1], content["dnsServer"], stdattributes, helpmsg["dnsServer"]),
+                      ui_helper.createInputSelect(T"IPv4 Secondary DNS", "ipv4_dns_sec", dns_list[1], content["dns_v4_sec"], stdattributes, helpmsg["dns_v4_sec"])
+                    )
+                  else
+                    if content["dnsServer"] == dns_int_dest_ip and not helpmsg["dnsServer"] and content["dns_v4_sec"] == "" and not helpmsg["dns_v4_sec"] then
+                      ngx.print(ui_helper.createLabel(T"IPv4 Primary DNS<span class='icon-question-sign' title='DNS Interception enabled'></span>", content["dnsServer"], advanced, helpmsg["dnsServer"]))
+                      ngx.print(ui_helper.createLabel(T"IPv4 Secondary DNS<span class='icon-question-sign' title='DNS Interception enabled'></span>", content["dns_v4_sec"], advanced, helpmsg["dns_v4_sec"]))
+                    else
+                      ngx.print(ui_helper.createInputSelect(T"IPv4 Primary DNS", "dnsServer", dns_list[1], content["dnsServer"], stdattributes, helpmsg["dnsServer"]))
+                      ngx.print(ui_helper.createInputSelect(T"IPv4 Secondary DNS", "ipv4_dns_sec", dns_list[1], content["dns_v4_sec"], stdattributes, helpmsg["dns_v4_sec"]))
+                    end
+                  end
                 end
                 ngx.print(
                   [[<div class="monitor-localIPv6 monitor-1 monitor-hidden-localIPv6">]],

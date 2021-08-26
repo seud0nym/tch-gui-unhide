@@ -104,6 +104,9 @@ do
   esac
 done
 
+LAN_IP=$(uci get network.lan.ipaddr)
+DHCP_OPT6=$(uci -d"$IFS" get dhcp.lan.dhcp_option | grep '^6,' | xargs)
+
 if [ $STATUS = "y" ]; then
   okay=1
   pattern=" -> %-40s = "
@@ -148,6 +151,28 @@ if [ $STATUS = "y" ]; then
     echo -e "$val $state"
   done
 
+  printf "$pattern" "dhcp.lan.dhcp_option (6)"
+  echo -n "$DHCP_OPT6 "
+  if [ "$dns_int" = "1" ]; then
+    if [ -z "$dest_ip" ]; then
+      if [ "$DHCP_OPT6" = "6,$LAN_IP" ]; then
+        echo -e "${GREEN}[OKAY]${NC}"
+      else
+        echo -e "${RED}[SHOULD BE 6,$LAN_IP]${NC}"
+        okay=0
+      fi
+    else
+      if [ "$DHCP_OPT6" = "6,$dest_ip" ]; then
+        echo -e "${GREEN}[OKAY]${NC}"
+      else
+        echo -e "${RED}[SHOULD BE 6,$dest_ip]${NC}"
+        okay=0
+      fi
+    fi
+  else
+    echo
+  fi
+
   for ipset in dns_xcptn doh doh6
   do
     printf "$pattern" "/etc/firewall.ipset.$ipset"
@@ -186,11 +211,13 @@ if [ $STATUS = "y" ]; then
         [ "$dest_lan" = 0 -a $found_dest_ip = 0 ] && echo -en "[${RED}$dest_ip NOT EXCLUDED]${NC}"
       fi
       echo
-    elif [ "$dns_int" = "0" -a $members_cnt -gt 0 ]; then
-      echo -e "${RED}${members}${NC}"
-      okay=0
-    else
-      echo -e "${ORANGE}${members}${NC}"
+    elif [ "$dns_int" = "0" ]; then
+      if [ $members_ref -eq 0 ]; then
+        echo -en "${GREEN}"
+      else
+        echo -en "${ORANGE}"
+      fi
+      echo -e "[References: $members_ref] [Members: $members_def]${NC}"
     fi
   done
 
@@ -247,6 +274,8 @@ if [ $REMOVE = y ]; then
   exit
 fi
 
+SRV_dnsmasq=0
+
 # Intercept DNS traffic
 uci set firewall.dns_xcptn='ipset'
 uci set firewall.dns_xcptn.name='dns_xcptn'
@@ -268,14 +297,17 @@ if [ -z "$DNS_SERVER" ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring IPv4 DNS Interception${NC}"
   uci set firewall.dns_int.name='Intercept-DNS'
   uci -q delete firewall.dns_int.dest_ip
-
   uci -q delete firewall.dns_masq.dest_ip
   uci -q set firewall.dns_masq.enabled='0'
+  if [ "$DHCP_OPT6" != "6,$LAN_IP" ]; then
+    uci -q del_list dhcp.lan.dhcp_option="$DHCP_OPT6"
+    uci -q add_list dhcp.lan.dhcp_option="6,$LAN_IP"
+    SRV_dnsmasq=1
+  fi
 else
   echo -e "${GREEN}[$SCRIPT] Configuring IPv4 DNS Redirection to $DNS_SERVER${NC}"
   uci set firewall.dns_int.name='Redirect-DNS'
   uci set firewall.dns_int.dest_ip="$DNS_SERVER"
-
   uci set firewall.dns_masq='nat'
   uci set firewall.dns_masq.name='Masquerade-DNS'
   uci set firewall.dns_masq.family='ipv4'
@@ -285,6 +317,11 @@ else
   uci set firewall.dns_masq.proto='tcp udp'
   uci set firewall.dns_masq.target='MASQUERADE'
   uci set firewall.dns_masq.enabled='1'
+  if [ "$DHCP_OPT6" != "6,$DNS_SERVER" ]; then
+    uci -q del_list dhcp.lan.dhcp_option="$DHCP_OPT6"
+    uci -q add_list dhcp.lan.dhcp_option="6,$DNS_SERVER"
+    SRV_dnsmasq=1
+  fi
 fi
 if [ -n "$EXC_IP4" ]; then
   echo -e "${GREEN}[$SCRIPT]  - Excluding IP Addresses: $EXC_IP4${NC}"
@@ -404,6 +441,11 @@ fi
 echo -e "${GREEN}[$SCRIPT] Commiting firewall changes${NC}"
 uci commit firewall
 /etc/init.d/firewall restart 2>&1 | grep -v _key
+if [ "$SRV_dnsmasq" = "1" ]; then
+  echo -e "${GREEN}[$SCRIPT] Commiting DHCP changes${NC}"
+  uci commit dhcp
+  /etc/init.d/dnsmasq restart
+fi
 
 echo -e "${GREEN}[$SCRIPT] Creating script: /usr/sbin/doh-ipsets-maintain${NC}"
 cat<<"END-MAINTAIN" > /usr/sbin/doh-ipsets-maintain

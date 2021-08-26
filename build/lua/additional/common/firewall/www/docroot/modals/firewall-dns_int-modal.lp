@@ -124,7 +124,24 @@ if dns_int then
             end
             dest_ip = ""
           elseif new_enabled == "1" then
+            local dhcp_option6_path 
+            local dhcp_options_path = "uci.dhcp.dhcp.@lan.dhcp_option."
+            local dhcp_options = proxy.get(dhcp_options_path)
+            if dhcp_options then
+              local o
+              for _,o in pairs(dhcp_options) do
+                if find(untaint(o.value), "^6,") == 1 then
+                  dhcp_option6_path = o.path .. "value"
+                  break
+                end
+              end
+            end
+            if not dhcp_option6_path then
+              local index = proxy.add(dhcp_options_path)
+              dhcp_option6_path = dhcp_options_path .. "@" .. index .. ".value"
+            end
             if new_dest_ip and new_dest_ip ~= "" then
+              proxySet(dhcp_option6_path, "6,"..new_dest_ip)
               proxySet(dns_int.."dest_ip", new_dest_ip)
               proxySet(dns_int.."name", "Redirect-DNS")
               proxySet(path["Masquerade-DNS"].."dest_ip", new_dest_ip)
@@ -134,6 +151,7 @@ if dns_int then
               end
               dest_ip = new_dest_ip
             else
+              proxySet(dhcp_option6_path, "6,"..ipdetails.gw)
               proxySet(dns_int.."dest_ip", "")
               proxySet(dns_int.."name", "Intercept-DNS")
               proxySet(path["Masquerade-DNS"].."dest_ip", "")
