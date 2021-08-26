@@ -10,9 +10,9 @@ https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-
 #### Firmware Applicability
 Should be applicable to all firmware versions supported by `tch-gui-unhide`, as long as you install the firmware-specific prerequisites.
 #### Prerequisites 
-###### CA Certificates
-The System CA Certificates must be updated. You can do this either by preferably running the [`update-ca-certificates`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#update-ca-certificates) script, or by manually installing the CA certificates packages using `opkg install ca-certificates ca-bundle`. The `update-ca-certificates` script will install the latest available certificates (and gives you the option to schedule a regular job to update them), whereas the opkg packages may not contain the latest certificates.
-###### adblock
+##### CA Certificates
+The System CA Certificates must be updated. You can do this either by (preferably) running the [`update-ca-certificates`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#update-ca-certificates) script, or by manually installing the CA certificates packages using `opkg install ca-certificates ca-bundle`. The `update-ca-certificates` script will install the latest available certificates (and gives you the option to schedule a regular job to update them), whereas the opkg packages may not contain the latest certificates.
+##### adblock
 Requires adblock version 3.5 to be installed using the `opkg` command. Different firmware versions have different dependencies:
 ###### Firmware 20.3.c
 `opkg install adblock uclient-fetch`
@@ -25,7 +25,8 @@ The version of adblock in the standard 17.2 repository is incompatible with this
 `uci set adblock.global.adb_fetchutil='curl'`  
 `uci commit adblock`
 #### Post-Installation Configuration
-- Configure IPv4 DNS Servers under Local Network to "RSP/ISP DNS Servers"
+- Configure the IPv4 Primary DNS Server under Local Network to the local device (depending on your version of tch-gui-unhide, this will be "RSP/ISP DNS Servers", "Custom WAN DNS Servers", or the device variant (e.g. "DJA0230" or "DJA0231"))
+- Leave the IPV4 Secondary DNS Server as blank
 - Configure your preferred DNS Servers under Internet Access
 - Enable DNS Intercept under Firewall (leave DNS Server Address blank)
 #### Changes External to the GUI
