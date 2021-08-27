@@ -10,4 +10,6 @@ sed \
  -e '/local format/a \end' \
  -i /www/docroot/modals/relay-modal.lp
 
+echo [$SCRIPT]: Fix duplicate ids
+sed -e 's/ id="relaysetupcard_relayip"//g' -i /www/cards/018_relaysetup.lp
 

@@ -75,7 +75,7 @@ local headerAttr = {
       <span class="simple-desc"><i class="icon-circle-arrow-up status-icon"></i> Up: <strong id="gateway-card-uptime">'); ngx.print(secondsToTime(content.uptime)); ngx.print('</strong></span>\
       <span class="simple-desc"><i class="icon-dashboard status-icon"></i> CPU Usage: <strong><span id="gateway-card-cpu" style="width:1.5em;display:inline-block;text-align:right;">'); ngx.print(content.cpu); ngx.print('</span>% [<span id="gateway-card-load">'); ngx.print(content.load); ngx.print('</span>]</strong></span>\
       <span class="simple-desc"><i class="icon-beaker status-icon"></i> RAM: <span id="gateway-card-ram-total">'); ngx.print(format('%.2f', content.ram_total / 1024)); ngx.print('</span>MB <strong>[<span id="gateway-card-ram-free">'); ngx.print(format('%.2f', content.ram_free / 1024)); ngx.print('</span>MB Free]</strong></span>\
-      <span class="simple-desc"><i class="icon-hdd status-icon"></i> File System: <span id="gateway-card-disk-total">'); ngx.print(content.disk_total); ngx.print('</span> <strong>[<span id="gateway-card-ram-free">'); ngx.print(content.disk_free); ngx.print('</span> Free]</strong></span>\
+      <span class="simple-desc"><i class="icon-hdd status-icon"></i> File System: <span id="gateway-card-disk-total">'); ngx.print(content.disk_total); ngx.print('</span> <strong>[<span id="gateway-card-disk-free">'); ngx.print(content.disk_free); ngx.print('</span> Free]</strong></span>\
       <span class="simple-desc"><i class="icon-fire status-icon"></i> Sensor Temperatures: <strong><span id="gateway-card-temps">'); ngx.print(content.temps); ngx.print('</span></strong></span>\
     </div>\
   </div>\
