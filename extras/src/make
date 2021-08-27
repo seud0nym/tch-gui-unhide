@@ -5,12 +5,14 @@ do
   source="$d/$d.sh"
   if [ -f "$source" ]; then
     target="../tch-gui-unhide-xtra.$d"
-    echo Creating $target...
-    cp "$source" "$target"
-    grep -n 'cat *<<' "$source" | sed -e 's/:\|<\|>\|"\|cat//g' | sort -nr | while read -r line name file
-    do 
-      sed -e "${line}r $d$file" -i "$target"
-    done
+    if [ $(find $d -newer $target -type f | wc -l) -gt 0 ]; then
+      echo Creating $target...
+      cp "$source" "$target"
+      grep -n 'cat *<<' "$source" | sed -e 's/:\|<\|>\|"\|cat//g' | sort -nr | while read -r line name file
+      do 
+        sed -e "${line}r $d$file" -i "$target"
+      done
+    fi
   fi
 done
 
