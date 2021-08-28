@@ -62,18 +62,22 @@ Options:
  -w u|y|n              WPS:                     u=unchanged y=Enable n=Disable
                          (on non-Guest and non-Backhaul SSIDs)
  -F u|y|n              RTFD root protection:    u=unchanged y=Enable n=Disable
-                        NOTE: tch-gui-unhide will ALWAYS enable RTFD protection
+                         NOTE: tch-gui-unhide will ALWAYS enable RTFD protection
  -A                    Equivalent to: -hd -dg -an -cn -fn -rn -sd -un -wn -Fy
  -S                    Equivalent to: -hs -dg -an -cn -fn -rn -sd -un -wn -Fy
  -M                    Minimum memory mode: Equivalent to:
-                              -an -cn -fn -rn -tn -en -un -mn -gn -qn -Fy
-                        PLUS stops and disables the associated services
- -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and
-                        guest networks
+                           -an -cn -fn -rn -tn -en -un -mn -gn -qn -Fy
+                         PLUS stops and disables the associated services
+ -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks
  -R                    Reset to device defaults: Equivalent to:
-                        -hmymodem -dmodem -na -ay -cy -fy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn -sb
+                         -hmymodem -dmodem -na -ay -cy -fy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn -sb
  -o                    Configures opkg
  -U                    Download the latest version of $SCRIPT from GitHub
+ --save-defaults       Saves the command line options as defaults for future executions
+                         When specified, NO changes are applied to the device
+ --show-defaults       Shows the settings that would be applied (defaults and over-rides)
+                         When specified, NO changes are applied to the device
+ --no-defaults         Ignores any saved defaults for this execution
 
 NOTE #1: Default for all optional parameters is u (unchanged)
 NOTE #2: Options marked with * are only applicable if the service is installed
@@ -105,33 +109,33 @@ upgrade() {
 
 # Options
 set_defaults() {
-  ALG='u'
-  DECT='u'
-  DLNAD='u'
-  DOMAIN='u'
-  DUMAOS='u'
-  GUEST='y'
-  HOST='u'
-  LITE='n'
-  MMPBX='u'
-  MULTIAP='u'
-  NFC='u'
-  NS='u'
-  OPKG='n'
-  POWER='u'
-  PRNTR='u'
-  ROOT_PROTECT='u'
-  SAMBA='u'
-  SUPERVISION='u'
-  UPNP='u'
-  WPS='u'
+  __ALG='u'
+  __DECT='u'
+  __DLNAD='u'
+  __DOMAIN='u'
+  __DUMAOS='u'
+  __GUEST='n'
+  __HOST='u'
+  __LITE='n'
+  __MMPBX='u'
+  __MULTIAP='u'
+  __NFC='u'
+  __NS='u'
+  __OPKG='n'
+  __POWER='u'
+  __PRNTR='u'
+  __ROOT_PROTECT='u'
+  __SAMBA='u'
+  __SUPERVISION='u'
+  __UPNP='u'
+  __WPS='u'
   # Overrides
-  AIR='n'
-  CWMP='n'
-  KEYS='n'
-  MONITORING='n'
-  NTP='n'
-  NOEXEC='n'
+  __AIR='n'
+  __CWMP='n'
+  __KEYS='n'
+  __MONITORING='n'
+  __NTP='n'
+  __NOEXEC='n'
 }
 
 set_defaults
@@ -139,53 +143,51 @@ if [ -f .defaults.de-telstra ]; then
   . ./.defaults.de-telstra
 fi
 
+SAVE_DEFAULTS=n
+SHOW_DEFAULTS=n
+
 while getopts :a:b:c:d:e:f:g:h:k:m:n:op:q:r:s:t:u:w:AF:GMRSU-: option
 do
  case "${option}" in
-  -)  case "${OPTARG}" in no-defaults) set_defaults;; *) usage;; esac;;
-  a)  case "${OPTARG}" in y) ALG='1';; n) ALG='0';; u) ALG='u';; *) ALG='u'; echo 'ERROR: -a valid options are y, n, or u'; exit 1;; esac;;
+  -)  case "${OPTARG}" in 
+        no-defaults)    set_defaults;; 
+        save-defaults)  SAVE_DEFAULTS=y;; 
+        show-defaults)  SHOW_DEFAULTS=y;; 
+        *)              usage;; 
+      esac;;
+  a)  case "${OPTARG}" in y) __ALG='1';; n) __ALG='0';; u) __ALG='u';; *) __ALG='u'; echo 'ERROR: -a valid options are y, n, or u'; exit 1;; esac;;
   b)  echo 'WARNING: -b option deprecated. Use -a instead!'; exit 1;;
-  c)  case "${OPTARG}" in y) DLNAD='1';; n) DLNAD='0';; u) DLNAD='u';; *) DLNAD='u'; echo 'ERROR: -c valid options are y, n, or u'; exit 1;; esac;;
-  d)  case "${OPTARG}" in g|G) DOMAIN='gateway';; l|L) DOMAIN='lan';; u) DOMAIN='u';; *) DOMAIN="${OPTARG}";; esac;;
-  e)  case "${OPTARG}" in y) DECT='1';; n) DECT='0';; u) DECT='u';; *) DECT='u'; echo 'ERROR: -e valid options are y, n, or u'; exit 1;; esac;;
-  f)  case "${OPTARG}" in y) SAMBA='1';; n) SAMBA='0';; u) SAMBA='u';; *) SAMBA='u'; echo 'ERROR: -f valid options are y, n, or u'; exit 1;; esac;;
-  g)  case "${OPTARG}" in y) DUMAOS='1';; n) DUMAOS='0';; u) DUMAOS='u';; *) DUMAOS='u'; echo 'ERROR: -g valid options are y, n, or u'; exit 1;; esac;;
-  h)  HOST=${OPTARG};;
-  k)  case "${OPTARG}" in k) KEYS='y';; c) CWMP='y';; m) MONITORING='y';; a) AIR='y';; n) NTP='y';; s) SUPERVISION='BFD';; x) NOEXEC='y';; T) KEYS='y'; CWMP='y'; MONITORING='y'; AIR='y'; NTP='y'; SUPERVISION='BFD'; NOEXEC='y';; *) echo "ERROR: Unknown override option $OPTARG"; exit 1;; esac;;
-  m)  case "${OPTARG}" in y) MULTIAP='1';; n) MULTIAP='0';; u) MULTIAP='u';; *) MULTIAP='u'; echo 'ERROR: -m valid options are y, n, or u'; exit 1;; esac;;
-  n)  NS=${OPTARG};;
-  o)  OPKG='y';;
-  p)  case "${OPTARG}" in y) POWER='y';; n) POWER='n';; u) POWER='u';; d) POWER='d';; *) POWER='u'; echo 'ERROR: -p valid options are y, n, u or d'; exit 1;; esac;;
-  q)  case "${OPTARG}" in y) NFC='1';; n) NFC='0';; u) NFC='u';; *) NFC='u'; echo 'ERROR: -q valid options are y, n, or u'; exit 1;; esac;;
-  r)  case "${OPTARG}" in y) PRNTR='1';; n) PRNTR='0';; u) PRNTR='u';; *) PRNTR='u'; echo 'ERROR: -r valid options are y, n, or u'; exit 1;; esac;;
-  s)  case "${OPTARG}" in d) SUPERVISION='BFD';; d) SUPERVISION='DNS';; n) SUPERVISION='Disabled';; u) SUPERVISION='u';; *) SUPERVISION='u'; echo 'ERROR: -s valid options are b, d, n, or u'; exit 1;; esac;;
-  t)  case "${OPTARG}" in y) MMPBX='1';; n) MMPBX='0';; u) MMPBX='u';; *) MMPBX='u'; echo 'ERROR: -t valid options are y, n, or u'; exit 1;; esac;;
-  u)  case "${OPTARG}" in y) UPNP='1';; n) UPNP='0';; u) UPNP='u';; *) UPNP='u'; echo 'ERROR: -u valid options are y, n, or u'; exit 1;; esac;;
-  w)  case "${OPTARG}" in y) WPS='1';; n) WPS='0';; u) WPS='u';; *) WPS='u'; echo 'ERROR: -w valid options are y, n, or u'; exit 1;; esac;;
-  A)  HOST='d'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; PRNTR='0'; UPNP='0'; WPS='0'; ROOT_PROTECT='1'; SUPERVISION='DNS';;
-  F)  case "${OPTARG}" in y) ROOT_PROTECT='1';; n) ROOT_PROTECT='0';; u) ROOT_PROTECT='u';; *) ROOT_PROTECT='u'; echo 'ERROR: -F valid options are y, n, or u'; exit 1;; esac;;
-  G)  GUEST='n';;
-  M)  LITE='y'; ALG='0'; DECT='0'; DLNAD='0'; DUMAOS='0'; MMPBX='0'; MULTIAP='0'; NFC='0'; PRNTR='0'; SAMBA='0'; UPNP='0'; WPS='0'; ROOT_PROTECT='1';;
-  R)  LITE='R'; HOST='mymodem'; DOMAIN='modem'; NS='a'; ALG='1'; DLNAD='1'; DUMAOS='0'; SAMBA='1'; MULTIAP='1'; POWER='d'; PRNTR='1'; MMPBX='1'; DECT='1'; UPNP='1'; ROOT_PROTECT='0'; NFC='y'; SUPERVISION='BFD';;
-  S)  HOST='s'; DOMAIN='gateway'; ALG='0'; DLNAD='0'; SAMBA='0'; PRNTR='0'; UPNP='0'; WPS='0'; ROOT_PROTECT='1'; SUPERVISION='DNS';;
+  c)  case "${OPTARG}" in y) __DLNAD='1';; n) __DLNAD='0';; u) __DLNAD='u';; *) __DLNAD='u'; echo 'ERROR: -c valid options are y, n, or u'; exit 1;; esac;;
+  d)  case "${OPTARG}" in g|G) __DOMAIN='gateway';; l|L) __DOMAIN='lan';; u) __DOMAIN='u';; *) __DOMAIN="${OPTARG}";; esac;;
+  e)  case "${OPTARG}" in y) __DECT='1';; n) __DECT='0';; u) __DECT='u';; *) __DECT='u'; echo 'ERROR: -e valid options are y, n, or u'; exit 1;; esac;;
+  f)  case "${OPTARG}" in y) __SAMBA='1';; n) __SAMBA='0';; u) __SAMBA='u';; *) __SAMBA='u'; echo 'ERROR: -f valid options are y, n, or u'; exit 1;; esac;;
+  g)  case "${OPTARG}" in y) __DUMAOS='1';; n) __DUMAOS='0';; u) __DUMAOS='u';; *) __DUMAOS='u'; echo 'ERROR: -g valid options are y, n, or u'; exit 1;; esac;;
+  h)  __HOST=${OPTARG};;
+  k)  case "${OPTARG}" in k) __KEYS='y';; c) __CWMP='y';; m) __MONITORING='y';; a) __AIR='y';; n) __NTP='y';; s) __SUPERVISION='BFD';; x) __NOEXEC='y';; T) __KEYS='y'; __CWMP='y'; __MONITORING='y'; __AIR='y'; __NTP='y'; __SUPERVISION='BFD'; __NOEXEC='y';; *) echo "ERROR: Unknown override option $OPTARG"; exit 1;; esac;;
+  m)  case "${OPTARG}" in y) __MULTIAP='1';; n) __MULTIAP='0';; u) __MULTIAP='u';; *) __MULTIAP='u'; echo 'ERROR: -m valid options are y, n, or u'; exit 1;; esac;;
+  n)  __NS=${OPTARG};;
+  o)  __OPKG='y';;
+  p)  case "${OPTARG}" in y) __POWER='y';; n) __POWER='n';; u) __POWER='u';; d) __POWER='d';; *) __POWER='u'; echo 'ERROR: -p valid options are y, n, u or d'; exit 1;; esac;;
+  q)  case "${OPTARG}" in y) __NFC='1';; n) __NFC='0';; u) __NFC='u';; *) __NFC='u'; echo 'ERROR: -q valid options are y, n, or u'; exit 1;; esac;;
+  r)  case "${OPTARG}" in y) __PRNTR='1';; n) __PRNTR='0';; u) __PRNTR='u';; *) __PRNTR='u'; echo 'ERROR: -r valid options are y, n, or u'; exit 1;; esac;;
+  s)  case "${OPTARG}" in d) __SUPERVISION='BFD';; d) __SUPERVISION='DNS';; n) __SUPERVISION='Disabled';; u) __SUPERVISION='u';; *) __SUPERVISION='u'; echo 'ERROR: -s valid options are b, d, n, or u'; exit 1;; esac;;
+  t)  case "${OPTARG}" in y) __MMPBX='1';; n) __MMPBX='0';; u) __MMPBX='u';; *) __MMPBX='u'; echo 'ERROR: -t valid options are y, n, or u'; exit 1;; esac;;
+  u)  case "${OPTARG}" in y) __UPNP='1';; n) __UPNP='0';; u) __UPNP='u';; *) __UPNP='u'; echo 'ERROR: -u valid options are y, n, or u'; exit 1;; esac;;
+  w)  case "${OPTARG}" in y) __WPS='1';; n) __WPS='0';; u) __WPS='u';; *) __WPS='u'; echo 'ERROR: -w valid options are y, n, or u'; exit 1;; esac;;
+  A)  __HOST='d'; __DOMAIN='gateway'; __ALG='0'; __DLNAD='0'; __SAMBA='0'; __PRNTR='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1'; __SUPERVISION='DNS';;
+  F)  case "${OPTARG}" in y) __ROOT_PROTECT='1';; n) __ROOT_PROTECT='0';; u) __ROOT_PROTECT='u';; *) __ROOT_PROTECT='u'; echo 'ERROR: -F valid options are y, n, or u'; exit 1;; esac;;
+  G)  __GUEST='y';;
+  M)  __LITE='y'; __ALG='0'; __DECT='0'; __DLNAD='0'; __DUMAOS='0'; __MMPBX='0'; __MULTIAP='0'; __NFC='0'; __PRNTR='0'; __SAMBA='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1';;
+  R)  __LITE='R'; __HOST='mymodem'; __DOMAIN='modem'; __NS='a'; __ALG='1'; __DLNAD='1'; __DUMAOS='0'; __SAMBA='1'; __MULTIAP='1'; __POWER='d'; __PRNTR='1'; __MMPBX='1'; __DECT='1'; __UPNP='1'; __ROOT_PROTECT='0'; __NFC='y'; __SUPERVISION='BFD';;
+  S)  __HOST='s'; __DOMAIN='gateway'; __ALG='0'; __DLNAD='0'; __SAMBA='0'; __PRNTR='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1'; __SUPERVISION='DNS';;
   U)  upgrade;;
-  ?)  usage;;
+  *)  usage;;
  esac
 done
-
-status2text() {
-  if [ "$1" = "0" ]; then
-    echo Disabled
-  else
-    echo Enabled
-  fi
-}
 
 VERSION=$(uci get version.@version[0].marketing_version)
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
-
-PACKAGES_TO_REMOVE=""
 
 # Keep count of changes so we know whether to restart services
 SRV_bulkdata=0
@@ -230,10 +232,104 @@ else
   SRV_nfc=-1
 fi
 
+uci -q get supervision
+if [ $? -eq 0 ]; then
+  SRV_supervision=0
+else
+  SRV_supervision=-1
+fi
+
+show_default() {
+  local _DFLT
+  local _OPT=$1
+  local _ESC=1
+  case "$1" in
+    ka|kc|kk|km|kn|kx|M|G|o) _OPT="$1"; [ "$3" = "n" ] && _ESC=9;;
+    *) case "$3" in 0) _OPT="${1}n";; 1) _OPT="${1}y";; *) _OPT="$1$3";; esac;;
+  esac
+  case "$3" in
+    u) _DFLT=Unchanged;;
+    0) _DFLT=Disabled;;
+    1) _DFLT=Enabled;;
+    y) _DFLT=Yes;;
+    n) _DFLT=No;;
+    d) _DFLT="System Default";;
+    *) if [ "$1" = "h" ]; then
+        case "$3" in
+          d) _DFLT="$VARIANT";;
+          s) _DFLT="$VARIANT-$MAC_HEX";;
+          *) _DFLT="$3";;
+        esac
+      elif [ "$1" = "n" ]; then
+        case "$3" in
+          a) _DFLT="From ISP";;
+          c) _DFLT="Cloudflare";;
+          g) _DFLT="Google";;
+          f) _DFLT="OpenDNS Family Shield";;
+          o) _DFLT="OpenDNS";;
+          *) _DFLT="$3";;
+        esac
+      else
+        _DFLT="$3"
+      fi;;
+  esac
+  _OPT="$(printf '-%-15s' "$_OPT\e[0m")"
+  printf "  %-40s " "$2" 
+  if [ $_ESC = 9 ]; then
+    echo -e "\e[9m$_OPT $_DFLT"
+  else
+    echo -e "\e[1m$_OPT $_DFLT"
+  fi
+}
+
+if [ $SAVE_DEFAULTS = y ]; then
+  set | grep '^__' > .defaults.de-telstra
+  echo -e "[$SCRIPT]: \e[1;32mDefaults saved\e[0m"
+fi
+if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y ]; then
+  show_default "ka" "Keep Telstra AIR enabled" $__AIR
+  show_default "kc" "Keep CWMP installed" $__CWMP
+  show_default "kk" "Keep default public authorized keys" $__KEYS
+  show_default "km" "Keep Telstra monitoring/data collection" $__MONITORING
+  show_default "kn" "Keep Telstra NTP servers" $__NTP
+  show_default "kx" "Keep noexec on filesystems" $__NOEXEC
+  show_default "h"  "Host name" $__HOST
+  show_default "d"  "Domain name" $__DOMAIN
+  show_default "n"  "DNS servers" $__NS
+  show_default "a"  "NAT ALG Helpers" $__ALG
+  show_default "c"  "Content Sharing" $__DLNAD
+  show_default "e"  "DECT Emission Mode" $__DECT
+  show_default "f"  "File Sharing" $__SAMBA
+  [ $SRV_dumaos -ge 0 ] && show_default "g"  "DumaOS (Game Optimiser)" $__DUMAOS
+  [ $SRV_multiap -ge 0 ] && show_default "m"  "MultiAP (EasyMesh)" $__MULTIAP
+  show_default "p"  "Power Saving" $__POWER
+  [ $SRV_nfc -ge 0 ] && show_default "q"  "NFC" $__NFC
+  show_default "r"  "Printer Sharing" $__PRNTR
+  [ $SRV_supervision -ge 0 ] && show_default "s"  "WAN Supervision" $__SUPERVISION
+  show_default "t"  "Telephony" $__MMPBX
+  show_default "u"  "UPnP" $__UPNP
+  show_default "w"  "WPS" $__WPS
+  show_default "F"  "RTFD root protection" $__ROOT_PROTECT
+  show_default "M"  "Minimum memory mode" $__LITE
+  show_default "G"  "Remove Guest Wi-Fi" $__GUEST
+  show_default "o"  "Configure opkg" $__OPKG
+  exit
+fi
+
+status2text() {
+  if [ "$1" = "0" ]; then
+    echo Disabled
+  else
+    echo Enabled
+  fi
+}
+
+PACKAGES_TO_REMOVE=""
+
 echo [$SCRIPT]: Applying default hardening rules...
 
 if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" -o -e /etc/init.d/cwmpd ]; then
-  if [ "$CWMP" = 'n' ]; then
+  if [ "$__CWMP" = 'n' ]; then
     echo [$SCRIPT]: - Disabling CWMP
     uci set cwmpd.cwmpd_config.state='0'
     uci commit cwmpd
@@ -256,7 +352,7 @@ fi
 if [ -z "$(uci -q get autoreset.vsparc_enabled)" -a -z "$(uci -q get autoreset.thor_enabled)" -a -z "$(uci -q get wifi_doctor_agent.acs)" -a -z "$(uci -q get wifi_doctor_agent.config)" -a -z "$(uci -q get wifi_doctor_agent.as_config)" ]; then
   echo [$SCRIPT]: - Telstra monitoring already Disabled
 else
-  if [ "$MONITORING" = 'n' ]; then
+  if [ "$__MONITORING" = 'n' ]; then
     echo [$SCRIPT]: - Disabling Telstra monitoring
     uci -q get autoreset
     if [ $? -eq 0 ]; then
@@ -279,7 +375,7 @@ fi
 if [ -z "$(uci -q get dhcp.hotspot)" -a -z "$(uci -q get dhcp.fonopen)" -a -z "$(uci -q get network.fonopen)" -a -z "$(uci -q get web.fon)" -a -z "$(uci -q show web.ruleset_main.rules | grep '\bfon\b')" -a -z "$(uci -q show qos.reclassify_1.srcif | grep '\bfonopen\b')" -a -z "$(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\))" -a -z "$(uci -q get wireless.bs2)" -a -z "$(uci -q get wireless.bs3)" ]; then
   echo [$SCRIPT]: - Telstra AIR already removed
 else
-  if [ "$AIR" = 'n' ]; then
+  if [ "$__AIR" = 'n' ]; then
     echo [$SCRIPT]: - Removing Telstra Air
     SRV_hotspot=$(( $SRV_hotspot + 1 ))
     uci -q delete dhcp.hotspot
@@ -301,7 +397,7 @@ else
       uci delete wireless.$ap
       SRV_network=$(( $SRV_network + 2 ))
     done
-    echo [$SCRIPT]: - Removing Telstra Air Band Steering configuration
+    echo [$SCRIPT]: - Removing Telstra AIR Band Steering configuration
     uci -q delete wireless.bs2
     uci -q delete wireless.bs3
     SRV_network=$(( $SRV_network + 2 ))
@@ -312,7 +408,7 @@ else
   fi
 fi
 
-if [ "$AIR" = 'n' ]; then
+if [ "$__AIR" = 'n' ]; then
   if [ $(uci show firewall | grep 192.168.20.1 | wc -l) -eq 0 ]; then
     echo [$SCRIPT]: - Telstra AIR firewall entries already removed
   else
@@ -337,7 +433,7 @@ if [ "$AIR" = 'n' ]; then
   fi
 fi
 
-if [ "$NTP" = 'n' ]; then
+if [ "$__NTP" = 'n' ]; then
   for s in $(uci -q get system.ntp.server | tr " " "$IFS")
   do
     echo $s | grep -q -i telstra
@@ -356,7 +452,7 @@ else
   echo [$SCRIPT]: - OVERRIDE! Telstra NTP servers NOT Removed
 fi
 
-if [ "$MONITORING" = 'n' ]; then
+if [ "$__MONITORING" = 'n' ]; then
   /etc/init.d/lotagent enabled
   if [ $? -eq 0 ]; then
     echo [$SCRIPT]: - Disabling lotagent \(Telstra logging?\)
@@ -387,7 +483,7 @@ else
 fi
 
 if [ $(uci show mountd | grep -E 'mountd\.(ext[2-4]|fat|hfsplus(journal)*|ntfs)\.options=.*noexec.*' | wc -l) -gt 0 ]; then
-  if [ "$NOEXEC" = 'n' ]; then
+  if [ "$__NOEXEC" = 'n' ]; then
     for fs in ext2 ext3 ext4 fat hfsplus hfsplusjournal ntfs
     do
       FS_OPT=$(uci -q get mountd.$fs.options)
@@ -409,7 +505,7 @@ else
 fi
 
 if [ -f authorized_keys ]; then
-  if [ "$KEYS" = 'n' ]; then
+  if [ "$__KEYS" = 'n' ]; then
     cmp -s authorized_keys /etc/dropbear/authorized_keys
     if [ $? -eq 1 ]; then
       echo [$SCRIPT]: - Found authorized_keys - replacing /etc/dropbear/authorized_keys
@@ -434,7 +530,7 @@ if [ -f authorized_keys ]; then
     fi
   fi
 else
-  if [ "$KEYS" = 'n' ]; then
+  if [ "$__KEYS" = 'n' ]; then
     if [ -z "$(cat /etc/dropbear/authorized_keys)" ]; then
       echo [$SCRIPT]: - All public keys already removed from /etc/dropbear/authorized_keys
     else
@@ -469,12 +565,12 @@ fi
 
 cmp -s /rom/etc/rtfd_persistent_filelist.conf /etc/rtfd_persistent_filelist.conf
 ROOT_PROTECT_NOW="$?"
-if [ "$ROOT_PROTECT" = "u" -o "$ROOT_PROTECT_NOW" = "$ROOT_PROTECT" ]; then
+if [ "$__ROOT_PROTECT" = "u" -o "$ROOT_PROTECT_NOW" = "$__ROOT_PROTECT" ]; then
   echo [$SCRIPT]: Reset to Factory Defaults root protection unchanged \[$(status2text $ROOT_PROTECT_NOW)\]
 else
   for f in /etc/passwd /etc/shadow /etc/config/dropbear /etc/dropbear/* /etc/rc.d/*dropbear
   do
-    if [ "$ROOT_PROTECT" = "1" ]; then
+    if [ "$__ROOT_PROTECT" = "1" ]; then
       grep -q -E "^$f$" /etc/rtfd_persistent_filelist.conf
       if [ $? -eq 1 ]; then
         echo "$f">>/etc/rtfd_persistent_filelist.conf
@@ -483,22 +579,22 @@ else
       sed -e "/^$(echo $f | sed -e 's|/|\\/|g')\$/d" -i /etc/rtfd_persistent_filelist.conf
     fi
   done
-  echo [$SCRIPT]: Reset to Factory Defaults root protection $(status2text $ROOT_PROTECT)
+  echo [$SCRIPT]: Reset to Factory Defaults root protection $(status2text $__ROOT_PROTECT)
 fi
-if [ "$ROOT_PROTECT" = "0" ]; then
+if [ "$__ROOT_PROTECT" = "0" ]; then
   echo -e "[$SCRIPT]:\033[1;32m NOTE: Installation of tch-gui-unhide will ALWAYS enable RTFD protection!\033[0m"
 fi
 
 # End of hardening
 
 CURRENT_HOSTNAME="$(uci -q get system.@system[0].hostname)"
-if [ "$HOST" = "u" ]; then
+if [ "$__HOST" = "u" ]; then
   echo [$SCRIPT]: Host name unchanged \[$CURRENT_HOSTNAME\]
 else
-  case $HOST in
+  case $__HOST in
   d) HOSTNAME=$VARIANT;;
   s) HOSTNAME=$VARIANT-$MAC_HEX;;
-  *) HOSTNAME=$HOST;;
+  *) HOSTNAME=$__HOST;;
   esac
   uci -q get dhcp.main.hostname | grep -q "$HOSTNAME"
   if [ $? -eq 0 -a "$(uci -q get system.@system[0].hostname)" = "$HOSTNAME" ]; then
@@ -562,15 +658,15 @@ fi
 
 DOMAIN_NOW="$(uci -q get dhcp.main.domain)"
 LOCAL_NOW="$(uci -q get dhcp.main.local)"
-if [ "$DOMAIN" = "u" -o \( "$DOMAIN_NOW" = "$DOMAIN" -a "$LOCAL_NOW" = "/$DOMAIN/" -a "$LOCAL_NOW" = "/$DOMAIN_NOW/" \) ]; then
+if [ "$__DOMAIN" = "u" -o \( "$DOMAIN_NOW" = "$__DOMAIN" -a "$LOCAL_NOW" = "/$__DOMAIN/" -a "$LOCAL_NOW" = "/$DOMAIN_NOW/" \) ]; then
   echo [$SCRIPT]: Domain name unchanged \[$DOMAIN_NOW\]
 else
-  if [ "$DOMAIN" = "u" -a "$LOCAL_NOW" != "/$DOMAIN_NOW/" ]; then
-    $DOMAIN="$DOMAIN_NOW"
+  if [ "$__DOMAIN" = "u" -a "$LOCAL_NOW" != "/$DOMAIN_NOW/" ]; then
+    $__DOMAIN="$DOMAIN_NOW"
   fi
-  echo [$SCRIPT]: Setting the domain to $DOMAIN
-  uci set dhcp.main.domain="$DOMAIN"
-  uci set dhcp.main.local="/$DOMAIN/"
+  echo [$SCRIPT]: Setting the domain to $__DOMAIN
+  uci set dhcp.main.domain="$__DOMAIN"
+  uci set dhcp.main.local="/$__DOMAIN/"
   uci commit dhcp
   SRV_dnsmasq=$(( $SRV_dnsmasq + 2 ))
 fi
@@ -579,16 +675,16 @@ uci -q get network.wan > /dev/null
 if [ $? -eq 0 ]; then
   PEERDNS_NOW="$(uci -q get network.wan.peerdns)"
   WANDNS_NOW="$(uci -q get network.wan.dns)"
-  if [ "$NS" = "u" ]; then
+  if [ "$__NS" = "u" ]; then
     echo [$SCRIPT]: DNS Servers unchanged \[ $WANDNS_NOW ISP Peer DNS $(status2text $PEERDNS_NOW) \]
   else
-    case $NS in
+    case $__NS in
     a) PEERDNS=1; WANDNS1=""; WANDNS2="";;
     c) PEERDNS=0; WANDNS1="1.1.1.1"; WANDNS2="1.0.0.1";;
     g) PEERDNS=0; WANDNS1="8.8.8.8"; WANDNS2="8.8.4.4";;
     f) PEERDNS=0; WANDNS1="208.67.222.123"; WANDNS2="208.67.220.123";;
     o) PEERDNS=0; WANDNS1="208.67.222.222"; WANDNS2="208.67.220.220";;
-    *) PEERDNS=0; WANDNS1="$(echo $NS | cut -d, -f1)"; WANDNS2="$(echo $NS | cut -d, -f2)";;
+    *) PEERDNS=0; WANDNS1="$(echo $__NS | cut -d, -f1)"; WANDNS2="$(echo $__NS | cut -d, -f2)";;
     esac
     if [ "$PEERDNS" = "0" -a -z "$WANDNS1" ]; then
       echo [$SCRIPT]: No DNS Server IP address specified???
@@ -651,35 +747,35 @@ else
 fi
 
 DLNA_NOW="$(uci -q get dlnad.config.enabled)"
-if [ "$DLNAD" = "u" -o "$DLNA_NOW" = "$DLNAD" ]; then
+if [ "$__DLNAD" = "u" -o "$DLNA_NOW" = "$__DLNAD" ]; then
   echo [$SCRIPT]: Content sharing unchanged \[$(status2text $DLNA_NOW)\]
 else
-  uci set dlnad.config.enabled="$DLNAD"
+  uci set dlnad.config.enabled="$__DLNAD"
   uci commit dlnad
   SRV_dlna=$(( $SRV_dlna + 1 ))
-  echo [$SCRIPT]: Content sharing $(status2text $DLNAD)
+  echo [$SCRIPT]: Content sharing $(status2text $__DLNAD)
 fi
 
 PS_NOW="$(uci -q get printersharing.config.enabled)"
-if [ "$PRNTR" = "u" -o "$PS_NOW" = "$PRNTR" ]; then
+if [ "$__PRNTR" = "u" -o "$PS_NOW" = "$__PRNTR" ]; then
   echo [$SCRIPT]: Printer sharing unchanged \[$(status2text $PS_NOW)\]
 else
-  uci set printersharing.config.enabled="$PRNTR"
+  uci set printersharing.config.enabled="$__PRNTR"
   uci commit printersharing
   SRV_cups=$(( $SRV_cups + 1 ))
-  PS_NOW="$PRNTR"
-  echo [$SCRIPT]: Printer sharing $(status2text $PRNTR)
+  PS_NOW="$__PRNTR"
+  echo [$SCRIPT]: Printer sharing $(status2text $__PRNTR)
 fi
 
 FS_NOW="$(uci -q get samba.samba.filesharing)"
-if [ "$SAMBA" = "u" -o "$FS_NOW" = "$SAMBA" ]; then
+if [ "$__SAMBA" = "u" -o "$FS_NOW" = "$__SAMBA" ]; then
   echo [$SCRIPT]: File sharing unchanged \[$(status2text $FS_NOW)\]
 else
-  uci set samba.samba.filesharing="$SAMBA"
+  uci set samba.samba.filesharing="$__SAMBA"
   uci commit samba
   SRV_samba=$(( $SRV_samba + 1 ))
-  FS_NOW="$SAMBA"
-  echo [$SCRIPT]: File sharing $(status2text $SAMBA)
+  FS_NOW="$__SAMBA"
+  echo [$SCRIPT]: File sharing $(status2text $__SAMBA)
 fi
 
 SAMBA_NOW="$(uci -q get samba.samba.enabled)"
@@ -696,14 +792,14 @@ elif [ "$SAMBA_NOW" = "0" -a \( "$PS_NOW" = "1" -o "$FS_NOW" = "1" \) ]; then
 fi
 
 MMPBX_NOW="$(uci -q get mmpbx.global.enabled)"
-if [ "$MMPBX" = "u" -o "$MMPBX_NOW" = "$MMPBX" ]; then
+if [ "$__MMPBX" = "u" -o "$MMPBX_NOW" = "$__MMPBX" ]; then
   echo [$SCRIPT]: Telephony unchanged \[$(status2text $MMPBX_NOW)\]
 else
-  uci set mmpbx.global.enabled="$MMPBX"
+  uci set mmpbx.global.enabled="$__MMPBX"
   uci commit mmpbx
   SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
-  MMPBX_NOW="$MMPBX"
-  if [ "$MMPBX" = "1" ]; then
+  MMPBX_NOW="$__MMPBX"
+  if [ "$__MMPBX" = "1" ]; then
     echo [$SCRIPT]: Telephony Enabled
   else
     echo [$SCRIPT]: Telephony Disabled
@@ -728,29 +824,28 @@ if [ "$(uci -q get mmpbxmobilenet.VoLTE)" ]; then
 fi
 
 DECT_NOW="$(uci -q get mmpbx.dectemission.state)"
-if [ "$DECT" = "u" -o "$DECT_NOW" = "$DECT" ]; then
+if [ "$__DECT" = "u" -o "$DECT_NOW" = "$__DECT" ]; then
   echo [$SCRIPT]: DECT Emission Mode unchanged \[$(status2text $DECT_NOW)\]
 else
-  uci set mmpbx.dectemission.state="$DECT"
+  uci set mmpbx.dectemission.state="$__DECT"
   uci commit mmpbx
   SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
-  echo [$SCRIPT]: DECT Emission Mode $(status2text $DECT)
+  echo [$SCRIPT]: DECT Emission Mode $(status2text $__DECT)
 fi
 
-uci -q get supervision
-if [ $? -eq 0 ]; then
+if [ $SRV_supervision -ge 0 ]; then
   SUPERVISION_NOW="$(uci -q get supervision.global.enabled)"
-  if [ "$SUPERVISION" = "u" -o "$SUPERVISION_NOW" = "$SUPERVISION" ]; then
+  if [ "$__SUPERVISION" = "u" -o "$SUPERVISION_NOW" = "$__SUPERVISION" ]; then
     echo [$SCRIPT]: WAN Supervision unchanged \[$SUPERVISION_NOW\]
   else
-    uci set supervision.global.enabled="$SUPERVISION"
+    uci set supervision.global.enabled="$__SUPERVISION"
     uci commit supervision
     SRV_supervision=$(( $SRV_supervision + 1 ))
-    echo [$SCRIPT]: WAN Supervision Mode = $SUPERVISION
+    echo [$SCRIPT]: WAN Supervision Mode = $__SUPERVISION
   fi
 fi
 
-if [ "$WPS" = "u" ]; then
+if [ "$__WPS" = "u" ]; then
   WPS_NOW="$(uci show wireless | grep wps_state=\'1\' | wc -l)"
   if [ "$WPS_NOW" -eq 1 ]; then
     echo [$SCRIPT]: WPS unchanged \[Enabled on 1 Access Point\]
@@ -763,12 +858,12 @@ else
     ap="$(uci show wireless | grep =\'$iface\' | cut -d. -f2)"
     if [ -n "$ap" ]; then
       wps_state="$(uci -q get wireless.$ap.wps_state)"
-      if [ "$wps_state" = "$WPS" ]; then
-        echo [$SCRIPT]: WPS State unchanged on SSID $(uci get wireless.$iface.ssid) \[$(status2text $WPS)\]
+      if [ "$wps_state" = "$__WPS" ]; then
+        echo [$SCRIPT]: WPS State unchanged on SSID $(uci get wireless.$iface.ssid) \[$(status2text $__WPS)\]
       else
-        uci set wireless.$ap.wps_state="$WPS"
+        uci set wireless.$ap.wps_state="$__WPS"
         SRV_hostapd=$(( $SRV_hostapd + 1 ))
-        echo [$SCRIPT]: WPS State on SSID $(uci get wireless.$iface.ssid) $(status2text $WPS)
+        echo [$SCRIPT]: WPS State on SSID $(uci get wireless.$iface.ssid) $(status2text $__WPS)
       fi
     fi
   done
@@ -778,7 +873,7 @@ else
 fi
 
 if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
-  if [ "$ALG" = "u" ]; then
+  if [ "$__ALG" = "u" ]; then
     echo [$SCRIPT]: ALGs unchanged \[$(uci show firewall | grep helper | grep -E "enable='(1|y)'" | wc -l) Enabled\]
   else
     for g in $(uci show firewall | grep '\.helper' | cut -d\' -f2)
@@ -786,13 +881,13 @@ if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
       key=$(uci show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
       G=$(echo $g | tr "[a-z]" "[A-Z]")
       G_NOW="$(uci -q get -q $key.enable)"
-      if [ "$G_NOW" != "$ALG" ]; then
-        if [ "$ALG" = "0" ]; then
+      if [ "$G_NOW" != "$__ALG" ]; then
+        if [ "$__ALG" = "0" ]; then
           echo [$SCRIPT]: $G ALG Disabled
         else
           echo [$SCRIPT]: $G ALG Enabled
         fi
-        uci set $key.enable="$ALG"
+        uci set $key.enable="$__ALG"
         uci commit firewall
         SRV_fw=$(( $SRV_fw + 1 ))
       else
@@ -803,7 +898,7 @@ if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
 else # 20.3.c
   LAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "name='lan'" | cut -d. -f1-2)
   WAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "wan='1'" | cut -d. -f1-2)
-  if [ "$ALG" = "u" ]; then
+  if [ "$__ALG" = "u" ]; then
     LAN_HELP=$(uci -qd"$IFS" get $LAN_ZONE.helper | sort | xargs)
     WAN_HELP=$(uci -qd"$IFS" get $WAN_ZONE.helper | sort | xargs)
     if [ "$LAN_HELP" = "$WAN_HELP" ]; then
@@ -828,7 +923,7 @@ else # 20.3.c
   else
     uci -q delete $LAN_ZONE.helper
     uci -q delete $WAN_ZONE.helper
-    if [ "$ALG" = "0" ]; then
+    if [ "$__ALG" = "0" ]; then
       echo [$SCRIPT]: All ALGs Disabled
     else
       for g in ftp tftp snmp pptp sip irc amanda rtsp
@@ -846,25 +941,25 @@ fi
 
 NATPMP_NOW="$(uci -q get upnpd.config.enable_natpmp)"
 UPNP_NOW="$(uci -q get upnpd.config.enable_upnp)"
-if [ "$UPNP" = "u" -o \( "$NATPMP_NOW" = "$UPNP" -a "$UPNP_NOW" = "$UPNP" \) ]; then
+if [ "$__UPNP" = "u" -o \( "$NATPMP_NOW" = "$__UPNP" -a "$UPNP_NOW" = "$__UPNP" \) ]; then
   echo [$SCRIPT]: UPnP unchanged \[UPnP: $(status2text $UPNP_NOW) NAT-PMP: $(status2text $NATPMP_NOW)\]
 else
-  uci set upnpd.config.enable_natpmp="$UPNP"
-  uci set upnpd.config.enable_upnp="$UPNP"
+  uci set upnpd.config.enable_natpmp="$__UPNP"
+  uci set upnpd.config.enable_upnp="$__UPNP"
   uci commit upnpd
   SRV_upnp=$(( $SRV_upnp + 2 ))
-  echo [$SCRIPT]: UPnP $(status2text $UPNP)
+  echo [$SCRIPT]: UPnP $(status2text $__UPNP)
 fi
 
 if [ $SRV_dumaos -ge 0 ]; then
   DUMAOS_NOW="$(uci -q get dumaos.tr69.dumaos_enabled)"
-  if [ "$DUMAOS" = "u" -o "$DUMAOS_NOW" = "$DUMAOS" ]; then
+  if [ "$__DUMAOS" = "u" -o "$DUMAOS_NOW" = "$__DUMAOS" ]; then
     echo [$SCRIPT]: DumaOS unchanged \[$(status2text $DUMAOS_NOW)\]
   else
-    uci set dumaos.tr69.dumaos_enabled="$DUMAOS"
+    uci set dumaos.tr69.dumaos_enabled="$__DUMAOS"
     uci commit dumaos
     SRV_dumaos=$(( $SRV_dumaos + 1 ))
-    echo [$SCRIPT]: DumaOS $(status2text $DUMAOS)
+    echo [$SCRIPT]: DumaOS $(status2text $__DUMAOS)
   fi
 fi
 
@@ -875,43 +970,43 @@ if [ $SRV_multiap -ge 0 ]; then
   VNDRX_NOW="$(uci -q get vendorextensions.multiap_vendorextensions.enable)"
   BHAUL_AP_NOW="$(uci -q get wireless.$BHAUL_AP.state)"
   BHAUL_IF_NOW="$(uci -q get wireless.wl1_2.state)"
-  if [ "$MULTIAP" = "u" -o \( "$AGENT_NOW" = "$MULTIAP" -a "$CTRLR_NOW" = "$MULTIAP" -a "$VNDRX_NOW" = "$MULTIAP" -a "$BHAUL_AP_NOW" = "$MULTIAP" -a "$BHAUL_IF_NOW" = "$MULTIAP" \) ]; then
+  if [ "$__MULTIAP" = "u" -o \( "$AGENT_NOW" = "$__MULTIAP" -a "$CTRLR_NOW" = "$__MULTIAP" -a "$VNDRX_NOW" = "$__MULTIAP" -a "$BHAUL_AP_NOW" = "$__MULTIAP" -a "$BHAUL_IF_NOW" = "$__MULTIAP" \) ]; then
     echo [$SCRIPT]: MultiAP unchanged \[Controller: $(status2text $CTRLR_NOW) Agent: $(status2text $AGENT_NOW) Vendor Extensions: $(status2text $VNDRX_NOW) BackHaul SSID: $(status2text $BHAUL_IF_NOW)\]
   else
-    uci set multiap.agent.enabled="$MULTIAP"
-    uci set multiap.controller.enabled="$MULTIAP"
+    uci set multiap.agent.enabled="$__MULTIAP"
+    uci set multiap.controller.enabled="$__MULTIAP"
     uci commit multiap
     SRV_multiap=$(( $SRV_multiap + 2 ))
-    uci set vendorextensions.multiap_vendorextensions.enable="$MULTIAP"
+    uci set vendorextensions.multiap_vendorextensions.enable="$__MULTIAP"
     SRV_multiap=$(( $SRV_multiap + 1 ))
-    uci set wireless.$BHAUL_AP.state="$MULTIAP"
-    uci set wireless.wl1_2.state="$MULTIAP"
+    uci set wireless.$BHAUL_AP.state="$__MULTIAP"
+    uci set wireless.wl1_2.state="$__MULTIAP"
     SRV_hostapd=$(( $SRV_hostapd + 2 ))
     SRV_network=$(( $SRV_network + 1 ))
     uci commit wireless
-    echo [$SCRIPT]: MultiAP $(status2text $MULTIAP)
+    echo [$SCRIPT]: MultiAP $(status2text $__MULTIAP)
   fi
-elif [ "$MULTIAP" != "u" ]; then
+elif [ "$__MULTIAP" != "u" ]; then
   echo [$SCRIPT]: MultiAP not found on device
 fi
 
 if [ $SRV_nfc -ge 0 ]; then
   NFC_NOW="$(uci -q get nfc.@nfc[0].enabled)"
-  if [ "$NFC" = "u" -o "$NFC_NOW" = "$NFC" ]; then
+  if [ "$__NFC" = "u" -o "$NFC_NOW" = "$__NFC" ]; then
     echo [$SCRIPT]: NFC unchanged \[$(status2text $NFC_NOW)\]
   else
-    uci set nfc.@nfc[0].enabled="$NFC"
+    uci set nfc.@nfc[0].enabled="$__NFC"
     uci commit nfc
     SRV_nfc=$(( $SRV_nfc + 1 ))
-    echo [$SCRIPT]: NFC $(status2text $NFC)
+    echo [$SCRIPT]: NFC $(status2text $__NFC)
   fi
 fi
 
 PWR_STATUS=$(pwrctl show | grep -i ENABLED | wc -l)
-if [ \( $PWR_STATUS -eq 0 -a "$POWER" = "n" \) -o \( $PWR_STATUS -gt 0 -a "$POWER" = "y" \) ]; then
-  POWER='u'
+if [ \( $PWR_STATUS -eq 0 -a "$__POWER" = "n" \) -o \( $PWR_STATUS -gt 0 -a "$__POWER" = "y" \) ]; then
+  __POWER='u'
 fi
-case "$POWER" in
+case "$__POWER" in
   u)  echo [$SCRIPT]: Power saving settings unchanged \[$(status2text $PWR_STATUS)\];;
   n)  echo [$SCRIPT]: Disabling power saving...
       if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
@@ -986,7 +1081,7 @@ esac
 
 # macoers repository URL changed, so need to update if it is the old one
 OPKG_DEP=$(grep -c 'www.macoers.com/repository' /etc/opkg/customfeeds.conf)
-if [ "$OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
+if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
   cat /proc/cpuinfo | grep -q 'ARMv7 Processor rev 1 (v7l)'
   if [ $? -eq 0 ]; then
     if [ $OPKG_DEP -gt 0 -o $(sed -e '/^#/d' -e '/^[ \t]*$/d' /etc/opkg/customfeeds.conf | wc -l) -eq 0 ]; then
@@ -1051,7 +1146,7 @@ if [ "$OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
   fi
 fi
 
-if [ $GUEST = n ]; then
+if [ $__GUEST = y ]; then
   uci -q delete dhcp.guest
   SRV_dhcp=$(( $SRV_dhcp + 1 ))
   for nw in $(uci show network | grep -E '\.Guest.*=interface'  | cut -d= -f1)
@@ -1100,19 +1195,19 @@ if [ $GUEST = n ]; then
 fi
 
 echo [$SCRIPT]: Applying required service changes...
-[ "$LITE" = 'R' ] && {
+[ "$__LITE" = 'R' ] && {
   for s in cupsd dumaos lte-doctor-logger mmpbxfwctl mmpbxd mmpbxbrcmdect mud multiap_agent multiap_controller multiap_vendorextensions ndhttpd telemetry-daemon xl2tpd
   do
     [ -e /etc/init.d/$s -a ! $(/etc/init.d/$s enabled) ] && { /etc/init.d/$s enable; /etc/init.d/$s start; } > /dev/null 2>&1
   done
 }
 /etc/init.d/watchdog-tch reload > /dev/null 2>&1
-[ "$DECT_NOW" = "0" -o "$DECT" = "0" ] && /etc/init.d/mmpbxbrcmdect stop > /dev/null 2>&1
-[ "$DECT_NOW" = "0" -a "$DECT" = "1" ] && { /etc/init.d/mmpbxbrcmdect enable; /etc/init.d/mmpbxbrcmdect restart; } > /dev/null 2>&1
-[ "$DLNA_NOW" = "0" -a "$DLNAD" = "1" ] && { /etc/init.d/mud enable; /etc/init.d/mud restart; } > /dev/null 2>&1
-[ "$DLNA_NOW" = "0" -o "$DLNAD" = "0" ] && /etc/init.d/mud stop > /dev/null 2>&1
-[ "$PS_NOW" = "0" -a "$PRNTR" = "1" ] && { /etc/init.d/cupsd enable; /etc/init.d/cupsd restart; } > /dev/null 2>&1
-[ "$PS_NOW" = "0" -o "$PRNTR" = "0" ] && /etc/init.d/cupsd stop > /dev/null 2>&1
+[ "$DECT_NOW" = "0" -o "$__DECT" = "0" ] && /etc/init.d/mmpbxbrcmdect stop > /dev/null 2>&1
+[ "$DECT_NOW" = "0" -a "$__DECT" = "1" ] && { /etc/init.d/mmpbxbrcmdect enable; /etc/init.d/mmpbxbrcmdect restart; } > /dev/null 2>&1
+[ "$DLNA_NOW" = "0" -a "$__DLNAD" = "1" ] && { /etc/init.d/mud enable; /etc/init.d/mud restart; } > /dev/null 2>&1
+[ "$DLNA_NOW" = "0" -o "$__DLNAD" = "0" ] && /etc/init.d/mud stop > /dev/null 2>&1
+[ "$PS_NOW" = "0" -a "$__PRNTR" = "1" ] && { /etc/init.d/cupsd enable; /etc/init.d/cupsd restart; } > /dev/null 2>&1
+[ "$PS_NOW" = "0" -o "$__PRNTR" = "0" ] && /etc/init.d/cupsd stop > /dev/null 2>&1
 [ $SRV_bulkdata -gt 0 ] && { /etc/init.d/bulkdata disable; /etc/init.d/bulkdata stop; } > /dev/null 2>&1
 [ $SRV_cwmp -gt 0 -a -e /etc/init.d/cwmpd ] && { /etc/init.d/cwmpd disable;/etc/init.d/cwmpd stop; } > /dev/null 2>&1
 [ $SRV_dhcp -gt 0 ] && /etc/init.d/dnsmasq reload > /dev/null 2>&1
@@ -1145,19 +1240,19 @@ echo [$SCRIPT]: Applying required service changes...
   done;
   echo -e "[$SCRIPT]: \033[1;32mNOTE: You should remove and re-insert any mounted USB device\033[0m";
 }
-[ "$LITE" = 'y' ] && {
+[ "$__LITE" = 'y' ] && {
   echo [$SCRIPT]: Disabling services to save memory...
-  [ "$DECT" = "0" ] && { /etc/init.d/mmpbxbrcmdect disable; /etc/init.d/mmpbxbrcmdect stop; } > /dev/null 2>&1
-  [ "$DLNAD" = "0" ] && { /etc/init.d/dlnad disable; /etc/init.d/dlnad stop; /etc/init.d/mud disable; /etc/init.d/mud stop; } > /dev/null 2>&1
-  [ "$DUMAOS" = "0" -a $SRV_dumaos -ge 0 ] && { /etc/init.d/dumaos disable; /etc/init.d/ndhttpd disable; /etc/init.d/dumaos stop; /etc/init.d/ndhttpd stop; } > /dev/null 2>&1
-  [ "$DUMAOS" = "0" -a $SRV_dumaos -ge 0 -a -e /etc/init.d/telemetry-daemon ] && { /etc/init.d/telemetry-daemon disable; /etc/init.d/telemetry-daemon stop; } > /dev/null 2>&1
-  [ "$MMPBX" = "0" ] && { /etc/init.d/mmpbxd disable; /etc/init.d/mmpbxfwctl disable; /etc/init.d/mmpbxd stop; /etc/init.d/mmpbxfwctl stop; } > /dev/null 2>&1
-  [ "$NFC" = "0" ] && { /etc/init.d/nfcd disable; /etc/init.d/nfcd stop; } > /dev/null 2>&1
-  [ "$MULTIAP" = "0" -a $SRV_multiap -ge 0 ] && { /etc/init.d/multiap_controller disable; /etc/init.d/multiap_agent disable; /etc/init.d/multiap_vendorextensions disable; /etc/init.d/multiap_controller stop; /etc/init.d/multiap_agent stop; /etc/init.d/multiap_vendorextensions stop; } > /dev/null 2>&1
-  [ "$PRNTR" = "0" ] && { /etc/init.d/cupsd disable; /etc/init.d/cupsd stop; } > /dev/null 2>&1
-  [ "$SAMBA" = "0" -a -e /etc/init.d/samba ] && { /etc/init.d/samba disable; /etc/init.d/samba stop; } > /dev/null 2>&1
-  [ "$SAMBA" = "0" -a -e /etc/init.d/samba-nmbd ] && { /etc/init.d/samba-nmbd disable; /etc/init.d/samba-nmbd stop; } > /dev/null 2>&1
-  [ "$UPNP" = "0" ] && { /etc/init.d/miniupnpd-tch disable; /etc/init.d/miniupnpd-tch stop; } > /dev/null 2>&1
+  [ "$__DECT" = "0" ] && { /etc/init.d/mmpbxbrcmdect disable; /etc/init.d/mmpbxbrcmdect stop; } > /dev/null 2>&1
+  [ "$__DLNAD" = "0" ] && { /etc/init.d/dlnad disable; /etc/init.d/dlnad stop; /etc/init.d/mud disable; /etc/init.d/mud stop; } > /dev/null 2>&1
+  [ "$__DUMAOS" = "0" -a $SRV_dumaos -ge 0 ] && { /etc/init.d/dumaos disable; /etc/init.d/ndhttpd disable; /etc/init.d/dumaos stop; /etc/init.d/ndhttpd stop; } > /dev/null 2>&1
+  [ "$__DUMAOS" = "0" -a $SRV_dumaos -ge 0 -a -e /etc/init.d/telemetry-daemon ] && { /etc/init.d/telemetry-daemon disable; /etc/init.d/telemetry-daemon stop; } > /dev/null 2>&1
+  [ "$__MMPBX" = "0" ] && { /etc/init.d/mmpbxd disable; /etc/init.d/mmpbxfwctl disable; /etc/init.d/mmpbxd stop; /etc/init.d/mmpbxfwctl stop; } > /dev/null 2>&1
+  [ "$__NFC" = "0" ] && { /etc/init.d/nfcd disable; /etc/init.d/nfcd stop; } > /dev/null 2>&1
+  [ "$__MULTIAP" = "0" -a $SRV_multiap -ge 0 ] && { /etc/init.d/multiap_controller disable; /etc/init.d/multiap_agent disable; /etc/init.d/multiap_vendorextensions disable; /etc/init.d/multiap_controller stop; /etc/init.d/multiap_agent stop; /etc/init.d/multiap_vendorextensions stop; } > /dev/null 2>&1
+  [ "$__PRNTR" = "0" ] && { /etc/init.d/cupsd disable; /etc/init.d/cupsd stop; } > /dev/null 2>&1
+  [ "$__SAMBA" = "0" -a -e /etc/init.d/samba ] && { /etc/init.d/samba disable; /etc/init.d/samba stop; } > /dev/null 2>&1
+  [ "$__SAMBA" = "0" -a -e /etc/init.d/samba-nmbd ] && { /etc/init.d/samba-nmbd disable; /etc/init.d/samba-nmbd stop; } > /dev/null 2>&1
+  [ "$__UPNP" = "0" ] && { /etc/init.d/miniupnpd-tch disable; /etc/init.d/miniupnpd-tch stop; } > /dev/null 2>&1
   { /etc/init.d/lte-doctor-logger disable; /etc/init.d/lte-doctor-logger stop; } > /dev/null 2>&1
   [ ! -e /etc/ipsec.conf ] && { /etc/init.d/xl2tpd disable; /etc/init.d/xl2tpd stop; } > /dev/null 2>&1
 }

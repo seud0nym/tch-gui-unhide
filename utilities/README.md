@@ -71,8 +71,7 @@ Options:
           o            Set the DNS servers to OpenDNS
           <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated
                         IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
- -a u|y|n              WAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable
- -b u|y|n            * LAN ALG NAT Helpers:     u=Unchanged y=Enable n=Disable (FW 20.3.c)
+ -a u|y|n              NAT ALG Helpers:         u=Unchanged y=Enable n=Disable
  -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
  -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
  -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
@@ -91,14 +90,19 @@ Options:
  -A                    Equivalent to: -hd -dg -an -cn -fn -rn -sd -un -wn -Fy
  -S                    Equivalent to: -hs -dg -an -cn -fn -rn -sd -un -wn -Fy
  -M                    Minimum memory mode: Equivalent to:
-                              -an -cn -fn -rn -tn -en -un -mn -gn -qn -Fy
-                        PLUS stops and disables the associated services
+                           -an -cn -fn -rn -tn -en -un -mn -gn -qn -Fy
+                         PLUS stops and disables the associated services
  -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and
-                        guest networks
+                         guest networks
  -R                    Reset to device defaults: Equivalent to:
-                        -hmymodem -dmodem -na -ay -cy -fy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn -sb
+                         -hmymodem -dmodem -na -ay -cy -fy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn -sb
  -o                    Configures opkg
  -U                    Download the latest version of de-telstra from GitHub
+ --save-defaults       Saves the command line options as defaults for future executions
+                         When specified, NO changes are applied to the device
+ --show-defaults       Shows the settings that would be applied (defaults and over-rides)
+                         When specified, NO changes are applied to the device
+ --no-defaults         Ignores any saved defaults for this execution
 ```
 #### Notes
 1. The default for all optional parameters is u (unchanged).
