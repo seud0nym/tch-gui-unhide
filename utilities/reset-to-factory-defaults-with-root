@@ -20,24 +20,27 @@ but with some additional options.
 Usage: $0 [options]
 
 Options:
- -b           Make a full backup of your booted bank configuration (requires 
-                attached USB device).
- -c           Disable CWMP configuration during first boot after reset.
- -e           Disable any 'noexec' flags on USB mounted filesystems.
- -f filename  Flash 'filename' into the mounted bank ($BOOTED) after reset and 
-                before reboot. If 'filename' ends with .rbi, it will be 
-                unpacked first, either to an attached USB device, or /tmp if 
-                no USB detected.
- -i           Keep existing IP address [$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)] after reset and
-                reboot.
- -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
- -k           Keep existing SSH keys after reset and reboot.
- -p password  Set the password after reset and reboot. If not specified, it
-                defaults to root.
- -v           Show the reset script after it has been written.
- -y           Bypass confirmation prompt (answers 'y').
- -n           Do NOT reboot.
- -U           Download the latest version of $SCRIPT from GitHub.
+ -b               Make a full backup of your booted bank configuration 
+                    (requires attached USB device).
+ -c               Disable CWMP configuration during first boot after reset
+ -e               Disable any 'noexec' flags on USB mounted filesystems
+ -f filename      Flash 'filename' into the mounted bank ($BOOTED) after reset 
+                    and before reboot. If 'filename' ends with .rbi, it will be 
+                    unpacked first, either to an attached USB device, or /tmp if
+                    no USB detected.
+ -i               Keep existing IP address [$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)] after reset and
+                    reboot.
+ -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
+ -k               Keep existing SSH keys after reset and reboot.
+ -p password      Set the password after reset and reboot. If not specified,
+                    it defaults to root.
+ -v               Show the reset script after it has been written.
+ -y               Bypass confirmation prompt (answers 'y').
+ -n               Do NOT reboot.
+ -U               Download the latest version of $SCRIPT from GitHub.
+ --save-defaults  Saves the command line options (except -f and -y) as defaults
+                    When specified, NO changes are applied to the device
+ --no-defaults    Ignores any saved defaults for this execution
 
 EOH
 exit
@@ -64,16 +67,14 @@ upgrade() {
 }
 
 set_defaults() {
-  BKUP=""
-  CWMP=""
-  FIRMWARE=""
-  IPADDR=""
-  KEYS=""
-  NOEXEC=""
-  ROOTPWD="root"
-  REBOOT="Y"
-  VERBOSE=N
-  YES=N
+  __BKUP=""
+  __CWMP=""
+  __IPADDR=""
+  __KEYS=""
+  __NOEXEC=""
+  __ROOTPWD="root"
+  __REBOOT="Y"
+  __VERBOSE=N
 }
 
 set_defaults
@@ -81,38 +82,52 @@ if [ -f .defaults.reset-to-factory-defaults-with-root ]; then
   . ./.defaults.reset-to-factory-defaults-with-root
 fi
 
+FIRMWARE=""
+YES=N
+SAVE_DEFAULTS=n
+
 while getopts :bcef:iI:knp:vyU-: option
 do
  case "${option}" in
-  -)  case "${OPTARG}" in no-defaults) set_defaults;; *) usage;; esac;;
-  b)  BKUP="Y";;
-  c)  CWMP="Y";;
-  e)  NOEXEC="Y";;
+  -)  case "${OPTARG}" in 
+        no-defaults)    set_defaults;; 
+        save-defaults)  SAVE_DEFAULTS=y;; 
+        *)              usage;; 
+      esac;;
+  b)  __BKUP="Y";;
+  c)  __CWMP="Y";;
+  e)  __NOEXEC="Y";;
   f)  FIRMWARE="${OPTARG}";;
-  i)  IPADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)";;
+  i)  __IPADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)";;
   I)  echo "${OPTARG}" | grep -q -E "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
       if [ $? -eq 1 ]; then
         echo -e "${RED}ERROR! Invalid IP address: $OPTARG${NC}"
         exit
       else
-        IPADDR="${OPTARG}"
+        __IPADDR="${OPTARG}"
       fi;;
-  k)  KEYS="Y";;
-  n)  REBOOT="N";;
-  p)  ROOTPWD="${OPTARG}";;
-  v)  VERBOSE=Y;;
+  k)  __KEYS="Y";;
+  n)  __REBOOT="N";;
+  p)  __ROOTPWD="${OPTARG}";;
+  v)  __VERBOSE=Y;;
   y)  YES=Y;;
   U)  upgrade;;
   *)  usage;;
  esac
 done
 
+if [ $SAVE_DEFAULTS = y ]; then
+  set | grep '^__' > .defaults.reset-to-factory-defaults-with-root
+  echo -e "\e[1;32mDefaults saved\e[0m"
+  exit
+fi
+
 ACTIVE="$(cat /proc/banktable/active)"
 BOOTED="$(cat /proc/banktable/booted)"
 MOUNT_PATH=$(uci get mountd.mountd.path)
 USB="$(ls $MOUNT_PATH | head -n1)"
 
-if [ -n "$BKUP" ]; then
+if [ -n "$__BKUP" ]; then
   if [ -z "$USB" ]; then
     echo -e "${ORANGE}WARNING: Backup requested, but no attached USB device found!${NC}"
     echo "         Are you REALLY sure you wish to proceed?"
@@ -156,34 +171,34 @@ if [ -n "$FIRMWARE" ]; then
   fi
 fi
 
-echo -e "NOTE:    root access will be preserved. root password will be reset to '${GREEN}${ROOTPWD}${NC}'"
+echo -e "NOTE:    root access will be preserved. root password will be reset to '${GREEN}${__ROOTPWD}${NC}'"
 LAN_CFG="echo 'Configuring root SSH access'"
-if [ -n "$IPADDR" ]; then
-  IPPREFIX="$(echo $IPADDR | cut -d. -f1-3)"
+if [ -n "$__IPADDR" ]; then
+  IPPREFIX="$(echo $__IPADDR | cut -d. -f1-3)"
   for GUESTIP in $(uci show network | grep "network\.Guest.*ipaddr=" | cut -d"'" -f2 | cut -d. -f1-3 | sort -u)
   do
     if [ "$IPPREFIX" = "$GUESTIP" ]; then
-      echo -e "${RED}ABORTING: $IPADDR conflicts with the Guest IP address range!${NC}"
+      echo -e "${RED}ABORTING: $__IPADDR conflicts with the Guest IP address range!${NC}"
       exit
     fi
   done
-  echo -e "NOTE:    IP address will be set to '${GREEN}$IPADDR${NC}'"
-  LAN_CFG="echo 'Setting LAN IP address to $IPADDR';uci set network.lan.ipaddr='$IPADDR';uci commit network;/etc/init.d/network reload;"
+  echo -e "NOTE:    IP address will be set to '${GREEN}$__IPADDR${NC}'"
+  LAN_CFG="echo 'Setting LAN IP address to $__IPADDR';uci set network.lan.ipaddr='$__IPADDR';uci commit network;/etc/init.d/network reload;"
 fi
-if [ -n "$CWMP" ]; then
+if [ -n "$__CWMP" ]; then
   echo -e "NOTE:    CWMP will be ${ORANGE}stopped${NC} during the reboot"
   CWMP_CFG="echo 'Disabling CWMP';uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop;"
 fi
-if [ -n "$NOEXEC" ]; then
+if [ -n "$__NOEXEC" ]; then
   echo -e "NOTE:    Any 'noexec' flags will be ${GREEN}removed${NC} from USB filesystem mounts after reset"
   NOEXEC_CFG="echo 'Removing noexec mount flags';sed -e 's/noexec,//' -e 's/,noexec//' -i /etc/config/mountd"
 fi
-if [ -n "$KEYS" ]; then
+if [ -n "$__KEYS" ]; then
   echo -e "NOTE:    SSH keys will be ${GREEN}restored${NC} after reset:"
   KEYS_CFG="echo 'Restoring SSH keys';echo '$(tar -czvf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
   echo
 fi
-if [ "$REBOOT" = "Y" ]; then
+if [ "$__REBOOT" = "Y" ]; then
   echo -e "${ORANGE}WARNING: Device will attempt to reboot!${NC}"
 fi
 echo
@@ -247,7 +262,7 @@ rm -rf /overlay/`cat /proc/banktable/booted`
 # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
 mkdir -p /overlay/$(cat /proc/banktable/booted)/etc
 chmod 755 /overlay/$(cat /proc/banktable/booted) /overlay/$(cat /proc/banktable/booted)/etc
-echo -e "echo root:$ROOTPWD | chpasswd
+echo -e "echo root:$__ROOTPWD | chpasswd
 sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
 sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
 $LAN_CFG
@@ -277,7 +292,7 @@ source /rom/etc/rc.local
 chmod +x /overlay/$(cat /proc/banktable/booted)/etc/rc.local
 sync
 
-if [ $VERBOSE = Y ]; then
+if [ $__VERBOSE = Y ]; then
   echo -e "${GREY}"
   cat /overlay/$(cat /proc/banktable/booted)/etc/rc.local
   echo -e "${NC}"
@@ -288,7 +303,7 @@ if [ -n "$FIRMWARE" ]; then
   mtd write "$FIRMWARE" $(cat /proc/banktable/booted)
 fi
 
-if [ "$REBOOT" = "Y" ]; then
+if [ "$__REBOOT" = "Y" ]; then
   echo -e "${GREEN}Attempting to reboot...${NC}"
   echo "######################################################"
   echo "# NOTE: If the reboot fails with an error message,   #"

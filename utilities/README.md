@@ -218,22 +218,26 @@ It does what it says. It is basically a copy of the commands from https://hack-t
 Usage: ./reset-to-factory-defaults-with-root [options]
 
 Options:
- -b           Make a full backup of your booted bank configuration (requires attached USB device).
- -c           Disable CWMP configuration during first boot after reset.
- -e           Disable any 'noexec' flags on USB mounted filesystems.
- -f filename  Flash 'filename' into the mounted bank ($BOOTED) after reset and 
-                before reboot. If 'filename' ends with .rbi, it will be 
-                unpacked first, either to an attached USB device, or /tmp if 
-                no USB detected.
- -i           Keep existing IP address after reset and reboot.
- -I n.n.n.n   Use IP address n.n.n.n after reset and reboot.
- -k           Keep existing SSH keys after reset and reboot.
- -p password  Set the password after reset and reboot. If not specified, it
-                defaults to root.
- -v           Show the reset script after it has been written.
- -y           Bypass confirmation prompt (answers 'y').
- -n           Do NOT reboot.
- -U           Download the latest version of reset-to-factory-defaults-with-root from GitHub.
+ -b               Make a full backup of your booted bank configuration 
+                    (requires attached USB device).
+ -c               Disable CWMP configuration during first boot after reset
+ -e               Disable any 'noexec' flags on USB mounted filesystems
+ -f filename      Flash 'filename' into the mounted bank ($BOOTED) after reset 
+                    and before reboot. If 'filename' ends with .rbi, it will be 
+                    unpacked first, either to an attached USB device, or /tmp if
+                    no USB detected.
+ -i               Keep existing IP address after reset and reboot.
+ -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
+ -k               Keep existing SSH keys after reset and reboot.
+ -p password      Set the password after reset and reboot. If not specified,
+                    it defaults to root.
+ -v               Show the reset script after it has been written.
+ -y               Bypass confirmation prompt (answers 'y').
+ -n               Do NOT reboot.
+ -U               Download the latest version of $SCRIPT from GitHub.
+ --save-defaults  Saves the command line options (except -f and -y) as defaults
+                    When specified, NO changes are applied to the device
+ --no-defaults    Ignores any saved defaults for this execution
 ```
 
 ## set-optimal-bank-plan
