@@ -140,7 +140,7 @@ do
       echo "                      When specifying the -u option, it must be the ONLY parameter specifed."
       if [ $WRAPPER = y ]; then
       echo " -U               : Download the latest release, including utility scripts (will overwrite all existing script versions)."
-      echo "                      When specifying the -U option, it must be the ONLY parameter specifed."
+      echo "                      After download, tch-gui-unhide will be automatically executed."
       fi
       echo " Miscellaneous Options:"
       echo " -r               : Restore changed GUI files to their original state (config changes are NOT restored)"

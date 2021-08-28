@@ -9,10 +9,13 @@ else
     echo "$(date +%H:%M:%S): Platform script $SCRIPT not found in $(pwd)!"
   fi
   echo "$(date +%H:%M:%S): Attempting to download latest release for FW $VERSION from GitHub..."
-  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$VERSION.tar.gz)
+  RESPONSE_CODE=$(curl -gkLsI -o /dev/null -w '%{http_code}' https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$VERSION.tar.gz)
   if [ "$RESPONSE_CODE" = 200 ]
   then
-    curl -k -L https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$VERSION.tar.gz | tar -xzvf -
+    curl -gkL https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$VERSION.tar.gz | tar -xzvf -
+    if [ -f "$SCRIPT" ]; then
+      ./$SCRIPT -W $(echo "$*" | sed -e 's/-U$//' -e 's/-U //g' -e 's/U//g')
+    fi
   elif [ "$RESPONSE_CODE" = 404 ]
   then
     echo "$(date +%H:%M:%S): ERROR! No latest release found on GitHub for FW $VERSION"
