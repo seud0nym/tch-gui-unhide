@@ -1,9 +1,13 @@
 #!/bin/sh
 
+if [ -e .extras ]; then
+  rm .extras
+fi
 for d in $(find . -maxdepth 1 -type d ! -path . -printf '%P ')
 do
   source="$d/$d.sh"
   if [ -f "$source" ]; then
+    echo "tch-gui-unhide-xtra.$d" >> .extras
     target="../tch-gui-unhide-xtra.$d"
     if [ $(find $d -newer $target -type f | wc -l) -gt 0 ]; then
       echo Creating $target...
