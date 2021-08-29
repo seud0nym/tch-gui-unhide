@@ -51,9 +51,10 @@ if curl then
 end
 
 local update_options = {
-  {"manual", T"Manually Upgrade tch-gui-unhide &nbsp;"},
-  {"now", T"Upgrade tch-gui-unhide Now &nbsp;"},
-  {"ignore", T"Ignore This Update &nbsp;"},
+  {"nothing", T""},
+  {"manual", T"Manually Upgrade tch-gui-unhide"},
+  {"now", T"Upgrade tch-gui-unhide Now"},
+  {"ignore", T"Ignore This Update"},
 }
 
 ngx.print(ui_helper.createHeader(T"Update Available", false, false)); ngx.print('\
@@ -62,10 +63,19 @@ ngx.print(ui_helper.createHeader(T"Update Available", false, false)); ngx.print(
     ');  
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     if current.available == "1" and current.ignored == "0" then
+      local monitor_attr = { select = { class = "monitor-changes" }, }
+      local nothing_attr = { alert = { class = "alert-info monitor-TGU_update_action monitor-nothing" }, } 
+      local manual_attr = { alert = { class = "alert-info monitor-TGU_update_action monitor-manual" }, } 
+      local now_attr = { alert = { class = "alert-info monitor-TGU_update_action monitor-now" }, }
+      local ignore_attr = { alert = { class = "alert-info monitor-TGU_update_action monitor-ignore" }, }
       ngx.print('\
       <fieldset>\
         ');  
-        ngx.print(ui_helper.createInputRadio(T"Choose an Action:", "TGU_update_action", update_options, ""))
+        ngx.print(ui_helper.createInputSelect(T"Choose an Action:", "TGU_update_action", update_options, "nothing", monitor_attr))
+        ngx.print(ui_helper.createAlertBlock(T("Choose an action."), nothing_attr))
+        ngx.print(ui_helper.createAlertBlock(T("A new browser window will open for you to manually download the latest release and install it yourself."), manual_attr))
+        ngx.print(ui_helper.createAlertBlock(T("The upgrade will be automatically downloaded and applied. Utility scripts normally included in the release will <B>NOT</B> be updated."), now_attr))
+        ngx.print(ui_helper.createAlertBlock(T("The 'Update Available' button will be hidden until the next release."), ignore_attr))
         ngx.print('\
       </fieldset>\
       ');
@@ -90,24 +100,27 @@ ngx.print(ui_helper.createHeader(T"Update Available", false, false)); ngx.print(
 <div class="loading-wrapper hide"><img src="/img/spinner.gif" /></div>\
 <script>\
   $("#save-config").on("click", function(){\
-    var action=$("input[name=TGU_update_action]:checked", "#TGU_update_form").val();\
+    var action=$("#TGU_update_action").val();\
     if (action=="manual") {\
       window.open("https://github.com/seud0nym/tch-gui-unhide/releases/latest", "_blank");\
       $("#tch-gui-unhide-update-modal > div.modal-header > div > div.span1 > a").trigger("click");\
       return false;\
     } else {\
-      if (confirm("Are you sure?")) {\
-        var busy_msg = $(".loading-wrapper");\
-        busy_msg.removeClass("hide");\
-        busy_msg[0].scrollIntoView();\
-        $(".modal-body").scrollLeft(0);\
-        if (action=="now"){\
-          setTimeout(function(){alert("Upgrade in progress...\\nPlease wait a minute or two and then refresh manually if it does not happen automatically.");},2000);\
-          setTimeout(function(){window.location.href="/gateway.lp?r="+Date.now();},60000);\
+      if (action!="nothing") {\
+        if (confirm("Are you sure?")) {\
+          var busy_msg = $(".loading-wrapper");\
+          busy_msg.removeClass("hide");\
+          busy_msg[0].scrollIntoView();\
+          $(".modal-body").scrollLeft(0);\
+          if (action=="now"){\
+            setTimeout(function(){alert("Upgrade in progress...\\n\\nPlease wait a minute or two and then refresh manually if it does not happen automatically.");},1000);\
+            setTimeout(function(){window.location.href="/gateway.lp?r="+Date.now();},120000);\
+          }\
+          return true;\
         }\
-        return true;\
+        return false;\
       }\
-      return false;\
+      return true;\
     }\
   });\
 </script>\

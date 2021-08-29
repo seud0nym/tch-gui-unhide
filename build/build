@@ -104,10 +104,6 @@ do
 
   echo "${GREEN}Updating rpc.gui.UnhideVersion...${NC}"
   sed -e "s/current_version = \"\"/current_version = \"$FULL_VERSION\"/" -i /tmp/tch-gui-unhide/$MAJOR/usr/share/transformer/mappings/rpc/gui.map
-  for x in ../extras/tch-gui-unhide-xtra.*
-  do
-    sed -e "/^local extras/a\  \"$(basename $x)\"," -i /tmp/tch-gui-unhide/$MAJOR/usr/share/transformer/mappings/rpc/gui.map
-  done
 
   echo "${GREEN}Fixing file and directory attributes...${NC}"
   find /tmp/tch-gui-unhide/$MAJOR/ -type f \( -name '*.map' -o -name '*.lp' -o -name '*.lua' -o -name '*.js' \) -exec chmod 644 {} \;
