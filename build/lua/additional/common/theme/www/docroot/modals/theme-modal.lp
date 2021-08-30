@@ -249,6 +249,10 @@ if ngx.var.request_method == "POST" then
       proxy.set("uci.web.card.@card_WANDown.hide", "1")
       proxy.set("uci.web.card.@card_WANUp.hide", "1")
     end
+
+    if gateway == "1" and broadband == "1" then
+      proxy.set("uci.web.card.@card_Charts.hide", "1")
+    end
   end
 end
 

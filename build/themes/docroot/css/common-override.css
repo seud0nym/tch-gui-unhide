@@ -6,6 +6,11 @@
 .chartcard{position:relative;}
 .chartcard .chartdata{position:absolute;top:30px;right:10px;font-size:24px;}
 .chartcard .unit{font-size:xx-small;}
+.chartcard-summary{height:195px;}
+.chartcard-summary>div{position:absolute;left:10px;height:44px;width:250px;display:flex;flex-direction:row;}
+.chartcard-summary .chart-lbl{width:65px;display:table-cell;}
+.chartcard-summary .chart-cnv{width:185px;margin-top:4px;}
+.chartcard-summary .chart-val{width:60px;text-align:right;font-size:small;}
 .copyright{margin-bottom:0px;}
 .header .btn{margin-left:5px;}
 .iptables-head{font-size:smaller;font-variant:small-caps;}
@@ -45,12 +50,6 @@
 legend+.control-group{margin-top:unset;}
 u{text-decoration:none;}
 [class^="icon-"],[class*=" icon-"]{display:inline-block;width:18px;}
-@media screen and (min-width:768px) and (max-width:979px){
-  .chartcard .chartdata{top:22px;}
-  .smallcard .content{height:160px;}
-  .smallcard .subinfos{margin-left:20px !important;}
-  .span3 {width:47%;}
-}
 @media screen and (min-width:1200px){
   #classify .additional-edit input.span1{width:200px;}
   #classify .additional-edit input.span2{width:450px;}

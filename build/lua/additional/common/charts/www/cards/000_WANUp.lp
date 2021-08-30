@@ -3,82 +3,31 @@
 -- Enable localization
 gettext.textdomain('webui-core')
 
-local ui_helper = require("web.ui_helper")
-local TGU_Theme = ngx.shared.TGU_Theme
-local theme = TGU_Theme:get("THEME") or ""
-local color = TGU_Theme:get("COLOR") or ""
-
-local rgb
-if theme == "night" then
-  if color == "MONOCHROME" then
-    rgb = "192,192,192"
-  else
-    rgb = "255,237,0"
-  end
-else
-  if color == "MONOCHROME" then
-    rgb = "128,128,128"
-  else
-    rgb = "255,152,0"
-  end
-end
-
-local attributes = {
-  header = {
-    style = "color:rgb("..rgb..");"
-  }
+local content_helper = require("web.content_helper")
+local cards = {
+  broadband = "uci.web.card.@card_broadband.hide",
 }
+content_helper.getExactContent(cards)
 
-ngx.print('\
-<div class="span3">\
-  <div class="smallcard chartcard">\
-    <div class="chartdata" style="color:rgb('); ngx.print(rgb); ngx.print(')"><span id="wanup_data">0.00</span><span class="unit">Mb/s</span></div>\
-    '); ngx.print(ui_helper.createCardHeader(T"WAN Upload", nil, nil, nil, attributes)); ngx.print('\
-    <div class="content card_bg" data-bg-text="&#xf0ee;">\
-      <canvas id="wanup_canvas"></canvas>\
+if cards.broadband == "0" then
+  local ui_helper = require("web.ui_helper")
+  local js_chart_rgb_helper = require("js_chart_rgb_helper")
+  local rgb = js_chart_rgb_helper.getRGB("wanup")
+  local attributes = {
+    header = {
+      style = "color:rgb("..rgb..");"
+    }
+  }
+  ngx.print('\
+  <div class="span3">\
+    <div class="smallcard chartcard">\
+      <div class="chartdata" style="color:rgb('); ngx.print(rgb); ngx.print(')"><span id="wanup_data">0.00</span><span class="unit">Mb/s</span></div>\
+      '); ngx.print(ui_helper.createCardHeader(T"WAN Upload", nil, nil, nil, attributes)); ngx.print('\
+      <div class="content card_bg" data-bg-text="&#xf0ee;">\
+        <canvas id="wanup_canvas"></canvas>\
+      </div>\
     </div>\
   </div>\
-</div>\
-<script>\
-var wanup_context = document.getElementById("wanup_canvas").getContext("2d");\
-var wanup_config = {\
-  type: "line",\
-  data: {\
-    labels: [60,58,56,54,52,50,48,46,44,42,40,38,36,34,32,30,28,26,24,22,20,18,16,14,12,10,8,6,4,2],\
-    datasets: [{\
-      borderWidth: 1,\
-      borderColor: "rgb('); ngx.print(rgb); ngx.print(')",\
-      backgroundColor: "rgb('); ngx.print(rgb); ngx.print(',0.25)",\
-      data: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\
-      fill: true,\
-      pointRadius: 0\
-    }]\
-  },\
-  options: {\
-    responsive: true,\
-    legend: {\
-      display: false\
-    },\
-    scales: {\
-      xAxes: [{\
-        display: false\
-      }],\
-      yAxes: [{\
-        display: false,\
-        ticks: {\
-          min: 0\
-        }\
-      }]\
-    }\
-  }\
-};\
-var wanup_data = sessionStorage.getItem("wanup_data");\
-if (wanup_data != null) {\
-  var arr = JSON.parse(wanup_data);\
-  for (let i = 0; i < arr.length; i++) {\
-    wanup_config.data.datasets[0].data[i] = Number(arr[i]);\
-  }\
-}\
-window.wanup_chart = new Chart(wanup_context, wanup_config);\
-</script>\
-');
+  <script>$().ready(function(){$.getScript("/ajax/js_chart_wanup.lua?rgb='); ngx.print(rgb); ngx.print('");});</script>\
+  ');
+end

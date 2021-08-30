@@ -21,6 +21,6 @@
 .networkmap .table td{border-top:none;border-color:#004D9D;padding-top:0px;padding-bottom:0px;width:12.5%;}
 .networkmap .table td .tooltip-inner{text-align:left;}
 .smallcard{border:0px;font-family:Roboto,Noto,sans-serif;font-weight:400;border-radius:7px;-moz-border-radius:7px;-webkit-border-radius:7px;-o-border-radius:7px;}
-.smallcard .header{background-image:none;border-bottom:0px;font-size:20px;font-weight:400;text-shadow:none;}
+.smallcard .header{background-image:none;border-bottom:0px;font-size:20px;font-weight:400;text-shadow:none;margin-bottom:10px;}
 body{font-family:Roboto,Noto,sans-serif;}
 input,button,select,textarea{font-family:Roboto,Noto,sans-serif;}

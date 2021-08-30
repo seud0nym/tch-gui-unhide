@@ -91,6 +91,16 @@ fi
 
 INSTALLED_RELEASE="$(grep -o -m 1 -E '[0-9][0-9][0-9][0-9]\.[0-9][0-9]\.[0-9][0-9]@[0-9][0-9]:[0-9][0-9]' /usr/share/transformer/mappings/rpc/gui.map 2>/dev/null)"
 
+if [ -z "$INSTALLED_RELEASE" ]; then
+  CHART_CARDS='i'
+elif [ -e /www/cards/000_Charts.lp ]; then
+  CHART_CARDS='s'
+elif [ -e /www/cards/000_CPU.lp ]; then
+  CHART_CARDS='i'
+else
+  CHART_CARDS='n'
+fi
+
 grep -q 'rpc.gui.UpdateAvailable' /www/docroot/gateway.lp
 if [ $? -eq 0 ]; then
   UPDATE_BTN=y

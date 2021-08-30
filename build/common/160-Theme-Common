@@ -72,3 +72,9 @@ if [ $ACROSS -eq 5 ]; then
     -i /www/docroot/css/responsive.css
 fi
 
+case "$CHART_CARDS" in 
+  n)  echo [$SCRIPT]: Removing all chart cards; rm /www/cards/000_*.lp;;
+  s)  echo [$SCRIPT]: Removing individual chart cards; rm $(ls /www/cards/000_*.lp | grep -v 000_Charts);;
+  i)  echo [$SCRIPT]: Removing summary chart card; rm /www/cards/000_Charts.lp;;
+esac
+
