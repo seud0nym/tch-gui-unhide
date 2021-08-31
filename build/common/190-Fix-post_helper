@@ -75,15 +75,15 @@ function M.validateDMZ(value, object)\
   }\
   if object.DMZ_enable == "1" then\
     content_helper.getExactContent(network)\
-    local isDestIP, errormsg = post_helper.getValidateStringIsDeviceIPv4(network.gateway_ip, network.netmask)(value)\
+    local isDestIP, errormsg = M.getValidateStringIsDeviceIPv4(network.gateway_ip, network.netmask)(value)\
     if not isDestIP then\
       return nil, errormsg\
     end\
-    isDestIP, errormsg = post_helper.reservedIPValidation(value)\
+    isDestIP, errormsg = M.reservedIPValidation(value)\
     if not isDestIP then\
       return nil, errormsg\
     end\
-    isDestIP, errormsg = post_helper.validateQTN(value)\
+    isDestIP, errormsg = M.validateQTN(value)\
     if not isDestIP then\
       return nil, errormsg\
     end\
