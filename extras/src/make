@@ -9,12 +9,14 @@ do
   if [ -f "$source" ]; then
     echo "tch-gui-unhide-xtra.$d" >> .extras
     target="../tch-gui-unhide-xtra.$d"
-    if [ $(find $d -newer $target -type f | wc -l) -gt 0 ]; then
+    if [ ! -e $target -o $(find $d -newer $target -type f 2>/dev/null | wc -l) -gt 0 ]; then
       echo Creating $target...
       cp "$source" "$target"
-      grep -n 'cat *<<' "$source" | sed -e 's/:\|<\|>\|"\|cat//g' | sort -nr | while read -r line name file
+      grep -n 'cat *<<' "$source" | grep -v '>>' | sed -e 's/:\|<\|>\|"\|cat//g' | sort -nr | while read -r line name file
       do 
-        sed -e "${line}r $d$file" -i "$target"
+        if [ -e $file ]; then
+          sed -e "${line}r $d$file" -i "$target"
+        fi
       done
     fi
   fi
