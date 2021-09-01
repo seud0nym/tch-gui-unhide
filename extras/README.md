@@ -1,4 +1,5 @@
 # Extras
+
 This is where extra functionality scripts can be found. These are not incorporated in the main tch-gui-unhide code line, because they rely on additional packages being installed.
 
 Extras scripts that rely on packages to be installed require `opkg` to be configured correctly on your device. See **opkg Configuration** [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#opkg-Configuration).
@@ -20,7 +21,7 @@ Requires adblock version 3.5 to be installed using the `opkg` command. Different
 `opkg install adblock uclient-fetch libustream-openssl`
 ###### Firmware 17.2
 The version of adblock in the standard 17.2 repository is incompatible with this extra script, but you can manually download and install the Homeware 18 version on the 17.2 firmware:  
-`curl -k https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages/adblock_3.5.5-4_all.ipk -o/tmp/adblock_3.5.5-4_all.ipk`   
+`curl -k https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages/adblock_3.5.5-4_all.ipk -o/tmp/adblock_3.5.5-4_all.ipk`  
 `opkg install /tmp/adblock_3.5.5-4_all.ipk`  
 `uci set adblock.global.adb_fetchutil='curl'`  
 `uci commit adblock`
@@ -30,14 +31,14 @@ The version of adblock in the standard 17.2 repository is incompatible with this
 - Configure your preferred DNS Servers under Internet Access
 - Enable DNS Intercept under Firewall (leave DNS Server Address blank)
 #### Changes External to the GUI
-Creates the the following transformer UCI mappings and commit/apply scripts to support the GUI changes:
+The installation creates the the following transformer UCI mappings and commit/apply scripts to support the GUI changes:
 - /usr/share/transformer/commitapply/uci_adblock.ca
 - /usr/share/transformer/mappings/rpc/gui.adblock.map
 - /usr/share/transformer/mappings/uci/adblock.map
 #### Removal Instructions
 1. Delete `tch-gui-unhide-xtra.adblock`
 2. Remove adblock and dependencies: `opkg remove adblock uclient-fetch`
-    - If you are on firmware 17.2 or 18.1.c, then also: `opkg remove libustream-openssl`
+    - If you are on firmware 18.1.c, then also: `opkg remove libustream-openssl`
 3. Re-run `tch-gui-unhide` to remove the GUI changes, and the additional transformer mappings
 
 ## tch-gui-unhide-xtra.minidlna
@@ -49,7 +50,7 @@ https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-
 #### Prerequisites 
 Install minidlna using the opkg command: `opkg install minidlna`
 #### Changes External to the GUI
-Creates the the following transformer UCI mappings and commit/apply scripts to support the GUI changes:
+The installation creates the the following transformer UCI mappings and commit/apply scripts to support the GUI changes:
 - /usr/share/transformer/commitapply/uci_minidlna.ca
 - /usr/share/transformer/mappings/uci/minidlna.map
 #### Removal Instructions
