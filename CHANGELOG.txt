@@ -1,3 +1,25 @@
+2021.09.01
+==========
+* tch-gui-unhide: Fixed firewall changes commit/apply
+* tch-gui-unhide: Fixed Telephony card call stats for 20.3.c FW
+* tch-gui-unhide: Fixed backend DMZ validation [#42] (Thanks Bertram Truong)
+* tch-gui-unhide: Update Available button now shows the change log, and can optionally invoke an automatic update
+* tch-gui-unhide: New option to show only a single summary chart card [#40] (-Cs), individual chart cards (-Ci (the default)) or no chart cards (-Cn) 
+* tch-gui-unhide: Reviewed and reworked NAT ALG helpers UI on 20.3.c FW to simplify and work more consistently
+* tch-gui-unhide: Moved DNS settings on Local Network screen underneath "DHCP Settings" for increased clarity
+* tch-gui-unhide: Set DHCP DNS Server option when enabling DNS Intercept
+* tch-gui-unhide: Nil protection on radio_name in QoS Upload shapers
+* tch-gui-unhide: The -U (download latest release) option now automatically runs the upgrade after successful download
+* tch-gui-unhide: Added support for defaults on first time execution
+* de-telstra: Reviewed and reworked NAT ALG helpers settings on 20.3.c FW to work more consistently (-b option now deprecated)
+* de-telstra: New options to save and show defaults for future executions
+* intercept-dns: Fixed bug that showed enabled configuration as an error when using --status option, and added extra status information regarding ip sets
+* intercept-dns: Set DHCP DNS Server option when enabling DNS Intercept
+* mtd-backup: Clear page cache after backup
+* reset-to-factory-defaults-with-root: Changed post-reset command sequence to set LAN IP address earlier
+* reset-to-factory-defaults-with-root: New options to save defaults for future executions
+* set-optimal-bank-plan: Updated with latest changes from https://hack-technicolor.readthedocs.io/en/stable/Hacking/PostRoot/#bank-planning
+
 2021.08.18
 ==========
 * tch-gui-unhide: Made charts easier to read in night theme [#38], and added monochrome chart option

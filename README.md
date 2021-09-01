@@ -8,7 +8,7 @@ These scripts can be applied to various Telstra branded Technicolor devices to u
 Skip any of these steps that you have already done.
 1. Root your device (see https://hack-technicolor.rtfd.io) and ensure it is running a supported firmware version.
 2. [Download](https://github.com/seud0nym/tch-gui-unhide/releases/latest) the latest release for your firmware.
-3. Copy the downloaded file(s) into the /root or /tmp directory of your device, or onto your USB stick (I normally use a USB stick so that the scripts are not lost if the device is reset, otherwise I use /root so the scripts are in the root user home directory).
+3. Copy the downloaded file(s) into the /root directory of your device, or onto your USB stick (I normally use a USB stick so that the scripts are not lost if the device is reset, otherwise I use /root so the scripts are in the root user home directory). Do *NOT* use /tmp, as it is cleared on reboot.
 4. Change to the directory containing the release, and extract the files using the command: `tar -xzvf <filename>`
 5. Set the optimal bank plan. Run `./show-bank-plan` to see if your bank plan is optimal,and if not, execute: `./set-optimal-bank-plan` (*WARNING: This will reboot your device*)
 6. Harden root access and disable un-needed services with the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script. Run `./de-telstra -?` to see available options, or for some sensible settings, just execute: `./de-telstra -A`
@@ -25,10 +25,9 @@ Skip any of these steps that you have already done.
 - You can revert to the Telstra GUI with the command: `./tch-gui-unhide -r`
 
 ### Upgrading (Requires Internet Access on the device)
-1. Log on to your device and change to the directory where you copied the release (e.g. /root or /tmp or the USB stick).
+1. Log on to your device and change to the directory where you copied the release (e.g. /root or the USB stick).
 2. Execute: `./tch-gui-unhide -U`
-3. Once the download has finished, execute: `./tch-gui-unhide -y`
-    - You do not need to re-specify the parameters you initially used when installing, as they are persisted with the installation
+    - You do not need to re-specify the parameters you initially used when installing, as they are persisted with the installation (but you can apply any new or changed options as you need).
 
 Read on for the long version...
 
@@ -225,6 +224,10 @@ The script accepts the following options:
 - -i y|n
     - Show (*y*) or hide (*n*) the card icons.
     - The default is the current setting, or *-in* for the light theme and *-iy* for the night theme
+- -C n|s|i
+    - Keep or remove chart cards: *-Cn*=No Chart Cards will be available *-Cs*=Only the Summary Chart Card will be available *-Ci*=Only the Individual Chart Cards will be available
+    - The default is the current setting, or *-Ci* if no theme has been applied
+
 - -h d|s|n|"text"
     - Set the browser tabs title to VARIANT (d), VARIANT-MAC_ADDRESS (s), HOSTNAME (n) or ("text") the specified "text".
     - Default is the current setting
@@ -252,7 +255,7 @@ The script accepts the following options:
 - -u
     - Check for and download any updates to the firmware-specific version of `tch-gui-unhide`
 - -U
-    - Download the latest release, including utility scripts (will overwrite all existing script versions)
+    - Download the latest release, including utility scripts (will overwrite all existing script versions) and then execute tch-gui-unhide
 - -V
     - Show the release number of this script, the current installed release, and the latest available release on GitHub
 - -?
