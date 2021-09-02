@@ -1,3 +1,7 @@
+2021.09.02
+==========
+* tch-gui-unhide: Fix for random "attempt to perform arithmetic on local 'o1' (a string value)" errors on Telephony card
+
 2021.09.01
 ==========
 * tch-gui-unhide: Fixed firewall changes commit/apply
