@@ -33,6 +33,17 @@ local function spairs(t, order)
   end
 end
 
+local function toNumberOrZero(data)
+  local value
+  if data and data[1] then
+    value = tonumber(data[1].value)
+  end
+  if not value then
+    value = 0
+  end
+  return value
+end
+
 local M = {}
 
 function M.getTelephonyCardHTML(mmpbx_state) 
@@ -71,15 +82,15 @@ function M.getTelephonyCardHTML(mmpbx_state)
             incomingConnected = proxy.get(profilestats_rpc_path..name..".IncomingCallsConnected") -- 20.3.c
           end
           if incoming and incomingConnected then
-            callsIn = incomingConnected[1].value
-            callsMissed = incoming[1].value - callsIn
+            callsIn = toNumberOrZero(incomingConnected)
+            callsMissed = toNumberOrZero(incoming) - callsIn
           end
           if outgoing then
-            callsOut = outgoing[1].value
+            callsOut = toNumberOrZero(outgoing)
           else
             outgoing = proxy.get(profilestats_rpc_path..name..".OutgoingCallsAttempted") -- 20.3.c
             if outgoing then
-              callsOut = outgoing[1].value
+              callsOut = toNumberOrZero(outgoing)
             end
           end
           html[#html+1] = format('<span %s>', modal_link)
