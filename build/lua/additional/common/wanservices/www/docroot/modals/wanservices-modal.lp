@@ -1,5 +1,5 @@
 --pretranslated: do not change this file
- 
+
 -- Localization
 gettext.textdomain('webui-core')
 
@@ -206,11 +206,6 @@ if ddns_ipv4 then
   ddns_ipv4_data, ddns_ipv4_helpmsg = post_helper.handleQuery(ddns_ipv4_params, ddns_ipv4_valid)
   if ddns_ipv4_data["ddnsv4_domain"] ~= "yourhost.example.com" then
     acme_domain = vSIDN(ddns_ipv4_data["ddnsv4_domain"])
-    if acme_domain then
-      acme_data, acme_helpmsg = post_helper.handleQuery(acme_params, acme_valid)
-    else
-      proxy.set("rpc.gui.acme.enabled", "0")
-    end
   end
 end
 
@@ -219,6 +214,15 @@ local ddns_ipv6_status, ddns_ipv6_update_info
 
 if ddns_ipv6 then
   ddns_ipv6_data, ddns_ipv6_helpmsg = post_helper.handleQuery(ddns_ipv6_params, ddns_ipv6_valid)
+  if not acme_domain and ddns_ipv6_data["ddnsv6_domain"] ~= "yourhost.example.com" then
+    acme_domain = vSIDN(ddns_ipv6_data["ddnsv6_domain"])
+  end
+end
+
+if acme_domain then
+  acme_data, acme_helpmsg = post_helper.handleQuery(acme_params, acme_valid)
+else
+  proxy.set("rpc.gui.acme.enabled", "0")
 end
 
 content_helper.getExactContent(ddns_status_data)
@@ -433,36 +437,71 @@ local upnp_data, upnp_helpmsg = post_helper.handleTableQuery(upnp_columns, upnp_
 ');  ngx.print(ui_helper.createHeader(T"WAN Services", false, true) ); ngx.print('\
 <div class="modal-body update">\
   <form class="form-horizontal" method="post" action="modals/wanservices-modal.lp">\
-  ');  
+  ');
   local basic = {
     span = {
       class = "span12"
     },
   }
   ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-  if ddns_ipv4 ~= nil then
+  if ddns_ipv4 then
     ngx.print('\
-  <fieldset>\
-    <legend>');  ngx.print( T"IPv4 Dynamic DNS" ); ngx.print('</legend>\
-    ');  
-    ngx.print(
-      ui_helper.createLight(T"Status", nil, ddns_state_map[ddns_ipv4_status], { light = { class = ddns_light_map[ddns_ipv4_status] } }),
-      ui_helper.createSwitch(T"Enabled", "ddnsv4_enabled", ddns_ipv4_data["ddnsv4_enabled"], nil, ddns_ipv4_helpmsg["ddnsv4_enabled"]),
-      ui_helper.createInputText(T"Service Name", "ddnsv4_service_name", ddns_ipv4_data["ddnsv4_service_name"], {autocomplete = ddns_ipv4_supported_services}, ddns_ipv4_helpmsg["ddnsv4_service_name"]),
-      ui_helper.createSwitch(T"HTTPS", "ddnsv4_usehttps", ddns_ipv4_data["ddnsv4_usehttps"], nil, ddns_ipv4_helpmsg["ddnsv4_usehttps"]),
-      ui_helper.createLabel(T"", T"Note: HTTPS mode will enable encryption but not certificate-based authentication of DynDNS service", basic),
-      ui_helper.createInputText(T"Domain", "ddnsv4_domain", ddns_ipv4_data["ddnsv4_domain"], nil, ddns_ipv4_helpmsg["ddnsv4_domain"]),
-      ui_helper.createInputText(T"User Name", "ddnsv4_username", ddns_ipv4_data["ddnsv4_username"], nil, ddns_ipv4_helpmsg["ddnsv4_username"]),
-      ui_helper.createInputPassword(T"Password", "ddnsv4_password", ddns_ipv4_data["ddnsv4_password"], nil, ddns_ipv4_helpmsg["ddnsv4_password"])
-    )
-    if ddns_ipv4_data["ddnsv4_enabled"] == "1" then
+    <fieldset>\
+      <legend>');  ngx.print( T"IPv4 Dynamic DNS" ); ngx.print('</legend>\
+      ');
       ngx.print(
-        ui_helper.createLabel(T"DynDNS Information", ddns_ipv4_update_info, basic)
+        ui_helper.createLight(T"Status", nil, ddns_state_map[ddns_ipv4_status], { light = { class = ddns_light_map[ddns_ipv4_status] } }),
+        ui_helper.createSwitch(T"Enabled", "ddnsv4_enabled", ddns_ipv4_data["ddnsv4_enabled"], nil, ddns_ipv4_helpmsg["ddnsv4_enabled"]),
+        ui_helper.createInputText(T"Service Name", "ddnsv4_service_name", ddns_ipv4_data["ddnsv4_service_name"], {autocomplete = ddns_ipv4_supported_services}, ddns_ipv4_helpmsg["ddnsv4_service_name"]),
+        ui_helper.createSwitch(T"HTTPS", "ddnsv4_usehttps", ddns_ipv4_data["ddnsv4_usehttps"], nil, ddns_ipv4_helpmsg["ddnsv4_usehttps"]),
+        ui_helper.createLabel(T"", T"Note: HTTPS mode will enable encryption but not certificate-based authentication of DynDNS service", basic),
+        ui_helper.createInputText(T"Domain", "ddnsv4_domain", ddns_ipv4_data["ddnsv4_domain"], nil, ddns_ipv4_helpmsg["ddnsv4_domain"]),
+        ui_helper.createInputText(T"User Name", "ddnsv4_username", ddns_ipv4_data["ddnsv4_username"], nil, ddns_ipv4_helpmsg["ddnsv4_username"]),
+        ui_helper.createInputPassword(T"Password", "ddnsv4_password", ddns_ipv4_data["ddnsv4_password"], nil, ddns_ipv4_helpmsg["ddnsv4_password"])
       )
-    end
-    if acme_domain then
+      if ddns_ipv4_data["ddnsv4_enabled"] == "1" then
+        ngx.print(
+          ui_helper.createLabel(T"DynDNS Information", ddns_ipv4_update_info, basic)
+        )
+      end
+      ngx.print('\
+    </fieldset>\
+    ');
+  end
+  if ddns_ipv6 then
+    ngx.print('\
+    <fieldset>\
+      <legend>');  ngx.print( T"IPv6 Dynamic DNS" ); ngx.print('</legend>\
+      ');
       ngx.print(
-        ui_helper.createSwitch(T"Server Certficate<span class='icon-question-sign' title='Enable to automatically issue and renew a Server Certificate for the specified Domain.\nNOTE: You do not have to enable Dynamic DNS (e.g. if you have a static IP), as long as\nas long as you use a Domain that will resolve to the IP address of this device.'></span>", "acme_enabled", acme_data["acme_enabled"], nil, acme_helpmsg["acme_enabled"])
+        ui_helper.createLight(T"Status", nil, ddns_state_map[ddns_ipv6_status], { light = { class = ddns_light_map[ddns_ipv6_status] } }),
+        ui_helper.createSwitch(T"Enabled", "ddnsv6_enabled", ddns_ipv6_data["ddnsv6_enabled"], nil, ddns_ipv6_helpmsg["ddnsv6_enabled"]),
+        ui_helper.createInputText(T"Service Name", "ddnsv6_service_name", ddns_ipv6_data["ddnsv6_service_name"], {autocomplete = ddns_ipv6_supported_services}, ddns_ipv6_helpmsg["ddnsv6_service_name"]),
+        ui_helper.createSwitch(T"HTTPS", "ddnsv6_usehttps", ddns_ipv6_data["ddnsv6_usehttps"], nil, ddns_ipv6_helpmsg["ddnsv6_usehttps"]),
+        ui_helper.createLabel(T"", T"Note: HTTPS mode will enable encryption but not certificate-based authentication of DynDNS service", basic),
+        ui_helper.createInputText(T"Domain", "ddnsv6_domain", ddns_ipv6_data["ddnsv6_domain"], nil, ddns_ipv6_helpmsg["ddnsv6_domain"]),
+        ui_helper.createInputText(T"User Name", "ddnsv6_username", ddns_ipv6_data["ddnsv6_username"], nil, ddns_ipv6_helpmsg["ddnsv6_username"]),
+        ui_helper.createInputPassword(T"Password", "ddnsv6_password", ddns_ipv6_data["ddnsv6_password"], nil, ddns_ipv6_helpmsg["ddnsv6_password"])
+      )
+      if ddns_ipv6_data["ddnsv6_enabled"] == "1" then
+        ngx.print(
+          ui_helper.createLabel(T"DynDNS Information", ddns_ipv6_update_info, basic)
+        )
+      end
+      ngx.print('\
+    </fieldset>\
+    ');
+  end
+  if acme_domain then
+    ngx.print('\
+    <fieldset>\
+      <legend>');  ngx.print( T"Server Certificates" ); ngx.print('</legend>\
+      ');
+      ngx.print(
+        ui_helper.createAlertBlock(T"Enable to automatically issue and renew a Server Certificate for the specified Dynamic DNS IPv4 and/or IPv6 Domain.<br>\
+          NOTE: You do <i>not</i> have to <i>enable</i> Dynamic DNS (e.g. if you have a static IP and your ISP provides DNS services) for a certificate to be generated, as long as you use a Domain that will resolve to the IP address of this device.",
+          { alert = { class = "alert-info" } }),
+        ui_helper.createSwitch(T"Server Certficates", "acme_enabled", acme_data["acme_enabled"], nil, acme_helpmsg["acme_enabled"])
       )
       local acme_log_attr = {
         span = {
@@ -486,37 +525,14 @@ local upnp_data, upnp_helpmsg = post_helper.handleTableQuery(upnp_columns, upnp_
           $().ready(function(){acmeLogFuncID=setInterval(updateAcmeLog,2500);});\
         </script>\
       ')
-    end
+    ngx.print('\
+    </fieldset>\
+    ');
+  end
   ngx.print('\
-  </fieldset>\
-  ');  end   ngx.print('\
-  ');  
-  if ddns_ipv6 ~= nil then
-    ngx.print('\
-  <fieldset>\
-    <legend>');  ngx.print( T"IPv6 Dynamic DNS" ); ngx.print('</legend>\
-    ');  
-     ngx.print(
-      ui_helper.createLight(T"Status", nil, ddns_state_map[ddns_ipv6_status], { light = { class = ddns_light_map[ddns_ipv6_status] } }),
-      ui_helper.createSwitch(T"Enabled", "ddnsv6_enabled", ddns_ipv6_data["ddnsv6_enabled"], nil, ddns_ipv6_helpmsg["ddnsv6_enabled"]),
-      ui_helper.createInputText(T"Service Name", "ddnsv6_service_name", ddns_ipv6_data["ddnsv6_service_name"], {autocomplete = ddns_ipv6_supported_services}, ddns_ipv6_helpmsg["ddnsv6_service_name"]),
-      ui_helper.createSwitch(T"HTTPS", "ddnsv6_usehttps", ddns_ipv6_data["ddnsv6_usehttps"], nil, ddns_ipv6_helpmsg["ddnsv6_usehttps"]),
-      ui_helper.createLabel(T"", T"Note: HTTPS mode will enable encryption but not certificate-based authentication of DynDNS service", basic),
-      ui_helper.createInputText(T"Domain", "ddnsv6_domain", ddns_ipv6_data["ddnsv6_domain"], nil, ddns_ipv6_helpmsg["ddnsv6_domain"]),
-      ui_helper.createInputText(T"User Name", "ddnsv6_username", ddns_ipv6_data["ddnsv6_username"], nil, ddns_ipv6_helpmsg["ddnsv6_username"]),
-      ui_helper.createInputPassword(T"Password", "ddnsv6_password", ddns_ipv6_data["ddnsv6_password"], nil, ddns_ipv6_helpmsg["ddnsv6_password"])
-    )
-    if ddns_ipv6_data["ddnsv6_enabled"] == "1" then
-      ngx.print(
-        ui_helper.createLabel(T"DynDNS Information", ddns_ipv6_update_info, basic)
-      )
-    end
-    ngx.print('\
-  </fieldset>\
-  ');  end   ngx.print('\
   <fieldset>\
     <legend>');  ngx.print( T"DMZ" ); ngx.print('</legend>\
-    ');  
+    ');
     -- Switch for toggling DMZ state
     local dmzipattr = {
       autocomplete = hosts_ac
@@ -532,21 +548,25 @@ local upnp_data, upnp_helpmsg = post_helper.handleTableQuery(upnp_columns, upnp_
     )
     ngx.print('\
   </fieldset>\
-  ');  if wol then  ngx.print('\
+  ');
+  if wol then
+    ngx.print('\
     <fieldset>\
-    <legend>');  ngx.print( T"Wake on LAN over the Internet" ); ngx.print('</legend>\
-    ');  
-      ngx.print(
-        ui_helper.createSwitch(T"Enabled", "WOL_enabled", qry_data["WOL_enabled"], nil, qry_helpmsg["WOL_enabled"]),
-        ui_helper.createInputText(T"Destination IP", "WOL_dest_ip", qry_data["WOL_dest_ip"], nil, qry_helpmsg["WOL_dest_ip"]),
-        ui_helper.createInputText(T"WAN port", "WOL_port", qry_data["WOL_port"], nil, qry_helpmsg["WOL_port"])
-      )
-      ngx.print('\
+      <legend>');  ngx.print( T"Wake on LAN over the Internet" ); ngx.print('</legend>\
+      ');
+        ngx.print(
+          ui_helper.createSwitch(T"Enabled", "WOL_enabled", qry_data["WOL_enabled"], nil, qry_helpmsg["WOL_enabled"]),
+          ui_helper.createInputText(T"Destination IP", "WOL_dest_ip", qry_data["WOL_dest_ip"], nil, qry_helpmsg["WOL_dest_ip"]),
+          ui_helper.createInputText(T"WAN port", "WOL_port", qry_data["WOL_port"], nil, qry_helpmsg["WOL_port"])
+        )
+        ngx.print('\
     </fieldset>\
-  ');  end  ngx.print('\
+    ');
+  end
+  ngx.print('\
   <fieldset>\
     <legend>');  ngx.print( T"UPnP" ); ngx.print('</legend>\
-    ');  
+    ');
     local advanced = { group = { class = "advanced hide" }}
     ngx.print(
       ui_helper.createSwitch(T"UPnP Enabled", "upnp_status", qry_data["upnp_status"], advanced, qry_helpmsg["upnp_status"]),
@@ -560,11 +580,11 @@ local upnp_data, upnp_helpmsg = post_helper.handleTableQuery(upnp_columns, upnp_
   </fieldset>\
   <fieldset>\
     <legend>');  ngx.print( T"MWAN DNS Rules" ); ngx.print('</legend>\
-    ');  
+    ');
     ngx.print(ui_helper.createTable(dnsrule_columns, dnsrule_data, dnsrule_options, nil, dnsrule_helpmsg))
     ngx.print('\
   </fieldset>\
   </form>\
 </div>\
 ');  ngx.print( ui_helper.createFooter() ); ngx.print('\
-'); 
+');

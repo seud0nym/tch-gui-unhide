@@ -24,7 +24,7 @@ Issues or renews a Let's Encrypt certificate for this device using acme.sh. (Let
 Port 80 (or port 443 if the -s option is specified) will be temporarily opened in the firewall to allow the CA to verify ownership of the domain.
 
 Pre-requisites:
- * The domain name must be configured as the IPv4 Dynamic DNS domain.
+ * The domain name must be configured as the IPv4 and/or IPv6 Dynamic DNS domain.
  * The IP address to which the domain name resolves must be assigned to this device.
 
 Note:
@@ -42,6 +42,7 @@ Options:
             request an initial issue or renewal. Otherwise it will exit after
             removing the cron job.
  --force  Force renewal of existing certificate
+ --test   Use staging server for testing
  -U       Download the latest version of this $SCRIPT from GitHub
 
 EOH
@@ -83,6 +84,7 @@ DEBUG=""
 YES=N
 
 FORCE_RENEW=""
+SERVER="letsencrypt"
 TO_STDERR=""
 WAN_PORT='80'
 
@@ -98,7 +100,11 @@ do
   y)  YES=Y;;
   C)  CRON=Y;;
   U)  upgrade;;
-  -)  if [ "$OPTARG" = "force" ]; then FORCE_RENEW="--force"; else usage; fi;;
+  -)  case "$OPTARG" in
+        force)  FORCE_RENEW="--force";;
+        test)   SERVER="letsencrypt_test";;
+        *)      usage; 
+      esac;;
   *)  usage;;
  esac
 done
@@ -122,33 +128,60 @@ do
 done
 
 OK=0
+
 _dbg "Determining domain name..."
+
 DOMAIN=$(uci -q get ddns.myddns_ipv4.lookup_host)
-if [ -z "$DOMAIN" ]; then
-  _log user.err "ERROR: The domain name must be configured as the IPv4 Dynamic DNS Domain"
-  OK=1
-else
+if [ -n "$DOMAIN" -a "$DOMAIN" != "yourhost.example.com" ]; then
   _dbg ">> Found IPv4 Dynamic DNS domain: $DOMAIN"
   _dbg "Attempting to resolve IP address of $DOMAIN..."
-  WAN_IP="$(dig +short -t A $DOMAIN 2>/dev/null)"
+  WAN_IP="$(dig +short -t A $DOMAIN @1.1.1.1 2>/dev/null)"
   if [ -z "$WAN_IP" ]; then
-    _log user.err "ERROR: Could not resolve the IP address of IPv4 Dynamic DNS domain: $DOMAIN"
-    OK=1
+    _log user.warn "WARNING: Could not resolve the IP address of IPv4 Dynamic DNS domain: $DOMAIN"
   else
     _dbg ">> $DOMAIN IP address is $WAN_IP"
     _dbg "Checking that IP address $WAN_IP is assigned to an interface"
-    ip -o address | grep -q "$WAN_IP"
-    if [ $? -eq 0 ]; then
-      _dbg ">> $DOMAIN IP address found"
+    IFNAME=$(ip -o address | grep "$WAN_IP" | cut -d' ' -f2)
+    if [ -n "$IFNAME" ]; then
+      _dbg ">> $DOMAIN IP address found on interface $IFNAME"
       [ "!$DEBUG" = "!--debug" ] && ip -o address | grep "$WAN_IP" | $LOGGER user.info
     else
-      _log user.err "ERROR: IP address $WAN_IP for domain $DOMAIN is not in use on this device"
+      _log user.warn "WARNING: IP address $WAN_IP for domain $DOMAIN is not in use on this device"
       ip -o address | tr -s " " | cut -d" " -f2,4 | grep -v -E '^lo|^wl|lan' | $LOGGER user.info
-      OK=1
+      WAN_IP=""
+      DOMAIN=""
     fi
   fi
+else
+  DOMAIN=""
 fi
-if [ $OK -ne 0 ]; then
+
+DOMAINv6=$(uci -q get ddns.myddns_ipv6.lookup_host)
+if [ -n "$DOMAINv6" -a "$DOMAINv6" != "yourhost.example.com" ]; then
+  _dbg ">> Found IPv6 Dynamic DNS domain: $DOMAINv6"
+  _dbg "Attempting to resolve IP address of $DOMAINv6..."
+  WAN_IPv6="$(dig +short -t AAAA $DOMAINv6 @2606:4700:4700::1111 2>/dev/null)"
+  if [ -z "$WAN_IPv6" ]; then
+    _log user.warn "WARNING: Could not resolve the IP address of IPv6 Dynamic DNS domain: $DOMAINv6"
+  else
+    _dbg ">> $DOMAINv6 IP address is $WAN_IPv6"
+    _dbg "Checking that IP address $WAN_IPv6 is assigned to an interface"
+    IFNAMEv6=$(ip -o address | grep "$WAN_IPv6" | cut -d' ' -f2)
+    if [ -n "$IFNAMEv6" ]; then
+      _dbg ">> $DOMAINv6 IP address found on interface $IFNAMEv6"
+      [ "!$DEBUG" = "!--debug" ] && ip -o address | grep "$WAN_IPv6" | $LOGGER user.info
+    else
+      _log user.warn "WARNING: IP address $WAN_IPv6 for domain $DOMAINv6 is not in use on this device"
+      ip -o address | tr -s " " | cut -d" " -f2,4 | grep -v -E '^lo|^wl|lan' | $LOGGER user.info
+      WAN_IPv6=""
+      DOMAINv6=""
+    fi
+  fi
+else
+  DOMAINv6=""
+fi
+
+if [ -z "$DOMAIN" -a -z "$WAN_IP" -a -z "$DOMAINv6" -a -z "$WAN_IPv6" ]; then
   _log user.err "ABORTING!"
   exit 2
 fi
@@ -163,14 +196,18 @@ if [ $CRON = Y ]; then
   fi
   PROMPT="$CRON_ACTION the cron schedule"
 else
-  if [ -f "$ACME_DIR/$DOMAIN/$DOMAIN.key" ]; then
+  if [ -f "$ACME_DIR/$DOMAIN/$DOMAIN.key" -o -f "$ACME_DIR/$DOMAIN/$DOMAINv6.key" ]; then
     if [ -z "$FORCE_RENEW" ]; then
-      PROMPT="commence the $DOMAIN certificate renewal check"
+      PROMPT="commence the certificate renewal check"
     else
-      PROMPT="force renewal of the $DOMAIN certificate"
+      PROMPT="force certificate renewal"
     fi
   else
-    PROMPT="issue the $DOMAIN certificate"
+    if [ -n "$DOMAIN" -a -n "$DOMAINv6" -a "$DOMAIN" != "$DOMAINv6" ]; then
+      PROMPT="issue the certificates"
+    else
+      PROMPT="issue the certificate"
+    fi
   fi
 fi
 if [ $YES = N ]; then
@@ -269,7 +306,7 @@ HW18
   curl -skLz /etc/ssl/certs/ca-certificates.crt -o /etc/ssl/certs/ca-certificates.crt https://curl.se/ca/cacert.pem
   export SSL_CERT_FILE='/etc/ssl/cert.pem'
   _dbg "Checking acme.sh..."
-  if [ -f acme.sh ]; then
+  if [ -s acme.sh ]; then
     _dbg ">> acme.sh found. Checking for updates..."
     chmod +x acme.sh
     ./acme.sh --upgrade
@@ -324,9 +361,8 @@ _dbg "Acquired execution lock on /var/lock/$SCRIPT.run"
 _dbg "Configuring environment variables for /etc/ra_forward.sh"
 RA_NAME='acme'
 ENABLED='1'
-IFNAME="$(uci get network.wan.ifname)"
 LAN_PORT='61734'
-_log user.info "Opening IP address $WAN_IP port $WAN_PORT on interface $IFNAME and redirecting to LAN port $LAN_PORT..."
+_log user.info "Opening WAN port $WAN_PORT..."
 . /etc/ra_forward.sh
 
 if [ $WAN_PORT = 80 ]; then
@@ -335,10 +371,20 @@ else
   SOCAT="--alpn --tlsport"
 fi
 
-_dbg "Running acme.sh..."
-./acme.sh --issue $SOCAT $LAN_PORT --server letsencrypt -d $DOMAIN --key-file $PRIVATE_DIR/$DOMAIN.key --fullchain-file $CERTS_DIR/$DOMAIN.cer --renew-hook "/etc/init.d/ipsec restart" --syslog 6 $FORCE_RENEW $DEBUG
+if [ -n "$DOMAIN" ]; then
+  _dbg "Running acme.sh for domain $DOMAIN against CA server $SERVER..."
+  ./acme.sh --issue $SOCAT $LAN_PORT --listen-v4 --server $SERVER -d $DOMAIN --key-file $PRIVATE_DIR/$DOMAIN.key --fullchain-file $CERTS_DIR/$DOMAIN.cer --renew-hook "/etc/init.d/ipsec restart" --syslog 6 $FORCE_RENEW $DEBUG $STAGING
+fi
+if [ -n "$DOMAINv6" -a "$DOMAINv6" != "$DOMAIN" ]; then
+  _dbg "Stopping nginx server to free up port $WAN_PORT..."
+  /etc/init.d/nginx stop
+  _dbg "Running acme.sh for domain $DOMAINv6 against CA server $SERVER..."
+  ./acme.sh --issue $SOCAT $WAN_PORT --listen-v6 --server $SERVER -d $DOMAINv6 --key-file $PRIVATE_DIR/$DOMAINv6.key --fullchain-file $CERTS_DIR/$DOMAINv6.cer --renew-hook "/etc/init.d/ipsec restart" --syslog 6 $FORCE_RENEW $DEBUG $STAGING
+  _dbg "Restarting nginx server..."
+  /etc/init.d/nginx start
+fi
 
-_log user.info "Closing IP address $WAN_IP port $WAN_PORT on interface $IFNAME..."
+_log user.info "Closing WAN port $WAN_PORT..."
 ENABLED='0'
 . /etc/ra_forward.sh
 
