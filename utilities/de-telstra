@@ -834,11 +834,18 @@ else
 fi
 
 if [ $SRV_supervision -ge 0 ]; then
-  SUPERVISION_NOW="$(uci -q get supervision.global.enabled)"
+  SUPERVISION_NOW="$(uci -q get supervision.global.mode)"
   if [ "$__SUPERVISION" = "u" -o "$SUPERVISION_NOW" = "$__SUPERVISION" ]; then
     echo [$SCRIPT]: WAN Supervision unchanged \[$SUPERVISION_NOW\]
   else
-    uci set supervision.global.enabled="$__SUPERVISION"
+    uci set supervision.global.mode="$__SUPERVISION"
+    SUPERVISION_ENABLED="$(uci -q get supervision.global.enabled)"
+    if [ "$SUPERVISION_ENABLED" = "DNS" -o "$SUPERVISION_ENABLED" = "BFD" -o "$SUPERVISION_ENABLED" = "Disabled" ]; then
+      if [ $SUPERVISION_ENABLED = "Disabled" ]
+        then uci set supervision.global.enabled="0"
+        else uci set supervision.global.enabled="1"
+      fi
+    fi
     uci commit supervision
     SRV_supervision=$(( $SRV_supervision + 1 ))
     echo [$SCRIPT]: WAN Supervision Mode = $__SUPERVISION
