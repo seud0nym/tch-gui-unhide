@@ -1,0 +1,573 @@
+local lfs = require("lfs")
+local logger = require("tch.logger")
+local log = logger.new("rpc.gui.ipsec", 4)
+
+local ipsec_status = "/usr/sbin/ipsec status | grep 'Security Associations'"
+local ipsec_conf = "/etc/ipsec.conf"
+local ipsec_secrets = "/etc/ipsec.secrets"
+local find, istainted, gsub, format, match, sub = string.find, string.istainted, string.gsub, string.format, string.match, string.sub
+
+local conf_cache = {
+  cfg,
+  idx,
+  time_check, -- time cache was refreshed
+  reload -- force reload
+}
+
+local function readIPsecConfig()
+  local time = os.time()
+
+  if conf_cache.cfg and not conf_cache.reload and ( time - conf_cache.time_check ) < 30 then
+    conf_cache.time_check = time
+    return conf_cache.cfg, conf_cache.idx
+  end
+
+  local index = {}
+  local sections = {}
+
+  local section
+  local f = io.open(ipsec_conf,"r")
+  if f then
+    for line in f:lines() do
+      local s = match(line, "^(con[%l]+ .*)[%s]*$")
+      if s then
+        local k = match(s,"[%w]+ (.*)")
+        section = #sections + 1
+        sections[section] = {
+          name = s,
+          parameters = {}
+        }
+        index[k] = section
+      else
+        local param, value = match(line, "^[%s]+([%w]+)[=%s]*(.*)$")
+        if param and value and section then
+          sections[section]["parameters"][param] = value
+        end
+      end
+    end
+  end
+  f:close()
+
+  conf_cache.cfg = sections
+  conf_cache.changed = "0"
+  conf_cache.idx = index
+  conf_cache.time_check = time
+  conf_cache.reload = nil
+
+  return sections, index
+end
+
+local secret_cache = {
+  secrets,
+  time_check, -- time cache was refreshed
+  reload -- force reload
+}
+
+local function readIPsecSecrets()
+  local time = os.time()
+
+  -- Use the conf_cache for subsequent request
+  if secret_cache.secrets and not secret_cache.reload and ( time - secret_cache.time_check ) < 30 then
+    secret_cache.time_check = time
+    return secret_cache.secrets
+  end
+
+  local lines = {}
+
+  local f = io.open(ipsec_secrets,"r")
+  if f then
+    for line in f:lines() do
+      local s, t, v = match(line, "^[%s]*([%S]*)[%s]*:[%s]*([%w]+)[%s]+\"(.*)\"[%s]*$")
+      if v and sub(s,1,1) ~= "#" then
+        lines[#lines+1] = {
+          selector = s, 
+          type = t, 
+          secret = v,
+        }
+      end
+    end
+  end
+  f:close()
+
+  secret_cache.secrets = lines
+  secret_cache.changed = "0"
+  secret_cache.time_check = time
+  secret_cache.reload = nil
+
+  return lines
+end
+
+local function isDomainName(value)
+  if type(value) ~= "string" and not istainted(value) then
+      return false
+  end
+  if #value == 0 then
+      return false
+  end
+  if #value > 255 then
+      return false
+  end
+
+  local i=0
+  local j=0
+  repeat
+      i = i+1
+      j = find(value, ".", i, true)
+      local label = sub(value, i, j)
+      local strippedLabel = match(label, "[^%.]*")
+      if strippedLabel ~= nil then
+          if #strippedLabel == 0 then
+              return false
+          end
+          if #strippedLabel > 63 then
+              return false
+          end
+          local correctLabel = match(strippedLabel, "^[a-zA-z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]")
+          if #strippedLabel == 1 then
+              if not match(strippedLabel, "[a-zA-Z0-9]") then
+                  return false
+
+              end
+          elseif strippedLabel ~= correctLabel then
+              return false
+          end
+      end
+
+      i = j
+  until not j
+
+  return true
+end
+
+local function updateSecret(type,value)
+  local found,secret,idx = false
+  local secrets = readIPsecSecrets()
+  for idx,secret in pairs(secrets) do
+    if secret["selector"] == "" and secret["type"] == type then
+      log:notice("Setting secret key=%s param=%s value=%s",idx,"secret",value)
+      secret["secret"] = value
+      found = true
+      break
+    end
+  end
+  if not found then
+    local newkey = #secrets + 1
+    log:notice("Adding secret key=%s",newkey)
+    log:notice("Setting secret key=%s param=%s value=%s",newkey,"type",type)
+    log:notice("Setting secret key=%s param=%s value=%s",newkey,"secret",value)
+    secrets[newkey] = {
+      selector = "", 
+      type = type, 
+      secret = value,
+    }
+  end
+  secret_cache.changed = "1"
+end
+
+local GUI_IPSEC_ = {
+  objectType = {
+    name = "rpc.gui.ipsec.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      apply_changes = {
+        access = "readWrite",
+        type = "boolean"
+      },
+      associations = {
+        access = "readOnly",
+        type = "string"
+      },
+      debug = {
+        access = "readWrite",
+        type = "boolean"
+      },
+      changed = {
+        access = "readOnly",
+        type = "boolean"
+      },
+      regenpsk = {
+        access = "readWrite",
+        type = "boolean"
+      },
+      reread = {
+        access = "readWrite",
+        type = "boolean"
+      },
+      restart = {
+        access = "readWrite",
+        type = "boolean"
+      },
+    }
+  }
+}
+
+GUI_IPSEC_.get = {
+  apply_changes = function() 
+    return "0"
+  end,
+  associations = function()
+    local cmd = io.popen(ipsec_status,'r')
+    local status = cmd:read()
+    cmd:close()
+    return match(status, "%(([^%)]+)")
+  end,
+  changed = function() 
+    readIPsecConfig()
+    readIPsecSecrets()
+    if conf_cache.changed == "1" or secret_cache.changed == "1" then
+      return "1"
+    end
+    return "0"
+  end,
+  debug = function(mapping, param, value)
+    local sections = readIPsecConfig()
+    if sections[1]["parameters"]["charondebug"] then
+      return "1"
+    end
+    return "0"
+  end,
+  regenpsk = function() 
+    return "0"
+  end,
+  reread = function() 
+    return "0"
+  end,
+  restart = function() 
+    return "0"
+  end,
+}
+
+GUI_IPSEC_.set = {
+  apply_changes = function(mapping, param, value)
+    log:notice("apply_changes value=%s",value)
+    if value ~= "1" then
+      return nil, "Invalid value"
+    end
+    if conf_cache.changed == "1" then
+      local f = io.open(ipsec_conf,"w")
+      if f then
+        local blank_line = "\n"
+        local detail_pattern = " %s = %s\n"
+        local header_pattern = "%s\n"
+        local section
+        f:write("# /etc/ipsec.conf - strongSwan IPsec configuration file\n")
+        for _,section in pairs(conf_cache.cfg) do
+          f:write(format(header_pattern, section.name))
+          local option, value
+          for option, value in pairs(section.parameters) do
+            f:write(format(detail_pattern, option, value))
+          end
+          f:write(blank_line)
+        end
+        f:close()
+      else
+        return nil, "Failed to open "..ipsec_conf.." in write mode"
+      end
+      conf_cache.reload = true
+    end
+    if secret_cache.changed == "1" then
+      local f = io.open(ipsec_secrets,"w")
+      if f then
+        local selector_pattern = "%s : %s \"%s\"\n"
+        local no_selector_pattern = ": %s \"%s\"\n"
+        local secret
+        f:write("# /etc/ipsec.secrets - strongSwan IPsec secrets file\n")
+        for _,secret in pairs(secret_cache.secrets) do
+          local selector = match(secret.selector, "^%s*(.-)%s*$")
+          if selector == "" then
+            f:write(format(no_selector_pattern, secret.type, secret.secret))
+          else
+            f:write(format(selector_pattern, selector, secret.type, secret.secret))
+          end
+        end
+        f:close()
+      else
+        return nil, "Failed to open "..ipsec_secrets.." in write mode"
+      end
+      secret_cache.reload = true
+    end
+    os.execute("/etc/init.d/ipsec restart")
+    return true
+  end,
+  debug = function(mapping, param, value)
+    local sections = readIPsecConfig()
+    if value == "1" then
+      sections[1]["parameters"]["charondebug"] = '"ike 8, mgr 3, chd 3, net 0, knl 2, cfg 2"'
+    elseif value == "0" then
+      sections[1]["parameters"]["charondebug"] = nil
+    else
+      return nil, "Invalid value"
+    end
+    conf_cache.changed = "1"
+    return true
+  end,
+  reread = function(mapping, param, value)
+    log:notice("reread value=%s",value)
+    if value ~= "1" then
+      return nil, "Invalid value"
+    end
+    conf_cache.reload = true
+    secret_cache.reload = true
+    return true
+  end,
+  regenpsk = function(mapping, param, value)
+    log:notice("regenpsk value=%s",value)
+    if value ~= "1" then
+      return nil, "Invalid value"
+    end
+    local alphanum = {"a","b","c","d","e","f","g","h","j","k","m","n","o","p","q","r","s","t","u","v","w","y","z","A","B","C","D","E","F","G","H","J","K","L","M","N","P","Q","R","S","T","U","V","W","Y","Z","2","3","4","5","6","7","8","9"}
+    local psk = {}
+    while (#psk < 32) do
+      psk[#psk+1] = alphanum[math.random(1,#alphanum)]
+    end
+    updateSecret("PSK",table.concat(psk,""))
+    return true
+  end,
+  restart = function(mapping, param, value)
+    log:notice("restart value=%s",value)
+    if value ~= "1" then
+      return nil, "Invalid value"
+    end
+    os.execute("/etc/init.d/ipsec restart")
+    return true
+  end,
+}
+
+register(GUI_IPSEC_)
+
+local GUI_IPSEC_CONN_i_ = {
+  objectType = {
+    name = "rpc.gui.ipsec.conn.@.",
+    access = "readWrite",
+    numEntriesParameter = "ConnectionsNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      also = {
+        access = "readWrite",
+        type = "string",
+      },
+      auto = {
+        access = "readWrite",
+        type = "string",
+      },
+      compress = {
+        access = "readWrite",
+        type = "string",
+      },
+      type = {
+        access = "readWrite",
+        type = "string",
+      },
+      dpdaction = {
+        access = "readWrite",
+        type = "string",
+      },
+      dpddelay = {
+        access = "readWrite",
+        type = "string",
+      },
+      esp = {
+        access = "readWrite",
+        type = "string",
+      },
+      ike = {
+        access = "readWrite",
+        type = "string",
+      },
+      keyexchange = {
+        access = "readWrite",
+        type = "string",
+      },
+      leftauth = {
+        access = "readWrite",
+        type = "string",
+      },
+      leftcert = {
+        access = "readWrite",
+        type = "string",
+      },
+      leftid = {
+        access = "readWrite",
+        type = "string",
+      },
+      leftsendcert = {
+        access = "readWrite",
+        type = "string",
+      },
+      leftsubnet = {
+        access = "readWrite",
+        type = "string",
+      },
+      rightauth = {
+        access = "readWrite",
+        type = "string",
+      },
+      rightauth2 = {
+        access = "readWrite",
+        type = "string",
+      },
+      rightsendcert = {
+        access = "readWrite",
+        type = "string",
+      },
+      rightsourceip = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_IPSEC_CONN_i_.entries = function(mapping)
+  local sections, index = readIPsecConfig()
+  local res = {}
+  local k,v
+  for k,v in pairs(index) do
+    if v > 1 then
+      res[#res+1]=k
+    end
+  end
+  return res
+end
+
+GUI_IPSEC_CONN_i_.get = function(mapping, param, key)
+  local sections, index = readIPsecConfig()
+  local section = index[key]
+  return sections[section]["parameters"][param] or ""
+end
+
+GUI_IPSEC_CONN_i_.set = function(mapping, param, value, key)
+  log:notice("Setting conn key=%s param=%s value=%s",key,param,value)
+  local sections, index = readIPsecConfig()
+  local section = index[key]
+  sections[section]["parameters"][param] = value
+  if param == "leftid" then
+    if isDomainName(value) and lfs.attributes("/etc/ipsec.d/certs/" .. value .. ".cer", "mode") then
+      log:notice("Setting conn key=%s param=%s value=%s",key,"leftcert",value .. ".cer")
+      sections[section]["parameters"]["leftcert"] = value .. ".cer"
+      log:notice("Setting conn key=%s param=%s value=%s",key,"leftsendcert","always")
+      sections[section]["parameters"]["leftsendcert"] = "always"
+      updateSecret("RSA",value .. ".key")
+    else
+      log:notice("Setting conn key=%s param=%s value=%s",key,"leftcert","")
+      sections[section]["parameters"]["leftcert"] = ""
+      log:notice("Setting conn key=%s param=%s value=%s",key,"leftsendcert","never")
+      sections[section]["parameters"]["leftsendcert"] = "never"
+      local secrets,idx,secret = readIPsecSecrets()
+      for idx,secret in pairs(secrets) do
+        if secret["selector"] == "" and secret["type"] == "RSA" then
+          log:notice("Deleting secret key=%s selector=%s type=%s secret=%s",idx,secret["selector"],secret["type"],secret["secret"])
+          secrets[idx] = nil
+          secret_cache.changed = "1"
+          break
+        end
+      end
+    end
+  end
+  conf_cache.changed = "1"
+  return true
+end
+
+GUI_IPSEC_CONN_i_.add = function(mapping, key)
+  if key and key ~= "" then
+    log:notice("Adding conn key=%s",key)
+    local sections, index = readIPsecConfig()
+    local section = #sections + 1
+    sections[section] = {
+      name = "conn " .. key,
+      parameters = {}
+    }
+    index[key] = section
+    conf_cache.changed = "1"
+    return key
+  end
+  return nil, "No conn section name specified"
+end
+
+GUI_IPSEC_CONN_i_.delete = function(mapping, key)
+  log:notice("Deleted conn key=%s",key)
+  local sections, index = readIPsecConfig()
+  local section = index[key]
+  sections[section] = nil
+  index[key] = nil
+  conf_cache.changed = "1"
+  return true
+end
+
+register(GUI_IPSEC_CONN_i_)
+
+local GUI_IPSEC_SECRET_i_ = {
+  objectType = {
+    name = "rpc.gui.ipsec.secret.@.",
+    access = "readWrite",
+    numEntriesParameter = "SecretsNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      selector = {
+        access = "readWrite",
+        type = "string",
+      },
+      type = {
+        access = "readWrite",
+        type = "string",
+      },
+      secret = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_IPSEC_SECRET_i_.entries = function(mapping)
+  local secrets = readIPsecSecrets()
+  local res = {}
+  local k,v
+  for k,v in pairs(secrets) do
+    res[#res+1]=tostring(k)
+  end
+  return res
+end
+
+GUI_IPSEC_SECRET_i_.get = function(mapping, param, key)
+  local secrets = readIPsecSecrets()
+  return secrets[tonumber(key)][param] or ""
+end
+
+GUI_IPSEC_SECRET_i_.set = function(mapping, param, value, key)
+  log:notice("Setting secret key=%s param=%s value=%s",key,param,value)
+  local secrets = readIPsecSecrets()
+  if param == "type" and value ~= "PSK" and value ~= "XAUTH" and value ~= "EAP" and value ~= "RSA" then
+    return nil, "Invalid type"
+  end
+  secrets[tonumber(key)][param] = value
+  secret_cache.changed = "1"
+  return true
+end
+
+GUI_IPSEC_SECRET_i_.add = function(mapping, key)
+  local secrets = readIPsecSecrets()
+  local newkey = #secrets + 1
+  log:notice("Adding secret key=%s",newkey)
+  secrets[newkey] = {
+    selector = "", 
+    type = "", 
+    secret = "",
+  }
+  secret_cache.changed = "1"
+  return tostring(newkey)
+end
+
+GUI_IPSEC_SECRET_i_.delete = function(mapping, key)
+  log:notice("Deleting secret key=%s",key)
+  local secrets = readIPsecSecrets()
+  secrets[tonumber(key)] = nil
+  secret_cache.changed = "1"
+  return true
+end
+
+register(GUI_IPSEC_SECRET_i_)

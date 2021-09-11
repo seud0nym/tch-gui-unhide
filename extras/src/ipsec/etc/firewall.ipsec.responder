@@ -1,0 +1,46 @@
+# Creates the firewall rules for the IPSec VPN Server 
+
+WAN_IFNAME="$(uci get network.wan.ifname)"
+LAN_SUBNET=$(lua -e 'require("web.taint")
+bit = require("bit")
+posix = require("tch.posix")
+proxy = require("datamodel")
+function getLAN(param, src)
+  return proxy.get(src..".network.interface.@lan."..param)[1].value:untaint()
+end
+function ipv42num(ipstr)
+  local ip = posix.inet_pton(posix.AF_INET, ipstr)
+  if not ip then
+    return nil
+  end
+  local b1, b2, b3, b4 = ip:byte(1,4)
+  return bit.tobit((b1*16777216) + (b2*65536) + (b3*256) + b4)
+end
+function num2ipv4(ip)
+  local ret = bit.band(ip, 255)
+  ip = bit.rshift(ip,8)
+  for i=1,3 do
+    ret = bit.band(ip,255) .. "." .. ret
+    ip = bit.rshift(ip,8)
+  end
+  return ret
+end
+print(num2ipv4(bit.band(ipv42num(getLAN("ipaddr","uci")), ipv42num(getLAN("netmask","uci")))) .. "/" .. getLAN("ipmask","rpc"))
+')
+
+# Following rules based on https://openwrt.org/docs/guide-user/services/vpn/strongswan/roadwarrior#etcconfigfirewall
+
+# Open up the ports/protocols on the WAN zone that strongswan needs to accept traffic from a client
+iptables -t filter -I zone_wan_input -p esp -m comment --comment "Allow-IPSec-ESP" -j ACCEPT
+iptables -t filter -I zone_wan_input -p udp -m udp --dport 500 -m comment --comment "Allow-IPSec-IKE" -j ACCEPT
+iptables -t filter -I zone_wan_input -p udp -m udp --dport 4500 -m comment --comment "Allow-IPSec-NAT-Traversal" -j ACCEPT
+iptables -t filter -I zone_wan_input -p ah -m comment --comment "Allow-IPSec-Auth-Header" -j ACCEPT
+# Accept INPUT, FORWARD(in/out) and OUTPUT traffic originated from and directed to clients matching an IPsec policy
+iptables -t filter -I INPUT -m policy --dir in --pol ipsec --proto esp -m comment --comment "Allow-IPSec-IN" -j ACCEPT
+iptables -t filter -I FORWARD -m policy --dir in --pol ipsec --proto esp -m comment --comment "Allow-IPSec-FWD-IN" -j ACCEPT
+iptables -t filter -I FORWARD -m policy --dir out --pol ipsec --proto esp -m comment --comment "Allow-IPSec-FWD-OUT" -j ACCEPT
+iptables -t filter -I OUTPUT -m policy --dir out --pol ipsec --proto esp -m comment --comment "Allow-IPSec-OUT" -j ACCEPT
+# Exempt traffic that matches an IPsec policy from being NAT-ed before tunneling (so that you can reach or ping VPN clients)
+iptables -t nat -I POSTROUTING -m policy --dir out --pol ipsec -m comment --comment "Exempt-IPSec-From-NAT" -j ACCEPT
+# Setup NAT for your VPN clients to be able to access the internet
+iptables -t nat -I POSTROUTING -s $LAN_SUBNET -o $WAN_IFNAME -m comment --comment "Allow-IPSec-Internet-Access" -j MASQUERADE
