@@ -167,7 +167,7 @@ local init_data, sipnet_helpmsg = post_helper.handleTableQuery(init_columns, ini
     }
     local html = {}
     html[#html+1] = "<div class='control-group'><label class='control-label'>Filter</label><div class='controls'>"
-    html[#html+1] = "<input data-type='search' name='Filter' class='edit-input span3' placeholder='Search For Processes...' id='searchInput' type='text'>"
+    html[#html+1] = "<input data-type='search' name='Filter' class='edit-input span3 no-save' placeholder='Search For Services...' id='searchInput' type='text'>"
     html[#html+1] = "</div></div>"
     ngx.print(html)
 	ngx.print(ui_helper.createTable(init_columns, init_data, init_options))
