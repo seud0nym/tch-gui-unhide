@@ -7,17 +7,21 @@ for d in $(find . -maxdepth 1 -type d ! -path . -printf '%P ')
 do
   source="$d/$d.sh"
   if [ -f "$source" ]; then
-    echo "tch-gui-unhide-xtra.$d" >> .extras
     target="../tch-gui-unhide-xtra.$d"
-    if [ "$1" = "$d" -o ":$1" = ":-all" -o ! -e $target -o $(find $d -newer $target -type f 2>/dev/null | wc -l) -gt 0 ]; then
-      echo Creating $target...
-      cp "$source" "$target"
-      grep -n 'cat *<<' "$source" | grep -v '>>' | sed -e 's/:\|<\|>\|"\|cat//g' | sort -nr | while read -r line name file
-      do 
-        if [ -e $d$file ]; then
-          sed -e "${line}r $d$file" -i "$target"
-        fi
-      done
+    if [ ! -f "$d/.skip" ]; then
+      echo "tch-gui-unhide-xtra.$d" >> .extras
+      if [ "$1" = "$d" -o ":$1" = ":-all" -o ! -e $target -o $(find $d -newer $target -type f 2>/dev/null | wc -l) -gt 0 ]; then
+        echo Creating $target...
+        cp "$source" "$target"
+        grep -n 'cat *<<' "$source" | grep -v '>>' | sed -e 's/:\|<\|>\|"\|cat//g' | sort -nr | while read -r line name file
+        do
+          if [ -e $d$file ]; then
+            sed -e "${line}r $d$file" -i "$target"
+          fi
+        done
+      fi
+    else
+      [ -f "$target" ] && rm "$target"
     fi
   fi
 done
