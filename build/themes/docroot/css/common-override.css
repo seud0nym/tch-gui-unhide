@@ -18,7 +18,7 @@
 .simple-desc{display:block;padding-top:2px;}
 .simple-desc.helper-card{display:inline-block;font-size:smaller;letter-spacing:-1px;vertical-align:unset;}
 .smallcard .content{font-size:14px;height:125px;}
-.smallcard .subinfos{font-size:14px;margin-top:1px;margin-bottom:0px;line-height:18px;}
+.smallcard .subinfos{font-size:14px;margin-top:1px;margin-bottom:0px;line-height:17px;}
 .span3{width:270px;}
 .status-icon{color:var(--RGB_STATUS_ICON);}
 .table th,.table td {padding-left:4px;padding-right:4px;}
