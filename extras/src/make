@@ -16,6 +16,9 @@ do
         grep -n 'cat *<<' "$source" | grep -v '>>' | sed -e 's/:\|<\|>\|"\|cat//g' | sort -nr | while read -r line name file
         do
           if [ -e $d$file ]; then
+            if [ -n "$(tail -c1 $d$file)" ]; then
+              sed -e "${line}a\\\n" -i "$target"
+            fi
             sed -e "${line}r $d$file" -i "$target"
           fi
         done
