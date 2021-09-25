@@ -112,7 +112,7 @@ local init_options = {
 }
 
 local init_filter = function(data)
-	if data.start_order == "" then
+	if not data.name or data.start_order == "" then
 		return false
 	end
 
