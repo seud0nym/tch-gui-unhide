@@ -139,7 +139,7 @@ do
       elif [ $FILENAME = "200-Services" ]; then
         [ -n "$DEBUG" ] && echo " - Adding version to copyright and auto-refreshing cache"
         echo "if [ \$THEME_ONLY = n ]; then" >> $TARGET
-        echo "  MKTING_VERSION=\$(uci get version.@version[0].marketing_name)" >> $TARGET
+        echo "  MKTING_VERSION=\$(uci get version.@version[0].marketing_version)" >> $TARGET
         echo "  echo BLD@\$(date +%H:%M:%S): Adding tch-gui-unhide version to copyright" >> $TARGET
         echo "  for l in \$(grep -l -r 'current_year); ngx.print(' /www 2>/dev/null)" >> $TARGET
         echo "  do" >> $TARGET
@@ -148,7 +148,7 @@ do
         echo "  echo BLD@\$(date +%H:%M:%S): Auto-refreshing browser cache" >> $TARGET
         echo "  for l in \$(grep -lrE \"['\\\"][^'\\\"]+\.(cs|j)s['\\\"]\" /www/cards /www/docroot /www/snippets | grep -v -E '.js$|.sh$|.json$' 2>/dev/null)" >> $TARGET
         echo "  do" >> $TARGET
-        echo "    sed -e \"s/\\(\\.css\\)\\(['\\\"]\\)/\\\1?$MKTING_VERSION-$FULL_VERSION\\\2/g\" -e \"s/\\(\\.js\\)\\(['\\\"]\\)/\\\1?$MKTING_VERSION-$FULL_VERSION\\\2/g\" -i \$l" >> $TARGET
+        echo "    sed -e \"s/\\(\\.css\\)\\(['\\\"]\\)/\\\1?\${MKTING_VERSION}_$FULL_VERSION\\\2/g\" -e \"s/\\(\\.js\\)\\(['\\\"]\\)/\\\1?\${MKTING_VERSION}_$FULL_VERSION\\\2/g\" -i \$l" >> $TARGET
         echo "  done" >> $TARGET
         echo "fi" >> $TARGET
         echo >> $TARGET
