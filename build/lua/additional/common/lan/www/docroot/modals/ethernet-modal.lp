@@ -149,7 +149,7 @@ end
 local lan_intfs = {}
 local pppIntf, pppDev
 for k,v in ipairs(all_intfs) do
-  if v.type == "lan" and (not find(v["ppp.ll_intf"], "wl") or wireless_radio[untaint(v["ppp.ll_intf"])])then
+  if v.type == "lan" and v.proto ~= "wireguard" and (not find(v["ppp.ll_intf"], "wl") or wireless_radio[untaint(v["ppp.ll_intf"])]) then
     if v.name and v.name ~= "" then
       lan_intfs[#lan_intfs + 1] = {name = v.name, index = v.paramindex}
     else
@@ -1325,7 +1325,7 @@ $(function() {\
             value : $("#localIPv6").val()\
           }, tch.elementCSRFtoken());\
           var target = $(".modal form").attr("action");\
-          tch.showProgress(waitMsg);\
+          tch.showProgress("Wait...");\
           $.post(target, params, function(response){\
             //The following block of code used to display the success/error message and manage the footer.\
             $(".alert").remove();\

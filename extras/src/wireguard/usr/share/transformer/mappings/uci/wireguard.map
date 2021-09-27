@@ -1,0 +1,422 @@
+local lfs = require("lfs")
+local logger = require("tch.logger")
+local log = logger.new("uci.wireguard.interface", 4)
+local uci_helper = mapper("ucihelper")
+local commitapply = commitapply
+
+local format, gmatch, match = string.format, string.gmatch, string.match
+
+local function _changed(ifname)
+  if ifname and ifname ~= "" then
+    os.execute("{ flock -x 3; echo '"..ifname.."'>>/tmp/.wg_uci_modified_ifnames; } 3>/var/lock/uci.wireguard.lock")
+  end
+end
+
+local function _keys(option, parentkey)
+  local keys = {}
+  local elements = uci_helper.get_from_uci({config = 'network', sectionname = parentkey, option = option, extended = true })
+  if elements and type(elements) == "table" then
+    local index 
+    for index = 1, #elements do
+      keys[#keys+1] = format("%s|%d", parentkey, index)
+    end
+  end
+  return keys
+end
+
+local function _elements(option, parentkey)
+  local binding = {config = 'network', sectionname = parentkey, option = option, extended = true }
+  return uci_helper.get_from_uci(binding), binding
+end
+
+local function _get(option, param, key, parentkey)
+  local binding = {config = 'network', sectionname = parentkey, option = option, extended = true }
+  local elements = uci_helper.get_from_uci(binding)
+  local index = tonumber(match(key, "|(%d+)$"))
+  return elements[index] or ""
+end
+
+local function _set(option, param, value, key, parentkey)
+  local elements, binding = _elements(option, parentkey)
+  local index = tonumber(match(key, "|(%d+)$"))
+  if elements[index] then
+    elements[index] = value
+    uci_helper.set_on_uci(binding, elements, commitapply)
+    _changed(binding.sectionname)
+    return true
+  end
+  uci_helper.revert()
+  return nil, format("Cannot set value of key %d - does not exist.", index)
+end
+
+local function _add(option, name, parentkey)
+  if name then
+    return nil, "Add with given name is not supported."
+  end
+  local elements, binding = _elements(option)
+  local index = #elements + 1
+  elements[index] = ""
+  uci_helper.set_on_uci(binding, elements, commitapply)
+  _changed(binding.sectionname)
+  return format("%s|%d", parentkey, index)
+end
+
+local function _delete(option, key, parentkey)
+  local elements, binding = _elements(option, parentkey)
+  local index = tonumber(match(key, "|(%d+)$"))
+  if index > #elements then
+    return nil, format("Cannot delete key %d - does not exist.", index)
+  end
+  table.remove(elements, index)
+  if #elements > 0 then
+    uci_helper.set_on_uci(binding, elements, commitapply)
+  else
+    uci_helper.delete_on_uci(binding, commitapply)
+  end
+  uci_helper.commit(binding)
+  _changed(binding.sectionname)
+  return true
+end
+
+local function _getAndJoin(option, key)
+  local elements = _elements(option, key)
+  if type(elements) == "table" then
+    return table.concat(elements, ",")
+  elseif type(elements) == "string" then
+    return elements
+  end
+  return ""
+end
+
+local function _splitAndSet(option, value, key)
+  local binding = {config = 'network', sectionname = key, option = option, extended = true }
+  local elements = {}
+  local v 
+  for v in gmatch(value, "([^,]+)") do
+    elements[#elements+1] = v
+  end
+  if #elements > 0 then
+    uci_helper.set_on_uci(binding, elements, commitapply)
+  else
+    uci_helper.delete_on_uci(binding, commitapply)
+  end
+  uci_helper.commit(binding)
+  _changed(binding.sectionname)
+  return true
+end
+
+local function _commit()
+  uci_helper.commit({ config = 'network' })
+  commitapply:newset("wireguard")
+end
+
+local function _revert()
+  commitapply:newset("wireguard")
+end
+
+local WG_IFACE_i_ = {
+  objectType = {
+    name = "uci.wireguard.@.",
+    access = "readWrite",
+    minEntries = 0,
+    maxEntries = math.huge,
+    numEntriesParameter = "interface_count",
+    parameters = {
+      private_key = {
+        access = "readWrite",
+        type = "string",
+      },
+      listen_port = {
+        access = "readWrite",
+        type = "unsignedInt",
+      },
+      mtu = {
+        access = "readWrite",
+        type = "unsignedInt",
+      },
+      fwmark = {
+        access = "readWrite",
+        type = "string",
+      },
+      ip6prefix = {
+        access = "readWrite",
+        type = "string",
+      },
+      nohostroute = {
+        access = "readWrite",
+        type = "boolean",
+      },
+      tunlink = {
+        access = "readWrite",
+        type = "string",
+      },
+      log_level = {
+        access = "readWrite",
+        type = "string",
+      },
+      ipv6 = {
+        access = "readWrite",
+        type = "boolean",
+      },
+      enabled = {
+        access = "readWrite",
+        type = "boolean",
+      },
+      addresses = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+WG_IFACE_i_.entries = function(mapping)
+  local keys = {}
+  uci_helper.foreach_on_uci({ config = 'network', sectionname = 'interface' }, function(s)
+    if s.proto == "wireguard" then
+      keys[#keys+1] = s.ifname or s[".name"]
+    end
+  end)
+  return keys
+end
+
+WG_IFACE_i_.get = function(mapping, param, key)
+  if param == "addresses" then
+    return _getAndJoin("addresses", key)
+  end
+  return uci_helper.get_from_uci({ config = 'network', sectionname = key, option = param, extended = true }) or ""
+end
+
+WG_IFACE_i_.set = function(mapping, param, value, key)
+  if param == "addresses" then
+    return _splitAndSet("addresses", value, key)
+  end
+  local binding = { config = 'network', sectionname = key, option = param, extended = true }
+  uci_helper.set_on_uci(binding, value, commitapply)
+  _changed(binding.sectionname)
+  return true
+end
+
+WG_IFACE_i_.add = function(mapping, name)
+  if not name or name == "" then
+    return nil, 'No interface name specified'
+  end
+  if uci_helper.get_from_uci({ config = 'network', sectionname = name, extended = true }) ~= "" then
+    return nil, 'Failed to add "'..name..'" - name already in use'
+  end
+  local binding = { config = 'network', sectionname = 'interface' }
+  local temp, errmsg = uci_helper.add_on_uci(binding, commitapply)
+  if not temp then
+    uci_helper.revert(binding)
+    return nil, errmsg
+  end
+  binding = { config = 'network', sectionname = temp, extended = true }
+  uci_helper.rename_on_uci(binding, name, commitapply)
+  binding.sectionname = name
+  binding.option = "proto"
+  uci_helper.set_on_uci(binding, "wireguard", commitapply)
+  binding.option = "enabled"
+  uci_helper.set_on_uci(binding, "0", commitapply)
+  _changed(binding.sectionname)
+  return name
+end
+
+WG_IFACE_i_.delete = function(mapping, key)
+  local binding = { config = 'network', sectionname = key, extended = true }
+  uci_helper.delete_on_uci(binding, commitapply)
+  _changed(binding.sectionname)
+  return true
+end
+
+WG_IFACE_i_.commit = _commit
+WG_IFACE_i_.revert = _revert
+
+register(WG_IFACE_i_)
+
+local WG_IFACE_ADDR_i_ = {
+  objectType = {
+    name = "uci.wireguard.@.address.{i}.",
+    access = "readWrite",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      value = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+WG_IFACE_ADDR_i_.entries = function(mapping, parentkey)
+  return _keys("addresses", parentkey)
+end
+
+WG_IFACE_ADDR_i_.get = function(mapping, param, key, parentkey)
+  return _get("addresses", param, key, parentkey)
+end
+
+WG_IFACE_ADDR_i_.set = function(mapping, param, value, key, parentkey)
+  return _get("addresses", param, value, key, parentkey)
+end
+
+WG_IFACE_ADDR_i_.add = function(mapping, key, parentkey)
+  return _add("addresses", key, parentkey)
+end
+
+WG_IFACE_ADDR_i_.delete = function(mapping, key, parentkey)
+  return _delete("addresses", key, parentkey)
+end
+
+WG_IFACE_ADDR_i_.commit = _commit
+WG_IFACE_ADDR_i_.revert = _revert
+
+register(WG_IFACE_ADDR_i_)
+
+local WG_PEER_i_ = {
+  objectType = {
+    name = "uci.wireguard.@.peer.@.",
+    access = "readWrite",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      public_key = {
+        access = "readWrite",
+        type = "string",
+      },
+      preshared_key = {
+        access = "readWrite",
+        type = "string",
+      },
+      route_allowed_ips = {
+        access = "readWrite",
+        type = "boolean",
+      },
+      endpoint_host = {
+        access = "readWrite",
+        type = "string",
+      },
+      endpoint_port = {
+        access = "readWrite",
+        type = "unsignedInt",
+      },
+      persistent_keepalive = {
+        access = "readWrite",
+        type = "unsignedInt",
+      },
+      allowed_ips = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+WG_PEER_i_.entries = function(mapping, parentkey)
+  local keys = {}
+  local iface = "wireguard_"..parentkey
+  uci_helper.foreach_on_uci({ config = 'network' }, function(s)
+    if s[".type"] == iface then
+      keys[#keys+1] = s[".name"]
+    end
+  end)
+  return keys
+end
+
+WG_PEER_i_.get = function(mapping, param, key)
+  if param == "allowed_ips" then
+    return _getAndJoin("allowed_ips", key)
+  end
+  return uci_helper.get_from_uci({ config = 'network', sectionname = key, option = param, extended = true }) or ""
+end
+
+WG_PEER_i_.set = function(mapping, param, value, key, parentkey)
+  if param == "allowed_ips" then
+    return _splitAndSet("allowed_ips", value, key)
+  end
+  local binding = { config = 'network', sectionname = key, option = param, extended = true }
+  uci_helper.set_on_uci(binding, value, commitapply)
+  uci_helper.commit(binding)
+  _changed(parentkey)
+  return true
+end
+
+WG_PEER_i_.add = function(mapping, name, parentkey)
+  if not parentkey or parentkey == "" then
+    return nil, 'No parent interface specified'
+  end
+  if not name or name == "" then
+    return nil, 'No peer name specified'
+  end
+  if uci_helper.get_from_uci({ config = 'network', sectionname = name, extended = true }) ~= "" then
+    return nil, 'Failed to add peer "'..name..'" - name already in use'
+  end
+  local proto = uci_helper.get_from_uci({ config = 'network', sectionname = parentkey, option = "proto", extended = true })
+  if proto == "wireguard" then
+    local binding = { config = 'network', sectionname = "wireguard_"..parentkey }
+    local temp, errmsg = uci_helper.add_on_uci(binding, commitapply)
+    if not temp then
+      uci_helper.revert(binding)
+      return nil, errmsg
+    end
+    binding = { config = 'network', sectionname = temp, extended = true }
+    uci_helper.rename_on_uci(binding, name, commitapply)
+    uci_helper.commit(binding)
+    _changed(parentkey)
+    return name
+  end
+  return nil, "'"..parentkey.."' is not a WireGuard interface."
+end
+
+WG_PEER_i_.delete = function(mapping, key, parentkey)
+  local binding = { config = 'network', sectionname = key, extended = true }
+  uci_helper.delete_on_uci(binding, commitapply)
+  uci_helper.commit(binding)
+  _changed(parentkey)
+  return true
+end
+
+WG_PEER_i_.commit = _commit
+WG_PEER_i_.revert = _revert
+
+register(WG_PEER_i_)
+
+local WG_PEER_IP_i_ = {
+  objectType = {
+    name = "uci.wireguard.@.peer.@.allowed_ip.{i}.",
+    access = "readWrite",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      value = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+WG_PEER_IP_i_.entries = function(mapping, parentkey)
+  return _keys("allowed_ips", parentkey)
+end
+
+WG_PEER_IP_i_.get = function(mapping, param, key, parentkey)
+  return _get("allowed_ips", param, key, parentkey)
+end
+
+WG_PEER_IP_i_.set = function(mapping, param, value, key, parentkey)
+  return _set("allowed_ips", param, value, key, parentkey)
+end
+
+WG_PEER_IP_i_.add = function(mapping, key, parentkey)
+  return _add("allowed_ips", key, parentkey)
+end
+
+WG_PEER_IP_i_.delete = function(mapping, key, parentkey)
+  return _delete("allowed_ips", key, parentkey)
+end
+
+WG_PEER_IP_i_.commit = _commit
+WG_PEER_IP_i_.revert = _revert
+
+register(WG_PEER_IP_i_)

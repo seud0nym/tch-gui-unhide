@@ -1,0 +1,2120 @@
+#!/bin/sh
+
+if [ ":$1" = ":remove" ]; then
+  XTRAS_REMOVE="Y"
+elif [ "$(basename $0)" = "tch-gui-unhide-xtra.wireguard" -o -z "$FW_BASE" ]; then
+  echo "ERROR: This script must NOT be executed!"
+  echo "       Place it in the same directory as tch-gui-unhide and it will"
+  echo "       be applied automatically when you run tch-gui-unhide."
+  exit
+fi
+
+# The tch-gui-unhide-xtra scripts should output a single line to indicate success or failure
+# as the calling script has left a hanging echo -n. Include a leading space for clarity.
+
+FW_LAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "network='lan'" | cut -d. -f1-2)
+SRV_network=0
+
+if [ -f /usr/bin/wireguard-go -a -f /usr/bin/wg-go -a -f /lib/netifd/proto/wireguard.sh -a -z "$XTRAS_REMOVE" ]; then
+  echo " Adding wireguard support..."
+
+  cat <<"CA" > /usr/share/transformer/commitapply/uci_wireguard.ca
+^wireguard /usr/share/transformer/scripts/reload_wireguard.sh
+CA
+  cat <<"RPC" > /usr/share/transformer/mappings/rpc/gui.wireguard.map
+local uci_helper = mapper("ucihelper")
+local logger = require("tch.logger")
+local log = logger.new("rpc.gui.wireguard", 4)
+
+local wireguard_status = "/usr/bin/wg-go show all dump"
+local find, format, match = string.find, string.format, string.match
+
+local wg_cache = {
+  summary = {
+    interface_count = 0,
+    server_peers = 0,
+    server_rx_bytes = 0,
+    server_tx_bytes = 0,
+    server_active_peers = 0,
+    server_interface_count = 0,
+    server_interfaces = {},
+    client_peers = 0,
+    client_rx_bytes = 0,
+    client_tx_bytes = 0,
+    client_active_peers = 0,
+    client_interface_count = 0,
+    client_interfaces = {},
+  },
+  details = {},
+  time_check,
+}
+
+local ip_cache = {}
+ip_cache[4] = { interface = "", address = "", checked = 0, }
+ip_cache[6] = { interface = "", address = "", checked = 0, }
+
+local function getExternalIPAddress(opt)
+  if wg_cache.summary.client_active_peers == 1 then
+    if ip_cache[opt].interface ~= "" and (ip_cache[opt].address == "" or (os.time() - ip_cache[opt].checked) > 3600) then
+      local curl = io.popen(format("curl -sm1 -%s icanhazip.com", opt), "r")
+      if curl then
+        local ip = curl:read("*line")
+        curl:close()
+        ip_cache[opt].address = ip or ""
+        ip_cache[opt].checked = os.time()
+      end
+    end
+    return ip_cache[opt].address
+  end
+  return ""
+end
+
+local function wgShowAllDump()
+  if wg_cache.time_check and (wg_cache.time_check + 5) > os.time() then
+    return wg_cache.summary, wg_cache.details
+  end
+
+  wg_cache.summary.interface_count = 0
+  wg_cache.summary.server_peers = 0
+  wg_cache.summary.server_rx_bytes = 0
+  wg_cache.summary.server_tx_bytes = 0
+  wg_cache.summary.server_active_peers = 0
+  wg_cache.summary.server_interface_count = 0
+  wg_cache.summary.server_interfaces = {}
+  wg_cache.summary.client_peers = 0
+  wg_cache.summary.client_rx_bytes = 0
+  wg_cache.summary.client_tx_bytes = 0
+  wg_cache.summary.client_active_peers = 0
+  wg_cache.summary.client_interface_count = 0
+  wg_cache.summary.client_interfaces = {}
+  wg_cache.details = {}
+
+  local active_client_iface
+
+  local cmd = io.popen(wireguard_status,'r')
+  if cmd then
+    wg_cache.time_check = os.time()
+    local line
+    for line in cmd:lines() do
+      local pIface, pPubKey, pPSK, pEndPoint, pAllowedIPs, pLatestHandShake, pRX, pTX, pKeepAlive = match(line, "^([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t(%S+)$")
+      if pIface then
+        local active = ((wg_cache.time_check - tonumber(pLatestHandShake)) < 540) and "1" or "0"
+        local host, port = match(pEndPoint, "(.+):(%d+)")
+        wg_cache.details[pIface]["peers"][#wg_cache.details[pIface]["peers"] + 1] = {
+          interface = pIface,
+          public_key = pPubKey,
+          preshared_key = pPSK,
+          endpoint_host = host or "",
+          endpoint_port = port or "",
+          allowed_ips = pAllowedIPs,
+          latest_handshake = pLatestHandShake,
+          transfer_rx = pRX,
+          transfer_tx = pTX,
+          persistent_keepalive = pKeepAlive,
+          active = active
+        }
+        if pIface == "wg0" then
+          wg_cache.summary.server_peers = wg_cache.summary.server_peers + 1
+          wg_cache.summary.server_rx_bytes = wg_cache.summary.server_rx_bytes + pRX
+          wg_cache.summary.server_tx_bytes = wg_cache.summary.server_tx_bytes + pTX
+          if active == "1" then
+            wg_cache.summary.server_active_peers = wg_cache.summary.server_active_peers + 1
+          end
+        else
+          wg_cache.summary.client_peers = wg_cache.summary.client_peers + 1
+          wg_cache.summary.client_rx_bytes = wg_cache.summary.client_rx_bytes + pRX
+          wg_cache.summary.client_tx_bytes = wg_cache.summary.client_tx_bytes + pTX
+          if active == "1" then
+            wg_cache.summary.client_active_peers = wg_cache.summary.client_active_peers + 1
+            active_client_iface = pIface
+          end
+        end
+      else
+        local sIface, sPrivKey, sPubKey, sListenPort, sFWMark = match(line, "^([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t(%S+)$")
+        wg_cache.details[sIface] = {
+          interface = sIface,
+          private_key = sPrivKey,
+          public_key = sPubKey,
+          listen_port = sListenPort,
+          fwmark = sFWMark,
+          peers = {}
+        }
+        wg_cache.summary.interface_count = wg_cache.summary.interface_count + 1
+        if sIface == "wg0" then
+          wg_cache.summary.server_interface_count = wg_cache.summary.server_interface_count + 1
+          wg_cache.summary.server_interfaces[#wg_cache.summary.server_interfaces + 1] = sIface
+        else
+          wg_cache.summary.client_interface_count = wg_cache.summary.client_interface_count + 1
+          wg_cache.summary.client_interfaces[#wg_cache.summary.client_interfaces + 1] = sIface
+        end
+      end
+    end
+  end
+  cmd:close()
+
+  if active_client_iface and wg_cache.summary.client_active_peers == 1 then
+    local elements = uci_helper.get_from_uci({ config = 'network', sectionname = active_client_iface, option = "addresses", extended = true })
+    if type(elements) == "table" then
+      local address
+      for _,address in pairs(elements) do
+        if address ~= "" then
+          local opt
+          if find(address, ":") then
+            opt = 6
+          else
+            opt = 4
+          end
+          if ip_cache[opt].interface ~= active_client_iface then
+            if ip_cache[opt].interface ~= "" then
+              ip_cache[opt].address = ""
+              ip_cache[opt].checked = 0
+            end
+            ip_cache[opt].interface = active_client_iface
+          end
+        end
+      end
+    end
+  else
+    ip_cache[4].interface = ""
+    ip_cache[4].address = ""
+    ip_cache[4].checked = 0
+    ip_cache[4].interface = ""
+    ip_cache[6].address = ""
+    ip_cache[6].checked = 0
+  end
+
+  return wg_cache.summary, wg_cache.details 
+end
+
+local GUI_WG_ = {
+  objectType = {
+    name = "rpc.gui.wireguard.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = { 
+      interface_count = {
+        access = "readOnly",
+        type = "int"
+      },
+      server_peers = {
+        access = "readOnly",
+        type = "int"
+      },
+      server_rx_bytes = {
+        access = "readOnly",
+        type = "int"
+      },
+      server_tx_bytes = {
+        access = "readOnly",
+        type = "int"
+      },
+      server_active_peers = {
+        access = "readOnly",
+        type = "int"
+      },
+      server_interface_count = {
+        access = "readOnly",
+        type = "int"
+      },
+      server_interfaces = {
+        access = "readOnly",
+        type = "string"
+      },
+      client_peers = {
+        access = "readOnly",
+        type = "int"
+      },
+      client_rx_bytes = {
+        access = "readOnly",
+        type = "int"
+      },
+      client_tx_bytes = {
+        access = "readOnly",
+        type = "int"
+      },
+      client_active_peers = {
+        access = "readOnly",
+        type = "int"
+      },
+      client_interface_count = {
+        access = "readOnly",
+        type = "int"
+      },
+      client_interfaces = {
+        access = "readOnly",
+        type = "string"
+      },
+      external_ipv4_address = {
+        access = "readOnly",
+        type = "string"
+      },
+      external_ipv6_address = {
+        access = "readOnly",
+        type = "string"
+      },
+    },
+  }
+}
+
+GUI_WG_.get = function(mapping, param)
+  if param == "external_ipv4_address" then
+    return getExternalIPAddress(4)
+  elseif param == "external_ipv6_address" then
+    return getExternalIPAddress(6)
+  else
+    local summary = wgShowAllDump()
+    local value = summary[param]
+    if not value then
+      return ""
+    elseif type(value) == "table" then
+      return table.concat(value, " ")
+    else
+      return tostring(value)
+    end
+  end
+end
+
+register(GUI_WG_)
+
+local GUI_WG_IFACE_ = {
+  objectType = {
+    name = "rpc.gui.wireguard.interface.@.",
+    access = "readOnly",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = { 
+      interface = {
+        access = "readOnly",
+        type = "string"
+      },
+      private_key = {
+        access = "readOnly",
+        type = "string"
+      },
+      public_key = {
+        access = "readOnly",
+        type = "string"
+      },
+      listen_port = {
+        access = "readOnly",
+        type = "unsignedInt"
+      },
+      fwmark = {
+        access = "readOnly",
+        type = "string"
+      },
+    },
+  },
+}
+
+GUI_WG_IFACE_.entries = function(mapping)
+  local _, details = wgShowAllDump()
+  local keys = {}
+  local key
+  for key in pairs(details) do
+    keys[#keys+1] = key
+  end
+  return keys
+end
+
+GUI_WG_IFACE_.get = function(mapping, param, key)
+  local _, details = wgShowAllDump()
+  return details[key][param] or ""
+end
+
+register(GUI_WG_IFACE_)
+
+local GUI_WG_IFACE_PEER_ = {
+  objectType = {
+    name = "rpc.gui.wireguard.interface.@.peer.{i}.",
+    access = "readOnly",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = { 
+      interface = {
+        access = "readOnly",
+        type = "string"
+      },
+      public_key = {
+        access = "readOnly",
+        type = "string"
+      },
+      preshared_key = {
+        access = "readOnly",
+        type = "string"
+      },
+      endpoint_host = {
+        access = "readOnly",
+        type = "string"
+      },
+      endpoint_port = {
+        access = "readOnly",
+        type = "unsignedInt"
+      },
+      allowed_ips = {
+        access = "readOnly",
+        type = "string"
+      },
+      latest_handshake = {
+        access = "readOnly",
+        type = "int"
+      },
+      transfer_rx = {
+        access = "readOnly",
+        type = "unsignedInt"
+      },
+      transfer_tx = {
+        access = "readOnly",
+        type = "unsignedInt"
+      },
+      persistent_keepalive = {
+        access = "readOnly",
+        type = "unsignedInt"
+      },
+      active = {
+        access = "readOnly",
+        type = "boolean"
+      },
+    },
+  },
+}
+
+GUI_WG_IFACE_PEER_.entries = function(mapping, parentkey)
+  local _, details = wgShowAllDump()
+  local iface = details[parentkey] or {}
+  local peers = iface["peers"] or {}
+  local keys = {}
+  local key
+  for key in pairs(peers) do
+    keys[#keys + 1] = format("%s|%d", parentkey, key)
+  end
+  return keys
+end
+
+GUI_WG_IFACE_PEER_.get = function(mapping, param, key, parentkey)
+  local _, details = wgShowAllDump()
+  local iface = details[parentkey] or {}
+  local peers = iface["peers"] or {}
+  local index = tonumber(match(key, "|(%d+)$"))
+  return peers[index][param] or ""
+end
+
+register(GUI_WG_IFACE_PEER_)
+RPC
+  cat <<"UCI" > /usr/share/transformer/mappings/uci/wireguard.map
+local lfs = require("lfs")
+local logger = require("tch.logger")
+local log = logger.new("uci.wireguard.interface", 4)
+local uci_helper = mapper("ucihelper")
+local commitapply = commitapply
+
+local format, gmatch, match = string.format, string.gmatch, string.match
+
+local function _changed(ifname)
+  if ifname and ifname ~= "" then
+    os.execute("{ flock -x 3; echo '"..ifname.."'>>/tmp/.wg_uci_modified_ifnames; } 3>/var/lock/uci.wireguard.lock")
+  end
+end
+
+local function _keys(option, parentkey)
+  local keys = {}
+  local elements = uci_helper.get_from_uci({config = 'network', sectionname = parentkey, option = option, extended = true })
+  if elements and type(elements) == "table" then
+    local index 
+    for index = 1, #elements do
+      keys[#keys+1] = format("%s|%d", parentkey, index)
+    end
+  end
+  return keys
+end
+
+local function _elements(option, parentkey)
+  local binding = {config = 'network', sectionname = parentkey, option = option, extended = true }
+  return uci_helper.get_from_uci(binding), binding
+end
+
+local function _get(option, param, key, parentkey)
+  local binding = {config = 'network', sectionname = parentkey, option = option, extended = true }
+  local elements = uci_helper.get_from_uci(binding)
+  local index = tonumber(match(key, "|(%d+)$"))
+  return elements[index] or ""
+end
+
+local function _set(option, param, value, key, parentkey)
+  local elements, binding = _elements(option, parentkey)
+  local index = tonumber(match(key, "|(%d+)$"))
+  if elements[index] then
+    elements[index] = value
+    uci_helper.set_on_uci(binding, elements, commitapply)
+    _changed(binding.sectionname)
+    return true
+  end
+  uci_helper.revert()
+  return nil, format("Cannot set value of key %d - does not exist.", index)
+end
+
+local function _add(option, name, parentkey)
+  if name then
+    return nil, "Add with given name is not supported."
+  end
+  local elements, binding = _elements(option)
+  local index = #elements + 1
+  elements[index] = ""
+  uci_helper.set_on_uci(binding, elements, commitapply)
+  _changed(binding.sectionname)
+  return format("%s|%d", parentkey, index)
+end
+
+local function _delete(option, key, parentkey)
+  local elements, binding = _elements(option, parentkey)
+  local index = tonumber(match(key, "|(%d+)$"))
+  if index > #elements then
+    return nil, format("Cannot delete key %d - does not exist.", index)
+  end
+  table.remove(elements, index)
+  if #elements > 0 then
+    uci_helper.set_on_uci(binding, elements, commitapply)
+  else
+    uci_helper.delete_on_uci(binding, commitapply)
+  end
+  uci_helper.commit(binding)
+  _changed(binding.sectionname)
+  return true
+end
+
+local function _getAndJoin(option, key)
+  local elements = _elements(option, key)
+  if type(elements) == "table" then
+    return table.concat(elements, ",")
+  elseif type(elements) == "string" then
+    return elements
+  end
+  return ""
+end
+
+local function _splitAndSet(option, value, key)
+  local binding = {config = 'network', sectionname = key, option = option, extended = true }
+  local elements = {}
+  local v 
+  for v in gmatch(value, "([^,]+)") do
+    elements[#elements+1] = v
+  end
+  if #elements > 0 then
+    uci_helper.set_on_uci(binding, elements, commitapply)
+  else
+    uci_helper.delete_on_uci(binding, commitapply)
+  end
+  uci_helper.commit(binding)
+  _changed(binding.sectionname)
+  return true
+end
+
+local function _commit()
+  uci_helper.commit({ config = 'network' })
+  commitapply:newset("wireguard")
+end
+
+local function _revert()
+  commitapply:newset("wireguard")
+end
+
+local WG_IFACE_i_ = {
+  objectType = {
+    name = "uci.wireguard.@.",
+    access = "readWrite",
+    minEntries = 0,
+    maxEntries = math.huge,
+    numEntriesParameter = "interface_count",
+    parameters = {
+      private_key = {
+        access = "readWrite",
+        type = "string",
+      },
+      listen_port = {
+        access = "readWrite",
+        type = "unsignedInt",
+      },
+      mtu = {
+        access = "readWrite",
+        type = "unsignedInt",
+      },
+      fwmark = {
+        access = "readWrite",
+        type = "string",
+      },
+      ip6prefix = {
+        access = "readWrite",
+        type = "string",
+      },
+      nohostroute = {
+        access = "readWrite",
+        type = "boolean",
+      },
+      tunlink = {
+        access = "readWrite",
+        type = "string",
+      },
+      log_level = {
+        access = "readWrite",
+        type = "string",
+      },
+      ipv6 = {
+        access = "readWrite",
+        type = "boolean",
+      },
+      enabled = {
+        access = "readWrite",
+        type = "boolean",
+      },
+      addresses = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+WG_IFACE_i_.entries = function(mapping)
+  local keys = {}
+  uci_helper.foreach_on_uci({ config = 'network', sectionname = 'interface' }, function(s)
+    if s.proto == "wireguard" then
+      keys[#keys+1] = s.ifname or s[".name"]
+    end
+  end)
+  return keys
+end
+
+WG_IFACE_i_.get = function(mapping, param, key)
+  if param == "addresses" then
+    return _getAndJoin("addresses", key)
+  end
+  return uci_helper.get_from_uci({ config = 'network', sectionname = key, option = param, extended = true }) or ""
+end
+
+WG_IFACE_i_.set = function(mapping, param, value, key)
+  if param == "addresses" then
+    return _splitAndSet("addresses", value, key)
+  end
+  local binding = { config = 'network', sectionname = key, option = param, extended = true }
+  uci_helper.set_on_uci(binding, value, commitapply)
+  _changed(binding.sectionname)
+  return true
+end
+
+WG_IFACE_i_.add = function(mapping, name)
+  if not name or name == "" then
+    return nil, 'No interface name specified'
+  end
+  if uci_helper.get_from_uci({ config = 'network', sectionname = name, extended = true }) ~= "" then
+    return nil, 'Failed to add "'..name..'" - name already in use'
+  end
+  local binding = { config = 'network', sectionname = 'interface' }
+  local temp, errmsg = uci_helper.add_on_uci(binding, commitapply)
+  if not temp then
+    uci_helper.revert(binding)
+    return nil, errmsg
+  end
+  binding = { config = 'network', sectionname = temp, extended = true }
+  uci_helper.rename_on_uci(binding, name, commitapply)
+  binding.sectionname = name
+  binding.option = "proto"
+  uci_helper.set_on_uci(binding, "wireguard", commitapply)
+  binding.option = "enabled"
+  uci_helper.set_on_uci(binding, "0", commitapply)
+  _changed(binding.sectionname)
+  return name
+end
+
+WG_IFACE_i_.delete = function(mapping, key)
+  local binding = { config = 'network', sectionname = key, extended = true }
+  uci_helper.delete_on_uci(binding, commitapply)
+  _changed(binding.sectionname)
+  return true
+end
+
+WG_IFACE_i_.commit = _commit
+WG_IFACE_i_.revert = _revert
+
+register(WG_IFACE_i_)
+
+local WG_IFACE_ADDR_i_ = {
+  objectType = {
+    name = "uci.wireguard.@.address.{i}.",
+    access = "readWrite",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      value = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+WG_IFACE_ADDR_i_.entries = function(mapping, parentkey)
+  return _keys("addresses", parentkey)
+end
+
+WG_IFACE_ADDR_i_.get = function(mapping, param, key, parentkey)
+  return _get("addresses", param, key, parentkey)
+end
+
+WG_IFACE_ADDR_i_.set = function(mapping, param, value, key, parentkey)
+  return _get("addresses", param, value, key, parentkey)
+end
+
+WG_IFACE_ADDR_i_.add = function(mapping, key, parentkey)
+  return _add("addresses", key, parentkey)
+end
+
+WG_IFACE_ADDR_i_.delete = function(mapping, key, parentkey)
+  return _delete("addresses", key, parentkey)
+end
+
+WG_IFACE_ADDR_i_.commit = _commit
+WG_IFACE_ADDR_i_.revert = _revert
+
+register(WG_IFACE_ADDR_i_)
+
+local WG_PEER_i_ = {
+  objectType = {
+    name = "uci.wireguard.@.peer.@.",
+    access = "readWrite",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      public_key = {
+        access = "readWrite",
+        type = "string",
+      },
+      preshared_key = {
+        access = "readWrite",
+        type = "string",
+      },
+      route_allowed_ips = {
+        access = "readWrite",
+        type = "boolean",
+      },
+      endpoint_host = {
+        access = "readWrite",
+        type = "string",
+      },
+      endpoint_port = {
+        access = "readWrite",
+        type = "unsignedInt",
+      },
+      persistent_keepalive = {
+        access = "readWrite",
+        type = "unsignedInt",
+      },
+      allowed_ips = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+WG_PEER_i_.entries = function(mapping, parentkey)
+  local keys = {}
+  local iface = "wireguard_"..parentkey
+  uci_helper.foreach_on_uci({ config = 'network' }, function(s)
+    if s[".type"] == iface then
+      keys[#keys+1] = s[".name"]
+    end
+  end)
+  return keys
+end
+
+WG_PEER_i_.get = function(mapping, param, key)
+  if param == "allowed_ips" then
+    return _getAndJoin("allowed_ips", key)
+  end
+  return uci_helper.get_from_uci({ config = 'network', sectionname = key, option = param, extended = true }) or ""
+end
+
+WG_PEER_i_.set = function(mapping, param, value, key, parentkey)
+  if param == "allowed_ips" then
+    return _splitAndSet("allowed_ips", value, key)
+  end
+  local binding = { config = 'network', sectionname = key, option = param, extended = true }
+  uci_helper.set_on_uci(binding, value, commitapply)
+  uci_helper.commit(binding)
+  _changed(parentkey)
+  return true
+end
+
+WG_PEER_i_.add = function(mapping, name, parentkey)
+  if not parentkey or parentkey == "" then
+    return nil, 'No parent interface specified'
+  end
+  if not name or name == "" then
+    return nil, 'No peer name specified'
+  end
+  if uci_helper.get_from_uci({ config = 'network', sectionname = name, extended = true }) ~= "" then
+    return nil, 'Failed to add peer "'..name..'" - name already in use'
+  end
+  local proto = uci_helper.get_from_uci({ config = 'network', sectionname = parentkey, option = "proto", extended = true })
+  if proto == "wireguard" then
+    local binding = { config = 'network', sectionname = "wireguard_"..parentkey }
+    local temp, errmsg = uci_helper.add_on_uci(binding, commitapply)
+    if not temp then
+      uci_helper.revert(binding)
+      return nil, errmsg
+    end
+    binding = { config = 'network', sectionname = temp, extended = true }
+    uci_helper.rename_on_uci(binding, name, commitapply)
+    uci_helper.commit(binding)
+    _changed(parentkey)
+    return name
+  end
+  return nil, "'"..parentkey.."' is not a WireGuard interface."
+end
+
+WG_PEER_i_.delete = function(mapping, key, parentkey)
+  local binding = { config = 'network', sectionname = key, extended = true }
+  uci_helper.delete_on_uci(binding, commitapply)
+  uci_helper.commit(binding)
+  _changed(parentkey)
+  return true
+end
+
+WG_PEER_i_.commit = _commit
+WG_PEER_i_.revert = _revert
+
+register(WG_PEER_i_)
+
+local WG_PEER_IP_i_ = {
+  objectType = {
+    name = "uci.wireguard.@.peer.@.allowed_ip.{i}.",
+    access = "readWrite",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      value = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+WG_PEER_IP_i_.entries = function(mapping, parentkey)
+  return _keys("allowed_ips", parentkey)
+end
+
+WG_PEER_IP_i_.get = function(mapping, param, key, parentkey)
+  return _get("allowed_ips", param, key, parentkey)
+end
+
+WG_PEER_IP_i_.set = function(mapping, param, value, key, parentkey)
+  return _set("allowed_ips", param, value, key, parentkey)
+end
+
+WG_PEER_IP_i_.add = function(mapping, key, parentkey)
+  return _add("allowed_ips", key, parentkey)
+end
+
+WG_PEER_IP_i_.delete = function(mapping, key, parentkey)
+  return _delete("allowed_ips", key, parentkey)
+end
+
+WG_PEER_IP_i_.commit = _commit
+WG_PEER_IP_i_.revert = _revert
+
+register(WG_PEER_IP_i_)
+UCI
+  cat <<"SH" > /usr/share/transformer/scripts/reload_wireguard.sh
+#!/bin/sh
+
+. $IPKG_INSTROOT/lib/functions.sh
+. $IPKG_INSTROOT/lib/functions/network.sh
+
+[ -e /tmp/reload_wireguard.debug ] && DEBUG=y
+
+handle_interface() {
+  local interface="$1"
+
+  config_get proto $interface proto
+  config_get enabled $interface enabled
+
+  if [ "{$proto}" = "{wireguard}" ]; then
+    if /bin/grep -qE "^${interface}$" /tmp/.wg_uci_modified_ifnames; then
+      [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: FOUND $interface in /tmp/.wg_uci_modified_ifnames [enabled=$enabled]"
+      /bin/sed -e "/^${interface}$/d" -i /tmp/.wg_uci_modified_ifnames
+      /sbin/ifdown $interface
+      [ "{$enabled}" != "{0}" ] && ifup $interface
+    else
+      [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: SKIPPED $interface [enabled=$enabled]"
+    fi
+  fi
+}
+
+{
+  /usr/bin/flock -x 3
+
+  config_load network
+  config_foreach handle_interface interface
+
+  # Anything left must have been deleted
+  for interface in $(/bin/cat /tmp/.wg_uci_modified_ifnames | sort -u); do
+    [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard: FOUND $interface in /tmp/.wg_uci_modified_ifnames but not in /etc/config/network"
+    /bin/sed -e "/^${interface}$/d" -i /tmp/.wg_uci_modified_ifnames
+    /sbin/ifdown $interface
+  done
+} 3>/var/lock/uci.wireguard.lock
+
+exit 0
+SH
+  cat <<"CRD" > /www/cards/004_WireGuard.lp
+--pretranslated: do not change this file
+
+-- Enable localization
+gettext.textdomain('webui-core')
+
+local wireguard_helper = require("wireguard_helper")
+local ui_helper = require("web.ui_helper")
+local session = ngx.ctx.session
+local modalPath = "/modals/wireguard-modal.lp"
+
+if session:hasAccess(modalPath) then
+  local html = wireguard_helper.getWireguardCardHTML()
+  ngx.print('\
+  <div class="span3">\
+    <div class="smallcard">\
+      '); ngx.print(ui_helper.createCardHeader(T"WireGuard",modalPath)); ngx.print('\
+      <div class="content">\
+        <div style="position:absolute;z-index:0;bottom:5px;right:5px;height:95px;width:95px;visibility:var(--ICONS);">\
+          <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 65 65" fill="#fff" fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round">\
+            <use xlink:href="#A" x=".5" y=".5" />\
+            <symbol id="A" overflow="visible">\
+              <path d="M63.945 31.053S65.425 0 31.297 0C1.115 0 .172 29.788.172 29.788S-4.268 64 31.992 64c34.777 0 31.953-32.947 31.953-32.947zm-42.197-10.85c6.404-3.918 14.585-1.523 17.65 4.368.58 1.117.655 2.835.287 4.007-1.27 4.044-4.27 6.312-8.386 7.275 1.214-1.04 2.18-2.217 2.487-3.845a5.63 5.63 0 0 0-.969-4.471 5.71 5.71 0 0 0-6.573-2.003c-2.535.962-3.923 3.275-3.673 6.12.232 2.64 2.237 4.353 5.986 5.003l-1.414.75c-1.718.94-3.212 2.24-4.383 3.812-.38.514-.642.555-1.222.2-7.54-4.6-8.023-16.18.2-21.216zM16.106 48.69c-1.2.307-2.385.762-3.623 1.17.606-4.085 5.4-7.848 9.436-7.42a10.43 10.43 0 0 0-1.972 5.524c-1.344.248-2.6.414-3.84.726zM41.874 8.8c1.197.044 2.396.026 3.593.054a6.19 6.19 0 0 1 .889.124 9.42 9.42 0 0 1-.904 1.16c-.428.4-.912.8-1.53.183-.148-.146-.5-.112-.757-.116-1.2-.016-2.383-.054-3.572-.01-1.032.033-2.06.138-3.077.314-.2.034-.476.668-.388.902.207.552.508 1.16.955 1.512 1.65 1.303 3.407 2.474 5.066 3.768 1.612 1.258 3.112 2.636 4.027 4.534 1.2 2.473 1.226 5.065.712 7.67-.858 4.347-3.058 7.95-6.62 10.565-1.435 1.054-3.213 1.652-4.857 2.4-1.446.666-2.934 1.24-4.384 1.9-2.613 1.188-4.082 4.024-3.65 6.973.396 2.706 2.77 4.964 5.5 5.43 3.262.56 6.628-1.56 7.426-4.877.897-3.73-1.128-7.058-4.92-8.067l-.683-.176c1.014-.453 1.9-.776 2.7-1.22q2.117-1.165 4.156-2.467c.4-.256.616-.256.957.04 2.608 2.255 4.164 5.06 4.6 8.5.722 5.693-1.973 10.922-7.055 13.602-7.863 4.147-17.486-.573-19.222-9.3-1.488-7.467 3.782-14.24 10.125-15.548 2.728-.562 5.222-1.698 7.162-3.8 1.25-1.356 1.858-2.52 2.064-3.043a8.44 8.44 0 0 0 .58-3.087 7.23 7.23 0 0 0-.633-2.645c-.662-1.5-3.2-3.9-3.827-4.417l-5.973-4.676c-.2-.173-.448-.16-.962-.126-.6.04-2.17.128-2.844-.05.545-.412 2.03-1.012 2.667-1.495-1.936-1.308-4.145-.835-6.174-1.226.47-.874 2.8-2.217 4.1-2.366-.078-.737-.198-1.469-.36-2.193-.08-.297-.412-.585-.7-.754-.7-.4-1.444-.75-2.25-1.16a4.68 4.68 0 0 1 2.417-.748c.814-.03 1.628.048 2.42.236 1.438.33 2.586.114 3.73-.864-.9-.363-1.8-.694-2.675-1.086-.857-.389-1.693-.825-2.503-1.304 2.266.315 4.458 1.164 6.775.854q.03-.158.06-.316l-5.4-1.244c3.21-.293 6.195-.342 9.025 1.036.796.388 1.63.7 2.392 1.15.372.216.623.642.928.973.242.263.437.615.735.774 1.13.6 2.375.625 3.643.595l.028-.425c1.276.4 2.712 1.87 2.7 2.945-2.067 0-4.133-.008-6.2.01-.22.002-.44.163-.66.25.2.122.414.34.628.35zm-2.667-3.06c-.085.053-.14.143-.147.243a.32.32 0 0 0 .107.263.48.48 0 0 0 .29.225c.122.033.254.015.364-.05l.635-.334-.5-.434c-.28-.232-.514-.086-.74.087z"\
+                    stroke="none" fill="var(--RGB_SYM)" fill-rule="nonzero" />\
+            </symbol>\
+          </svg>\
+        </div>\
+        <div class="wireguard-card-content">\
+        ');
+        ngx.print(html);
+        ngx.print('\
+        </div>\
+      </div>\
+    </div>\
+  </div>\
+  <script>\
+  var wireguardFuncID;\
+  function updateWireguardCard(){\
+    $.post("/ajax/wireguard-status.lua", [tch.elementCSRFtoken()], function(data){\
+      $(".wireguard-card-content").html(data["html"]);\
+    }, "json")\
+    .fail(function(response){\
+      if(response.status==403||response.status==404){clearInterval(wireguardFuncID);}\
+    });\
+  }\
+  $().ready(function(){wireguardFuncID=setInterval(updateWireguardCard,15000);});\
+  </script>\
+');
+end
+CRD
+  cat <<"AJX" > /www/docroot/ajax/wireguard-status.lua
+local json = require("dkjson")
+local ipsec_helper = require("wireguard_helper")
+local html = ipsec_helper.getWireguardCardHTML()
+
+local data = {
+  html = table.concat(html, "\n"),
+}
+
+local buffer = {}
+if json.encode (data, { indent = false, buffer = buffer }) then
+  ngx.say(buffer)
+else
+  ngx.say("{}")
+end
+ngx.exit(ngx.HTTP_OK)
+AJX
+  cat <<"ZIP" > /www/docroot/js/jszip.min.js
+/*!
+
+JSZip v3.7.1 - A JavaScript class for generating and reading zip files
+<http://stuartk.com/jszip>
+
+(c) 2009-2016 Stuart Knightley <stuart [at] stuartk.com>
+Dual licenced under the MIT license or GPLv3. See https://raw.github.com/Stuk/jszip/master/LICENSE.markdown.
+
+JSZip uses the library pako released under the MIT license :
+https://github.com/nodeca/pako/blob/master/LICENSE
+*/
+
+!function(t){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=t();else if("function"==typeof define&&define.amd)define([],t);else{("undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:this).JSZip=t()}}(function(){return function s(a,o,h){function u(r,t){if(!o[r]){if(!a[r]){var e="function"==typeof require&&require;if(!t&&e)return e(r,!0);if(l)return l(r,!0);var i=new Error("Cannot find module '"+r+"'");throw i.code="MODULE_NOT_FOUND",i}var n=o[r]={exports:{}};a[r][0].call(n.exports,function(t){var e=a[r][1][t];return u(e||t)},n,n.exports,s,a,o,h)}return o[r].exports}for(var l="function"==typeof require&&require,t=0;t<h.length;t++)u(h[t]);return u}({1:[function(t,e,r){"use strict";var c=t("./utils"),d=t("./support"),p="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";r.encode=function(t){for(var e,r,i,n,s,a,o,h=[],u=0,l=t.length,f=l,d="string"!==c.getTypeOf(t);u<t.length;)f=l-u,i=d?(e=t[u++],r=u<l?t[u++]:0,u<l?t[u++]:0):(e=t.charCodeAt(u++),r=u<l?t.charCodeAt(u++):0,u<l?t.charCodeAt(u++):0),n=e>>2,s=(3&e)<<4|r>>4,a=1<f?(15&r)<<2|i>>6:64,o=2<f?63&i:64,h.push(p.charAt(n)+p.charAt(s)+p.charAt(a)+p.charAt(o));return h.join("")},r.decode=function(t){var e,r,i,n,s,a,o=0,h=0,u="data:";if(t.substr(0,u.length)===u)throw new Error("Invalid base64 input, it looks like a data url.");var l,f=3*(t=t.replace(/[^A-Za-z0-9\+\/\=]/g,"")).length/4;if(t.charAt(t.length-1)===p.charAt(64)&&f--,t.charAt(t.length-2)===p.charAt(64)&&f--,f%1!=0)throw new Error("Invalid base64 input, bad content length.");for(l=d.uint8array?new Uint8Array(0|f):new Array(0|f);o<t.length;)e=p.indexOf(t.charAt(o++))<<2|(n=p.indexOf(t.charAt(o++)))>>4,r=(15&n)<<4|(s=p.indexOf(t.charAt(o++)))>>2,i=(3&s)<<6|(a=p.indexOf(t.charAt(o++))),l[h++]=e,64!==s&&(l[h++]=r),64!==a&&(l[h++]=i);return l}},{"./support":30,"./utils":32}],2:[function(t,e,r){"use strict";var i=t("./external"),n=t("./stream/DataWorker"),s=t("./stream/Crc32Probe"),a=t("./stream/DataLengthProbe");function o(t,e,r,i,n){this.compressedSize=t,this.uncompressedSize=e,this.crc32=r,this.compression=i,this.compressedContent=n}o.prototype={getContentWorker:function(){var t=new n(i.Promise.resolve(this.compressedContent)).pipe(this.compression.uncompressWorker()).pipe(new a("data_length")),e=this;return t.on("end",function(){if(this.streamInfo.data_length!==e.uncompressedSize)throw new Error("Bug : uncompressed data size mismatch")}),t},getCompressedWorker:function(){return new n(i.Promise.resolve(this.compressedContent)).withStreamInfo("compressedSize",this.compressedSize).withStreamInfo("uncompressedSize",this.uncompressedSize).withStreamInfo("crc32",this.crc32).withStreamInfo("compression",this.compression)}},o.createWorkerFrom=function(t,e,r){return t.pipe(new s).pipe(new a("uncompressedSize")).pipe(e.compressWorker(r)).pipe(new a("compressedSize")).withStreamInfo("compression",e)},e.exports=o},{"./external":6,"./stream/Crc32Probe":25,"./stream/DataLengthProbe":26,"./stream/DataWorker":27}],3:[function(t,e,r){"use strict";var i=t("./stream/GenericWorker");r.STORE={magic:"\0\0",compressWorker:function(t){return new i("STORE compression")},uncompressWorker:function(){return new i("STORE decompression")}},r.DEFLATE=t("./flate")},{"./flate":7,"./stream/GenericWorker":28}],4:[function(t,e,r){"use strict";var i=t("./utils");var o=function(){for(var t,e=[],r=0;r<256;r++){t=r;for(var i=0;i<8;i++)t=1&t?3988292384^t>>>1:t>>>1;e[r]=t}return e}();e.exports=function(t,e){return void 0!==t&&t.length?"string"!==i.getTypeOf(t)?function(t,e,r,i){var n=o,s=i+r;t^=-1;for(var a=i;a<s;a++)t=t>>>8^n[255&(t^e[a])];return-1^t}(0|e,t,t.length,0):function(t,e,r,i){var n=o,s=i+r;t^=-1;for(var a=i;a<s;a++)t=t>>>8^n[255&(t^e.charCodeAt(a))];return-1^t}(0|e,t,t.length,0):0}},{"./utils":32}],5:[function(t,e,r){"use strict";r.base64=!1,r.binary=!1,r.dir=!1,r.createFolders=!0,r.date=null,r.compression=null,r.compressionOptions=null,r.comment=null,r.unixPermissions=null,r.dosPermissions=null},{}],6:[function(t,e,r){"use strict";var i=null;i="undefined"!=typeof Promise?Promise:t("lie"),e.exports={Promise:i}},{lie:37}],7:[function(t,e,r){"use strict";var i="undefined"!=typeof Uint8Array&&"undefined"!=typeof Uint16Array&&"undefined"!=typeof Uint32Array,n=t("pako"),s=t("./utils"),a=t("./stream/GenericWorker"),o=i?"uint8array":"array";function h(t,e){a.call(this,"FlateWorker/"+t),this._pako=null,this._pakoAction=t,this._pakoOptions=e,this.meta={}}r.magic="\b\0",s.inherits(h,a),h.prototype.processChunk=function(t){this.meta=t.meta,null===this._pako&&this._createPako(),this._pako.push(s.transformTo(o,t.data),!1)},h.prototype.flush=function(){a.prototype.flush.call(this),null===this._pako&&this._createPako(),this._pako.push([],!0)},h.prototype.cleanUp=function(){a.prototype.cleanUp.call(this),this._pako=null},h.prototype._createPako=function(){this._pako=new n[this._pakoAction]({raw:!0,level:this._pakoOptions.level||-1});var e=this;this._pako.onData=function(t){e.push({data:t,meta:e.meta})}},r.compressWorker=function(t){return new h("Deflate",t)},r.uncompressWorker=function(){return new h("Inflate",{})}},{"./stream/GenericWorker":28,"./utils":32,pako:38}],8:[function(t,e,r){"use strict";function A(t,e){var r,i="";for(r=0;r<e;r++)i+=String.fromCharCode(255&t),t>>>=8;return i}function i(t,e,r,i,n,s){var a,o,h=t.file,u=t.compression,l=s!==O.utf8encode,f=I.transformTo("string",s(h.name)),d=I.transformTo("string",O.utf8encode(h.name)),c=h.comment,p=I.transformTo("string",s(c)),m=I.transformTo("string",O.utf8encode(c)),_=d.length!==h.name.length,g=m.length!==c.length,b="",v="",y="",w=h.dir,k=h.date,x={crc32:0,compressedSize:0,uncompressedSize:0};e&&!r||(x.crc32=t.crc32,x.compressedSize=t.compressedSize,x.uncompressedSize=t.uncompressedSize);var S=0;e&&(S|=8),l||!_&&!g||(S|=2048);var z=0,C=0;w&&(z|=16),"UNIX"===n?(C=798,z|=function(t,e){var r=t;return t||(r=e?16893:33204),(65535&r)<<16}(h.unixPermissions,w)):(C=20,z|=function(t){return 63&(t||0)}(h.dosPermissions)),a=k.getUTCHours(),a<<=6,a|=k.getUTCMinutes(),a<<=5,a|=k.getUTCSeconds()/2,o=k.getUTCFullYear()-1980,o<<=4,o|=k.getUTCMonth()+1,o<<=5,o|=k.getUTCDate(),_&&(v=A(1,1)+A(B(f),4)+d,b+="up"+A(v.length,2)+v),g&&(y=A(1,1)+A(B(p),4)+m,b+="uc"+A(y.length,2)+y);var E="";return E+="\n\0",E+=A(S,2),E+=u.magic,E+=A(a,2),E+=A(o,2),E+=A(x.crc32,4),E+=A(x.compressedSize,4),E+=A(x.uncompressedSize,4),E+=A(f.length,2),E+=A(b.length,2),{fileRecord:R.LOCAL_FILE_HEADER+E+f+b,dirRecord:R.CENTRAL_FILE_HEADER+A(C,2)+E+A(p.length,2)+"\0\0\0\0"+A(z,4)+A(i,4)+f+b+p}}var I=t("../utils"),n=t("../stream/GenericWorker"),O=t("../utf8"),B=t("../crc32"),R=t("../signature");function s(t,e,r,i){n.call(this,"ZipFileWorker"),this.bytesWritten=0,this.zipComment=e,this.zipPlatform=r,this.encodeFileName=i,this.streamFiles=t,this.accumulate=!1,this.contentBuffer=[],this.dirRecords=[],this.currentSourceOffset=0,this.entriesCount=0,this.currentFile=null,this._sources=[]}I.inherits(s,n),s.prototype.push=function(t){var e=t.meta.percent||0,r=this.entriesCount,i=this._sources.length;this.accumulate?this.contentBuffer.push(t):(this.bytesWritten+=t.data.length,n.prototype.push.call(this,{data:t.data,meta:{currentFile:this.currentFile,percent:r?(e+100*(r-i-1))/r:100}}))},s.prototype.openedSource=function(t){this.currentSourceOffset=this.bytesWritten,this.currentFile=t.file.name;var e=this.streamFiles&&!t.file.dir;if(e){var r=i(t,e,!1,this.currentSourceOffset,this.zipPlatform,this.encodeFileName);this.push({data:r.fileRecord,meta:{percent:0}})}else this.accumulate=!0},s.prototype.closedSource=function(t){this.accumulate=!1;var e=this.streamFiles&&!t.file.dir,r=i(t,e,!0,this.currentSourceOffset,this.zipPlatform,this.encodeFileName);if(this.dirRecords.push(r.dirRecord),e)this.push({data:function(t){return R.DATA_DESCRIPTOR+A(t.crc32,4)+A(t.compressedSize,4)+A(t.uncompressedSize,4)}(t),meta:{percent:100}});else for(this.push({data:r.fileRecord,meta:{percent:0}});this.contentBuffer.length;)this.push(this.contentBuffer.shift());this.currentFile=null},s.prototype.flush=function(){for(var t=this.bytesWritten,e=0;e<this.dirRecords.length;e++)this.push({data:this.dirRecords[e],meta:{percent:100}});var r=this.bytesWritten-t,i=function(t,e,r,i,n){var s=I.transformTo("string",n(i));return R.CENTRAL_DIRECTORY_END+"\0\0\0\0"+A(t,2)+A(t,2)+A(e,4)+A(r,4)+A(s.length,2)+s}(this.dirRecords.length,r,t,this.zipComment,this.encodeFileName);this.push({data:i,meta:{percent:100}})},s.prototype.prepareNextSource=function(){this.previous=this._sources.shift(),this.openedSource(this.previous.streamInfo),this.isPaused?this.previous.pause():this.previous.resume()},s.prototype.registerPrevious=function(t){this._sources.push(t);var e=this;return t.on("data",function(t){e.processChunk(t)}),t.on("end",function(){e.closedSource(e.previous.streamInfo),e._sources.length?e.prepareNextSource():e.end()}),t.on("error",function(t){e.error(t)}),this},s.prototype.resume=function(){return!!n.prototype.resume.call(this)&&(!this.previous&&this._sources.length?(this.prepareNextSource(),!0):this.previous||this._sources.length||this.generatedError?void 0:(this.end(),!0))},s.prototype.error=function(t){var e=this._sources;if(!n.prototype.error.call(this,t))return!1;for(var r=0;r<e.length;r++)try{e[r].error(t)}catch(t){}return!0},s.prototype.lock=function(){n.prototype.lock.call(this);for(var t=this._sources,e=0;e<t.length;e++)t[e].lock()},e.exports=s},{"../crc32":4,"../signature":23,"../stream/GenericWorker":28,"../utf8":31,"../utils":32}],9:[function(t,e,r){"use strict";var u=t("../compressions"),i=t("./ZipFileWorker");r.generateWorker=function(t,a,e){var o=new i(a.streamFiles,e,a.platform,a.encodeFileName),h=0;try{t.forEach(function(t,e){h++;var r=function(t,e){var r=t||e,i=u[r];if(!i)throw new Error(r+" is not a valid compression method !");return i}(e.options.compression,a.compression),i=e.options.compressionOptions||a.compressionOptions||{},n=e.dir,s=e.date;e._compressWorker(r,i).withStreamInfo("file",{name:t,dir:n,date:s,comment:e.comment||"",unixPermissions:e.unixPermissions,dosPermissions:e.dosPermissions}).pipe(o)}),o.entriesCount=h}catch(t){o.error(t)}return o}},{"../compressions":3,"./ZipFileWorker":8}],10:[function(t,e,r){"use strict";function i(){if(!(this instanceof i))return new i;if(arguments.length)throw new Error("The constructor with parameters has been removed in JSZip 3.0, please check the upgrade guide.");this.files=Object.create(null),this.comment=null,this.root="",this.clone=function(){var t=new i;for(var e in this)"function"!=typeof this[e]&&(t[e]=this[e]);return t}}(i.prototype=t("./object")).loadAsync=t("./load"),i.support=t("./support"),i.defaults=t("./defaults"),i.version="3.7.1",i.loadAsync=function(t,e){return(new i).loadAsync(t,e)},i.external=t("./external"),e.exports=i},{"./defaults":5,"./external":6,"./load":11,"./object":15,"./support":30}],11:[function(t,e,r){"use strict";var i=t("./utils"),n=t("./external"),o=t("./utf8"),h=t("./zipEntries"),s=t("./stream/Crc32Probe"),u=t("./nodejsUtils");function l(i){return new n.Promise(function(t,e){var r=i.decompressed.getContentWorker().pipe(new s);r.on("error",function(t){e(t)}).on("end",function(){r.streamInfo.crc32!==i.decompressed.crc32?e(new Error("Corrupted zip : CRC32 mismatch")):t()}).resume()})}e.exports=function(t,s){var a=this;return s=i.extend(s||{},{base64:!1,checkCRC32:!1,optimizedBinaryString:!1,createFolders:!1,decodeFileName:o.utf8decode}),u.isNode&&u.isStream(t)?n.Promise.reject(new Error("JSZip can't accept a stream when loading a zip file.")):i.prepareContent("the loaded zip file",t,!0,s.optimizedBinaryString,s.base64).then(function(t){var e=new h(s);return e.load(t),e}).then(function(t){var e=[n.Promise.resolve(t)],r=t.files;if(s.checkCRC32)for(var i=0;i<r.length;i++)e.push(l(r[i]));return n.Promise.all(e)}).then(function(t){for(var e=t.shift(),r=e.files,i=0;i<r.length;i++){var n=r[i];a.file(n.fileNameStr,n.decompressed,{binary:!0,optimizedBinaryString:!0,date:n.date,dir:n.dir,comment:n.fileCommentStr.length?n.fileCommentStr:null,unixPermissions:n.unixPermissions,dosPermissions:n.dosPermissions,createFolders:s.createFolders})}return e.zipComment.length&&(a.comment=e.zipComment),a})}},{"./external":6,"./nodejsUtils":14,"./stream/Crc32Probe":25,"./utf8":31,"./utils":32,"./zipEntries":33}],12:[function(t,e,r){"use strict";var i=t("../utils"),n=t("../stream/GenericWorker");function s(t,e){n.call(this,"Nodejs stream input adapter for "+t),this._upstreamEnded=!1,this._bindStream(e)}i.inherits(s,n),s.prototype._bindStream=function(t){var e=this;(this._stream=t).pause(),t.on("data",function(t){e.push({data:t,meta:{percent:0}})}).on("error",function(t){e.isPaused?this.generatedError=t:e.error(t)}).on("end",function(){e.isPaused?e._upstreamEnded=!0:e.end()})},s.prototype.pause=function(){return!!n.prototype.pause.call(this)&&(this._stream.pause(),!0)},s.prototype.resume=function(){return!!n.prototype.resume.call(this)&&(this._upstreamEnded?this.end():this._stream.resume(),!0)},e.exports=s},{"../stream/GenericWorker":28,"../utils":32}],13:[function(t,e,r){"use strict";var n=t("readable-stream").Readable;function i(t,e,r){n.call(this,e),this._helper=t;var i=this;t.on("data",function(t,e){i.push(t)||i._helper.pause(),r&&r(e)}).on("error",function(t){i.emit("error",t)}).on("end",function(){i.push(null)})}t("../utils").inherits(i,n),i.prototype._read=function(){this._helper.resume()},e.exports=i},{"../utils":32,"readable-stream":16}],14:[function(t,e,r){"use strict";e.exports={isNode:"undefined"!=typeof Buffer,newBufferFrom:function(t,e){if(Buffer.from&&Buffer.from!==Uint8Array.from)return Buffer.from(t,e);if("number"==typeof t)throw new Error('The "data" argument must not be a number');return new Buffer(t,e)},allocBuffer:function(t){if(Buffer.alloc)return Buffer.alloc(t);var e=new Buffer(t);return e.fill(0),e},isBuffer:function(t){return Buffer.isBuffer(t)},isStream:function(t){return t&&"function"==typeof t.on&&"function"==typeof t.pause&&"function"==typeof t.resume}}},{}],15:[function(t,e,r){"use strict";function s(t,e,r){var i,n=u.getTypeOf(e),s=u.extend(r||{},f);s.date=s.date||new Date,null!==s.compression&&(s.compression=s.compression.toUpperCase()),"string"==typeof s.unixPermissions&&(s.unixPermissions=parseInt(s.unixPermissions,8)),s.unixPermissions&&16384&s.unixPermissions&&(s.dir=!0),s.dosPermissions&&16&s.dosPermissions&&(s.dir=!0),s.dir&&(t=g(t)),s.createFolders&&(i=_(t))&&b.call(this,i,!0);var a="string"===n&&!1===s.binary&&!1===s.base64;r&&void 0!==r.binary||(s.binary=!a),(e instanceof d&&0===e.uncompressedSize||s.dir||!e||0===e.length)&&(s.base64=!1,s.binary=!0,e="",s.compression="STORE",n="string");var o=null;o=e instanceof d||e instanceof l?e:p.isNode&&p.isStream(e)?new m(t,e):u.prepareContent(t,e,s.binary,s.optimizedBinaryString,s.base64);var h=new c(t,o,s);this.files[t]=h}var n=t("./utf8"),u=t("./utils"),l=t("./stream/GenericWorker"),a=t("./stream/StreamHelper"),f=t("./defaults"),d=t("./compressedObject"),c=t("./zipObject"),o=t("./generate"),p=t("./nodejsUtils"),m=t("./nodejs/NodejsStreamInputAdapter"),_=function(t){"/"===t.slice(-1)&&(t=t.substring(0,t.length-1));var e=t.lastIndexOf("/");return 0<e?t.substring(0,e):""},g=function(t){return"/"!==t.slice(-1)&&(t+="/"),t},b=function(t,e){return e=void 0!==e?e:f.createFolders,t=g(t),this.files[t]||s.call(this,t,null,{dir:!0,createFolders:e}),this.files[t]};function h(t){return"[object RegExp]"===Object.prototype.toString.call(t)}var i={load:function(){throw new Error("This method has been removed in JSZip 3.0, please check the upgrade guide.")},forEach:function(t){var e,r,i;for(e in this.files)i=this.files[e],(r=e.slice(this.root.length,e.length))&&e.slice(0,this.root.length)===this.root&&t(r,i)},filter:function(r){var i=[];return this.forEach(function(t,e){r(t,e)&&i.push(e)}),i},file:function(t,e,r){if(1!==arguments.length)return t=this.root+t,s.call(this,t,e,r),this;if(h(t)){var i=t;return this.filter(function(t,e){return!e.dir&&i.test(t)})}var n=this.files[this.root+t];return n&&!n.dir?n:null},folder:function(r){if(!r)return this;if(h(r))return this.filter(function(t,e){return e.dir&&r.test(t)});var t=this.root+r,e=b.call(this,t),i=this.clone();return i.root=e.name,i},remove:function(r){r=this.root+r;var t=this.files[r];if(t||("/"!==r.slice(-1)&&(r+="/"),t=this.files[r]),t&&!t.dir)delete this.files[r];else for(var e=this.filter(function(t,e){return e.name.slice(0,r.length)===r}),i=0;i<e.length;i++)delete this.files[e[i].name];return this},generate:function(t){throw new Error("This method has been removed in JSZip 3.0, please check the upgrade guide.")},generateInternalStream:function(t){var e,r={};try{if((r=u.extend(t||{},{streamFiles:!1,compression:"STORE",compressionOptions:null,type:"",platform:"DOS",comment:null,mimeType:"application/zip",encodeFileName:n.utf8encode})).type=r.type.toLowerCase(),r.compression=r.compression.toUpperCase(),"binarystring"===r.type&&(r.type="string"),!r.type)throw new Error("No output type specified.");u.checkSupport(r.type),"darwin"!==r.platform&&"freebsd"!==r.platform&&"linux"!==r.platform&&"sunos"!==r.platform||(r.platform="UNIX"),"win32"===r.platform&&(r.platform="DOS");var i=r.comment||this.comment||"";e=o.generateWorker(this,r,i)}catch(t){(e=new l("error")).error(t)}return new a(e,r.type||"string",r.mimeType)},generateAsync:function(t,e){return this.generateInternalStream(t).accumulate(e)},generateNodeStream:function(t,e){return(t=t||{}).type||(t.type="nodebuffer"),this.generateInternalStream(t).toNodejsStream(e)}};e.exports=i},{"./compressedObject":2,"./defaults":5,"./generate":9,"./nodejs/NodejsStreamInputAdapter":12,"./nodejsUtils":14,"./stream/GenericWorker":28,"./stream/StreamHelper":29,"./utf8":31,"./utils":32,"./zipObject":35}],16:[function(t,e,r){e.exports=t("stream")},{stream:void 0}],17:[function(t,e,r){"use strict";var i=t("./DataReader");function n(t){i.call(this,t);for(var e=0;e<this.data.length;e++)t[e]=255&t[e]}t("../utils").inherits(n,i),n.prototype.byteAt=function(t){return this.data[this.zero+t]},n.prototype.lastIndexOfSignature=function(t){for(var e=t.charCodeAt(0),r=t.charCodeAt(1),i=t.charCodeAt(2),n=t.charCodeAt(3),s=this.length-4;0<=s;--s)if(this.data[s]===e&&this.data[s+1]===r&&this.data[s+2]===i&&this.data[s+3]===n)return s-this.zero;return-1},n.prototype.readAndCheckSignature=function(t){var e=t.charCodeAt(0),r=t.charCodeAt(1),i=t.charCodeAt(2),n=t.charCodeAt(3),s=this.readData(4);return e===s[0]&&r===s[1]&&i===s[2]&&n===s[3]},n.prototype.readData=function(t){if(this.checkOffset(t),0===t)return[];var e=this.data.slice(this.zero+this.index,this.zero+this.index+t);return this.index+=t,e},e.exports=n},{"../utils":32,"./DataReader":18}],18:[function(t,e,r){"use strict";var i=t("../utils");function n(t){this.data=t,this.length=t.length,this.index=0,this.zero=0}n.prototype={checkOffset:function(t){this.checkIndex(this.index+t)},checkIndex:function(t){if(this.length<this.zero+t||t<0)throw new Error("End of data reached (data length = "+this.length+", asked index = "+t+"). Corrupted zip ?")},setIndex:function(t){this.checkIndex(t),this.index=t},skip:function(t){this.setIndex(this.index+t)},byteAt:function(t){},readInt:function(t){var e,r=0;for(this.checkOffset(t),e=this.index+t-1;e>=this.index;e--)r=(r<<8)+this.byteAt(e);return this.index+=t,r},readString:function(t){return i.transformTo("string",this.readData(t))},readData:function(t){},lastIndexOfSignature:function(t){},readAndCheckSignature:function(t){},readDate:function(){var t=this.readInt(4);return new Date(Date.UTC(1980+(t>>25&127),(t>>21&15)-1,t>>16&31,t>>11&31,t>>5&63,(31&t)<<1))}},e.exports=n},{"../utils":32}],19:[function(t,e,r){"use strict";var i=t("./Uint8ArrayReader");function n(t){i.call(this,t)}t("../utils").inherits(n,i),n.prototype.readData=function(t){this.checkOffset(t);var e=this.data.slice(this.zero+this.index,this.zero+this.index+t);return this.index+=t,e},e.exports=n},{"../utils":32,"./Uint8ArrayReader":21}],20:[function(t,e,r){"use strict";var i=t("./DataReader");function n(t){i.call(this,t)}t("../utils").inherits(n,i),n.prototype.byteAt=function(t){return this.data.charCodeAt(this.zero+t)},n.prototype.lastIndexOfSignature=function(t){return this.data.lastIndexOf(t)-this.zero},n.prototype.readAndCheckSignature=function(t){return t===this.readData(4)},n.prototype.readData=function(t){this.checkOffset(t);var e=this.data.slice(this.zero+this.index,this.zero+this.index+t);return this.index+=t,e},e.exports=n},{"../utils":32,"./DataReader":18}],21:[function(t,e,r){"use strict";var i=t("./ArrayReader");function n(t){i.call(this,t)}t("../utils").inherits(n,i),n.prototype.readData=function(t){if(this.checkOffset(t),0===t)return new Uint8Array(0);var e=this.data.subarray(this.zero+this.index,this.zero+this.index+t);return this.index+=t,e},e.exports=n},{"../utils":32,"./ArrayReader":17}],22:[function(t,e,r){"use strict";var i=t("../utils"),n=t("../support"),s=t("./ArrayReader"),a=t("./StringReader"),o=t("./NodeBufferReader"),h=t("./Uint8ArrayReader");e.exports=function(t){var e=i.getTypeOf(t);return i.checkSupport(e),"string"!==e||n.uint8array?"nodebuffer"===e?new o(t):n.uint8array?new h(i.transformTo("uint8array",t)):new s(i.transformTo("array",t)):new a(t)}},{"../support":30,"../utils":32,"./ArrayReader":17,"./NodeBufferReader":19,"./StringReader":20,"./Uint8ArrayReader":21}],23:[function(t,e,r){"use strict";r.LOCAL_FILE_HEADER="PK",r.CENTRAL_FILE_HEADER="PK",r.CENTRAL_DIRECTORY_END="PK",r.ZIP64_CENTRAL_DIRECTORY_LOCATOR="PK",r.ZIP64_CENTRAL_DIRECTORY_END="PK",r.DATA_DESCRIPTOR="PK\b"},{}],24:[function(t,e,r){"use strict";var i=t("./GenericWorker"),n=t("../utils");function s(t){i.call(this,"ConvertWorker to "+t),this.destType=t}n.inherits(s,i),s.prototype.processChunk=function(t){this.push({data:n.transformTo(this.destType,t.data),meta:t.meta})},e.exports=s},{"../utils":32,"./GenericWorker":28}],25:[function(t,e,r){"use strict";var i=t("./GenericWorker"),n=t("../crc32");function s(){i.call(this,"Crc32Probe"),this.withStreamInfo("crc32",0)}t("../utils").inherits(s,i),s.prototype.processChunk=function(t){this.streamInfo.crc32=n(t.data,this.streamInfo.crc32||0),this.push(t)},e.exports=s},{"../crc32":4,"../utils":32,"./GenericWorker":28}],26:[function(t,e,r){"use strict";var i=t("../utils"),n=t("./GenericWorker");function s(t){n.call(this,"DataLengthProbe for "+t),this.propName=t,this.withStreamInfo(t,0)}i.inherits(s,n),s.prototype.processChunk=function(t){if(t){var e=this.streamInfo[this.propName]||0;this.streamInfo[this.propName]=e+t.data.length}n.prototype.processChunk.call(this,t)},e.exports=s},{"../utils":32,"./GenericWorker":28}],27:[function(t,e,r){"use strict";var i=t("../utils"),n=t("./GenericWorker");function s(t){n.call(this,"DataWorker");var e=this;this.dataIsReady=!1,this.index=0,this.max=0,this.data=null,this.type="",this._tickScheduled=!1,t.then(function(t){e.dataIsReady=!0,e.data=t,e.max=t&&t.length||0,e.type=i.getTypeOf(t),e.isPaused||e._tickAndRepeat()},function(t){e.error(t)})}i.inherits(s,n),s.prototype.cleanUp=function(){n.prototype.cleanUp.call(this),this.data=null},s.prototype.resume=function(){return!!n.prototype.resume.call(this)&&(!this._tickScheduled&&this.dataIsReady&&(this._tickScheduled=!0,i.delay(this._tickAndRepeat,[],this)),!0)},s.prototype._tickAndRepeat=function(){this._tickScheduled=!1,this.isPaused||this.isFinished||(this._tick(),this.isFinished||(i.delay(this._tickAndRepeat,[],this),this._tickScheduled=!0))},s.prototype._tick=function(){if(this.isPaused||this.isFinished)return!1;var t=null,e=Math.min(this.max,this.index+16384);if(this.index>=this.max)return this.end();switch(this.type){case"string":t=this.data.substring(this.index,e);break;case"uint8array":t=this.data.subarray(this.index,e);break;case"array":case"nodebuffer":t=this.data.slice(this.index,e)}return this.index=e,this.push({data:t,meta:{percent:this.max?this.index/this.max*100:0}})},e.exports=s},{"../utils":32,"./GenericWorker":28}],28:[function(t,e,r){"use strict";function i(t){this.name=t||"default",this.streamInfo={},this.generatedError=null,this.extraStreamInfo={},this.isPaused=!0,this.isFinished=!1,this.isLocked=!1,this._listeners={data:[],end:[],error:[]},this.previous=null}i.prototype={push:function(t){this.emit("data",t)},end:function(){if(this.isFinished)return!1;this.flush();try{this.emit("end"),this.cleanUp(),this.isFinished=!0}catch(t){this.emit("error",t)}return!0},error:function(t){return!this.isFinished&&(this.isPaused?this.generatedError=t:(this.isFinished=!0,this.emit("error",t),this.previous&&this.previous.error(t),this.cleanUp()),!0)},on:function(t,e){return this._listeners[t].push(e),this},cleanUp:function(){this.streamInfo=this.generatedError=this.extraStreamInfo=null,this._listeners=[]},emit:function(t,e){if(this._listeners[t])for(var r=0;r<this._listeners[t].length;r++)this._listeners[t][r].call(this,e)},pipe:function(t){return t.registerPrevious(this)},registerPrevious:function(t){if(this.isLocked)throw new Error("The stream '"+this+"' has already been used.");this.streamInfo=t.streamInfo,this.mergeStreamInfo(),this.previous=t;var e=this;return t.on("data",function(t){e.processChunk(t)}),t.on("end",function(){e.end()}),t.on("error",function(t){e.error(t)}),this},pause:function(){return!this.isPaused&&!this.isFinished&&(this.isPaused=!0,this.previous&&this.previous.pause(),!0)},resume:function(){if(!this.isPaused||this.isFinished)return!1;var t=this.isPaused=!1;return this.generatedError&&(this.error(this.generatedError),t=!0),this.previous&&this.previous.resume(),!t},flush:function(){},processChunk:function(t){this.push(t)},withStreamInfo:function(t,e){return this.extraStreamInfo[t]=e,this.mergeStreamInfo(),this},mergeStreamInfo:function(){for(var t in this.extraStreamInfo)this.extraStreamInfo.hasOwnProperty(t)&&(this.streamInfo[t]=this.extraStreamInfo[t])},lock:function(){if(this.isLocked)throw new Error("The stream '"+this+"' has already been used.");this.isLocked=!0,this.previous&&this.previous.lock()},toString:function(){var t="Worker "+this.name;return this.previous?this.previous+" -> "+t:t}},e.exports=i},{}],29:[function(t,e,r){"use strict";var h=t("../utils"),n=t("./ConvertWorker"),s=t("./GenericWorker"),u=t("../base64"),i=t("../support"),a=t("../external"),o=null;if(i.nodestream)try{o=t("../nodejs/NodejsStreamOutputAdapter")}catch(t){}function l(t,o){return new a.Promise(function(e,r){var i=[],n=t._internalType,s=t._outputType,a=t._mimeType;t.on("data",function(t,e){i.push(t),o&&o(e)}).on("error",function(t){i=[],r(t)}).on("end",function(){try{var t=function(t,e,r){switch(t){case"blob":return h.newBlob(h.transformTo("arraybuffer",e),r);case"base64":return u.encode(e);default:return h.transformTo(t,e)}}(s,function(t,e){var r,i=0,n=null,s=0;for(r=0;r<e.length;r++)s+=e[r].length;switch(t){case"string":return e.join("");case"array":return Array.prototype.concat.apply([],e);case"uint8array":for(n=new Uint8Array(s),r=0;r<e.length;r++)n.set(e[r],i),i+=e[r].length;return n;case"nodebuffer":return Buffer.concat(e);default:throw new Error("concat : unsupported type '"+t+"'")}}(n,i),a);e(t)}catch(t){r(t)}i=[]}).resume()})}function f(t,e,r){var i=e;switch(e){case"blob":case"arraybuffer":i="uint8array";break;case"base64":i="string"}try{this._internalType=i,this._outputType=e,this._mimeType=r,h.checkSupport(i),this._worker=t.pipe(new n(i)),t.lock()}catch(t){this._worker=new s("error"),this._worker.error(t)}}f.prototype={accumulate:function(t){return l(this,t)},on:function(t,e){var r=this;return"data"===t?this._worker.on(t,function(t){e.call(r,t.data,t.meta)}):this._worker.on(t,function(){h.delay(e,arguments,r)}),this},resume:function(){return h.delay(this._worker.resume,[],this._worker),this},pause:function(){return this._worker.pause(),this},toNodejsStream:function(t){if(h.checkSupport("nodestream"),"nodebuffer"!==this._outputType)throw new Error(this._outputType+" is not supported by this method");return new o(this,{objectMode:"nodebuffer"!==this._outputType},t)}},e.exports=f},{"../base64":1,"../external":6,"../nodejs/NodejsStreamOutputAdapter":13,"../support":30,"../utils":32,"./ConvertWorker":24,"./GenericWorker":28}],30:[function(t,e,r){"use strict";if(r.base64=!0,r.array=!0,r.string=!0,r.arraybuffer="undefined"!=typeof ArrayBuffer&&"undefined"!=typeof Uint8Array,r.nodebuffer="undefined"!=typeof Buffer,r.uint8array="undefined"!=typeof Uint8Array,"undefined"==typeof ArrayBuffer)r.blob=!1;else{var i=new ArrayBuffer(0);try{r.blob=0===new Blob([i],{type:"application/zip"}).size}catch(t){try{var n=new(self.BlobBuilder||self.WebKitBlobBuilder||self.MozBlobBuilder||self.MSBlobBuilder);n.append(i),r.blob=0===n.getBlob("application/zip").size}catch(t){r.blob=!1}}}try{r.nodestream=!!t("readable-stream").Readable}catch(t){r.nodestream=!1}},{"readable-stream":16}],31:[function(t,e,s){"use strict";for(var o=t("./utils"),h=t("./support"),r=t("./nodejsUtils"),i=t("./stream/GenericWorker"),u=new Array(256),n=0;n<256;n++)u[n]=252<=n?6:248<=n?5:240<=n?4:224<=n?3:192<=n?2:1;u[254]=u[254]=1;function a(){i.call(this,"utf-8 decode"),this.leftOver=null}function l(){i.call(this,"utf-8 encode")}s.utf8encode=function(t){return h.nodebuffer?r.newBufferFrom(t,"utf-8"):function(t){var e,r,i,n,s,a=t.length,o=0;for(n=0;n<a;n++)55296==(64512&(r=t.charCodeAt(n)))&&n+1<a&&56320==(64512&(i=t.charCodeAt(n+1)))&&(r=65536+(r-55296<<10)+(i-56320),n++),o+=r<128?1:r<2048?2:r<65536?3:4;for(e=h.uint8array?new Uint8Array(o):new Array(o),n=s=0;s<o;n++)55296==(64512&(r=t.charCodeAt(n)))&&n+1<a&&56320==(64512&(i=t.charCodeAt(n+1)))&&(r=65536+(r-55296<<10)+(i-56320),n++),r<128?e[s++]=r:(r<2048?e[s++]=192|r>>>6:(r<65536?e[s++]=224|r>>>12:(e[s++]=240|r>>>18,e[s++]=128|r>>>12&63),e[s++]=128|r>>>6&63),e[s++]=128|63&r);return e}(t)},s.utf8decode=function(t){return h.nodebuffer?o.transformTo("nodebuffer",t).toString("utf-8"):function(t){var e,r,i,n,s=t.length,a=new Array(2*s);for(e=r=0;e<s;)if((i=t[e++])<128)a[r++]=i;else if(4<(n=u[i]))a[r++]=65533,e+=n-1;else{for(i&=2===n?31:3===n?15:7;1<n&&e<s;)i=i<<6|63&t[e++],n--;1<n?a[r++]=65533:i<65536?a[r++]=i:(i-=65536,a[r++]=55296|i>>10&1023,a[r++]=56320|1023&i)}return a.length!==r&&(a.subarray?a=a.subarray(0,r):a.length=r),o.applyFromCharCode(a)}(t=o.transformTo(h.uint8array?"uint8array":"array",t))},o.inherits(a,i),a.prototype.processChunk=function(t){var e=o.transformTo(h.uint8array?"uint8array":"array",t.data);if(this.leftOver&&this.leftOver.length){if(h.uint8array){var r=e;(e=new Uint8Array(r.length+this.leftOver.length)).set(this.leftOver,0),e.set(r,this.leftOver.length)}else e=this.leftOver.concat(e);this.leftOver=null}var i=function(t,e){var r;for((e=e||t.length)>t.length&&(e=t.length),r=e-1;0<=r&&128==(192&t[r]);)r--;return r<0?e:0===r?e:r+u[t[r]]>e?r:e}(e),n=e;i!==e.length&&(h.uint8array?(n=e.subarray(0,i),this.leftOver=e.subarray(i,e.length)):(n=e.slice(0,i),this.leftOver=e.slice(i,e.length))),this.push({data:s.utf8decode(n),meta:t.meta})},a.prototype.flush=function(){this.leftOver&&this.leftOver.length&&(this.push({data:s.utf8decode(this.leftOver),meta:{}}),this.leftOver=null)},s.Utf8DecodeWorker=a,o.inherits(l,i),l.prototype.processChunk=function(t){this.push({data:s.utf8encode(t.data),meta:t.meta})},s.Utf8EncodeWorker=l},{"./nodejsUtils":14,"./stream/GenericWorker":28,"./support":30,"./utils":32}],32:[function(t,e,a){"use strict";var o=t("./support"),h=t("./base64"),r=t("./nodejsUtils"),i=t("set-immediate-shim"),u=t("./external");function n(t){return t}function l(t,e){for(var r=0;r<t.length;++r)e[r]=255&t.charCodeAt(r);return e}a.newBlob=function(e,r){a.checkSupport("blob");try{return new Blob([e],{type:r})}catch(t){try{var i=new(self.BlobBuilder||self.WebKitBlobBuilder||self.MozBlobBuilder||self.MSBlobBuilder);return i.append(e),i.getBlob(r)}catch(t){throw new Error("Bug : can't construct the Blob.")}}};var s={stringifyByChunk:function(t,e,r){var i=[],n=0,s=t.length;if(s<=r)return String.fromCharCode.apply(null,t);for(;n<s;)"array"===e||"nodebuffer"===e?i.push(String.fromCharCode.apply(null,t.slice(n,Math.min(n+r,s)))):i.push(String.fromCharCode.apply(null,t.subarray(n,Math.min(n+r,s)))),n+=r;return i.join("")},stringifyByChar:function(t){for(var e="",r=0;r<t.length;r++)e+=String.fromCharCode(t[r]);return e},applyCanBeUsed:{uint8array:function(){try{return o.uint8array&&1===String.fromCharCode.apply(null,new Uint8Array(1)).length}catch(t){return!1}}(),nodebuffer:function(){try{return o.nodebuffer&&1===String.fromCharCode.apply(null,r.allocBuffer(1)).length}catch(t){return!1}}()}};function f(t){var e=65536,r=a.getTypeOf(t),i=!0;if("uint8array"===r?i=s.applyCanBeUsed.uint8array:"nodebuffer"===r&&(i=s.applyCanBeUsed.nodebuffer),i)for(;1<e;)try{return s.stringifyByChunk(t,r,e)}catch(t){e=Math.floor(e/2)}return s.stringifyByChar(t)}function d(t,e){for(var r=0;r<t.length;r++)e[r]=t[r];return e}a.applyFromCharCode=f;var c={};c.string={string:n,array:function(t){return l(t,new Array(t.length))},arraybuffer:function(t){return c.string.uint8array(t).buffer},uint8array:function(t){return l(t,new Uint8Array(t.length))},nodebuffer:function(t){return l(t,r.allocBuffer(t.length))}},c.array={string:f,array:n,arraybuffer:function(t){return new Uint8Array(t).buffer},uint8array:function(t){return new Uint8Array(t)},nodebuffer:function(t){return r.newBufferFrom(t)}},c.arraybuffer={string:function(t){return f(new Uint8Array(t))},array:function(t){return d(new Uint8Array(t),new Array(t.byteLength))},arraybuffer:n,uint8array:function(t){return new Uint8Array(t)},nodebuffer:function(t){return r.newBufferFrom(new Uint8Array(t))}},c.uint8array={string:f,array:function(t){return d(t,new Array(t.length))},arraybuffer:function(t){return t.buffer},uint8array:n,nodebuffer:function(t){return r.newBufferFrom(t)}},c.nodebuffer={string:f,array:function(t){return d(t,new Array(t.length))},arraybuffer:function(t){return c.nodebuffer.uint8array(t).buffer},uint8array:function(t){return d(t,new Uint8Array(t.length))},nodebuffer:n},a.transformTo=function(t,e){if(e=e||"",!t)return e;a.checkSupport(t);var r=a.getTypeOf(e);return c[r][t](e)},a.getTypeOf=function(t){return"string"==typeof t?"string":"[object Array]"===Object.prototype.toString.call(t)?"array":o.nodebuffer&&r.isBuffer(t)?"nodebuffer":o.uint8array&&t instanceof Uint8Array?"uint8array":o.arraybuffer&&t instanceof ArrayBuffer?"arraybuffer":void 0},a.checkSupport=function(t){if(!o[t.toLowerCase()])throw new Error(t+" is not supported by this platform")},a.MAX_VALUE_16BITS=65535,a.MAX_VALUE_32BITS=-1,a.pretty=function(t){var e,r,i="";for(r=0;r<(t||"").length;r++)i+="\\x"+((e=t.charCodeAt(r))<16?"0":"")+e.toString(16).toUpperCase();return i},a.delay=function(t,e,r){i(function(){t.apply(r||null,e||[])})},a.inherits=function(t,e){function r(){}r.prototype=e.prototype,t.prototype=new r},a.extend=function(){var t,e,r={};for(t=0;t<arguments.length;t++)for(e in arguments[t])arguments[t].hasOwnProperty(e)&&void 0===r[e]&&(r[e]=arguments[t][e]);return r},a.prepareContent=function(r,t,i,n,s){return u.Promise.resolve(t).then(function(i){return o.blob&&(i instanceof Blob||-1!==["[object File]","[object Blob]"].indexOf(Object.prototype.toString.call(i)))&&"undefined"!=typeof FileReader?new u.Promise(function(e,r){var t=new FileReader;t.onload=function(t){e(t.target.result)},t.onerror=function(t){r(t.target.error)},t.readAsArrayBuffer(i)}):i}).then(function(t){var e=a.getTypeOf(t);return e?("arraybuffer"===e?t=a.transformTo("uint8array",t):"string"===e&&(s?t=h.decode(t):i&&!0!==n&&(t=function(t){return l(t,o.uint8array?new Uint8Array(t.length):new Array(t.length))}(t))),t):u.Promise.reject(new Error("Can't read the data of '"+r+"'. Is it in a supported JavaScript type (String, Blob, ArrayBuffer, etc) ?"))})}},{"./base64":1,"./external":6,"./nodejsUtils":14,"./support":30,"set-immediate-shim":54}],33:[function(t,e,r){"use strict";var i=t("./reader/readerFor"),n=t("./utils"),s=t("./signature"),a=t("./zipEntry"),o=(t("./utf8"),t("./support"));function h(t){this.files=[],this.loadOptions=t}h.prototype={checkSignature:function(t){if(!this.reader.readAndCheckSignature(t)){this.reader.index-=4;var e=this.reader.readString(4);throw new Error("Corrupted zip or bug: unexpected signature ("+n.pretty(e)+", expected "+n.pretty(t)+")")}},isSignature:function(t,e){var r=this.reader.index;this.reader.setIndex(t);var i=this.reader.readString(4)===e;return this.reader.setIndex(r),i},readBlockEndOfCentral:function(){this.diskNumber=this.reader.readInt(2),this.diskWithCentralDirStart=this.reader.readInt(2),this.centralDirRecordsOnThisDisk=this.reader.readInt(2),this.centralDirRecords=this.reader.readInt(2),this.centralDirSize=this.reader.readInt(4),this.centralDirOffset=this.reader.readInt(4),this.zipCommentLength=this.reader.readInt(2);var t=this.reader.readData(this.zipCommentLength),e=o.uint8array?"uint8array":"array",r=n.transformTo(e,t);this.zipComment=this.loadOptions.decodeFileName(r)},readBlockZip64EndOfCentral:function(){this.zip64EndOfCentralSize=this.reader.readInt(8),this.reader.skip(4),this.diskNumber=this.reader.readInt(4),this.diskWithCentralDirStart=this.reader.readInt(4),this.centralDirRecordsOnThisDisk=this.reader.readInt(8),this.centralDirRecords=this.reader.readInt(8),this.centralDirSize=this.reader.readInt(8),this.centralDirOffset=this.reader.readInt(8),this.zip64ExtensibleData={};for(var t,e,r,i=this.zip64EndOfCentralSize-44;0<i;)t=this.reader.readInt(2),e=this.reader.readInt(4),r=this.reader.readData(e),this.zip64ExtensibleData[t]={id:t,length:e,value:r}},readBlockZip64EndOfCentralLocator:function(){if(this.diskWithZip64CentralDirStart=this.reader.readInt(4),this.relativeOffsetEndOfZip64CentralDir=this.reader.readInt(8),this.disksCount=this.reader.readInt(4),1<this.disksCount)throw new Error("Multi-volumes zip are not supported")},readLocalFiles:function(){var t,e;for(t=0;t<this.files.length;t++)e=this.files[t],this.reader.setIndex(e.localHeaderOffset),this.checkSignature(s.LOCAL_FILE_HEADER),e.readLocalPart(this.reader),e.handleUTF8(),e.processAttributes()},readCentralDir:function(){var t;for(this.reader.setIndex(this.centralDirOffset);this.reader.readAndCheckSignature(s.CENTRAL_FILE_HEADER);)(t=new a({zip64:this.zip64},this.loadOptions)).readCentralPart(this.reader),this.files.push(t);if(this.centralDirRecords!==this.files.length&&0!==this.centralDirRecords&&0===this.files.length)throw new Error("Corrupted zip or bug: expected "+this.centralDirRecords+" records in central dir, got "+this.files.length)},readEndOfCentral:function(){var t=this.reader.lastIndexOfSignature(s.CENTRAL_DIRECTORY_END);if(t<0)throw!this.isSignature(0,s.LOCAL_FILE_HEADER)?new Error("Can't find end of central directory : is this a zip file ? If it is, see https://stuk.github.io/jszip/documentation/howto/read_zip.html"):new Error("Corrupted zip: can't find end of central directory");this.reader.setIndex(t);var e=t;if(this.checkSignature(s.CENTRAL_DIRECTORY_END),this.readBlockEndOfCentral(),this.diskNumber===n.MAX_VALUE_16BITS||this.diskWithCentralDirStart===n.MAX_VALUE_16BITS||this.centralDirRecordsOnThisDisk===n.MAX_VALUE_16BITS||this.centralDirRecords===n.MAX_VALUE_16BITS||this.centralDirSize===n.MAX_VALUE_32BITS||this.centralDirOffset===n.MAX_VALUE_32BITS){if(this.zip64=!0,(t=this.reader.lastIndexOfSignature(s.ZIP64_CENTRAL_DIRECTORY_LOCATOR))<0)throw new Error("Corrupted zip: can't find the ZIP64 end of central directory locator");if(this.reader.setIndex(t),this.checkSignature(s.ZIP64_CENTRAL_DIRECTORY_LOCATOR),this.readBlockZip64EndOfCentralLocator(),!this.isSignature(this.relativeOffsetEndOfZip64CentralDir,s.ZIP64_CENTRAL_DIRECTORY_END)&&(this.relativeOffsetEndOfZip64CentralDir=this.reader.lastIndexOfSignature(s.ZIP64_CENTRAL_DIRECTORY_END),this.relativeOffsetEndOfZip64CentralDir<0))throw new Error("Corrupted zip: can't find the ZIP64 end of central directory");this.reader.setIndex(this.relativeOffsetEndOfZip64CentralDir),this.checkSignature(s.ZIP64_CENTRAL_DIRECTORY_END),this.readBlockZip64EndOfCentral()}var r=this.centralDirOffset+this.centralDirSize;this.zip64&&(r+=20,r+=12+this.zip64EndOfCentralSize);var i=e-r;if(0<i)this.isSignature(e,s.CENTRAL_FILE_HEADER)||(this.reader.zero=i);else if(i<0)throw new Error("Corrupted zip: missing "+Math.abs(i)+" bytes.")},prepareReader:function(t){this.reader=i(t)},load:function(t){this.prepareReader(t),this.readEndOfCentral(),this.readCentralDir(),this.readLocalFiles()}},e.exports=h},{"./reader/readerFor":22,"./signature":23,"./support":30,"./utf8":31,"./utils":32,"./zipEntry":34}],34:[function(t,e,r){"use strict";var i=t("./reader/readerFor"),s=t("./utils"),n=t("./compressedObject"),a=t("./crc32"),o=t("./utf8"),h=t("./compressions"),u=t("./support");function l(t,e){this.options=t,this.loadOptions=e}l.prototype={isEncrypted:function(){return 1==(1&this.bitFlag)},useUTF8:function(){return 2048==(2048&this.bitFlag)},readLocalPart:function(t){var e,r;if(t.skip(22),this.fileNameLength=t.readInt(2),r=t.readInt(2),this.fileName=t.readData(this.fileNameLength),t.skip(r),-1===this.compressedSize||-1===this.uncompressedSize)throw new Error("Bug or corrupted zip : didn't get enough information from the central directory (compressedSize === -1 || uncompressedSize === -1)");if(null===(e=function(t){for(var e in h)if(h.hasOwnProperty(e)&&h[e].magic===t)return h[e];return null}(this.compressionMethod)))throw new Error("Corrupted zip : compression "+s.pretty(this.compressionMethod)+" unknown (inner file : "+s.transformTo("string",this.fileName)+")");this.decompressed=new n(this.compressedSize,this.uncompressedSize,this.crc32,e,t.readData(this.compressedSize))},readCentralPart:function(t){this.versionMadeBy=t.readInt(2),t.skip(2),this.bitFlag=t.readInt(2),this.compressionMethod=t.readString(2),this.date=t.readDate(),this.crc32=t.readInt(4),this.compressedSize=t.readInt(4),this.uncompressedSize=t.readInt(4);var e=t.readInt(2);if(this.extraFieldsLength=t.readInt(2),this.fileCommentLength=t.readInt(2),this.diskNumberStart=t.readInt(2),this.internalFileAttributes=t.readInt(2),this.externalFileAttributes=t.readInt(4),this.localHeaderOffset=t.readInt(4),this.isEncrypted())throw new Error("Encrypted zip are not supported");t.skip(e),this.readExtraFields(t),this.parseZIP64ExtraField(t),this.fileComment=t.readData(this.fileCommentLength)},processAttributes:function(){this.unixPermissions=null,this.dosPermissions=null;var t=this.versionMadeBy>>8;this.dir=!!(16&this.externalFileAttributes),0==t&&(this.dosPermissions=63&this.externalFileAttributes),3==t&&(this.unixPermissions=this.externalFileAttributes>>16&65535),this.dir||"/"!==this.fileNameStr.slice(-1)||(this.dir=!0)},parseZIP64ExtraField:function(t){if(this.extraFields[1]){var e=i(this.extraFields[1].value);this.uncompressedSize===s.MAX_VALUE_32BITS&&(this.uncompressedSize=e.readInt(8)),this.compressedSize===s.MAX_VALUE_32BITS&&(this.compressedSize=e.readInt(8)),this.localHeaderOffset===s.MAX_VALUE_32BITS&&(this.localHeaderOffset=e.readInt(8)),this.diskNumberStart===s.MAX_VALUE_32BITS&&(this.diskNumberStart=e.readInt(4))}},readExtraFields:function(t){var e,r,i,n=t.index+this.extraFieldsLength;for(this.extraFields||(this.extraFields={});t.index+4<n;)e=t.readInt(2),r=t.readInt(2),i=t.readData(r),this.extraFields[e]={id:e,length:r,value:i};t.setIndex(n)},handleUTF8:function(){var t=u.uint8array?"uint8array":"array";if(this.useUTF8())this.fileNameStr=o.utf8decode(this.fileName),this.fileCommentStr=o.utf8decode(this.fileComment);else{var e=this.findExtraFieldUnicodePath();if(null!==e)this.fileNameStr=e;else{var r=s.transformTo(t,this.fileName);this.fileNameStr=this.loadOptions.decodeFileName(r)}var i=this.findExtraFieldUnicodeComment();if(null!==i)this.fileCommentStr=i;else{var n=s.transformTo(t,this.fileComment);this.fileCommentStr=this.loadOptions.decodeFileName(n)}}},findExtraFieldUnicodePath:function(){var t=this.extraFields[28789];if(t){var e=i(t.value);return 1!==e.readInt(1)?null:a(this.fileName)!==e.readInt(4)?null:o.utf8decode(e.readData(t.length-5))}return null},findExtraFieldUnicodeComment:function(){var t=this.extraFields[25461];if(t){var e=i(t.value);return 1!==e.readInt(1)?null:a(this.fileComment)!==e.readInt(4)?null:o.utf8decode(e.readData(t.length-5))}return null}},e.exports=l},{"./compressedObject":2,"./compressions":3,"./crc32":4,"./reader/readerFor":22,"./support":30,"./utf8":31,"./utils":32}],35:[function(t,e,r){"use strict";function i(t,e,r){this.name=t,this.dir=r.dir,this.date=r.date,this.comment=r.comment,this.unixPermissions=r.unixPermissions,this.dosPermissions=r.dosPermissions,this._data=e,this._dataBinary=r.binary,this.options={compression:r.compression,compressionOptions:r.compressionOptions}}var s=t("./stream/StreamHelper"),n=t("./stream/DataWorker"),a=t("./utf8"),o=t("./compressedObject"),h=t("./stream/GenericWorker");i.prototype={internalStream:function(t){var e=null,r="string";try{if(!t)throw new Error("No output type specified.");var i="string"===(r=t.toLowerCase())||"text"===r;"binarystring"!==r&&"text"!==r||(r="string"),e=this._decompressWorker();var n=!this._dataBinary;n&&!i&&(e=e.pipe(new a.Utf8EncodeWorker)),!n&&i&&(e=e.pipe(new a.Utf8DecodeWorker))}catch(t){(e=new h("error")).error(t)}return new s(e,r,"")},async:function(t,e){return this.internalStream(t).accumulate(e)},nodeStream:function(t,e){return this.internalStream(t||"nodebuffer").toNodejsStream(e)},_compressWorker:function(t,e){if(this._data instanceof o&&this._data.compression.magic===t.magic)return this._data.getCompressedWorker();var r=this._decompressWorker();return this._dataBinary||(r=r.pipe(new a.Utf8EncodeWorker)),o.createWorkerFrom(r,t,e)},_decompressWorker:function(){return this._data instanceof o?this._data.getContentWorker():this._data instanceof h?this._data:new n(this._data)}};for(var u=["asText","asBinary","asNodeBuffer","asUint8Array","asArrayBuffer"],l=function(){throw new Error("This method has been removed in JSZip 3.0, please check the upgrade guide.")},f=0;f<u.length;f++)i.prototype[u[f]]=l;e.exports=i},{"./compressedObject":2,"./stream/DataWorker":27,"./stream/GenericWorker":28,"./stream/StreamHelper":29,"./utf8":31}],36:[function(t,l,e){(function(e){"use strict";var r,i,t=e.MutationObserver||e.WebKitMutationObserver;if(t){var n=0,s=new t(u),a=e.document.createTextNode("");s.observe(a,{characterData:!0}),r=function(){a.data=n=++n%2}}else if(e.setImmediate||void 0===e.MessageChannel)r="document"in e&&"onreadystatechange"in e.document.createElement("script")?function(){var t=e.document.createElement("script");t.onreadystatechange=function(){u(),t.onreadystatechange=null,t.parentNode.removeChild(t),t=null},e.document.documentElement.appendChild(t)}:function(){setTimeout(u,0)};else{var o=new e.MessageChannel;o.port1.onmessage=u,r=function(){o.port2.postMessage(0)}}var h=[];function u(){var t,e;i=!0;for(var r=h.length;r;){for(e=h,h=[],t=-1;++t<r;)e[t]();r=h.length}i=!1}l.exports=function(t){1!==h.push(t)||i||r()}}).call(this,"undefined"!=typeof global?global:"undefined"!=typeof self?self:"undefined"!=typeof window?window:{})},{}],37:[function(t,e,r){"use strict";var n=t("immediate");function u(){}var l={},s=["REJECTED"],a=["FULFILLED"],i=["PENDING"];function o(t){if("function"!=typeof t)throw new TypeError("resolver must be a function");this.state=i,this.queue=[],this.outcome=void 0,t!==u&&c(this,t)}function h(t,e,r){this.promise=t,"function"==typeof e&&(this.onFulfilled=e,this.callFulfilled=this.otherCallFulfilled),"function"==typeof r&&(this.onRejected=r,this.callRejected=this.otherCallRejected)}function f(e,r,i){n(function(){var t;try{t=r(i)}catch(t){return l.reject(e,t)}t===e?l.reject(e,new TypeError("Cannot resolve promise with itself")):l.resolve(e,t)})}function d(t){var e=t&&t.then;if(t&&("object"==typeof t||"function"==typeof t)&&"function"==typeof e)return function(){e.apply(t,arguments)}}function c(e,t){var r=!1;function i(t){r||(r=!0,l.reject(e,t))}function n(t){r||(r=!0,l.resolve(e,t))}var s=p(function(){t(n,i)});"error"===s.status&&i(s.value)}function p(t,e){var r={};try{r.value=t(e),r.status="success"}catch(t){r.status="error",r.value=t}return r}(e.exports=o).prototype.finally=function(e){if("function"!=typeof e)return this;var r=this.constructor;return this.then(function(t){return r.resolve(e()).then(function(){return t})},function(t){return r.resolve(e()).then(function(){throw t})})},o.prototype.catch=function(t){return this.then(null,t)},o.prototype.then=function(t,e){if("function"!=typeof t&&this.state===a||"function"!=typeof e&&this.state===s)return this;var r=new this.constructor(u);this.state!==i?f(r,this.state===a?t:e,this.outcome):this.queue.push(new h(r,t,e));return r},h.prototype.callFulfilled=function(t){l.resolve(this.promise,t)},h.prototype.otherCallFulfilled=function(t){f(this.promise,this.onFulfilled,t)},h.prototype.callRejected=function(t){l.reject(this.promise,t)},h.prototype.otherCallRejected=function(t){f(this.promise,this.onRejected,t)},l.resolve=function(t,e){var r=p(d,e);if("error"===r.status)return l.reject(t,r.value);var i=r.value;if(i)c(t,i);else{t.state=a,t.outcome=e;for(var n=-1,s=t.queue.length;++n<s;)t.queue[n].callFulfilled(e)}return t},l.reject=function(t,e){t.state=s,t.outcome=e;for(var r=-1,i=t.queue.length;++r<i;)t.queue[r].callRejected(e);return t},o.resolve=function(t){if(t instanceof this)return t;return l.resolve(new this(u),t)},o.reject=function(t){var e=new this(u);return l.reject(e,t)},o.all=function(t){var r=this;if("[object Array]"!==Object.prototype.toString.call(t))return this.reject(new TypeError("must be an array"));var i=t.length,n=!1;if(!i)return this.resolve([]);var s=new Array(i),a=0,e=-1,o=new this(u);for(;++e<i;)h(t[e],e);return o;function h(t,e){r.resolve(t).then(function(t){s[e]=t,++a!==i||n||(n=!0,l.resolve(o,s))},function(t){n||(n=!0,l.reject(o,t))})}},o.race=function(t){var e=this;if("[object Array]"!==Object.prototype.toString.call(t))return this.reject(new TypeError("must be an array"));var r=t.length,i=!1;if(!r)return this.resolve([]);var n=-1,s=new this(u);for(;++n<r;)a=t[n],e.resolve(a).then(function(t){i||(i=!0,l.resolve(s,t))},function(t){i||(i=!0,l.reject(s,t))});var a;return s}},{immediate:36}],38:[function(t,e,r){"use strict";var i={};(0,t("./lib/utils/common").assign)(i,t("./lib/deflate"),t("./lib/inflate"),t("./lib/zlib/constants")),e.exports=i},{"./lib/deflate":39,"./lib/inflate":40,"./lib/utils/common":41,"./lib/zlib/constants":44}],39:[function(t,e,r){"use strict";var a=t("./zlib/deflate"),o=t("./utils/common"),h=t("./utils/strings"),n=t("./zlib/messages"),s=t("./zlib/zstream"),u=Object.prototype.toString,l=0,f=-1,d=0,c=8;function p(t){if(!(this instanceof p))return new p(t);this.options=o.assign({level:f,method:c,chunkSize:16384,windowBits:15,memLevel:8,strategy:d,to:""},t||{});var e=this.options;e.raw&&0<e.windowBits?e.windowBits=-e.windowBits:e.gzip&&0<e.windowBits&&e.windowBits<16&&(e.windowBits+=16),this.err=0,this.msg="",this.ended=!1,this.chunks=[],this.strm=new s,this.strm.avail_out=0;var r=a.deflateInit2(this.strm,e.level,e.method,e.windowBits,e.memLevel,e.strategy);if(r!==l)throw new Error(n[r]);if(e.header&&a.deflateSetHeader(this.strm,e.header),e.dictionary){var i;if(i="string"==typeof e.dictionary?h.string2buf(e.dictionary):"[object ArrayBuffer]"===u.call(e.dictionary)?new Uint8Array(e.dictionary):e.dictionary,(r=a.deflateSetDictionary(this.strm,i))!==l)throw new Error(n[r]);this._dict_set=!0}}function i(t,e){var r=new p(e);if(r.push(t,!0),r.err)throw r.msg||n[r.err];return r.result}p.prototype.push=function(t,e){var r,i,n=this.strm,s=this.options.chunkSize;if(this.ended)return!1;i=e===~~e?e:!0===e?4:0,"string"==typeof t?n.input=h.string2buf(t):"[object ArrayBuffer]"===u.call(t)?n.input=new Uint8Array(t):n.input=t,n.next_in=0,n.avail_in=n.input.length;do{if(0===n.avail_out&&(n.output=new o.Buf8(s),n.next_out=0,n.avail_out=s),1!==(r=a.deflate(n,i))&&r!==l)return this.onEnd(r),!(this.ended=!0);0!==n.avail_out&&(0!==n.avail_in||4!==i&&2!==i)||("string"===this.options.to?this.onData(h.buf2binstring(o.shrinkBuf(n.output,n.next_out))):this.onData(o.shrinkBuf(n.output,n.next_out)))}while((0<n.avail_in||0===n.avail_out)&&1!==r);return 4===i?(r=a.deflateEnd(this.strm),this.onEnd(r),this.ended=!0,r===l):2!==i||(this.onEnd(l),!(n.avail_out=0))},p.prototype.onData=function(t){this.chunks.push(t)},p.prototype.onEnd=function(t){t===l&&("string"===this.options.to?this.result=this.chunks.join(""):this.result=o.flattenChunks(this.chunks)),this.chunks=[],this.err=t,this.msg=this.strm.msg},r.Deflate=p,r.deflate=i,r.deflateRaw=function(t,e){return(e=e||{}).raw=!0,i(t,e)},r.gzip=function(t,e){return(e=e||{}).gzip=!0,i(t,e)}},{"./utils/common":41,"./utils/strings":42,"./zlib/deflate":46,"./zlib/messages":51,"./zlib/zstream":53}],40:[function(t,e,r){"use strict";var d=t("./zlib/inflate"),c=t("./utils/common"),p=t("./utils/strings"),m=t("./zlib/constants"),i=t("./zlib/messages"),n=t("./zlib/zstream"),s=t("./zlib/gzheader"),_=Object.prototype.toString;function a(t){if(!(this instanceof a))return new a(t);this.options=c.assign({chunkSize:16384,windowBits:0,to:""},t||{});var e=this.options;e.raw&&0<=e.windowBits&&e.windowBits<16&&(e.windowBits=-e.windowBits,0===e.windowBits&&(e.windowBits=-15)),!(0<=e.windowBits&&e.windowBits<16)||t&&t.windowBits||(e.windowBits+=32),15<e.windowBits&&e.windowBits<48&&0==(15&e.windowBits)&&(e.windowBits|=15),this.err=0,this.msg="",this.ended=!1,this.chunks=[],this.strm=new n,this.strm.avail_out=0;var r=d.inflateInit2(this.strm,e.windowBits);if(r!==m.Z_OK)throw new Error(i[r]);this.header=new s,d.inflateGetHeader(this.strm,this.header)}function o(t,e){var r=new a(e);if(r.push(t,!0),r.err)throw r.msg||i[r.err];return r.result}a.prototype.push=function(t,e){var r,i,n,s,a,o,h=this.strm,u=this.options.chunkSize,l=this.options.dictionary,f=!1;if(this.ended)return!1;i=e===~~e?e:!0===e?m.Z_FINISH:m.Z_NO_FLUSH,"string"==typeof t?h.input=p.binstring2buf(t):"[object ArrayBuffer]"===_.call(t)?h.input=new Uint8Array(t):h.input=t,h.next_in=0,h.avail_in=h.input.length;do{if(0===h.avail_out&&(h.output=new c.Buf8(u),h.next_out=0,h.avail_out=u),(r=d.inflate(h,m.Z_NO_FLUSH))===m.Z_NEED_DICT&&l&&(o="string"==typeof l?p.string2buf(l):"[object ArrayBuffer]"===_.call(l)?new Uint8Array(l):l,r=d.inflateSetDictionary(this.strm,o)),r===m.Z_BUF_ERROR&&!0===f&&(r=m.Z_OK,f=!1),r!==m.Z_STREAM_END&&r!==m.Z_OK)return this.onEnd(r),!(this.ended=!0);h.next_out&&(0!==h.avail_out&&r!==m.Z_STREAM_END&&(0!==h.avail_in||i!==m.Z_FINISH&&i!==m.Z_SYNC_FLUSH)||("string"===this.options.to?(n=p.utf8border(h.output,h.next_out),s=h.next_out-n,a=p.buf2string(h.output,n),h.next_out=s,h.avail_out=u-s,s&&c.arraySet(h.output,h.output,n,s,0),this.onData(a)):this.onData(c.shrinkBuf(h.output,h.next_out)))),0===h.avail_in&&0===h.avail_out&&(f=!0)}while((0<h.avail_in||0===h.avail_out)&&r!==m.Z_STREAM_END);return r===m.Z_STREAM_END&&(i=m.Z_FINISH),i===m.Z_FINISH?(r=d.inflateEnd(this.strm),this.onEnd(r),this.ended=!0,r===m.Z_OK):i!==m.Z_SYNC_FLUSH||(this.onEnd(m.Z_OK),!(h.avail_out=0))},a.prototype.onData=function(t){this.chunks.push(t)},a.prototype.onEnd=function(t){t===m.Z_OK&&("string"===this.options.to?this.result=this.chunks.join(""):this.result=c.flattenChunks(this.chunks)),this.chunks=[],this.err=t,this.msg=this.strm.msg},r.Inflate=a,r.inflate=o,r.inflateRaw=function(t,e){return(e=e||{}).raw=!0,o(t,e)},r.ungzip=o},{"./utils/common":41,"./utils/strings":42,"./zlib/constants":44,"./zlib/gzheader":47,"./zlib/inflate":49,"./zlib/messages":51,"./zlib/zstream":53}],41:[function(t,e,r){"use strict";var i="undefined"!=typeof Uint8Array&&"undefined"!=typeof Uint16Array&&"undefined"!=typeof Int32Array;r.assign=function(t){for(var e=Array.prototype.slice.call(arguments,1);e.length;){var r=e.shift();if(r){if("object"!=typeof r)throw new TypeError(r+"must be non-object");for(var i in r)r.hasOwnProperty(i)&&(t[i]=r[i])}}return t},r.shrinkBuf=function(t,e){return t.length===e?t:t.subarray?t.subarray(0,e):(t.length=e,t)};var n={arraySet:function(t,e,r,i,n){if(e.subarray&&t.subarray)t.set(e.subarray(r,r+i),n);else for(var s=0;s<i;s++)t[n+s]=e[r+s]},flattenChunks:function(t){var e,r,i,n,s,a;for(e=i=0,r=t.length;e<r;e++)i+=t[e].length;for(a=new Uint8Array(i),e=n=0,r=t.length;e<r;e++)s=t[e],a.set(s,n),n+=s.length;return a}},s={arraySet:function(t,e,r,i,n){for(var s=0;s<i;s++)t[n+s]=e[r+s]},flattenChunks:function(t){return[].concat.apply([],t)}};r.setTyped=function(t){t?(r.Buf8=Uint8Array,r.Buf16=Uint16Array,r.Buf32=Int32Array,r.assign(r,n)):(r.Buf8=Array,r.Buf16=Array,r.Buf32=Array,r.assign(r,s))},r.setTyped(i)},{}],42:[function(t,e,r){"use strict";var h=t("./common"),n=!0,s=!0;try{String.fromCharCode.apply(null,[0])}catch(t){n=!1}try{String.fromCharCode.apply(null,new Uint8Array(1))}catch(t){s=!1}for(var u=new h.Buf8(256),i=0;i<256;i++)u[i]=252<=i?6:248<=i?5:240<=i?4:224<=i?3:192<=i?2:1;function l(t,e){if(e<65537&&(t.subarray&&s||!t.subarray&&n))return String.fromCharCode.apply(null,h.shrinkBuf(t,e));for(var r="",i=0;i<e;i++)r+=String.fromCharCode(t[i]);return r}u[254]=u[254]=1,r.string2buf=function(t){var e,r,i,n,s,a=t.length,o=0;for(n=0;n<a;n++)55296==(64512&(r=t.charCodeAt(n)))&&n+1<a&&56320==(64512&(i=t.charCodeAt(n+1)))&&(r=65536+(r-55296<<10)+(i-56320),n++),o+=r<128?1:r<2048?2:r<65536?3:4;for(e=new h.Buf8(o),n=s=0;s<o;n++)55296==(64512&(r=t.charCodeAt(n)))&&n+1<a&&56320==(64512&(i=t.charCodeAt(n+1)))&&(r=65536+(r-55296<<10)+(i-56320),n++),r<128?e[s++]=r:(r<2048?e[s++]=192|r>>>6:(r<65536?e[s++]=224|r>>>12:(e[s++]=240|r>>>18,e[s++]=128|r>>>12&63),e[s++]=128|r>>>6&63),e[s++]=128|63&r);return e},r.buf2binstring=function(t){return l(t,t.length)},r.binstring2buf=function(t){for(var e=new h.Buf8(t.length),r=0,i=e.length;r<i;r++)e[r]=t.charCodeAt(r);return e},r.buf2string=function(t,e){var r,i,n,s,a=e||t.length,o=new Array(2*a);for(r=i=0;r<a;)if((n=t[r++])<128)o[i++]=n;else if(4<(s=u[n]))o[i++]=65533,r+=s-1;else{for(n&=2===s?31:3===s?15:7;1<s&&r<a;)n=n<<6|63&t[r++],s--;1<s?o[i++]=65533:n<65536?o[i++]=n:(n-=65536,o[i++]=55296|n>>10&1023,o[i++]=56320|1023&n)}return l(o,i)},r.utf8border=function(t,e){var r;for((e=e||t.length)>t.length&&(e=t.length),r=e-1;0<=r&&128==(192&t[r]);)r--;return r<0?e:0===r?e:r+u[t[r]]>e?r:e}},{"./common":41}],43:[function(t,e,r){"use strict";e.exports=function(t,e,r,i){for(var n=65535&t|0,s=t>>>16&65535|0,a=0;0!==r;){for(r-=a=2e3<r?2e3:r;s=s+(n=n+e[i++]|0)|0,--a;);n%=65521,s%=65521}return n|s<<16|0}},{}],44:[function(t,e,r){"use strict";e.exports={Z_NO_FLUSH:0,Z_PARTIAL_FLUSH:1,Z_SYNC_FLUSH:2,Z_FULL_FLUSH:3,Z_FINISH:4,Z_BLOCK:5,Z_TREES:6,Z_OK:0,Z_STREAM_END:1,Z_NEED_DICT:2,Z_ERRNO:-1,Z_STREAM_ERROR:-2,Z_DATA_ERROR:-3,Z_BUF_ERROR:-5,Z_NO_COMPRESSION:0,Z_BEST_SPEED:1,Z_BEST_COMPRESSION:9,Z_DEFAULT_COMPRESSION:-1,Z_FILTERED:1,Z_HUFFMAN_ONLY:2,Z_RLE:3,Z_FIXED:4,Z_DEFAULT_STRATEGY:0,Z_BINARY:0,Z_TEXT:1,Z_UNKNOWN:2,Z_DEFLATED:8}},{}],45:[function(t,e,r){"use strict";var o=function(){for(var t,e=[],r=0;r<256;r++){t=r;for(var i=0;i<8;i++)t=1&t?3988292384^t>>>1:t>>>1;e[r]=t}return e}();e.exports=function(t,e,r,i){var n=o,s=i+r;t^=-1;for(var a=i;a<s;a++)t=t>>>8^n[255&(t^e[a])];return-1^t}},{}],46:[function(t,e,r){"use strict";var h,d=t("../utils/common"),u=t("./trees"),c=t("./adler32"),p=t("./crc32"),i=t("./messages"),l=0,f=4,m=0,_=-2,g=-1,b=4,n=2,v=8,y=9,s=286,a=30,o=19,w=2*s+1,k=15,x=3,S=258,z=S+x+1,C=42,E=113,A=1,I=2,O=3,B=4;function R(t,e){return t.msg=i[e],e}function T(t){return(t<<1)-(4<t?9:0)}function D(t){for(var e=t.length;0<=--e;)t[e]=0}function F(t){var e=t.state,r=e.pending;r>t.avail_out&&(r=t.avail_out),0!==r&&(d.arraySet(t.output,e.pending_buf,e.pending_out,r,t.next_out),t.next_out+=r,e.pending_out+=r,t.total_out+=r,t.avail_out-=r,e.pending-=r,0===e.pending&&(e.pending_out=0))}function N(t,e){u._tr_flush_block(t,0<=t.block_start?t.block_start:-1,t.strstart-t.block_start,e),t.block_start=t.strstart,F(t.strm)}function U(t,e){t.pending_buf[t.pending++]=e}function P(t,e){t.pending_buf[t.pending++]=e>>>8&255,t.pending_buf[t.pending++]=255&e}function L(t,e){var r,i,n=t.max_chain_length,s=t.strstart,a=t.prev_length,o=t.nice_match,h=t.strstart>t.w_size-z?t.strstart-(t.w_size-z):0,u=t.window,l=t.w_mask,f=t.prev,d=t.strstart+S,c=u[s+a-1],p=u[s+a];t.prev_length>=t.good_match&&(n>>=2),o>t.lookahead&&(o=t.lookahead);do{if(u[(r=e)+a]===p&&u[r+a-1]===c&&u[r]===u[s]&&u[++r]===u[s+1]){s+=2,r++;do{}while(u[++s]===u[++r]&&u[++s]===u[++r]&&u[++s]===u[++r]&&u[++s]===u[++r]&&u[++s]===u[++r]&&u[++s]===u[++r]&&u[++s]===u[++r]&&u[++s]===u[++r]&&s<d);if(i=S-(d-s),s=d-S,a<i){if(t.match_start=e,o<=(a=i))break;c=u[s+a-1],p=u[s+a]}}}while((e=f[e&l])>h&&0!=--n);return a<=t.lookahead?a:t.lookahead}function j(t){var e,r,i,n,s,a,o,h,u,l,f=t.w_size;do{if(n=t.window_size-t.lookahead-t.strstart,t.strstart>=f+(f-z)){for(d.arraySet(t.window,t.window,f,f,0),t.match_start-=f,t.strstart-=f,t.block_start-=f,e=r=t.hash_size;i=t.head[--e],t.head[e]=f<=i?i-f:0,--r;);for(e=r=f;i=t.prev[--e],t.prev[e]=f<=i?i-f:0,--r;);n+=f}if(0===t.strm.avail_in)break;if(a=t.strm,o=t.window,h=t.strstart+t.lookahead,u=n,l=void 0,l=a.avail_in,u<l&&(l=u),r=0===l?0:(a.avail_in-=l,d.arraySet(o,a.input,a.next_in,l,h),1===a.state.wrap?a.adler=c(a.adler,o,l,h):2===a.state.wrap&&(a.adler=p(a.adler,o,l,h)),a.next_in+=l,a.total_in+=l,l),t.lookahead+=r,t.lookahead+t.insert>=x)for(s=t.strstart-t.insert,t.ins_h=t.window[s],t.ins_h=(t.ins_h<<t.hash_shift^t.window[s+1])&t.hash_mask;t.insert&&(t.ins_h=(t.ins_h<<t.hash_shift^t.window[s+x-1])&t.hash_mask,t.prev[s&t.w_mask]=t.head[t.ins_h],t.head[t.ins_h]=s,s++,t.insert--,!(t.lookahead+t.insert<x)););}while(t.lookahead<z&&0!==t.strm.avail_in)}function Z(t,e){for(var r,i;;){if(t.lookahead<z){if(j(t),t.lookahead<z&&e===l)return A;if(0===t.lookahead)break}if(r=0,t.lookahead>=x&&(t.ins_h=(t.ins_h<<t.hash_shift^t.window[t.strstart+x-1])&t.hash_mask,r=t.prev[t.strstart&t.w_mask]=t.head[t.ins_h],t.head[t.ins_h]=t.strstart),0!==r&&t.strstart-r<=t.w_size-z&&(t.match_length=L(t,r)),t.match_length>=x)if(i=u._tr_tally(t,t.strstart-t.match_start,t.match_length-x),t.lookahead-=t.match_length,t.match_length<=t.max_lazy_match&&t.lookahead>=x){for(t.match_length--;t.strstart++,t.ins_h=(t.ins_h<<t.hash_shift^t.window[t.strstart+x-1])&t.hash_mask,r=t.prev[t.strstart&t.w_mask]=t.head[t.ins_h],t.head[t.ins_h]=t.strstart,0!=--t.match_length;);t.strstart++}else t.strstart+=t.match_length,t.match_length=0,t.ins_h=t.window[t.strstart],t.ins_h=(t.ins_h<<t.hash_shift^t.window[t.strstart+1])&t.hash_mask;else i=u._tr_tally(t,0,t.window[t.strstart]),t.lookahead--,t.strstart++;if(i&&(N(t,!1),0===t.strm.avail_out))return A}return t.insert=t.strstart<x-1?t.strstart:x-1,e===f?(N(t,!0),0===t.strm.avail_out?O:B):t.last_lit&&(N(t,!1),0===t.strm.avail_out)?A:I}function W(t,e){for(var r,i,n;;){if(t.lookahead<z){if(j(t),t.lookahead<z&&e===l)return A;if(0===t.lookahead)break}if(r=0,t.lookahead>=x&&(t.ins_h=(t.ins_h<<t.hash_shift^t.window[t.strstart+x-1])&t.hash_mask,r=t.prev[t.strstart&t.w_mask]=t.head[t.ins_h],t.head[t.ins_h]=t.strstart),t.prev_length=t.match_length,t.prev_match=t.match_start,t.match_length=x-1,0!==r&&t.prev_length<t.max_lazy_match&&t.strstart-r<=t.w_size-z&&(t.match_length=L(t,r),t.match_length<=5&&(1===t.strategy||t.match_length===x&&4096<t.strstart-t.match_start)&&(t.match_length=x-1)),t.prev_length>=x&&t.match_length<=t.prev_length){for(n=t.strstart+t.lookahead-x,i=u._tr_tally(t,t.strstart-1-t.prev_match,t.prev_length-x),t.lookahead-=t.prev_length-1,t.prev_length-=2;++t.strstart<=n&&(t.ins_h=(t.ins_h<<t.hash_shift^t.window[t.strstart+x-1])&t.hash_mask,r=t.prev[t.strstart&t.w_mask]=t.head[t.ins_h],t.head[t.ins_h]=t.strstart),0!=--t.prev_length;);if(t.match_available=0,t.match_length=x-1,t.strstart++,i&&(N(t,!1),0===t.strm.avail_out))return A}else if(t.match_available){if((i=u._tr_tally(t,0,t.window[t.strstart-1]))&&N(t,!1),t.strstart++,t.lookahead--,0===t.strm.avail_out)return A}else t.match_available=1,t.strstart++,t.lookahead--}return t.match_available&&(i=u._tr_tally(t,0,t.window[t.strstart-1]),t.match_available=0),t.insert=t.strstart<x-1?t.strstart:x-1,e===f?(N(t,!0),0===t.strm.avail_out?O:B):t.last_lit&&(N(t,!1),0===t.strm.avail_out)?A:I}function M(t,e,r,i,n){this.good_length=t,this.max_lazy=e,this.nice_length=r,this.max_chain=i,this.func=n}function H(){this.strm=null,this.status=0,this.pending_buf=null,this.pending_buf_size=0,this.pending_out=0,this.pending=0,this.wrap=0,this.gzhead=null,this.gzindex=0,this.method=v,this.last_flush=-1,this.w_size=0,this.w_bits=0,this.w_mask=0,this.window=null,this.window_size=0,this.prev=null,this.head=null,this.ins_h=0,this.hash_size=0,this.hash_bits=0,this.hash_mask=0,this.hash_shift=0,this.block_start=0,this.match_length=0,this.prev_match=0,this.match_available=0,this.strstart=0,this.match_start=0,this.lookahead=0,this.prev_length=0,this.max_chain_length=0,this.max_lazy_match=0,this.level=0,this.strategy=0,this.good_match=0,this.nice_match=0,this.dyn_ltree=new d.Buf16(2*w),this.dyn_dtree=new d.Buf16(2*(2*a+1)),this.bl_tree=new d.Buf16(2*(2*o+1)),D(this.dyn_ltree),D(this.dyn_dtree),D(this.bl_tree),this.l_desc=null,this.d_desc=null,this.bl_desc=null,this.bl_count=new d.Buf16(k+1),this.heap=new d.Buf16(2*s+1),D(this.heap),this.heap_len=0,this.heap_max=0,this.depth=new d.Buf16(2*s+1),D(this.depth),this.l_buf=0,this.lit_bufsize=0,this.last_lit=0,this.d_buf=0,this.opt_len=0,this.static_len=0,this.matches=0,this.insert=0,this.bi_buf=0,this.bi_valid=0}function G(t){var e;return t&&t.state?(t.total_in=t.total_out=0,t.data_type=n,(e=t.state).pending=0,e.pending_out=0,e.wrap<0&&(e.wrap=-e.wrap),e.status=e.wrap?C:E,t.adler=2===e.wrap?0:1,e.last_flush=l,u._tr_init(e),m):R(t,_)}function K(t){var e=G(t);return e===m&&function(t){t.window_size=2*t.w_size,D(t.head),t.max_lazy_match=h[t.level].max_lazy,t.good_match=h[t.level].good_length,t.nice_match=h[t.level].nice_length,t.max_chain_length=h[t.level].max_chain,t.strstart=0,t.block_start=0,t.lookahead=0,t.insert=0,t.match_length=t.prev_length=x-1,t.match_available=0,t.ins_h=0}(t.state),e}function Y(t,e,r,i,n,s){if(!t)return _;var a=1;if(e===g&&(e=6),i<0?(a=0,i=-i):15<i&&(a=2,i-=16),n<1||y<n||r!==v||i<8||15<i||e<0||9<e||s<0||b<s)return R(t,_);8===i&&(i=9);var o=new H;return(t.state=o).strm=t,o.wrap=a,o.gzhead=null,o.w_bits=i,o.w_size=1<<o.w_bits,o.w_mask=o.w_size-1,o.hash_bits=n+7,o.hash_size=1<<o.hash_bits,o.hash_mask=o.hash_size-1,o.hash_shift=~~((o.hash_bits+x-1)/x),o.window=new d.Buf8(2*o.w_size),o.head=new d.Buf16(o.hash_size),o.prev=new d.Buf16(o.w_size),o.lit_bufsize=1<<n+6,o.pending_buf_size=4*o.lit_bufsize,o.pending_buf=new d.Buf8(o.pending_buf_size),o.d_buf=1*o.lit_bufsize,o.l_buf=3*o.lit_bufsize,o.level=e,o.strategy=s,o.method=r,K(t)}h=[new M(0,0,0,0,function(t,e){var r=65535;for(r>t.pending_buf_size-5&&(r=t.pending_buf_size-5);;){if(t.lookahead<=1){if(j(t),0===t.lookahead&&e===l)return A;if(0===t.lookahead)break}t.strstart+=t.lookahead,t.lookahead=0;var i=t.block_start+r;if((0===t.strstart||t.strstart>=i)&&(t.lookahead=t.strstart-i,t.strstart=i,N(t,!1),0===t.strm.avail_out))return A;if(t.strstart-t.block_start>=t.w_size-z&&(N(t,!1),0===t.strm.avail_out))return A}return t.insert=0,e===f?(N(t,!0),0===t.strm.avail_out?O:B):(t.strstart>t.block_start&&(N(t,!1),t.strm.avail_out),A)}),new M(4,4,8,4,Z),new M(4,5,16,8,Z),new M(4,6,32,32,Z),new M(4,4,16,16,W),new M(8,16,32,32,W),new M(8,16,128,128,W),new M(8,32,128,256,W),new M(32,128,258,1024,W),new M(32,258,258,4096,W)],r.deflateInit=function(t,e){return Y(t,e,v,15,8,0)},r.deflateInit2=Y,r.deflateReset=K,r.deflateResetKeep=G,r.deflateSetHeader=function(t,e){return t&&t.state?2!==t.state.wrap?_:(t.state.gzhead=e,m):_},r.deflate=function(t,e){var r,i,n,s;if(!t||!t.state||5<e||e<0)return t?R(t,_):_;if(i=t.state,!t.output||!t.input&&0!==t.avail_in||666===i.status&&e!==f)return R(t,0===t.avail_out?-5:_);if(i.strm=t,r=i.last_flush,i.last_flush=e,i.status===C)if(2===i.wrap)t.adler=0,U(i,31),U(i,139),U(i,8),i.gzhead?(U(i,(i.gzhead.text?1:0)+(i.gzhead.hcrc?2:0)+(i.gzhead.extra?4:0)+(i.gzhead.name?8:0)+(i.gzhead.comment?16:0)),U(i,255&i.gzhead.time),U(i,i.gzhead.time>>8&255),U(i,i.gzhead.time>>16&255),U(i,i.gzhead.time>>24&255),U(i,9===i.level?2:2<=i.strategy||i.level<2?4:0),U(i,255&i.gzhead.os),i.gzhead.extra&&i.gzhead.extra.length&&(U(i,255&i.gzhead.extra.length),U(i,i.gzhead.extra.length>>8&255)),i.gzhead.hcrc&&(t.adler=p(t.adler,i.pending_buf,i.pending,0)),i.gzindex=0,i.status=69):(U(i,0),U(i,0),U(i,0),U(i,0),U(i,0),U(i,9===i.level?2:2<=i.strategy||i.level<2?4:0),U(i,3),i.status=E);else{var a=v+(i.w_bits-8<<4)<<8;a|=(2<=i.strategy||i.level<2?0:i.level<6?1:6===i.level?2:3)<<6,0!==i.strstart&&(a|=32),a+=31-a%31,i.status=E,P(i,a),0!==i.strstart&&(P(i,t.adler>>>16),P(i,65535&t.adler)),t.adler=1}if(69===i.status)if(i.gzhead.extra){for(n=i.pending;i.gzindex<(65535&i.gzhead.extra.length)&&(i.pending!==i.pending_buf_size||(i.gzhead.hcrc&&i.pending>n&&(t.adler=p(t.adler,i.pending_buf,i.pending-n,n)),F(t),n=i.pending,i.pending!==i.pending_buf_size));)U(i,255&i.gzhead.extra[i.gzindex]),i.gzindex++;i.gzhead.hcrc&&i.pending>n&&(t.adler=p(t.adler,i.pending_buf,i.pending-n,n)),i.gzindex===i.gzhead.extra.length&&(i.gzindex=0,i.status=73)}else i.status=73;if(73===i.status)if(i.gzhead.name){n=i.pending;do{if(i.pending===i.pending_buf_size&&(i.gzhead.hcrc&&i.pending>n&&(t.adler=p(t.adler,i.pending_buf,i.pending-n,n)),F(t),n=i.pending,i.pending===i.pending_buf_size)){s=1;break}s=i.gzindex<i.gzhead.name.length?255&i.gzhead.name.charCodeAt(i.gzindex++):0,U(i,s)}while(0!==s);i.gzhead.hcrc&&i.pending>n&&(t.adler=p(t.adler,i.pending_buf,i.pending-n,n)),0===s&&(i.gzindex=0,i.status=91)}else i.status=91;if(91===i.status)if(i.gzhead.comment){n=i.pending;do{if(i.pending===i.pending_buf_size&&(i.gzhead.hcrc&&i.pending>n&&(t.adler=p(t.adler,i.pending_buf,i.pending-n,n)),F(t),n=i.pending,i.pending===i.pending_buf_size)){s=1;break}s=i.gzindex<i.gzhead.comment.length?255&i.gzhead.comment.charCodeAt(i.gzindex++):0,U(i,s)}while(0!==s);i.gzhead.hcrc&&i.pending>n&&(t.adler=p(t.adler,i.pending_buf,i.pending-n,n)),0===s&&(i.status=103)}else i.status=103;if(103===i.status&&(i.gzhead.hcrc?(i.pending+2>i.pending_buf_size&&F(t),i.pending+2<=i.pending_buf_size&&(U(i,255&t.adler),U(i,t.adler>>8&255),t.adler=0,i.status=E)):i.status=E),0!==i.pending){if(F(t),0===t.avail_out)return i.last_flush=-1,m}else if(0===t.avail_in&&T(e)<=T(r)&&e!==f)return R(t,-5);if(666===i.status&&0!==t.avail_in)return R(t,-5);if(0!==t.avail_in||0!==i.lookahead||e!==l&&666!==i.status){var o=2===i.strategy?function(t,e){for(var r;;){if(0===t.lookahead&&(j(t),0===t.lookahead)){if(e===l)return A;break}if(t.match_length=0,r=u._tr_tally(t,0,t.window[t.strstart]),t.lookahead--,t.strstart++,r&&(N(t,!1),0===t.strm.avail_out))return A}return t.insert=0,e===f?(N(t,!0),0===t.strm.avail_out?O:B):t.last_lit&&(N(t,!1),0===t.strm.avail_out)?A:I}(i,e):3===i.strategy?function(t,e){for(var r,i,n,s,a=t.window;;){if(t.lookahead<=S){if(j(t),t.lookahead<=S&&e===l)return A;if(0===t.lookahead)break}if(t.match_length=0,t.lookahead>=x&&0<t.strstart&&(i=a[n=t.strstart-1])===a[++n]&&i===a[++n]&&i===a[++n]){s=t.strstart+S;do{}while(i===a[++n]&&i===a[++n]&&i===a[++n]&&i===a[++n]&&i===a[++n]&&i===a[++n]&&i===a[++n]&&i===a[++n]&&n<s);t.match_length=S-(s-n),t.match_length>t.lookahead&&(t.match_length=t.lookahead)}if(t.match_length>=x?(r=u._tr_tally(t,1,t.match_length-x),t.lookahead-=t.match_length,t.strstart+=t.match_length,t.match_length=0):(r=u._tr_tally(t,0,t.window[t.strstart]),t.lookahead--,t.strstart++),r&&(N(t,!1),0===t.strm.avail_out))return A}return t.insert=0,e===f?(N(t,!0),0===t.strm.avail_out?O:B):t.last_lit&&(N(t,!1),0===t.strm.avail_out)?A:I}(i,e):h[i.level].func(i,e);if(o!==O&&o!==B||(i.status=666),o===A||o===O)return 0===t.avail_out&&(i.last_flush=-1),m;if(o===I&&(1===e?u._tr_align(i):5!==e&&(u._tr_stored_block(i,0,0,!1),3===e&&(D(i.head),0===i.lookahead&&(i.strstart=0,i.block_start=0,i.insert=0))),F(t),0===t.avail_out))return i.last_flush=-1,m}return e!==f?m:i.wrap<=0?1:(2===i.wrap?(U(i,255&t.adler),U(i,t.adler>>8&255),U(i,t.adler>>16&255),U(i,t.adler>>24&255),U(i,255&t.total_in),U(i,t.total_in>>8&255),U(i,t.total_in>>16&255),U(i,t.total_in>>24&255)):(P(i,t.adler>>>16),P(i,65535&t.adler)),F(t),0<i.wrap&&(i.wrap=-i.wrap),0!==i.pending?m:1)},r.deflateEnd=function(t){var e;return t&&t.state?(e=t.state.status)!==C&&69!==e&&73!==e&&91!==e&&103!==e&&e!==E&&666!==e?R(t,_):(t.state=null,e===E?R(t,-3):m):_},r.deflateSetDictionary=function(t,e){var r,i,n,s,a,o,h,u,l=e.length;if(!t||!t.state)return _;if(2===(s=(r=t.state).wrap)||1===s&&r.status!==C||r.lookahead)return _;for(1===s&&(t.adler=c(t.adler,e,l,0)),r.wrap=0,l>=r.w_size&&(0===s&&(D(r.head),r.strstart=0,r.block_start=0,r.insert=0),u=new d.Buf8(r.w_size),d.arraySet(u,e,l-r.w_size,r.w_size,0),e=u,l=r.w_size),a=t.avail_in,o=t.next_in,h=t.input,t.avail_in=l,t.next_in=0,t.input=e,j(r);r.lookahead>=x;){for(i=r.strstart,n=r.lookahead-(x-1);r.ins_h=(r.ins_h<<r.hash_shift^r.window[i+x-1])&r.hash_mask,r.prev[i&r.w_mask]=r.head[r.ins_h],r.head[r.ins_h]=i,i++,--n;);r.strstart=i,r.lookahead=x-1,j(r)}return r.strstart+=r.lookahead,r.block_start=r.strstart,r.insert=r.lookahead,r.lookahead=0,r.match_length=r.prev_length=x-1,r.match_available=0,t.next_in=o,t.input=h,t.avail_in=a,r.wrap=s,m},r.deflateInfo="pako deflate (from Nodeca project)"},{"../utils/common":41,"./adler32":43,"./crc32":45,"./messages":51,"./trees":52}],47:[function(t,e,r){"use strict";e.exports=function(){this.text=0,this.time=0,this.xflags=0,this.os=0,this.extra=null,this.extra_len=0,this.name="",this.comment="",this.hcrc=0,this.done=!1}},{}],48:[function(t,e,r){"use strict";e.exports=function(t,e){var r,i,n,s,a,o,h,u,l,f,d,c,p,m,_,g,b,v,y,w,k,x,S,z,C;r=t.state,i=t.next_in,z=t.input,n=i+(t.avail_in-5),s=t.next_out,C=t.output,a=s-(e-t.avail_out),o=s+(t.avail_out-257),h=r.dmax,u=r.wsize,l=r.whave,f=r.wnext,d=r.window,c=r.hold,p=r.bits,m=r.lencode,_=r.distcode,g=(1<<r.lenbits)-1,b=(1<<r.distbits)-1;t:do{p<15&&(c+=z[i++]<<p,p+=8,c+=z[i++]<<p,p+=8),v=m[c&g];e:for(;;){if(c>>>=y=v>>>24,p-=y,0===(y=v>>>16&255))C[s++]=65535&v;else{if(!(16&y)){if(0==(64&y)){v=m[(65535&v)+(c&(1<<y)-1)];continue e}if(32&y){r.mode=12;break t}t.msg="invalid literal/length code",r.mode=30;break t}w=65535&v,(y&=15)&&(p<y&&(c+=z[i++]<<p,p+=8),w+=c&(1<<y)-1,c>>>=y,p-=y),p<15&&(c+=z[i++]<<p,p+=8,c+=z[i++]<<p,p+=8),v=_[c&b];r:for(;;){if(c>>>=y=v>>>24,p-=y,!(16&(y=v>>>16&255))){if(0==(64&y)){v=_[(65535&v)+(c&(1<<y)-1)];continue r}t.msg="invalid distance code",r.mode=30;break t}if(k=65535&v,p<(y&=15)&&(c+=z[i++]<<p,(p+=8)<y&&(c+=z[i++]<<p,p+=8)),h<(k+=c&(1<<y)-1)){t.msg="invalid distance too far back",r.mode=30;break t}if(c>>>=y,p-=y,(y=s-a)<k){if(l<(y=k-y)&&r.sane){t.msg="invalid distance too far back",r.mode=30;break t}if(S=d,(x=0)===f){if(x+=u-y,y<w){for(w-=y;C[s++]=d[x++],--y;);x=s-k,S=C}}else if(f<y){if(x+=u+f-y,(y-=f)<w){for(w-=y;C[s++]=d[x++],--y;);if(x=0,f<w){for(w-=y=f;C[s++]=d[x++],--y;);x=s-k,S=C}}}else if(x+=f-y,y<w){for(w-=y;C[s++]=d[x++],--y;);x=s-k,S=C}for(;2<w;)C[s++]=S[x++],C[s++]=S[x++],C[s++]=S[x++],w-=3;w&&(C[s++]=S[x++],1<w&&(C[s++]=S[x++]))}else{for(x=s-k;C[s++]=C[x++],C[s++]=C[x++],C[s++]=C[x++],2<(w-=3););w&&(C[s++]=C[x++],1<w&&(C[s++]=C[x++]))}break}}break}}while(i<n&&s<o);i-=w=p>>3,c&=(1<<(p-=w<<3))-1,t.next_in=i,t.next_out=s,t.avail_in=i<n?n-i+5:5-(i-n),t.avail_out=s<o?o-s+257:257-(s-o),r.hold=c,r.bits=p}},{}],49:[function(t,e,r){"use strict";var I=t("../utils/common"),O=t("./adler32"),B=t("./crc32"),R=t("./inffast"),T=t("./inftrees"),D=1,F=2,N=0,U=-2,P=1,i=852,n=592;function L(t){return(t>>>24&255)+(t>>>8&65280)+((65280&t)<<8)+((255&t)<<24)}function s(){this.mode=0,this.last=!1,this.wrap=0,this.havedict=!1,this.flags=0,this.dmax=0,this.check=0,this.total=0,this.head=null,this.wbits=0,this.wsize=0,this.whave=0,this.wnext=0,this.window=null,this.hold=0,this.bits=0,this.length=0,this.offset=0,this.extra=0,this.lencode=null,this.distcode=null,this.lenbits=0,this.distbits=0,this.ncode=0,this.nlen=0,this.ndist=0,this.have=0,this.next=null,this.lens=new I.Buf16(320),this.work=new I.Buf16(288),this.lendyn=null,this.distdyn=null,this.sane=0,this.back=0,this.was=0}function a(t){var e;return t&&t.state?(e=t.state,t.total_in=t.total_out=e.total=0,t.msg="",e.wrap&&(t.adler=1&e.wrap),e.mode=P,e.last=0,e.havedict=0,e.dmax=32768,e.head=null,e.hold=0,e.bits=0,e.lencode=e.lendyn=new I.Buf32(i),e.distcode=e.distdyn=new I.Buf32(n),e.sane=1,e.back=-1,N):U}function o(t){var e;return t&&t.state?((e=t.state).wsize=0,e.whave=0,e.wnext=0,a(t)):U}function h(t,e){var r,i;return t&&t.state?(i=t.state,e<0?(r=0,e=-e):(r=1+(e>>4),e<48&&(e&=15)),e&&(e<8||15<e)?U:(null!==i.window&&i.wbits!==e&&(i.window=null),i.wrap=r,i.wbits=e,o(t))):U}function u(t,e){var r,i;return t?(i=new s,(t.state=i).window=null,(r=h(t,e))!==N&&(t.state=null),r):U}var l,f,d=!0;function j(t){if(d){var e;for(l=new I.Buf32(512),f=new I.Buf32(32),e=0;e<144;)t.lens[e++]=8;for(;e<256;)t.lens[e++]=9;for(;e<280;)t.lens[e++]=7;for(;e<288;)t.lens[e++]=8;for(T(D,t.lens,0,288,l,0,t.work,{bits:9}),e=0;e<32;)t.lens[e++]=5;T(F,t.lens,0,32,f,0,t.work,{bits:5}),d=!1}t.lencode=l,t.lenbits=9,t.distcode=f,t.distbits=5}function Z(t,e,r,i){var n,s=t.state;return null===s.window&&(s.wsize=1<<s.wbits,s.wnext=0,s.whave=0,s.window=new I.Buf8(s.wsize)),i>=s.wsize?(I.arraySet(s.window,e,r-s.wsize,s.wsize,0),s.wnext=0,s.whave=s.wsize):(i<(n=s.wsize-s.wnext)&&(n=i),I.arraySet(s.window,e,r-i,n,s.wnext),(i-=n)?(I.arraySet(s.window,e,r-i,i,0),s.wnext=i,s.whave=s.wsize):(s.wnext+=n,s.wnext===s.wsize&&(s.wnext=0),s.whave<s.wsize&&(s.whave+=n))),0}r.inflateReset=o,r.inflateReset2=h,r.inflateResetKeep=a,r.inflateInit=function(t){return u(t,15)},r.inflateInit2=u,r.inflate=function(t,e){var r,i,n,s,a,o,h,u,l,f,d,c,p,m,_,g,b,v,y,w,k,x,S,z,C=0,E=new I.Buf8(4),A=[16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15];if(!t||!t.state||!t.output||!t.input&&0!==t.avail_in)return U;12===(r=t.state).mode&&(r.mode=13),a=t.next_out,n=t.output,h=t.avail_out,s=t.next_in,i=t.input,o=t.avail_in,u=r.hold,l=r.bits,f=o,d=h,x=N;t:for(;;)switch(r.mode){case P:if(0===r.wrap){r.mode=13;break}for(;l<16;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}if(2&r.wrap&&35615===u){E[r.check=0]=255&u,E[1]=u>>>8&255,r.check=B(r.check,E,2,0),l=u=0,r.mode=2;break}if(r.flags=0,r.head&&(r.head.done=!1),!(1&r.wrap)||(((255&u)<<8)+(u>>8))%31){t.msg="incorrect header check",r.mode=30;break}if(8!=(15&u)){t.msg="unknown compression method",r.mode=30;break}if(l-=4,k=8+(15&(u>>>=4)),0===r.wbits)r.wbits=k;else if(k>r.wbits){t.msg="invalid window size",r.mode=30;break}r.dmax=1<<k,t.adler=r.check=1,r.mode=512&u?10:12,l=u=0;break;case 2:for(;l<16;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}if(r.flags=u,8!=(255&r.flags)){t.msg="unknown compression method",r.mode=30;break}if(57344&r.flags){t.msg="unknown header flags set",r.mode=30;break}r.head&&(r.head.text=u>>8&1),512&r.flags&&(E[0]=255&u,E[1]=u>>>8&255,r.check=B(r.check,E,2,0)),l=u=0,r.mode=3;case 3:for(;l<32;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}r.head&&(r.head.time=u),512&r.flags&&(E[0]=255&u,E[1]=u>>>8&255,E[2]=u>>>16&255,E[3]=u>>>24&255,r.check=B(r.check,E,4,0)),l=u=0,r.mode=4;case 4:for(;l<16;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}r.head&&(r.head.xflags=255&u,r.head.os=u>>8),512&r.flags&&(E[0]=255&u,E[1]=u>>>8&255,r.check=B(r.check,E,2,0)),l=u=0,r.mode=5;case 5:if(1024&r.flags){for(;l<16;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}r.length=u,r.head&&(r.head.extra_len=u),512&r.flags&&(E[0]=255&u,E[1]=u>>>8&255,r.check=B(r.check,E,2,0)),l=u=0}else r.head&&(r.head.extra=null);r.mode=6;case 6:if(1024&r.flags&&(o<(c=r.length)&&(c=o),c&&(r.head&&(k=r.head.extra_len-r.length,r.head.extra||(r.head.extra=new Array(r.head.extra_len)),I.arraySet(r.head.extra,i,s,c,k)),512&r.flags&&(r.check=B(r.check,i,c,s)),o-=c,s+=c,r.length-=c),r.length))break t;r.length=0,r.mode=7;case 7:if(2048&r.flags){if(0===o)break t;for(c=0;k=i[s+c++],r.head&&k&&r.length<65536&&(r.head.name+=String.fromCharCode(k)),k&&c<o;);if(512&r.flags&&(r.check=B(r.check,i,c,s)),o-=c,s+=c,k)break t}else r.head&&(r.head.name=null);r.length=0,r.mode=8;case 8:if(4096&r.flags){if(0===o)break t;for(c=0;k=i[s+c++],r.head&&k&&r.length<65536&&(r.head.comment+=String.fromCharCode(k)),k&&c<o;);if(512&r.flags&&(r.check=B(r.check,i,c,s)),o-=c,s+=c,k)break t}else r.head&&(r.head.comment=null);r.mode=9;case 9:if(512&r.flags){for(;l<16;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}if(u!==(65535&r.check)){t.msg="header crc mismatch",r.mode=30;break}l=u=0}r.head&&(r.head.hcrc=r.flags>>9&1,r.head.done=!0),t.adler=r.check=0,r.mode=12;break;case 10:for(;l<32;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}t.adler=r.check=L(u),l=u=0,r.mode=11;case 11:if(0===r.havedict)return t.next_out=a,t.avail_out=h,t.next_in=s,t.avail_in=o,r.hold=u,r.bits=l,2;t.adler=r.check=1,r.mode=12;case 12:if(5===e||6===e)break t;case 13:if(r.last){u>>>=7&l,l-=7&l,r.mode=27;break}for(;l<3;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}switch(r.last=1&u,l-=1,3&(u>>>=1)){case 0:r.mode=14;break;case 1:if(j(r),r.mode=20,6!==e)break;u>>>=2,l-=2;break t;case 2:r.mode=17;break;case 3:t.msg="invalid block type",r.mode=30}u>>>=2,l-=2;break;case 14:for(u>>>=7&l,l-=7&l;l<32;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}if((65535&u)!=(u>>>16^65535)){t.msg="invalid stored block lengths",r.mode=30;break}if(r.length=65535&u,l=u=0,r.mode=15,6===e)break t;case 15:r.mode=16;case 16:if(c=r.length){if(o<c&&(c=o),h<c&&(c=h),0===c)break t;I.arraySet(n,i,s,c,a),o-=c,s+=c,h-=c,a+=c,r.length-=c;break}r.mode=12;break;case 17:for(;l<14;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}if(r.nlen=257+(31&u),u>>>=5,l-=5,r.ndist=1+(31&u),u>>>=5,l-=5,r.ncode=4+(15&u),u>>>=4,l-=4,286<r.nlen||30<r.ndist){t.msg="too many length or distance symbols",r.mode=30;break}r.have=0,r.mode=18;case 18:for(;r.have<r.ncode;){for(;l<3;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}r.lens[A[r.have++]]=7&u,u>>>=3,l-=3}for(;r.have<19;)r.lens[A[r.have++]]=0;if(r.lencode=r.lendyn,r.lenbits=7,S={bits:r.lenbits},x=T(0,r.lens,0,19,r.lencode,0,r.work,S),r.lenbits=S.bits,x){t.msg="invalid code lengths set",r.mode=30;break}r.have=0,r.mode=19;case 19:for(;r.have<r.nlen+r.ndist;){for(;g=(C=r.lencode[u&(1<<r.lenbits)-1])>>>16&255,b=65535&C,!((_=C>>>24)<=l);){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}if(b<16)u>>>=_,l-=_,r.lens[r.have++]=b;else{if(16===b){for(z=_+2;l<z;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}if(u>>>=_,l-=_,0===r.have){t.msg="invalid bit length repeat",r.mode=30;break}k=r.lens[r.have-1],c=3+(3&u),u>>>=2,l-=2}else if(17===b){for(z=_+3;l<z;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}l-=_,k=0,c=3+(7&(u>>>=_)),u>>>=3,l-=3}else{for(z=_+7;l<z;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}l-=_,k=0,c=11+(127&(u>>>=_)),u>>>=7,l-=7}if(r.have+c>r.nlen+r.ndist){t.msg="invalid bit length repeat",r.mode=30;break}for(;c--;)r.lens[r.have++]=k}}if(30===r.mode)break;if(0===r.lens[256]){t.msg="invalid code -- missing end-of-block",r.mode=30;break}if(r.lenbits=9,S={bits:r.lenbits},x=T(D,r.lens,0,r.nlen,r.lencode,0,r.work,S),r.lenbits=S.bits,x){t.msg="invalid literal/lengths set",r.mode=30;break}if(r.distbits=6,r.distcode=r.distdyn,S={bits:r.distbits},x=T(F,r.lens,r.nlen,r.ndist,r.distcode,0,r.work,S),r.distbits=S.bits,x){t.msg="invalid distances set",r.mode=30;break}if(r.mode=20,6===e)break t;case 20:r.mode=21;case 21:if(6<=o&&258<=h){t.next_out=a,t.avail_out=h,t.next_in=s,t.avail_in=o,r.hold=u,r.bits=l,R(t,d),a=t.next_out,n=t.output,h=t.avail_out,s=t.next_in,i=t.input,o=t.avail_in,u=r.hold,l=r.bits,12===r.mode&&(r.back=-1);break}for(r.back=0;g=(C=r.lencode[u&(1<<r.lenbits)-1])>>>16&255,b=65535&C,!((_=C>>>24)<=l);){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}if(g&&0==(240&g)){for(v=_,y=g,w=b;g=(C=r.lencode[w+((u&(1<<v+y)-1)>>v)])>>>16&255,b=65535&C,!(v+(_=C>>>24)<=l);){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}u>>>=v,l-=v,r.back+=v}if(u>>>=_,l-=_,r.back+=_,r.length=b,0===g){r.mode=26;break}if(32&g){r.back=-1,r.mode=12;break}if(64&g){t.msg="invalid literal/length code",r.mode=30;break}r.extra=15&g,r.mode=22;case 22:if(r.extra){for(z=r.extra;l<z;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}r.length+=u&(1<<r.extra)-1,u>>>=r.extra,l-=r.extra,r.back+=r.extra}r.was=r.length,r.mode=23;case 23:for(;g=(C=r.distcode[u&(1<<r.distbits)-1])>>>16&255,b=65535&C,!((_=C>>>24)<=l);){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}if(0==(240&g)){for(v=_,y=g,w=b;g=(C=r.distcode[w+((u&(1<<v+y)-1)>>v)])>>>16&255,b=65535&C,!(v+(_=C>>>24)<=l);){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}u>>>=v,l-=v,r.back+=v}if(u>>>=_,l-=_,r.back+=_,64&g){t.msg="invalid distance code",r.mode=30;break}r.offset=b,r.extra=15&g,r.mode=24;case 24:if(r.extra){for(z=r.extra;l<z;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}r.offset+=u&(1<<r.extra)-1,u>>>=r.extra,l-=r.extra,r.back+=r.extra}if(r.offset>r.dmax){t.msg="invalid distance too far back",r.mode=30;break}r.mode=25;case 25:if(0===h)break t;if(c=d-h,r.offset>c){if((c=r.offset-c)>r.whave&&r.sane){t.msg="invalid distance too far back",r.mode=30;break}p=c>r.wnext?(c-=r.wnext,r.wsize-c):r.wnext-c,c>r.length&&(c=r.length),m=r.window}else m=n,p=a-r.offset,c=r.length;for(h<c&&(c=h),h-=c,r.length-=c;n[a++]=m[p++],--c;);0===r.length&&(r.mode=21);break;case 26:if(0===h)break t;n[a++]=r.length,h--,r.mode=21;break;case 27:if(r.wrap){for(;l<32;){if(0===o)break t;o--,u|=i[s++]<<l,l+=8}if(d-=h,t.total_out+=d,r.total+=d,d&&(t.adler=r.check=r.flags?B(r.check,n,d,a-d):O(r.check,n,d,a-d)),d=h,(r.flags?u:L(u))!==r.check){t.msg="incorrect data check",r.mode=30;break}l=u=0}r.mode=28;case 28:if(r.wrap&&r.flags){for(;l<32;){if(0===o)break t;o--,u+=i[s++]<<l,l+=8}if(u!==(4294967295&r.total)){t.msg="incorrect length check",r.mode=30;break}l=u=0}r.mode=29;case 29:x=1;break t;case 30:x=-3;break t;case 31:return-4;case 32:default:return U}return t.next_out=a,t.avail_out=h,t.next_in=s,t.avail_in=o,r.hold=u,r.bits=l,(r.wsize||d!==t.avail_out&&r.mode<30&&(r.mode<27||4!==e))&&Z(t,t.output,t.next_out,d-t.avail_out)?(r.mode=31,-4):(f-=t.avail_in,d-=t.avail_out,t.total_in+=f,t.total_out+=d,r.total+=d,r.wrap&&d&&(t.adler=r.check=r.flags?B(r.check,n,d,t.next_out-d):O(r.check,n,d,t.next_out-d)),t.data_type=r.bits+(r.last?64:0)+(12===r.mode?128:0)+(20===r.mode||15===r.mode?256:0),(0==f&&0===d||4===e)&&x===N&&(x=-5),x)},r.inflateEnd=function(t){if(!t||!t.state)return U;var e=t.state;return e.window&&(e.window=null),t.state=null,N},r.inflateGetHeader=function(t,e){var r;return t&&t.state?0==(2&(r=t.state).wrap)?U:((r.head=e).done=!1,N):U},r.inflateSetDictionary=function(t,e){var r,i=e.length;return t&&t.state?0!==(r=t.state).wrap&&11!==r.mode?U:11===r.mode&&O(1,e,i,0)!==r.check?-3:Z(t,e,i,i)?(r.mode=31,-4):(r.havedict=1,N):U},r.inflateInfo="pako inflate (from Nodeca project)"},{"../utils/common":41,"./adler32":43,"./crc32":45,"./inffast":48,"./inftrees":50}],50:[function(t,e,r){"use strict";var D=t("../utils/common"),F=[3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258,0,0],N=[16,16,16,16,16,16,16,16,17,17,17,17,18,18,18,18,19,19,19,19,20,20,20,20,21,21,21,21,16,72,78],U=[1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577,0,0],P=[16,16,16,16,17,17,18,18,19,19,20,20,21,21,22,22,23,23,24,24,25,25,26,26,27,27,28,28,29,29,64,64];e.exports=function(t,e,r,i,n,s,a,o){var h,u,l,f,d,c,p,m,_,g=o.bits,b=0,v=0,y=0,w=0,k=0,x=0,S=0,z=0,C=0,E=0,A=null,I=0,O=new D.Buf16(16),B=new D.Buf16(16),R=null,T=0;for(b=0;b<=15;b++)O[b]=0;for(v=0;v<i;v++)O[e[r+v]]++;for(k=g,w=15;1<=w&&0===O[w];w--);if(w<k&&(k=w),0===w)return n[s++]=20971520,n[s++]=20971520,o.bits=1,0;for(y=1;y<w&&0===O[y];y++);for(k<y&&(k=y),b=z=1;b<=15;b++)if(z<<=1,(z-=O[b])<0)return-1;if(0<z&&(0===t||1!==w))return-1;for(B[1]=0,b=1;b<15;b++)B[b+1]=B[b]+O[b];for(v=0;v<i;v++)0!==e[r+v]&&(a[B[e[r+v]]++]=v);if(c=0===t?(A=R=a,19):1===t?(A=F,I-=257,R=N,T-=257,256):(A=U,R=P,-1),b=y,d=s,S=v=E=0,l=-1,f=(C=1<<(x=k))-1,1===t&&852<C||2===t&&592<C)return 1;for(;;){for(p=b-S,_=a[v]<c?(m=0,a[v]):a[v]>c?(m=R[T+a[v]],A[I+a[v]]):(m=96,0),h=1<<b-S,y=u=1<<x;n[d+(E>>S)+(u-=h)]=p<<24|m<<16|_|0,0!==u;);for(h=1<<b-1;E&h;)h>>=1;if(0!==h?(E&=h-1,E+=h):E=0,v++,0==--O[b]){if(b===w)break;b=e[r+a[v]]}if(k<b&&(E&f)!==l){for(0===S&&(S=k),d+=y,z=1<<(x=b-S);x+S<w&&!((z-=O[x+S])<=0);)x++,z<<=1;if(C+=1<<x,1===t&&852<C||2===t&&592<C)return 1;n[l=E&f]=k<<24|x<<16|d-s|0}}return 0!==E&&(n[d+E]=b-S<<24|64<<16|0),o.bits=k,0}},{"../utils/common":41}],51:[function(t,e,r){"use strict";e.exports={2:"need dictionary",1:"stream end",0:"","-1":"file error","-2":"stream error","-3":"data error","-4":"insufficient memory","-5":"buffer error","-6":"incompatible version"}},{}],52:[function(t,e,r){"use strict";var n=t("../utils/common"),o=0,h=1;function i(t){for(var e=t.length;0<=--e;)t[e]=0}var s=0,a=29,u=256,l=u+1+a,f=30,d=19,_=2*l+1,g=15,c=16,p=7,m=256,b=16,v=17,y=18,w=[0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0],k=[0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13],x=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,3,7],S=[16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15],z=new Array(2*(l+2));i(z);var C=new Array(2*f);i(C);var E=new Array(512);i(E);var A=new Array(256);i(A);var I=new Array(a);i(I);var O,B,R,T=new Array(f);function D(t,e,r,i,n){this.static_tree=t,this.extra_bits=e,this.extra_base=r,this.elems=i,this.max_length=n,this.has_stree=t&&t.length}function F(t,e){this.dyn_tree=t,this.max_code=0,this.stat_desc=e}function N(t){return t<256?E[t]:E[256+(t>>>7)]}function U(t,e){t.pending_buf[t.pending++]=255&e,t.pending_buf[t.pending++]=e>>>8&255}function P(t,e,r){t.bi_valid>c-r?(t.bi_buf|=e<<t.bi_valid&65535,U(t,t.bi_buf),t.bi_buf=e>>c-t.bi_valid,t.bi_valid+=r-c):(t.bi_buf|=e<<t.bi_valid&65535,t.bi_valid+=r)}function L(t,e,r){P(t,r[2*e],r[2*e+1])}function j(t,e){for(var r=0;r|=1&t,t>>>=1,r<<=1,0<--e;);return r>>>1}function Z(t,e,r){var i,n,s=new Array(g+1),a=0;for(i=1;i<=g;i++)s[i]=a=a+r[i-1]<<1;for(n=0;n<=e;n++){var o=t[2*n+1];0!==o&&(t[2*n]=j(s[o]++,o))}}function W(t){var e;for(e=0;e<l;e++)t.dyn_ltree[2*e]=0;for(e=0;e<f;e++)t.dyn_dtree[2*e]=0;for(e=0;e<d;e++)t.bl_tree[2*e]=0;t.dyn_ltree[2*m]=1,t.opt_len=t.static_len=0,t.last_lit=t.matches=0}function M(t){8<t.bi_valid?U(t,t.bi_buf):0<t.bi_valid&&(t.pending_buf[t.pending++]=t.bi_buf),t.bi_buf=0,t.bi_valid=0}function H(t,e,r,i){var n=2*e,s=2*r;return t[n]<t[s]||t[n]===t[s]&&i[e]<=i[r]}function G(t,e,r){for(var i=t.heap[r],n=r<<1;n<=t.heap_len&&(n<t.heap_len&&H(e,t.heap[n+1],t.heap[n],t.depth)&&n++,!H(e,i,t.heap[n],t.depth));)t.heap[r]=t.heap[n],r=n,n<<=1;t.heap[r]=i}function K(t,e,r){var i,n,s,a,o=0;if(0!==t.last_lit)for(;i=t.pending_buf[t.d_buf+2*o]<<8|t.pending_buf[t.d_buf+2*o+1],n=t.pending_buf[t.l_buf+o],o++,0===i?L(t,n,e):(L(t,(s=A[n])+u+1,e),0!==(a=w[s])&&P(t,n-=I[s],a),L(t,s=N(--i),r),0!==(a=k[s])&&P(t,i-=T[s],a)),o<t.last_lit;);L(t,m,e)}function Y(t,e){var r,i,n,s=e.dyn_tree,a=e.stat_desc.static_tree,o=e.stat_desc.has_stree,h=e.stat_desc.elems,u=-1;for(t.heap_len=0,t.heap_max=_,r=0;r<h;r++)0!==s[2*r]?(t.heap[++t.heap_len]=u=r,t.depth[r]=0):s[2*r+1]=0;for(;t.heap_len<2;)s[2*(n=t.heap[++t.heap_len]=u<2?++u:0)]=1,t.depth[n]=0,t.opt_len--,o&&(t.static_len-=a[2*n+1]);for(e.max_code=u,r=t.heap_len>>1;1<=r;r--)G(t,s,r);for(n=h;r=t.heap[1],t.heap[1]=t.heap[t.heap_len--],G(t,s,1),i=t.heap[1],t.heap[--t.heap_max]=r,t.heap[--t.heap_max]=i,s[2*n]=s[2*r]+s[2*i],t.depth[n]=(t.depth[r]>=t.depth[i]?t.depth[r]:t.depth[i])+1,s[2*r+1]=s[2*i+1]=n,t.heap[1]=n++,G(t,s,1),2<=t.heap_len;);t.heap[--t.heap_max]=t.heap[1],function(t,e){var r,i,n,s,a,o,h=e.dyn_tree,u=e.max_code,l=e.stat_desc.static_tree,f=e.stat_desc.has_stree,d=e.stat_desc.extra_bits,c=e.stat_desc.extra_base,p=e.stat_desc.max_length,m=0;for(s=0;s<=g;s++)t.bl_count[s]=0;for(h[2*t.heap[t.heap_max]+1]=0,r=t.heap_max+1;r<_;r++)p<(s=h[2*h[2*(i=t.heap[r])+1]+1]+1)&&(s=p,m++),h[2*i+1]=s,u<i||(t.bl_count[s]++,a=0,c<=i&&(a=d[i-c]),o=h[2*i],t.opt_len+=o*(s+a),f&&(t.static_len+=o*(l[2*i+1]+a)));if(0!==m){do{for(s=p-1;0===t.bl_count[s];)s--;t.bl_count[s]--,t.bl_count[s+1]+=2,t.bl_count[p]--,m-=2}while(0<m);for(s=p;0!==s;s--)for(i=t.bl_count[s];0!==i;)u<(n=t.heap[--r])||(h[2*n+1]!==s&&(t.opt_len+=(s-h[2*n+1])*h[2*n],h[2*n+1]=s),i--)}}(t,e),Z(s,u,t.bl_count)}function X(t,e,r){var i,n,s=-1,a=e[1],o=0,h=7,u=4;for(0===a&&(h=138,u=3),e[2*(r+1)+1]=65535,i=0;i<=r;i++)n=a,a=e[2*(i+1)+1],++o<h&&n===a||(o<u?t.bl_tree[2*n]+=o:0!==n?(n!==s&&t.bl_tree[2*n]++,t.bl_tree[2*b]++):o<=10?t.bl_tree[2*v]++:t.bl_tree[2*y]++,s=n,u=(o=0)===a?(h=138,3):n===a?(h=6,3):(h=7,4))}function V(t,e,r){var i,n,s=-1,a=e[1],o=0,h=7,u=4;for(0===a&&(h=138,u=3),i=0;i<=r;i++)if(n=a,a=e[2*(i+1)+1],!(++o<h&&n===a)){if(o<u)for(;L(t,n,t.bl_tree),0!=--o;);else 0!==n?(n!==s&&(L(t,n,t.bl_tree),o--),L(t,b,t.bl_tree),P(t,o-3,2)):o<=10?(L(t,v,t.bl_tree),P(t,o-3,3)):(L(t,y,t.bl_tree),P(t,o-11,7));s=n,u=(o=0)===a?(h=138,3):n===a?(h=6,3):(h=7,4)}}i(T);var q=!1;function J(t,e,r,i){P(t,(s<<1)+(i?1:0),3),function(t,e,r,i){M(t),i&&(U(t,r),U(t,~r)),n.arraySet(t.pending_buf,t.window,e,r,t.pending),t.pending+=r}(t,e,r,!0)}r._tr_init=function(t){q||(function(){var t,e,r,i,n,s=new Array(g+1);for(i=r=0;i<a-1;i++)for(I[i]=r,t=0;t<1<<w[i];t++)A[r++]=i;for(A[r-1]=i,i=n=0;i<16;i++)for(T[i]=n,t=0;t<1<<k[i];t++)E[n++]=i;for(n>>=7;i<f;i++)for(T[i]=n<<7,t=0;t<1<<k[i]-7;t++)E[256+n++]=i;for(e=0;e<=g;e++)s[e]=0;for(t=0;t<=143;)z[2*t+1]=8,t++,s[8]++;for(;t<=255;)z[2*t+1]=9,t++,s[9]++;for(;t<=279;)z[2*t+1]=7,t++,s[7]++;for(;t<=287;)z[2*t+1]=8,t++,s[8]++;for(Z(z,l+1,s),t=0;t<f;t++)C[2*t+1]=5,C[2*t]=j(t,5);O=new D(z,w,u+1,l,g),B=new D(C,k,0,f,g),R=new D(new Array(0),x,0,d,p)}(),q=!0),t.l_desc=new F(t.dyn_ltree,O),t.d_desc=new F(t.dyn_dtree,B),t.bl_desc=new F(t.bl_tree,R),t.bi_buf=0,t.bi_valid=0,W(t)},r._tr_stored_block=J,r._tr_flush_block=function(t,e,r,i){var n,s,a=0;0<t.level?(2===t.strm.data_type&&(t.strm.data_type=function(t){var e,r=4093624447;for(e=0;e<=31;e++,r>>>=1)if(1&r&&0!==t.dyn_ltree[2*e])return o;if(0!==t.dyn_ltree[18]||0!==t.dyn_ltree[20]||0!==t.dyn_ltree[26])return h;for(e=32;e<u;e++)if(0!==t.dyn_ltree[2*e])return h;return o}(t)),Y(t,t.l_desc),Y(t,t.d_desc),a=function(t){var e;for(X(t,t.dyn_ltree,t.l_desc.max_code),X(t,t.dyn_dtree,t.d_desc.max_code),Y(t,t.bl_desc),e=d-1;3<=e&&0===t.bl_tree[2*S[e]+1];e--);return t.opt_len+=3*(e+1)+5+5+4,e}(t),n=t.opt_len+3+7>>>3,(s=t.static_len+3+7>>>3)<=n&&(n=s)):n=s=r+5,r+4<=n&&-1!==e?J(t,e,r,i):4===t.strategy||s===n?(P(t,2+(i?1:0),3),K(t,z,C)):(P(t,4+(i?1:0),3),function(t,e,r,i){var n;for(P(t,e-257,5),P(t,r-1,5),P(t,i-4,4),n=0;n<i;n++)P(t,t.bl_tree[2*S[n]+1],3);V(t,t.dyn_ltree,e-1),V(t,t.dyn_dtree,r-1)}(t,t.l_desc.max_code+1,t.d_desc.max_code+1,a+1),K(t,t.dyn_ltree,t.dyn_dtree)),W(t),i&&M(t)},r._tr_tally=function(t,e,r){return t.pending_buf[t.d_buf+2*t.last_lit]=e>>>8&255,t.pending_buf[t.d_buf+2*t.last_lit+1]=255&e,t.pending_buf[t.l_buf+t.last_lit]=255&r,t.last_lit++,0===e?t.dyn_ltree[2*r]++:(t.matches++,e--,t.dyn_ltree[2*(A[r]+u+1)]++,t.dyn_dtree[2*N(e)]++),t.last_lit===t.lit_bufsize-1},r._tr_align=function(t){P(t,2,3),L(t,m,z),function(t){16===t.bi_valid?(U(t,t.bi_buf),t.bi_buf=0,t.bi_valid=0):8<=t.bi_valid&&(t.pending_buf[t.pending++]=255&t.bi_buf,t.bi_buf>>=8,t.bi_valid-=8)}(t)}},{"../utils/common":41}],53:[function(t,e,r){"use strict";e.exports=function(){this.input=null,this.next_in=0,this.avail_in=0,this.total_in=0,this.output=null,this.next_out=0,this.avail_out=0,this.total_out=0,this.msg="",this.state=null,this.data_type=2,this.adler=0}},{}],54:[function(t,e,r){"use strict";e.exports="function"==typeof setImmediate?setImmediate:function(){var t=[].slice.apply(arguments);t.splice(1,0,0),setTimeout.apply(null,t)}},{}]},{},[10])(10)});
+
+ZIP
+  cat <<"QR" > /www/docroot/js/qrcode.min.js
+var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this.parsedData=[];for(var b=[],d=0,e=this.data.length;e>d;d++){var f=this.data.charCodeAt(d);f>65536?(b[0]=240|(1835008&f)>>>18,b[1]=128|(258048&f)>>>12,b[2]=128|(4032&f)>>>6,b[3]=128|63&f):f>2048?(b[0]=224|(61440&f)>>>12,b[1]=128|(4032&f)>>>6,b[2]=128|63&f):f>128?(b[0]=192|(1984&f)>>>6,b[1]=128|63&f):b[0]=f,this.parsedData=this.parsedData.concat(b)}this.parsedData.length!=this.data.length&&(this.parsedData.unshift(191),this.parsedData.unshift(187),this.parsedData.unshift(239))}function b(a,b){this.typeNumber=a,this.errorCorrectLevel=b,this.modules=null,this.moduleCount=0,this.dataCache=null,this.dataList=[]}function i(a,b){if(void 0==a.length)throw new Error(a.length+"/"+b);for(var c=0;c<a.length&&0==a[c];)c++;this.num=new Array(a.length-c+b);for(var d=0;d<a.length-c;d++)this.num[d]=a[d+c]}function j(a,b){this.totalCount=a,this.dataCount=b}function k(){this.buffer=[],this.length=0}function m(){return"undefined"!=typeof CanvasRenderingContext2D}function n(){var a=!1,b=navigator.userAgent;return/android/i.test(b)&&(a=!0,aMat=b.toString().match(/android ([0-9]\.[0-9])/i),aMat&&aMat[1]&&(a=parseFloat(aMat[1]))),a}function r(a,b){for(var c=1,e=s(a),f=0,g=l.length;g>=f;f++){var h=0;switch(b){case d.L:h=l[f][0];break;case d.M:h=l[f][1];break;case d.Q:h=l[f][2];break;case d.H:h=l[f][3]}if(h>=e)break;c++}if(c>l.length)throw new Error("Too long data");return c}function s(a){var b=encodeURI(a).toString().replace(/\%[0-9a-fA-F]{2}/g,"a");return b.length+(b.length!=a?3:0)}a.prototype={getLength:function(){return this.parsedData.length},write:function(a){for(var b=0,c=this.parsedData.length;c>b;b++)a.put(this.parsedData[b],8)}},b.prototype={addData:function(b){var c=new a(b);this.dataList.push(c),this.dataCache=null},isDark:function(a,b){if(0>a||this.moduleCount<=a||0>b||this.moduleCount<=b)throw new Error(a+","+b);return this.modules[a][b]},getModuleCount:function(){return this.moduleCount},make:function(){this.makeImpl(!1,this.getBestMaskPattern())},makeImpl:function(a,c){this.moduleCount=4*this.typeNumber+17,this.modules=new Array(this.moduleCount);for(var d=0;d<this.moduleCount;d++){this.modules[d]=new Array(this.moduleCount);for(var e=0;e<this.moduleCount;e++)this.modules[d][e]=null}this.setupPositionProbePattern(0,0),this.setupPositionProbePattern(this.moduleCount-7,0),this.setupPositionProbePattern(0,this.moduleCount-7),this.setupPositionAdjustPattern(),this.setupTimingPattern(),this.setupTypeInfo(a,c),this.typeNumber>=7&&this.setupTypeNumber(a),null==this.dataCache&&(this.dataCache=b.createData(this.typeNumber,this.errorCorrectLevel,this.dataList)),this.mapData(this.dataCache,c)},setupPositionProbePattern:function(a,b){for(var c=-1;7>=c;c++)if(!(-1>=a+c||this.moduleCount<=a+c))for(var d=-1;7>=d;d++)-1>=b+d||this.moduleCount<=b+d||(this.modules[a+c][b+d]=c>=0&&6>=c&&(0==d||6==d)||d>=0&&6>=d&&(0==c||6==c)||c>=2&&4>=c&&d>=2&&4>=d?!0:!1)},getBestMaskPattern:function(){for(var a=0,b=0,c=0;8>c;c++){this.makeImpl(!0,c);var d=f.getLostPoint(this);(0==c||a>d)&&(a=d,b=c)}return b},createMovieClip:function(a,b,c){var d=a.createEmptyMovieClip(b,c),e=1;this.make();for(var f=0;f<this.modules.length;f++)for(var g=f*e,h=0;h<this.modules[f].length;h++){var i=h*e,j=this.modules[f][h];j&&(d.beginFill(0,100),d.moveTo(i,g),d.lineTo(i+e,g),d.lineTo(i+e,g+e),d.lineTo(i,g+e),d.endFill())}return d},setupTimingPattern:function(){for(var a=8;a<this.moduleCount-8;a++)null==this.modules[a][6]&&(this.modules[a][6]=0==a%2);for(var b=8;b<this.moduleCount-8;b++)null==this.modules[6][b]&&(this.modules[6][b]=0==b%2)},setupPositionAdjustPattern:function(){for(var a=f.getPatternPosition(this.typeNumber),b=0;b<a.length;b++)for(var c=0;c<a.length;c++){var d=a[b],e=a[c];if(null==this.modules[d][e])for(var g=-2;2>=g;g++)for(var h=-2;2>=h;h++)this.modules[d+g][e+h]=-2==g||2==g||-2==h||2==h||0==g&&0==h?!0:!1}},setupTypeNumber:function(a){for(var b=f.getBCHTypeNumber(this.typeNumber),c=0;18>c;c++){var d=!a&&1==(1&b>>c);this.modules[Math.floor(c/3)][c%3+this.moduleCount-8-3]=d}for(var c=0;18>c;c++){var d=!a&&1==(1&b>>c);this.modules[c%3+this.moduleCount-8-3][Math.floor(c/3)]=d}},setupTypeInfo:function(a,b){for(var c=this.errorCorrectLevel<<3|b,d=f.getBCHTypeInfo(c),e=0;15>e;e++){var g=!a&&1==(1&d>>e);6>e?this.modules[e][8]=g:8>e?this.modules[e+1][8]=g:this.modules[this.moduleCount-15+e][8]=g}for(var e=0;15>e;e++){var g=!a&&1==(1&d>>e);8>e?this.modules[8][this.moduleCount-e-1]=g:9>e?this.modules[8][15-e-1+1]=g:this.modules[8][15-e-1]=g}this.modules[this.moduleCount-8][8]=!a},mapData:function(a,b){for(var c=-1,d=this.moduleCount-1,e=7,g=0,h=this.moduleCount-1;h>0;h-=2)for(6==h&&h--;;){for(var i=0;2>i;i++)if(null==this.modules[d][h-i]){var j=!1;g<a.length&&(j=1==(1&a[g]>>>e));var k=f.getMask(b,d,h-i);k&&(j=!j),this.modules[d][h-i]=j,e--,-1==e&&(g++,e=7)}if(d+=c,0>d||this.moduleCount<=d){d-=c,c=-c;break}}}},b.PAD0=236,b.PAD1=17,b.createData=function(a,c,d){for(var e=j.getRSBlocks(a,c),g=new k,h=0;h<d.length;h++){var i=d[h];g.put(i.mode,4),g.put(i.getLength(),f.getLengthInBits(i.mode,a)),i.write(g)}for(var l=0,h=0;h<e.length;h++)l+=e[h].dataCount;if(g.getLengthInBits()>8*l)throw new Error("code length overflow. ("+g.getLengthInBits()+">"+8*l+")");for(g.getLengthInBits()+4<=8*l&&g.put(0,4);0!=g.getLengthInBits()%8;)g.putBit(!1);for(;;){if(g.getLengthInBits()>=8*l)break;if(g.put(b.PAD0,8),g.getLengthInBits()>=8*l)break;g.put(b.PAD1,8)}return b.createBytes(g,e)},b.createBytes=function(a,b){for(var c=0,d=0,e=0,g=new Array(b.length),h=new Array(b.length),j=0;j<b.length;j++){var k=b[j].dataCount,l=b[j].totalCount-k;d=Math.max(d,k),e=Math.max(e,l),g[j]=new Array(k);for(var m=0;m<g[j].length;m++)g[j][m]=255&a.buffer[m+c];c+=k;var n=f.getErrorCorrectPolynomial(l),o=new i(g[j],n.getLength()-1),p=o.mod(n);h[j]=new Array(n.getLength()-1);for(var m=0;m<h[j].length;m++){var q=m+p.getLength()-h[j].length;h[j][m]=q>=0?p.get(q):0}}for(var r=0,m=0;m<b.length;m++)r+=b[m].totalCount;for(var s=new Array(r),t=0,m=0;d>m;m++)for(var j=0;j<b.length;j++)m<g[j].length&&(s[t++]=g[j][m]);for(var m=0;e>m;m++)for(var j=0;j<b.length;j++)m<h[j].length&&(s[t++]=h[j][m]);return s};for(var c={MODE_NUMBER:1,MODE_ALPHA_NUM:2,MODE_8BIT_BYTE:4,MODE_KANJI:8},d={L:1,M:0,Q:3,H:2},e={PATTERN000:0,PATTERN001:1,PATTERN010:2,PATTERN011:3,PATTERN100:4,PATTERN101:5,PATTERN110:6,PATTERN111:7},f={PATTERN_POSITION_TABLE:[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],G15:1335,G18:7973,G15_MASK:21522,getBCHTypeInfo:function(a){for(var b=a<<10;f.getBCHDigit(b)-f.getBCHDigit(f.G15)>=0;)b^=f.G15<<f.getBCHDigit(b)-f.getBCHDigit(f.G15);return(a<<10|b)^f.G15_MASK},getBCHTypeNumber:function(a){for(var b=a<<12;f.getBCHDigit(b)-f.getBCHDigit(f.G18)>=0;)b^=f.G18<<f.getBCHDigit(b)-f.getBCHDigit(f.G18);return a<<12|b},getBCHDigit:function(a){for(var b=0;0!=a;)b++,a>>>=1;return b},getPatternPosition:function(a){return f.PATTERN_POSITION_TABLE[a-1]},getMask:function(a,b,c){switch(a){case e.PATTERN000:return 0==(b+c)%2;case e.PATTERN001:return 0==b%2;case e.PATTERN010:return 0==c%3;case e.PATTERN011:return 0==(b+c)%3;case e.PATTERN100:return 0==(Math.floor(b/2)+Math.floor(c/3))%2;case e.PATTERN101:return 0==b*c%2+b*c%3;case e.PATTERN110:return 0==(b*c%2+b*c%3)%2;case e.PATTERN111:return 0==(b*c%3+(b+c)%2)%2;default:throw new Error("bad maskPattern:"+a)}},getErrorCorrectPolynomial:function(a){for(var b=new i([1],0),c=0;a>c;c++)b=b.multiply(new i([1,g.gexp(c)],0));return b},getLengthInBits:function(a,b){if(b>=1&&10>b)switch(a){case c.MODE_NUMBER:return 10;case c.MODE_ALPHA_NUM:return 9;case c.MODE_8BIT_BYTE:return 8;case c.MODE_KANJI:return 8;default:throw new Error("mode:"+a)}else if(27>b)switch(a){case c.MODE_NUMBER:return 12;case c.MODE_ALPHA_NUM:return 11;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 10;default:throw new Error("mode:"+a)}else{if(!(41>b))throw new Error("type:"+b);switch(a){case c.MODE_NUMBER:return 14;case c.MODE_ALPHA_NUM:return 13;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 12;default:throw new Error("mode:"+a)}}},getLostPoint:function(a){for(var b=a.getModuleCount(),c=0,d=0;b>d;d++)for(var e=0;b>e;e++){for(var f=0,g=a.isDark(d,e),h=-1;1>=h;h++)if(!(0>d+h||d+h>=b))for(var i=-1;1>=i;i++)0>e+i||e+i>=b||(0!=h||0!=i)&&g==a.isDark(d+h,e+i)&&f++;f>5&&(c+=3+f-5)}for(var d=0;b-1>d;d++)for(var e=0;b-1>e;e++){var j=0;a.isDark(d,e)&&j++,a.isDark(d+1,e)&&j++,a.isDark(d,e+1)&&j++,a.isDark(d+1,e+1)&&j++,(0==j||4==j)&&(c+=3)}for(var d=0;b>d;d++)for(var e=0;b-6>e;e++)a.isDark(d,e)&&!a.isDark(d,e+1)&&a.isDark(d,e+2)&&a.isDark(d,e+3)&&a.isDark(d,e+4)&&!a.isDark(d,e+5)&&a.isDark(d,e+6)&&(c+=40);for(var e=0;b>e;e++)for(var d=0;b-6>d;d++)a.isDark(d,e)&&!a.isDark(d+1,e)&&a.isDark(d+2,e)&&a.isDark(d+3,e)&&a.isDark(d+4,e)&&!a.isDark(d+5,e)&&a.isDark(d+6,e)&&(c+=40);for(var k=0,e=0;b>e;e++)for(var d=0;b>d;d++)a.isDark(d,e)&&k++;var l=Math.abs(100*k/b/b-50)/5;return c+=10*l}},g={glog:function(a){if(1>a)throw new Error("glog("+a+")");return g.LOG_TABLE[a]},gexp:function(a){for(;0>a;)a+=255;for(;a>=256;)a-=255;return g.EXP_TABLE[a]},EXP_TABLE:new Array(256),LOG_TABLE:new Array(256)},h=0;8>h;h++)g.EXP_TABLE[h]=1<<h;for(var h=8;256>h;h++)g.EXP_TABLE[h]=g.EXP_TABLE[h-4]^g.EXP_TABLE[h-5]^g.EXP_TABLE[h-6]^g.EXP_TABLE[h-8];for(var h=0;255>h;h++)g.LOG_TABLE[g.EXP_TABLE[h]]=h;i.prototype={get:function(a){return this.num[a]},getLength:function(){return this.num.length},multiply:function(a){for(var b=new Array(this.getLength()+a.getLength()-1),c=0;c<this.getLength();c++)for(var d=0;d<a.getLength();d++)b[c+d]^=g.gexp(g.glog(this.get(c))+g.glog(a.get(d)));return new i(b,0)},mod:function(a){if(this.getLength()-a.getLength()<0)return this;for(var b=g.glog(this.get(0))-g.glog(a.get(0)),c=new Array(this.getLength()),d=0;d<this.getLength();d++)c[d]=this.get(d);for(var d=0;d<a.getLength();d++)c[d]^=g.gexp(g.glog(a.get(d))+b);return new i(c,0).mod(a)}},j.RS_BLOCK_TABLE=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],j.getRSBlocks=function(a,b){var c=j.getRsBlockTable(a,b);if(void 0==c)throw new Error("bad rs block @ typeNumber:"+a+"/errorCorrectLevel:"+b);for(var d=c.length/3,e=[],f=0;d>f;f++)for(var g=c[3*f+0],h=c[3*f+1],i=c[3*f+2],k=0;g>k;k++)e.push(new j(h,i));return e},j.getRsBlockTable=function(a,b){switch(b){case d.L:return j.RS_BLOCK_TABLE[4*(a-1)+0];case d.M:return j.RS_BLOCK_TABLE[4*(a-1)+1];case d.Q:return j.RS_BLOCK_TABLE[4*(a-1)+2];case d.H:return j.RS_BLOCK_TABLE[4*(a-1)+3];default:return void 0}},k.prototype={get:function(a){var b=Math.floor(a/8);return 1==(1&this.buffer[b]>>>7-a%8)},put:function(a,b){for(var c=0;b>c;c++)this.putBit(1==(1&a>>>b-c-1))},getLengthInBits:function(){return this.length},putBit:function(a){var b=Math.floor(this.length/8);this.buffer.length<=b&&this.buffer.push(0),a&&(this.buffer[b]|=128>>>this.length%8),this.length++}};var l=[[17,14,11,7],[32,26,20,14],[53,42,32,24],[78,62,46,34],[106,84,60,44],[134,106,74,58],[154,122,86,64],[192,152,108,84],[230,180,130,98],[271,213,151,119],[321,251,177,137],[367,287,203,155],[425,331,241,177],[458,362,258,194],[520,412,292,220],[586,450,322,250],[644,504,364,280],[718,560,394,310],[792,624,442,338],[858,666,482,382],[929,711,509,403],[1003,779,565,439],[1091,857,611,461],[1171,911,661,511],[1273,997,715,535],[1367,1059,751,593],[1465,1125,805,625],[1528,1190,868,658],[1628,1264,908,698],[1732,1370,982,742],[1840,1452,1030,790],[1952,1538,1112,842],[2068,1628,1168,898],[2188,1722,1228,958],[2303,1809,1283,983],[2431,1911,1351,1051],[2563,1989,1423,1093],[2699,2099,1499,1139],[2809,2213,1579,1219],[2953,2331,1663,1273]],o=function(){var a=function(a,b){this._el=a,this._htOption=b};return a.prototype.draw=function(a){function g(a,b){var c=document.createElementNS("http://www.w3.org/2000/svg",a);for(var d in b)b.hasOwnProperty(d)&&c.setAttribute(d,b[d]);return c}var b=this._htOption,c=this._el,d=a.getModuleCount();Math.floor(b.width/d),Math.floor(b.height/d),this.clear();var h=g("svg",{viewBox:"0 0 "+String(d)+" "+String(d),width:"100%",height:"100%",fill:b.colorLight});h.setAttributeNS("http://www.w3.org/2000/xmlns/","xmlns:xlink","http://www.w3.org/1999/xlink"),c.appendChild(h),h.appendChild(g("rect",{fill:b.colorDark,width:"1",height:"1",id:"template"}));for(var i=0;d>i;i++)for(var j=0;d>j;j++)if(a.isDark(i,j)){var k=g("use",{x:String(i),y:String(j)});k.setAttributeNS("http://www.w3.org/1999/xlink","href","#template"),h.appendChild(k)}},a.prototype.clear=function(){for(;this._el.hasChildNodes();)this._el.removeChild(this._el.lastChild)},a}(),p="svg"===document.documentElement.tagName.toLowerCase(),q=p?o:m()?function(){function a(){this._elImage.src=this._elCanvas.toDataURL("image/png"),this._elImage.style.display="block",this._elCanvas.style.display="none"}function d(a,b){var c=this;if(c._fFail=b,c._fSuccess=a,null===c._bSupportDataURI){var d=document.createElement("img"),e=function(){c._bSupportDataURI=!1,c._fFail&&_fFail.call(c)},f=function(){c._bSupportDataURI=!0,c._fSuccess&&c._fSuccess.call(c)};return d.onabort=e,d.onerror=e,d.onload=f,d.src="data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==",void 0}c._bSupportDataURI===!0&&c._fSuccess?c._fSuccess.call(c):c._bSupportDataURI===!1&&c._fFail&&c._fFail.call(c)}if(this._android&&this._android<=2.1){var b=1/window.devicePixelRatio,c=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(a,d,e,f,g,h,i,j){if("nodeName"in a&&/img/i.test(a.nodeName))for(var l=arguments.length-1;l>=1;l--)arguments[l]=arguments[l]*b;else"undefined"==typeof j&&(arguments[1]*=b,arguments[2]*=b,arguments[3]*=b,arguments[4]*=b);c.apply(this,arguments)}}var e=function(a,b){this._bIsPainted=!1,this._android=n(),this._htOption=b,this._elCanvas=document.createElement("canvas"),this._elCanvas.width=b.width,this._elCanvas.height=b.height,a.appendChild(this._elCanvas),this._el=a,this._oContext=this._elCanvas.getContext("2d"),this._bIsPainted=!1,this._elImage=document.createElement("img"),this._elImage.style.display="none",this._el.appendChild(this._elImage),this._bSupportDataURI=null};return e.prototype.draw=function(a){var b=this._elImage,c=this._oContext,d=this._htOption,e=a.getModuleCount(),f=d.width/e,g=d.height/e,h=Math.round(f),i=Math.round(g);b.style.display="none",this.clear();for(var j=0;e>j;j++)for(var k=0;e>k;k++){var l=a.isDark(j,k),m=k*f,n=j*g;c.strokeStyle=l?d.colorDark:d.colorLight,c.lineWidth=1,c.fillStyle=l?d.colorDark:d.colorLight,c.fillRect(m,n,f,g),c.strokeRect(Math.floor(m)+.5,Math.floor(n)+.5,h,i),c.strokeRect(Math.ceil(m)-.5,Math.ceil(n)-.5,h,i)}this._bIsPainted=!0},e.prototype.makeImage=function(){this._bIsPainted&&d.call(this,a)},e.prototype.isPainted=function(){return this._bIsPainted},e.prototype.clear=function(){this._oContext.clearRect(0,0,this._elCanvas.width,this._elCanvas.height),this._bIsPainted=!1},e.prototype.round=function(a){return a?Math.floor(1e3*a)/1e3:a},e}():function(){var a=function(a,b){this._el=a,this._htOption=b};return a.prototype.draw=function(a){for(var b=this._htOption,c=this._el,d=a.getModuleCount(),e=Math.floor(b.width/d),f=Math.floor(b.height/d),g=['<table style="border:0;border-collapse:collapse;">'],h=0;d>h;h++){g.push("<tr>");for(var i=0;d>i;i++)g.push('<td style="border:0;border-collapse:collapse;padding:0;margin:0;width:'+e+"px;height:"+f+"px;background-color:"+(a.isDark(h,i)?b.colorDark:b.colorLight)+';"></td>');g.push("</tr>")}g.push("</table>"),c.innerHTML=g.join("");var j=c.childNodes[0],k=(b.width-j.offsetWidth)/2,l=(b.height-j.offsetHeight)/2;k>0&&l>0&&(j.style.margin=l+"px "+k+"px")},a.prototype.clear=function(){this._el.innerHTML=""},a}();QRCode=function(a,b){if(this._htOption={width:256,height:256,typeNumber:4,colorDark:"#000000",colorLight:"#ffffff",correctLevel:d.H},"string"==typeof b&&(b={text:b}),b)for(var c in b)this._htOption[c]=b[c];"string"==typeof a&&(a=document.getElementById(a)),this._android=n(),this._el=a,this._oQRCode=null,this._oDrawing=new q(this._el,this._htOption),this._htOption.text&&this.makeCode(this._htOption.text)},QRCode.prototype.makeCode=function(a){this._oQRCode=new b(r(a,this._htOption.correctLevel),this._htOption.correctLevel),this._oQRCode.addData(a),this._oQRCode.make(),this._el.title=a,this._oDrawing.draw(this._oQRCode),this.makeImage()},QRCode.prototype.makeImage=function(){"function"==typeof this._oDrawing.makeImage&&(!this._android||this._android>=3)&&this._oDrawing.makeImage()},QRCode.prototype.clear=function(){this._oDrawing.clear()},QRCode.CorrectLevel=d}();
+
+QR
+  cat <<"MOD" > /www/docroot/modals/wireguard-modal.lp
+--pretranslated: do not change this file
+
+-- Enable localization
+gettext.textdomain('webui-code')
+
+local content_helper = require("web.content_helper")
+local message_helper = require("web.uimessage_helper")
+local post_helper = require("web.post_helper")
+local ui_helper = require("web.ui_helper")
+local wireguard_helper = require("wireguard_helper")
+local proxy = require("datamodel")
+
+local format,gsub,match,sub,untaint = string.format,string.gsub,string.match,string.sub,string.untaint
+
+local vB = post_helper.validateBoolean
+local vNES = post_helper.validateNonEmptyString
+local vSIP = post_helper.validateStringIsPort
+local vUN = post_helper.validateUciName
+
+local getargs = ngx.req.get_uri_args()
+local getintf = untaint(getargs.intf)
+local deleting = false
+
+local function proxySet(path,value)
+  local success,errors = proxy.set(path,value)
+  if not success then
+    local err
+    for _,err in ipairs(errors) do
+      message_helper.pushMessage(T(format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
+    end
+  end
+  return success
+end
+
+local function importInterface(new_if_name,content)
+  new_if_name = gsub(new_if_name,"-","_")
+  if not vUN(new_if_name) then
+    message_helper.pushMessage(T(format("Failed to import %s: Name contains invalid characters",new_if_name)),"error")
+  else
+    if proxy.get(format("uci.wireguard.@%s.enabled",new_if_name)) then
+      message_helper.pushMessage(T(format("Failed to import %s: Interface already exists",new_if_name)),"error")
+    else
+      local interface_config,peer_config = wireguard_helper.parseConfig(content)
+      if not interface_config.private_key then
+        message_helper.pushMessage(T(format("Failed to import %s: [Interface] section or PrivateKey not found?",new_if_name)),"error")
+      elseif interface_config.listen_port and interface_config.listen_port ~= "" then
+        message_helper.pushMessage(T(format("Failed to import %s: Multiple servers not supported at this time.",new_if_name)),"error")
+      elseif #peer_config == 0 or not next(peer_config[1]) then
+        message_helper.pushMessage(T(format("Failed to import %s: [Peer] section not found or empty?",new_if_name)),"error")
+      else
+        local iface,errmsg = proxy.add("uci.wireguard.",new_if_name)
+        if errmsg then
+          message_helper.pushMessage(T(string.format("Failed to add interface %s: %s",new_if_name,errmsg)),"error")
+        else
+          local commit,k,v = true
+          for k,v in pairs(interface_config) do
+            if not proxySet(format("uci.wireguard.@%s.%s",iface,k),v) then
+              commit = false
+              break
+            end
+          end
+          if commit then
+            local i,t
+            for i,t in pairs(peer_config) do
+              local peer_name
+              if #peer_config == 1 then
+                peer_name = format("%s_peer",iface)
+              else
+                peer_name = format("%s_peer%02d",iface,i)
+              end
+              local index,errmsg = proxy.add("uci.wireguard.@"..iface..".peer.",peer_name)
+              if errmsg then
+                message_helper.pushMessage(T(string.format("Failed to add peer %s to interface %s: %s",peer_name,iface,errmsg)),"error")
+                commit = false
+                break
+              else
+                local k,v
+                for k,v in pairs(t) do
+                  if not proxySet(format("uci.wireguard.@%s.peer.@%s.%s",iface,index,k),v) then
+                    commit = false
+                    break
+                  end
+                end
+                if commit then
+                  if not proxySet(format("uci.wireguard.@%s.peer.@%s.route_allowed_ips",iface,index),"1") then
+                    commit = false
+                  end
+                end
+              end
+            end
+            if commit then
+              local result,errmsg = wireguard_helper.addInterfaceToFirewallWANZone(iface)
+              if not result then
+                ngx.log(ngx.ERR,errmsg)
+              end
+              proxy.apply()
+            else
+              proxy.del(format("uci.wireguard.%s",new_if_name))
+              local okay,errmsg,errcode = wireguard_helper.deleteInterface(new_if_name)
+              if not okay then
+                message_helper.pushMessage(T(string.format("Failed to delete interface '%s': %s (%s)",new_if_name,errmsg,errcode)),"error")
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+local function deleteInterface(content)
+  if type(content) == "table" then
+    local checked
+    for _,checked in pairs(content) do
+      if checked == "_TRUE_" then
+        local okay,errmsg,errcode = wireguard_helper.deleteInterface(getintf)
+        if not okay then
+          message_helper.pushMessage(T(string.format("Failed to delete interface '%s': %s (%s)",getintf,errmsg,errcode)),"error")
+        else
+          proxy.apply()
+          getintf = "wg0"
+          deleting = true
+          break
+        end
+      end
+    end
+  end
+end
+
+local function checkForMultipleEnabledClients()
+  local state = proxy.get("uci.wireguard.@"..getintf..".enabled")
+  if state and state[1].value == "0" then
+    local commit = false
+    local intf
+    for _,intf in pairs(proxy.getPN("uci.wireguard.", true)) do
+      if intf.path ~= "uci.wireguard.@wg0." and intf.path ~= "uci.wireguard.@"..getintf.."." then
+        local path = intf.path.."enabled"
+        if proxy.get(path)[1].value == "1" then
+          if proxySet(path, "0") then
+            commit = true
+          else
+            break
+          end
+        end
+      end
+    end
+    if commit then
+      proxy.apply()
+    end
+  end
+end
+
+local function updateFirewall(args)
+  local fw = proxy.get("uci.firewall.rule.@wg0.enabled","uci.firewall.rule.@wg0.dest_port","uci.firewall.rule.@wg0.family")
+  if fw then
+    local applyfw = false
+    if fw[1] and args.enabled and args.enabled ~= fw[1].value then
+      if proxySet("uci.firewall.rule.@wg0.enabled",untaint(args.enabled)) then
+        applyfw = true
+      end
+    end
+    if fw[2] and args.listen_port and args.listen_port ~= fw[2].value then
+      if proxySet("uci.firewall.rule.@wg0.dest_port",untaint(args.listen_port)) then
+        applyfw = true
+      end
+    end
+    if fw[3] and args.ipv6 then
+      local ipv6 = args.ipv6
+      local family_is = fw[3].value
+      local family
+      if ipv6 == "1" and family ~= "" then
+        family = ""
+      elseif ipv6 == "0" and family ~= "ipv4" then
+        family = "ipv4"
+      end
+      if family and proxySet("uci.firewall.rule.@wg0.family",family) then
+        applyfw = true
+      end
+    end
+    if applyfw then
+      proxy.apply()
+    end
+  end
+end
+
+if ngx.var.request_method == "POST" then
+  local args = ngx.req.get_post_args()
+  if args.action == "SAVE" then
+    local arg,content
+    for arg,content in pairs(args) do
+      local new_if_name = match(arg,"new_interface_(.+)")
+      if new_if_name then
+        importInterface(new_if_name,content)
+      elseif arg == "del_iface" then
+        deleteInterface(content)
+      elseif arg == "enabled" and content == "1" and getintf ~= "wg0" then
+        checkForMultipleEnabledClients()
+      end
+    end
+  end
+end
+
+local curintf = "wg0"
+local wg0_on = ""
+local wg_intfs = {}
+local wg_intfs_path = "uci.wireguard."
+local all_intfs = content_helper.convertResultToObject(wg_intfs_path.."@.",proxy.get(wg_intfs_path))
+local k,v
+for k,v in ipairs(all_intfs) do
+  local on = v.enabled == "0" and "" or "<sup class='green' style='font-variant:small-caps;'>&nbsp;on</sup>"
+  if v.paramindex == getintf then
+    curintf = v.paramindex
+  end
+  if v.paramindex == "wg0" then
+    wg0_on = on
+  else
+    wg_intfs[#wg_intfs + 1] = {
+      name = v.paramindex,
+      on = on,
+    }
+  end
+end
+
+local config_template ="[Interface]\
+PrivateKey = %s\
+Address = %s\
+\
+[Peer]\
+PublicKey = %s\
+PresharedKey = %s\
+AllowedIPs = 0.0.0.0/0%s\
+Endpoint = %s\
+"
+
+local function validateLogLevel(value,object,key)
+  if value == "" or value == "debug" then
+    return true
+  end
+  return nil,T"'debug' or '' (empty string) expected."
+end
+
+local log_level_attr = {
+  values = {
+    on = "debug",
+    off = ""
+  }
+}
+
+local mapParams = {
+  enabled = "uci.wireguard.@"..curintf..".enabled",
+  private_key = "uci.wireguard.@"..curintf..".private_key",
+  addresses = "uci.wireguard.@"..curintf..".addresses",
+  log_level = "uci.wireguard.@"..curintf..".log_level",
+}
+
+local mapValid = {
+  enabled = vB,
+  private_key = vNES,
+  log_level = validateLogLevel,
+}
+
+if curintf == "wg0" then
+  mapParams["ipv6"] = "uci.wireguard.@wg0.ipv6"
+  mapParams["listen_port"] = "uci.wireguard.@wg0.listen_port"
+  mapParams["ipv4addr"] = "rpc.network.interface.@wan.ipaddr"
+  mapParams["ipv4ddns"] = "uci.ddns.service.@myddns_ipv4.domain"
+  mapValid["ipv6"] = vB
+  mapValid["listen_port"] = vSIP
+end
+
+local config,helpmsg
+if deleting then
+  config,helpmsg = mapParams, {}
+  content_helper.getExactContent(config)
+else
+  config,helpmsg = post_helper.handleQuery(mapParams,mapValid)
+end
+
+if config.enabled ~= "0" then
+  config.enabled = "1"
+end
+if config.log_level ~= "" then
+  config.log_level = "debug"
+end
+if curintf == "wg0" then
+  if config.ipv6 == "" then
+    config.ipv6 = "1"
+  end
+  if config.listen_port == "" then
+    config.listen_port = "51820"
+  end
+  config.domain = config.ipv4addr
+  if config.ipv4ddns ~= "yourhost.example.com" and config.ipv4ddns ~= "" then
+    config.domain = config.ipv4ddns
+    config.server_address = format("%s:%s",config.ipv4ddns,config.listen_port)
+  else
+    config.server_address = format("%s:%s",config.ipv4addr,config.listen_port)
+  end
+end
+
+local new_peer
+if ngx.var.request_method == "POST" then
+  local args = ngx.req.get_post_args()
+  if args.action == "SAVE" then
+    if curintf == "wg0" then
+      updateFirewall(args)
+    end
+    if args.new_peer_name and args.new_peer_name ~= "" then
+      local peer_name = untaint(args.new_peer_name)
+      local valid,errmsg = vUN(peer_name)
+      if valid then
+        local ipv4_next,ipv4_netmask,ipv6_next,ipv6_netmask = wireguard_helper.getUnusedIP()
+        if not ipv4_next then
+          message_helper.pushMessage(T(ipv4_netmask),"error")
+        else
+          local result,errmsg = proxy.add("uci.wireguard.@"..curintf..".peer.",peer_name)
+          if errmsg then
+            local err
+            for _,err in ipairs(errmsg) do
+              message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
+            end
+            helpmsg["new_peer_name"] = "Failed to add peer"
+          else
+            local private_key = wireguard_helper.genkey()
+            new_peer = {
+              name = peer_name,
+              address = format("%s/%s",ipv4_next,ipv4_netmask),
+              allowed_ips = format("%s/32",ipv4_next),
+              ipv6_allowed_ip = "",
+              private_key = private_key,
+              public_key = wireguard_helper.pubkey(private_key),
+              preshared_key = "",
+              dns = wireguard_helper.getDNS()
+            }
+            if config.ipv6 ~= "0" and ipv6_next then
+              new_peer.address=format("%s,%s/%s",new_peer.address,ipv6_next,ipv6_netmask)
+              new_peer.allowed_ips=format("%s,%s/128",new_peer.allowed_ips,ipv6_next)
+              new_peer.ipv6_allowed_ip = ",::0/0"
+            end
+            if type(args["genpsk"]) == "table" then
+              local checked
+              for _,checked in pairs(args["genpsk"]) do
+                if checked == "_TRUE_" then
+                  new_peer.preshared_key = wireguard_helper.genpsk()
+                  break
+                end
+              end
+            end
+            if  proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.public_key",peer_name),new_peer.public_key)
+            and proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.preshared_key",peer_name),new_peer.preshared_key)
+            and proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.allowed_ips",peer_name),new_peer.allowed_ips)
+            and proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.route_allowed_ips",peer_name),"1")
+            then
+              proxy.apply()
+              new_peer.config = gsub(format(config_template,new_peer.private_key,new_peer.address,wireguard_helper.pubkey(config.private_key),new_peer.preshared_key,new_peer.ipv6_allowed_ip,config.server_address),"PresharedKey = \n","")
+            end
+          end
+        end
+      else
+        helpmsg["new_peer_name"] = errmsg
+      end
+    end
+  end
+end
+
+local peer_columns = {
+  {
+    header = T"Name",
+    name = "paramindex",
+    param = "paramindex",
+    readonly = true,
+  },
+  {
+    header = T"Public Key",
+    name = "public_key",
+    param = "public_key",
+    readonly = true,
+  },
+  {
+    header = T"PSK&nbsp;<span class='icon-question-sign' title='Pre-Shared Key'></span>",
+    name = "preshared_key",
+    param = "preshared_key",
+    readonly = true,
+  },
+  {
+    header = T"Allowed IP",
+    name = "allowed_ips",
+    param = "allowed_ips",
+    readonly = true,
+  },
+  {
+    header = T"End Point",
+    name = "endpoint",
+    param = "endpoint",
+    readonly = true,
+  },
+  {
+    header = T"Latest Handshake",
+    name = "latest_handshake",
+    param = "latest_handshake",
+    readonly = true,
+  },
+  {
+    header = T"Received",
+    name = "transfer_rx",
+    param = "transfer_rx",
+    readonly = true,
+  },
+  {
+    header = T"Sent",
+    name = "transfer_tx",
+    param = "transfer_tx",
+    readonly = true,
+  },
+}
+
+local rpc_path = "rpc.gui.wireguard.interface.@"..curintf..".peer."
+local peers = content_helper.convertResultToObject(rpc_path,proxy.get(rpc_path)) or {}
+
+local peer_valid = {
+  paramindex = vNES,
+  public_key = vNES,
+  preshared_key = vNES,
+  allowed_ips = vNES,
+}
+
+local peer_options = {
+  tableid = "server",
+  basepath = "uci.wireguard.@"..curintf..".peer.@.",
+  canAdd = false,
+  canDelete = (curintf == "wg0"),
+  canEdit = false,
+}
+
+local peer_filter = function(data)
+  local pub = untaint(data.public_key)
+  local psk = untaint(data.preshared_key)
+  local peer
+  if data.endpoint_host == "" then
+    data.endpoint = "(none)"
+  else
+    data.endpoint = format("%s:%s",data.endpoint_host,data.endpoint_port)
+  end
+  for _,peer in ipairs(peers) do
+    if peer.public_key == pub then
+      if peer.latest_handshake == "-62135596800" then
+        data.latest_handshake = ""
+      else
+        data.latest_handshake = os.date("%Y-%m-%d %T",tonumber(untaint(peer.latest_handshake)))
+      end
+      data.transfer_rx = wireguard_helper.bytes2string(peer.transfer_rx)
+      data.transfer_tx = wireguard_helper.bytes2string(peer.transfer_tx)
+      if data.endpoint == "(none)" and peer.endpoint_host ~= "" then 
+        data.endpoint = format("%s:%s",peer.endpoint_host,peer.endpoint_port)
+      end
+      break
+    end
+  end
+  data.public_key = format("%s...%s",sub(pub,1,4),sub(pub,40,43))
+  if psk ~= "" then
+    data.preshared_key = "Enabled"
+  end
+  data.allowed_ips = gsub(untaint(data.allowed_ips),",","<br>")
+  return true
+end
+
+local peer_data,peer_helpmsg = post_helper.handleTableQuery(peer_columns,peer_options,peer_filter,nil,peer_valid)
+
+local active = ""
+if curintf == "wg0" then
+  active = "active"
+end
+
+local refresh_seconds
+if not new_peer then
+  refresh_seconds = 15
+end
+
+ngx.print('\
+');  ngx.print(ui_helper.createHeader("WireGuard",false,true,refresh_seconds)); ngx.print('\
+<div class="modal-body update">\
+  <div class="span2">\
+    <ul class="nav nav-list">\
+      <li class="nav-header">Server</li>\
+      <li class="'..active..'"><a id="wg0" href="#" data-remote="modals/wireguard-modal.lp?intf=wg0">wg0'..wg0_on..'</a></li>\
+    </ul>\
+    <ul class="nav nav-list">\
+      <li class="nav-header">Client Interfaces</li>\
+      ');
+      if #wg_intfs == 0 then
+        ngx.print('<li><i>None Configured</i></li>')
+      else
+        for _,v in ipairs(wg_intfs) do
+          local url = "modals/wireguard-modal.lp?intf="..v.name
+          active = ""
+          if v.name == curintf then
+            active = "active"
+          end
+          ngx.print(format('<li class="%s"><a id="%s" href="#" data-remote="%s">%s%s</a></li>',active,v.name,url,v.name,v.on))
+        end
+      end
+      ngx.print('\
+    </ul>\
+    <br>\
+    <ul id="conf-import" class="nav nav-list">\
+      <li class="nav-header">Import <span class="icon-question-sign" title="You can import client configurations in .conf files and/or .zip files."></span></li>\
+      <li><label class="btn btn-primary btn-large">\
+        <input id="config-file" type="file" name="configfile" accept=".conf,.zip" multiple="multiple" style="display:none;">\
+        <span style="font-size:small;">Browse for file</span></label>\
+      </li>\
+    </ul>\
+  </div>\
+  <div class="span9">\
+    <form class="form-horizontal" method="post" action="modals/wireguard-modal.lp?intf='); ngx.print(curintf); ngx.print('">\
+      ');
+      local legend = T"VPN Server [wg0]"
+      local enabled_label = T"Server Enabled"
+      if curintf ~= "wg0" then
+        legend = T(format("VPN Client %s",curintf))
+        enabled_label = T"Enabled"
+      end
+      local html = {}
+      html[#html+1] = ui_helper.createMessages(message_helper.popMessages())
+      html[#html+1] = "<fieldset id='interface'><legend>"..legend.."</legend>"
+      html[#html+1] = ui_helper.createSwitch(enabled_label,"enabled",config["enabled"],nil,helpmsg["enabled"])
+      if config["enabled"] == "0" then
+        html[#html+1] = '<script>$("li.active a").html("'..curintf..'");</script>'
+      else
+        html[#html+1] = '<script>$("li.active a").html("'..curintf..'<sup class=\\"green\\" style=\\"font-variant:small-caps;\\">&nbsp;on</sup>");</script>'
+      end
+      if curintf == "wg0" then
+        html[#html+1] = ui_helper.createInputText(T"Listen Port","listen_port",config["listen_port"],{ input = { type="number",min="0",max="65535",style="width:100px",} },helpmsg["listen_port"])
+        html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled","ipv6",config["ipv6"],nil,helpmsg["ipv6"])
+        html[#html+1] = ui_helper.createLabel(T"Domain<span class='icon-question-sign' title='Configure the Domain name in WAN Services under IPv4 Dynamic DNS'></span>",config.domain)
+      end
+      html[#html+1] = ui_helper.createLabel(T"Private Key",config.private_key)
+      html[#html+1] = ui_helper.createLabel(T"VPN Private IP",T(gsub(untaint(config.addresses),",","<br>")))
+      html[#html+1] = ui_helper.createSwitch(T"Debugging","log_level",config["log_level"],log_level_attr,helpmsg["log_level"])
+      html[#html+1] = "<legend><small>"..T"Peers".."</small></legend>"
+      html[#html+1] = ui_helper.createTable(peer_columns,peer_data,peer_options,nil,peer_helpmsg)
+      if new_peer then
+        html[#html+1] = ui_helper.createAlertBlock(T("Peer configuration is ONLY displayed on creation,because peer private keys are not stored and therefore the configuration cannot be regenerated. Click 'refresh data' above to clear configuration and add another peer."),{ alert = { id = "new-peer-alert",class = "alert-danger" } })
+        html[#html+1] = '<script src="/js/qrcode.min.js"></script>'
+        html[#html+1] = "<div style='float:right;'>"
+        html[#html+1] = " <a id='wg-peer-config-download'>Download "..new_peer.name..".conf</a>"
+        html[#html+1] = " <div id='wg-qrcode' style='padding:5px;background-color:white;'></div>"
+        html[#html+1] = "</div>"
+        html[#html+1] = "<pre id='wg-peer-config'>\n"
+        html[#html+1] = new_peer.config
+        html[#html+1] = "\n</pre>"
+        html[#html+1] = ""
+        html[#html+1] = '<script>\
+        let config = document.getElementById("wg-peer-config").innerHTML;\
+        let configAsBlob = new Blob([config],{type:"text/plain"});\
+        let configAsURL = window.URL.createObjectURL(configAsBlob);\
+        let downloadLink = document.getElementById("wg-peer-config-download");\
+        downloadLink.download = "'..new_peer.name..'.conf";\
+        downloadLink.href = configAsURL;\
+        new QRCode("wg-qrcode",{ text:config,width:256,height:256,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M });\
+        $("#new-peer-alert")[0].scrollIntoView();\
+        </script>'
+      elseif curintf == "wg0" then
+        html[#html+1] = ui_helper.createInputText(T"Add new Peer","new_peer_name","",nil,helpmsg["new_peer_name"])
+        html[#html+1] = ui_helper.createCheckboxSwitch(T"Generate PSK<span class='icon-question-sign' title='Generate a unique Pre-Shared Key for the new Peer to increase security.'></span>","genpsk","0")
+      else
+        html[#html+1] = ui_helper.createCheckboxSwitch(T("Remove "..curintf),"del_iface","0")
+      end
+      html[#html+1] = "</fieldset>"
+      html[#html+1] = "<fieldset id='add-interface' class='hide'><legend>Add Interface</legend>"
+      html[#html+1] = "<div id='interfaces-to-add'></div>"
+      html[#html+1] = "</fieldset>"
+      ngx.print(html)
+      ngx.print('\
+    </form>\
+  </div>\
+  <div class="loading-wrapper hide"><img src="/img/spinner.gif" /></div>\
+</div>\
+'); ngx.print(ui_helper.createFooter()); ngx.print('\
+<script src="/js/jszip.min.js"></script>\
+<script>\
+$("#save-config").on("click",function(){\
+  let busy_msg = $(".loading-wrapper");\
+  busy_msg.removeClass("hide");\
+  busy_msg[0].scrollIntoView();\
+  $(".modal-body").scrollLeft(0);\
+  return true;\
+});\
+const observer = new MutationObserver(function(mutations) {\
+  $("#conf-import").hide();\
+});\
+const changes = document.querySelector("#modal-changes");\
+observer.observe(changes,{\
+  attributes: true\
+});\
+let target = $("#interfaces-to-add");\
+$("#config-file").on("change",function(evt) {\
+  target.html("");\
+  function addNewInterface(filename,content) {\
+    let name = filename.replace(/^.+\\//,"").replace(/\\.[^/.]+$/,"");\
+    let group = $("<div>",{\
+      "class" : "control-group"\
+    });\
+    group.append($("<label>",{\
+      "class" : "control-label",\
+      text : name\
+    }));\
+    let controls = $("<div>",{\
+      "class" : "controls",\
+    });\
+    controls.append($("<pre>",{\
+      "style" : "margin:6px 0px;",\
+      text : content\
+      }));\
+    group.append(controls);\
+    target.append(group);\
+    target.append($("<input>",{\
+      "type" : "hidden",\
+      "name" : "new_interface_" + name,\
+      "value" : content\
+    }));\
+  }\
+  function handleFile(f) {\
+    JSZip.loadAsync(f).then(function(zip) {\
+      zip.forEach(function (relativePath,zipEntry) {\
+        if (!zipEntry.dir) {\
+          zipEntry.async("string").then(function(content) {\
+            addNewInterface(zipEntry.name,content);\
+          });\
+        }\
+      });\
+    },function (e) {\
+      let reader = new FileReader();\
+      reader.readAsText(f);\
+      reader.onload = function() {\
+        addNewInterface(f.name,reader.result);\
+      }\
+      reader.onerror = function() {\
+        target.append($("<div>",{\
+            "class" : "alert alert-danger",\
+            text : "Error reading " + f.name + ": " + e.message\
+        }));\
+      }\
+    });\
+  }\
+  let files = evt.target.files;\
+  for (let i = 0; i < files.length; i++) {\
+      handleFile(files[i]);\
+  }\
+  $("#config-file").hide();\
+  $("#interface").hide();\
+  $("#add-interface").show();\
+  $("#modal-no-change").hide();\
+  $("#modal-changes").show();\
+});\
+$("#do-import").click(function(){\
+  let form=$("#form-import");\
+  let action=form.attr("action");\
+  form.attr("action",action+"&filename="+encodeURIComponent($("#config_file")[0].files[0].name));\
+  $("csrf_token").val($("meta[name=CSRFtoken]").attr("content"));\
+  $.fileUpload(form,{\
+    params: [ tch.elementCSRFtoken() ],\
+    completeCallback: function(form,response) {\
+    }\
+  });\
+});\
+</script>\
+');
+MOD
+  cat <<"HLP" > /www/lua/wireguard_helper.lua
+local content_helper = require("web.content_helper")
+local ui_helper = require("web.ui_helper")
+local proxy = require("datamodel")
+
+local find,format,gmatch,lower,match,untaint = string.find,string.format,string.gmatch,string.lower,string.match,string.untaint
+
+
+local M = {}
+
+function M.bytes2string(s_bytes)
+  if s_bytes=="" then
+    return "0<small>B</small>"
+  else
+    local bytes = tonumber(untaint(s_bytes))
+    local kb = bytes/1024
+    local mb = kb/1024
+    local gb = mb/1024
+    if gb >= 1 then
+      return format("%.1f",gb).."<small>GB</small>"
+    elseif mb >= 1 then
+      return format("%.1f",mb).."<small>MB</small>"
+    elseif kb >= 1 then
+      return format("%.1f",kb).."<small>KB</small>"
+    else
+      return format("%d",s_bytes).."<small>B</small>"
+    end
+  end
+end
+
+function M.getWireguardCardHTML()
+  local content = {
+    server = "uci.wireguard.@wg0.enabled",
+    firewall = "uci.firewall.rule.@wg0.enabled",
+    interface_count = "rpc.gui.wireguard.interface_count",
+    server_peers = "rpc.gui.wireguard.server_peers",
+    server_active_peers = "rpc.gui.wireguard.server_active_peers",
+    server_rx_bytes = "rpc.gui.wireguard.server_rx_bytes",
+    server_tx_bytes = "rpc.gui.wireguard.server_tx_bytes",
+    server_interface_count = "rpc.gui.wireguard.server_interface_count",
+    server_interfaces = "rpc.gui.wireguard.server_interfaces",
+    client_peers = "rpc.gui.wireguard.client_peers",
+    client_active_peers = "rpc.gui.wireguard.client_active_peers",
+    client_rx_bytes = "rpc.gui.wireguard.client_rx_bytes",
+    client_tx_bytes = "rpc.gui.wireguard.client_tx_bytes",
+    client_interface_count = "rpc.gui.wireguard.client_interface_count",
+    client_interfaces = "rpc.gui.wireguard.client_interfaces",
+    external_ipv4_address = "rpc.gui.wireguard.external_ipv4_address",
+    external_ipv6_address = "rpc.gui.wireguard.external_ipv6_address",
+  }
+  content_helper.getExactContent(content)
+
+  if content.server ~= "0" then
+    content.server = "1"
+    content.server_text = T"VPN Server enabled"
+  else
+    content.server_text = T"VPN Server disabled"
+  end
+  if content.firewall ~= "0" then
+    content.firewall = "1"
+    content.firewall_text = T"Incoming Firewall Port open"
+  else
+    content.firewall_text = T"Incoming Firewall Port closed"
+    if content.server == "1" then
+      content.server = "2"
+    end
+  end
+
+  local interfaces = proxy.getPN("uci.wireguard.",true)
+
+  local transfer_pattern = '<i class="icon-cloud-upload status-icon"></i> <span style="width:5em;display:inline-block;">%s</span>&ensp;<i class="icon-cloud-download status-icon"></i> <span style="width:5em;display:inline-block;">%s</span><br>'
+  
+  local html = {}
+  html[#html+1] = ui_helper.createSimpleLight(content.server,content.server_text)
+  if content.server == "2" then
+    html[#html+1] = ui_helper.createSimpleLight(content.firewall,content.firewall_text)
+  elseif content.server == "1" then
+    html[#html+1] = '<p class="subinfos">'
+    html[#html+1] = format("%d of %d server peers active<br>",content.server_active_peers,content.server_peers)
+    html[#html+1] = format(transfer_pattern,M.bytes2string(content.server_tx_bytes),M.bytes2string(content.server_rx_bytes))
+    html[#html+1] = '</p>'
+  end
+  if #interfaces > 1 then
+    if content.client_active_peers == "0" then
+      html[#html+1] = ui_helper.createSimpleLight("0",T"VPN Client inactive")
+    else
+      html[#html+1] = ui_helper.createSimpleLight("1",T(format("VPN Client %s active",content.client_interfaces)))
+      html[#html+1] = '<p class="subinfos">'
+      html[#html+1] = format(transfer_pattern,M.bytes2string(content.client_tx_bytes),M.bytes2string(content.client_rx_bytes))
+      if content.external_ipv4_address or content.external_ipv6_address then
+        html[#html+1] = format(T'External IP: <strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>',content.external_ipv4_address)
+        html[#html+1] = format(T'<br><strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>',content.external_ipv6_address)
+      end
+      html[#html+1] = '</p>'
+    end
+  elseif #interfaces == 1 then
+    html[#html+1] = ui_helper.createSimpleLight("0",T"No VPN Client Interfaces defined")
+  elseif tonumber(content.client_interface_count) > 1 then
+    html[#html+1] = ui_helper.createSimpleLight("1",T(format('%s of %s VPN Clients active',content.client_active_peers,content.client_interface_count)))
+    html[#html+1] = '<p class="subinfos">'
+    html[#html+1] = format(transfer_pattern,M.bytes2string(content.client_tx_bytes),M.bytes2string(content.client_rx_bytes))
+    html[#html+1] = '</p>'
+  end
+
+  return html
+end
+
+function M.genkey()
+  local key
+  local cmd = io.popen('/usr/bin/wg-go genkey','r')
+  if cmd then
+    key = cmd:read("*line")
+    cmd:close()
+    return key
+  end
+  return nil,"Failed to generate private key"
+end
+
+function M.genpsk()
+  local key
+  local cmd = io.popen('/usr/bin/wg-go genpsk','r')
+  if cmd then
+    key = cmd:read("*line")
+    cmd:close()
+    return key
+  end
+  return nil,"Failed to generate pre-shared key"
+end
+
+function M.pubkey(private_key)
+  if private_key and private_key ~= "" then
+    local key
+    local cmd = io.popen(format('echo "%s" | /usr/bin/wg-go pubkey',untaint(private_key)),'r')
+    if cmd then
+      key = cmd:read("*line")
+      cmd:close()
+      return key
+    end
+    return nil,"Failed to generate public key"
+  end
+  return nil,"No private key specified to return public key"
+end
+
+local ipv4pattern = "(%d+%.%d+%.%d+%.)(%d+)/(%d+)"
+local ipv6pattern = "([:%x]+:)(%x+)/(%d+)"
+
+function M.getUnusedIP()
+  local ip4_prefix,ip4_suffix,ip4_netmask,ip4_next
+  local ip6_prefix,ip6_suffix,ip6_netmask,ip6_next
+  local peer,ip,suffix,index,next_suffix,used
+
+  for _,ip in pairs(proxy.get("uci.wireguard.@wg0.address.")) do
+    local ipaddr = untaint(ip.value)
+    if not ip4_prefix then
+      ip4_prefix,ip4_suffix,ip4_netmask = match(ipaddr,ipv4pattern)
+      used = { tonumber(ip4_suffix) }
+    end
+    if not ip6_prefix then
+      ip6_prefix,ip6_suffix,ip6_netmask = match(ipaddr,ipv6pattern)
+    end
+  end
+
+  if not used then
+    return nil,"No IPv4 address found for interface wg0?"
+  end
+
+  for _,peer in pairs(proxy.getPN("uci.wireguard.@wg0.peer.",true)) do
+    for _,ip in pairs(proxy.get(peer.path.."allowed_ip.")) do
+      local _,octet = match(untaint(ip.value),ipv4pattern)
+      if octet then
+        used[#used + 1] = octet
+      end
+    end
+  end
+  for suffix = 2,255 do
+    local s = tostring(suffix)
+    local found
+    for index = 1,#used do
+      if used[index] == s then
+        found = true
+        break
+      end
+    end
+    if not found then
+      ip4_next = ip4_prefix..s
+      if ip6_prefix then
+        ip6_next = format("%s%x",ip6_prefix,suffix)
+      end
+      break
+    end
+  end
+
+  if not ip4_next then
+    return nil,"No unused IPs found?"
+  end
+
+  return ip4_next,ip4_netmask,ip6_next,ip6_netmask
+end
+
+function M.getDNS(include_ipv6)
+  local dns = ""
+  local k,v
+  
+  for k,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dhcp_option.",true)) do
+    local ipv4_dns = match(untaint(proxy.get(v.path.."value")[1].value),"6,(.+)")
+    if ipv4_dns then
+      if dns == "" then
+        dns = ipv4_dns
+      else
+        dns = format("%s,%s",dns,ipv4_dns)
+      end
+    end
+  end
+  
+  if include_ipv6 == true then
+    for k,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dns.",true)) do
+      local ipv6_dns = untaint(proxy.get(v.path.."value")[1].value)
+      if dns == "" then
+        dns = ipv6_dns
+      else
+        dns = format("%s,%s",dns,ipv6_dns)
+      end
+    end
+  end
+
+  if dns == "" then
+    dns = proxy.get("uci.network.interface.@lan.ipaddr")[1].value
+  end
+
+  return dns
+end
+
+function M.receiveFile(filename,match)
+  function do_receive(outfile,match)
+    local upload = require("web.fileupload")
+    local form,err = upload.fromstream()
+    if not form then
+      return false,1,"failed to create upload ctx: "..err
+    end
+    local totalsize = 0
+    local file
+    local discard = false
+    while true do
+      local token,data,err = form:read()
+      if not token then
+        return false,2,"read failed: "..err
+      end
+      if token == "header" then
+        if not discard and not file and find(data[2],match,1,true) then
+          file = outfile
+        end
+        if not discard and not file then
+          return false,3,"failed to start receiving file"
+        end
+      elseif token == "body" then
+        if file then
+          totalsize = totalsize + #data
+          file:write(data)
+        end
+      elseif token == "part_end" then
+        if file then
+          file = nil
+          discard = true
+        end
+      elseif token == "eof" then
+        break
+      end
+    end
+    return true
+  end
+
+  local file = io.open(filename,"w")
+  local result,err_code,err_msg
+  if file then
+    result,err_code,err_msg = do_receive(file,match)
+  else
+    file = io.open("/dev/null","w")
+    do_receive(file,match)
+    result = false
+    err_code = 4
+    err_msg = "internal error"
+  end
+
+  file:close()
+
+  return result,err_code,err_msg
+end
+
+local option_convert = {
+  address = "addresses",
+  allowedips = "allowed_ips",
+  endpoint = "endpoint",
+  fwmark = "fwmark",
+  listenport = "listen_port",
+  persistentkeepalive = "persistent_keepalive",
+  privatekey = "private_key",
+  presharedkey = "preshared_key",
+  publickey = "public_key",
+  mtu = "mtu",
+}
+
+function M.parseConfig(content)
+  local interface_config,peer_config = {},{}
+  local in_interface,in_peer,line = false,false
+  for line in gmatch(untaint(content)..'\n',"([^\r\n]*)[\r\n]") do
+    if not match(line,"^%s*$") then
+      local key,value = match(line,"^(%S+)%s*=%s*(.+)$")
+      if key then
+        local option = option_convert[lower(key)]
+        if option and value ~= "" then
+          if in_interface then
+            interface_config[option] = value
+          elseif in_peer then
+            if option == "endpoint" then
+              local host,port = match(value,"(%S+):(%d+)")
+              if not port then
+                host = value
+                port = "51820"
+              end
+              peer_config[#peer_config]["endpoint_host"] = host
+              peer_config[#peer_config]["endpoint_port"] = port
+            else
+              peer_config[#peer_config][option] = value
+            end
+          end
+        end
+      elseif not in_interface then
+        if match(line,"^%[Interface%]$") then
+          in_interface = true
+        end
+      elseif match(line,"^%[Peer%]$") then
+        in_interface = false
+        in_peer = true
+        peer_config[#peer_config + 1] = {}
+      end
+    end
+  end
+
+  return interface_config,peer_config
+end
+
+local function getFirewallWANZoneNetworkPath()
+  local zones = proxy.getPN("uci.firewall.zone.",true)
+  local k,v
+  for k,v in ipairs(zones) do
+    local wan = proxy.get(v.path.."wan")
+    if wan and wan[1].value == "1" then
+      return v.path.."network."
+    end
+  end
+  return nil
+end
+
+local function getInterfaceFirewallWANZoneNetworkPath(ifname)
+  local path = getFirewallWANZoneNetworkPath()
+  local network
+  for _,network in pairs(proxy.getPN(path,true)) do
+    local value = proxy.get(network.path.."value")[1].value
+    if value == ifname then
+      return network.path,path
+    end
+  end
+  return nil,path
+end
+
+function M.deleteInterface(ifname)
+  local peer
+  for _,peer in pairs(proxy.getPN("uci.wireguard.@"..ifname..".peer.",true)) do
+    local okay,errmsg,errcode = proxy.del(peer.path)
+    if not okay then
+      return nil,errmsg,errcode
+    end
+  end
+  local path = getInterfaceFirewallWANZoneNetworkPath(ifname)
+  if path then
+    proxy.del(path)
+  end
+  return proxy.del("uci.wireguard.@"..ifname..".")
+end
+
+function M.addInterfaceToFirewallWANZone(ifname)
+  local path,parent = getInterfaceFirewallWANZoneNetworkPath(ifname)
+  if not path then
+    local index = proxy.add(parent)
+    return proxy.set(parent.."@"..index..".value",ifname)
+  end
+  return nil, "Interface '"..ifname.."' already in WAN firewall zone"
+end
+
+return M
+HLP
+
+  chmod 644 /usr/share/transformer/commitapply/uci_wireguard.ca
+  chmod 644 /usr/share/transformer/mappings/rpc/gui.wireguard.map
+  chmod 644 /usr/share/transformer/mappings/uci/wireguard.map
+  chmod 755 /usr/share/transformer/scripts/reload_wireguard.sh
+  chmod 644 /www/cards/004_WireGuard.lp
+  chmod 644 /www/docroot/ajax/wireguard-status.lua
+  chmod 644 /www/docroot/js/jszip.min.js
+  chmod 644 /www/docroot/js/qrcode.min.js
+  chmod 644 /www/docroot/modals/wireguard-modal.lp
+  chmod 644 /www/lua/wireguard_helper.lua
+
+  SRV_transformer=$(( $SRV_transformer + 1 ))
+
+  if [ -z "$(uci -q get network.wg0)" ]; then
+    LAN_IPv6="$(uci -q get network.lan.ipv6)"
+    OCTET_3="$(printf '%d' 0x$(uci get env.var.local_eth_mac | cut -d: -f6))"
+    uci set network.wg0="interface"
+    uci set network.wg0.proto="wireguard"
+    uci set network.wg0.private_key="$(/usr/bin/wg-go genkey)"
+    uci set network.wg0.listen_port="51820"
+    uci add_list network.wg0.addresses="172.23.${OCTET_3}.1/24"
+    if [ -z "$LAN_IPv6" -o "$LAN_IPv6" = "1" ]; then
+      ULA_PREFIX="$(uci -q get network.globals.ula_prefix)"
+      if [ -z "$ULA_PREFIX" ]; then
+        # https://tools.ietf.org/html/rfc4193 (sort of...)
+        MAC=$(uci -q get env.var.local_eth_mac)
+        case $(echo $MAC | cut -c2-2) in
+          0) SECOND_REV=2;; 2) SECOND_REV=0;; 4) SECOND_REV=6;; 6) SECOND_REV=4;; 8) SECOND_REV=a;; a) SECOND_REV=8;; c) SECOND_REV=e;; e) SECOND_REV=c;; *) SECOND_REV=$OPTARG;;
+        esac
+        EUI64="$(echo $MAC | cut -c1-1)${SECOND_REV}$(echo $MAC | cut -c3-6)fffe$(echo $MAC | cut -c7-12)"
+        GLOBALID=$(echo -ne "$(date +%s | md5sum | cut -c1-16)${EUI64}" | sed "s/../\\x&/g" | sha256sum | cut -c23-32)
+        ULA_PREFIX="$(echo fd${GLOBALID} | sed 's|\(....\)\(....\)\(....\)|\1:\2:\3::/48|' | sed -e 's/:0*/:/g')"
+        uci set network.globals.ula_prefix="$ULA_PREFIX"
+      fi
+      uci add_list network.wg0.addresses="$(echo $ULA_PREFIX | cut -d: -f1-3):23$(uci get env.var.local_eth_mac | cut -d: -f6)::1/120"
+    fi
+    uci set network.wg0.ipv6="$LAN_IPv6"
+    uci set network.wg0.enabled="0"
+    uci commit network
+    SRV_network=$(( $SRV_network + 1 ))
+  fi
+
+  if [ -z "$(uci -q get firewall.wg0)" ]; then
+    uci set firewall.wg0="rule"
+    uci set firewall.wg0.name="Allow-WireGuard"
+    uci set firewall.wg0.src="wan"
+    uci set firewall.wg0.dest_port="51820"
+    uci set firewall.wg0.proto="udp"
+    uci set firewall.wg0.target="ACCEPT"
+    uci commit firewall
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+  
+  if ! uci -q get $FW_LAN_ZONE.network | grep -qE "\bwg0\b"; then
+    uci add_list $FW_LAN_ZONE.network="wg0"
+    uci commit firewall
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+
+  sed \
+    -e '/ActiveEthernetNumberOfEntries/a\    numVPNClient = "rpc.gui.wireguard.server_active_peers",' \
+    -e '/local nWiFi/a\  local nVPN = tonumber(devices_data["numVPNClient"]) or 0' \
+    -e "/return html/i\  html[#html+1] = '<span class=\"simple-desc\">'\
+  html[#html+1] = '<i class=\"icon-cloud status-icon\"></i>'\
+  html[#html+1] = format(N('<strong %1\$s>%2\$d WireGuard peer</strong> connected','<strong %1\$s>%2\$d WireGuard peers</strong> connected',nVPN),'class=\"modal-link\" data-toggle=\"modal\" data-remote=\"modals/wireguard-modal.lp\" data-id=\"wireguard-modal\"',nVPN)\
+  html[#html+1] = '</span>'\
+  " -i /www/lua/devicescard_helper.lua
+else
+  WG_INSTALLED=0
+
+  if uci -q get $FW_LAN_ZONE.network | grep -qE "\bwg0\b"; then
+    WG_INSTALLED=1
+    uci -q del_list $FW_LAN_ZONE.network="wg0"
+    uci commit firewall
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+  
+  if [ "$(uci -q get firewall.wg0)" = "rule" ]; then
+    WG_INSTALLED=1
+    uci -q delete firewall.wg0=
+    uci commit firewall
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+
+  if [ "$(uci -q get network.wg0)" = "interface " ]; then
+    WG_INSTALLED=1
+    for WG_PEER in $(uci show network | grep "=wireguard_wg0\$" | cut -d= -f1); do
+        uci -q delete $WG_PEER
+    done
+    uci -q delete network.wg0
+    uci commit network
+    SRV_network=$(( $SRV_network + 1 ))
+  fi
+
+  if [ $WG_INSTALLED -eq 0 ]; then
+    echo " SKIPPED - openwrt-wireguard-go not found"
+  else
+    echo " Removed wireguard support"
+  fi
+fi
+
+[ $SRV_network -gt 0 ] && /etc/init.d/network restart >/dev/null

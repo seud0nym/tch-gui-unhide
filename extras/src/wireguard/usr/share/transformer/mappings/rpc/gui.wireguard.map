@@ -1,0 +1,379 @@
+local uci_helper = mapper("ucihelper")
+local logger = require("tch.logger")
+local log = logger.new("rpc.gui.wireguard", 4)
+
+local wireguard_status = "/usr/bin/wg-go show all dump"
+local find, format, match = string.find, string.format, string.match
+
+local wg_cache = {
+  summary = {
+    interface_count = 0,
+    server_peers = 0,
+    server_rx_bytes = 0,
+    server_tx_bytes = 0,
+    server_active_peers = 0,
+    server_interface_count = 0,
+    server_interfaces = {},
+    client_peers = 0,
+    client_rx_bytes = 0,
+    client_tx_bytes = 0,
+    client_active_peers = 0,
+    client_interface_count = 0,
+    client_interfaces = {},
+  },
+  details = {},
+  time_check,
+}
+
+local ip_cache = {}
+ip_cache[4] = { interface = "", address = "", checked = 0, }
+ip_cache[6] = { interface = "", address = "", checked = 0, }
+
+local function getExternalIPAddress(opt)
+  if wg_cache.summary.client_active_peers == 1 then
+    if ip_cache[opt].interface ~= "" and (ip_cache[opt].address == "" or (os.time() - ip_cache[opt].checked) > 3600) then
+      local curl = io.popen(format("curl -sm1 -%s icanhazip.com", opt), "r")
+      if curl then
+        local ip = curl:read("*line")
+        curl:close()
+        ip_cache[opt].address = ip or ""
+        ip_cache[opt].checked = os.time()
+      end
+    end
+    return ip_cache[opt].address
+  end
+  return ""
+end
+
+local function wgShowAllDump()
+  if wg_cache.time_check and (wg_cache.time_check + 5) > os.time() then
+    return wg_cache.summary, wg_cache.details
+  end
+
+  wg_cache.summary.interface_count = 0
+  wg_cache.summary.server_peers = 0
+  wg_cache.summary.server_rx_bytes = 0
+  wg_cache.summary.server_tx_bytes = 0
+  wg_cache.summary.server_active_peers = 0
+  wg_cache.summary.server_interface_count = 0
+  wg_cache.summary.server_interfaces = {}
+  wg_cache.summary.client_peers = 0
+  wg_cache.summary.client_rx_bytes = 0
+  wg_cache.summary.client_tx_bytes = 0
+  wg_cache.summary.client_active_peers = 0
+  wg_cache.summary.client_interface_count = 0
+  wg_cache.summary.client_interfaces = {}
+  wg_cache.details = {}
+
+  local active_client_iface
+
+  local cmd = io.popen(wireguard_status,'r')
+  if cmd then
+    wg_cache.time_check = os.time()
+    local line
+    for line in cmd:lines() do
+      local pIface, pPubKey, pPSK, pEndPoint, pAllowedIPs, pLatestHandShake, pRX, pTX, pKeepAlive = match(line, "^([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t(%S+)$")
+      if pIface then
+        local active = ((wg_cache.time_check - tonumber(pLatestHandShake)) < 540) and "1" or "0"
+        local host, port = match(pEndPoint, "(.+):(%d+)")
+        wg_cache.details[pIface]["peers"][#wg_cache.details[pIface]["peers"] + 1] = {
+          interface = pIface,
+          public_key = pPubKey,
+          preshared_key = pPSK,
+          endpoint_host = host or "",
+          endpoint_port = port or "",
+          allowed_ips = pAllowedIPs,
+          latest_handshake = pLatestHandShake,
+          transfer_rx = pRX,
+          transfer_tx = pTX,
+          persistent_keepalive = pKeepAlive,
+          active = active
+        }
+        if pIface == "wg0" then
+          wg_cache.summary.server_peers = wg_cache.summary.server_peers + 1
+          wg_cache.summary.server_rx_bytes = wg_cache.summary.server_rx_bytes + pRX
+          wg_cache.summary.server_tx_bytes = wg_cache.summary.server_tx_bytes + pTX
+          if active == "1" then
+            wg_cache.summary.server_active_peers = wg_cache.summary.server_active_peers + 1
+          end
+        else
+          wg_cache.summary.client_peers = wg_cache.summary.client_peers + 1
+          wg_cache.summary.client_rx_bytes = wg_cache.summary.client_rx_bytes + pRX
+          wg_cache.summary.client_tx_bytes = wg_cache.summary.client_tx_bytes + pTX
+          if active == "1" then
+            wg_cache.summary.client_active_peers = wg_cache.summary.client_active_peers + 1
+            active_client_iface = pIface
+          end
+        end
+      else
+        local sIface, sPrivKey, sPubKey, sListenPort, sFWMark = match(line, "^([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t(%S+)$")
+        wg_cache.details[sIface] = {
+          interface = sIface,
+          private_key = sPrivKey,
+          public_key = sPubKey,
+          listen_port = sListenPort,
+          fwmark = sFWMark,
+          peers = {}
+        }
+        wg_cache.summary.interface_count = wg_cache.summary.interface_count + 1
+        if sIface == "wg0" then
+          wg_cache.summary.server_interface_count = wg_cache.summary.server_interface_count + 1
+          wg_cache.summary.server_interfaces[#wg_cache.summary.server_interfaces + 1] = sIface
+        else
+          wg_cache.summary.client_interface_count = wg_cache.summary.client_interface_count + 1
+          wg_cache.summary.client_interfaces[#wg_cache.summary.client_interfaces + 1] = sIface
+        end
+      end
+    end
+  end
+  cmd:close()
+
+  if active_client_iface and wg_cache.summary.client_active_peers == 1 then
+    local elements = uci_helper.get_from_uci({ config = 'network', sectionname = active_client_iface, option = "addresses", extended = true })
+    if type(elements) == "table" then
+      local address
+      for _,address in pairs(elements) do
+        if address ~= "" then
+          local opt
+          if find(address, ":") then
+            opt = 6
+          else
+            opt = 4
+          end
+          if ip_cache[opt].interface ~= active_client_iface then
+            if ip_cache[opt].interface ~= "" then
+              ip_cache[opt].address = ""
+              ip_cache[opt].checked = 0
+            end
+            ip_cache[opt].interface = active_client_iface
+          end
+        end
+      end
+    end
+  else
+    ip_cache[4].interface = ""
+    ip_cache[4].address = ""
+    ip_cache[4].checked = 0
+    ip_cache[4].interface = ""
+    ip_cache[6].address = ""
+    ip_cache[6].checked = 0
+  end
+
+  return wg_cache.summary, wg_cache.details 
+end
+
+local GUI_WG_ = {
+  objectType = {
+    name = "rpc.gui.wireguard.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = { 
+      interface_count = {
+        access = "readOnly",
+        type = "int"
+      },
+      server_peers = {
+        access = "readOnly",
+        type = "int"
+      },
+      server_rx_bytes = {
+        access = "readOnly",
+        type = "int"
+      },
+      server_tx_bytes = {
+        access = "readOnly",
+        type = "int"
+      },
+      server_active_peers = {
+        access = "readOnly",
+        type = "int"
+      },
+      server_interface_count = {
+        access = "readOnly",
+        type = "int"
+      },
+      server_interfaces = {
+        access = "readOnly",
+        type = "string"
+      },
+      client_peers = {
+        access = "readOnly",
+        type = "int"
+      },
+      client_rx_bytes = {
+        access = "readOnly",
+        type = "int"
+      },
+      client_tx_bytes = {
+        access = "readOnly",
+        type = "int"
+      },
+      client_active_peers = {
+        access = "readOnly",
+        type = "int"
+      },
+      client_interface_count = {
+        access = "readOnly",
+        type = "int"
+      },
+      client_interfaces = {
+        access = "readOnly",
+        type = "string"
+      },
+      external_ipv4_address = {
+        access = "readOnly",
+        type = "string"
+      },
+      external_ipv6_address = {
+        access = "readOnly",
+        type = "string"
+      },
+    },
+  }
+}
+
+GUI_WG_.get = function(mapping, param)
+  if param == "external_ipv4_address" then
+    return getExternalIPAddress(4)
+  elseif param == "external_ipv6_address" then
+    return getExternalIPAddress(6)
+  else
+    local summary = wgShowAllDump()
+    local value = summary[param]
+    if not value then
+      return ""
+    elseif type(value) == "table" then
+      return table.concat(value, " ")
+    else
+      return tostring(value)
+    end
+  end
+end
+
+register(GUI_WG_)
+
+local GUI_WG_IFACE_ = {
+  objectType = {
+    name = "rpc.gui.wireguard.interface.@.",
+    access = "readOnly",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = { 
+      interface = {
+        access = "readOnly",
+        type = "string"
+      },
+      private_key = {
+        access = "readOnly",
+        type = "string"
+      },
+      public_key = {
+        access = "readOnly",
+        type = "string"
+      },
+      listen_port = {
+        access = "readOnly",
+        type = "unsignedInt"
+      },
+      fwmark = {
+        access = "readOnly",
+        type = "string"
+      },
+    },
+  },
+}
+
+GUI_WG_IFACE_.entries = function(mapping)
+  local _, details = wgShowAllDump()
+  local keys = {}
+  local key
+  for key in pairs(details) do
+    keys[#keys+1] = key
+  end
+  return keys
+end
+
+GUI_WG_IFACE_.get = function(mapping, param, key)
+  local _, details = wgShowAllDump()
+  return details[key][param] or ""
+end
+
+register(GUI_WG_IFACE_)
+
+local GUI_WG_IFACE_PEER_ = {
+  objectType = {
+    name = "rpc.gui.wireguard.interface.@.peer.{i}.",
+    access = "readOnly",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = { 
+      interface = {
+        access = "readOnly",
+        type = "string"
+      },
+      public_key = {
+        access = "readOnly",
+        type = "string"
+      },
+      preshared_key = {
+        access = "readOnly",
+        type = "string"
+      },
+      endpoint_host = {
+        access = "readOnly",
+        type = "string"
+      },
+      endpoint_port = {
+        access = "readOnly",
+        type = "unsignedInt"
+      },
+      allowed_ips = {
+        access = "readOnly",
+        type = "string"
+      },
+      latest_handshake = {
+        access = "readOnly",
+        type = "int"
+      },
+      transfer_rx = {
+        access = "readOnly",
+        type = "unsignedInt"
+      },
+      transfer_tx = {
+        access = "readOnly",
+        type = "unsignedInt"
+      },
+      persistent_keepalive = {
+        access = "readOnly",
+        type = "unsignedInt"
+      },
+      active = {
+        access = "readOnly",
+        type = "boolean"
+      },
+    },
+  },
+}
+
+GUI_WG_IFACE_PEER_.entries = function(mapping, parentkey)
+  local _, details = wgShowAllDump()
+  local iface = details[parentkey] or {}
+  local peers = iface["peers"] or {}
+  local keys = {}
+  local key
+  for key in pairs(peers) do
+    keys[#keys + 1] = format("%s|%d", parentkey, key)
+  end
+  return keys
+end
+
+GUI_WG_IFACE_PEER_.get = function(mapping, param, key, parentkey)
+  local _, details = wgShowAllDump()
+  local iface = details[parentkey] or {}
+  local peers = iface["peers"] or {}
+  local index = tonumber(match(key, "|(%d+)$"))
+  return peers[index][param] or ""
+end
+
+register(GUI_WG_IFACE_PEER_)

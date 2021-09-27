@@ -97,6 +97,34 @@ Install SAMBA v3.6 using the opkg command: `opkg --force-overwrite install samba
 3. Re-run `tch-gui-unhide` to correctly restore the default version of SAMBA on the device and remove the GUI changes, the custom configuration and the additional transformer mappings
 4. Now you can delete `tch-gui-unhide-xtra.samba36-server`
 
+## tch-gui-unhide-xtra.wireguard
+Creates a GUI interface for configuring the Wireguard VPN.
+#### Download
+https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.wireguard
+#### Firmware Applicability
+For firmware 20.3.c. *only*.
+- Firmware prior to 20.3.c has not been compiled with TUN support in the kernel, and therefore VPN tunnels cannot be created.
+#### Prerequisites
+You must install [openwrt-wireguard-go](https://github.com/seud0nym/openwrt-wireguard-go) using this command:  
+`curl -skL https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/install_arm.sh | sh -s --`
+##### IPv6 ULA Prefix
+If you are using IPv6, you need an IPv6 ULA (Unique Local Addresses) prefix. This can be configured on the **Local Network** card. If you do not configure your own ULA prefix and your network is configured for IPv6, the installation script will create a random one for you.
+**IMPORTANT:** Because these devices have no IPv6 NAT capability, IPv6 packets from client devices will *NOT* be sent via a WireGuard tunnel acting as a client to a remote VPN server. IPv6 traffic from the router itself *will* be routed via the tunnel. IPv4 traffic for both the router and client devices *will* be routed via the tunnel.
+##### Dynamic DNS
+If you are setting up a Wireguard VPN Server and your ISP/RSP provides your IPv4 address via DHCP, you should have a DNS entry pointing to your IPv4 address. This can be configured on the **WAN Services** card.  
+If you have a static IP address and a domain name assigned by your ISP, the domain name can still be entered under IPv4 Dynamic DNS, but you do not have to *enable* the Dynamic DNS Service.
+#### Changes External to the GUI
+The installation creates the the following transformer UCI mappings and commit/apply scripts to support the GUI changes:
+- /usr/share/transformer/commitapply/uci_wireguard.ca
+- /usr/share/transformer/mappings/rpc/gui.wireguard.map
+- /usr/share/transformer/mappings/uci/wireguard.map
+- /usr/share/transformer/scripts/reload_wireguard.sh
+#### Removal Instructions
+1. Do **not** delete `tch-gui-unhide-xtra.wireguard`
+2. Uninstall openwrt-wireguard-go: `wg --uninstall`
+3. Re-run `tch-gui-unhide` to remove the GUI changes, custom configuration and firewall script
+4. Now you can delete `tch-gui-unhide-xtra.wireguard`
+
 # How to download and execute these scripts
 Download the scripts that you wish to execute into the same directory as `tch-gui-unhide`.
 
