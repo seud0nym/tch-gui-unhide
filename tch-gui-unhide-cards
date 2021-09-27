@@ -38,6 +38,7 @@ then
 fi
 
 [ $QUIET = n ] && echo -n "Working"
+CHARTS=4
 CARDS=""
 for RULE in $(uci show web | grep '=card' | cut -d= -f1)
 do
@@ -48,6 +49,10 @@ do
   if [ "${CARD#*_}" = "lte.lp" ]
   then
     TITLE="Mobile"
+  elif [ "${CARD#*_}" = "Charts.lp" ]
+  then
+    TITLE="Charts"
+    CHARTS=1
   else
     TITLE=$(grep createCardHeader /www/cards/$CARD | sed -e 's/\(.*createCardHeader[^"]*"\)\([^"]*\)\(".*\)/\2/')
   fi
@@ -109,6 +114,7 @@ apply_defaults() {
     case "${FILE#*_}" in
       adblock.lp)           SEQ="008";;
       broadband.lp)         SEQ="002";;
+      Charts.lp)            SEQ="000";;
       contentsharing.lp)    SEQ="012";;
       CPU.lp)               SEQ="000";;
       cwmpconf.lp)          SEQ="090";;
@@ -136,6 +142,7 @@ apply_defaults() {
       WANDown.lp)           SEQ="000";;
       wanservices.lp)       SEQ="007";;
       WANUp.lp)             SEQ="000";;
+      WireGuard.lp)         SEQ="004";;
       wireless_boosters.lp) SEQ="004";;
       wireless.lp)          SEQ="004";;
       xdsl.lp)              SEQ="093";;
@@ -197,6 +204,7 @@ apply_suggested() {
     TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
     HIDE=$HIDDEN
     case "${FILE#*_}" in
+      Charts.lp)            SEQ="000";;
       CPU.lp)               SEQ="000";;
       RAM.lp)               SEQ="000";;
       WANDown.lp)           SEQ="000";;
@@ -204,6 +212,7 @@ apply_suggested() {
       gateway.lp)           SEQ="001";;
       broadband.lp)         SEQ="002";;
       internet.lp)          SEQ="003";;
+      WireGuard.lp)         SEQ="004";;
       lte.lp)               SEQ="004";;
       nfc.lp)               SEQ="004";;
       fon.lp)               SEQ="005";;
@@ -344,8 +353,12 @@ do
   echo
   echo "NOTE: Titles in () indicate hidden cards. They will always appear above after the last visible card." 
   echo -e "NOTE: '${GREEN}CWMP${NC}' card is only visible if CWMP has NOT been disabled"
+  if [ $CHARTS = 4 ]; then
   echo -e "NOTE: '${GREEN}CPU${NC}' and '${GREEN}RAM${NC}' chart cards ${GREEN}REQUIRE${NC} the '${GREEN}$VARIANT${NC}' card to be VISIBLE"
-  echo -e "NOTE: '${GREEN}WAN Download${NC}' and '${GREEN}WAN Upload${NC}' chart cards ${GREEN}REQUIRE${NC} the 'Broadband${NC}' card to be VISIBLE"
+  echo -e "NOTE: '${GREEN}WAN Download${NC}' and '${GREEN}WAN Upload${NC}' chart cards ${GREEN}REQUIRE${NC} the '${GREEN}Broadband${NC}' card to be VISIBLE"
+  elif [ $CHARTS = 1 ]; then
+  echo -e "NOTE: '${GREEN}Charts${NC}' card ${GREEN}REQUIRES${NC} one or both of the '${GREEN}$VARIANT${NC}' and/or '${GREEN}Broadband${NC}' cards to be VISIBLE"
+  fi
   echo -e "NOTE: '${GREEN}Internet${NC}' card is ${GREEN}NOT${NC} visible on bridged devices"
   echo -e "NOTE: '${GREEN}Mobile${NC}' card is only visible if supported by device and has not been disabled"
   echo -e "NOTE: '${GREEN}xDSL Config${NC}' card is only visible on DSL connections"
