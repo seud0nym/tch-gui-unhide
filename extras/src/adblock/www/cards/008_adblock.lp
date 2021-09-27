@@ -14,7 +14,7 @@ if session:hasAccess(modalPath) then
   <div class = "span3">\
     <div class = "smallcard">\
       '); ngx.print(ui_helper.createCardHeader(T"Adblock",modalPath)); ngx.print('\
-      <div class="content card_bg adblock-card-content" data-bg-text="&#xf0b0;";">\
+      <div class="content card_bg adblock-card-content" data-bg-text="&#xf0b0;">\
         ');
         ngx.print(html);
         ngx.print('\
