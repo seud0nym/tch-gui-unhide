@@ -14,3 +14,9 @@ sed \
   -e '/local alg_modal_link/a \              end' \
   -i /www/cards/008_firewall.lp
 
+echo [$SCRIPT]: Fix firewall disabled setting
+awk -e 'BEGIN{inoff=0;} /^  Off = /{inoff=1;} /waninput/{if (inoff==1){gsub(/DROP/,"ACCEPT")}} /defaultoutgoing/{inoff=0;} {print}' /usr/share/transformer/mappings/rpc/network.firewall.map>/tmp/network.firewall.map
+mv /tmp/network.firewall.map /usr/share/transformer/mappings/rpc/network.firewall.map
+chmod 644 /usr/share/transformer/mappings/rpc/network.firewall.map
+SRV_transformer=$(( $SRV_transformer + 1 ))
+
