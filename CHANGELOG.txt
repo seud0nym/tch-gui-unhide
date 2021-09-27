@@ -1,3 +1,16 @@
+2021.09.27
+==========
+* tch-gui-unhide: Server Certificates are now generated for both IPv4 and IPv6 Dynamic DNS Domains (if different)
+* tch-gui-unhide: Auto-update WAN Services card
+* tch-gui-unhide: Search no longer activates the Save button on the processes and init management tabs
+* tch-gui-unhide: Fixed occasional nil name errors on os init management tab
+* tch-gui-unhide: Fixed bug in style sheet and javascript loading that sometimes prevented auto-refresh on version change
+* tch-gui-unhide: Fixed missing network interfaces on Firewall Zones tab
+* tch-gui-unhide: Fixed unable to disable firewall in 20.3.c
+* tch-gui-unhide-cards: Fixed missing title for Charts card
+* tch-gui-unhide-xtra.wireguard: Support for configuring WireGuard VPN
+* de-telstra: Supervision settings changed wrong config option
+
 2021.09.02
 ==========
 * tch-gui-unhide: Fix for random "attempt to perform arithmetic on local 'o1' (a string value)" errors on Telephony card
