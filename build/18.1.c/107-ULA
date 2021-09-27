@@ -20,7 +20,7 @@ sed \
  -e '/^local function validateIPv6/i \local function validateULAPrefix(value, object, key)' \
  -e '/^local function validateIPv6/i \  local valid, msg = vIAS6(value, object, key)' \
  -e '/^local function validateIPv6/i \  if valid and value ~= "" and (string.sub(string.lower(value),1,2) ~= "fd" or string.sub(value,-3,-1) ~= "/48") then' \
- -e '/^local function validateIPv6/i \    return nil, "ULA Prefix must be within the prefix fd00::/8, with a range of /48"' \
+ -e '/^local function validateIPv6/i \    return nil, "ULA Prefix must be within the prefix fd::/7, with a range of /48"' \
  -e '/^local function validateIPv6/i \  end' \
  -e '/^local function validateIPv6/i \  return valid, msg' \
  -e '/^local function validateIPv6/i \end' \
