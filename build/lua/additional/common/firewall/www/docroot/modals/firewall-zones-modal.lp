@@ -95,8 +95,8 @@ for _,v in ipairs(zone_data) do
   end
   if v[6] and type(v[6]) == "table" then
     v[6] = concat(v[6], ", ")
+    zone_columns[6].type = "text"
   end
-  zone_columns[5].type = "text"
 end
 
 local fw_forwarding_columns = {
