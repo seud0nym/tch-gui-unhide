@@ -1252,6 +1252,9 @@ if curintf == "wg0" then
     config.domain = config.ipv4ddns
     config.server_address = format("%s:%s",config.ipv4ddns,config.listen_port)
   else
+    if config.ipv4addr == "" then
+      config.ipv4addr = proxy.get("rpc.network.interface.@lan.ipaddr")[1].value
+    end
     config.server_address = format("%s:%s",config.ipv4addr,config.listen_port)
   end
 end
