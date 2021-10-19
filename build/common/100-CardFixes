@@ -2,7 +2,7 @@ echo [$SCRIPT]: Fix card visibility check
 sed \
   -e 's/if rule and/if/' \
   -e 's/\(rule.target\)/rule and \1/' \
-  -e 's/\(not access\) and/\1 or/' \
+  -e 's/\(not access\) and/(card.modal and \1) or/' \
   -i /www/lua/cards.lua
 
 echo [$SCRIPT]: Removing obsolete help links
