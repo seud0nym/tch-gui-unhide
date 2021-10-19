@@ -11,15 +11,57 @@ done
 
 SERIAL=$(uci get env.var.serial)
 echo [$SCRIPT]: Change config export filename from config.bin to $VARIANT-$SERIAL-$VERSION@YYMMDD.bin
-echo [$SCRIPT]: Add reset/upgrade warnings
 sed \
   -e "s/=config.bin/=$VARIANT-$SERIAL-$VERSION@\" .. os.date(\"%Y%m%d\") .. \".bin/" \
+  -i /www/docroot/modals/gateway-modal.lp
+echo [$SCRIPT]: Add reset/upgrade warnings
+sed \
   -e '/local basic =/i local lose_root_warning = { alert = { class = "alert-info", style = "margin-bottom:5px;" }, }' \
-  -e '/T"Reset"/i \    html[#html + 1] = ui_helper.createAlertBlock(T"Root access <i>should</i> be preserved when using the <b><i class=\\"icon-bolt\\" style=\\"width:auto;\\">\</i> Reset</b> button. You can use the <i>reset-to-factory-defaults-with-root</i> utility script from the command line to have more control over the factory reset and still retain root access.", lose_root_warning)' \
-  -e '/T"Upgrade"/i \          html[#html + 1] = ui_helper.createAlertBlock(T"<b>WARNING!</b> Upgrading firmware using this method will cause loss of root access! Use the <i>reset-to-factory-defaults-with-root</i> utility script with the -f option from the command line to upgrade to the firmware and still retain root access.", lose_root_warning)' \
-  -e '/"uci.versioncusto.override.fwversion_override"/a \   unhide_version = "rpc.gui.UnhideVersion",' \
-  -e '/"Serial Number"/i \    html[#html + 1] = ui_helper.createLabel(T"tch-gui-unhide Version", content["unhide_version"], basic)' \
+  -e '/T"Reset"/i\    html[#html + 1] = ui_helper.createAlertBlock(T"Root access <i>should</i> be preserved when using the <b><i class=\\"icon-bolt\\" style=\\"width:auto;\\">\</i> Reset</b> button. You can use the <i>reset-to-factory-defaults-with-root</i> utility script from the command line to have more control over the factory reset and still retain root access.", lose_root_warning)' \
+  -e '/T"Upgrade"/i\          html[#html + 1] = ui_helper.createAlertBlock(T"<b>WARNING!</b> Upgrading firmware using this method will cause loss of root access! Use the <i>reset-to-factory-defaults-with-root</i> utility script with the -f option from the command line to upgrade to the firmware and still retain root access.", lose_root_warning)' \
+  -i /www/docroot/modals/gateway-modal.lp
+echo [$SCRIPT]: Add tch-gui-unhide version to gateway modal and remove Global Information heading
+sed \
+  -e '/"uci.versioncusto.override.fwversion_override"/a\   unhide_version = "rpc.gui.UnhideVersion",' \
+  -e '/"Serial Number"/i\    html[#html + 1] = ui_helper.createLabel(T"tch-gui-unhide Version", content["unhide_version"], basic)' \
   -e '/Global Information/d' \
+  -i /www/docroot/modals/gateway-modal.lp
+echo [$SCRIPT]: Allow hostname to be changed via GUI
+sed \
+  -e '/uci.system.system.@system\[0\].timezone/i\   system_hostname = "uci.system.system.@system[0].hostname",' \
+  -e '/system_timezone = function/i\  system_hostname = function(value, object, key)\
+    local valid, helpmsg = post_helper.validateNonEmptyString(value)\
+    if valid then\
+      if string.match(value, "^[a-zA-Z0-9%-]+$") then\
+        if #value > 63 then\
+          valid, helpmsg = nil, T"Host Name must be less than 64 characters"\
+        end\
+      else\
+        valid, helpmsg = nil, T"Host Name contains invalid characters"\
+      end\
+    end\
+    return valid, helpmsg\
+  end,' \
+  -e '/^local system_data/i\local old_hostname = proxy.get("uci.system.system.@system[0].hostname")[1].value' \
+  -e '/^local system_data/a\if old_hostname ~= system_data["system_hostname"] and not system_helpmsg["system_hostname"] and ngx.req.get_method() == "POST" and ngx.req.get_post_args().action == "SAVE" then\
+  local dns\
+  for _,dns in pairs(proxy.get("uci.dhcp.dnsmasq.@main.hostname.")) do\
+    if dns.value == old_hostname then\
+      proxy.set(dns.path.."value",untaint(system_data["system_hostname"]))\
+      proxy.apply()\
+      break\
+    end\
+  end\
+end' \
+  -e '/MAC Address/a\    html[#html + 1] = ui_helper.createInputText(T"Host Name","system_hostname",system_data["system_hostname"],nil,system_helpmsg["system_hostname"])' \
+  -i /www/docroot/modals/gateway-modal.lp
+sed \
+  -e 's|\(/etc/init.d/dnsmasq reload\)|\1;/etc/init.d/system reload|' \
+  -i /usr/share/transformer/commitapply/uci_system.ca
+echo [$SCRIPT]: Allow additional NTP servers to be added
+sed \
+  -e "/createMsg/a\  canAdd = true," \
+  -e "s/maxEntries = 3,/maxEntries = 6,/" \
   -i /www/docroot/modals/gateway-modal.lp
 
 if [ "$UPDATE_BTN" = y ]; then
@@ -43,9 +85,9 @@ fi
 
 echo [$SCRIPT]: Add auto-refresh management, chart library, and wait indicator when opening modals
 sed \
-  -e '/<title>/i \    <script src="/js/tch-gui-unhide.js"></script>\\' \
-  -e '/<title>/i \    <script src="/js/chart-min.js"></script>\\' \
-  -e '/id="waiting"/a \    <script>$(".smallcard .header,.modal-link").click(function(){if ($(this).attr("data-remote")||$(this).find("[data-remote]").length>0){$("#waiting").fadeIn();}});</script>\\' \
+  -e '/<title>/i\    <script src="/js/tch-gui-unhide.js"></script>\\' \
+  -e '/<title>/i\    <script src="/js/chart-min.js"></script>\\' \
+  -e '/id="waiting"/a\    <script>$(".smallcard .header,.modal-link").click(function(){if ($(this).attr("data-remote")||$(this).find("[data-remote]").length>0){$("#waiting").fadeIn();}});</script>\\' \
   -i /www/docroot/gateway.lp
 
 echo [$SCRIPT]: Add improved debugging when errors cause cards to fail to load
