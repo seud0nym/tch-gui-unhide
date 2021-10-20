@@ -106,6 +106,13 @@ HLP
   html[#html+1] = format(N('<strong %1\$s>%2\$d WireGuard peer</strong> connected','<strong %1\$s>%2\$d WireGuard peers</strong> connected',nVPN),'class=\"modal-link\" data-toggle=\"modal\" data-remote=\"modals/wireguard-modal.lp\" data-id=\"wireguard-modal\"',nVPN)\
   html[#html+1] = '</span>'\
   " -i /www/lua/devicescard_helper.lua
+
+  for f in /www/docroot/landingpage.lp /www/docroot/loginbasic.lp; do
+    sed -e '/^local proxy/a\local function preLoadWG()\
+  proxy.get("rpc.gui.wireguard.client_active_peers")\
+end\
+ngx.timer.at(0, preLoadWG)' -i $f
+  done
 else
   WG_INSTALLED=0
 
