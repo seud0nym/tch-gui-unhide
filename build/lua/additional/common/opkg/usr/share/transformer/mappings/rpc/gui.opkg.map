@@ -249,7 +249,7 @@ local GUI_OPKG_ = {
     parameters = {
       feeds_configured = {
         access = "readWrite",
-        type = "int"
+        type = "boolean"
       },
       last_action = {
         access = "readOnly",
@@ -261,15 +261,15 @@ local GUI_OPKG_ = {
       },
       refresh_cache = {
         access = "readWrite",
-        type = "int"
+        type = "boolean"
       },
       scheduled_update = {
         access = "readWrite",
-        type = "int"
+        type = "boolean"
       },
       update = {
         access = "readWrite",
-        type = "int"
+        type = "boolean"
       },
       log = {
         access = "readOnly",
