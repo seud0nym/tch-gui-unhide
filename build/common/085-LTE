@@ -160,6 +160,11 @@ sed \
   -e '/^\s*get_device_info_section/a get_device_capabilities_section(page, html)' \
   -i /www/docroot/modals/lte-modal.lp
 
+echo [$SCRIPT]: Fix uneven SMS messages in night mode
+sed \
+  -e '/background-color: *#eee;/a \    color: #000;\\' \
+  -i /www/docroot/modals/lte-sms.lp
+
 echo [$SCRIPT]: Add new Mobile tabs
 sed \
   -e '/{"lte-doctor.lp", T"Diagnostics"},/a \	{"lte-autofailover.lp", T"Auto-Failover"},' \
