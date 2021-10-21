@@ -30,8 +30,11 @@ sed \
   -e 's/\(, signal_quality\)/\1, registration_status, unread_sms/' \
   -e '/radio_interface_map/a\			result = utils.getContent(rpc_path .. "network.serving_system.nas_state")' \
   -e '/radio_interface_map/a\			registration_status = utils.nas_state_map[result.nas_state]' \
-  -e '/radio_interface_map/a\			result = utils.getContent("rpc.mobiled.sms.info.unread_messages")' \
-  -e '/radio_interface_map/a\			unread_sms = result.unread_messages' \
+  -e '/radio_interface_map/a\			result = utils.getContent(rpc_path .. "network.time.time")' \
+  -e '/radio_interface_map/a\			if result.time and result.time ~= "" then' \
+  -e '/radio_interface_map/a\			  result = utils.getContent("rpc.mobiled.sms.info.unread_messages")' \
+  -e '/radio_interface_map/a\			  unread_sms = result.unread_messages' \
+  -e '/radio_interface_map/a\			end' \
   -e '/local data =/a\	registration_status = registration_status or "",' \
   -e '/local data =/a\	unread_sms = unread_sms or "",' \
   -i /www/docroot/ajax/mobiletab.lua
@@ -176,7 +179,7 @@ sed \
   -e "/<\/form>/i\  ');" \
   -e '/<\/form>/i\  local timestr = proxy.get("rpc.mobiled.device.@1.network.time.time")\
   if not timestr or timestr[1].value == "" then\
-    ngx.print(ui_helper.createAlertBlock(T"Sending SMS messages is <b>NOT</b> supported with the Telstra 4G Backup SIM!"))\
+    ngx.print(ui_helper.createAlertBlock(T"Sending SMS messages is <b>NOT</b> supported with the Telstra Backup SIM!"))\
   else\
     local mapParams = {\
       to_number = "rpc.gui.sms.number",\
