@@ -62,113 +62,170 @@ echo [$SCRIPT]: Add Device Capabilities and LTE Band Selection to Mobile Configu
 sed \
   -e 's/getValidateCheckboxSwitch()/validateBoolean/' \
   -e 's/createCheckboxSwitch/createSwitch/' \
-  -e '/local function get_session_info_section/i \local function get_device_capabilities_section(page, html)' \
-  -e '/local function get_session_info_section/i \	local section = {}' \
-  -e '/local function get_session_info_section/i \	if page.device.capabilities.arfcn_selection_support ~= "" then' \
-  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"ARFCN Selection Support" .. ":", page.device.capabilities.arfcn_selection_support))' \
-  -e '/local function get_session_info_section/i \	end' \
-  -e '/local function get_session_info_section/i \	if page.device.capabilities.band_selection_support ~= "" then' \
-  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Band Selection Support" .. ":", page.device.capabilities.band_selection_support))' \
-  -e '/local function get_session_info_section/i \	end' \
-  -e '/local function get_session_info_section/i \	if page.device.capabilities.manual_plmn_selection ~= "" then' \
-  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Manual PLMN Selection" .. ":", page.device.capabilities.manual_plmn_selection))' \
-  -e '/local function get_session_info_section/i \	end' \
-  -e '/local function get_session_info_section/i \	if page.device.capabilities.strongest_cell_selection ~= "" then' \
-  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Strongest Cell Selection" .. ":", page.device.capabilities.strongest_cell_selection))' \
-  -e '/local function get_session_info_section/i \	end' \
-  -e '/local function get_session_info_section/i \	if page.device.capabilities.supported_modes ~= "" then' \
-  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Supported Modes" .. ":", page.device.capabilities.supported_modes))' \
-  -e '/local function get_session_info_section/i \	end' \
-  -e '/local function get_session_info_section/i \	if page.device.capabilities.supported_bands_cdma ~= "" then' \
-  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Supported CDMA Bands" .. ":", page.device.capabilities.supported_bands_cdma))' \
-  -e '/local function get_session_info_section/i \	end' \
-  -e '/local function get_session_info_section/i \	if page.device.capabilities.supported_bands_gsm ~= "" then' \
-  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Supported GSM Bands" .. ":", page.device.capabilities.supported_bands_gsm))' \
-  -e '/local function get_session_info_section/i \	end' \
-  -e '/local function get_session_info_section/i \	if page.device.capabilities.supported_bands_lte ~= "" then' \
-  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Supported LTE Bands" .. ":", page.device.capabilities.supported_bands_lte))' \
-  -e '/local function get_session_info_section/i \	end' \
-  -e '/local function get_session_info_section/i \	if page.device.capabilities.max_data_sessions ~= "" then' \
-  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"Max Data Sessions" .. ":", page.device.capabilities.max_data_sessions))' \
-  -e '/local function get_session_info_section/i \	end' \
-  -e '/local function get_session_info_section/i \	if page.device.capabilities.sms_reading ~= "" then' \
-  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"SMS Reading" .. ":", page.device.capabilities.sms_reading))' \
-  -e '/local function get_session_info_section/i \	end' \
-  -e '/local function get_session_info_section/i \	if page.device.capabilities.sms_sending ~= "" then' \
-  -e '/local function get_session_info_section/i \		tinsert(section, ui_helper.createLabel(T"SMS Sending" .. ":", page.device.capabilities.sms_sending))' \
-  -e '/local function get_session_info_section/i \	end' \
-  -e '/local function get_session_info_section/i \	if utils.Len(section) > 0 then' \
-  -e '/local function get_session_info_section/i \		tinsert(html, "<fieldset><legend>" .. T"Device Capabilities" .. "</legend>")' \
-  -e '/local function get_session_info_section/i \		tinsert(html, section)' \
-  -e '/local function get_session_info_section/i \		tinsert(html, "</fieldset>")' \
-  -e '/local function get_session_info_section/i \	end' \
-  -e '/local function get_session_info_section/i \end' \
-  -e '/local function get_session_info_section/i \\' \
-  -e '/local function get_profile_select/i \local function validate_lte_bands(device)' \
-  -e '/local function get_profile_select/i \    local choices = setmetatable({}, untaint_mt)' \
-  -e '/local function get_profile_select/i \    local b' \
-  -e '/local function get_profile_select/i \    for b in string.gmatch(device.capabilities.supported_bands_lte, "%d+") do' \
-  -e '/local function get_profile_select/i \      choices[string.untaint(b)] = true' \
-  -e '/local function get_profile_select/i \    end' \
-  -e '/local function get_profile_select/i \    return function(value, object, key)' \
-  -e '/local function get_profile_select/i \      local uv' \
-  -e '/local function get_profile_select/i \      local concatvalue = ""' \
-  -e '/local function get_profile_select/i \      if not value then' \
-  -e '/local function get_profile_select/i \        return nil, T"Invalid input."' \
-  -e '/local function get_profile_select/i \      end' \
-  -e '/local function get_profile_select/i \      if type(value) == "table" then' \
-  -e '/local function get_profile_select/i \        uv = value' \
-  -e '/local function get_profile_select/i \      else' \
-  -e '/local function get_profile_select/i \        uv = { value }' \
-  -e '/local function get_profile_select/i \      end' \
-  -e '/local function get_profile_select/i \      for i,v in ipairs(uv) do' \
-  -e '/local function get_profile_select/i \        if v ~= "" then' \
-  -e '/local function get_profile_select/i \          if concatvalue ~= "" then' \
-  -e '/local function get_profile_select/i \            concatvalue = concatvalue.." "' \
-  -e '/local function get_profile_select/i \          end' \
-  -e '/local function get_profile_select/i \          concatvalue = concatvalue..string.untaint(v)' \
-  -e '/local function get_profile_select/i \          if not choices[v] then' \
-  -e '/local function get_profile_select/i \            return nil, T"Invalid value."' \
-  -e '/local function get_profile_select/i \          end' \
-  -e '/local function get_profile_select/i \        end' \
-  -e '/local function get_profile_select/i \      end' \
-  -e '/local function get_profile_select/i \      object[key] = concatvalue' \
-  -e '/local function get_profile_select/i \      return true' \
-  -e '/local function get_profile_select/i \    end' \
-  -e '/local function get_profile_select/i \end' \
-  -e '/local function get_profile_select/i \\' \
-  -e '/p.mapParams\["interface_enabled"\]/a \		if utils.radio_tech_map[device.leds.radio] == "LTE" then' \
-  -e '/p.mapParams\["interface_enabled"\]/a \			p.mapParams["lte_bands"] = device.uci_path .. "lte_bands"' \
-  -e '/p.mapParams\["interface_enabled"\]/a \			p.mapValid["lte_bands"] = validate_lte_bands(device)' \
-  -e '/p.mapParams\["interface_enabled"\]/a \		end' \
-  -e '/"Access Technology"/a \	 			if utils.radio_tech_map[page.device.leds.radio] == "LTE" then' \
-  -e '/"Access Technology"/a \	 				local b, lte_bands, lte_bands_checked = nil, {}, {}' \
-  -e '/"Access Technology"/a \	 				for b in string.gmatch(page.device.capabilities.supported_bands_lte, "%d+") do' \
-  -e '/"Access Technology"/a \	 					lte_bands[#lte_bands+1] = { string.untaint(b), b }' \
-  -e '/"Access Technology"/a \	 				end' \
-  -e '/"Access Technology"/a \	 				if not page.content["lte_bands"] or page.content["lte_bands"] == "" then' \
-  -e '/"Access Technology"/a \	 					for k,v in ipairs(lte_bands) do' \
-  -e '/"Access Technology"/a \	 						lte_bands_checked[k] = string.untaint(v[1])' \
-  -e '/"Access Technology"/a \	 					end' \
-  -e '/"Access Technology"/a \	 				else' \
-  -e '/"Access Technology"/a \	 					for b in string.gmatch(page.content["lte_bands"], "%d+") do' \
-  -e '/"Access Technology"/a \	 						lte_bands_checked[#lte_bands_checked+1] = string.untaint(b)' \
-  -e '/"Access Technology"/a \	 					end' \
-  -e '/"Access Technology"/a \	 				end' \
-  -e '/"Access Technology"/a \	 				tinsert(html, ui_helper.createCheckboxGroup(T"LTE Bands", "lte_bands", lte_bands, lte_bands_checked, {checkbox = { class="inline" }}, nil))' \
-  -e '/"Access Technology"/a \	 			end' \
+  -e '/local function get_session_info_section/i\local function get_device_capabilities_section(page, html)' \
+  -e '/local function get_session_info_section/i\	local section = {}' \
+  -e '/local function get_session_info_section/i\	if page.device.capabilities.arfcn_selection_support ~= "" then' \
+  -e '/local function get_session_info_section/i\		tinsert(section, ui_helper.createLabel(T"ARFCN Selection Support" .. ":", page.device.capabilities.arfcn_selection_support))' \
+  -e '/local function get_session_info_section/i\	end' \
+  -e '/local function get_session_info_section/i\	if page.device.capabilities.band_selection_support ~= "" then' \
+  -e '/local function get_session_info_section/i\		tinsert(section, ui_helper.createLabel(T"Band Selection Support" .. ":", page.device.capabilities.band_selection_support))' \
+  -e '/local function get_session_info_section/i\	end' \
+  -e '/local function get_session_info_section/i\	if page.device.capabilities.manual_plmn_selection ~= "" then' \
+  -e '/local function get_session_info_section/i\		tinsert(section, ui_helper.createLabel(T"Manual PLMN Selection" .. ":", page.device.capabilities.manual_plmn_selection))' \
+  -e '/local function get_session_info_section/i\	end' \
+  -e '/local function get_session_info_section/i\	if page.device.capabilities.strongest_cell_selection ~= "" then' \
+  -e '/local function get_session_info_section/i\		tinsert(section, ui_helper.createLabel(T"Strongest Cell Selection" .. ":", page.device.capabilities.strongest_cell_selection))' \
+  -e '/local function get_session_info_section/i\	end' \
+  -e '/local function get_session_info_section/i\	if page.device.capabilities.supported_modes ~= "" then' \
+  -e '/local function get_session_info_section/i\		tinsert(section, ui_helper.createLabel(T"Supported Modes" .. ":", page.device.capabilities.supported_modes))' \
+  -e '/local function get_session_info_section/i\	end' \
+  -e '/local function get_session_info_section/i\	if page.device.capabilities.supported_bands_cdma ~= "" then' \
+  -e '/local function get_session_info_section/i\		tinsert(section, ui_helper.createLabel(T"Supported CDMA Bands" .. ":", page.device.capabilities.supported_bands_cdma))' \
+  -e '/local function get_session_info_section/i\	end' \
+  -e '/local function get_session_info_section/i\	if page.device.capabilities.supported_bands_gsm ~= "" then' \
+  -e '/local function get_session_info_section/i\		tinsert(section, ui_helper.createLabel(T"Supported GSM Bands" .. ":", page.device.capabilities.supported_bands_gsm))' \
+  -e '/local function get_session_info_section/i\	end' \
+  -e '/local function get_session_info_section/i\	if page.device.capabilities.supported_bands_lte ~= "" then' \
+  -e '/local function get_session_info_section/i\		tinsert(section, ui_helper.createLabel(T"Supported LTE Bands" .. ":", page.device.capabilities.supported_bands_lte))' \
+  -e '/local function get_session_info_section/i\	end' \
+  -e '/local function get_session_info_section/i\	if page.device.capabilities.max_data_sessions ~= "" then' \
+  -e '/local function get_session_info_section/i\		tinsert(section, ui_helper.createLabel(T"Max Data Sessions" .. ":", page.device.capabilities.max_data_sessions))' \
+  -e '/local function get_session_info_section/i\	end' \
+  -e '/local function get_session_info_section/i\	if page.device.capabilities.sms_reading ~= "" then' \
+  -e '/local function get_session_info_section/i\		tinsert(section, ui_helper.createLabel(T"SMS Reading" .. ":", page.device.capabilities.sms_reading))' \
+  -e '/local function get_session_info_section/i\	end' \
+  -e '/local function get_session_info_section/i\	if page.device.capabilities.sms_sending ~= "" then' \
+  -e '/local function get_session_info_section/i\		tinsert(section, ui_helper.createLabel(T"SMS Sending" .. ":", page.device.capabilities.sms_sending))' \
+  -e '/local function get_session_info_section/i\	end' \
+  -e '/local function get_session_info_section/i\	if utils.Len(section) > 0 then' \
+  -e '/local function get_session_info_section/i\		tinsert(html, "<fieldset><legend>" .. T"Device Capabilities" .. "</legend>")' \
+  -e '/local function get_session_info_section/i\		tinsert(html, section)' \
+  -e '/local function get_session_info_section/i\		tinsert(html, "</fieldset>")' \
+  -e '/local function get_session_info_section/i\	end' \
+  -e '/local function get_session_info_section/i\end' \
+  -e '/local function get_session_info_section/i\\' \
+  -e '/local function get_profile_select/i\local function validate_lte_bands(device)' \
+  -e '/local function get_profile_select/i\    local choices = setmetatable({}, untaint_mt)' \
+  -e '/local function get_profile_select/i\    local b' \
+  -e '/local function get_profile_select/i\    for b in string.gmatch(device.capabilities.supported_bands_lte, "%d+") do' \
+  -e '/local function get_profile_select/i\      choices[string.untaint(b)] = true' \
+  -e '/local function get_profile_select/i\    end' \
+  -e '/local function get_profile_select/i\    return function(value, object, key)' \
+  -e '/local function get_profile_select/i\      local uv' \
+  -e '/local function get_profile_select/i\      local concatvalue = ""' \
+  -e '/local function get_profile_select/i\      if not value then' \
+  -e '/local function get_profile_select/i\        return nil, T"Invalid input."' \
+  -e '/local function get_profile_select/i\      end' \
+  -e '/local function get_profile_select/i\      if type(value) == "table" then' \
+  -e '/local function get_profile_select/i\        uv = value' \
+  -e '/local function get_profile_select/i\      else' \
+  -e '/local function get_profile_select/i\        uv = { value }' \
+  -e '/local function get_profile_select/i\      end' \
+  -e '/local function get_profile_select/i\      for i,v in ipairs(uv) do' \
+  -e '/local function get_profile_select/i\        if v ~= "" then' \
+  -e '/local function get_profile_select/i\          if concatvalue ~= "" then' \
+  -e '/local function get_profile_select/i\            concatvalue = concatvalue.." "' \
+  -e '/local function get_profile_select/i\          end' \
+  -e '/local function get_profile_select/i\          concatvalue = concatvalue..string.untaint(v)' \
+  -e '/local function get_profile_select/i\          if not choices[v] then' \
+  -e '/local function get_profile_select/i\            return nil, T"Invalid value."' \
+  -e '/local function get_profile_select/i\          end' \
+  -e '/local function get_profile_select/i\        end' \
+  -e '/local function get_profile_select/i\      end' \
+  -e '/local function get_profile_select/i\      object[key] = concatvalue' \
+  -e '/local function get_profile_select/i\      return true' \
+  -e '/local function get_profile_select/i\    end' \
+  -e '/local function get_profile_select/i\end' \
+  -e '/local function get_profile_select/i\\' \
+  -e '/p.mapParams\["interface_enabled"\]/a\		if utils.radio_tech_map[device.leds.radio] == "LTE" then' \
+  -e '/p.mapParams\["interface_enabled"\]/a\			p.mapParams["lte_bands"] = device.uci_path .. "lte_bands"' \
+  -e '/p.mapParams\["interface_enabled"\]/a\			p.mapValid["lte_bands"] = validate_lte_bands(device)' \
+  -e '/p.mapParams\["interface_enabled"\]/a\		end' \
+  -e '/"Access Technology"/a\	 			if utils.radio_tech_map[page.device.leds.radio] == "LTE" then' \
+  -e '/"Access Technology"/a\	 				local b, lte_bands, lte_bands_checked = nil, {}, {}' \
+  -e '/"Access Technology"/a\	 				for b in string.gmatch(page.device.capabilities.supported_bands_lte, "%d+") do' \
+  -e '/"Access Technology"/a\	 					lte_bands[#lte_bands+1] = { string.untaint(b), b }' \
+  -e '/"Access Technology"/a\	 				end' \
+  -e '/"Access Technology"/a\	 				if not page.content["lte_bands"] or page.content["lte_bands"] == "" then' \
+  -e '/"Access Technology"/a\	 					for k,v in ipairs(lte_bands) do' \
+  -e '/"Access Technology"/a\	 						lte_bands_checked[k] = string.untaint(v[1])' \
+  -e '/"Access Technology"/a\	 					end' \
+  -e '/"Access Technology"/a\	 				else' \
+  -e '/"Access Technology"/a\	 					for b in string.gmatch(page.content["lte_bands"], "%d+") do' \
+  -e '/"Access Technology"/a\	 						lte_bands_checked[#lte_bands_checked+1] = string.untaint(b)' \
+  -e '/"Access Technology"/a\	 					end' \
+  -e '/"Access Technology"/a\	 				end' \
+  -e '/"Access Technology"/a\	 				tinsert(html, ui_helper.createCheckboxGroup(T"LTE Bands", "lte_bands", lte_bands, lte_bands_checked, {checkbox = { class="inline" }}, nil))' \
+  -e '/"Access Technology"/a\	 			end' \
   -e '/^\s*get_device_info_section/a get_device_capabilities_section(page, html)' \
   -i /www/docroot/modals/lte-modal.lp
 
 echo [$SCRIPT]: Fix uneven SMS messages in night mode
 sed \
-  -e '/background-color: *#eee;/a \    color: #000;\\' \
+  -e '/background-color: *#eee;/a\    color: #000;\\' \
+  -i /www/docroot/modals/lte-sms.lp
+
+echo [$SCRIPT]: Add SMS send capability
+sed \
+  -e '/^local ui_helper/a\local post_helper = require("web.post_helper")' \
+  -e '/^local ui_helper/a\local message_helper = require("web.uimessage_helper")' \
+  -e '/^local ui_helper/a\local proxy = require("datamodel")' \
+  -e '/messages().length > 0">/i\  <fieldset><legend>Received Messages</legend>\\' \
+  -e "/<\/form>/i\  </fieldset>\\\\" \
+  -e "/<\/form>/i\  <fieldset><legend>Send a Message</legend>\\\\" \
+  -e "/<\/form>/i\  ');" \
+  -e '/<\/form>/i\  local timestr = proxy.get("rpc.mobiled.device.@1.network.time.time")\
+  if not timestr or timestr[1].value == "" then\
+    ngx.print(ui_helper.createAlertBlock(T"Sending SMS messages is <b>NOT</b> supported with the Telstra 4G Backup SIM!"))\
+  else\
+    local mapParams = {\
+      to_number = "rpc.gui.sms.number",\
+      sms_msg = "rpc.gui.sms.message",\
+    }\
+    local mapValid = {\
+      to_number = function(value, object, key)\
+        local valid,helpmsg = post_helper.validateNonEmptyString(value)\
+        if valid and not string.match(value, "^%+%d+$") then\
+          valid,helpmsg = nil,T"Number must be in international dialling format including leading + and country code"\
+        end\
+        return valid,helpmsg\
+      end,\
+      sms_msg = function(value, object, key)\
+        local valid,helpmsg = post_helper.validateNonEmptyString(value)\
+        if valid and #value > 160 then\
+          valid,helpmsg = nil,T"Message must not exceed 160 characters"\
+        end\
+        return valid,helpmsg\
+      end,\
+    }\
+    local sms,helpmsg = post_helper.handleQuery(mapParams,mapValid)\
+    message_helper.popMessages() -- remove changes saved message\
+    local req = ngx.req\
+    if req.get_method() == "POST" and req.get_post_args().action == "SAVE" and sms["to_number"] ~= "" and sms["sms_msg"] ~= "" and not helpmsg["to_number"] and not helpmsg["sms_msg"] then\
+      local result,errors = proxy.set("rpc.gui.sms.sent", "1")\
+      if result then\
+        message_helper.pushMessage(T("SMS message successfully sent to "..sms["to_number"]),"success")\
+        sms["to_number"] = ""\
+        sms["sms_msg"] = ""\
+      else\
+        local err\
+        for _,err in ipairs(errors) do\
+          message_helper.pushMessage(T(err.errmsg),"error")\
+        end\
+      end\
+    end\
+    ngx.print(ui_helper.createMessages(message_helper.popMessages()))\
+    ngx.print(ui_helper.createInputText(T"To Number","to_number",sms["to_number"],{input={class="span2",maxlength="20"}},helpmsg["to_number"]))\
+    ngx.print(ui_helper.createInputText(T"Message","sms_msg",sms["sms_msg"],{input={class="span7",maxlength="160"}},helpmsg["sms_msg"]))\
+  end' \
+  -e "/<\/form>/i\  ngx.print('\\\\" \
+  -e "/<\/form>/i\  </fieldset>\\\\" \
   -i /www/docroot/modals/lte-sms.lp
 
 echo [$SCRIPT]: Add new Mobile tabs
 sed \
-  -e '/{"lte-doctor.lp", T"Diagnostics"},/a \	{"lte-autofailover.lp", T"Auto-Failover"},' \
-  -e '/{"lte-doctor.lp", T"Diagnostics"},/a \	{"lte-operators.lp", T"Network Operators"},' \
+  -e '/{"lte-doctor.lp", T"Diagnostics"},/a\	{"lte-autofailover.lp", T"Auto-Failover"},' \
+  -e '/{"lte-doctor.lp", T"Diagnostics"},/a\	{"lte-operators.lp", T"Network Operators"},' \
   -i /www/snippets/tabs-mobiled.lp
 
 echo [$SCRIPT]: Configure transformer for missing WanSensing settings

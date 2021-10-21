@@ -1,0 +1,85 @@
+local logger = require("tch.logger")
+local log = logger.new("rpc.gui.sms", 7)
+local match = string.match
+local conn = mapper("ubus").connect()
+
+local sms = {
+  number = "",
+  message = "",
+}
+
+local GUI_SMS_ = {
+  objectType = {
+    name = "rpc.gui.sms.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      number = {
+        access = "readWrite",
+        type = "string"
+      },
+      message = {
+        access = "readWrite",
+        type = "string"
+      },
+      sent = {
+        access = "readWrite",
+        type = "boolean"
+      },
+    }
+  }
+}
+
+GUI_SMS_.get = {
+  number = function ()
+    return sms.number
+  end,
+  message = function()
+    return sms.message
+  end,
+  sent = function()
+    return "0"
+  end,
+}
+
+GUI_SMS_.set = {
+  number = function(mapping,param,value,key)
+    if match(value, "^%+%d+$") then
+      sms.number = value
+      return true
+    end
+    sms.number = ""
+    return nil, "Number must be in international dialling format including leading + and country code"
+  end,
+  message = function(mapping,param,value,key)
+    if #value <= 160 then
+      sms.message = value
+      return true
+    end
+    sms.message = ""
+    return nil, "Message must not exceed 160 characters"
+  end,
+  sent = function(mapping,param,value,key)
+    if value == "1" then
+      if sms.number == "" then
+        return nil, "number has not been set"
+      elseif sms.message == "" then
+        return nil, "message has not been set"
+      end
+      local result = conn:call("mobiled.sms", "send", sms)
+      if result and result.error then
+        log:error("Failed to send SMS to %s: %s",sms.number, result.error)
+        return nil, result.error
+      end
+      log:notice("Sent SMS to %s: %s",sms.number, sms.message)
+      sms.number = ""
+      sms.message = ""
+    elseif value ~= "0" then
+      return nil, "Value must be 0 or 1"
+    end
+    return true
+  end,
+}
+
+register(GUI_SMS_)
