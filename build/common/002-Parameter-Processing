@@ -3,6 +3,8 @@ RESTORE=n
 WRAPPER=n
 YES=n
 THEME_ONLY='n'
+XTRAS=""
+UPDATE_XTRAS=n
 
 FILENAME=$(basename $0)
 
@@ -17,6 +19,11 @@ usage() {
   echo "                     (Default is current setting i.e (n) by default)"
   echo " -v y|n           : Enable (y) check for new releases and show 'Update Available' button in GUI, or Disable (n)"
   echo "                     (Default is current setting or (y) for first time installs)"
+  echo " -x <feature>     : Download the specified tch-gui-unhide-xtra.<feature> script."
+  echo "                     Specify -x<feature> multiple times to download multiple scripts"
+  echo "                     NOTE: This does NOT download or install the feature pre-requisites!"
+  echo "                           You must do that BEFORE running this script!"
+  echo " -X               : Download the latest version of any existing extra feature scripts."
   echo " Theme Options:"
   echo " -a 4|5           : Set the number of cards across on screen width greater than 1200px"
   echo "                     (Default is current setting, or 4 for first time installs)"
@@ -56,7 +63,7 @@ usage() {
   exit
 }
 
-while getopts :a:c:d:f:h:i:l:p:rt:uv:yC:TVW-: option
+while getopts :a:c:d:f:h:i:l:p:rt:uv:x:yC:TVWX-: option
 do
  case "${option}" in
    -) case "${OPTARG}" in 
@@ -145,6 +152,7 @@ do
       exit;;
    v) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then UPDATE_BTN=y; else UPDATE_BTN=n; fi;;
    y) YES=y;;
+   x) XTRAS="${XTRAS} ${OPTARG}";;
    C) case "${OPTARG}" in
         n|s|i) CHART_CARDS="$OPTARG";; 
         *) echo "ERROR: Unknown chart card option - $OPTARG"; exit 2;;
@@ -164,6 +172,7 @@ do
       fi
       exit;;      
    W) WRAPPER=y;;
+   X) UPDATE_XTRAS=y;;
    ?) usage;;
  esac
 done

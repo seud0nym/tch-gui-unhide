@@ -1,32 +1,32 @@
 echo "[$SCRIPT]: This script will perform the following actions:"
 if [ $FIX_SSH = y ]; then
-echo "[$SCRIPT]:  - Properly enable SSH access over LAN"
+  echo "[$SCRIPT]:  - Properly enable SSH access over LAN"
 fi
-echo "[$SCRIPT]:  - Preserve the password files and SSH configuration to prevent root loss on RTFD"
+  echo "[$SCRIPT]:  - Preserve the password files and SSH configuration to prevent root loss on RTFD"
 if [ $FIX_CFG_PORT = y ]; then
-echo "[$SCRIPT]:  - Enable unsigned configuration export/import in the web GUI"
+  echo "[$SCRIPT]:  - Enable unsigned configuration export/import in the web GUI"
 fi
 if [ $FIX_FW_UPGRD = y ]; then
-if [ "$FW_UPGRD" = "1" ]; then
-echo "[$SCRIPT]:  - Enable firmware upgrade in the web GUI"
-else
-echo "[$SCRIPT]:  - DISABLE firmware upgrade in the web GUI"
-fi
+  if [ "$FW_UPGRD" = "1" ]; then
+    echo "[$SCRIPT]:  - Enable firmware upgrade in the web GUI"
+  else
+    echo "[$SCRIPT]:  - DISABLE firmware upgrade in the web GUI"
+  fi
 fi
 if [ $FIX_DFLT_USR = y ]; then
-if [ "$DFLT_USR" = "admin" ]; then
-echo "[$SCRIPT]:  - ENABLE the default user in the web GUI (i.e. GUI access without password)"
-else
-echo "[$SCRIPT]:  - Disable the default user in the web GUI"
-fi
+  if [ "$DFLT_USR" = "admin" ]; then
+    echo "[$SCRIPT]:  - ENABLE the default user in the web GUI (i.e. GUI access without password)"
+  else
+    echo "[$SCRIPT]:  - Disable the default user in the web GUI"
+  fi
 fi
 if [ $FIX_PARENT_BLK = y ]; then
-echo "[$SCRIPT]:  - Ensure admin role can administer the parental block"
+  echo "[$SCRIPT]:  - Ensure admin role can administer the parental block"
 fi
 if [ -z "$INSTALLED_RELEASE" ]; then
-echo "[$SCRIPT]:  - Install tch-gui-unhide release $RELEASE"
+  echo "[$SCRIPT]:  - Install tch-gui-unhide release $RELEASE"
 else
-echo "[$SCRIPT]:  - Replace tch-gui-unhide release $INSTALLED_RELEASE with $RELEASE"
+  echo "[$SCRIPT]:  - Replace tch-gui-unhide release $INSTALLED_RELEASE with $RELEASE"
 fi
 echo "[$SCRIPT]:  - Allow editing of various settings that are not exposed in the stock GUI"
 echo "[$SCRIPT]:  - Unhide various cards and tabs contained in the stock GUI that are normally hidden"
@@ -40,18 +40,29 @@ case "$CHART_CARDS" in
   i)  echo "[$SCRIPT]:  - The Individual Chart Cards will be available";;
 esac
 if [ -f /www/docroot/landingpage.lp -a $KEEPLP = n ]; then
-echo "[$SCRIPT]:  - Theme and de-brand the Telstra Landing Page"
+  echo "[$SCRIPT]:  - Theme and de-brand the Telstra Landing Page"
 fi
 if [ -n "$TITLE" ]; then
-echo "[$SCRIPT]:  - Set the browser tabs titles to $TITLE"
+  echo "[$SCRIPT]:  - Set the browser tabs titles to $TITLE"
 fi
 if [ "$SIP_PWDS" = y ]; then
-echo "[$SCRIPT]:  - SIP Profile passwords will be decrypted and displayed in text fields rather than password fields"
+  echo "[$SCRIPT]:  - SIP Profile passwords will be decrypted and displayed in text fields rather than password fields"
 fi
 if [ "$UPDATE_BTN" = y ]; then
-echo "[$SCRIPT]: New release checking is ENABLED and 'Update Available' will be shown in GUI when new version released"
+  echo "[$SCRIPT]: New release checking is ENABLED and 'Update Available' will be shown in GUI when new version released"
 else
-echo "[$SCRIPT]: New release checking is DISABLED! 'Update Available' will NOT be shown in GUI when new version released"
+  echo "[$SCRIPT]: New release checking is DISABLED! 'Update Available' will NOT be shown in GUI when new version released"
+fi
+if [ -n "$XTRAS" ]; then
+  echo "[$SCRIPT]: These extra feature scripts will be downloaded and applied (if the pre-requisites are met):"
+  for x in $XTRAS; do
+  echo "[$SCRIPT]:  - tch-gui-unhide-xtra.$x"
+  done
+fi
+if [ "$UPDATE_XTRAS" = y ]; then
+  echo "[$SCRIPT]: Any existing extra feature scripts will be updated to the latest version"
+else
+  echo "[$SCRIPT]: Any existing extra feature scripts will NOT be updated to the latest version"
 fi
 
 echo [$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop.
