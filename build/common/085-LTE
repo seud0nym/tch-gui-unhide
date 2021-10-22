@@ -30,9 +30,8 @@ sed \
   -e 's/\(, signal_quality\)/\1, registration_status, unread_sms/' \
   -e '/radio_interface_map/a\			result = utils.getContent(rpc_path .. "network.serving_system.nas_state")' \
   -e '/radio_interface_map/a\			registration_status = utils.nas_state_map[result.nas_state]' \
-  -e '/radio_interface_map/a\			result = utils.getContent(rpc_path .. "network.time.time")' \
-  -e '/radio_interface_map/a\			if result.time and result.time ~= "" then' \
-  -e '/radio_interface_map/a\			  result = utils.getContent("rpc.mobiled.sms.info.unread_messages")' \
+  -e '/radio_interface_map/a\			result = utils.getContent("rpc.mobiled.sms.info.unread_messages")' \
+  -e '/radio_interface_map/a\			if result.unread_messages and tonumber(result.unread_messages) > 0 then' \
   -e '/radio_interface_map/a\			  unread_sms = result.unread_messages' \
   -e '/radio_interface_map/a\			end' \
   -e '/local data =/a\	registration_status = registration_status or "",' \
@@ -177,50 +176,46 @@ sed \
   -e "/<\/form>/i\  </fieldset>\\\\" \
   -e "/<\/form>/i\  <fieldset><legend>Send a Message</legend>\\\\" \
   -e "/<\/form>/i\  ');" \
-  -e '/<\/form>/i\  local timestr = proxy.get("rpc.mobiled.device.@1.network.time.time")\
-  if not timestr or timestr[1].value == "" then\
-    ngx.print(ui_helper.createAlertBlock(T"Sending SMS messages is <b>NOT</b> supported with the Telstra Backup SIM!"))\
-  else\
-    local mapParams = {\
-      to_number = "rpc.gui.sms.number",\
-      sms_msg = "rpc.gui.sms.message",\
-    }\
-    local mapValid = {\
-      to_number = function(value, object, key)\
-        local valid,helpmsg = post_helper.validateNonEmptyString(value)\
-        if valid and not string.match(value, "^%+%d+$") then\
-          valid,helpmsg = nil,T"Number must be in international dialling format including leading + and country code"\
-        end\
-        return valid,helpmsg\
-      end,\
-      sms_msg = function(value, object, key)\
-        local valid,helpmsg = post_helper.validateNonEmptyString(value)\
-        if valid and #value > 160 then\
-          valid,helpmsg = nil,T"Message must not exceed 160 characters"\
-        end\
-        return valid,helpmsg\
-      end,\
-    }\
-    local sms,helpmsg = post_helper.handleQuery(mapParams,mapValid)\
-    message_helper.popMessages() -- remove changes saved message\
-    local req = ngx.req\
-    if req.get_method() == "POST" and req.get_post_args().action == "SAVE" and sms["to_number"] ~= "" and sms["sms_msg"] ~= "" and not helpmsg["to_number"] and not helpmsg["sms_msg"] then\
-      local result,errors = proxy.set("rpc.gui.sms.sent", "1")\
-      if result then\
-        message_helper.pushMessage(T("SMS message successfully sent to "..sms["to_number"]),"success")\
-        sms["to_number"] = ""\
-        sms["sms_msg"] = ""\
-      else\
-        local err\
-        for _,err in ipairs(errors) do\
-          message_helper.pushMessage(T(err.errmsg),"error")\
-        end\
+  -e '/<\/form>/i\  ngx.print(ui_helper.createAlertBlock(T"Sending SMS messages is <b>NOT</b> supported with the Telstra Backup SIM."))\
+  local mapParams = {\
+    to_number = "rpc.gui.sms.number",\
+    sms_msg = "rpc.gui.sms.message",\
+  }\
+  local mapValid = {\
+    to_number = function(value, object, key)\
+      local valid,helpmsg = post_helper.validateNonEmptyString(value)\
+      if valid and not string.match(value, "^%+%d+$") then\
+        valid,helpmsg = nil,T"Number must be in international dialling format including leading + and country code"\
+      end\
+      return valid,helpmsg\
+    end,\
+    sms_msg = function(value, object, key)\
+      local valid,helpmsg = post_helper.validateNonEmptyString(value)\
+      if valid and #value > 160 then\
+        valid,helpmsg = nil,T"Message must not exceed 160 characters"\
+      end\
+      return valid,helpmsg\
+    end,\
+  }\
+  local sms,helpmsg = post_helper.handleQuery(mapParams,mapValid)\
+  message_helper.popMessages() -- remove changes saved message\
+  local req = ngx.req\
+  if req.get_method() == "POST" and req.get_post_args().action == "SAVE" and sms["to_number"] ~= "" and sms["sms_msg"] ~= "" and not helpmsg["to_number"] and not helpmsg["sms_msg"] then\
+    local result,errors = proxy.set("rpc.gui.sms.sent", "1")\
+    if result then\
+      message_helper.pushMessage(T("SMS message successfully sent to "..sms["to_number"]),"success")\
+      sms["to_number"] = ""\
+      sms["sms_msg"] = ""\
+    else\
+      local err\
+      for _,err in ipairs(errors) do\
+        message_helper.pushMessage(T(err.errmsg),"error")\
       end\
     end\
-    ngx.print(ui_helper.createMessages(message_helper.popMessages()))\
-    ngx.print(ui_helper.createInputText(T"To Number","to_number",sms["to_number"],{input={class="span2",maxlength="20"}},helpmsg["to_number"]))\
-    ngx.print(ui_helper.createInputText(T"Message","sms_msg",sms["sms_msg"],{input={class="span7",maxlength="160"}},helpmsg["sms_msg"]))\
-  end' \
+  end\
+  ngx.print(ui_helper.createMessages(message_helper.popMessages()))\
+  ngx.print(ui_helper.createInputText(T"To Number","to_number",sms["to_number"],{input={class="span2",maxlength="20"}},helpmsg["to_number"]))\
+  ngx.print(ui_helper.createInputText(T"Message","sms_msg",sms["sms_msg"],{input={class="span7",maxlength="160"}},helpmsg["sms_msg"]))' \
   -e "/<\/form>/i\  ngx.print('\\\\" \
   -e "/<\/form>/i\  </fieldset>\\\\" \
   -i /www/docroot/modals/lte-sms.lp
