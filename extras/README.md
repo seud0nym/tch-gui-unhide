@@ -6,8 +6,6 @@ Extras scripts that rely on packages to be installed require `opkg` to be config
 
 ## tch-gui-unhide-xtra.adblock
 Creates a GUI interface for the [`Adblock`](https://openwrt.org/packages/pkgdata/adblock) package that allows you to block ads at the router level.
-#### Download
-https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.adblock
 #### Firmware Applicability
 Should be applicable to all firmware versions supported by `tch-gui-unhide`, as long as you install the firmware-specific prerequisites.
 #### Prerequisites 
@@ -25,16 +23,13 @@ The version of adblock in the standard 17.2 repository is incompatible with this
 `opkg install /tmp/adblock_3.5.5-4_all.ipk`  
 `uci set adblock.global.adb_fetchutil='curl'`  
 `uci commit adblock`
+#### Installation
+`./tch-gui-unhide -x adblock`
 #### Post-Installation Configuration
 - Configure the IPv4 Primary DNS Server under Local Network to the local device (depending on your version of tch-gui-unhide, this will be "RSP/ISP DNS Servers", "Custom WAN DNS Servers", or the device variant (e.g. "DJA0230" or "DJA0231"))
 - Leave the IPV4 Secondary DNS Server as blank
 - Configure your preferred DNS Servers under Internet Access
 - Enable DNS Intercept under Firewall (leave DNS Server Address blank)
-#### Changes External to the GUI
-The installation creates the the following transformer UCI mappings and commit/apply scripts to support the GUI changes:
-- /usr/share/transformer/commitapply/uci_adblock.ca
-- /usr/share/transformer/mappings/rpc/gui.adblock.map
-- /usr/share/transformer/mappings/uci/adblock.map
 #### Removal Instructions
 1. Delete `tch-gui-unhide-xtra.adblock`
 2. Remove adblock and dependencies: `opkg remove adblock uclient-fetch`
@@ -45,14 +40,10 @@ The installation creates the the following transformer UCI mappings and commit/a
 Replaces the stock DLNA server management in the GUI so that it supports OpenWRT minidlna.
 #### Firmware Applicability
 Should be applicable to all firmware versions supported by `tch-gui-unhide`.
-#### Download
-https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.minidlna
 #### Prerequisites 
 Install minidlna using the opkg command: `opkg install minidlna`
-#### Changes External to the GUI
-The installation creates the the following transformer UCI mappings and commit/apply scripts to support the GUI changes:
-- /usr/share/transformer/commitapply/uci_minidlna.ca
-- /usr/share/transformer/mappings/uci/minidlna.map
+#### Installation
+`./tch-gui-unhide -x minidlna`
 #### Removal Instructions
 1. Do **not** delete `tch-gui-unhide-xtra.minidlna`
 2. Remove minidlna: `opkg remove minidlna`
@@ -61,17 +52,15 @@ The installation creates the the following transformer UCI mappings and commit/a
 
 ## tch-gui-unhide-xtra.rsyncd
 Adds the ability to enable and disable the rsync daemon from the GUI.
-#### Firmware Applicability
-Should be applicable to all firmware versions supported by `tch-gui-unhide`.
-#### Download
-https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.rsyncd
-#### Prerequisites 
-Install rsyncd using the opkg command: `opkg install rsync rsyncd`
-#### Changes External to the GUI
-- Adds /usr/share/transformer/mappings/rpc/gui.rsync.map to allow enabling/disabling of daemon via the GUI
 - Adds the *home* module to /etc/rsyncd.conf to allow read/write access to the /root directory via rsync (e.g. `rsync 192.168.0.1::home`)
 - Adds the *tmp* module to /etc/rsyncd.conf to allow read/write access to the /tmp directory via rsync (e.g. `rsync 192.168.0.1::tmp`)
 - Adds the *usb* module to /etc/rsyncd.conf to allow read/write access to the USB device via rsync (e.g. `rsync 192.168.0.1::usb`)
+#### Firmware Applicability
+Should be applicable to all firmware versions supported by `tch-gui-unhide`.
+#### Prerequisites 
+Install rsyncd using the opkg command: `opkg install rsync rsyncd`
+#### Installation
+`./tch-gui-unhide -x rsyncd`
 #### Removal Instructions
 1. Delete `tch-gui-unhide-xtra.rsyncd`
 2. Remove rsyncd: `opkg remove rsync rsyncd`
@@ -81,16 +70,10 @@ Install rsyncd using the opkg command: `opkg install rsync rsyncd`
 Correctly configures OpenWRT SAMBA 3.6 to provide SMBv2 for Windows 10 inter-operability. This update adds the ability to change the password via the GUI.
 #### Firmware Applicability
 You should only install SAMBA 3.6 on the 17.2 and 18.1.c firmware. The 20.3.c firmware contains NQE rather than SAMBA, and does not require the SAMBA 3.6 update to upgrade to SMBv2 and inter-operate with Windows 10.
-#### Download
-https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.samba36-server
 #### Prerequisites
 Install SAMBA v3.6 using the opkg command: `opkg --force-overwrite install samba36-server`
-#### Changes External to the GUI
-- Configures SAMBA to use SMBv2 by default
-- Creates the samba user and group, with NO password (change the password in the GUII or with the `smbpasswd` command)
-- Adds the ability to set share users via UCI and transformer
-- Adds /usr/share/transformer/mappings/rpc/gui.samba.map to allow setting of password via the GUI
-- Configures the default USB share to require the samba user
+#### Installation
+`./tch-gui-unhide -x samba36-server`
 #### Removal Instructions
 1. Do **not** delete tch-gui-unhide-xtra.samba36-server
 2. Remove samba36-server: `opkg remove samba36-server`
@@ -99,8 +82,6 @@ Install SAMBA v3.6 using the opkg command: `opkg --force-overwrite install samba
 
 ## tch-gui-unhide-xtra.wireguard
 Creates a GUI interface for configuring the Wireguard VPN.
-#### Download
-https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.wireguard
 #### Firmware Applicability
 For firmware 20.3.c. *only*.
 - Firmware prior to 20.3.c has not been compiled with TUN support in the kernel, and therefore VPN tunnels cannot be created.
@@ -113,12 +94,8 @@ If you are using IPv6, you need an IPv6 ULA (Unique Local Addresses) prefix. Thi
 ##### Dynamic DNS
 If you are setting up a Wireguard VPN Server and your ISP/RSP provides your IPv4 address via DHCP, you should have a DNS entry pointing to your IPv4 address. This can be configured on the **WAN Services** card.  
 If you have a static IP address and a domain name assigned by your ISP, the domain name can still be entered under IPv4 Dynamic DNS, but you do not have to *enable* the Dynamic DNS Service.
-#### Changes External to the GUI
-The installation creates the the following transformer UCI mappings and commit/apply scripts to support the GUI changes:
-- /usr/share/transformer/commitapply/uci_wireguard.ca
-- /usr/share/transformer/mappings/rpc/gui.wireguard.map
-- /usr/share/transformer/mappings/uci/wireguard.map
-- /usr/share/transformer/scripts/reload_wireguard.sh
+#### Installation
+`./tch-gui-unhide -x wireguard`
 #### Removal Instructions
 1. Do **not** delete `tch-gui-unhide-xtra.wireguard`
 2. Uninstall openwrt-wireguard-go: `wg --uninstall`
@@ -126,13 +103,18 @@ The installation creates the the following transformer UCI mappings and commit/a
 4. Now you can delete `tch-gui-unhide-xtra.wireguard`
 
 # How to download and execute these scripts
+
+### Using the tch-gui-unhide -x option
+Use the `-x` option on the `tch-gui-unhide` command to download and apply the scripts. You can specify mulitple `-x` options to install multiple extras scripts.
+
+### Manual Download
 Download the scripts that you wish to execute into the same directory as `tch-gui-unhide`.
 
 **NOTE: Replace `<scriptname>` with the name of the script you wish to download.**
 
 Execute these commands on your device via a PuTTY session or equivalent (an active WAN/Internet connection is required):
 ```
-wget https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/<scriptname> 
+curl -kLO https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/<scriptname> 
 ```
 
 Alternatively, download the script manually and load it up to your device using WinSCP or equivalent.

@@ -1,3 +1,18 @@
+2021.10.24
+==========
+* tch-gui-unhide: Allow hostname to be changed via GUI
+* tch-gui-unhide: Fixed ability to add additional NTP servers
+* tch-gui-unhide: Fixed not able to hide chart cards through Management Theme tab or tch-gui-unhide-cards
+* tch-gui-unhide: Fixed some field validation messages not displaying on Internet Access screen
+* tch-gui-unhide: Fixed Mobile card text alignment
+* tch-gui-unhide: Fixed uneven SMS messages display in night theme
+* tch-gui-unhide: Added SMS message sending capability (not applicable if using Telstra Backup SIM)
+* tch-gui-unhide: Added unread SMS count to Mobile card when count greater than zero
+* tch-gui-unhide: Added -x option to auto-download extras scripts
+* tch-gui-unhide: Added -X option to auto-refresh existing extras scripts
+* tch-gui-unhide-xtra.wireguard: Endpoint IP was missing in generated configuration when running on a device configured as an EasyMesh booster
+* tch-gui-unhide-xtra.wireguard: Improved load speed of WireGuard card initial display
+
 2021.09.27
 ==========
 * tch-gui-unhide: Server Certificates are now generated for both IPv4 and IPv6 Dynamic DNS Domains (if different)

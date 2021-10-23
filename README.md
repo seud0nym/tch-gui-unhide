@@ -138,6 +138,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - **Telephony** card shows call statistics (number of calls in, missed and out)
 - **Telephony** screen now has a Dial Plans tab to edit the dial plans, and you can optionally show the decrypted SIP passwords on the Profiles tab
 - **Mobile** screen now has a Network Operators tab to modify the allowed Mobile Country Code (MCC) and Mobile Network Code (MNC) combinations, plus shows the device capabilities
+- **Mobile** SMS tab now has the ability to send an SMS (not applicable if using the Telstra Backup SIM)
 - **Packages** card to manage opkg packages
 - **QoS** screen now has support for upload shapers (FW 18+ only) and shows classify/reclassify rules
 - **IP Routing** screen allows you to define custom DNS entries
@@ -248,7 +249,11 @@ The script accepts the following options:
     - The default is current setting or (y) for first time installs
 - -T
     - Apply the theme settings *ONLY*. All other processing is bypassed.
-- -y
+- -x *feature*
+    - Download the specified tch-gui-unhide-xtra.*feature* script.
+    - Specify -x *feature* multiple times to download multiple scripts.
+    - **NOTE:** This does NOT download or install the feature pre-requisites! You must do that BEFORE running the script!
+ - -y
     - Allows you to skip the initial prompt to confirm execution, and automatically responds with **y**
 - -r
     - Allows you to revert the *GUI* changes. Configuration changes are **NOT** undone!
@@ -258,6 +263,8 @@ The script accepts the following options:
     - Download the latest release, including utility scripts (will overwrite all existing script versions) and then execute tch-gui-unhide
 - -V
     - Show the release number of this script, the current installed release, and the latest available release on GitHub
+- -X
+    - Download the latest version of any existing extra feature scripts.
 - -?
     - Displays usage information
 
