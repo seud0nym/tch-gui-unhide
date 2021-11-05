@@ -1,13 +1,10 @@
 echo [$SCRIPT]: Fix WoL configuration
-sed \
-  -e 's/io.open("\/lib\/functions\/firewall-wol.sh", "r") and //' \
-  -e 's/uci.wol.config.enabled/uci.wol.proxy.@wan2lan.enable/' \
-  -e 's/uci.wol.config/uci.wol.proxy.@wan2lan/' \
-  -i /www/cards/007_wanservices.lp
-sed \
-  -e 's/io.open("\/lib\/functions\/firewall-wol.sh", "r") and //' \
-  -e 's/uci.wol.config.enabled/uci.wol.proxy.@wan2lan.enable/' \
-  -e 's/uci.wol.config.src_dport/uci.wol.proxy.@wan2lan.src_port/' \
-  -e 's/uci.wol.config/uci.wol.proxy.@wan2lan/' \
-  -i /www/docroot/modals/wanservices-modal.lp
+for f in /www/cards/007_wanservices.lp /www/docroot/modals/wanservices-modal.lp /www/lua/wanservicescard_helper.lua; do
+  sed \
+    -e 's/io.open("\/lib\/functions\/firewall-wol.sh", "r") and //' \
+    -e 's/uci.wol.config.enabled/uci.wol.proxy.@wan2lan.enable/' \
+    -e 's/uci.wol.config.src_dport/uci.wol.proxy.@wan2lan.src_port/' \
+    -e 's/uci.wol.config/uci.wol.proxy.@wan2lan/' \
+    -i $f
+done
 
