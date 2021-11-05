@@ -56,14 +56,14 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
       '); ngx.print(html); ngx.print('\
       </div>\
       ');
+        if disabled ~= 0 then
+          ngx.print('<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-profile-modal.lp" data-id="mmpbx-profile-modal">')
+          ngx.print(ui_helper.createSimpleLight("0", format(N('%d disabled profile','%d disabled profiles',disabled),disabled)))
+          ngx.print('</span>')
+        end
         ngx.print('<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-dect-modal.lp" data-id="mmpbx-dect-modal">')
         ngx.print(ui_helper.createSimpleLight(emission_state, emission_info))
         ngx.print('</span>')
-        if disabled ~= 0 then
-          ngx.print('<p class="subinfos modal-link" data-toggle="modal" data-remote="/modals/mmpbx-profile-modal.lp" data-id="mmpbx-profile-modal">')
-          ngx.print(format(N('<strong>%d</strong> disabled profile','<strong>%d</strong> disabled profiles',disabled),disabled))
-          ngx.print('</p>')
-        end
         ngx.print('\
     </div>\
   </div>\
