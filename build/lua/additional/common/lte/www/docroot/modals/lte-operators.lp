@@ -79,7 +79,7 @@ local operator_options = {
   basepath = "uci.mobiled.operator.@.",
   canAdd = true,
   canDelete = true,
-  createMsg = T"Add new operator",
+  createMsg = T"Add operator",
   minEntries = 1
 }
 

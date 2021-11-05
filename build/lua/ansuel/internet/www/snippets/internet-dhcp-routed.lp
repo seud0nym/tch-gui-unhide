@@ -48,30 +48,6 @@ local vSII = post_helper.validateStringIsIP
 local gOV = post_helper.getOptionalValidation
 local vNES = post_helper.validateNonEmptyString
 
-local dns_options = {
-  tableid = "dns_servers",
-  basepath = "uci.network.interface.@wan.dns.@.",
-  createMsg = T"Add new DNS server",
-  minEntries = 0,
-  maxEntries = 3,
-}
-
-local dns_columns = {
-  {
-    header = T"DNS IP",
-    name = "dns_server",
-    param = "value",
-    type = "text",
-  }
-}
-
-local dns_valid = {
-  dns_server = gOV(vSII)
-}
-
-local dns_data,dns_helpmsg = post_helper.handleTableQuery(dns_columns,dns_options,nil,nil,dns_valid)
-session:store("dns_data",dns_data)
-
 local function get_dhcp_state(wan_auto,ipaddr)
   -- Figure out interface state
   if wan_auto ~= "0" then

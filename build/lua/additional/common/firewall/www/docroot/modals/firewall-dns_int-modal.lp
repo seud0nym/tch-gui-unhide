@@ -239,7 +239,7 @@ ngx.print(ui_helper.createHeader(T"Firewall", true, false))   ngx.print('\
         canDelete = true,
         tableid = "excludedIPs",
         basepath = "rpc.gui.firewall.dns_intercept.exceptions.@.",
-        createMsg = T"Add New Excluded IPv4 Address",
+        createMsg = T"Add Excluded IPv4 Address",
         onAdd = function(index, content)
           proxy.set("rpc.gui.firewall.dns_intercept.exceptions."..index..".ip", content.ip)
         end

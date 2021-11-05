@@ -82,7 +82,7 @@ local blacklist_options = {
   canAdd = editable,
   canDelete = editable,
   canEdit = editable,
-  createMsg = T"Add new black-listed host",
+  createMsg = T"Add black-listed host",
   onAdd = function(index, content)
     proxy.set("rpc.gui.adblock.blacklist."..index..".host", content.host)
   end
@@ -94,7 +94,7 @@ local whitelist_options = {
   canAdd = editable,
   canDelete = editable,
   canEdit = editable,
-  createMsg = T"Add new white-listed host",
+  createMsg = T"Add white-listed host",
   onAdd = function(index, content)
     proxy.set("rpc.gui.adblock.whitelist."..index..".host", content.host)
   end

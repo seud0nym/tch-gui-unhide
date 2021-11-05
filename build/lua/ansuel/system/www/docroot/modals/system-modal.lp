@@ -59,7 +59,7 @@ local filter_valid = {
 local filter_options = {
   tableid = "syslog_filters",
   basepath = "uci.system.system.@system[0].log_filter.@.",
-  createMsg = T"Add new Syslog Filter",
+  createMsg = T"Add Syslog Filter",
   minEntries = 1,
   maxEntries = 10,
 }

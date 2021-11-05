@@ -211,30 +211,6 @@ local vSIP = post_helper.validateStringIsPort
 local gVP = post_helper.getValidationPassword
 local gOV = post_helper.getOptionalValidation
 
-local dns_options = {
-  tableid = "dns_servers",
-  basepath = "uci.network.interface.@wan.dns.@.",
-  createMsg = T"Add new DNS server",
-  minEntries = 0,
-  maxEntries = 3,
-}
-
-local dns_columns = {
-  {
-    header = T"DNS IP",
-    name = "dns_server",
-    param = "value",
-    type = "text",
-  }
-}
-
-local dns_valid = {
-  dns_server = gOV(vSII)
-}
-
-local dns_data,dns_helpmsg = post_helper.handleTableQuery(dns_columns,dns_options,nil,nil,dns_valid)
-session:store("dns_data",dns_data)
-
 local function validateUsername(value,postdata)
   local err,msg = vNES(value)
   if not err then

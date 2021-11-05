@@ -159,7 +159,7 @@ end
 local static_route_options = {
   tableid = "staticroutes",
   basepath = "uci.network.route.@.",
-  createMsg = T"Add new static IPv4 route",
+  createMsg = T"Add static IPv4 route",
   objectName = "static_route_" .. post_helper.getRandomKey(),
   addNamedObject = true,
   valid = validateDuplicateRoute,

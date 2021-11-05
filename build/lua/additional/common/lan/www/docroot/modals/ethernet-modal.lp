@@ -311,7 +311,7 @@ local sleases_valid = {
 local sleases_options = {
   tableid = "sleases",
   basepath = "uci.dhcp.host.@.",
-  createMsg = T"Add new static lease",
+  createMsg = T"Add static lease",
   objectName  = post_helper.getRandomKey(),
   addNamedObject = true,
 }
@@ -1270,7 +1270,7 @@ ngx.print('\
                 canDelete = true,
                 tableid = "dns4server",
                 basepath = "uci.network.interface.@lan.dns.@.",
-                createMsg = T"Add New IPv4 DNS Server",
+                createMsg = T"Add IPv4 DNS Server",
                 minEntries = 0,
                 maxEntries = 4,
                 sorted = function(a, b)

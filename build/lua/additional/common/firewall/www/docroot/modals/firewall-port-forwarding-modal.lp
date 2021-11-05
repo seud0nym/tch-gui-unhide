@@ -353,7 +353,7 @@ end
 local pfw_options = {
   tableid = "portforwarding",
   basepath = "rpc.network.firewall.portforward.",
-  createMsg = T"Add new IPv4 port mapping",
+  createMsg = T"Add IPv4 port mapping",
   newList = knownapps,
   valid = globalValid,
   sorted = "name",
@@ -440,7 +440,7 @@ local pfw_v6_columns = {
 local pfw_v6_options = {
   tableid = "fwrules_v6",
   basepath = "rpc.network.firewall.pinholerule.",
-  createMsg = T"Add new IPv6 forwarding rule",
+  createMsg = T"Add IPv6 forwarding rule",
   sorted = "name",
   newList = knownapps,
 }

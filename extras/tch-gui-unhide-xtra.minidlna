@@ -140,7 +140,7 @@ PLUG
     -e '/^local function valid_samba_dlna_string/i \local dir_options = {' \
     -e '/^local function valid_samba_dlna_string/i \  tableid = "media_dirs",' \
     -e '/^local function valid_samba_dlna_string/i \  basepath = "uci.minidlna.config.media_dir.@.",' \
-    -e '/^local function valid_samba_dlna_string/i \  createMsg = T"Add new Media Directory",' \
+    -e '/^local function valid_samba_dlna_string/i \  createMsg = T"Add Media Directory",' \
     -e '/^local function valid_samba_dlna_string/i \  minEntries = 0,' \
     -e '/^local function valid_samba_dlna_string/i \}' \
     -e '/^local function valid_samba_dlna_string/i' \
