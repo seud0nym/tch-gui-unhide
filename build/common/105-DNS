@@ -29,3 +29,35 @@ sed \
   -i /usr/share/transformer/mappings/uci/dhcp.map
   SRV_transformer=$(( $SRV_transformer + 1 ))
 
+echo [$SCRIPT]: Add peerdns to rpc.network.interface mapping
+sed \
+  -e '/parameters =/a\       peerdns = {\
+        access = "readWrite",\
+        type = "boolean",\
+      },' \
+  -e '/network_interface_.get/a\  peerdns = function(mapping, param, key)\
+    return get_from_uci({ config = "network", sectionname = key , option = "peerdns"}) or "" \
+  end,' \
+  -e '/network_interface_.set/a\  peerdns = function(_, _, value, key)\
+    network_binding.sectionname = key\
+    network_binding.option = "peerdns"\
+    uci_helper.set_on_uci(network_binding, value, commitapply)\
+    transaction[network_binding.config] = true\
+    return true\
+  end,' \
+  -i /usr/share/transformer/mappings/rpc/network.interface.map
+
+WAN_DNS="$(uci -q get network.wan.dns)"
+WAN6_DNS="$(uci -q get network.wan6.dns)"
+if [ -z "$(uci -q get dhcp.main.server)" -a \( -n "$WAN_DNS" -o -n "$WAN6_DNS" \) ]; then
+  echo [$SCRIPT]: Migrating custom DNS servers from network interfaces to dnsmasq
+  for DNS_SERVER in $WAN6_DNS $WAN_DNS; do
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - uci add_list dhcp.main.server=$DNS_SERVER"
+    uci add_list dhcp.main.server="$DNS_SERVER"
+    SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
+  done
+  uci commit dhcp
+else
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: No custom DNS servers on network interfaces or already migrated to dnsmasq"
+fi
+

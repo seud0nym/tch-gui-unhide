@@ -673,73 +673,67 @@ fi
 
 uci -q get network.wan > /dev/null
 if [ $? -eq 0 ]; then
-  PEERDNS_NOW="$(uci -q get network.wan.peerdns)"
-  WANDNS_NOW="$(uci -q get network.wan.dns)"
+  WANDNS_NOW="$(uci -q get dhcp.main.server)"
   if [ "$__NS" = "u" ]; then
-    echo [$SCRIPT]: DNS Servers unchanged \[ $WANDNS_NOW ISP Peer DNS $(status2text $PEERDNS_NOW) \]
+    if [ -z "$WANDNS_NOW" ]; then
+      echo [$SCRIPT]: DNS Servers unchanged \[ No Custom DNS servers defined \]
+    else
+      echo [$SCRIPT]: DNS Servers unchanged \[ $WANDNS_NOW \]
+    fi
   else
     case $__NS in
-    a) PEERDNS=1; WANDNS1=""; WANDNS2="";;
-    c) PEERDNS=0; WANDNS1="1.1.1.1"; WANDNS2="1.0.0.1";;
-    g) PEERDNS=0; WANDNS1="8.8.8.8"; WANDNS2="8.8.4.4";;
-    f) PEERDNS=0; WANDNS1="208.67.222.123"; WANDNS2="208.67.220.123";;
-    o) PEERDNS=0; WANDNS1="208.67.222.222"; WANDNS2="208.67.220.220";;
-    *) PEERDNS=0; WANDNS1="$(echo $__NS | cut -d, -f1)"; WANDNS2="$(echo $__NS | cut -d, -f2)";;
+    a) echo [$SCRIPT]: Automatically use the DNS servers from the ISP
+       uci set network.wan.peerdns='1'
+       uci set network.wan6.peerdns='1'
+       uci -q delete network.wan.dns
+       uci -q delete network.wan6.dns
+       uci commit network
+       SRV_network=$(( $SRV_network + 4 ))
+       WANDNS1=""; WANDNS2="";;
+    c) WANDNS1="1.1.1.1"; WANDNS2="1.0.0.1";;
+    g) WANDNS1="8.8.8.8"; WANDNS2="8.8.4.4";;
+    f) WANDNS1="208.67.222.123"; WANDNS2="208.67.220.123";;
+    o) WANDNS1="208.67.222.222"; WANDNS2="208.67.220.220";;
+    *) WANDNS1="$(echo $__NS | cut -d, -f1)"; WANDNS2="$(echo $__NS | cut -d, -f2)";;
     esac
-    if [ "$PEERDNS" = "0" -a -z "$WANDNS1" ]; then
-      echo [$SCRIPT]: No DNS Server IP address specified???
+    if [ -z "$WANDNS1" -a -z "$WANDNS2" ]; then
+      uci -q delete dhcp.main.server
+      SRV_dhcp=$(( $SRV_dhcp + 1 ))
+      echo [$SCRIPT]: Custom DNS Servers removed
     else
-      if [ $PEERDNS -eq 0 ]; then
-        IPv4PATTERN="([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
-        echo "$WANDNS1" | grep -q -E $IPv4PATTERN
+      IPv4PATTERN="([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
+      echo "$WANDNS1" | grep -q -E $IPv4PATTERN
+      if [ $? -eq 1 ]; then
+        echo -e "[$SCRIPT]: \033[1;31mWARNING! Invalid IP address $WANDNS1 IGNORED\033[0m"
+        WANDNS1=""
+      fi
+      if [ -n "$WANDNS2" ]; then
+        echo "$WANDNS2" | grep -q -E $IPv4PATTERN
         if [ $? -eq 1 ]; then
-          echo -e "[$SCRIPT]: \033[1;31mWARNING! Invalid IP address $WANDNS1 IGNORED\033[0m"
-          WANDNS1=""
-        fi
-        if [ -n "$WANDNS2" ]; then
-          echo "$WANDNS2" | grep -q -E $IPv4PATTERN
-          if [ $? -eq 1 ]; then
-            echo -e "[$SCRIPT]: \033[1;31mWARNING! Invalid IP address $WANDNS2 IGNORED\033[0m"
-            WANDNS2=""
-          fi
-        fi
-        if [ -z "$WANDNS1" -a -z "$WANDNS2" ]; then
-          echo -e "[$SCRIPT]: \033[1;31mWARNING! No valid IP addresses specified - No DNS Server changes applied\033[0m"
-        else
-          if [ "$PEERDNS_NOW" = "0" ]; then
-            echo [$SCRIPT]: ISP peer DNS unchanged \[$(status2text $PEERDNS_NOW)\]
-          else
-            echo [$SCRIPT]: Ignoring ISP defined DNS Servers
-            uci set network.wan.peerdns='0'
-            SRV_network=$(( $SRV_network + 1 ))
-          fi
-          if [ "$WANDNS_NOW" = "$WANDNS1 $WANDNS2" ]; then
-            echo [$SCRIPT]: DNS Servers unchanged \[ $WANDNS_NOW \]
-          else
-            uci -q delete network.wan.dns
-            SRV_network=$(( $SRV_network + 2 ))
-            if [ -n "$WANDNS1" ]; then
-              uci add_list network.wan.dns="$WANDNS1"
-              SRV_network=$(( $SRV_network + 1 ))
-            fi
-            if [ -n "$WANDNS2" ]; then
-              uci add_list network.wan.dns="$WANDNS2"
-              SRV_network=$(( $SRV_network + 1 ))
-            fi
-            echo [$SCRIPT]: DNS Servers changed \[ $WANDNS1 $WANDNS2 \]
-          fi
-        fi
-      else
-        if [ "$PEERDNS_NOW" = "1" ]; then
-          echo [$SCRIPT]: ISP peer DNS unchanged \[$(status2text $PEERDNS_NOW)\]
-        else
-          echo [$SCRIPT]: Using ISP defined DNS Servers
-          uci set network.wan.peerdns='1'
-          uci -q delete network.wan.dns
-          SRV_network=$(( $SRV_network + 2 ))
+          echo -e "[$SCRIPT]: \033[1;31mWARNING! Invalid IP address $WANDNS2 IGNORED\033[0m"
+          WANDNS2=""
         fi
       fi
-      uci commit network
+      if [ -z "$WANDNS1" -a -z "$WANDNS2" ]; then
+        echo -e "[$SCRIPT]: \033[1;31mWARNING! No valid IP addresses specified - No DNS Server changes applied\033[0m"
+      else
+        if [ "$WANDNS_NOW" = "$WANDNS1 $WANDNS2" ]; then
+          echo [$SCRIPT]: DNS Servers unchanged \[ $WANDNS_NOW \]
+        else
+          uci -q delete dhcp.main.server
+          SRV_dhcp=$(( $SRV_dhcp + 1 ))
+          if [ -n "$WANDNS1" ]; then
+            uci add_list dhcp.main.server="$WANDNS1"
+            SRV_dhcp=$(( $SRV_dhcp + 1 ))
+          fi
+          if [ -n "$WANDNS2" ]; then
+            uci add_list dhcp.main.server="$WANDNS2"
+            SRV_dhcp=$(( $SRV_dhcp + 1 ))
+          fi
+          echo [$SCRIPT]: DNS Servers changed \[ $WANDNS1 $WANDNS2 \]
+        fi
+      fi
+      uci commit dhcp
     fi
   fi
 else

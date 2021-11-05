@@ -317,7 +317,6 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   ngx.print('\
 </fieldset>\
 ');
-  require("web.lp").include("internet-dns-servers.lp")
   ngx.print('\
 <script language ="javascript">\
   $("#uci_wan6_auto").change(function() {\
