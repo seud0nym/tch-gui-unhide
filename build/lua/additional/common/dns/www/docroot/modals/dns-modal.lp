@@ -63,6 +63,12 @@ local dns_valid = {
   uci_wan6_peerdns = vB,
 }
 local dns_config,dns_config_helpmsg = post_helper.handleQuery(dns_params,dns_valid)
+if dns_config["uci_wan_peerdns"] == "" then
+  dns_config["uci_wan_peerdns"] = "1"
+end
+if dns_config["uci_wan6_peerdns"] == "" then
+  dns_config["uci_wan6_peerdns"] = "1"
+end
 
 local custom_dns_columns = {
   {
