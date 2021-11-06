@@ -1,6 +1,8 @@
 echo [$SCRIPT]: Fix incorrect error detection in DDNS update when IPv6 address contains 401 or 500 
-sed \
-  -e '/local logFile/a\        local adrFile = "/var/log/ddns/" .. service .. ".ip"' \
-  -e 's^"cat "^"sed -e \\"s/$(cat " .. adrFile ..")//\\" "^' \
-  -i /usr/share/transformer/mappings/rpc/ddns.map
+if [ "$FW_BASE" = '17.2' ]; then
+  sed -e '/local logFile/a\        local adrFile = "/var/log/ddns/" .. services[1] .. ".ip"' -i /usr/share/transformer/mappings/rpc/ddns.map
+else
+  sed -e '/local logFile/a\        local adrFile = "/var/log/ddns/" .. service .. ".ip"' -i /usr/share/transformer/mappings/rpc/ddns.map
+fi
+sed -e 's^"cat "^"sed -e \\"s/$(cat " .. adrFile ..")//\\" "^' -i /usr/share/transformer/mappings/rpc/ddns.map
 
