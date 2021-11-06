@@ -1128,7 +1128,11 @@ ngx.print('\
                   class = "alert-info"
                 },
               }
-              ngx.print(ui_helper.createAlertBlock(T"DNS Servers defined on this screen only affect what is provided to LAN client devices via DHCP. To configure custom DNS Servers for the device, use the Internet Access card.", info_attr))
+              if adguard then
+                ngx.print(ui_helper.createAlertBlock(T"DNS Servers defined on this screen only affect what is provided to LAN client devices via DHCP. You should configure custom DNS Servers for the device in AdGuard Home.", info_attr))
+              else
+                ngx.print(ui_helper.createAlertBlock(T"DNS Servers defined on this screen only affect what is provided to LAN client devices via DHCP. To configure custom DNS Servers for the device, use the DNS card.", info_attr))
+              end
               if dns_int and content["dnsServer"] ~= dns_int_dest_ip then
                 local warn_attr = {
                   alert = {
