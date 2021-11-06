@@ -10,7 +10,6 @@ local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
 local content_helper = require("web.content_helper")
 local uimessage_helper = require("web.uimessage_helper")
-local content_helper = require("web.content_helper")
 local tinsert = table.insert
 local format,untaint = string.format,string.untaint
 local session = ngx.ctx.session
@@ -27,14 +26,19 @@ end
 local uniqueKey = post_helper.getRandomKey()
 local vB = post_helper.validateBoolean
 
+local cfg = {
+  wansensing_enabled = "uci.wansensing.global.enable",
+  mobile_devices = "rpc.mobiled.DeviceNumberOfEntries",
+}
+content_helper.getExactContent(cfg)
+local wansensing,mobile_devices = cfg["wansensing_enabled"] == "1",tonumber(cfg["mobile_devices"]) or 0
+
 local mapValid = {
   mmpbx_enabled = vB,
-  wansensing_enabled = vB,
   voiceonfailover = vB,
 }
 local mapParams = {
   mmpbx_enabled = "uci.mmpbx.mmpbx.@global.enabled",
-  wansensing_enabled = "uci.wansensing.global.enable",
   voiceonfailover = "uci.wansensing.global.voiceonfailover",
 }
 local content = post_helper.handleQuery(mapParams,mapValid)
@@ -49,7 +53,7 @@ local function split(x,sep)
 end
 
 local network_rpc_path = "rpc.network.interface."
-local network_rpc_content = content_helper.getMatchedContent (network_rpc_path)
+local network_rpc_content = content_helper.getMatchedContent(network_rpc_path)
 
 local wan_intfs = {}
 for _,v in ipairs (network_rpc_content) do
@@ -313,7 +317,7 @@ local sipnet_options = {
 
 local sipnet_data,sipnet_helpmsg = post_helper.handleTableQuery(sipnet_columns,sipnet_options,nil,nil,sipnet_valid)
 
-if content["wansensing_enabled"] == "1" then
+if wansensing then
   sipnet_columns[10]["readonly"] = true
   sipnet_columns[10]["header"] = sipnet_columns[10]["header"].." <span class='icon-question-sign' title='Interface is controlled by WAN Sensing.'></span>"
 end
@@ -338,9 +342,10 @@ ngx.print('\
   html[#html+1] = '<fieldset id="mmpbx-global-tab">'
   html[#html+1] =     '<legend>'..T"Global Information"..'</legend>'
   html[#html+1] =     ui_helper.createSwitch(T"Enabled","mmpbx_enabled",content["mmpbx_enabled"])
-  html[#html+1] =     ui_helper.createSwitch(T"Voice on 4G Failover","voiceonfailover",content["voiceonfailover"])
-  
   if content and content["mmpbx_enabled"] == "1" then
+    if mobile_devices > 0 then
+      html[#html+1] =     ui_helper.createSwitch(T"Voice on 4G Failover","voiceonfailover",content["voiceonfailover"])
+    end  
     html[#html+1] = '<fieldset>'
     html[#html+1] = '<legend>'..T"SIP Network"..'</legend>'
     html[#html+1] =  ui_helper.createTable(sipnet_columns,sipnet_data,sipnet_options,nil,sipnet_helpmsg)
