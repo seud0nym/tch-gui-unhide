@@ -6,7 +6,7 @@ The instructions have been adapted for use on the Telstra branded Technicolor de
 **Please read the following notes carefully to decide if this solution is right for you!**
 
 ## What It Does
-The setup script will install and configure AdGuard Home on your device, and _disable_ dnsmasq. AdGuard Home will then handle DNS resolution and DHCP for your local network.
+By default, the setup script will install and configure AdGuard Home on your device, and _disable_ dnsmasq. AdGuard Home will then handle DNS resolution and DHCP for your local network.
 
 It will also download and run the [`intercept-dns`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#intercept-dns) script, to configure DNS interception and hijacking.
 
@@ -27,16 +27,14 @@ The setup script implements 2 different solutions to this issue:
 - By default, this installation option will reduce log retention to 24 hours, to try and reduce the likelihood of running out of space.
 - You will need to carefully monitor internal storage to make sure you do not run out of space. You can disable log retention in AdGuard Home if this becomes an issue.
 
-## DHCP Incompatibility with Guest Networks
+## AdGuard Home DHCP Server Incompatibility with Guest Networks
 The default dnsmasq service provides both DNS forwarding and DHCP. It allows different DHCP pools, so that the different interfaces (LAN and Guest networks) can have different IP address ranges.
 
 The AdGuard Home DHCP Server listens on all interfaces (including the Guest networks) but can only serve addresses from a single pool. Therefore, devices connecting to the Guest Wi-Fi networks would be unable to acquire a valid IP address for their subnet.
 
-This script disables dnsmasq to maximize free memory and enables the AdGuard Home DHCP server, therefore you *cannot* run Guest SSIDs.
+By default, this script disables dnsmasq to maximize free memory and enables the AdGuard Home DHCP server, therefore you *cannot* run Guest SSIDs. You can use the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script with **-G** option to remove the Guest Wi-FI SSIDs, networks and firewall rules and zones, if you are not using Guest Wi-Fi.
 
-*If you require Guest Wi-Fi facilities, then you should **NOT** use this script to install AdGuard Home on your device.*
-
-You can use the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script with **-G** option to remove the Guest Wi-FI SSIDs, networks and firewall rules and zones, if you are not using Guest Wi-Fi.
+However, if you wish or need to use Guest Wi-Fi, or if you just want to continue using dnsmasq for DHCP, you can specify the **-d** installation option, as described below. However, continuing to run dnsmasq for DHCP comes at the cost of consuming additional RAM, which could be an issue on devices with less memory, such as the DJA0231.
 
 ## Free RAM Requirements
 The forum post starts by saying that devices require 100MB RAM free. A subsequent post indicates around 30MB.
@@ -51,21 +49,21 @@ I haven't run it long enough to know if this is indicative over time, so you sho
 - A USB stick (unless you specify installation on internal storage)
 
 # Installation
-Read the section on "Optional Installation Parameters" before running  one of the following commands.
+Read the section on "Optional Installation Parameters" before running one of the following commands.
 
 ## Default Installation on USB Device
 Insert a USB device and then run the following command on your device:
 ```
 curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/agh-setup | sh -s --
 ```
-When this command successfully completes, AdGuard Home will be installed and running from the USB Device. The web interface will be accessible at http://[router ip address]:8008. The default username is root and the default  password is agh-admin.
+When this command successfully completes, AdGuard Home will be installed and running from the USB Device. The web interface will be accessible at http://[router ip address]:8008. The default username is root and the default password is agh-admin.
 
 ## Running AdGuard Home from Internal Storage
 Run the following command on your device:
 ```
 curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/agh-setup | sh -s -- -i
 ```
-When this command successfully completes, AdGuard Home will be installed and running from your internal storage. The web interface will be accessible at http://[router ip address]:8008. The default username is root and the default  password is agh-admin.
+When this command successfully completes, AdGuard Home will be installed and running from your internal storage. The web interface will be accessible at http://[router ip address]:8008. The default username is root and the default password is agh-admin.
 
 ## Manual Download of Setup Script
 If you are uncomfortable running the script without reviewing it first, simply download it and execute it manually:
@@ -114,6 +112,9 @@ The following optional configuration parameters may be specified **after** the d
   - Skips the free memory check
   - If there is not enough free memory, the installation will be aborted.
   - Use this option to bypass the check, and install anyway.
+- -d
+  - Specifies that you do NOT want to enable the AdGuard Home DHCP server.
+  - This will continue to use dnsmasq for DHCP, at the expense of some additional RAM.
 
 # Post-Installation
 When the script completes, you will be able to access AdGuard Home in your browser at http://[router ip address]:8008

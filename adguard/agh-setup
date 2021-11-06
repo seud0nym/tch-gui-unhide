@@ -34,6 +34,9 @@ options:
                   to specify the matching password, so that AdGuard Home status
                   can be checked post-installation, and any static leases
                   currently defined in dnsmasq can be loaded into AdGuard Home.
+ -d            Do NOT enable the AdGuard Home DHCP server.
+                  This will continue to use dnsmasq for DHCP, at the expense
+                  of some additional RAM.
  -i            Install AdGuard Home on INTERNAL storage rather than USB.
                   WARNING! This option requires the working directory to be 
                   created on tmpfs, which is cleared on reboot. However, this
@@ -78,6 +81,7 @@ PASSWORD="$DFLT_PSWD"
 PWD_HASH="$DFLT_HASH"
 CA_CERT=Y
 DEL_AGH=Y
+AGH_DHCP=true
 DOWNLOAD=Y
 INTERCEPTION=Y
 UTILITIES=Y
@@ -88,9 +92,10 @@ QUERYLOG_INTERVAL=90
 SKIP_MEM_CHK=N
 INSTALL_ROOT="/root"
 
-while getopts :ih:n:p:rsux: option
+while getopts :dih:n:p:rsux: option
 do
  case "${option}" in
+  d)  AGH_DHCP=false;;
   i)  EXTERNAL=N;QUERYLOG_INTERVAL=1;;
   h)  PWD_HASH="$OPTARG";;
   n)  USERNAME="$OPTARG";;
@@ -120,15 +125,25 @@ configure_dnmasq() {
   local DHCP_SERVER=""
   local PEER_DNS=""
   local LIST_ACTION=""
+  local LOCAL_USE=""
+  local DNS_PORT=""
 
   if [ "$DNSMASQ" = "enable" ]; then
     PEER_DNS="1"
     LIST_ACTION="del"
+    LOCAL_USE="1"
+    DNS_PORT="53"
     DHCP_SERVER="server"
   else
     PEER_DNS="0"
     LIST_ACTION="add"
-    DHCP_SERVER="disabled"
+    LOCAL_USE="0"
+    DNS_PORT="0"
+    if [ $AGH_DHCP = true ]; then
+      DHCP_SERVER="disabled"
+    else
+      DHCP_SERVER="server"
+    fi
   fi
 
   echo -e "${GREEN}[$SCRIPT] Configuring IPv4 WAN DNS...${NC}"
@@ -150,12 +165,19 @@ configure_dnmasq() {
   /etc/init.d/network reload >/dev/null 2>&1
 
   echo -e "${GREEN}[$SCRIPT] Configuring dnsmasq...${NC}"
+  /etc/init.d/dnsmasq stop
   uci set dhcp.lan.dhcpv4="$DHCP_SERVER"
   uci set dhcp.lan.dhcpv6="$DHCP_SERVER"
   uci set dhcp.lan.ra="$DHCP_SERVER"
+  for i in 0 1; do
+    if [ -n "$(uci -q get dhcp.@dnsmasq[$i])" ]; then
+      uci -q set dhcp.@dnsmasq[$i].localuse="$LOCAL_USE"
+      uci -q set dhcp.@dnsmasq[$i].port="$DNS_PORT"
+    fi
+  done
   uci commit dhcp
   # Have to restart even if disabling to apply changes to transformer
-  /etc/init.d/dnsmasq restart
+  /etc/init.d/dnsmasq start
   if [ "$DNSMASQ" = "enable" ]; then
     /etc/init.d/dnsmasq enable
     echo -e "[$SCRIPT] dnsmasq enabled and restarted${NC}"
@@ -163,10 +185,13 @@ configure_dnmasq() {
     echo -e "${GREEN}[$SCRIPT] Re-allocating port 443 back to nginx...${NC}"
     sed -e  's/\(#*\)\(listen *443 ssl;\)/\2/' -i /etc/nginx/nginx.conf
   else
-    /etc/init.d/dnsmasq disable
-    /etc/init.d/dnsmasq stop
-    echo -e "[$SCRIPT] dnsmasq disabled and stopped${NC}"
-
+    if [ $AGH_DHCP = true ]; then
+      /etc/init.d/dnsmasq disable
+      /etc/init.d/dnsmasq stop
+      echo -e "[$SCRIPT] dnsmasq disabled and stopped${NC}"
+    else
+      echo -e "[$SCRIPT] dnsmasq DNS server disabled${NC}"
+    fi
     echo -e "${GREEN}[$SCRIPT] Freeing port 443...${NC}"
     sed -e 's/\( [^#]\)\(listen *443 ssl;\)/  #\2/' -i /etc/nginx/nginx.conf
   fi
@@ -395,7 +420,7 @@ if [ $SKIP_MEM_CHK = N -a $RAM_FREE -lt 40000 ];then
   echo -e "${RED}[$SCRIPT] Insufficient free RAM! You need to shut down unnecessary services to free memory${NC}"
   echo -e "${ORANGE}[$SCRIPT] (Re-run with the -s option to skip this check.)${NC}"
   echo -e "[$SCRIPT] Re-enabling dnsmasq...${NC}"
-  configure_dnmasq
+  configure_dnmasq enable
   echo -e "${RED}[$SCRIPT] Aborting...${NC}"
   exit 2
 fi
@@ -585,7 +610,7 @@ filters:
 whitelist_filters: []
 user_rules: []
 dhcp:
-  enabled: true
+  enabled: $AGH_DHCP
   interface_name: br-lan
   dhcpv4:
     gateway_ip: $GATEWAY
@@ -648,15 +673,25 @@ configure_dnmasq() {
   local DHCP_SERVER=""
   local PEER_DNS=""
   local LIST_ACTION=""
+  local LOCAL_USE=""
+  local DNS_PORT=""
 
   if [ "$1" = "enable" ]; then
     PEER_DNS="1"
     LIST_ACTION="del"
+    LOCAL_USE="1"
+    DNS_PORT="53"
     DHCP_SERVER="server"
   else
     PEER_DNS="0"
     LIST_ACTION="add"
-    DHCP_SERVER="disabled"
+    LOCAL_USE="0"
+    DNS_PORT="0"
+    if [ $AGH_DHCP = true ]; then
+      DHCP_SERVER="disabled"
+    else
+      DHCP_SERVER="server"
+    fi
   fi
 
   uci set network.wan.peerdns="$PEER_DNS"
@@ -673,14 +708,21 @@ configure_dnmasq() {
   uci commit network
   /etc/init.d/network reload >/dev/null 2>&1
 
+  /etc/init.d/dnsmasq stop
   uci set dhcp.lan.dhcpv4="$DHCP_SERVER"
   uci set dhcp.lan.dhcpv6="$DHCP_SERVER"
   uci set dhcp.lan.ra="$DHCP_SERVER"
+  for i in 0 1; do
+    if [ -n "$(uci -q get dhcp.@dnsmasq[$i])" ]; then
+      uci -q set dhcp.@dnsmasq[$i].localuse="$LOCAL_USE"
+      uci -q set dhcp.@dnsmasq[$i].port="$DNS_PORT"
+    fi
+  done
   uci commit dhcp
   # Have to restart even if disabling to apply changes to transformer
-  /etc/init.d/dnsmasq restart
+  /etc/init.d/dnsmasq start
   /etc/init.d/dnsmasq $1
-  [ "$1" = "disable" ] && /etc/init.d/dnsmasq stop
+  [ "$1" = "disable" -a $AGH_DHCP = true ] && /etc/init.d/dnsmasq stop
   adguardhome_log "dnsmasq ${1}d"
 }
 
@@ -706,6 +748,7 @@ else
   adguardhome_log "/etc/init.d/AdGuardHome not found? Ignoring $ACTION $NAME"
 fi
 PLUG_EOF
+  sed -e "1a\\\nDHCP_AGH=$AGH_DHCP" -i /etc/hotplug.d/mount/00-adguardhome
   chmod 755 /etc/hotplug.d/mount/00-adguardhome
 else
   echo -e "${GREEN}[$SCRIPT] Configuring rsync backup of AdGuard Home data...${NC}"
