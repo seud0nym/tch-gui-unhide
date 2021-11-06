@@ -34,11 +34,16 @@ WAN6_DNS="$(uci -q get network.wan6.dns)"
 if [ -z "$(uci -q get dhcp.main.server)" -a \( -n "$WAN_DNS" -o -n "$WAN6_DNS" \) ]; then
   echo [$SCRIPT]: Migrating custom DNS servers from network interfaces to dnsmasq
   for DNS_SERVER in $WAN6_DNS $WAN_DNS; do
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - uci add_list dhcp.main.server=$DNS_SERVER"
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $DNS_SERVER"
     uci add_list dhcp.main.server="$DNS_SERVER"
     SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
   done
   uci commit dhcp
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Removing network interface DNS servers"
+  uci -q delete network.wan.dns
+  uci -q delete network.wan6.dns
+  uci commit network
+  SRV_network=$(( $SRV_network + 2 ))
 else
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: No custom DNS servers on network interfaces or already migrated to dnsmasq"
 fi
