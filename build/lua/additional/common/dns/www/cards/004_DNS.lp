@@ -47,7 +47,8 @@ if session:hasAccess(modalPath) then
         for _,dnsmif in pairs(proxy.get(path.."interface.")) do
           if dnsmif.value == "lan" then
             noresolv = proxy.get(path.."noresolv")[1].value
-            if proxy.get(path.."disabled")[1].value == "0" then
+            local disabled = proxy.get(path.."disabled")
+            if not disabled or disabled[1].value == "0" then
               dnsmasq_enabled = "1"
               dnsmasq_status = "Custom DNS enabled"
               local addresses = proxy.getPN(path.."address.",true)
