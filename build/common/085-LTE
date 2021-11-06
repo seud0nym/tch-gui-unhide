@@ -31,7 +31,7 @@ sed \
   -e '/radio_interface_map/a\			result = utils.getContent(rpc_path .. "network.serving_system.nas_state")' \
   -e '/radio_interface_map/a\			registration_status = utils.nas_state_map[result.nas_state]' \
   -e '/radio_interface_map/a\			result = utils.getContent("rpc.mobiled.sms.info.unread_messages")' \
-  -e '/radio_interface_map/a\			if result.unread_messages and tonumber(result.unread_messages) > 0 then' \
+  -e '/radio_interface_map/a\			if result.unread_messages and (tonumber(result.unread_messages) or 0) > 0 then' \
   -e '/radio_interface_map/a\			  unread_sms = result.unread_messages' \
   -e '/radio_interface_map/a\			end' \
   -e '/local data =/a\	registration_status = registration_status or "",' \
