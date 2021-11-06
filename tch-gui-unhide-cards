@@ -120,6 +120,7 @@ apply_defaults() {
       cwmpconf.lp)          SEQ="090";;
       Devices.lp)           SEQ="006";;
       diagnostics.lp)       SEQ="009";;
+      DNS.lp)               SEQ="004";;
       eco.lp)               SEQ="020";;
       firewall.lp)          SEQ="008";;
       fon.lp)               SEQ="010";;
@@ -212,6 +213,7 @@ apply_suggested() {
       gateway.lp)           SEQ="001";;
       broadband.lp)         SEQ="002";;
       internet.lp)          SEQ="003";;
+      DNS.lp)               SEQ="004";;
       WireGuard.lp)         SEQ="004";;
       lte.lp)               SEQ="004";;
       nfc.lp)               SEQ="004";;
