@@ -19,7 +19,7 @@ AdGuard Home (or rather the database system that it uses) is _incompatible_ with
 The setup script implements 2 different solutions to this issue:
 1. The default installation target is a mounted USB device.
    - Obviously, it must be permanently mounted, or you will not have DNS resolution on your network.
-2. You can optionally specify the **-i** option to install AdGuard Home on internal storage.
+2. You can optionally specify the `-i` option to install AdGuard Home on internal storage.
    - The working directory will be set to tmpfs, but by default this means that *ALL* statistics, downloaded block lists and DHCP static and dynamic leases will be **lost** on reboot.
    - To work around this limitation, the script will install rsync to synchronize the AdGuard Home working directory back to permanent storage every minute and on shutdown. On boot, the permanent copy will be synced back to tmpfs before starting AdGuard Home. The worst case scenario should be that you could lose up to 1 minute of logs, leases and statistics.
 
@@ -32,16 +32,16 @@ The default dnsmasq service provides both DNS forwarding and DHCP. It allows dif
 
 The AdGuard Home DHCP Server listens on all interfaces (including the Guest networks) but can only serve addresses from a single pool. Therefore, devices connecting to the Guest Wi-Fi networks would be unable to acquire a valid IP address for their subnet.
 
-By default, this script disables dnsmasq to maximize free memory and enables the AdGuard Home DHCP server, therefore you *cannot* run Guest SSIDs. You can use the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script with **-G** option to remove the Guest Wi-FI SSIDs, networks and firewall rules and zones, if you are not using Guest Wi-Fi.
+By default, this script disables dnsmasq to maximize free memory and enables the AdGuard Home DHCP server, therefore you *cannot* run Guest SSIDs. You can use the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script with `-G` option to remove the Guest Wi-FI SSIDs, networks and firewall rules and zones, if you are not using Guest Wi-Fi.
 
-However, if you wish or need to use Guest Wi-Fi, or if you just want to continue using dnsmasq for DHCP, you can specify the **-d** installation option, as described below. However, continuing to run dnsmasq for DHCP comes at the cost of consuming additional RAM, which could be an issue on devices with less memory, such as the DJA0231.
+However, if you wish or need to use Guest Wi-Fi, or if you just want to continue using dnsmasq for DHCP, you can specify the `-d` installation option, as described below. However, continuing to run dnsmasq for DHCP comes at the cost of consuming additional RAM, which could be an issue on devices with less memory, such as the DJA0231.
 
 ## Free RAM Requirements
 The forum post starts by saying that devices require 100MB RAM free. A subsequent post indicates around 30MB.
 
 The actual amount will depend on a variety of factors, including the number of block lists defined.
 
-I haven't run it long enough to know if this is indicative over time, so you should monitor your free memory closely and try and shut down unnecessary services if required. The [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script has a **-M** option to shutdown and disable optional services to try and free up as much memory as possible.
+I haven't run it long enough to know if this is indicative over time, so you should monitor your free memory closely and try and shut down unnecessary services if required. The [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script has a `-M` option to shutdown and disable optional services to try and free up as much memory as possible.
 
 # Installation Pre-requisites
 - A working internet connection on your device
@@ -90,7 +90,7 @@ The following optional configuration parameters may be specified **after** the d
     - https://bcrypt.org/
     - https://www.appdevtools.com/bcrypt-generator
     - https://wtools.io/bcrypt-generator-online
-  - If you supply a password hash, you *must* also use the **-p** option to specify the matching password, so that AdGuard Home can be checked post-installation and any static leases currently defined in dnsmasq can be loaded.
+  - If you supply a password hash, you *must* also use the `-p` option to specify the matching password, so that AdGuard Home can be checked post-installation and any static leases currently defined in dnsmasq can be loaded.
 - -x c|g|i|u|x
   - Exclude features:
     - -xc
