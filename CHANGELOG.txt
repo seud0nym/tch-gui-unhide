@@ -1,3 +1,14 @@
+2021.11.07
+==========
+* tch-gui-unhide: Added "Voice on Failover" switch to Telephony Global tab and Mobile Auto-Failover tab to allow SIP Network interface to switch automatically between WAN and WWAN on failover/failback
+* tch-gui-unhide: Disabled changing of SIP Network interface when WAN Sensing enabled (because WAN Sensing maintains the SIP Network interface)
+* tch-gui-unhide: Moved DNS Servers from Internet Access to new card, and migrated custom DNS servers configured on network interfaces to dnsmasq, so that custom DNS servers are applied consistently across connection modes (including mobile connections #47)
+* tch-gui-unhide: WoL over Internet fix for FW 20.3.c not applied to new card helper introduced in v2021.09.27
+* tch-gui-unhide: Fixed SMS transformer mapping in FW 17.2
+* tch-gui-unhide: Fixed DDNS error detection in FW 17.2
+* tch-gui-unhide: Handled invalid SMS unread message count
+* de-telstra: -n option now sets custom DNS servers via dnsmasq rather than on WAN network interface
+
 2021.10.24
 ==========
 * tch-gui-unhide: Allow hostname to be changed via GUI

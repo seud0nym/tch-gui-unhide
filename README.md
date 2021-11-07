@@ -29,12 +29,14 @@ Skip any of these steps that you have already done.
 2. Execute: `./tch-gui-unhide -U`
     - You do not need to re-specify the parameters you initially used when installing, as they are persisted with the installation (but you can apply any new or changed options as you need).
 
-Read on for the long version...
+Alternatively, you can upgrade from within the GUI when a new upgrade becomes available.
+
+*Read on for the long version...*
 
 ## Why not just use https://github.com/Ansuel/tch-nginx-gui?
 When I first acquired root access to my DJA0231, I applied tch-nginx-gui because I had used it for some time on my Technicolor TG800vac, and found it very good. However, on the DJA0231, I encountered various problems after reboots, such as loss of customised SSID's and IP addresses, loss of root in one instance, the admin password got reset to Telstra default, and so on.
 
-So, I set out to enable whatever hidden features were included with the firmware by default, without making significant changes to the GUI code so as to maintain stability, and to try and make it almost as pretty as the tch-nginx-gui. Since then, it has been expanded to incorporate some features of the Ansuel GUI, but the original goal of stability is unchanged. No features are enabled if stability is compromised. The aim of this script is to make as few changes as possible to be as stable as possible, but also to unlock as many features as is practicable. Each download also only targets a specific firmware version, to try and ensure that the feature set matches the firmware capabilities and variations.
+So, I set out to enable whatever hidden features were included with the firmware by default, without making significant changes to the GUI code so as to maintain stability, and to try and make it almost as pretty as the tch-nginx-gui. Since then, it has been expanded to incorporate some features of the Ansuel GUI, and some additional custom features, but the original goal of stability is unchanged. No features are enabled if stability is compromised. The aim of this script is to make as few changes as possible to be as stable as possible, but also to unlock as many features as is practicable. Each download also only targets a specific firmware version, to try and ensure that the feature set matches the firmware capabilities and variations.
 
 ## What GUI features are unlocked?
 - Configuration export/import, and the export file name is changed from *config.bin* to *VARIANT-SERIAL-VERSION@yymmdd.bin* (i.e. it includes the hardware type, serial number, firmware version and the current date)
@@ -74,10 +76,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
     - Allow VLAN ID tagging
 - **Internet** allows:
     - Set connection parameters
-    - Specify DNS servers used by the device
 - Additional tabs and features on the **IP Extras** (now IP Routing) card/screen:
-    - Customise DNS by network interface
-    - Policy routing for mwan
     - Bridge grouping
     - DoS protection
 - Modified **System Extras** card to show:
@@ -96,6 +95,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 
 ### Additional (new) GUI Features
 - **Chart Cards** showing CPU utilization, RAM, and WAN Download/Upload Mb/s over the last minute
+- **DNS** card to manage custom DNS servers
 - **Gateway** card now has current device status for CPU usage, free RAM and temperature
 - **Broadband** card auto-updates and shows todays upload/download volume
 - **Broadband** screen has a new tab to show daily and monthly usage history
@@ -135,10 +135,12 @@ Some hidden screens included on the device are not enabled, mainly because they 
     - Port forwarding rules (moved from WAN Services)
     - All Packet Filter, NAT, Mangle and Raw rules
     - If NAT Helpers card is hidden, then an extra tab is added to the firewall GUI
+    - DNS Interception configuration
 - **Telephony** card shows call statistics (number of calls in, missed and out)
 - **Telephony** screen now has a Dial Plans tab to edit the dial plans, and you can optionally show the decrypted SIP passwords on the Profiles tab
 - **Mobile** screen now has a Network Operators tab to modify the allowed Mobile Country Code (MCC) and Mobile Network Code (MNC) combinations, plus shows the device capabilities
 - **Mobile** SMS tab now has the ability to send an SMS (not applicable if using the Telstra Backup SIM)
+- **Mobile** new Auto-Failover tab to configure global settings and failover timeouts
 - **Packages** card to manage opkg packages
 - **QoS** screen now has support for upload shapers (FW 18+ only) and shows classify/reclassify rules
 - **IP Routing** screen allows you to define custom DNS entries
@@ -153,11 +155,19 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - Protects against loss of root when doing a factory reset via the GUI, by preserving the password files and dropbear (SSH) configuration
 
 ### Custom DNS Servers
-- If a file called *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* is found in the directory from which the script is invoked, the contents will be added to the list of DNS Servers on the **Local Network** screen.
+There are 2 different sets of custom DNS Servers: those used by the device itself, and those sent to LAN clients via DHCP.
 
-    The contents of these file are simply the hostname and IP address, which are separated by a space. Multiple servers may be added, each on its own line.
+#### Device DNS Servers
+Device custom DNS Servers can be configured on the the DNS card. The DNS servers will be used whenever the device handles a DNS request. For example, by default these devices are configured to send the device IP address to LAN clients with the DHCP request. LAN clients DNS requests are then sent to the DNS servers shows on the DNS card.
 
-    For example, my *ipv4-DNS-Servers* and *ipv6-DNS-Servers* files consists of my main and backup [Pi-hole](https://pi-hole.net/) servers:
+#### LAN Client DNS Servers
+By default, these devices are configured to send their own IP address to LAN clients via DHCP for DNS resolution by the LAN client. You can also select alternate public DNS servers sent via DHCP from lists on the **Local Network** screen.
+
+If a file called *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* is found in the directory from which the `tch-gui-unhide` script is invoked, the contents will be added to the lists of DNS Servers on the **Local Network** screen.
+
+The contents of these file are simply the hostname and IP address, which are separated by a space. Multiple servers may be added, each on its own line.
+
+For example, my *ipv4-DNS-Servers* and *ipv6-DNS-Servers* files consists of my main and backup [Pi-hole](https://pi-hole.net/) servers:
 ```
     Pi-hole 192.168.0.168
     Pi-hole-VM 192.168.0.192
@@ -166,6 +176,8 @@ Some hidden screens included on the device are not enabled, mainly because they 
     Pi-hole fe80::aaaa:bbbb:cccc:dddd
     Pi-hole-VM fe80::1:22:3300:444
 ```
+
+Once the `tch-gui-unhide` script has been run, these servers will appear in the lists on the **Local Network** screen.
 
 ### Firmware Versions 0468 and Later
 *PLEASE NOTE: Since release 2020.11.20, Custom DNS Servers (above) can now be specified for all supported releases, including FW 17.2.0284.*
@@ -177,8 +189,6 @@ Some hidden screens included on the device are not enabled, mainly because they 
 All configuration changes are applied using the *uci* command interface to update the configuration files.
 
 GUI changes are implemented by making edits on the existing files, or adding new/replacement files.
-
-No new executables are added to the system outside of the GUI changes.
 
 ## How do I run it?
 Basically, the steps are:
