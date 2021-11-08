@@ -60,6 +60,9 @@ sed \
   -i /usr/share/transformer/commitapply/uci_system.ca
 echo [$SCRIPT]: Allow additional NTP servers to be added
 sed \
+  -e 's/NTP servers/NTP Servers/' \
+  -e 's/Server name/Server Name/' \
+  -e 's/Add new/Add/' \
   -e "/createMsg/a\  canAdd = true," \
   -e "s/maxEntries = 3,/maxEntries = 6,/" \
   -i /www/docroot/modals/gateway-modal.lp
