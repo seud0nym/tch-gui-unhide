@@ -312,7 +312,7 @@ local sleases_options = {
   tableid = "sleases",
   basepath = "uci.dhcp.host.@.",
   createMsg = T"Add static lease",
-  objectName  = post_helper.getRandomKey(),
+  objectName = post_helper.getRandomKey(),
   addNamedObject = true,
 }
 
@@ -347,13 +347,13 @@ local sleases_data,sleases_helpmsg = post_helper.handleTableQuery(sleases_column
 local inUseFlag = false
 if ngx.var.request_method == "POST" then
   local post_data = ngx.req.get_post_args()
-  if ( post_data.action == "TABLE-MODIFY" or  post_data.action == "TABLE-EDIT"  or  post_data.action == "TABLE-ADD") then
+  if (post_data.action == "TABLE-MODIFY" or post_data.action == "TABLE-EDIT" or post_data.action == "TABLE-ADD") then
     local text_mac_index = tonumber(post_data.index)
     local text_mac
-    if  post_data.action == "TABLE-ADD" then
+    if post_data.action == "TABLE-ADD" then
       text_mac = post_data["sleases_mac"]
     else
-      text_mac = sleases_data[text_mac_index][2]
+      text_mac = sleases_data[text_mac_index][1]
     end
     local flag = true
     for _,j in ipairs(hosts_mac) do
@@ -362,8 +362,8 @@ if ngx.var.request_method == "POST" then
         break
       end
     end
-    if flag   then
-      sleases_columns[2] = {
+    if flag then
+      sleases_columns[1] = {
         header = T"MAC Address",
         name = "sleases_mac",
         param = "mac",
@@ -372,7 +372,7 @@ if ngx.var.request_method == "POST" then
         unique = true,
       }
     end
-    if post_data.action == "TABLE-MODIFY" or  post_data.action == "TABLE-ADD" then
+    if post_data.action == "TABLE-MODIFY" or post_data.action == "TABLE-ADD" then
       local slease_ip = post_data.sleases_ip
       local arranged_data = content_helper.convertResultToObject("sys.hosts.host.",syshosts_data)
       if arranged_data then
@@ -403,7 +403,7 @@ local function getDomainNamePath()
   for _,dnsmidx in pairs(proxy.getPN("uci.dhcp.dnsmasq.",true)) do
     for _,dnsmif in pairs(proxy.get(dnsmidx.path.."interface.")) do
       if dnsmif.value == "lan" then
-        return dnsmidx.path.."domain",dnsmidx.path.."local"
+        return dnsmidx.path
       end
     end
   end
@@ -416,13 +416,14 @@ local mapParams = {
   dhcpv4State = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcpv4",
   dhcpv6State = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcpv6",
   slaacState = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".ra",
-  localdomain = getDomainNamePath(),
+  localdomain = getDomainNamePath().."domain",
   localgw = "uci.network.interface.@"..curintf..".gateway",
   dhcpIgnore = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".ignore",
   leaseTime = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".leasetime",
   localdevIP = "uci.network.interface.@"..curintf..".ipaddr",
   localdevmask = "uci.network.interface.@"..curintf..".netmask",
   localIPv6 = "uci.network.interface.@"..curintf..".ipv6",
+  dhcplog = getDomainNamePath().."logdhcp",
 }
 
 local dnsIndex = 0
@@ -464,7 +465,7 @@ local function validateDNSv6(value,object,key)
     return nil,"Primary should not be empty"
   end
 
-  if object["dns_v6_pri"] == object["dns_v6_sec"]  and object["dns_v6_pri"] ~= "" then
+  if object["dns_v6_pri"] == object["dns_v6_sec"] and object["dns_v6_pri"] ~= "" then
     return nil,"Primary and secondary DNS servers should not be same"
   end
 
@@ -478,7 +479,7 @@ local function validateDNSv6(value,object,key)
 
   local dns_ip = value:gsub("-",":")
 
-  if dns_ip == "::1" then   -- Localhost as DNS server
+  if dns_ip == "::1" then -- Localhost as DNS server
     if object["dns_v6_sec"] == "" then
      -- only localhost
       if mapParams["dns_v6_pri"] ~= nil then
@@ -557,7 +558,7 @@ local function validateDNS(value,object,key)
   end
 
   if dns_str == object["localdevIP"] then
-    dns_str = ""    -- only the localhost as the dns server
+    dns_str = "" -- only the localhost as the dns server
   end
 
   if dnsIndex == 0 then
@@ -565,7 +566,7 @@ local function validateDNS(value,object,key)
     if dns_str ~= "" then
       local index = proxy.add(baseDHCPOptions)
       mapParams[key] = baseDHCPOptions.."@"..index..".value"
-      object[key] = "6,"..dns_str    -- DHCP option for DNS server is option 6
+      object[key] = "6,"..dns_str -- DHCP option for DNS server is option 6
       return true
     else
       -- do nothing
@@ -574,7 +575,7 @@ local function validateDNS(value,object,key)
   else
     if dns_str ~= "" then
       mapParams[key] = baseDHCPOptions.."@"..dnsIndex..".value"
-      object[key] = "6,"..dns_str    -- DHCP option for DNS server is option 6
+      object[key] = "6,"..dns_str -- DHCP option for DNS server is option 6
       return true
     else
       proxy.del(baseDHCPOptions.."@"..dnsIndex..".")
@@ -599,7 +600,7 @@ local function validateNTP(value,object,key)
         ntpIndex = proxy.add(baseDHCPOptions)
       end
       mapParams[key] = baseDHCPOptions.."@"..ntpIndex..".value"
-      object[key] = "42,"..object["localdevIP"]    -- DHCP option for NTP server is option 42
+      object[key] = "42,"..object["localdevIP"] -- DHCP option for NTP server is option 42
     end
   end
   return true
@@ -683,7 +684,7 @@ local function validateLimit(value,object)
       end
 
       local validatorNumberInRange = gVNIR(1,limit)
-      local limitvalue =  validatorNumberInRange(numips)
+      local limitvalue = validatorNumberInRange(numips)
       if not limitvalue or dhcpend <= network or dhcpend >= ipmax then
           return nil,T"DHCP End Address is not valid in Subnet Range"
       end
@@ -837,6 +838,7 @@ local mapValid = {
   dhcpIgnore = validatedhcpIgnore,
   dns_v6_pri = validateDNSv6,
   dns_v6_sec = validateDNSv6,
+  dhcplog = vB,
 }
 
 local function split(x,sep)
@@ -867,7 +869,7 @@ end
 
 -- Check if there is a custom DNS server,if so,then retrieve its index
 -- we'll update the parameters list to include it for retrieval
-content_helper.addListContent(dhcp,{ options = baseDHCPOptions } )
+content_helper.addListContent(dhcp,{ options = baseDHCPOptions })
 for i,v in ipairs(dhcp.options) do
   if v:find("^6,") == 1 then
     dnsIndex = i
@@ -879,7 +881,7 @@ for i,v in ipairs(dhcp.options) do
   end
 end
 
-content_helper.addListContent(dhcp_dns,{ dnses = baseDHCPDNS } )
+content_helper.addListContent(dhcp_dns,{ dnses = baseDHCPDNS })
 if dhcp_dns.dnses[1] ~= nil then
   mapParams["dns_v6_pri"] = baseDHCPDNS.."@".."1.value"
 end
@@ -948,17 +950,21 @@ end
 if helpmsg["dhcpLimit"] then
     local msg = match(helpmsg["dhcpLimit"],'^%[dhcpStart%] (.*)')
     if msg then
-        helpmsg["dhcpLimit"] = nil
-        helpmsg["dhcpStart"] = msg
+      helpmsg["dhcpLimit"] = nil
+      helpmsg["dhcpStart"] = msg
     end
 end
 
 if content["dhcpv4State"] == "" then
-    content["dhcpv4State"] = "server"
+  content["dhcpv4State"] = "server"
 end
 if content["localIPv6"] == "" then
-    content["localIPv6"] = "1"
+  content["localIPv6"] = "1"
 end
+if content["dhcplog"] == "" then
+  content["dhcplog"] = "0"
+end
+
 if not match(content["leaseTime"],"^0*([1-9]%d*[smhdw])$") then
   content["leaseTime"] = content["leaseTime"].."s"
 end
@@ -999,9 +1005,9 @@ if ngx.var.request_method == "POST" then
 
   if curintf == "lan" and content["localdevIP"]~= gwIP and not next(helpmsg) then ngx.print('\
     <script type="text/javascript">\
-      window.location="http://');  ngx.print(content["localdevIP"]); ngx.print('";\
+      window.location="http://'); ngx.print(content["localdevIP"]); ngx.print('";\
     </script>\
-    ');  session:logout()
+    '); session:logout()
   end
 
   local content1 = ngx.req.get_post_args()
@@ -1014,7 +1020,7 @@ if ngx.var.request_method == "POST" then
   end
 
   if curintf == "lan" then
-    local _,local_path = getDomainNamePath()
+    local local_path = getDomainNamePath().."local"
     local localValue = untaint(proxy.get(local_path)[1].value)
     local localName = format("/%s/",content["localdomain"])
     local domainName = session:retrieve("old_domain")
@@ -1066,7 +1072,7 @@ local uri = ngx.var.uri
 ngx.print(ui_helper.createHeader(T"Local Network",true,false));
 ngx.print('\
    <div class="modal-body update">\
-     <form class="form-horizontal" method="post" action="');  ngx.print( ngx.var.request_uri ); ngx.print('">\
+     <form class="form-horizontal" method="post" action="'); ngx.print(ngx.var.request_uri); ngx.print('">\
      ');
      if #lan_intfs> 1 and (not bridged.isBridgedMode()) then
        ngx.print('\
@@ -1094,10 +1100,10 @@ ngx.print('\
       ngx.print(ui_helper.createMessages(message_helper.popMessages()))
       ngx.print('\
         <fieldset>\
-          ');  if not bridged.isBridgedMode() then   ngx.print('\
+          '); if not bridged.isBridgedMode() then ngx.print('\
           <div class="span4">\
-          ');  end   ngx.print('\
-            <legend>');  ngx.print( T"Global Information" ); ngx.print('</legend>\
+          '); end ngx.print('\
+            <legend>'); ngx.print(T"Global Information"); ngx.print('</legend>\
             ');
             local advanced = {
               group = {
@@ -1167,7 +1173,7 @@ ngx.print('\
               ngx.print('\
             </div>\
             <div class="span4">\
-              <legend>');  ngx.print( T"DHCP Settings" ); ngx.print('</legend>\
+              <legend>'); ngx.print(T"DHCP Settings"); ngx.print('</legend>\
               ');
               if adguard then
                 ngx.print(format(T'Configure DHCP through <a style="color:inherit;text-decoration:none;" target="_blank" href="http://%s:8008"><b>AdGuard Home</b></a>',content["localdevIP"]))
@@ -1192,6 +1198,7 @@ ngx.print('\
                       off = ""
                     }
                   }
+                  ngx.print(ui_helper.createSwitch(T"Log DHCP Requests","dhcplog",content["dhcplog"]))
                   ngx.print(ui_helper.createSwitch(T"Device as NTP Server","ntpServer",content["ntpServer"],switchNTP))
                   if not dns_int then
                     ngx.print(
@@ -1202,6 +1209,8 @@ ngx.print('\
                     if content["dnsServer"] == dns_int_dest_ip and not helpmsg["dnsServer"] and content["dns_v4_sec"] == "" and not helpmsg["dns_v4_sec"] then
                       ngx.print(ui_helper.createLabel(T"IPv4 Primary DNS<span class='icon-question-sign' title='DNS Interception enabled'></span>",content["dnsServer"],advanced,helpmsg["dnsServer"]))
                       ngx.print(ui_helper.createLabel(T"IPv4 Secondary DNS<span class='icon-question-sign' title='DNS Interception enabled'></span>",content["dns_v4_sec"],advanced,helpmsg["dns_v4_sec"]))
+                      ngx.print(ui_helper.createSimpleInputHidden("dnsServer",content["dnsServer"]))
+                      ngx.print(ui_helper.createSimpleInputHidden("ipv4_dns_sec",content["ipv4_dns_sec"]))
                     else
                       ngx.print(ui_helper.createInputSelect(T"IPv4 Primary DNS","dnsServer",dns_list[1],content["dnsServer"],stdattributes,helpmsg["dnsServer"]))
                       ngx.print(ui_helper.createInputSelect(T"IPv4 Secondary DNS","ipv4_dns_sec",dns_list[1],content["dns_v4_sec"],stdattributes,helpmsg["dns_v4_sec"]))
@@ -1231,7 +1240,7 @@ ngx.print('\
                 ngx.print('\
               </fieldset>\
               <fieldset>\
-                  <legend>');  ngx.print( T"Static leases" ); ngx.print('</legend>\
+                  <legend>'); ngx.print(T"Static leases"); ngx.print('</legend>\
                   ');
                     local confilictipchange_alert = {
                       alert = {
@@ -1248,7 +1257,7 @@ ngx.print('\
               end
               ngx.print('\
               <fieldset>\
-                <legend>');  ngx.print( T"Network mode" ); ngx.print('</legend>\
+                <legend>'); ngx.print(T"Network mode"); ngx.print('</legend>\
                 ');
                 local html = {}
                 local rebooting = {
@@ -1268,11 +1277,11 @@ ngx.print('\
                         id = "btn-bridged"
                     }
                 }
-                html[#html + 1] = ui_helper.createButton("Bridged Mode","Bridged Mode","icon-cog",bridged_button)
-                html[#html + 1] = string.format('<div class="control-group controls">')
-                html[#html + 1] = ui_helper.createAlertBlock(T"Switching to <strong>Bridged Mode</strong> and restarting,please wait...",rebooting)
-                html[#html + 1] = ui_helper.createAlertBlock(T"Are you sure you want to switch to <strong>Bridged Mode</strong>?",confirming)
-                html[#html + 1] = string.format([[
+                html[#html+1] = ui_helper.createButton("Bridged Mode","Bridged Mode","icon-cog",bridged_button)
+                html[#html+1] = string.format('<div class="control-group controls">')
+                html[#html+1] = ui_helper.createAlertBlock(T"Switching to <strong>Bridged Mode</strong> and restarting,please wait...",rebooting)
+                html[#html+1] = ui_helper.createAlertBlock(T"Are you sure you want to switch to <strong>Bridged Mode</strong>?",confirming)
+                html[#html+1] = string.format([[
                   <div id="bridged-changes" class="hide">
                     <div id="bridged-confirm" class="btn btn-primary" data-dismiss="modal">%s</div>
                     <div id="bridged-cancel" class="btn">%s</div>
@@ -1312,13 +1321,13 @@ ngx.print('\
                 end
               }
               local ipv4DNSvalid = {
-                wanDnsParam =  aIPV,
+                wanDnsParam = aIPV,
               }
               local ipv4DNSdata,ipv4DNShelpmsg = post_helper.handleTableQuery(ipv4DNScolumns,ipv4DNSoptions,nil,nil,ipv4DNSvalid)
-              html[#html + 1] = "<legend>LAN Domain Name Server Configuration</legend>"
-              html[#html + 1] = ui_helper.createTable(ipv4DNScolumns,ipv4DNSdata,ipv4DNSoptions,nil,ipv4DNShelpmsg)
-              html[#html + 1] = "<legend>Network Mode</legend>"
-              html[#html + 1] = ui_helper.createAlertBlock(T[[Note: your Device is in Bridged Mode. If you want the Device to run in Routed Mode again,you can revert without factory reset <a href="javascript:tch.loadModal('/modals/broadband-modal.lp')">here</a>]],infomessage)
+              html[#html+1] = "<legend>LAN Domain Name Server Configuration</legend>"
+              html[#html+1] = ui_helper.createTable(ipv4DNScolumns,ipv4DNSdata,ipv4DNSoptions,nil,ipv4DNShelpmsg)
+              html[#html+1] = "<legend>Network Mode</legend>"
+              html[#html+1] = ui_helper.createAlertBlock(T[[Note: your Device is in Bridged Mode. If you want the Device to run in Routed Mode again,you can revert without factory reset <a href="javascript:tch.loadModal('/modals/broadband-modal.lp')">here</a>]],infomessage)
               ngx.print(html)
             end
             ngx.print('\
@@ -1386,18 +1395,18 @@ $("[name =\'sleases_mac\']").change(function () {\
 });\
 ');  if dhcpDefaultExist then ngx.print('\
 $("#btn-dhcp-reset").click(function(){\
-  ');  for k,v in pairs(dhcpDefaultExist) do   ngx.print('\
-    $("#');  ngx.print(k); ngx.print('").val("');  ngx.print(v); ngx.print('");\
-  ');  end  ngx.print('\
+  '); for k,v in pairs(dhcpDefaultExist) do ngx.print('\
+    $("#'); ngx.print(k); ngx.print('").val("'); ngx.print(v); ngx.print('");\
+  '); end ngx.print('\
   $("#localIPv6").prev().removeClass("switcherOn").closest(".switch").removeClass("switchOn");\
   $("#dhcpState").prev().addClass("switcherOn").closest(".switch").addClass("switchOn");\
   $("#modal-changes").show();\
   $("#modal-no-change").hide();\
 });\
 ');  end  ngx.print('\
-  ');  if inUseFlag == true then  ngx.print('\
+  '); if inUseFlag == true then ngx.print('\
   $("#confilictipchange-msg").show();\
-  ');  end   ngx.print('\
+  '); end ngx.print('\
 </script>\
 ');  ngx.print(ui_helper.createFooter())   ngx.print('\
 <script src="/js/srp-min.js"></script>\

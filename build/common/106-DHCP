@@ -1,0 +1,5 @@
+echo [$SCRIPT]: Allow DHCP logging
+sed \
+  -e 's/"localise_queries", "logqueries"/"localise_queries", "logdhcp", "logqueries"/' \
+  -i /usr/share/transformer/mappings/uci/dhcp.map
+
