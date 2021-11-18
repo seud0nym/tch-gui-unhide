@@ -1211,7 +1211,7 @@ echo [$SCRIPT]: Applying required service changes...
 [ "$PS_NOW" = "0" -o "$__PRNTR" = "0" ] && /etc/init.d/cupsd stop > /dev/null 2>&1
 [ $SRV_bulkdata -gt 0 ] && { /etc/init.d/bulkdata disable; /etc/init.d/bulkdata stop; } > /dev/null 2>&1
 [ $SRV_cwmp -gt 0 -a -e /etc/init.d/cwmpd ] && { /etc/init.d/cwmpd disable;/etc/init.d/cwmpd stop; } > /dev/null 2>&1
-[ $SRV_dhcp -gt 0 ] && /etc/init.d/dnsmasq reload > /dev/null 2>&1
+[ $SRV_dhcp -gt 0 -a ! -e /etc/init.d/AdGuardHome ] && /etc/init.d/dnsmasq reload > /dev/null 2>&1
 [ $SRV_dlna -gt 0 ] && /etc/init.d/dlnad restart > /dev/null 2>&1
 [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear reload > /dev/null 2>&1
 [ $SRV_dumaos -gt 0 ] && { /etc/init.d/dumaos enable; /etc/init.d/dumaos restart; } > /dev/null 2>&1
