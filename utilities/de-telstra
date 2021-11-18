@@ -205,14 +205,15 @@ SRV_mobiled=0
 SRV_monitor=0
 SRV_mountd=0
 SRV_network=0
+SRV_nginx=0
 SRV_ntp=0
 SRV_qos=0
 SRV_samba=0
 SRV_supervision=0
 SRV_system=0
-SRV_watchdog=0
-SRV_nginx=0
 SRV_upnp=0
+SRV_wansensing=0
+SRV_watchdog=0
 
 if [ -e /etc/init.d/dumaos ]; then
   SRV_dumaos=0
@@ -349,7 +350,8 @@ else
   echo [$SCRIPT]: - CWMP already Disabled
 fi
 
-if [ -z "$(uci -q get autoreset.vsparc_enabled)" -a -z "$(uci -q get autoreset.thor_enabled)" -a -z "$(uci -q get wifi_doctor_agent.acs)" -a -z "$(uci -q get wifi_doctor_agent.config)" -a -z "$(uci -q get wifi_doctor_agent.as_config)" ]; then
+ws_worker=$(uci -q get wansensing.@worker[0].enable)
+if [ -z "$(uci -q get autoreset.vsparc_enabled)" -a -z "$(uci -q get autoreset.thor_enabled)" -a -z "$(uci -q get wifi_doctor_agent.acs)" -a -z "$(uci -q get wifi_doctor_agent.config)" -a -z "$(uci -q get wifi_doctor_agent.as_config)" -a \( -z "$ws_worker" -o "$ws_worker" = "0" \) ]; then
   echo [$SCRIPT]: - Telstra monitoring already Disabled
 else
   if [ "$__MONITORING" = 'n' ]; then
@@ -366,7 +368,12 @@ else
     uci -q delete wifi_doctor_agent.as_config
     uci commit wifi_doctor_agent
     SRV_monitor=$(( $SRV_monitor + 3 ))
-    PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE libbcmairiq conf-airiq autoreset-tch tls-thor-map wifi-doctor-agent conf-wifi-doctor-agent"
+    if [ "$ws_worker" = "1" ]; then
+      uci set wansensing.@worker[0].enable='0'
+      uci commit wansensing
+      SRV_wansensing=$(( $SRV_wansensing + 1 ))
+    fi
+    PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE libbcmairiq conf-airiq autoreset-tch tls-thor-map wifi-doctor-agent conf-wifi-doctor-agent tr143"
   else
     echo [$SCRIPT]: - OVERRIDE! Telstra monitoring NOT Disabled
   fi
@@ -1234,6 +1241,7 @@ echo [$SCRIPT]: Applying required service changes...
 [ $SRV_hostapd -gt 0 ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1
 [ $SRV_network -gt 0 ] && /etc/init.d/network reload > /dev/null 2>&1
 [ $SRV_fw -gt 0 ] && /etc/init.d/firewall reload > /dev/null 2>&1
+[ $SRV_wansensing -gt 0 ] && /etc/init.d/wansensing restart > /dev/null 2>&1
 [ $SRV_mountd -gt 0 ] && {
   mnt_path=$(uci get mountd.mountd.path);
   for f in $(find ${mnt_path} -type l);do
