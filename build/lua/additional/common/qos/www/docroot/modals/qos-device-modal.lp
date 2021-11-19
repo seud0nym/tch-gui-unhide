@@ -110,8 +110,15 @@ local device_options = {
   onAdd = onAddDevice,
 }
 
+local function validateDeviceName(value, object, key)
+  if not value:match("^[%w]+$") then
+    return nil, "must not be empty and must only contain alphanumeric characters"
+  end
+  return true
+end
+
 local device_valid = {
-  device = vNES,
+  device = validateDeviceName,
   classgroup = gVIES(options_group),
   enable = vB
 }

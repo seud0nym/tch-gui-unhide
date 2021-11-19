@@ -15,7 +15,6 @@ local uci_qos_prefix = "uci.qos."
 local uci_label_path = uci_qos_prefix .. "label."
 
 local gVIES = post_helper.getValidateInEnumSelect
-local vNES = post_helper.validateNonEmptyString
 
 local options_dscp_select = {
   {"", T""},
@@ -126,8 +125,15 @@ local label_filter = function(data)
   return true
 end
 
+local function validateLabelName(value, object, key)
+  if not value:match("^[%w]+$") then
+    return nil, "must not be empty and must only contain alphanumeric characters"
+  end
+  return true
+end
+
 local label_valid = {
-  qosLabel = vNES,
+  qosLabel = validateLabelName,
   qosLabelTrafficid = gVIES(options_trafficid),
   qosLabelDSCP = gVIES(options_dscp_select),
 }
