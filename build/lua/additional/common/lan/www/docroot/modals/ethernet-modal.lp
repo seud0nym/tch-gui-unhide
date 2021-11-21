@@ -218,6 +218,13 @@ if ngx.var.request_method == "POST" and ngx.req.get_post_args().iPv6StateOnlyCha
   ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   ngx.exit(ngx.HTTP_OK)
 end
+
+local tags,tag = { {"",T""}, }
+for _,tag in pairs(proxy.getPN("uci.dhcp.tag.",true)) do
+  local name = match(tag.path, "uci%.dhcp%.tag%.@([^%.]+)%.")
+  tags[#tags+1] = { name, T(name) }
+end
+
 -- Static Leases
 local sleases_columns = {
   {
@@ -226,23 +233,30 @@ local sleases_columns = {
     param = "mac",
     type = "select",
     values = hosts_mac,
-    attr = { input = { class="span2",maxlength="17",id= "lease_mac" },autocomplete=hosts_mac },
+    attr = { input = { class="span2",maxlength="17",id="lease_mac" },autocomplete=hosts_mac },
     unique = true,
   },
   {
-    header = T"IP",
+    header = T"IP Address",
     name = "sleases_ip",
     param = "ip",
     type = "text",
-    attr = { input = { class="span2",maxlength="15"},autocomplete=hosts_ac },
+    attr = { input = { class="span2",maxlength="15" },autocomplete=hosts_ac },
     unique = true,
   },
   {
-    header = T"Hostname" ,
+    header = T"Host Name" ,
     name = "sleases_name",
     param = "name",
     type = "text",
     attr = { input = { class="span2" } },
+  },
+  {
+    header = T"Custom DHCP Options Tag",
+    name = "sleases_tag",
+    param = "tag",
+    type = "select",
+    values = tags,
   },
   {
     header = "",
@@ -311,13 +325,15 @@ local sleases_valid = {
 local sleases_options = {
   tableid = "sleases",
   basepath = "uci.dhcp.host.@.",
-  createMsg = T"Add static lease",
+  createMsg = T"Add Static Lease",
   objectName = post_helper.getRandomKey(),
   addNamedObject = true,
 }
 
+local used_tags = {}
 local syshosts_data = proxy.get("sys.hosts.host.")
 local sleases_filter = function(data)
+  used_tags[untaint(data['tag'])] = true
   if data['owner'] == "portforward" then
     local path
     if syshosts_data then
@@ -344,42 +360,140 @@ end
 
 local sleases_data,sleases_helpmsg = post_helper.handleTableQuery(sleases_columns,sleases_options,sleases_filter,nil,sleases_valid)
 
+-- Tags
+local tags_columns = {
+  {
+    header = T"Tag",
+    name = "tags_name",
+    param = "paramindex",
+    type = "text",
+    attr = { input = { class="span1" } },
+    unique = true,
+  },
+  {
+    header = T"IPv4 Primary DNS",
+    name = "tags_dns1",
+    type = "select",
+    values = dns_list[1],
+    attr = { input = { class="span2" } },
+  },
+  {
+    header = T"IPv4 Secondary DNS",
+    name = "tags_dns2",
+    type = "select",
+    values = dns_list[1],
+    attr = { input = { class="span2" } },
+  },
+  {
+    header = T"",
+    name = "dhcp_option",
+    param = "dhcp_option",
+    type = "hidden",
+  },
+}
+
+local tags_filter = function(data)
+  local k,v
+  for k,v in pairs(data) do
+    if match(k,"^dhcp_option.@") and match(v,"^6,") then
+      data.dhcp_option = v
+    end
+  end
+  if used_tags[untaint(data.paramindex)] then
+    return { canDelete = false }
+  end
+  return true
+end
+
+local tags_valid = {
+  tags_name = function(value, object, key)
+    if not value:match("^[%w]+$") then
+      return nil, "must not be empty and must only contain alphanumeric characters"
+    end
+    return true
+  end,
+  tags_dns1 = gAV(vNES,gVIES(dns_list[1])),
+  tags_dns2 = gVIES(dns_list[1]),
+}
+
+local tags_options = {
+  tableid = "tags",
+  basepath = "uci.dhcp.tag.@.",
+  createMsg = T"Add Tag",
+  addNamedObject = true,
+  canEdit = false,
+  onAdd = function(index,content)
+    local value = ""
+    if content.tags_dns1 ~= "" then
+      value = "6,"..content.tags_dns1
+      if content.tags_dns2 ~= "" then
+        value = value..","..content.tags_dns2
+      end
+    end
+      if value ~= "" then
+      local key,errmsg = proxy.add("uci.dhcp.tag.@"..index..".dhcp_option.")
+      if errmsg then
+        message_helper.pushMessage(T(string.format("Failed to add DHCP option to Tag %s: %s",index,errmsg)),"error")
+      else
+        local success,errors = proxy.set("uci.dhcp.tag.@"..index..".dhcp_option.@"..key..".value",value)
+        if success then
+          proxy.apply()
+        else
+          local err
+          for _,err in ipairs(errors) do
+            message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)), "error")
+          end
+        end
+      end
+    end
+  end,
+}
+
+local tags_data,tags_helpmsg = post_helper.handleTableQuery(tags_columns,tags_options,tags_filter,nil,tags_valid)
+local i,row
+for i,row in pairs(tags_data) do
+  tags_data[i][2] = match(row[4],"^6,([^,]+)") or ""
+  tags_data[i][3] = match(row[4],"^6,[^,]+,(.+)") or ""
+end
+
 local inUseFlag = false
 if ngx.var.request_method == "POST" then
   local post_data = ngx.req.get_post_args()
-  if (post_data.action == "TABLE-MODIFY" or post_data.action == "TABLE-EDIT" or post_data.action == "TABLE-ADD") then
-    local text_mac_index = tonumber(post_data.index)
-    local text_mac
-    if post_data.action == "TABLE-ADD" then
-      text_mac = post_data["sleases_mac"]
-    else
-      text_mac = sleases_data[text_mac_index][1]
-    end
-    local flag = true
-    for _,j in ipairs(hosts_mac) do
-      if text_mac == j[1] then
-        flag = false
-        break
+  if post_data.tableid == "sleases" then
+    if (post_data.action == "TABLE-MODIFY" or post_data.action == "TABLE-EDIT" or post_data.action == "TABLE-ADD") then
+      local text_mac_index = tonumber(post_data.index)
+      local text_mac
+      if post_data.action == "TABLE-ADD" then
+        text_mac = post_data["sleases_mac"]
+      else
+        text_mac = sleases_data[text_mac_index][1]
       end
-    end
-    if flag then
-      sleases_columns[1] = {
-        header = T"MAC Address",
-        name = "sleases_mac",
-        param = "mac",
-        type = "text",
-        attr = { input = { class="span2",maxlength="17",id= "lease_mac",value = text_mac }},
-        unique = true,
-      }
-    end
-    if post_data.action == "TABLE-MODIFY" or post_data.action == "TABLE-ADD" then
-      local slease_ip = post_data.sleases_ip
-      local arranged_data = content_helper.convertResultToObject("sys.hosts.host.",syshosts_data)
-      if arranged_data then
-        for _,v in pairs(arranged_data) do
-          if v.DhcpLeaseTime ~= "" and v.IPAddress == slease_ip then
-            inUseFlag = true
-            break
+      local flag = true
+      for _,j in ipairs(hosts_mac) do
+        if text_mac == j[1] then
+          flag = false
+          break
+        end
+      end
+      if flag then
+        sleases_columns[1] = {
+          header = T"MAC Address",
+          name = "sleases_mac",
+          param = "mac",
+          type = "text",
+          attr = { input = { class="span2",maxlength="17",id= "lease_mac",value = text_mac }},
+          unique = true,
+        }
+      end
+      if post_data.action == "TABLE-MODIFY" or post_data.action == "TABLE-ADD" then
+        local slease_ip = post_data.sleases_ip
+        local arranged_data = content_helper.convertResultToObject("sys.hosts.host.",syshosts_data)
+        if arranged_data then
+          for _,v in pairs(arranged_data) do
+            if v.DhcpLeaseTime ~= "" and v.IPAddress == slease_ip then
+              inUseFlag = true
+              break
+            end
           end
         end
       end
@@ -1240,7 +1354,7 @@ ngx.print('\
                 ngx.print('\
               </fieldset>\
               <fieldset>\
-                  <legend>'); ngx.print(T"Static leases"); ngx.print('</legend>\
+                  <legend>'); ngx.print(T"Static Leases"); ngx.print('</legend>\
                   ');
                     local confilictipchange_alert = {
                       alert = {
@@ -1253,11 +1367,18 @@ ngx.print('\
                       ui_helper.createTable(sleases_columns,sleases_data,sleases_options,nil,sleases_helpmsg))
                     ngx.print('\
               </fieldset>\
+              <fieldset>\
+                  <legend>'); ngx.print(T"Custom DHCP Options"); ngx.print('</legend>\
+                  ');
+                    ngx.print(
+                      ui_helper.createTable(tags_columns,tags_data,tags_options,nil,tags_helpmsg))
+                    ngx.print('\
+              </fieldset>\
                 ');
               end
               ngx.print('\
               <fieldset>\
-                <legend>'); ngx.print(T"Network mode"); ngx.print('</legend>\
+                <legend>'); ngx.print(T"Network Mode"); ngx.print('</legend>\
                 ');
                 local html = {}
                 local rebooting = {
