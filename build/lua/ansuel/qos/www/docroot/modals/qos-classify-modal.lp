@@ -319,7 +319,6 @@ local classify_options = {
   createMsg = T"Add Rule",
   addNamedObject = true, -- 18.1.c only
   objectName = format("classify_%d", next_rule_num), -- 18.1.c only
-  sorted = "index"
 }
 
 ----------------------------------------------------------------------------------

@@ -54,9 +54,24 @@ local policy_options = {
   {"sp_wrr", T"Strict Priority and Weighted Round Robin"},
 }
 
+local trafficid_labels,v = {}
+for _,v in pairs(proxy.getPN("uci.qos.label.",true)) do
+  local trafficid = untaint(proxy.get(v.path.."trafficid")[1].value)
+  if trafficid ~= "" then
+    local label = match(v.path,"uci%.qos%.label%.@([^.]+).")
+    local labels = trafficid_labels[trafficid]
+    if labels then
+      trafficid_labels[trafficid] = labels.."|"..label
+    else
+      trafficid_labels[trafficid] = label
+    end
+  end
+end
 local trafficid_options = {}
 for id=0,15,1 do
-  trafficid_options[#trafficid_options+1] = { tostring(id), tostring(id) }
+  local trafficid = tostring(id)
+  local label = trafficid_labels[trafficid] or trafficid
+  trafficid_options[#trafficid_options+1] = { trafficid, T(label) }
 end
 
 local mapParams = {
@@ -312,8 +327,20 @@ end
 local wlan_classes_data, wlan_classes_helpmsg = post_helper.handleTableQuery(classes_columns, wlan_classes_options, wlan_classes_filter, nil, classes_valid)
 
 local function post_data_process(classes_data, queues_default)
+  local v,trafficid
   for _,v in ipairs(classes_data) do
-    v[4] = concat(v[5][3],",")
+    local trafficids = ""
+    for _,trafficid in pairs(v[5][3]) do
+      local trafficid_label = trafficid_labels[untaint(trafficid)]
+      if trafficids ~= "" then
+        trafficids = trafficids..","
+      end
+      trafficids = trafficids..trafficid
+      if trafficid_label then
+        trafficids = trafficids.." ("..trafficid_label..")"
+      end
+    end
+    v[4] = trafficids
     if v[1] == queues_default then
       v[6] = "Yes"
     else
