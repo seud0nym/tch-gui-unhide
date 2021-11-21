@@ -388,17 +388,18 @@ GUI_OPKG_.set = {
           echo 'src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony'>>/etc/opkg/customfeeds.conf")
       else
         os.execute("rm /etc/opkg/customfeeds.conf;\
-          echo 'src/gz chaos_calmer_base_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/base'>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz chaos_calmer_packages_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages'>>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz chaos_calmer_luci_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/luci'>>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz chaos_calmer_routing_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing'>>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz chaos_calmer_telephony_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony'>>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz chaos_calmer_core_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages'>>/etc/opkg/customfeeds.conf;")
+          echo 'src/gz base https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/base'>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz packages https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages'>>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz luci https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/luci'>>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz routing https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing'>>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz telephony https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony'>>/etc/opkg/customfeeds.conf;\
+          echo 'src/gz core https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages'>>/etc/opkg/customfeeds.conf;")
       end
       os.execute("sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf;\
         SRC='https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/';\
-        IPK=$(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-certificates' | cut -d' ' -f2);\
-        curl -sk $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite --force-depends --nodeps install /tmp/$IPK 2>&1 | logger -t rpc.gui.opkg -p user.info && rm /tmp/$IPK;")
+        for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2); do\
+          curl -skL $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/$IPK\
+        done")
       opkg_cache.reload = true
       checkPackages()
     elseif value == "0" and feeds_configured() == "1" then

@@ -72,6 +72,7 @@ Options:
  -R                    Reset to device defaults: Equivalent to:
                          -hmymodem -dmodem -na -ay -cy -fy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn -sb
  -o                    Configures opkg
+ -O 17|18|19           Overrides the default opkg repository with the specified version
  -U                    Download the latest version of $SCRIPT from GitHub
  --save-defaults       Saves the command line options as defaults for future executions
                          When specified, NO changes are applied to the device
@@ -124,6 +125,7 @@ set_defaults() {
   __OPKG='n'
   __POWER='u'
   __PRNTR='u'
+  __REPO=""
   __ROOT_PROTECT='u'
   __SAMBA='u'
   __SUPERVISION='u'
@@ -146,7 +148,7 @@ fi
 SAVE_DEFAULTS=n
 SHOW_DEFAULTS=n
 
-while getopts :a:b:c:d:e:f:g:h:k:m:n:op:q:r:s:t:u:w:AF:GMRSU-: option
+while getopts :a:b:c:d:e:f:g:h:k:m:n:op:q:r:s:t:u:w:AF:GMO:RSU-: option
 do
  case "${option}" in
   -)  case "${OPTARG}" in 
@@ -178,6 +180,7 @@ do
   F)  case "${OPTARG}" in y) __ROOT_PROTECT='1';; n) __ROOT_PROTECT='0';; u) __ROOT_PROTECT='u';; *) __ROOT_PROTECT='u'; echo 'ERROR: -F valid options are y, n, or u'; exit 1;; esac;;
   G)  __GUEST='y';;
   M)  __LITE='y'; __ALG='0'; __DECT='0'; __DLNAD='0'; __DUMAOS='0'; __MMPBX='0'; __MULTIAP='0'; __NFC='0'; __PRNTR='0'; __SAMBA='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1';;
+  O)  case "${OPTARG}" in 17|18|19) __REPO=$OPTARG;; *) echo 'ERROR: -O valid options are 17, 18 or 19'; exit 1;; esac;;
   R)  __LITE='R'; __HOST='mymodem'; __DOMAIN='modem'; __NS='a'; __ALG='1'; __DLNAD='1'; __DUMAOS='0'; __SAMBA='1'; __MULTIAP='1'; __POWER='d'; __PRNTR='1'; __MMPBX='1'; __DECT='1'; __UPNP='1'; __ROOT_PROTECT='0'; __NFC='y'; __SUPERVISION='BFD';;
   S)  __HOST='s'; __DOMAIN='gateway'; __ALG='0'; __DLNAD='0'; __SAMBA='0'; __PRNTR='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1'; __SUPERVISION='DNS';;
   U)  upgrade;;
@@ -240,6 +243,16 @@ else
   SRV_supervision=-1
 fi
 
+HOMEWARE=$(uci get version.@version[0].version | cut -d. -f1)
+if [ "$HOMEWARE" -eq 20 ]; then
+  # macoers now has a FW 19 repository, but it is only in testing
+  # if [ $(grep -c 'homeware/18/' /etc/opkg/customfeeds.conf) -gt 0 ]; then
+  #   echo [$SCRIPT]: Updating opkg repository from FW 18 to FW 19...
+  #   sed -e 's|homeware/18/|homeware/19/|' -i /etc/opkg/customfeeds.conf
+  # fi
+  HOMEWARE=18
+fi
+
 show_default() {
   local _DFLT
   local _OPT=$1
@@ -270,6 +283,12 @@ show_default() {
           o) _DFLT="OpenDNS";;
           *) _DFLT="$3";;
         esac
+      elif [ "$1" = 'O' ]; then
+        if [ -z "$3" ]; then
+          _DFLT="$HOMEWARE"
+        else
+          _DFLT="$3"
+        fi
       else
         _DFLT="$3"
       fi;;
@@ -314,6 +333,7 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y ]; then
   show_default "M"  "Minimum memory mode" $__LITE
   show_default "G"  "Remove Guest Wi-Fi" $__GUEST
   show_default "o"  "Configure opkg" $__OPKG
+  show_default "O"  " - opkg repository" $__REPO
   exit
 fi
 
@@ -1087,14 +1107,14 @@ case "$__POWER" in
       uci commit power;;
 esac
 
+[ -n "$__REPO" ] && HOMEWARE=$__REPO
 # macoers repository URL changed, so need to update if it is the old one
 OPKG_DEP=$(grep -c 'www.macoers.com/repository' /etc/opkg/customfeeds.conf)
 if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
   cat /proc/cpuinfo | grep -q 'ARMv7 Processor rev 1 (v7l)'
   if [ $? -eq 0 ]; then
-    if [ $OPKG_DEP -gt 0 -o $(sed -e '/^#/d' -e '/^[ \t]*$/d' /etc/opkg/customfeeds.conf | wc -l) -eq 0 ]; then
-      HOMEWARE=$(uci get version.@version[0].version | cut -d. -f1)
-      if [ "$HOMEWARE" -eq 17 -o "$HOMEWARE" -eq 18 -o "$HOMEWARE" -eq 20 ]; then
+    if [ $OPKG_DEP -gt 0 -o \( "$HOMEWARE" -eq 17 -a $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep 'BoLaMN' | wc -l) -eq 0 \) -o \( "$HOMEWARE" -eq 18 -a $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep 'homeware/18' | wc -l) -eq 0 \) -o \( \( "$HOMEWARE" -eq 19 -o "$HOMEWARE" -eq 20 \) -a $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep 'homeware/19' | wc -l) -eq 0 \) ]; then
+      if [ "$HOMEWARE" -ge 17 -a "$HOMEWARE" -le 20 ]; then
         ping -c 1 -W 2 -q 1.1.1.1 >/dev/null 2>&1
         if [ $? -eq 0 ]; then
           echo [$SCRIPT]: Configuring opkg architectures...
@@ -1124,27 +1144,37 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
               echo 'src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/routing'>>/etc/opkg/customfeeds.conf
               echo 'src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony'>>/etc/opkg/customfeeds.conf
               ;;
-          18|20)
-              echo 'src/gz chaos_calmer_base_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/base'>/etc/opkg/customfeeds.conf
-              echo 'src/gz chaos_calmer_packages_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages'>>/etc/opkg/customfeeds.conf
-              echo 'src/gz chaos_calmer_luci_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/luci'>>/etc/opkg/customfeeds.conf
-              echo 'src/gz chaos_calmer_routing_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing'>>/etc/opkg/customfeeds.conf
-              echo 'src/gz chaos_calmer_telephony_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony'>>/etc/opkg/customfeeds.conf
-              echo 'src/gz chaos_calmer_core_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages'>>/etc/opkg/customfeeds.conf
+          18)
+              echo 'src/gz base https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/base'>/etc/opkg/customfeeds.conf
+              echo 'src/gz packages https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages'>>/etc/opkg/customfeeds.conf
+              echo 'src/gz luci https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/luci'>>/etc/opkg/customfeeds.conf
+              echo 'src/gz routing https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing'>>/etc/opkg/customfeeds.conf
+              echo 'src/gz telephony https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony'>>/etc/opkg/customfeeds.conf
+              echo 'src/gz core https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages'>>/etc/opkg/customfeeds.conf
+              ;;
+          19|20)
+              echo 'src/gz base https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/base'>/etc/opkg/customfeeds.conf
+              echo 'src/gz freifunk https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/freifunk'>>/etc/opkg/customfeeds.conf
+              echo 'src/gz packages https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/packages'>>/etc/opkg/customfeeds.conf
+              echo 'src/gz luci https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/luci'>>/etc/opkg/customfeeds.conf
+              echo 'src/gz routing https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/routing'>>/etc/opkg/customfeeds.conf
+              echo 'src/gz telephony https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/telephony'>>/etc/opkg/customfeeds.conf
+              echo 'src/gz core https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/target/packages'>>/etc/opkg/customfeeds.conf
               ;;
           esac
           sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf
           echo [$SCRIPT]: Downloading and installing packages required for repository access...
           SRC='https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/'
-          IPK=$(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-certificates' | cut -d' ' -f2)
-          curl -sk $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite --force-depends --nodeps install /tmp/$IPK 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
+          for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2); do
+            curl -skL $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
+          done
           echo [$SCRIPT]: Updating local package list
           opkg update | logger -s -t rpc.gui.opkg -p user.info;
         else
           echo -e "[$SCRIPT]: \033[1;31mWARNING! No internet connection??? opkg not configured...\033[0m"
         fi
       else
-        echo [$SCRIPT]: Sorry!! I do not know how to configure opkg for Firmware Version $(uci get version.@version[0].marketing_version)
+        echo [$SCRIPT]: Sorry!! I do not know how to configure opkg for Homeware $HOMEWARE
       fi
     else
       echo [$SCRIPT]: Looks like opkg has already been configured...
