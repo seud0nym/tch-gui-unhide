@@ -127,3 +127,14 @@ function M.validateLXC(value)\
 end\' -i /usr/lib/lua/web/post_helper.lua
 fi
 
+echo [$SCRIPT]: Add specific error messages when table edits fail
+sed \
+  -e '/success = content_helper.setObject/a\                                if not success then\
+                                  for _,v in ipairs(msg) do\
+                                    ngx.log(ngx.ERR, "setObject failed on " .. v.path .. ": " .. v.errcode .. " " .. v.errmsg)\
+                                    message_helper.pushMessage(T("setObject failed on " .. v.path .. ": " .. v.errmsg), "error")\
+                                  end\
+                                end' \
+  -e 's/success = content_helper.setObject/success,msg = content_helper.setObject/' \
+  -i /usr/lib/lua/web/post_helper.lua
+
