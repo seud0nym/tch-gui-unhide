@@ -16,18 +16,19 @@ Hardens root access and applies optional service configuration changes.
 Usage: $0 [options]
 
 Options:
- -k a|c|e|k|m|n|s|x    Override default hardening configuration:
+ -k a|c|e|k|m|n|q|s|x  Override default hardening configuration:
     where a            - Keep Telstra AIR enabled
           c            - Keep CWMP installed
           k            - Keep default public authorized keys
           m            - Keep Telstra monitoring and data collection enabled
           n            - Keep Telstra NTP servers
+          q            - Keep Telstra QoS VoWiFi reclassify rules
           s            - Keep WAN Supervision as BFD
           x            - Keep noexec on ext2/3/4, fat, hfsplus, hfsplusjournal
                           and ntfs filesystems (i.e. prevent execution of
                           scripts/programs on USB devices)
           T            - Keep all default Telstra configuration (Equivalent
-                          to: -ka -kc -kk -km -kn -ks -kx)
+                          to: -ka -kc -kk -km -kn -kq -ks -kx)
  -h u|d|s|<hostname>
     where u            Leave hostname unchanged
           d            Set the hostname to $VARIANT
@@ -138,6 +139,7 @@ set_defaults() {
   __MONITORING='n'
   __NTP='n'
   __NOEXEC='n'
+  __QoS='n'
 }
 
 set_defaults
@@ -165,7 +167,7 @@ do
   f)  case "${OPTARG}" in y) __SAMBA='1';; n) __SAMBA='0';; u) __SAMBA='u';; *) __SAMBA='u'; echo 'ERROR: -f valid options are y, n, or u'; exit 1;; esac;;
   g)  case "${OPTARG}" in y) __DUMAOS='1';; n) __DUMAOS='0';; u) __DUMAOS='u';; *) __DUMAOS='u'; echo 'ERROR: -g valid options are y, n, or u'; exit 1;; esac;;
   h)  __HOST=${OPTARG};;
-  k)  case "${OPTARG}" in k) __KEYS='y';; c) __CWMP='y';; m) __MONITORING='y';; a) __AIR='y';; n) __NTP='y';; s) __SUPERVISION='BFD';; x) __NOEXEC='y';; T) __KEYS='y'; __CWMP='y'; __MONITORING='y'; __AIR='y'; __NTP='y'; __SUPERVISION='BFD'; __NOEXEC='y';; *) echo "ERROR: Unknown override option $OPTARG"; exit 1;; esac;;
+  k)  case "${OPTARG}" in k) __KEYS='y';; c) __CWMP='y';; m) __MONITORING='y';; a) __AIR='y';; n) __NTP='y';; q) __QoS='y';; s) __SUPERVISION='BFD';; x) __NOEXEC='y';; T) __KEYS='y'; __CWMP='y'; __MONITORING='y'; __AIR='y'; __NTP='y'; __QoS='y'; __SUPERVISION='BFD'; __NOEXEC='y';; *) echo "ERROR: Unknown override option $OPTARG"; exit 1;; esac;;
   m)  case "${OPTARG}" in y) __MULTIAP='1';; n) __MULTIAP='0';; u) __MULTIAP='u';; *) __MULTIAP='u'; echo 'ERROR: -m valid options are y, n, or u'; exit 1;; esac;;
   n)  __NS=${OPTARG};;
   o)  __OPKG='y';;
@@ -258,7 +260,7 @@ show_default() {
   local _OPT=$1
   local _ESC=1
   case "$1" in
-    ka|kc|kk|km|kn|kx|M|G|o) _OPT="$1"; [ "$3" = "n" ] && _ESC=9;;
+    ka|kc|kk|km|kn|kq|kx|M|G|o) _OPT="$1"; [ "$3" = "n" ] && _ESC=9;;
     *) case "$3" in 0) _OPT="${1}n";; 1) _OPT="${1}y";; *) _OPT="$1$3";; esac;;
   esac
   case "$3" in
@@ -312,6 +314,7 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y ]; then
   show_default "kk" "Keep default public authorized keys" $__KEYS
   show_default "km" "Keep Telstra monitoring/data collection" $__MONITORING
   show_default "kn" "Keep Telstra NTP servers" $__NTP
+  show_default "kq" "Keep Telstra QoS VoWiFi reclassify rules" $__QoS
   show_default "kx" "Keep noexec on filesystems" $__NOEXEC
   show_default "h"  "Host name" $__HOST
   show_default "d"  "Domain name" $__DOMAIN
@@ -613,6 +616,22 @@ if [ "$__ROOT_PROTECT" = "0" ]; then
 fi
 
 # End of hardening
+
+VoWiFi="$(uci show qos | grep -E "$(uci show qos | grep =reclassify | cut -d= -f1 | xargs | tr " " "|")" | grep VoWiFi | cut -d. -f1-2)"
+if [ -z "$VoWiFi" ]; then
+  echo [$SCRIPT]: All Telstra QoS VoWiFi reclassify rules already removed
+else
+  if [ "$__QoS" = "n" ]; then
+    echo [$SCRIPT]: Removing all Telstra QoS VoWiFi reclassify rules
+    for r in $VoWiFi; do 
+      uci delete $r
+    done
+    uci commit qos
+    SRV_qos=$(( $SRV_qos + 3 ))
+  else
+    echo [$SCRIPT]: OVERRIDE! Telstra QoS VoWiFi reclassify rules not removed
+  fi
+fi
 
 CURRENT_HOSTNAME="$(uci -q get system.@system[0].hostname)"
 if [ "$__HOST" = "u" ]; then
