@@ -13,7 +13,6 @@ fi
 # as the calling script has left a hanging echo -n. Include a leading space for clarity.
 
 FW_LAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "network='lan'" | cut -d. -f1-2)
-SRV_network=0
 
 if [ -f /usr/bin/wireguard-go -a -f /usr/bin/wg-go -a -f /lib/netifd/proto/wireguard.sh -a -z "$XTRAS_REMOVE" ]; then
   echo " Adding wireguard support..."
@@ -146,5 +145,3 @@ else
     echo " Removed wireguard support"
   fi
 fi
-
-[ $SRV_network -gt 0 ] && /etc/init.d/network restart >/dev/null
