@@ -1,0 +1,63 @@
+#!/bin/sh
+
+GREEN='\033[1;32m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+while getopts :arx option
+do
+ case "${option}" in
+  a)  REAPPLY=Y;;
+  r)  XTRAS_REMOVE=Y;;
+  x)  set -x;;
+  *)  echo "Usage: $0 [-x] [-r [-a]] <suffix>"; 
+      echo
+      echo " where:"
+      echo "    <suffix> is the name of the script to test WITHOUT"
+      echo "               the 'tch-gui-unhide-xtra-' prefix"
+      echo "    -x       Shows all script commands as they execute"
+      echo "    -r       Removes the extra script from the GUI"
+      echo "    -a       Re-applies the extra script to the GUI"
+      exit 1;;
+ esac
+done
+shift $((OPTIND-1))
+
+if [ -z "${1}" ]; then
+  echo -e "${RED}ERROR: extra script suffix required!${NC}"
+  exit 1
+fi
+
+if [ ! -f "tch-gui-unhide-xtra.${1}" ]; then
+  echo -e "${GREEN}Attempting to download tch-gui-unhide-xtra.${1}...${NC}"
+  curl -skLO https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.${1}
+  if [ "$(cat tch-gui-unhide-xtra.${1})" = "404: Not Found" ]; then
+    rm tch-gui-unhide-xtra.${1}
+    echo -e "${RED}echo ERROR - tch-gui-unhide-xtra.${1} not found?${NC}"
+    exit 2
+  fi
+fi
+
+FW_BASE=$(uci get version.@version[0].marketing_version)
+SRV_cron=0
+SRV_firewall=0
+SRV_network=0
+SRV_transformer=0
+
+echo -n -e "${GREEN}tch-gui-unhide-xtra.${1}:${NC}"
+. ./tch-gui-unhide-xtra.${1}
+if [ "$XTRAS_REMOVE" = "Y" -a "$REAPPLY" = "Y" ]; then
+  XTRAS_REMOVE="" 
+  echo -n -e "${GREEN}tch-gui-unhide-xtra.${1}:${NC}"
+  . ./tch-gui-unhide-xtra.${1}
+fi
+
+if [ $SRV_transformer -gt 0 ]; then
+  [ -e /etc/init.d/watchdog-tch ] && /etc/init.d/watchdog-tch stop
+  /etc/init.d/transformer restart
+  [ -e /etc/init.d/watchdog-tch ] && /etc/init.d/watchdog-tch start
+fi
+[ $SRV_cron -gt 0 ] && /etc/init.d/cron restart
+[ $SRV_firewall -gt 0 ] && /etc/init.d/firewall reload 2> /dev/null
+[ $SRV_network -gt 0 ] && /etc/init.d/network reload > /dev/null 2>&1
+/etc/init.d/nginx restart
