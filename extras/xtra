@@ -10,7 +10,7 @@ do
   a)  REAPPLY=Y;;
   r)  XTRAS_REMOVE=Y;;
   x)  set -x;;
-  *)  echo "Usage: $0 [-x] [-r [-a]] <suffix>"; 
+  *)  echo "Usage: $0 [-x] [-r [-a]] [-c] <suffix>"; 
       echo
       echo " where:"
       echo "    <suffix> is the name of the script to test WITHOUT"
@@ -23,17 +23,17 @@ do
 done
 shift $((OPTIND-1))
 
-if [ -z "${1}" ]; then
+if [ -z "$1" ]; then
   echo -e "${RED}ERROR: extra script suffix required!${NC}"
   exit 1
 fi
 
-if [ ! -f "tch-gui-unhide-xtra.${1}" ]; then
-  echo -e "${GREEN}Attempting to download tch-gui-unhide-xtra.${1}...${NC}"
-  curl -skLO https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.${1}
-  if [ "$(cat tch-gui-unhide-xtra.${1})" = "404: Not Found" ]; then
-    rm tch-gui-unhide-xtra.${1}
-    echo -e "${RED}echo ERROR - tch-gui-unhide-xtra.${1} not found?${NC}"
+if [ ! -f "tch-gui-unhide-xtra.$1" ]; then
+  echo -e "${GREEN}Attempting to download tch-gui-unhide-xtra.$1...${NC}"
+  curl -skLO https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.$1
+  if [ "$(cat tch-gui-unhide-xtra.$1)" = "404: Not Found" ]; then
+    rm tch-gui-unhide-xtra.$1
+    echo -e "${RED}echo ERROR - tch-gui-unhide-xtra.$1 not found?${NC}"
     exit 2
   fi
 fi
@@ -44,18 +44,85 @@ SRV_firewall=0
 SRV_network=0
 SRV_transformer=0
 
-echo -n -e "${GREEN}tch-gui-unhide-xtra.${1}:${NC}"
-. ./tch-gui-unhide-xtra.${1}
+echo -n -e "${GREEN}tch-gui-unhide-xtra.$1:${NC}"
+. ./tch-gui-unhide-xtra.$1
 if [ "$XTRAS_REMOVE" = "Y" -a "$REAPPLY" = "Y" ]; then
   XTRAS_REMOVE="" 
-  echo -n -e "${GREEN}tch-gui-unhide-xtra.${1}:${NC}"
-  . ./tch-gui-unhide-xtra.${1}
+  echo -n -e "${GREEN}tch-gui-unhide-xtra.$1:${NC}"
+  . ./tch-gui-unhide-xtra.$1
 fi
 
+for f in $(grep 'cat *<<' tch-gui-unhide-xtra.$1 | grep -vE '>>|/js/' | grep -E '/www/(docroot|cards)' | cut -d'>' -f2 | sort -r | xargs); do
+  BASE=$(basename $f)
+  TYPE=""
+  case $f in
+    /www/cards/*)
+      TYPE="card";
+      RULE="card_$(basename ${f#*_} .lp)"
+      ;;
+    /www/docroot/ajax/*)
+      TYPE="ajax";
+      RULE=$(uci show web | grep "/ajax/$BASE" | grep -m 1 -v card_ | cut -d. -f2)
+      [ -z "$RULE" ] && RULE="$(basename $f .lua | sed -e 's/-//g')ajax"
+      ;;
+    /www/docroot/modals/*)
+      TYPE="modals"
+      RULE=$(uci show web | grep "/modals/$BASE" | grep -m 1 -v card_ | cut -d. -f2)
+      [ -z "$RULE" ] && RULE=$(basename $f .lp | sed -e 's/-//g')
+      ;;
+    *) 
+      continue;;
+  esac
+
+  if [ "$XTRAS_REMOVE" = "Y" ]; then
+    uci -q delete web.$RULE
+    case $TYPE in ajax|modals) uci -q del_list web.ruleset_main.rules=$RULE;; esac
+  else
+    case $TYPE in 
+      ajax|modals)
+        if [ -z "$(uci -q get web.$RULE)" ]; then
+          uci set web.$RULE=rule
+          uci set web.$RULE.target=/$TYPE/$BASE
+          uci set web.$RULE.normally_hidden='1'
+          uci add_list web.$RULE.roles='admin'
+          uci add_list web.$RULE.roles='engineer'
+          uci add_list web.ruleset_main.rules=$RULE
+        fi;;
+      card)
+        if [ -z "$(uci -q get web.$RULE)" ]; then
+          MODAL=$(grep createCardHeader $f | grep -o "modals/.*\.lp")
+          if [ -z "$MODAL" ]; then
+            MODAL=$(grep '\(modalPath\|modal_link\)' $f | grep -m 1 -o "modals/.*\.lp")
+          fi
+          uci set web.$RULE=card
+          uci set web.$RULE.card="$BASE"
+          uci set web.$RULE.hide='0'
+          if [ -n "$MODAL" ]; then
+            uci set web.$RULE.modal="$(uci show web | grep $MODAL | grep -m 1 -v card_ | cut -d. -f2)"
+          fi
+        fi;;
+    esac
+  fi
+  uci commit web
+done
+
+[ ! -f /usr/share/transformer/mappings/rpc/gui.map ] && cat <<"GUI" > /usr/share/transformer/mappings/rpc/gui.map
+local GUI_ = {
+  objectType = {
+    name = "rpc.gui.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {}
+  }
+}
+register(GUI_)
+GUI
+
 if [ $SRV_transformer -gt 0 ]; then
-  [ -e /etc/init.d/watchdog-tch ] && /etc/init.d/watchdog-tch stop
+  [ -e /etc/init.d/watchdog-tch ] && /etc/init.d/watchdog-tch stop > /dev/null 2>&1
   /etc/init.d/transformer restart
-  [ -e /etc/init.d/watchdog-tch ] && /etc/init.d/watchdog-tch start
+  [ -e /etc/init.d/watchdog-tch ] && /etc/init.d/watchdog-tch start > /dev/null 2>&1
 fi
 [ $SRV_cron -gt 0 ] && /etc/init.d/cron restart
 [ $SRV_firewall -gt 0 ] && /etc/init.d/firewall reload 2> /dev/null
