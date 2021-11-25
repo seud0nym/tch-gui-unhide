@@ -80,7 +80,7 @@ for f in $(grep 'cat *<<' tch-gui-unhide-xtra.$1 | grep -vE '>>|/js/' | grep -E 
   else
     case $TYPE in 
       ajax|modals)
-        if [ -z "$(uci -q get web.$RULE)" ]; then
+        if [ -f /www/docroot/$TYPE/$BASE -a -z "$(uci -q get web.$RULE)" ]; then
           uci set web.$RULE=rule
           uci set web.$RULE.target=/$TYPE/$BASE
           uci set web.$RULE.normally_hidden='1'
@@ -89,7 +89,7 @@ for f in $(grep 'cat *<<' tch-gui-unhide-xtra.$1 | grep -vE '>>|/js/' | grep -E 
           uci add_list web.ruleset_main.rules=$RULE
         fi;;
       card)
-        if [ -z "$(uci -q get web.$RULE)" ]; then
+        if [ -f /www/cards/$BASE -a -z "$(uci -q get web.$RULE)" ]; then
           MODAL=$(grep createCardHeader $f | grep -o "modals/.*\.lp")
           if [ -z "$MODAL" ]; then
             MODAL=$(grep '\(modalPath\|modal_link\)' $f | grep -m 1 -o "modals/.*\.lp")
