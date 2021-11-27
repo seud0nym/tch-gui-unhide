@@ -394,6 +394,9 @@ GUI_OPKG_.set = {
           echo 'src/gz routing https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing'>>/etc/opkg/customfeeds.conf;\
           echo 'src/gz telephony https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony'>>/etc/opkg/customfeeds.conf;\
           echo 'src/gz core https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages'>>/etc/opkg/customfeeds.conf;")
+        if fw_version == "20.3.c" then
+          os.execute("echo 'src/gz wg_go https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/repository/arm_cortex-a9/base' >> /etc/opkg/customfeeds.conf;")
+        end
       end
       os.execute("sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf;\
         SRC='https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/';\

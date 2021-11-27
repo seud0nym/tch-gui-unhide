@@ -1170,6 +1170,7 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
               echo 'src/gz routing https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing'>>/etc/opkg/customfeeds.conf
               echo 'src/gz telephony https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony'>>/etc/opkg/customfeeds.conf
               echo 'src/gz core https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages'>>/etc/opkg/customfeeds.conf
+              [ "$(uci get version.@version[0].version | cut -d. -f1)" = "20" ] && echo 'src/gz wg_go https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/repository/arm_cortex-a9/base' >> /etc/opkg/customfeeds.conf
               ;;
           19|20)
               echo 'src/gz base https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/base'>/etc/opkg/customfeeds.conf
@@ -1179,6 +1180,7 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
               echo 'src/gz routing https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/routing'>>/etc/opkg/customfeeds.conf
               echo 'src/gz telephony https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/telephony'>>/etc/opkg/customfeeds.conf
               echo 'src/gz core https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/target/packages'>>/etc/opkg/customfeeds.conf
+              echo 'src/gz wg_go https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/repository/arm_cortex-a9/base' >> /etc/opkg/customfeeds.conf
               ;;
           esac
           sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf
