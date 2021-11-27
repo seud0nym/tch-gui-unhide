@@ -86,8 +86,10 @@ Creates a GUI interface for configuring the Wireguard VPN.
 For firmware 20.3.c. *only*.
 - Firmware prior to 20.3.c has not been compiled with TUN support in the kernel, and therefore VPN tunnels cannot be created.
 #### Prerequisites
-You must install [openwrt-wireguard-go](https://github.com/seud0nym/openwrt-wireguard-go) using this command:  
-`curl -skL https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/install_arm.sh | sh -s --`
+Add the [openwrt-wireguard-go](https://github.com/seud0nym/openwrt-wireguard-go) repository and install the package with these commands:  
+`grep -q '/openwrt-wireguard-go/' /etc/opkg/customfeeds.conf || echo 'src/gz wg_go https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/repository/arm_cortex-a9/base' >> /etc/opkg/customfeeds.conf`  
+`opkg update`  
+`opkg install wireguard-go`  
 ##### IPv6 ULA Prefix
 If you are using IPv6, you need an IPv6 ULA (Unique Local Addresses) prefix. This can be configured on the **Local Network** card. If you do not configure your own ULA prefix and your network is configured for IPv6, the installation script will create a random one for you.
 **IMPORTANT:** Because these devices have no IPv6 NAT capability, IPv6 packets from client devices will *NOT* be sent via a WireGuard tunnel acting as a client to a remote VPN server. IPv6 traffic from the router itself *will* be routed via the tunnel. IPv4 traffic for both the router and client devices *will* be routed via the tunnel.
