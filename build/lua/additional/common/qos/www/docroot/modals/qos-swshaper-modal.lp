@@ -31,7 +31,7 @@ local shaper_columns = {
     attr = { input = { class = "span2"} },
   },
   { -- 2
-    header = T"Max Upload Bit Rate",
+    header = T"Max Bit Rate",
     name = "max_bit_rate",
     param = "max_bit_rate",
     type = "text",
@@ -213,7 +213,7 @@ local function makeHTMLfor(rows, heading)
   local sectionHTML = {}
   if #rows > 0 then
     sectionHTML[#sectionHTML+1] = "<fieldset>"
-    sectionHTML[#sectionHTML+1] =   "<legend>"..T"QoS Shaper Application on Interface "..heading.."</legend>"
+    sectionHTML[#sectionHTML+1] =   "<legend>"..T"QoS Shapers on Interface "..heading.."</legend>"
     table.sort(rows)
     for _,dev in pairs(rows) do
       if dev and devices[dev] and content[dev] then
@@ -242,9 +242,10 @@ ngx.print( ui_helper.createHeader(T"QoS", false) ); ngx.print('\
     local html = {}
     html[#html+1] = "<fieldset>"
     html[#html+1] =   "<legend>"..T"QoS Shaper Profiles".."</legend>"
-    html[#html+1] =   ui_helper.createAlertBlock(T("To calculate maximum bit rate, as a rule of thumb multiply your maximum upload speed by 1000. e.g. if your connection speed is 50/20, max bit rate would be 20000."), alert_attr)
+    html[#html+1] =   ui_helper.createAlertBlock(T("To calculate maximum bit rate, as a rule of thumb multiply your maximum speed by 1000. e.g. if your connection speed is 50/20, max bit rate for upload would be 20000."), alert_attr)
     html[#html+1] =   ui_helper.createTable(shaper_columns, shaper_data, shaper_options, nil, shaper_helpMsg)
     html[#html+1] = "</fieldset>"
+    html[#html+1] = ui_helper.createAlertBlock(T("Shaper profiles are applied on packet <i>egress</i>, so shaping occurs on WAN uploads, and on LAN/WLAN downloads."), alert_attr)
     ngx.print(html)
     ngx.print(makeHTMLfor(group.TO_WAN, "WAN"))
     ngx.print(makeHTMLfor(group.TO_LAN, "LAN"))

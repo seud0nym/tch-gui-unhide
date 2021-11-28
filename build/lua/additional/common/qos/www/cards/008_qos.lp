@@ -125,7 +125,7 @@ ngx.print('\
         ui_helper.createSimpleLight(light.TO_WAN, format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",wan_queues),queue_link,wan_queues).." on "..format(N("<strong %1$s>%2$d WAN device</strong>","<strong %1$s>%2$d WAN devices</strong>",group.TO_WAN),devic_link,group.TO_WAN)),
         ui_helper.createSimpleLight(light.TO_LAN, format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",lan_queues),queue_link,lan_queues).." on "..format(N("<strong %1$s>%2$d LAN port</strong>","<strong %1$s>%2$d LAN ports</strong>",group.TO_LAN),devic_link,group.TO_LAN)),
         ui_helper.createSimpleLight(light.TO_WLAN, format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",wlan_queues),queue_link,wlan_queues).." on "..format(N("<strong %1$s>%2$d Wi-Fi SSID</strong>","<strong %1$s>%2$d Wi-Fi SSIDs</strong>",group.TO_WLAN),devic_link,group.TO_WLAN)),
-        ui_helper.createSimpleLight(shapers.light, format(N("<strong %1$s>%2$d Upload Shaper</strong> active","<strong %1$s>%2$d Upload Shapers</strong> active",shapers.active),shape_link,shapers.active)), -- 18.1.c only
+        ui_helper.createSimpleLight(shapers.light, format(N("<strong %1$s>%2$d Traffic Shaper</strong> active","<strong %1$s>%2$d Traffic Shapers</strong> active",shapers.active),shape_link,shapers.active)), -- 18.1.c only
         '<p class="subinfos">',
         format(N("<strong %1$s>%2$d Classify rule</strong> defined","<strong %1$s>%2$d Classify rules</strong> defined",classify),class_link,classify),
         '<br>',
