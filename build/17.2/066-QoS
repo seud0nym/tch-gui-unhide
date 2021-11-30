@@ -1,14 +1,14 @@
 echo [$SCRIPT]: Fix QoS card for 17.2 FW
 sed \
-  -e '/-- 18\.1\.c only[ \t]*$/d' \
-  -e '/-- 18\.1\.c only START/,/-- 18\.1\.c only END/d' \
+  -e '/-- NOT 17\.2[ \t]*$/d' \
+  -e '/-- NOT 17\.2 START/,/-- NOT 17\.2 END/d' \
   -i /www/cards/008_qos.lp
 
 echo [$SCRIPT]: Fix QoS classify modal for 17.2 FW
 sed \
   -e 's/uci_classify_path\.\."@."/uci_classify_path/' \
-  -e '/-- 18\.1\.c only[ \t]*$/d' \
-  -e '/-- 18\.1\.c only START/,/-- 18\.1\.c only END/d' \
+  -e '/-- NOT 17\.2[ \t]*$/d' \
+  -e '/-- NOT 17\.2 START/,/-- NOT 17\.2 END/d' \
   -i /www/docroot/modals/qos-classify-modal.lp
 
 echo [$SCRIPT]: Remove QoS Upload Shapers tab \(Not supported on 17.2 FW\)

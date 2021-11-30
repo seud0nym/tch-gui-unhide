@@ -137,7 +137,7 @@ for _,v in ipairs(proxy.getPN("rpc.network.interface.", true)) do
   end
 end
 
--- 18.1.c only START
+-- NOT 17.2 START
 local rules = proxy.getPN("uci.qos.classify.",true)
 local next_rule_num = 0
 for _,v in ipairs(rules) do
@@ -147,7 +147,7 @@ for _,v in ipairs(rules) do
   end
 end
 next_rule_num = next_rule_num + 1
--- 18.1.c only END
+-- NOT 17.2 END
 
 local classify_columns = {
   { --[1]
@@ -317,8 +317,8 @@ local classify_options = {
   canAdd = true,
   canDelete = true,
   createMsg = T"Add Rule",
-  addNamedObject = true, -- 18.1.c only
-  objectName = format("classify_%d", next_rule_num), -- 18.1.c only
+  addNamedObject = true, -- NOT 17.2
+  objectName = format("classify_%d", next_rule_num), -- NOT 17.2
 }
 
 ----------------------------------------------------------------------------------
