@@ -1,0 +1,39 @@
+#!/bin/sh /etc/rc.common
+# Based on https://github.com/skyformat99/eqos/blob/master/files/eqos.init
+
+START=70
+
+parse_device() {
+  local cfg="$1" mac download upload
+  
+  config_get mac "$cfg" mac
+  config_get download "$cfg" download
+  config_get upload "$cfg" upload
+  
+  /usr/sbin/mqos add $mac $download $upload
+}
+
+mqos_start() {
+  local cfg="$1" enabled download upload
+  
+  config_get_bool enabled "$cfg" enabled 0
+  [ $enabled -eq 0 ] && return 0
+  
+  config_get download "$cfg" download
+  config_get upload "$cfg" upload
+  
+  mqos start $download $upload
+  
+  config_foreach parse_device device
+}
+
+start() {
+  /usr/sbin/mqos stop
+  
+  config_load mqos
+  config_foreach mqos_start mqos
+}
+
+stop() {
+  /usr/sbin/mqos stop
+}

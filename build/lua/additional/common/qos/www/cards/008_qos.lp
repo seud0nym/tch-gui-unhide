@@ -6,30 +6,30 @@ gettext.textdomain('webui-qos')
 local proxy = require("datamodel")
 local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
-local find, gfind, format, match, untaint = string.find, string.gfind, string.format, string.match, string.untaint
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
+local find, gmatch, format, match = string.find, string.gmatch, string.format, string.match
 local session = ngx.ctx.session
 local qosdevice_helper = require("qosdevice_helper")
 
 local modal_link = ""
 local devic_link = ""
 local queue_link = ""
-local class_link = ""
-local recla_link = ""
 local shape_link = "" -- NOT 17.2
+local mqos_link  = ""
 
 if session:hasAccess("/modals/qos-queue-modal.lp") and session:hasAccess("/modals/qos-classify-modal.lp") then
-  modal_link = "/modals/qos-device-modal.lp"
+  modal_link = "/modals/qos-swshaper-modal.lp"
   devic_link = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-device-modal.lp" data-id="qos-modal"'
   queue_link = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-queue-modal.lp" data-id="qos-modal"'
-  class_link = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-classify-modal.lp" data-id="qos-modal"'
-  recla_link = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-reclassify-modal.lp" data-id="qos-modal"'
   shape_link = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-swshaper-modal.lp" data-id="qos-modal"' -- NOT 17.2
+  mqos_link  = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-mqos-modal.lp" data-id="qos-modal"'
 end
 
 local function queueCount(classes)
   local count = 0
   if classes then
-    for q in gfind(untaint(classes), "[^ ]+") do
+    for _ in gmatch(untaint(classes), "[^ ]+") do
       count = count + 1
     end
   end
@@ -37,8 +37,8 @@ local function queueCount(classes)
 end
 
 local dataQoS = {
-  numClassify = "uci.qos.classifyNumberOfEntries",
-  numReclassify = "uci.qos.reclassifyNumberOfEntries",
+  mqos_enabled = "uci.mqos.global.enabled",
+  mqos_devices = "uci.mqos.deviceNumberOfEntries",
   numShapers = "uci.qos.swshaperNumberOfEntries", -- NOT 17.2
   wan_queues = "uci.qos.classgroup.@TO_WAN.classes",
   lan_queues = "uci.qos.classgroup.@TO_LAN.classes",
@@ -46,13 +46,11 @@ local dataQoS = {
 }
 content_helper.getExactContent(dataQoS)
 
-local classify = tonumber(dataQoS.numClassify)
-if not classify then
-  classify = 0
-end
-local reclassify = tonumber(dataQoS.numReclassify)
-if not reclassify then
-  reclassify = 0
+local mqos_status
+if dataQoS.mqos_enabled == "1" then
+  mqos_status = "enabled"
+else
+  mqos_status = "disabled"
 end
 
 local lan_queues = queueCount(dataQoS.lan_queues)
@@ -62,6 +60,7 @@ local wlan_queues = queueCount(dataQoS.wlan_queues)
 -- NOT 17.2 START
 local shapers = {
   count = tonumber(dataQoS.numShapers),
+  enabled = 0,
   active = 0,
   light = "0",
   names = {},
@@ -72,7 +71,10 @@ else
   local swshapers = proxy.getPN("uci.qos.swshaper.",true)
   for _,v in ipairs(swshapers) do
     local name = match(v.path, "uci%.qos%.swshaper%.@([^%.]+)%.")
-    shapers.names[name] = proxy.get(v.path .. "enable")[1].value:untaint()
+    shapers.names[name] = untaint(proxy.get(v.path .. "enable")[1].value)
+    if shapers.names[name] == "1" then
+      shapers.enabled = shapers.enabled + 1
+    end
   end
 end
 -- NOT 17.2 END
@@ -122,15 +124,20 @@ ngx.print('\
       <div class="divtable">\
       ');
       ngx.print(
+        ui_helper.createSimpleLight(shapers.light, format(N("<strong %1$s>%2$d Shaper</strong>","<strong %1$s>%2$d Shapers</strong>",shapers.enabled),shape_link,shapers.enabled).." enabled on "..format(N("<strong %1$s>%2$d interface</strong>","<strong %1$s>%2$d interfaces</strong>",shapers.active),shape_link,shapers.active)),  -- NOT 17.2
+        ui_helper.createSimpleLight(dataQoS.mqos_enabled, format("<strong %1$s>MAC Address Shaping</strong> %2$s",mqos_link,mqos_status))
+      )
+      if dataQoS.mqos_enabled == "1" then
+        ngx.print(
+          '<p class="subinfos">',
+          format(N("<strong %1$s>%2$d MAC Address</strong> shaped","<strong %1$s>%2$d MAC Addresses</strong> shaped",dataQoS.mqos_devices),mqos_link,dataQoS.mqos_devices),
+          '</p>'
+        )
+      end
+      ngx.print(
         ui_helper.createSimpleLight(light.TO_WAN, format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",wan_queues),queue_link,wan_queues).." on "..format(N("<strong %1$s>%2$d WAN interface</strong>","<strong %1$s>%2$d WAN interface</strong>",group.TO_WAN),devic_link,group.TO_WAN)),
         ui_helper.createSimpleLight(light.TO_LAN, format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",lan_queues),queue_link,lan_queues).." on "..format(N("<strong %1$s>%2$d LAN port</strong>","<strong %1$s>%2$d LAN ports</strong>",group.TO_LAN),devic_link,group.TO_LAN)),
-        ui_helper.createSimpleLight(light.TO_WLAN, format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",wlan_queues),queue_link,wlan_queues).." on "..format(N("<strong %1$s>%2$d Wi-Fi SSID</strong>","<strong %1$s>%2$d Wi-Fi SSIDs</strong>",group.TO_WLAN),devic_link,group.TO_WLAN)),
-        ui_helper.createSimpleLight(shapers.light, format(N("<strong %1$s>%2$d Traffic Shaper</strong> active","<strong %1$s>%2$d Traffic Shapers</strong> active",shapers.active),shape_link,shapers.active)), -- NOT 17.2
-        '<p class="subinfos">',
-        format(N("<strong %1$s>%2$d Classify rule</strong> defined","<strong %1$s>%2$d Classify rules</strong> defined",classify),class_link,classify),
-        '<br>',
-        format(N("<strong %1$s>%2$d Reclassify rule</strong> defined","<strong %1$s>%2$d Reclassify rules</strong> defined",reclassify),recla_link,reclassify),
-        '</p>'
+        ui_helper.createSimpleLight(light.TO_WLAN, format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",wlan_queues),queue_link,wlan_queues).." on "..format(N("<strong %1$s>%2$d Wi-Fi SSID</strong>","<strong %1$s>%2$d Wi-Fi SSIDs</strong>",group.TO_WLAN),devic_link,group.TO_WLAN))
       )
       ngx.print('\
       </div>\

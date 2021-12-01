@@ -1,0 +1,23 @@
+local config_mqos = "mqos"
+
+-- uci.mqos
+mapper("uci_1to1").registerConfigMap(config_mqos)
+
+-- uci.mqos.global
+local mqos_global = {
+  config = config_mqos,
+  section = "global",
+  type = "mqos",
+  options = { "enabled","download","upload" }
+}
+
+mapper("uci_1to1").registerSimpleMap(mqos_global)
+
+-- uci.mqos.device.{i}
+local mqos_device = {
+  config = config_mqos,
+  type = "device",
+  options = { "enabled","mac","download","upload" }
+}
+
+mapper("uci_1to1").registerNamedMultiMap(mqos_device)

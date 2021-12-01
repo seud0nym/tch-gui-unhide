@@ -14,38 +14,38 @@
 
 if [ $RESTORE = y ]; then
   restore_www V
-  for f in /etc/tch-gui-unhide.ignored_release /etc/tch-gui-unhide.theme
+  for f in /etc/tch-gui-unhide.ignored_release /etc/tch-gui-unhide.theme /etc/hotplug.d/iface/10-mqos /etc/init.d/mqos /usr/sbin/mqos
   do
-    if [ -f "$f" ]
-    then
+    if [ -f "$f" ]; then
+      if [ "$(dirname $f)" = "/etc/init.d" ]; then
+        echo [$SCRIPT]: Disabling and stopping $f
+        $f disable
+        $f stop
+      fi
       echo [$SCRIPT]: Removing $f
       rm "$f"
     fi
   done
   for d in /www/docroot/css/light /www/docroot/css/night /www/docroot/css/telstra /www/docroot/img/light /www/docroot/img/night /www/docroot/css/Telstra
   do
-    if [ -d "$d" ]
-    then
+    if [ -d "$d" ]; then
       echo [$SCRIPT]: Removing empty directory $d
       rmdir "$d"
     fi
   done
-  for s in $(uci show web | grep normally_hidden | cut -d. -f2)
-  do
+  for s in $(uci show web | grep normally_hidden | cut -d. -f2); do
     echo [$SCRIPT]: Removing config entry web.$s
     uci -q delete web.$s
     uci -q del_list web.ruleset_main.rules="$s"
     SRV_nginx=$(( $SRV_nginx + 2 ))
   done
-  for s in $(uci show web | grep '=card' | cut -d= -f1)
-  do
+  for s in $(uci show web | grep '=card' | cut -d= -f1); do
     echo [$SCRIPT]: Removing config entry $s
     uci -q delete $s
     SRV_nginx=$(( $SRV_nginx + 1 ))
   done
   RULES=$(uci get web.ruleset_main.rules)
-  for s in $(echo $RULES | tr " " "\n" | grep -v dumaos | sort -u)
-  do
+  for s in $(echo $RULES | tr " " "\n" | grep -v dumaos | sort -u); do
     TARGET=$(uci -q get web.$s.target)
     if [ -n "$TARGET" -a ":$TARGET" != ":/" -a ! -f /www/docroot$TARGET -a ! -f /www$TARGET -a ! -f /www/docroot/ajax$TARGET ]; then
       echo [$SCRIPT]: Removing config entry web.$s

@@ -4,3 +4,23 @@ sed \
   -e 's/Classify/Reclassify/' \
   /www/docroot/modals/qos-classify-modal.lp > /www/docroot/modals/qos-reclassify-modal.lp
 
+if [ ! -e /etc/config/mqos ]; then
+  echo [$SCRIPT]: Creating MAC bandwidth shaping config
+  # Based on https://github.com/skyformat99/eqos/blob/master/files/eqos.config
+  cat <<MQOS > /etc/config/mqos
+config mqos 'global'
+        option enabled '0'
+        option download '50'
+        option upload '20'
+
+# Limiting the bandwidth of a single Device
+#config device 'test'
+#        option enabled '0'
+#        option mac 'm0:m1:m2:m3:m4:m5'
+#        option download '10'
+#        option upload '5'
+MQOS
+  chmod 644 /etc/config/mqos
+  /etc/init.d/mqos enable
+fi
+

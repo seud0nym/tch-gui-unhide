@@ -1,0 +1,114 @@
+#!/bin/sh
+# Based on:
+# - https://openwrt.org/docs/guide-user/network/traffic-shaping/packet.scheduler.example5
+# - https://github.com/skyformat99/eqos/blob/master/files/eqos.sh
+
+DEV='br-lan'
+TC=$(which tc)
+IP=$(which ip)
+WC=$(which wc)
+
+TCF_PATTTERN="${TC} filter add dev %s parent 1: protocol ip prio 5 u32 match u16 0x0800 0xFFFF at -2"
+
+GREEN='\033[1;32m'
+GREY='\033[90m'
+ORANGE='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+usage() {
+  echo -e "${GREEN}Usage: $0 <command> [options]${NC}"
+  echo -e "${ORANGE}Commands:${NC}"
+  echo "  start <dl_rate> <up_rate>     # Total bandwidth (Mbit/s)"
+  echo "  stop"
+  echo "  add <mac> <dl_rate> <up_rate> # Limit the bandwidth of a single MAC (Mbit/s)"
+  echo "  status"
+  echo -e "${ORANGE}Example:${NC}"
+  echo "  $0 start 50 20                # Total bandwidth: down 50Mbit/s up 20Mbit/s"
+  echo "  $0 add xx:xx:xx:xx:xx:xx 10 2 # Limit a MAC:     down 10Mbit/s up  2Mbit/s"
+  exit 2
+}
+
+stop_qos() {
+  ${TC} qdisc del dev ${DEV} root 2>/dev/null
+  ${TC} qdisc del dev ${DEV} ingress 2>/dev/null
+  ${TC} qdisc del dev ${DEV}-ifb root 2>/dev/null
+  ${IP} link del dev ${DEV}-ifb 2>/dev/null
+}
+
+start_qos() {
+  local DL=$1
+  local UP=$2
+	
+  ${TC} qdisc add dev ${DEV} root handle 1: htb r2q ${DL}
+  ${TC} class add dev ${DEV} parent 1: classid 1:1 htb rate ${DL}mbit
+	
+  ${IP} link add dev ${DEV}-ifb name ${DEV}-ifb type ifb
+  ${IP} link set dev ${DEV}-ifb up
+	
+  ${TC} qdisc add dev ${DEV}-ifb root handle 1: htb r2q ${DL}
+  ${TC} class add dev ${DEV}-ifb parent 1: classid 1:1 htb rate ${UP}mbit
+	
+  ${TC} qdisc add dev ${DEV} ingress
+  ${TC} filter add dev ${DEV} parent ffff: protocol ip u32 match u32 0 0 flowid 1:1 action mirred egress redirect dev ${DEV}-ifb
+}
+
+BW_PATTERN='^[0-9]*$'
+MA_PATTERN='^[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]$'
+validate() {
+  echo "$2" | grep -q "$3"
+  if [ $? -eq 1 ]; then
+    echo -e "${RED}ERROR: Invalid $1${NC}"
+    echo
+    usage
+  fi
+}
+
+case "$1" in
+  "stop")
+    stop_qos
+    ;;
+  "start")
+    [ $# -ne 3 ] && usage
+    validate "download rate" "$2" "${BW_PATTERN}"
+    validate "upload rate" "$3" "${BW_PATTERN}"
+    stop_qos
+    start_qos $2 $3
+    ;;
+  "add")
+    [ $# -ne 4 ] && usage
+    validate "MAC address" "$(echo $2 | tr '[A-F]' '[a-f]')" "$MA_PATERN"
+    validate "download rate" "$3" "${BW_PATTERN}"
+    validate "upload rate" "$4" "${BW_PATTERN}"
+
+    M0=$(echo $2 | cut -d: -f1)$(echo $2 | cut -d: -f2)
+    M1=$(echo $2 | cut -d: -f3)$(echo $2 | cut -d: -f4)
+    M2=$(echo $2 | cut -d: -f5)$(echo $2 | cut -d: -f6)
+    DL="$3"
+    UP="$4"
+		
+    NXT=$(${TC} class show dev ${DEV} | ${WC} -l)
+		
+    ${TC} class add dev ${DEV} parent 1:1 classid 1:1${NXT} htb rate ${DL}mbit ceil ${DL}mbit
+    ${TC} class add dev ${DEV}-ifb parent 1:1 classid 1:1${NXT} htb rate ${UP}mbit ceil ${UP}mbit
+
+    for D in ${DEV} ${DEV}-ifb; do
+      TCF=$(printf "${TCF_PATTTERN}" ${D})
+      $TCF match u16 0x${M2} 0xFFFF at -4 match u32 0x${M0}${M1} 0xFFFFFFFF at -8 flowid 1:1${NXT}
+      $TCF match u32 0x${M1}${M2} 0xFFFFFFFF at -12 match u16 0x${M0} 0xFFFF at -14 flowid 1:1${NXT}
+    done
+    ;;
+  "status")
+    for D in ${DEV} ${DEV}-ifb; do
+      echo -e "${GREEN}Device ${D}:${NC}"
+      for O in qdisc class filter; do
+        ${TC} -s ${O} show dev ${D}
+        [ $? -ne 0 ] && break
+      done
+    done
+    ;;
+  *)
+    usage
+    ;;
+esac
+
