@@ -46,5 +46,5 @@ if (ram_data != null) {\
     ram_config.data.datasets[0].data[i] = Number(arr[i]);\
   }\
 }\
-window.ram_chart = new Chart(ram_context, ram_config);\
+window.ram_chart = new Chart(ram_context,ram_config);\
 ');

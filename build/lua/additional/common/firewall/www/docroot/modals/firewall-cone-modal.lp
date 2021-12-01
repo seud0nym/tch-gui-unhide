@@ -47,7 +47,7 @@ local fw_cone_columns = {
     readonly = true,
   },
  }
- 
+
 local fw_cone_options = {
   tableid = "fw_cones",
   basepath = "uci.firewall.cone.@.",
@@ -56,16 +56,16 @@ local fw_cone_options = {
   canDelete = false,
 }
 
-local fw_cone_data, fw_cone_helpmsg = post_helper.handleTableQuery(fw_cone_columns, fw_cone_options, nil, nil, nil)
+local fw_cone_data,fw_cone_helpmsg = post_helper.handleTableQuery(fw_cone_columns,fw_cone_options,nil,nil,nil)
 
-ngx.print(ui_helper.createHeader(T"Firewall", true, false))   ngx.print('\
+ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-firewall.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/firewall-cones-modal.lp">\
     '); 
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('<legend>');  ngx.print( T"Cone NAT Rules" ); ngx.print('</legend>');
-    ngx.print(ui_helper.createTable(fw_cone_columns, fw_cone_data, fw_cone_options, nil, fw_cone_helpmsg))
+    ngx.print(ui_helper.createTable(fw_cone_columns,fw_cone_data,fw_cone_options,nil,fw_cone_helpmsg))
     ngx.print('\
   </form>\
 </div>\

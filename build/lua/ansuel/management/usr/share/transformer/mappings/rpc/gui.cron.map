@@ -1,10 +1,10 @@
 local cronfile = "/etc/crontabs/root"
 local cron_cache = {
-  active, -- count of enabled tasks
-  tbl,
-  time_check, -- time tbl was refreshed
-  refresh, -- line to refresh in the file
-  reload -- force reload
+  active = nil,-- count of enabled tasks
+  tbl = nil,
+  time_check = nil,-- time tbl was refreshed
+  refresh = nil,-- line to refresh in the file
+  reload = nil -- force reload
 }
 local function checkCron()
   local active = 0
@@ -17,10 +17,9 @@ local function checkCron()
   end
 
   local f = io.open(cronfile,"r")
-  local line
   for line in f:lines() do
     if line ~= "" then
-      local enabled, minute, hour, day, month, weekday, command = line:match("([# ]*)([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) (.*)")
+      local enabled,minute,hour,day,month,weekday,command = line:match("([# ]*)([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) (.*)")
       if enabled:gsub("%s","") == "#" then
         enabled = "0"
       else
@@ -61,7 +60,7 @@ local function writeLine(fd,tbl)
   fd:write(tbl.command.."\n")
 end
 
-local function editCron(param, value, key)
+local function editCron(param,value,key)
   checkCron()
 
   cron_cache.tbl[tonumber(key)][param] = value
@@ -100,11 +99,10 @@ GUI_CRON_.get = {
 }
 
 GUI_CRON_.set = {
-  writecrontab = function(mapping,param,value,key)
+  writecrontab = function(_,_,value,_)
     if value == "1" then
       local cronTbl = checkCron()
       local f = io.open(cronfile,"w+")
-      local l
       for _,l in pairs(cronTbl) do
         writeLine(f,l)
       end
@@ -158,59 +156,58 @@ local GUI_CRON_i_ = {
   }
 }
 
-GUI_CRON_i_.entries = function(mapping)
+GUI_CRON_i_.entries = function(_)
   local res = {}
-  local key
   for key in pairs(checkCron()) do
     res[#res+1]=tostring(key)
   end
   return res
 end
 
-GUI_CRON_i_.get = function(mapping, param, key)
+GUI_CRON_i_.get = function(_,param,key)
   return checkCron()[tonumber(key)][param] or ""
 end
 
 GUI_CRON_i_.set = {
-  minute = function(mapping,param,value,key)
+  minute = function(_,param,value,key)
     if not value:match("[0-9-%*-%--%/,]+") then
-      return nil, "Minute can only contain 0-9, commas, -, / and *"
+      return nil,"Minute can only contain 0-9,commas,-,/ and *"
     end
     return editCron(param,value,key)
   end,
-  hour = function(mapping,param,value,key)
+  hour = function(_,param,value,key)
     if not value:match("[0-9-%*-%--%/,]+") then
-      return nil, "Hour can only contain 0-9, commas, -, / and *"
+      return nil,"Hour can only contain 0-9,commas,-,/ and *"
     end
     return editCron(param,value,key)
   end,
-  day = function(mapping,param,value,key)
+  day = function(_,param,value,key)
     if not value:match("[0-9-%*-%--%/,]+") then
-      return nil, "Day can only contain 0-9, commas, -, / and *"
+      return nil,"Day can only contain 0-9,commas,-,/ and *"
     end
     return editCron(param,value,key)
   end,
-  month = function(mapping,param,value,key)
+  month = function(_,param,value,key)
     if not value:match("[0-9-%*-%--%/,]+") then
-      return nil, "Month can only contain 0-9, commas, -, / and *"
+      return nil,"Month can only contain 0-9,commas,-,/ and *"
     end
     return editCron(param,value,key)
   end,
-  weekday = function(mapping,param,value,key)
+  weekday = function(_,param,value,key)
     if not value:match("[0-6-%*-%--%/,]+") then
-      return nil, "Weekday can only contain 0-6, commas, -, / and *"
+      return nil,"Weekday can only contain 0-6,commas,-,/ and *"
     end
     return editCron(param,value,key)
   end,
-  command = function(mapping,param,value,key)
+  command = function(_,param,value,key)
     return editCron(param,value,key)
   end,
-  enabled = function(mapping,param,value,key)
+  enabled = function(_,param,value,key)
     return editCron(param,value,key)
   end,
 }
 
-GUI_CRON_i_.add = function(mapping)
+GUI_CRON_i_.add = function(_)
   local tbl = checkCron()
   local index = #tbl + 1
   local line = {
@@ -232,13 +229,12 @@ GUI_CRON_i_.add = function(mapping)
   return "@"..tostring(index)
 end
 
-GUI_CRON_i_.delete = function(mapping, key)
+GUI_CRON_i_.delete = function(_,key)
   checkCron()
 
   cron_cache.tbl[tonumber(key)] = nil
 
   local f = io.open(cronfile,"w+")
-  local line
   for _,line in pairs(cron_cache.tbl) do
     writeLine(f,line)
   end

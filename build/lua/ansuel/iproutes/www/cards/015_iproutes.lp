@@ -11,7 +11,6 @@ local modalPath = "/modals/iproutes-modal.lp"
 
 if session:hasAccess(modalPath) then
   local bridge_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/bridge-grouping-modal.lp" data-id="dns-modal"'
-  local dns_modal_link
   local routes_modal_link = format('class="modal-link" data-toggle="modal" data-remote="%s" data-id="device-modal"',modalPath)
 
   local dyn_count = proxy.getPN("sys.class.iproutes.",true)

@@ -1,7 +1,7 @@
 --pretranslated: do not change this file
 
 local lfs = require("lfs")
-if lfs.attributes("/etc/config/mmpbx", "mode") ~= "file" then
+if lfs.attributes("/etc/config/mmpbx","mode") ~= "file" then
   return
 end
 
@@ -17,7 +17,7 @@ local format = string.format
 
 local session = ngx.ctx.session
 if session:hasAccess("/modals/mmpbx-info-modal.lp") then
-  local mmpbx_state, error = proxy.get("uci.mmpbx.mmpbx.@global.enabled")
+  local mmpbx_state = proxy.get("uci.mmpbx.mmpbx.@global.enabled")
   if mmpbx_state then
     mmpbx_state = mmpbx_state[1].value
   else
@@ -35,7 +35,7 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
     emission_state = "rpc.mmpbx.dectemission.state",
   }
   content_helper.getExactContent(emission_content)
-  local emission_state = format("%s", emission_content.emission_state)
+  local emission_state = format("%s",emission_content.emission_state)
 
   local emission_info
   if emission_state and emission_state == "1" then
@@ -46,11 +46,11 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
 
   local switchName = "mmpbx_enable"
 
-  local html, disabled = tch.getTelephonyCardHTML(mmpbx_state)
+  local html,disabled = tch.getTelephonyCardHTML(mmpbx_state)
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    '); ngx.print(ui_helper.createCardHeader(T"Telephony", modalPath, switchName, mmpbx_state)); ngx.print('\
+    '); ngx.print(ui_helper.createCardHeader(T"Telephony",modalPath,switchName,mmpbx_state)); ngx.print('\
     <div class="content">\
       <div id="telephony-card-content">\
       '); ngx.print(html); ngx.print('\
@@ -58,11 +58,11 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
       ');
         if disabled ~= 0 then
           ngx.print('<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-profile-modal.lp" data-id="mmpbx-profile-modal">')
-          ngx.print(ui_helper.createSimpleLight("0", format(N('%d disabled profile','%d disabled profiles',disabled),disabled)))
+          ngx.print(ui_helper.createSimpleLight("0",format(N('%d disabled profile','%d disabled profiles',disabled),disabled)))
           ngx.print('</span>')
         end
         ngx.print('<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-dect-modal.lp" data-id="mmpbx-dect-modal">')
-        ngx.print(ui_helper.createSimpleLight(emission_state, emission_info))
+        ngx.print(ui_helper.createSimpleLight(emission_state,emission_info))
         ngx.print('</span>')
         ngx.print('\
     </div>\
@@ -73,9 +73,9 @@ $(".header input#mmpbx_enable").on("change",function(){$("#waiting").addClass("d
 '); if mmpbx_state == "1" then ngx.print('\
   var tFuncID;\
   function updateTelephonyCard(){\
-    $.post("/ajax/telephony-status.lua", [tch.elementCSRFtoken()], function(data){\
+    $.post("/ajax/telephony-status.lua",[tch.elementCSRFtoken()],function(data){\
       $("#telephony-card-content").html(data["html"]);\
-    }, "json")\
+    },"json")\
     .fail(function(response){\
       if(response.status==403||response.status==404){clearInterval(tFuncID);}\
     });\

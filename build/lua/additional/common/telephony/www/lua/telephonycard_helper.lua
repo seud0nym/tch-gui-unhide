@@ -1,7 +1,7 @@
 local proxy = require ("datamodel")
 local ui_helper = require ("web.ui_helper")
 local content_helper = require ("web.content_helper")
-local format, lower = string.format, string.lower
+local format = string.format
 
 local sipprofile_uci_path = "uci.mmpbxrvsipnet.profile."
 local sipprofile_rpc_path = "rpc.mmpbx.sip_profile.@"
@@ -10,15 +10,15 @@ local profilestats_rpc_path = "rpc.mmpbx.profilestatistics.@"
 
 local modal_link='class="modal-link" data-toggle="modal" data-remote="modals/mmpbx-profile-modal.lp" data-id="mmpbx-profile-modal"'
 
-local function spairs(t, order)
+local function spairs(t,order)
   -- collect the keys
   local keys = {}
   for k in pairs(t) do keys[#keys+1] = k end
 
-  -- if order function given, sort by it by passing the table and keys a, b,
+  -- if order function given,sort by it by passing the table and keys a,b,
   -- otherwise just sort the keys 
   if order then
-      table.sort(keys, function(a,b) return order(t, a, b) end)
+      table.sort(keys,function(a,b) return order(t,a,b) end)
   else
       table.sort(keys)
   end
@@ -28,7 +28,7 @@ local function spairs(t, order)
   return function()
       i = i + 1
       if keys[i] then
-          return keys[i], t[keys[i]]
+          return keys[i],t[keys[i]]
       end
   end
 end
@@ -49,9 +49,8 @@ local M = {}
 function M.getTelephonyCardHTML(mmpbx_state) 
   local sipprofile_content = content_helper.getMatchedContent(sipprofile_uci_path)
   local sipprofile_info = {}
-  local v = {}
-  for _, v in pairs(sipprofile_content) do
-    local name = string.match (v.path, "@([^%.]+)")
+  for _,v in pairs(sipprofile_content) do
+    local name = string.match (v.path,"@([^%.]+)")
     if v.display_name ~= nil and v.display_name ~= "" then
       sipprofile_info[name] = v.display_name
     else
@@ -61,9 +60,8 @@ function M.getTelephonyCardHTML(mmpbx_state)
 
   local html = {}
 
-  local name, value = "", ""
   local disabled = 0
-  for name, value in spairs(sipprofile_info) do
+  for name,value in spairs(sipprofile_info) do
     local enabled = proxy.get(sipprofile_rpc_path..name..".enabled")
     if enabled and enabled[1].value == "1" then
       local state = proxy.get(profile_rpc_path..name..".sipRegisterState")
@@ -93,26 +91,26 @@ function M.getTelephonyCardHTML(mmpbx_state)
               callsOut = toNumberOrZero(outgoing)
             end
           end
-          html[#html+1] = format('<span %s>', modal_link)
-          html[#html+1] = ui_helper.createSimpleLight("1", value .. T" registered")
+          html[#html+1] = format('<span %s>',modal_link)
+          html[#html+1] = ui_helper.createSimpleLight("1",value..T" registered")
           html[#html+1] = '</span>'
-          html[#html+1] = format('<p class="subinfos modal-link" data-toggle="modal" data-remote="/modals/mmpbx-log-modal.lp" data-id="mmpbx-log-modal">Calls: %s <small>IN</small> %s <small>MISSED</small> %s <small>OUT</small></p>', callsIn, callsMissed, callsOut)
+          html[#html+1] = format('<p class="subinfos modal-link" data-toggle="modal" data-remote="/modals/mmpbx-log-modal.lp" data-id="mmpbx-log-modal">Calls: %s <small>IN</small> %s <small>MISSED</small> %s <small>OUT</small></p>',callsIn,callsMissed,callsOut)
         elseif state[1].value == "Registering" then
-          html[#html+1] = format('<span %s>', modal_link)
-          html[#html+1] = ui_helper.createSimpleLight("2", value .. T" registering")
+          html[#html+1] = format('<span %s>',modal_link)
+          html[#html+1] = ui_helper.createSimpleLight("2",value..T" registering")
           html[#html+1] = '</span>'
         else
-          html[#html+1] = format('<span %s>', modal_link)
+          html[#html+1] = format('<span %s>',modal_link)
           if mmpbx_state == "1" then
-            html[#html+1] = ui_helper.createSimpleLight("4", value .. T" unregistered")
+            html[#html+1] = ui_helper.createSimpleLight("4",value..T" unregistered")
           else
-            html[#html+1] = ui_helper.createSimpleLight("0", value .. T" unregistered")
+            html[#html+1] = ui_helper.createSimpleLight("0",value..T" unregistered")
           end
           html[#html+1] = '</span>'
         end
       else
-        html[#html+1] = format('<span %s>', modal_link)
-        html[#html+1] = ui_helper.createSimpleLight("0", value .. T" unregistered")
+        html[#html+1] = format('<span %s>',modal_link)
+        html[#html+1] = ui_helper.createSimpleLight("0",value..T" unregistered")
         html[#html+1] = '</span>'
       end
     else
@@ -120,7 +118,7 @@ function M.getTelephonyCardHTML(mmpbx_state)
     end
   end
 
-  return html, disabled
+  return html,disabled
 end
 
 return M

@@ -17,7 +17,7 @@ end
 
 local function initHelperFunction(name,type)
   if not initTable[name] then
-    return nil, "Invalid init process name"
+    return nil,"Invalid init process name"
   end
   local command = string.format("/etc/init.d/%s %s",name,type)
   os.execute("logger rpc.gui.init: "..command)
@@ -26,7 +26,7 @@ end
 
 local function populate()
   local res = {}
-  local modified = lfs.attributes("/etc/init.d", 'modification')
+  local modified = lfs.attributes("/etc/init.d",'modification')
 
   if initModified ~= modified then
     initModified = modified
@@ -40,7 +40,7 @@ local function populate()
       end
     end
   end
-  
+
   for file in pairs(initTable) do
     res[#res+1] = file
   end
@@ -94,26 +94,26 @@ GUI_INIT_.get = {
 }
 
 GUI_INIT_.set = {
-  enable = function(mapping, param, value)
+  enable = function(_,_,value)
     return initHelperFunction(value,"enable")
   end,
-  disable = function(mapping, param, value)
+  disable = function(_,_,value)
     return initHelperFunction(value,"disable")
   end,
-  toggle = function(mapping, param, value)
+  toggle = function(_,param,value)
     if getState(param) == "1" then
       return initHelperFunction(value,"disable")
     else
       return initHelperFunction(value,"enable")
     end
   end,
-  start = function(mapping, param, value)
+  start = function(_,_,value)
     return initHelperFunction(value,"start")
   end,
-  stop = function(mapping, param, value)
+  stop = function(_,_,value)
     return initHelperFunction(value,"stop")
   end,
-  restart = function(mapping, param, value)
+  restart = function(_,_,value)
     return initHelperFunction(value,"restart")
   end,
 }
@@ -148,21 +148,21 @@ local GUI_INIT_i_ = {
   }
 }
 
-GUI_INIT_i_.entries = function(mapping)
+GUI_INIT_i_.entries = function(_)
   return populate()
 end
 
 GUI_INIT_i_.get = {
-  name = function(mapping, param, key)
+  name = function(_,_,key)
     return key
   end,
-  start_order = function(mapping, param, key)
+  start_order = function(_,_,key)
     return initTable[key].start
   end,
-  stop_order = function(mapping, param, key)
+  stop_order = function(_,_,key)
     return initTable[key].stop
   end,
-  active = function(mapping, param, key)
+  active = function(_,_,key)
     return getState(key)
   end,
 }

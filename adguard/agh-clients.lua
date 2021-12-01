@@ -1,3 +1,4 @@
+---@diagnostic disable: lowercase-global
 if (#arg % 2 ~= 0) then
   print("Required arguments: hostname:port username:password")
   print("                    Repeat hostname:port username:password for multiple servers")
@@ -46,7 +47,6 @@ function process(target)
   local current = json.decode(raw)
 
   if current.clients then
-    local i, client
     for i,client in pairs(current.clients) do
       if client.ids then
         delete[client.name] = true
@@ -64,7 +64,6 @@ function process(target)
             ids = {}
           }
         end
-        local id
         for _,id in pairs(client.ids) do
           clients[hostname].ids[#clients[hostname].ids+1] = id
           ids[id] = hostname
@@ -79,13 +78,11 @@ function process(target)
       ids = {}
     }
   end
-  local ip
   for ip in string.gmatch(device_ips, "(%S+)/%d%d") do
     clients[device_hostname].ids[#clients[device_hostname].ids+1] = ip
     ids[ip] = device_hostname
   end
 
-  local host
   for _,host in pairs(hosts) do
     if host.interface == "lan" then
       local mac = host['mac-address']
@@ -110,7 +107,6 @@ function process(target)
     end
   end
 
-  local id, hostname
   for id, hostname in pairs(ids) do
     local i = index[hostname]
     if not i then
@@ -154,7 +150,6 @@ function process(target)
     end
   end
 
-  local host, v
   for host,v in pairs(delete) do
     if v then
       print("Removing client "..host.." from "..address)

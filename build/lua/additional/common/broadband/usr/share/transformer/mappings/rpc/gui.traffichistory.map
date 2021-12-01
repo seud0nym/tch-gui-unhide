@@ -1,5 +1,5 @@
 local lfs = require("lfs")
-local match, sub = string.match, string.sub
+local match,sub = string.match,string.sub
 
 local histdir = "/root/trafficmon/history/"
 local wan_rollover_config = histdir..".wan_rollover"
@@ -9,11 +9,10 @@ local pattern = "([^|]*)|(%d+)|(%d+)"
 local usageTable = {}
 
 local function refreshUsage(filename)
-  local file = io.open(histdir..filename, "r")
+  local file = io.open(histdir..filename,"r")
   if file then
-    local line
     for line in file:lines() do
-      local ifname, rx_bytes, tx_bytes = match(line, pattern)
+      local ifname,rx_bytes,tx_bytes = match(line,pattern)
       if ifname and rx_bytes and tx_bytes and ifname ~= "" then
         usageTable[filename.."_"..ifname] = {
           date = filename,
@@ -30,24 +29,10 @@ local function refreshUsage(filename)
   end
 end
 
-local function getRollOverDay(filename)
-  local day
-  local file = io.open(filename, "r")
-  if file then
-    day = tonumber(file:read())
-    file:close()
-  end
-  if not day then
-    day = 1
-    setRollOverDay(filename, day)
-  end
-  return day
-end
-
-local function setRollOverDay(filename, value)
+local function setRollOverDay(filename,value)
   local day = tonumber(value)
   if day and day >= 1 and day <= 31 then
-    local file = io.open(filename, "w")
+    local file = io.open(filename,"w")
     if file then
       file:write(day)
       file:close()
@@ -60,7 +45,20 @@ local function setRollOverDay(filename, value)
   end
 end
 
-local summaryfilename
+local function getRollOverDay(filename)
+  local day
+  local file = io.open(filename,"r")
+  if file then
+    day = tonumber(file:read())
+    file:close()
+  end
+  if not day then
+    day = 1
+    setRollOverDay(filename,day)
+  end
+  return day
+end
+
 for summaryfilename in lfs.dir(histdir) do
   if sub(summaryfilename,1,1) ~= "." then
     refreshUsage(summaryfilename)
@@ -106,16 +104,15 @@ GUI_BBUSAGEHIST_.get = {
 }
 
 GUI_BBUSAGEHIST_.set = {
-  refresh = function(mapping,param,value,key)
+  refresh = function(_,_,value,_)
     return refreshUsage(value)
   end,
-  remove = function(mapping,param,value,key)
+  remove = function(_,_,value,_)
     if value and value ~= "" then
       local prefix = value .. "_"
-      local key
       local found = 0
       for key in pairs(usageTable) do
-        if sub(key, 1 , #prefix) == prefix then
+        if sub(key,1 ,#prefix) == prefix then
           usageTable[key] = nil
           found = found + 1
         end
@@ -125,11 +122,11 @@ GUI_BBUSAGEHIST_.set = {
       return false
     end
   end,
-  wan_rollover = function(mapping,param,value,key)
-    return setRollOverDay(wan_rollover_config, value)
+  wan_rollover = function(_,_,value,_)
+    return setRollOverDay(wan_rollover_config,value)
   end,
-  wwan_rollover = function(mapping,param,value,key)
-    return setRollOverDay(wwan_rollover_config, value)
+  wwan_rollover = function(_,_,value,_)
+    return setRollOverDay(wwan_rollover_config,value)
   end,
 }
 
@@ -167,9 +164,8 @@ local GUI_BBUSAGEHIST_i_ = {
   }
 }
 
-GUI_BBUSAGEHIST_i_.entries = function(mapping)
+GUI_BBUSAGEHIST_i_.entries = function(_)
   local res = {}
-  local key
   for key in pairs(usageTable) do
     res[#res+1]=key
   end
@@ -177,19 +173,19 @@ GUI_BBUSAGEHIST_i_.entries = function(mapping)
 end
 
 GUI_BBUSAGEHIST_i_.get = {
-  date = function(mapping, param, key)
+  date = function(_,_,key)
     return usageTable[key].date or ""
   end,
-  interface = function(mapping, param, key)
+  interface = function(_,_,key)
     return usageTable[key].interface or ""
   end,
-  rx_bytes = function(mapping, param, key)
+  rx_bytes = function(_,_,key)
     return usageTable[key].rx_bytes or "0"
   end,
-  tx_bytes = function(mapping, param, key)
+  tx_bytes = function(_,_,key)
     return usageTable[key].tx_bytes or "0"
   end,
-  total_bytes = function(mapping, param, key)
+  total_bytes = function(_,_,key)
     return tostring((usageTable[key].rx_bytes or 0) + (usageTable[key].tx_bytes or 0))
   end,
 }

@@ -65,10 +65,10 @@ local proc_options = {
   basepath = "rpc.gui.proc.processes.",
 }
 
-local proc_data, proc_helpmsg = post_helper.handleTableQuery(proc_columns, proc_options, nil, nil, nil)
+local proc_data,proc_helpmsg = post_helper.handleTableQuery(proc_columns,proc_options,nil,nil,nil)
 
   ngx.print('\
-');  ngx.print(ui_helper.createHeader(T"Management", false, true, 5) ); ngx.print('\
+');  ngx.print(ui_helper.createHeader(T"Management",false,true,5) ); ngx.print('\
 <div class="modal-body update">\
 ');  
   local lp = require("web.lp")
@@ -76,22 +76,17 @@ local proc_data, proc_helpmsg = post_helper.handleTableQuery(proc_columns, proc_
   lp.include("tabs-management.lp")
   ngx.print('\
 ');  
--- dummy form so that refresh button knows which page to reload, keep it
+-- dummy form so that refresh button knows which page to reload,keep it
 ngx.print('\
 <form class="form-horizontal" method="post" action="modals/system-proc-modal.lp">\
   <fieldset id="system-proc-tab">\
     <legend>');  ngx.print( T"Processes" ); ngx.print('</legend>')
-    local filterclass = {
-        input = {
-            id = "searchInput",
-        }
-    }
     local html = {}
     html[#html+1] = "<div class='control-group'><label class='control-label'>Filter</label><div class='controls'>"
     html[#html+1] = "<input data-type='search' name='Filter' class='edit-input span3 no-save' placeholder='Search For Processes...' id='searchInput' type='text'>"
     html[#html+1] = "</div></div>"
     ngx.print(html)
-    ngx.print(ui_helper.createTable(proc_columns, proc_data, proc_options, nil, proc_helpmsg))
+    ngx.print(ui_helper.createTable(proc_columns,proc_data,proc_options,nil,proc_helpmsg))
     ngx.print('\
   </fieldset>\
 </form>\
@@ -107,7 +102,7 @@ ngx.print('\
           return;\
       }\
       jo.hide();\
-      jo.filter(function (i, v) {\
+      jo.filter(function (i,v) {\
           var $t = $(this);\
           for (var d = 0; d < data.length; ++d) {\
               if ($t.text().toUpperCase().indexOf(data[d]) > -1) {\

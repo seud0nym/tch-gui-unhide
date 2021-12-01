@@ -9,16 +9,15 @@ local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
 
-local format,match,untaint = string.format,string.match,string.untaint
+local format,match = string.format,string.match
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 local gOV = post_helper.getOptionalValidation
 local vB = post_helper.validateBoolean
 local vSII = post_helper.validateStringIsIP
-local vSII4 = post_helper.validateStringIsIPv4
-local vSII6 = post_helper.validateStringIsIPv6
 local vSIDN = post_helper.validateStringIsDomainName
 
 local dnsmasq_path
-local dnsmidx,dnsmif
 for _,dnsmidx in pairs(proxy.getPN("uci.dhcp.dnsmasq.",true)) do
   for _,dnsmif in pairs(proxy.get(dnsmidx.path.."interface.")) do
     if dnsmif.value == "lan" then
@@ -39,7 +38,6 @@ end
 
 local function handleDNSTableQuery(columns,options,filter,defaultObject,mapValidation)
   local data,helpmsg = post_helper.handleTableQuery(columns,options,filter,defaultObject,mapValidation)
-  local k,v
   for k,v in pairs (data) do
     local domain,ip = match(untaint(v[2]),"/([^/]+)/(.+)")
     if domain and ip then
@@ -72,7 +70,7 @@ end
 
 local custom_dns_columns = {
   {
-    header = T"Domain <span class='icon-question-sign' title='Specify a domain name to resolved against a specific server, or leave blank for all domains. The last server listed for duplicated domains will be used unless it does not respond, in which case the previous server will be queried.'></span>",
+    header = T"Domain <span class='icon-question-sign' title='Specify a domain name to resolved against a specific server,or leave blank for all domains. The last server listed for duplicated domains will be used unless it does not respond,in which case the previous server will be queried.'></span>",
     name = "domain",
     type = "text",
     attr = { input = { class="span2",placeholder="Leave blank for all domains" } },
@@ -98,7 +96,7 @@ local custom_dns_options = {
 }
 local custom_dns_valid = {
   domain = gOV(vSIDN),
-  value = function(value,object,key)
+  value = function(value,object)
     local ret,err = vSII(value)
     if ret then
       local domain = match(untaint(object.domain),"^%s*(.-)%s*$")
@@ -129,7 +127,7 @@ local rewrites_columns = {
 }
 local rewrites_valid = {
   domain = vSIDN,
-  value = function(value,object,key)
+  value = function(value,object)
     local ret,err = vSII(value)
     if ret then
       object.value = format("/%s/%s",object.domain,value)
@@ -275,7 +273,7 @@ ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
       <fieldset>\
         <legend>'); ngx.print(T"Configuration"); ngx.print('</legend>\
         ');
-        ngx.print(ui_helper.createSwitch(T"Ignore Interface DNS<span class='icon-question-sign' title='When ON, do NOT fallback to the Interface DNS Servers if the Custom DNS Servers fail to respond.'></span>","noresolv",dns_config["noresolv"],nil,dns_config_helpmsg["noresolv"]))
+        ngx.print(ui_helper.createSwitch(T"Ignore Interface DNS<span class='icon-question-sign' title='When ON,do NOT fallback to the Interface DNS Servers if the Custom DNS Servers fail to respond.'></span>","noresolv",dns_config["noresolv"],nil,dns_config_helpmsg["noresolv"]))
         ngx.print(ui_helper.createSwitch(T"Log Queries","logqueries",dns_config["logqueries"],nil,dns_config_helpmsg["logqueries"]))
         ngx.print('\
       </fieldset>\
@@ -297,7 +295,7 @@ ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
     <fieldset class="interface-dns">\
       <legend>'); ngx.print(T"Interface DNS Servers"); ngx.print('</legend>\
       ');
-      ngx.print(ui_helper.createAlertBlock(T"If you turn off Auto-Discovery, you <b>MUST</b> add at least one Custom DNS Server, otherwise your setting will be ignored!",{alert={class="alert alert-warn"}}))
+      ngx.print(ui_helper.createAlertBlock(T"If you turn off Auto-Discovery,you <b>MUST</b> add at least one Custom DNS Server,otherwise your setting will be ignored!",{alert={class="alert alert-warn"}}))
       ngx.print('\
         <legend><small>'); ngx.print(T"WAN Interface DNS Servers"); ngx.print('</small></legend>\
       ');

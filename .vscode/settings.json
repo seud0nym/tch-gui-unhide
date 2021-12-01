@@ -70,7 +70,30 @@
         "unhiding",
         "wansensing",
         "wifi",
+        "WLAN",
         "xtra",
         "xzvf"
-    ]
+    ],
+    "Lua.diagnostics.globals": [
+        "gettext",
+        "ngx",
+        "T",
+        "register",
+        "mapper",
+        "N",
+        "commitapply"
+    ],
+    "Lua.runtime.version": "Lua 5.1",
+    "Lua.workspace.library": [
+        "C:\\Users\\Stephen\\Box\\Technicolor\\Extracted\\vcnt-a_20.3.c.0329-MR19-RB\\usr\\lib\\lua\\web"
+    ],
+    "Lua.runtime.path": [
+        "?.lua",
+        "?/init.lua",
+        "C:\\Users\\Stephen\\Box\\Technicolor\\Extracted\\vcnt-a_20.3.c.0329-MR19-RB\\usr\\lib\\lua\\web"
+    ],
+    "Lua.diagnostics.severity": {
+        "unused-local": "Information"
+    },
+    "Lua.diagnostics.ignoredFiles": "Enable"
 }

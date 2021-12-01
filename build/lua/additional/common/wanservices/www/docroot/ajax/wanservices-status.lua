@@ -3,11 +3,11 @@ local wanservicescard_helper = require("wanservicescard_helper")
 local html = wanservicescard_helper.getWANServicesCardHTML()
 
 local data = {
-  html = table.concat(html, "\n"),
+  html = table.concat(html,"\n"),
 }
 
 local buffer = {}
-if json.encode (data, { indent = false, buffer = buffer }) then
+if json.encode (data,{ indent = false,buffer = buffer }) then
   ngx.say(buffer)
 else
   ngx.say("{}")

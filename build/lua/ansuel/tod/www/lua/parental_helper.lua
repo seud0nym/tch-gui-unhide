@@ -6,12 +6,12 @@ gettext.textdomain('webui-core')
 local post_helper = require("web.post_helper")
 local content_helper = require("web.content_helper")
 local proxy = require("datamodel")
-local wifitod_path = "rpc.wifitod."
 local accesscontroltod_path = "uci.tod.host."
-local format, match = string.format, string.match
-local gsub, untaint = string.gsub, string.untaint
+local format,match = string.format,string.match
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
+local gsub = string.gsub
 local uinetwork = require("web.uinetwork_helper")
-local string = string
 local tonumber = tonumber
 local r_hosts_ac
 local ngx = ngx
@@ -24,8 +24,8 @@ end
 
 local function hosts_ac_ip2mac(t)
   if not t then return nil end
-  for k,v in pairs(t) do
-      local mac = match(k, "%[%s*([%x:]+)%s*%]")
+  for k,_ in pairs(t) do
+      local mac = match(k,"%[%s*([%x:]+)%s*%]")
       if mac then
          t[k] = mac
       end
@@ -47,31 +47,31 @@ function M.get_hosts_ac()
   return hosts_ac_ip2mac(uinetwork.getAutocompleteHostsListIPv4())
 end
 
-local function validateTime(value, object, key)
+local function validateTime(value,object,key)
     local timepattern = "^(%d+):(%d+)$"
-    local time = { match(value, timepattern) }
+    local time = { match(value,timepattern) }
     if #time == 2 then
        if object["start_time"] == object["stop_time"] then
-          return nil, T"Start and Stop time cannot be the same"
+          return nil,T"Start and Stop time cannot be the same"
        end
        local hour = tonumber(time[1])
        local min = tonumber(time[2])
        if hour < 0 or hour > 23 then
-          return nil, T"Invalid hour, must be between 0 and 23"
+          return nil,T"Invalid hour,must be between 0 and 23"
        end
        if min < 0 or min > 59 then
-          return nil, T"Invalid minutes, must be between 0 and 59"
+          return nil,T"Invalid minutes,must be between 0 and 59"
        end
        if key == "stop_time" then
           local start = gsub(untaint(object["start_time"]),":","")
           local stop = gsub(untaint(object["stop_time"]),":","")
           if tonumber(start) > tonumber(stop) then
-             return nil, T"The time range is incorrect"
+             return nil,T"The time range is incorrect"
           end
        end
        return true
     else
-       return nil, T"Invalid time (must be hh:mm)"
+       return nil,T"Invalid time (must be hh:mm)"
     end
 end
 
@@ -82,32 +82,32 @@ local vB = post_helper.validateBoolean
 
 local function theWeekdays()
     return {
-      { "Mon", T"Mon." },
-      { "Tue", T"Tue." },
-      { "Wed", T"Wed." },
-      { "Thu", T"Thu." },
-      { "Fri", T"Fri." },
-      { "Sat", T"Sat." },
-      { "Sun", T"Sun." },
+      { "Mon",T"Mon." },
+      { "Tue",T"Tue." },
+      { "Wed",T"Wed." },
+      { "Thu",T"Thu." },
+      { "Fri",T"Fri." },
+      { "Sat",T"Sat." },
+      { "Sun",T"Sun." },
     }
 end
 
-local function getWeekDays(value, object, key)
+local function getWeekDays(value,object,key)
     local getValidateWeekDays = gVIC(theWeekdays())
-    local ok, msg = getValidateWeekDays(value, object, key)
+    local ok,msg = getValidateWeekDays(value,object,key)
 
     if not ok then
-        return ok, msg
+        return ok,msg
     end
-    for i = #object[key], 1, -1 do
+    for i = #object[key],1,-1 do
         if object[key][i] == "" then
-            table.remove(object[key], i)
+            table.remove(object[key],i)
         end
     end
     return true
 end
 
-local function tod_sort_func(a, b)
+local function tod_sort_func(a,b)
   return a["id"] < b["id"]
 end
 
@@ -116,21 +116,21 @@ function M.mac_to_hostname(mac)
   if not mac then return hostname end
   local dev_detail_info = r_hosts_ac[mac]
   if dev_detail_info then
-     hostname = match(dev_detail_info, "(%S+)%s+%(") or "Unknown-"..mac
+     hostname = match(dev_detail_info,"(%S+)%s+%(") or ("Unknown-"..mac)
   else
      hostname = "Unknown-"..mac
   end
   return hostname
 end
 
--- since tod_default.type is "mac", the "id" will be MAC, we try to convert it
--- to friendly name, otherwise, add "Unknown-" prefix.
+-- since tod_default.type is "mac",the "id" will be MAC,we try to convert it
+-- to friendly name,otherwise,add "Unknown-" prefix.
 local function tod_mac_to_hostname(tod_data)
   if type(tod_data) ~= "table" then
      return
   end
   for _,v in ipairs(tod_data) do
-      -- index is '2' due to in tod_columns, the one header = "Hostname" is 2.
+      -- index is '2' due to in tod_columns,the one header = "Hostname" is 2.
       v[2] = M.mac_to_hostname(untaint(v[2]))
   end
 end
@@ -139,8 +139,8 @@ function M.getTod()
   setlanguage()
 
   local todmodes = {
-    { "allow", T"Allow" },
-    { "block", T"Block" },
+    { "allow",T"Allow" },
+    { "block",T"Block" },
   }
 
   -- ToD forwarding rules
@@ -152,7 +152,7 @@ function M.getTod()
         type = "light",
         readonly = true,
         attr = { input = { class="span1" } },
-    }, --[1]
+    },--[1]
     {
         header = T"Hostname",
         name = "id",
@@ -160,7 +160,7 @@ function M.getTod()
         type = "text",
         readonly = true,
         attr = { input = { class="span3" } },
-    }, --[2]
+    },--[2]
     {
         header = T"Start Time",
         name = "start_time",
@@ -168,7 +168,7 @@ function M.getTod()
         type = "text",
         readonly = true,
         attr = { input = { class="span2" } },
-    }, --[3]
+    },--[3]
     {
         header = T"Stop Time",
         name = "stop_time",
@@ -176,7 +176,7 @@ function M.getTod()
         type = "text",
         readonly = true,
         attr = { input = { class="span2" } },
-    }, --[4]
+    },--[4]
     {
         header = T"Mode",
         name = "mode",
@@ -184,7 +184,7 @@ function M.getTod()
         type = "text",
         readonly = true,
         attr = { input = { class="span2" } },
-    }, --[5]
+    },--[5]
     {
         header = T"Day of week",
         name = "weekdays",
@@ -193,14 +193,14 @@ function M.getTod()
         type = "checkboxgroup",
         readonly = true,
         attr = { input = { class="span1" } },
-    }, --[6]
+    },--[6]
     {   -- NOTE: don't foget update M.getTod() when change position
-        header = "", --T"ToD",
+        header = "",--T"ToD",
         legend = T"Time of day access control",
         name = "timeofday",
         --param = "enabled",
         type = "aggregate",
-        synthesis = nil, --tod_aggregate,
+        synthesis = nil,--tod_aggregate,
         subcolumns = {
             {
                 header = T"Enabled",
@@ -215,7 +215,7 @@ function M.getTod()
                 name = "id",
                 param = "id",
                 type = "text",
-                attr = { input = { class="span2", maxlength="17"}, autocomplete=M.get_hosts_ac() },
+                attr = { input = { class="span2",maxlength="17"},autocomplete=M.get_hosts_ac() },
             },
             {
                 header = T"Mode",
@@ -232,7 +232,7 @@ function M.getTod()
                 param = "start_time",
                 type = "text",
                 default = "00:00",
-                attr = { input = { class="span2", id="starttime", style="cursor:pointer;" } },
+                attr = { input = { class="span2",id="starttime",style="cursor:pointer;" } },
             },
             {
                 header = T"Stop Time",
@@ -240,7 +240,7 @@ function M.getTod()
                 param = "stop_time",
                 type = "text",
                 default = "23:59",
-                attr = { input = { class="span2", id="stoptime", style="cursor:pointer;" } },
+                attr = { input = { class="span2",id="stoptime",style="cursor:pointer;" } },
             },
             {
                 header = T"Day of week",
@@ -251,7 +251,7 @@ function M.getTod()
                 attr = { checkbox = { class="inline" } },
             },
         }
-    }, --[7]
+    },--[7]
   }
 
   local tod_valid = {
@@ -289,17 +289,17 @@ example:
 end
 function M.getTodwifi()
   setlanguage()
-  
+
   local function genWifiList()
 
 	local wifi_list = {}
-	
-	for i,v in ipairs(proxy.getPN("rpc.wireless.ap.", true)) do
-		local radio = match(v.path, "rpc%.wireless%.ap%.@([^%.]+)%.")
-		
+
+	for _,v in ipairs(proxy.getPN("rpc.wireless.ap.",true)) do
+		local radio = match(v.path,"rpc%.wireless%.ap%.@([^%.]+)%.")
+
 		local ssid = proxy.get("rpc.wireless.ap.@"..radio..".ssid")
 		ssid = ssid and ssid[1].value or nil
-		
+
 		if ssid then
 			local freq = proxy.get("rpc.wireless.ssid.@"..ssid..".radio")
 			if freq and freq[1].value then
@@ -307,17 +307,17 @@ function M.getTodwifi()
 			end
 			local name = proxy.get("rpc.wireless.ssid.@"..ssid..".ssid")
 			name = name and name[1].value
-			
-			wifi_list[#wifi_list+1] = { radio , name .. " (" .. freq .. ")" }
+
+			wifi_list[#wifi_list+1] = { radio ,name.." ("..freq..")" }
 		end
 	end
-  
+
 	return wifi_list
   end
-  
+
   local wifimodes = {
-    { "on", T"On" },
-    { "off", T"Off" },
+    { "on",T"On" },
+    { "off",T"Off" },
   }
 
   -- ToD forwarding rules
@@ -329,7 +329,7 @@ function M.getTodwifi()
         type = "light",
         readonly = true,
         attr = { input = { class="span1" } },
-    }, --[1]
+    },--[1]
     {
         header = T"Access Point",
         name = "ap",
@@ -337,7 +337,7 @@ function M.getTodwifi()
         type = "text",
 		readonly = true,
         attr = { input = { class="span3" } },
-    }, --[2]
+    },--[2]
     {
         header = T"Start Time",
         name = "start_time",
@@ -345,7 +345,7 @@ function M.getTodwifi()
         type = "text",
         readonly = true,
         attr = { input = { class="span2" } },
-    }, --[3]
+    },--[3]
     {
         header = T"Stop Time",
         name = "stop_time",
@@ -353,7 +353,7 @@ function M.getTodwifi()
         type = "text",
         readonly = true,
         attr = { input = { class="span2" } },
-    }, --[4]
+    },--[4]
     {
         header = T"AP State",
         name = "mode",
@@ -361,7 +361,7 @@ function M.getTodwifi()
         type = "text",
         readonly = true,
         attr = { input = { class="span2" } },
-    }, --[5]
+    },--[5]
     {
         header = T"Day of week",
         name = "weekdays",
@@ -370,14 +370,14 @@ function M.getTodwifi()
         type = "checkboxgroup",
         readonly = true,
         attr = { input = { class="span1" } },
-    }, --[6]
+    },--[6]
     {   -- NOTE: don't foget update M.getTod() when change position
-        header = "", --T"ToD",
+        header = "",--T"ToD",
         legend = T"Time of day wireless control",
         name = "timeofday",
         --param = "enabled",
         type = "aggregate",
-        synthesis = nil, --tod_aggregate,
+        synthesis = nil,--tod_aggregate,
         subcolumns = {
             {
                 header = T"Enabled",
@@ -392,7 +392,7 @@ function M.getTodwifi()
                 name = "id",
                 param = "id",
                 type = "text",
-                attr = { input = { class="span2", maxlength="17"}, autocomplete=M.get_hosts_ac() },
+                attr = { input = { class="span2",maxlength="17"},autocomplete=M.get_hosts_ac() },
             },--]]
 			{
 				header = T"Access Point",
@@ -401,7 +401,7 @@ function M.getTodwifi()
 				type = "checkboxgroup",
                 values = genWifiList(),
 				attr = { input = { class="span2" } },
-			}, --[2]
+			},--[2]
             {
                 header = T"AP State",
                 name = "mode",
@@ -417,7 +417,7 @@ function M.getTodwifi()
                 param = "start_time",
                 type = "text",
                 default = "00:00",
-                attr = { input = { class="span2", id="starttime", style="cursor:pointer;" } },
+                attr = { input = { class="span2",id="starttime",style="cursor:pointer;" } },
             },
             {
                 header = T"Stop Time",
@@ -425,7 +425,7 @@ function M.getTodwifi()
                 param = "stop_time",
                 type = "text",
                 default = "23:59",
-                attr = { input = { class="span2", id="stoptime", style="cursor:pointer;" } },
+                attr = { input = { class="span2",id="stoptime",style="cursor:pointer;" } },
             },
             {
                 header = T"Day of week",
@@ -436,7 +436,7 @@ function M.getTodwifi()
                 attr = { checkbox = { class="inline" } },
             },
         }
-    }, --[7]
+    },--[7]
   }
 
   local tod_valid = {
@@ -466,9 +466,9 @@ end
 -- @param #oldTODRules have the rules list of existing tod
 -- @param #newTODRule have the new rule which is going to be add in tod
 -- @return #boolean or nil+error message if the rule is duplicate or overlap
-function M.compareTodRule(oldTODRules, newTODRule)
-  local newStart, newEnd, newDay
-  local oldStart, oldEnd, oldDay
+function M.compareTodRule(oldTODRules,newTODRule)
+  local newStart,newEnd,newDay
+  local oldStart,oldEnd,oldDay
   local overlap
   for _,newrule in ipairs(newTODRule) do
     newStart = newrule.start_time
@@ -494,9 +494,9 @@ function M.compareTodRule(oldTODRules, newTODRule)
       end
       if duplicate == true then
         if(newStart == oldStart and newEnd == oldEnd) then
-          return nil, T"Duplicate contents are not allowed"
+          return nil,T"Duplicate contents are not allowed"
         else
-          -- Determine whether two time ranges overlap, considering the existing schedule time is "03:00~07:00"
+          -- Determine whether two time ranges overlap,considering the existing schedule time is "03:00~07:00"
           -- cond A: (start and end within range): schedule request examples 1)04:00~05:00 2)03:00~05:00 3)04:00~07:00
           if (newStart >= oldStart and newEnd <= oldEnd) then
             overlap = true
@@ -518,7 +518,7 @@ function M.compareTodRule(oldTODRules, newTODRule)
       end
     end
     if overlap then
-      return nil, T"The new rule could not be added because a pre-existing rule for the device already exists in an overlapping time window."
+      return nil,T"The new rule could not be added because a pre-existing rule for the device already exists in an overlapping time window."
     end
   end
   return true
@@ -528,9 +528,9 @@ end
 -- @return wifitod rules list
 function M.getWifiTodRuleLists()
   local wifiToDRules = proxy.get("rpc.wifitod.")
-  local wifiTodRuleList = content_helper.convertResultToObject("rpc.wifitod.", wifiToDRules)
+  local wifiTodRuleList = content_helper.convertResultToObject("rpc.wifitod.",wifiToDRules)
   local oldTodRules = {}
-  for _, rule in pairs(wifiTodRuleList) do
+  for _,rule in pairs(wifiTodRuleList) do
     oldTodRules[#oldTodRules + 1] = {}
     oldTodRules[#oldTodRules].rule_name = rule.name
     oldTodRules[#oldTodRules].start_time = rule.start_time
@@ -540,7 +540,7 @@ function M.getWifiTodRuleLists()
     oldTodRules[#oldTodRules].weekdays = {}
     local weekdaysPath = format("rpc.wifitod.%s.weekdays.",rule.paramindex)
     local daysList = proxy.get(weekdaysPath)
-    daysList = content_helper.convertResultToObject(weekdaysPath, daysList)
+    daysList = content_helper.convertResultToObject(weekdaysPath,daysList)
     --The DUT will block/allow all the time if none of the days are selected
     for _,day in pairs(daysList) do
      if day.value ~= "" then
@@ -557,11 +557,11 @@ end
 -- function to retrieve existing access control tod rules list
 -- @param #mac_id have the mac name of new tod rule request
 -- @return access control tod rules list
-function M.getAccessControlTodRuleLists(mac_id, curIndex)
-   local rulePath = content_helper.convertResultToObject(accesscontroltod_path, proxy.get(accesscontroltod_path))
+function M.getAccessControlTodRuleLists(mac_id,curIndex)
+   local rulePath = content_helper.convertResultToObject(accesscontroltod_path,proxy.get(accesscontroltod_path))
    local oldTodRules = {}
    for _,rule in pairs(rulePath) do
-     local editRuleIdx = curIndex and "@" .. curIndex
+     local editRuleIdx = curIndex and "@"..curIndex
      if rule["id"] == mac_id and editRuleIdx ~= rule.paramindex then
        oldTodRules[#oldTodRules + 1] = {}
        oldTodRules[#oldTodRules].rule_name = rule.name
@@ -571,7 +571,7 @@ function M.getAccessControlTodRuleLists(mac_id, curIndex)
        oldTodRules[#oldTodRules].index = rule.paramindex
        oldTodRules[#oldTodRules].weekdays = {}
        local weekdaysPath = format("uci.tod.host.%s.weekdays.",rule.paramindex)
-       local daysList = content_helper.convertResultToObject(weekdaysPath, proxy.get(weekdaysPath))
+       local daysList = content_helper.convertResultToObject(weekdaysPath,proxy.get(weekdaysPath))
        --The DUT will block/allow all the time if none of the days are selected
        for _,day in pairs(daysList) do
          if day.value ~= "" then
@@ -592,20 +592,20 @@ end
 -- @param #key validation key name
 -- @param #todRequest have the string value of request tod rule
 -- @return #boolean or nil+error message
-function M.validateTodRule(value, object, key, todRequest)
-  local ok, msg = getWeekDays(value, object, key)
+function M.validateTodRule(value,object,key,todRequest)
+  local ok,msg = getWeekDays(value,object,key)
   if not ok then
-    return ok, msg
+    return ok,msg
   end
   local oldTODRules
   if todRequest == "Wireless" then
-    oldTODRules = M.getWifiTodRuleLists(object["id"])
+    oldTODRules = M.getWifiTodRuleLists()
   elseif todRequest == "AccessControl" then
-    oldTODRules = M.getAccessControlTodRuleLists(object["id"], object["index"])
+    oldTODRules = M.getAccessControlTodRuleLists(object["id"],object["index"])
   else
-    return nil, T"Function input param is missing"
+    return nil,T"Function input param is missing"
   end
-  -- adding first access control tod rule so, validation is not required
+  -- adding first access control tod rule so,validation is not required
   if #oldTODRules == 0 then
     return true
   end
@@ -626,10 +626,10 @@ function M.validateTodRule(value, object, key, todRequest)
   if (#newTODRule[#newTODRule].weekdays == 0) then
     newTODRule[#newTODRule].weekdays[#newTODRule[#newTODRule].weekdays+1] = "All"
   end
-  return M.compareTodRule(oldTODRules, newTODRule)
+  return M.compareTodRule(oldTODRules,newTODRule)
 end
 
--- function that can be used to get the current day(Ex: Mon, Tue) and current time(HH:MM)
+-- function that can be used to get the current day(Ex: Mon,Tue) and current time(HH:MM)
 -- @return #string current day and current time
 function M.getCurrentDayAndTime()
   local currDate = os.date("%a %H:%M")

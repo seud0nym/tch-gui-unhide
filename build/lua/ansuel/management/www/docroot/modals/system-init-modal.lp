@@ -7,10 +7,12 @@ local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
 local toupper = string.upper
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 local function sendcmd(cmd,service)
-  ngx.log(ngx.INFO, "Calling "..service.." "..cmd)
-	proxy.set("rpc.gui.init."..cmd, service)
+  ngx.log(ngx.INFO,"Calling "..service.." "..cmd)
+	proxy.set("rpc.gui.init."..cmd,service)
   proxy.apply()
   if cmd == "disable" then
     return "#"..service.."-enable"
@@ -22,7 +24,7 @@ end
 
 local scrollto
 if ngx.req.get_method() == "POST" then
-	local action = string.untaint(ngx.req.get_post_args().action)
+	local action = untaint(ngx.req.get_post_args().action)
 	if action:match("restart") then
 		local name = action:gsub("restart_","")
 		scrollto = sendcmd("restart",name)
@@ -106,7 +108,7 @@ local init_options = {
 	canDelete = false,
 	tableid = "inittable",
 	basepath = "rpc.gui.init.files.",
-	sorted = function(a, b)
+	sorted = function(a,b)
   	return toupper(a[sortcol] or "") < toupper(b[sortcol] or "")
 	end,
 }
@@ -138,10 +140,10 @@ local init_filter = function(data)
 	return true
 end
 
-local init_data, sipnet_helpmsg = post_helper.handleTableQuery(init_columns, init_options, init_filter)
+local init_data = post_helper.handleTableQuery(init_columns,init_options,init_filter)
 
   ngx.print('\
-');  ngx.print(ui_helper.createHeader(T"Management", false, true) ); ngx.print('\
+');  ngx.print(ui_helper.createHeader(T"Management",false,true) ); ngx.print('\
 <div class="modal-body update">\
 ');
   local lp = require("web.lp")
@@ -149,7 +151,7 @@ local init_data, sipnet_helpmsg = post_helper.handleTableQuery(init_columns, ini
   lp.include("tabs-management.lp")
   ngx.print('\
 ');
--- dummy form so that refresh button knows which page to reload, keep it
+-- dummy form so that refresh button knows which page to reload,keep it
   ngx.print('\
   <form class="form-horizontal" method="post" action="modals/system-init-modal.lp?sort=');  ngx.print(sortcol); ngx.print('">\
   <fieldset id="system-init-tab">\
@@ -160,17 +162,12 @@ local init_data, sipnet_helpmsg = post_helper.handleTableQuery(init_columns, ini
 		},
 	}
 	ngx.print(ui_helper.createAlertBlock(T"Do NOT randomly disable or restart Init Processes. Some are crucial for the correct booting of the device.",alert_warn))
-    local filterclass = {
-        input = {
-            id = "searchInput",
-        }
-    }
     local html = {}
     html[#html+1] = "<div class='control-group'><label class='control-label'>Filter</label><div class='controls'>"
     html[#html+1] = "<input data-type='search' name='Filter' class='edit-input span3 no-save' placeholder='Search For Services...' id='searchInput' type='text'>"
     html[#html+1] = "</div></div>"
     ngx.print(html)
-	ngx.print(ui_helper.createTable(init_columns, init_data, init_options))
+	ngx.print(ui_helper.createTable(init_columns,init_data,init_options))
 	ngx.print('\
   </fieldset>\
   </form>\
@@ -178,7 +175,7 @@ local init_data, sipnet_helpmsg = post_helper.handleTableQuery(init_columns, ini
   <script>\
   ')
   if scrollto then
-    ngx.print('$("', scrollto,'")[0].scrollIntoView();')
+    ngx.print('$("',scrollto,'")[0].scrollIntoView();')
   end
   ngx.print('\
   var hdrs = document.getElementsByTagName("th");\
@@ -192,7 +189,7 @@ local init_data, sipnet_helpmsg = post_helper.handleTableQuery(init_columns, ini
     }\
     if (sort!="") {\
       hdrs[i].innerHTML=\'<a href="#" data-remote="modals/system-init-modal.lp?sort=\'+sort+\'">\'+text+\'</a>\';\
-      hdrs[i].setAttribute("class", "nav");\
+      hdrs[i].setAttribute("class","nav");\
     }\
   }\
   function postAction(action) {\
@@ -200,39 +197,39 @@ local init_data, sipnet_helpmsg = post_helper.handleTableQuery(init_columns, ini
     busy_msg.removeClass("hide");\
     busy_msg[0].scrollIntoView();\
     $(".modal-body").scrollLeft(0);\
-    var t = $(".modal form"), e = t.serializeArray();\
+    var t = $(".modal form"),e = t.serializeArray();\
     e.push({\
       name: "action",\
       value: action\
-    }, {\
+    },{\
       name: "fromModal",\
       value: "YES"\
-    }, {\
+    },{\
       name: "CSRFtoken",\
       value: $("meta[name=CSRFtoken]").attr("content")\
     });\
-    tch.loadModal(t = t.attr("action"), e, function () {\
+    tch.loadModal(t = t.attr("action"),e,function () {\
       var t = $(".error");\
-      0 < t.length && ($("#modal-no-change").hide(), $("#modal-changes").show());\
+      0 < t.length && ($("#modal-no-change").hide(),$("#modal-changes").show());\
       var e = $(".modal-action-advanced:first").is(":visible");\
       0 < t.closest(".advanced").length && !e && r(),\
       $(\'.error input:not([type="hidden"])\').first().trigger("focus")\
     })\
     return false;\
 	}\
-	$(".btn-disable").on("click", function(){\
+	$(".btn-disable").on("click",function(){\
 	postAction("disable_"+$(this).data("name"));\
 	});\
-	$(".btn-enable").on("click", function(){\
+	$(".btn-enable").on("click",function(){\
 		postAction("enable_"+$(this).data("name"));\
 	});\
-	$(".btn-start").on("click", function(){\
+	$(".btn-start").on("click",function(){\
 		postAction("start_"+$(this).data("name"));\
 	});\
-	$(".btn-stop").on("click", function(){\
+	$(".btn-stop").on("click",function(){\
 		postAction("stop_"+$(this).data("name"));\
 	});\
-	$(".btn-restart").on("click", function(){\
+	$(".btn-restart").on("click",function(){\
 		postAction("restart_"+$(this).data("name"));\
   });\
   (function() {\
@@ -244,7 +241,7 @@ local init_data, sipnet_helpmsg = post_helper.handleTableQuery(init_columns, ini
           return;\
       }\
       jo.hide();\
-      jo.filter(function (i, v) {\
+      jo.filter(function (i,v) {\
           var $t = $(this);\
           for (var d = 0; d < data.length; ++d) {\
               if ($t.text().toUpperCase().indexOf(data[d]) > -1) {\

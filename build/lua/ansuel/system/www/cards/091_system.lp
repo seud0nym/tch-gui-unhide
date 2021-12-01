@@ -1,5 +1,5 @@
 --pretranslated: do not change this file
- 
+
 -- Enable localization
 gettext.textdomain('webui-core')
 
@@ -16,7 +16,7 @@ local sshafg_enabled = "Disabled"
 local iperf_enabled = "Disabled"
 local tinsert = table.insert
 
-local Syslog = proxy.get("uci.system.system.@system[0].log_ip", "uci.system.system.@system[0].log_filter_ip")
+local Syslog = proxy.get("uci.system.system.@system[0].log_ip","uci.system.system.@system[0].log_filter_ip")
 local ssh_lan = proxy.get("uci.dropbear.dropbear.@lan.enable")
 local ssh_wan = proxy.get("uci.dropbear.dropbear.@wan.enable")
 local ssh_afg = proxy.get("uci.dropbear.dropbear.@afg.enable")
@@ -59,22 +59,21 @@ local iperf_state_map = {
 }
 
 if session:hasAccess("/modals/system-modal.lp") then
-    local modal_link = format("class=\"modal-link\" data-toggle=\"modal\" data-remote=\"%s\" data-id=\"device-modal\"",modalPath)
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ');  ngx.print( ui_helper.createCardHeader(T"System Extras", modalPath) ); ngx.print('\
+    ');  ngx.print( ui_helper.createCardHeader(T"System Extras",modalPath) ); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf085;">\
         ');  
         local html = {}
-        tinsert(html, ui_helper.createSimpleLight(nil, sshlan_state_map[sshlan_enabled], { light = { class = light_map[sshlan_enabled] } }) )
+        tinsert(html,ui_helper.createSimpleLight(nil,sshlan_state_map[sshlan_enabled],{ light = { class = light_map[sshlan_enabled] } }) )
         if ssh_afg then
           if ssh_afg[1].value == "1" then
             sshafg_enabled = "Enabled"
           end
           local sshafg_if = proxy.get("uci.dropbear.dropbear.@afg.Interface")
           if sshafg_if then
-            sshafg_if = format(" (%s)", string.upper(sshafg_if[1].value))
+            sshafg_if = format(" (%s)",string.upper(sshafg_if[1].value))
           else
             sshafg_if = ""
           end
@@ -82,12 +81,12 @@ if session:hasAccess("/modals/system-modal.lp") then
             Disabled = T(format("SSH AFG%s disabled",sshafg_if)),
             Enabled = T(format("SSH AFG%s enabled",sshafg_if)),
           }
-          tinsert(html, ui_helper.createSimpleLight(nil, sshafg_state_map[sshafg_enabled], { light = { class = light_map[sshafg_enabled] } }) )
+          tinsert(html,ui_helper.createSimpleLight(nil,sshafg_state_map[sshafg_enabled],{ light = { class = light_map[sshafg_enabled] } }) )
         end
-        tinsert(html, ui_helper.createSimpleLight(nil, sshwan_state_map[sshwan_enabled], { light = { class = light_map[sshwan_enabled] } }) )
-        tinsert(html, ui_helper.createSimpleLight(nil, syslog_state_map[syslog_present], { light = { class = light_map[syslog_present] } }) )
+        tinsert(html,ui_helper.createSimpleLight(nil,sshwan_state_map[sshwan_enabled],{ light = { class = light_map[sshwan_enabled] } }) )
+        tinsert(html,ui_helper.createSimpleLight(nil,syslog_state_map[syslog_present],{ light = { class = light_map[syslog_present] } }) )
         if iperf then
-          tinsert(html, ui_helper.createSimpleLight(nil, iperf_state_map[iperf_enabled], { light = { class = light_map[iperf_enabled] } }) )
+          tinsert(html,ui_helper.createSimpleLight(nil,iperf_state_map[iperf_enabled],{ light = { class = light_map[iperf_enabled] } }) )
         end
         ngx.print(html)
     ngx.print('\

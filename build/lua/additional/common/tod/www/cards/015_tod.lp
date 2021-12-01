@@ -4,7 +4,6 @@
 gettext.textdomain('webui-core')
 
 local format = string.format
-local table = table
 local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
 
@@ -24,7 +23,7 @@ local rulecount_wifi = tod_paths.wifi or 0
 ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    '); ngx.print(ui_helper.createCardHeader(T"Time of Day", "/modals/tod-modal.lp")); ngx.print('\
+    '); ngx.print(ui_helper.createCardHeader(T"Time of Day","/modals/tod-modal.lp")); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf017;">\
   <div class="divtable">\
   ')
@@ -32,7 +31,7 @@ ngx.print('\
       '<span class="simple-desc">',
         '<i class="icon-lock status-icon"></i>',
         format(N("<strong %s>%d Access Control</strong> rule defined",
-                 "<strong %s>%d Access Control</strong> rules defined", rulecount),
+                 "<strong %s>%d Access Control</strong> rules defined",rulecount),
               'class="modal-link" data-toggle="modal" data-remote="/modals/tod-modal.lp" data-id="tod-modal"',
               rulecount),
       '</span>')
@@ -41,7 +40,7 @@ ngx.print('\
         '<span class="simple-desc">',
         '<i class="icon-lock status-icon"></i>',
         format(N("<strong %s>%d Wireless Control</strong> rule defined",
-                 "<strong %s>%d Wireless Control</strong> rules defined", rulecount_wifi),
+                 "<strong %s>%d Wireless Control</strong> rules defined",rulecount_wifi),
               'class="modal-link" data-toggle="modal" data-remote="/modals/tod_wireless-modal.lp?tod" data-id="tod-modal"',
               rulecount_wifi),
         '</span>')

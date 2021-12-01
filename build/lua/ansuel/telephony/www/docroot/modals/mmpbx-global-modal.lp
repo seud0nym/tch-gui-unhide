@@ -3,16 +3,15 @@
 -- Enable localization
 gettext.textdomain('webui-voice')
 
-local io = require("io")
 local ngx = ngx
 local proxy = require ("datamodel")
 local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
 local content_helper = require("web.content_helper")
 local uimessage_helper = require("web.uimessage_helper")
-local tinsert = table.insert
-local format,untaint = string.format,string.untaint
-local session = ngx.ctx.session
+local format = string.format
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 if ngx.var.request_method == "POST" then
   local mmpbx_enable = ngx.req.get_post_args().mmpbx_enable
@@ -251,7 +250,7 @@ local function onAddVoice(current_section_index,content)
   proxy.set("uci.mmpbxrvsipnet.network.@"..current_section_index..".voice_limit_qos_field","dscp")
   proxy.set("uci.mmpbxrvsipnet.network.@"..current_section_index..".voice_limit_qos_value","cs0")
   proxy.set("uci.mmpbxrvsipnet.network.@"..current_section_index..".waiting_time_for_registration_on_400_or_503_response","0")
-    
+
   proxy.add("uci.mmpbx.network.",current_section_index)
   proxy.set("uci.mmpbx.network.@"..current_section_index..".config","mmpbxrvsipnet")
 
@@ -259,23 +258,23 @@ local function onAddVoice(current_section_index,content)
 
   local tempindex = proxy.add("uci.mmpbx.dial_plan.@dial_plan_generic.network.")
   if tempindex then
-    proxy.set("uci.mmpbx.dial_plan.@dial_plan_generic.network.@"..tempindex ..".value",current_section_index)
+    proxy.set("uci.mmpbx.dial_plan.@dial_plan_generic.network.@"..tempindex..".value",current_section_index)
   end
 
   tempindex = proxy.add("uci.mmpbx.scc.@scc_generic.network.")
   if tempindex then
-    proxy.set("uci.mmpbx.scc.@scc_generic.network.@"..tempindex ..".value",current_section_index)
+    proxy.set("uci.mmpbx.scc.@scc_generic.network.@"..tempindex..".value",current_section_index)
   end
 
   tempindex = proxy.add("uci.mmpbx.media_filter.@media_filter_audio_generic.network.")
   if tempindex then
-    proxy.set("uci.mmpbx.media_filter.@media_filter_audio_generic.network.@"..tempindex ..".value",current_section_index)
+    proxy.set("uci.mmpbx.media_filter.@media_filter_audio_generic.network.@"..tempindex..".value",current_section_index)
   end
-    
+
   for _ ,key in pairs(proxy.getPN("uci.mmpbx.audionotification.",true)) do
-    tempindex = proxy.add(key.path .."network.")
+    tempindex = proxy.add(key.path.."network.")
     if tempindex then
-      proxy.set(key.path .."network.@"..tempindex ..".value",current_section_index)
+      proxy.set(key.path.."network.@"..tempindex..".value",current_section_index)
     end
   end
 end
@@ -300,7 +299,7 @@ local function onDeleteVoice(current_section_index)
   proxy.del(getIndex("uci.mmpbx.media_filter.@media_filter_audio_generic.network.",current_section_index))
 
   for _ ,key in pairs(proxy.getPN("uci.mmpbx.audionotification.",true)) do
-    proxy.del(getIndex(key.path .."network.",current_section_index))
+    proxy.del(getIndex(key.path.."network.",current_section_index))
   end
 end
 
@@ -338,7 +337,7 @@ ngx.print('\
   <form class="form-horizontal" method="post" action="');ngx.print(uri); ngx.print('">'); ngx.print(
     ui_helper.createMessages(uimessage_helper.popMessages()));
   local html = {}
-  
+
   html[#html+1] = '<fieldset id="mmpbx-global-tab">'
   html[#html+1] =     '<legend>'..T"Global Information"..'</legend>'
   html[#html+1] =     ui_helper.createSwitch(T"Enabled","mmpbx_enabled",content["mmpbx_enabled"])

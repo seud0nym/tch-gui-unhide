@@ -1,5 +1,5 @@
 --pretranslated: do not change this file
- 
+
 -- Enable localization
 gettext.textdomain('webui-core')
 
@@ -56,13 +56,13 @@ local html = bbch.getBroadbandCardHTML(WS_en)
   ngx.print('\
 <div class="span3" id="broadband-card">\
   <div class="smallcard">\
-    ');  ngx.print( ui_helper.createCardHeader(T"Broadband", modalPath, nil, nil, nil) ); ngx.print('\
+    ');  ngx.print( ui_helper.createCardHeader(T"Broadband",modalPath,nil,nil,nil) ); ngx.print('\
     <div id="broadband-card-throughput"><div class="throughput"><span title="Raw throughput including protocol overhead"></span></div></div>\
     <div class="content card_bg mirror" data-bg-text="&#xf0c1;">\
       ');  
-      ngx.print( ui_helper.createSimpleLight(nil, WS_Text, { light = { class = WS_light_map[WS_State] } }) )
+      ngx.print( ui_helper.createSimpleLight(nil,WS_Text,{ light = { class = WS_light_map[WS_State] } }) )
       if WS_en == "1" then
-        ngx.print( format('<p class="subinfos">L2: <strong>%s</strong> L3: <strong>%s</strong></p>', WS_L2, WS_L3) )
+        ngx.print( format('<p class="subinfos">L2: <strong>%s</strong> L3: <strong>%s</strong></p>',WS_L2,WS_L3) )
       end
       ngx.print('\
       <div id="broadband-card-content">\
@@ -75,15 +75,15 @@ local html = bbch.getBroadbandCardHTML(WS_en)
 var bbFuncID;\
 var tpFuncID;\
 function updateBroadbandCard(){\
-  $.post("/ajax/broadband-status.lua", [tch.elementCSRFtoken()], function(data){\
+  $.post("/ajax/broadband-status.lua",[tch.elementCSRFtoken()],function(data){\
     $("#broadband-card-content").html(data["html"]);\
-  }, "json")\
+  },"json")\
   .fail(function(response){\
     if(response.status==403||response.status==404){clearInterval(bbFuncID);}\
   });\
 }\
 function updateThroughput(){\
-  $.post("/ajax/network-throughput.lua", [tch.elementCSRFtoken()], function(data){\
+  $.post("/ajax/network-throughput.lua",[tch.elementCSRFtoken()],function(data){\
     $("#broadband-card-throughput .throughput span").html(data["wan"]);\
     $("#lan-card-throughput .throughput span").html(data["lan"]);\
     $("#wanup_data").text(data["wan_tx_mbps"].toFixed(2));\
@@ -91,16 +91,16 @@ function updateThroughput(){\
       wanup_config.data.datasets[0].data.shift();\
       wanup_config.data.datasets[0].data.push(data["wan_tx_mbps"]);\
       window.wanup_chart.update();\
-      sessionStorage.setItem("wanup_data", JSON.stringify(wanup_config.data.datasets[0].data));\
+      sessionStorage.setItem("wanup_data",JSON.stringify(wanup_config.data.datasets[0].data));\
     }\
     if (typeof window.wandn_chart != "undefined") {\
       $("#wandn_data").text(data["wan_rx_mbps"].toFixed(2));\
       wandn_config.data.datasets[0].data.shift();\
       wandn_config.data.datasets[0].data.push(data["wan_rx_mbps"]);\
       window.wandn_chart.update();\
-      sessionStorage.setItem("wandn_data", JSON.stringify(wandn_config.data.datasets[0].data));\
+      sessionStorage.setItem("wandn_data",JSON.stringify(wandn_config.data.datasets[0].data));\
     }\
-  }, "json")\
+  },"json")\
   .fail(function(response){\
     if(response.status==403||response.status==404){clearInterval(tpFuncID);}\
   });\
@@ -109,11 +109,11 @@ $().ready(function(){\
   bbFuncID=setInterval(updateBroadbandCard,15000);\
   var bbdiv = document.querySelector("#broadband-card-throughput");\
   var bbhdr = document.querySelector("#broadband-card .header-title");\
-  bbhdr.parentNode.insertBefore(bbdiv, bbhdr.nextSibling);\
+  bbhdr.parentNode.insertBefore(bbdiv,bbhdr.nextSibling);\
   var landiv = bbdiv.cloneNode(true);\
   var lanhdr = document.querySelector("#Local,#Local_Network_tab").closest(".header-title");\
-  landiv.setAttribute("id", "lan-card-throughput");\
-  lanhdr.parentNode.insertBefore(landiv, lanhdr.nextSibling);\
+  landiv.setAttribute("id","lan-card-throughput");\
+  lanhdr.parentNode.insertBefore(landiv,lanhdr.nextSibling);\
   updateThroughput();\
   tpFuncID=setInterval(updateThroughput,2000);\
 });\

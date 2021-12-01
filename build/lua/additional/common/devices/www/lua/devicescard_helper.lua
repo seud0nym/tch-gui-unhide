@@ -1,8 +1,6 @@
 local proxy = require("datamodel")
-local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
 local format = string.format
-local table = table
 local tonumber = tonumber
 
 local modal_link='class="modal-link" data-toggle="modal" data-remote="modals/device-modal.lp" data-id="device-modal"'
@@ -23,7 +21,7 @@ function M.getDevicesCardHTML()
     local agents = proxy.get("Device.Services.X_TELSTRA_MultiAP.Controller.MultiAPAgentNumberOfEntries")
     if agents and tonumber(agents[1].value) > 0 then
         for i = 1,tonumber(agents[1].value),1 do
-        local devices = tonumber(format("%s", proxy.get("Device.Services.X_TELSTRA_MultiAP.Agent." .. i .. ".AssociatedDeviceNumberOfEntries")[1].value) or 0)
+        local devices = tonumber(format("%s",proxy.get("Device.Services.X_TELSTRA_MultiAP.Agent."..i..".AssociatedDeviceNumberOfEntries")[1].value) or 0)
         if devices then
           nAgtDevices = nAgtDevices + devices
         end

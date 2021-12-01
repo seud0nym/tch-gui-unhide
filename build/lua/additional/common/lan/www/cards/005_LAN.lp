@@ -1,12 +1,12 @@
 --pretranslated: do not change this file
- 
+
 -- Enable localization
 gettext.textdomain('webui-core')
 
 local ui_helper = require("web.ui_helper")
 local proxy = require("datamodel")
 local content_helper = require("web.content_helper")
-local insert, format = table.insert, string.format
+local format = string.format
 local session = ngx.ctx.session
 
 if session:hasAccess("/modals/ethernet-modal.lp") then
@@ -81,11 +81,11 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
       if adguard and adguard[1].value == "1" then
         local fmt = T'<a style="color:inherit;text-decoration:none;" target="_blank" href="http://%s:8008"><b>AdGuard Home</b></a> %s enabled'
         dhcp4State = "1"
-        dhcp4State_text = format(fmt, mapParams["localdevIP"], "DHCPv4")
+        dhcp4State_text = format(fmt,mapParams["localdevIP"],"DHCPv4")
         dhcp6State = "1"
-        dhcp6State_text = format(fmt, mapParams["localdevIP"], "DHCPv6")
+        dhcp6State_text = format(fmt,mapParams["localdevIP"],"DHCPv6")
         slaacState = "1"
-        slaacState_text = format(fmt, mapParams["localdevIP"], "SLAAC")
+        slaacState_text = format(fmt,mapParams["localdevIP"],"SLAAC")
       end
     end
   end
@@ -93,21 +93,21 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ');  ngx.print( ui_helper.createCardHeader(T"Local Network", "modals/ethernet-modal.lp") ); ngx.print('\
+    ');  ngx.print( ui_helper.createCardHeader(T"Local Network","modals/ethernet-modal.lp") ); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf015;">\
       ');  
       ngx.print(
-        ui_helper.createSimpleLight(dhcp4State, dhcp4State_text),
-        ui_helper.createSimpleLight(dhcp6State, dhcp6State_text)
+        ui_helper.createSimpleLight(dhcp4State,dhcp4State_text),
+        ui_helper.createSimpleLight(dhcp6State,dhcp6State_text)
       )
       if mapParams["ipv6State"] == "1" then
-          ngx.print(ui_helper.createSimpleLight(slaacState, slaacState_text))
+          ngx.print(ui_helper.createSimpleLight(slaacState,slaacState_text))
       end
       ngx.print(
         '<p class="subinfos">',
-        format(T'LAN IP: <strong style="letter-spacing:-1px;font-size:12px;">%s</strong> <br>Subnet Mask: <strong style="letter-spacing:-1px;font-size:12px;">%s</strong>', mapParams["localdevIP"], mapParams["localdevmask"]),
+        format(T'LAN IP: <strong style="letter-spacing:-1px;font-size:12px;">%s</strong> <br>Subnet Mask: <strong style="letter-spacing:-1px;font-size:12px;">%s</strong>',mapParams["localdevIP"],mapParams["localdevmask"]),
         '<br>',
-        format(T'%s <nobr><strong style="letter-spacing:-1px;font-size:12px;">%s</strong></nobr>', ipv6State_text, mapParams["ipv6prefix"]),
+        format(T'%s <nobr><strong style="letter-spacing:-1px;font-size:12px;">%s</strong></nobr>',ipv6State_text,mapParams["ipv6prefix"]),
         '</p>'
       )
       ngx.print('\

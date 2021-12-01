@@ -1,5 +1,5 @@
 --pretranslated: do not change this file
- 
+
 gettext.textdomain('webui-core')
 
 local ui_helper = require("web.ui_helper")
@@ -29,7 +29,7 @@ local gpon_light_map = {
 \
   ');  
     local html = {}
-    html[#html + 1] = ui_helper.createLight(T"Status",nil, T(mapParams["gpon_state"]), { light = { class = gpon_light_map[gpon_status] } })
+    html[#html + 1] = ui_helper.createLight(T"Status",nil,T(mapParams["gpon_state"]),{ light = { class = gpon_light_map[gpon_status] } })
     html[#html + 1] = ui_helper.createLabel(T"OpticalSignalLevel",T(mapParams["optical_signal_level"].." dBm/1000"))
     html[#html + 1] = ui_helper.createLabel(T"TransmitOpticalLevel",T(mapParams["transmit_optical_level"].." dBm/1000"))
     ngx.print(html)

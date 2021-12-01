@@ -6,7 +6,8 @@ gettext.textdomain('webui-core')
 local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 local content_helper = require("web.content_helper")
-local match, untaint = string.match, string.untaint
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
@@ -15,12 +16,11 @@ if ngx.req.get_method() == "POST" then
   local proxy = require("datamodel")
   local install = untaint(ngx.req.get_post_args().install_pkg)
   if install then
-    local pkg
     if type(install) == "string" or type(install) == "userdata" then
       install = { install }
     end
     for _,pkg in pairs(install) do
-      proxy.set("rpc.gui.opkg.available.@".. untaint(pkg) .. ".action", "install")
+      proxy.set("rpc.gui.opkg.available.@"..untaint(pkg)..".action","install")
     end
   end
 end
@@ -30,7 +30,7 @@ local opkg_data = {
 }
 content_helper.getExactContent(opkg_data)
 
-ngx.print(ui_helper.createHeader(T"Packages", true, false))   ngx.print('\
+ngx.print(ui_helper.createHeader(T"Packages",true,false))   ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-opkg.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/opkg-not-installed-modal.lp">\
@@ -57,17 +57,17 @@ ngx.print(ui_helper.createHeader(T"Packages", true, false))   ngx.print('\
 if opkg_data["last_update"] ~= "-1" then
   ngx.print('\
 <script>\
-  $.post("/ajax/opkg-list.lua?group=available", [tch.elementCSRFtoken()], function(data){\
+  $.post("/ajax/opkg-list.lua?group=available",[tch.elementCSRFtoken()],function(data){\
     $("#opkgs_place_holder").html(data["html"]);\
     $("#searchControlGroup").removeClass("hide");\
-    $(".btn-Install").on("click", function(){\
+    $(".btn-Install").on("click",function(){\
       postAction("install",$(this).data("index"),$(this).data("name"));\
     });\
-    $(".opkg_cb").on("change", function(){\
+    $(".opkg_cb").on("change",function(){\
       $("#modal-no-change").addClass("hide");\
       $("#modal-changes").removeClass("hide");\
     });\
-  }, "json")\
+  },"json")\
   .fail(function(response){\
     if(response.status==403||response.status==404){alert("Error retrieving packages?");}\
   });\

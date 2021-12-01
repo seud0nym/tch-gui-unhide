@@ -3,7 +3,6 @@
 -- Enable localization
 gettext.textdomain('webui-qos')
 
-local session = ngx.ctx.session
 local content_helper = require("web.content_helper")
 
 local content = {
@@ -19,12 +18,12 @@ if content.agent_enabled and content.agent_enabled ~= "" and content.controller_
   local ui_helper = require("web.ui_helper")
   local booster_helper = require("booster_helper")
 
-  local html, modalPath = booster_helper.getBoosterCardHTML(content.agent_enabled,content.controller_enabled, modalPath)
+  local html,modalPath = booster_helper.getBoosterCardHTML(content.agent_enabled,content.controller_enabled,modalPath)
 
   ngx.print('\
   <div class="span3">\
     <div class="smallcard">\
-        '); ngx.print( ui_helper.createCardHeader(T"Wi-Fi Boosters", modalPath) ); ngx.print('\
+        '); ngx.print( ui_helper.createCardHeader(T"Wi-Fi Boosters",modalPath) ); ngx.print('\
       <div id="booster-card-content" class="content card_bg" data-bg-text="&#xf0e8;">\
         ');  ngx.print(html); ngx.print('\
 		  </div>\
@@ -33,9 +32,9 @@ if content.agent_enabled and content.agent_enabled ~= "" and content.controller_
   <script>\
   var multiapFuncID;\
   function updateBoosterCard(){\
-    $.post("/ajax/booster-status.lua", [tch.elementCSRFtoken()], function(data){\
+    $.post("/ajax/booster-status.lua",[tch.elementCSRFtoken()],function(data){\
       $("#booster-card-content").html(data["html"]);\
-    }, "json")\
+    },"json")\
     .fail(function(response){\
       if(response.status==403||response.status==404){clearInterval(multiapFuncID);}\
     });\

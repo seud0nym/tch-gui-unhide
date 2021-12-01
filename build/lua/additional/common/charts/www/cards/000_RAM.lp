@@ -23,7 +23,7 @@ if cards.gateway == "0"then
   <div class="span3">\
     <div class="smallcard chartcard">\
       <div class="chartdata" style="color:rgb('); ngx.print(rgb); ngx.print(')"><span id="ram_data">0</span><span class="unit">%</span></div>\
-      '); ngx.print(ui_helper.createCardHeader(T"RAM", nil, nil, nil, attributes)); ngx.print('\
+      '); ngx.print(ui_helper.createCardHeader(T"RAM",nil,nil,nil,attributes)); ngx.print('\
       <div class="content card_bg" data-bg-text="&#xf0c3;">\
         <canvas id="ram_canvas"></canvas>\
       </div>\

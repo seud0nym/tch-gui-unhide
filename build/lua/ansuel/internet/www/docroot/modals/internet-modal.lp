@@ -27,22 +27,22 @@ if not tabdata.current.ajax then
   local wan_ppp_over_atm
   if wan_ppp_ll_intf and wan_ppp_ll_intf[1].value then
     wan_ppp_ll_intf = wan_ppp_ll_intf[1].value
-    wan_ppp_over_atm = proxy.get(string.format("uci.xtm.atmdevice.@%s.", wan_ppp_ll_intf)) ~= nil
+    wan_ppp_over_atm = proxy.get(string.format("uci.xtm.atmdevice.@%s.",wan_ppp_ll_intf)) ~= nil
   else
     wan_ppp_ll_intf = ""
   end
   if not wan_ppp_over_atm then
     for k,v in ipairs(mode_options) do
       if v[1] == "pppoa" then
-        table.remove(mode_options, k)
+        table.remove(mode_options,k)
       end
       if mode_current ~= "bridge" and v[1] == "bridge" then
-        table.remove(mode_options, k)
+        table.remove(mode_options,k)
       end
     end
   end
 
-  ngx.print(ui_helper.createHeader(T"Internet Access", true, true)); ngx.print('\
+  ngx.print(ui_helper.createHeader(T"Internet Access",true,true)); ngx.print('\
   <div class="modal-body update">\
     <form class="form-horizontal" method="post" action="modals/internet-modal.lp">\
     '); ngx.print(ui_helper.createMessages(message_helper.popMessages()))
@@ -65,9 +65,9 @@ if not tabdata.current.ajax then
 
     local html = {}
     html[#html+1] = '<fieldset id="conn_mode" class="advanced hide">'
-    html[#html+1] = '<legend>' .. T"Connection Mode" .. '</legend>'
-    html[#html+1] = ui_helper.createInputRadio(T"Mode", "newmode", mode_options, mode_current, mode_attributes)
-    html[#html+1] = ui_helper.createButton("", T"Switch Connection Mode", "icon-cog", mode_button)
+    html[#html+1] = '<legend>'..T"Connection Mode"..'</legend>'
+    html[#html+1] = ui_helper.createInputRadio(T"Mode","newmode",mode_options,mode_current,mode_attributes)
+    html[#html+1] = ui_helper.createButton("",T"Switch Connection Mode","icon-cog",mode_button)
     html[#html+1] = '</fieldset>'
     ngx.print(html)
 end

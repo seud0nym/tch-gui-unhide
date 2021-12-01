@@ -1,17 +1,17 @@
 --pretranslated: do not change this file
- 
+
 gettext.textdomain('webui-core')
 
 local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
-local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local format = string.format
 local floor = math.floor
 local tonumber = tonumber
 
 local iconUp = "<i class=\"icon-upload icon-large gray\"></i> "
-local iconDown = "<i class=\"icon-download icon-large gray\"></i> "
+local iconDown = " <i class=\"icon-download icon-large gray\"></i> "
+
 local ajax_helper = require("web.ajax_helper")
 local ajax_attr = {
     span = {
@@ -62,7 +62,7 @@ local content_other_line = {
 content_helper.getExactContent(content)
 content_helper.getExactContent(content_other_line)
 
-ajax_helper.handleAjaxQuery({dsl_uptime = "sys.class.xdsl.@line0.ShowtimeStart"}, function(c)
+ajax_helper.handleAjaxQuery({dsl_uptime = "sys.class.xdsl.@line0.ShowtimeStart"},function(c)
     c.dsl_uptime = post_helper.secondsToTime(c["dsl_uptime"])
 	local function notnil(path)
 		if path == nil or path == "" then
@@ -70,12 +70,12 @@ ajax_helper.handleAjaxQuery({dsl_uptime = "sys.class.xdsl.@line0.ShowtimeStart"}
 		end
 		return path
 	end
-	c.dsl_max_linerate = format("%s %s Mbps %s %s Mbps", iconUp, floor(tonumber(notnil(content.dsl_linerate_up_max))/10)/100, iconDown, floor(tonumber(notnil(content.dsl_linerate_down_max))/10)/100)
-	c.dsl_linerate = format("%s %s Mbps %s %s Mbps", iconUp, floor(tonumber(notnil(content.dsl_linerate_up))/10)/100, iconDown, floor(tonumber(notnil(content.dsl_linerate_down))/10)/100)
-	c.dsl_transfered = format("%s %s MBytes %s %s MBytes", iconUp, floor(tonumber(notnil(content.dsl_transfered_up))/ 1048576 * 100)/100, iconDown, floor(tonumber(notnil(content.dsl_transfered_down))/ 1048576 * 100)/100)
-	c.dsl_power = format("%s %s dBm %s %s dBm", iconUp, notnil(content.dsl_power_up), iconDown, notnil(content.dsl_power_down))
-	c.dsl_attenuation = format("%s %s dB %s %s dB", iconUp, notnil(content.dsl_attenuation_up), iconDown, notnil(content.dsl_attenuation_down))
-	c.dsl_margin = format("%s %s dB %s %s dB", iconUp, notnil(content.dsl_margin_up), iconDown, notnil(content.dsl_margin_down))
+	c.dsl_max_linerate = format("%s %s Mbps %s %s Mbps",iconUp,floor(tonumber(notnil(content.dsl_linerate_up_max))/10)/100,iconDown,floor(tonumber(notnil(content.dsl_linerate_down_max))/10)/100)
+	c.dsl_linerate = format("%s %s Mbps %s %s Mbps",iconUp,floor(tonumber(notnil(content.dsl_linerate_up))/10)/100,iconDown,floor(tonumber(notnil(content.dsl_linerate_down))/10)/100)
+	c.dsl_transfered = format("%s %s MBytes %s %s MBytes",iconUp,floor(tonumber(notnil(content.dsl_transfered_up))/ 1048576 * 100)/100,iconDown,floor(tonumber(notnil(content.dsl_transfered_down))/ 1048576 * 100)/100)
+	c.dsl_power = format("%s %s dBm %s %s dBm",iconUp,notnil(content.dsl_power_up),iconDown,notnil(content.dsl_power_down))
+	c.dsl_attenuation = format("%s %s dB %s %s dB",iconUp,notnil(content.dsl_attenuation_up),iconDown,notnil(content.dsl_attenuation_down))
+	c.dsl_margin = format("%s %s dB %s %s dB",iconUp,notnil(content.dsl_margin_up),iconDown,notnil(content.dsl_margin_down))
 end)
 
 local DSLMode
@@ -112,7 +112,7 @@ local dsl_switch_params = {
 local dsl_switch_valid = {
     dsl_enable = post_helper.validateBoolean,
 }
-local dsl_switch_data, dsl_switch_helpmsg = post_helper.handleQuery(dsl_switch_params, dsl_switch_valid)
+local dsl_switch_data = post_helper.handleQuery(dsl_switch_params,dsl_switch_valid)
 
   ngx.print('\
 \
@@ -132,43 +132,40 @@ local dsl_switch_data, dsl_switch_helpmsg = post_helper.handleQuery(dsl_switch_p
     else
       statusIcon = "<div class=\"light orange\" id = \"DSL_Status_Id\"></div>"
     end
-    local iconUp = "<i class=\"icon-upload icon-large gray\"></i> "
-    local iconDown = " <i class=\"icon-download icon-large gray\"></i> "
 
-    local attributes = { span = { class = "span4" } }
-    local attributesAdvanced = { group = { class = "advanced hide" }, span = { class = "span4" } }
+    local attributesAdvanced = { group = { class = "advanced hide" },span = { class = "span4" } }
 
     if content_other_line["dsl_status"] == "Up" then
       html[#html + 1] =
         ui_helper.createLabel(
           T"DSL Status",
-          format("%s%s", statusIcon, T(content_other_line["dsl_status"]))
+          format("%s%s",statusIcon,T(content_other_line["dsl_status"]))
                                   -- ^this does not work !!!!
         )
     else
       html[#html + 1] =
         ui_helper.createLabel(
           T"DSL Status",
-          format("%s%s", statusIcon, T(content["dsl_status"]))
+          format("%s%s",statusIcon,T(content["dsl_status"]))
                                   -- ^this does not work !!!!
         )
     end
-    html[#html + 1] = ui_helper.createSwitch(T"DSL Enabled", "dsl_enable", dsl_switch_data["dsl_enable"])
+    html[#html + 1] = ui_helper.createSwitch(T"DSL Enabled","dsl_enable",dsl_switch_data["dsl_enable"])
     if (content["dsl_status"] == "Up") or (content_other_line["dsl_status"] == "Up") then
       if( content["dsl_status"] == "Up") then
       	ajax_attr.span.id = "dsl_uptime"
-        html[#html + 1] = ui_helper.createLabel(T"DSL Uptime", post_helper.secondsToTime(content["dsl_uptime"]), ajax_attr)
-        html[#html + 1] = ui_helper.createLabel(T"DSL Type", T(content["dsl_type"]), attributesAdvanced)
-        html[#html + 1] = ui_helper.createLabel(T"DSL Mode", T(DSLMode), attributesAdvanced)
+        html[#html + 1] = ui_helper.createLabel(T"DSL Uptime",post_helper.secondsToTime(content["dsl_uptime"]),ajax_attr)
+        html[#html + 1] = ui_helper.createLabel(T"DSL Type",T(content["dsl_type"]),attributesAdvanced)
+        html[#html + 1] = ui_helper.createLabel(T"DSL Mode",T(DSLMode),attributesAdvanced)
       else
       	ajax_attr.span.id = "dsl_uptime"
-        html[#html + 1] = ui_helper.createLabel(T"DSL Uptime", post_helper.secondsToTime(content_other_line["dsl_uptime"]), ajax_attr)
-        html[#html + 1] = ui_helper.createLabel(T"DSL Type", T(content_other_line["dsl_type"]), attributesAdvanced)
-        html[#html + 1] = ui_helper.createLabel(T"DSL Mode", T(DSLMode_other_line), attributesAdvanced)
+        html[#html + 1] = ui_helper.createLabel(T"DSL Uptime",post_helper.secondsToTime(content_other_line["dsl_uptime"]),ajax_attr)
+        html[#html + 1] = ui_helper.createLabel(T"DSL Type",T(content_other_line["dsl_type"]),attributesAdvanced)
+        html[#html + 1] = ui_helper.createLabel(T"DSL Mode",T(DSLMode_other_line),attributesAdvanced)
       end
 
-      local dslLineRateMaxUp, dslLineRateMaxDown = 0, 0
-      local otherDslLineRateMaxUp, otherDslLineRateMaxDown = 0, 0
+      local dslLineRateMaxUp,dslLineRateMaxDown = 0,0
+      local otherDslLineRateMaxUp,otherDslLineRateMaxDown = 0,0
       if tonumber(content["dsl_linerate_up_max"]) ~= nil and tonumber(content["dsl_linerate_down_max"]) ~= nil then
         dslLineRateMaxUp = floor(content["dsl_linerate_up_max"] / 10) / 100
         dslLineRateMaxDown = floor(content["dsl_linerate_down_max"] / 10) / 100
@@ -182,18 +179,18 @@ local dsl_switch_data, dsl_switch_helpmsg = post_helper.handleQuery(dsl_switch_p
         html[#html + 1] =
           ui_helper.createLabel(
             T"Maximum Line rate",
-            format("%s %s Mbps %s %s Mbps", iconUp, dslLineRateMaxUp, iconDown, dslLineRateMaxDown),
+            format("%s %s Mbps %s %s Mbps",iconUp,dslLineRateMaxUp,iconDown,dslLineRateMaxDown),
             ajax_attr
           )
       else
         html[#html + 1] =
           ui_helper.createLabel(
             T"Maximum Line rate",
-            format("%s %s Mbps %s %s Mbps | %s %s Mbps %s %s Mbps", iconUp, dslLineRateMaxUp, iconDown, dslLineRateMaxDown, iconUp, otherDslLineRateMaxUp, iconDown, otherDslLineRateMaxDown),
+            format("%s %s Mbps %s %s Mbps | %s %s Mbps %s %s Mbps",iconUp,dslLineRateMaxUp,iconDown,dslLineRateMaxDown,iconUp,otherDslLineRateMaxUp,iconDown,otherDslLineRateMaxDown),
             ajax_attr
           )
       end
-      local dslLineRateUp, dslLineRateDown, otherDslLineRateUp, otherDslLineRateDown = 0, 0, 0, 0
+      local dslLineRateUp,dslLineRateDown,otherDslLineRateUp,otherDslLineRateDown = 0,0,0,0
       if tonumber(content["dsl_linerate_up"]) ~= nil and tonumber(content["dsl_linerate_down"]) ~= nil then
         dslLineRateUp = floor(content["dsl_linerate_up"] / 10) / 100
         dslLineRateDown = floor(content["dsl_linerate_down"] / 10) / 100
@@ -207,18 +204,18 @@ local dsl_switch_data, dsl_switch_helpmsg = post_helper.handleQuery(dsl_switch_p
         html[#html + 1] =
           ui_helper.createLabel(
             T"Line Rate",
-            format("%s %s Mbps %s %s Mbps", iconUp, dslLineRateUp, iconDown, dslLineRateDown),
+            format("%s %s Mbps %s %s Mbps",iconUp,dslLineRateUp,iconDown,dslLineRateDown),
             ajax_attr
           )
       else
         html[#html + 1] =
           ui_helper.createLabel(
             T"Line Rate",
-            format("%s %s Mbps %s %s Mbps | %s %s Mbps %s %s Mbps", iconUp, dslLineRateUp, iconDown, dslLineRateDown, iconUp, otherDslLineRateUp, iconDown, otherDslLineRateDown),
+            format("%s %s Mbps %s %s Mbps | %s %s Mbps %s %s Mbps",iconUp,dslLineRateUp,iconDown,dslLineRateDown,iconUp,otherDslLineRateUp,iconDown,otherDslLineRateDown),
             ajax_attr
           )
       end
-      local dslTransferedUp, dslTransferedDown, otherDslTransferedUp, otherDslTransferedDown = 0, 0, 0, 0
+      local dslTransferedUp,dslTransferedDown,otherDslTransferedUp,otherDslTransferedDown = 0,0,0,0
       if tonumber(content["dsl_transfered_up"]) ~= nil and tonumber(content["dsl_transfered_down"]) ~= nil then
         dslTransferedUp = floor(content["dsl_transfered_up"] / 1048576 * 100) / 100
         dslTransferedDown = floor(content["dsl_transfered_down"] / 1048576 * 100) / 100
@@ -232,18 +229,18 @@ local dsl_switch_data, dsl_switch_helpmsg = post_helper.handleQuery(dsl_switch_p
         html[#html + 1] =
           ui_helper.createLabel(
             T"Data Transferred",
-            format("%s %s MBytes %s %s MBytes", iconUp, dslTransferedUp, iconDown, dslTransferedDown),
+            format("%s %s MBytes %s %s MBytes",iconUp,dslTransferedUp,iconDown,dslTransferedDown),
             ajax_attr
           )
       else
         html[#html + 1] =
           ui_helper.createLabel(
             T"Data Transferred",
-            format("%s %s MBytes %s %s MBytes | %s %s MBytes %s %s MBytes", iconUp, dslTransferedUp, iconDown, dslTransferedDown, iconUp, otherDslTransferedUp, iconDown, otherDslTransferedDown),
+            format("%s %s MBytes %s %s MBytes | %s %s MBytes %s %s MBytes",iconUp,dslTransferedUp,iconDown,dslTransferedDown,iconUp,otherDslTransferedUp,iconDown,otherDslTransferedDown),
             ajax_attr
           )
       end
-      local dslPowerUp, dslPowerDown, otherDslPowerUp, otherDslPowerDown = 0, 0, 0, 0
+      local dslPowerUp,dslPowerDown,otherDslPowerUp,otherDslPowerDown = 0,0,0,0
       if tonumber(content["dsl_power_up"]) ~= nil and tonumber(content["dsl_power_down"]) ~= nil then
         dslPowerUp = content["dsl_power_up"]
         dslPowerDown = content["dsl_power_down"]
@@ -257,18 +254,18 @@ local dsl_switch_data, dsl_switch_helpmsg = post_helper.handleQuery(dsl_switch_p
         html[#html + 1] =
           ui_helper.createLabel(
             T"Output Power",
-            format("%s %s dBm %s %s dBm", iconUp, dslPowerUp, iconDown, dslPowerDown),
+            format("%s %s dBm %s %s dBm",iconUp,dslPowerUp,iconDown,dslPowerDown),
             ajax_attr
           )
       else
         html[#html + 1] =
           ui_helper.createLabel(
             T"Output Power",
-            format("%s %s dBm %s %s dBm | %s %s dBm %s %s dBm", iconUp, dslPowerUp, iconDown, dslPowerDown, iconUp, otherDslPowerUp, iconDown, otherDslPowerDown),
+            format("%s %s dBm %s %s dBm | %s %s dBm %s %s dBm",iconUp,dslPowerUp,iconDown,dslPowerDown,iconUp,otherDslPowerUp,iconDown,otherDslPowerDown),
             ajax_attr
           )
       end
-      local dslAttenuationUp, dslAttenuationDown, otherDslAttenuationUp, otherDslAttenuationDown
+      local dslAttenuationUp,dslAttenuationDown,otherDslAttenuationUp,otherDslAttenuationDown
       dslAttenuationUp = content["dsl_attenuation_up"]
       dslAttenuationDown = content["dsl_attenuation_down"]
       otherDslAttenuationUp = content_other_line["dsl_attenuation_up"]
@@ -278,18 +275,18 @@ local dsl_switch_data, dsl_switch_helpmsg = post_helper.handleQuery(dsl_switch_p
         html[#html + 1] =
           ui_helper.createLabel(
             T"Line Attenuation",
-            format("%s %s dB %s %s dB", iconUp, dslAttenuationUp, iconDown, dslAttenuationDown),
+            format("%s %s dB %s %s dB",iconUp,dslAttenuationUp,iconDown,dslAttenuationDown),
             ajax_attr
           )
       else
         html[#html + 1] =
           ui_helper.createLabel(
             T"Line Attenuation",
-            format("%s %s dB %s %s dB | %s %s dB %s %s dB", iconUp, dslAttenuationUp, iconDown, dslAttenuationDown, iconUp, otherDslAttenuationUp, iconDown, otherDslAttenuationDown),
+            format("%s %s dB %s %s dB | %s %s dB %s %s dB",iconUp,dslAttenuationUp,iconDown,dslAttenuationDown,iconUp,otherDslAttenuationUp,iconDown,otherDslAttenuationDown),
             ajax_attr
           )
       end
-      local dslMarginUp, dslMarginDown, otherDslMarginUp, otherDslMarginDown = 0, 0, 0, 0
+      local dslMarginUp,dslMarginDown,otherDslMarginUp,otherDslMarginDown = 0,0,0,0
       if tonumber(content["dsl_margin_up"]) ~= nil and tonumber(content["dsl_margin_down"]) ~= nil then
         dslMarginUp = content["dsl_margin_up"]
         dslMarginDown = content["dsl_margin_down"]
@@ -303,14 +300,14 @@ local dsl_switch_data, dsl_switch_helpmsg = post_helper.handleQuery(dsl_switch_p
         html[#html + 1] =
           ui_helper.createLabel(
             T"Noise Margin",
-            format("%s %s dB %s %s dB", iconUp, dslMarginUp, iconDown, dslMarginDown),
+            format("%s %s dB %s %s dB",iconUp,dslMarginUp,iconDown,dslMarginDown),
             ajax_attr
           )
       else
         html[#html + 1] =
           ui_helper.createLabel(
             T"Noise Margin",
-            format("%s %s dB %s %s dB | %s %s dB %s %s dB", iconUp, dslMarginUp, iconDown, dslMarginDown, iconUp, otherDslMarginUp, iconDown, otherDslMarginDown),
+            format("%s %s dB %s %s dB | %s %s dB %s %s dB",iconUp,dslMarginUp,iconDown,dslMarginDown,iconUp,otherDslMarginUp,iconDown,otherDslMarginDown),
             ajax_attr
           )
       end

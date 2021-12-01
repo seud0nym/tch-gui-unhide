@@ -46,5 +46,5 @@ if (cpu_data != null) {\
     cpu_config.data.datasets[0].data[i] = Number(arr[i]);\
   }\
 }\
-window.cpu_chart = new Chart(cpu_context, cpu_config);\
+window.cpu_chart = new Chart(cpu_context,cpu_config);\
 ');

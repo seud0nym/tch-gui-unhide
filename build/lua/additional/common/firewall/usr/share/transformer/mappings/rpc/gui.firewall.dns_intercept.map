@@ -8,7 +8,6 @@ local function readExceptions()
   if lfs.attributes(dns_xcptn, "mode") then
     local f,errmsg = io.open(dns_xcptn, "r")
     if f then
-      local l
       for l in f:lines() do
         local ip = match(l, "add dns_xcptn (%S+)")
         if ip then
@@ -24,9 +23,9 @@ local function readExceptions()
 end
 
 local function writeExceptions(ips)
-  local f,errmsg,k,v = io.open(dns_xcptn, "w+")
+  local f,errmsg = io.open(dns_xcptn, "w+")
   if f then
-    for k,v in pairs(ips) do
+    for _,v in pairs(ips) do
       if v then
         f:write("add dns_xcptn ")
         f:write(v)
@@ -85,12 +84,12 @@ GUI_FIREWALL_DNS_INT_.get = {
 }
 
 GUI_FIREWALL_DNS_INT_.set = {
-  add_exception = function(mapping,param,value,key)
+  add_exception = function(_,_,value,_)
     if value and value ~= "" then
       local ips,errmsg = readExceptions()
       if ips then
-        local k,v,found
-        for k,v in pairs(ips) do
+        local found
+        for _,v in pairs(ips) do
           if v == value then 
             found = true
             break
@@ -106,10 +105,9 @@ GUI_FIREWALL_DNS_INT_.set = {
     end
     return true
   end,
-  delete_exception = function(mapping,param,value,key)
+  delete_exception = function(_,_,value,_)
     local ips,errmsg = readExceptions()
     if ips then
-      local k,v
       for k,v in pairs(ips) do
         if v == value then 
           ips[k] = nil
@@ -120,13 +118,13 @@ GUI_FIREWALL_DNS_INT_.set = {
     end
     return nil,errmsg
   end,
-  delete_all_exceptions = function(mapping,param,value,key)
+  delete_all_exceptions = function(_,_,value,_)
     if value == "1" then
       return writeExceptions({})
     end
     return true
   end,
-  populate_ipsets = function(mapping,param,value,key)
+  populate_ipsets = function(_,_,value,_)
     if value == "1" then
       os.execute("/usr/sbin/doh-ipsets-maintain")
     end
@@ -152,11 +150,10 @@ local GUI_FIREWALL_DNS_INT_i_ = {
   }
 }
 
-GUI_FIREWALL_DNS_INT_i_.entries = function(mapping)
+GUI_FIREWALL_DNS_INT_i_.entries = function(_)
   local ips,errmsg = readExceptions()
   if ips then
     local res = {}
-    local key
     for key in pairs(ips) do
       res[#res+1]=tostring(key)
     end
@@ -172,7 +169,7 @@ GUI_FIREWALL_DNS_INT_i_.entries = function(mapping)
   return nil,errmsg
 end
 
-GUI_FIREWALL_DNS_INT_i_.add = function(mapping)
+GUI_FIREWALL_DNS_INT_i_.add = function(_)
   local ips,errmsg = readExceptions()
   if ips then
     adding = #ips+1
@@ -181,7 +178,7 @@ GUI_FIREWALL_DNS_INT_i_.add = function(mapping)
   return nil,errmsg
 end
 
-GUI_FIREWALL_DNS_INT_i_.delete = function(mapping, key)
+GUI_FIREWALL_DNS_INT_i_.delete = function(_, key)
   local ips,errmsg = readExceptions()
   if ips then
     ips[tonumber(key)] = nil
@@ -191,7 +188,7 @@ GUI_FIREWALL_DNS_INT_i_.delete = function(mapping, key)
 end
 
 GUI_FIREWALL_DNS_INT_i_.get = {
-  ip = function(mapping,param,key)
+  ip = function(_,_,key)
     local ips,errmsg = readExceptions()
     if ips then
       return ips[tonumber(key)] or ""
@@ -201,7 +198,7 @@ GUI_FIREWALL_DNS_INT_i_.get = {
 }
 
 GUI_FIREWALL_DNS_INT_i_.set = {
-  ip = function(mapping,param,value,key)
+  ip = function(_,_,value,key)
     local ips,errmsg = readExceptions()
     if ips then
       ips[tonumber(key)] = value

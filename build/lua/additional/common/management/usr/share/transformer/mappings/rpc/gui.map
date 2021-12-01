@@ -1,19 +1,19 @@
-local format, match = string.format, string.match
+local format = string.format
 local curl_cmd = "curl -qskL"
 local base_url = "https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master"
-local release_version_cmd = format("%s -r0-9 %s/VERSION.txt", curl_cmd, base_url)
+local release_version_cmd = format("%s -r0-9 %s/VERSION.txt",curl_cmd,base_url)
 local current_version = "" -- Set by build script
-local current_version_date = string.match(current_version, "([0-9.]+)@.*")
+local current_version_date = string.match(current_version,"([0-9.]+)@.*")
 local ignored_release_version_file = "/etc/tch-gui-unhide.ignored_release"
 
 local release_version = {
-  date,
-  lastRetrieved
+  date = nil,
+  lastRetrieved = nil,
 }
 
 local function getIgnoredReleaseVersionDate()
   local version = ""
-  local file = io.open(ignored_release_version_file, "r")
+  local file = io.open(ignored_release_version_file,"r")
   if file then
     version = file:read()
     file:close()
@@ -23,7 +23,7 @@ end
 
 local function getReleaseVersionDate()
   local time = os.time()
-  
+
   if release_version.lastRetrieved and ( time - release_version.lastRetrieved ) < 600 then
     return release_version.date
   end
@@ -40,29 +40,29 @@ local function getReleaseVersionDate()
   return release_version.date
 end
 
-local function download(rel_path, filename)
-  os.execute(format("logger -t tch-gui-unhide -p user.debug Downloading %s/%s%s", base_url, rel_path, filename))
-  local cmd = format("%s -o /dev/null -w '%%{http_code}' %s/%s%s", curl_cmd, base_url, rel_path, filename)
+local function download(rel_path,filename)
+  os.execute(format("logger -t tch-gui-unhide -p user.debug Downloading %s/%s%s",base_url,rel_path,filename))
+  local cmd = format("%s -o /dev/null -w '%%{http_code}' %s/%s%s",curl_cmd,base_url,rel_path,filename)
   local response_code 
-  local curl, errmsg = io.popen(cmd,"r")
+  local curl,errmsg = io.popen(cmd,"r")
   if curl then
     response_code = curl:read("*n")
     curl:close()
     if response_code == 200 then
-      cmd = format("%s -o/tmp/%s -w '%%{http_code}' %s/%s%s", curl_cmd, filename, base_url, rel_path, filename)
-      curl, errmsg = io.popen(cmd,"r")
+      cmd = format("%s -o/tmp/%s -w '%%{http_code}' %s/%s%s",curl_cmd,filename,base_url,rel_path,filename)
+      curl,errmsg = io.popen(cmd,"r")
       if curl then 
         response_code = curl:read("*n")
         curl:close()
         if response_code == 200 then
-          os.execute(format("chmod +x /tmp/%s", filename))
+          os.execute(format("chmod +x /tmp/%s",filename))
           return true
         end
       end
     end
-    return nil, tostring(response_code)
+    return nil,tostring(response_code)
   end
-  return nil, errmsg
+  return nil,errmsg
 end
 
 local GUI_ = {
@@ -117,8 +117,8 @@ GUI_.get = {
 }
 
 GUI_.set = {
-  IgnoreCurrentRelease = function(mapping,param,value,key)
-    local file, err_msg = io.open(ignored_release_version_file, "w")
+  IgnoreCurrentRelease = function(_,_,value,_)
+    local file,err_msg = io.open(ignored_release_version_file,"w")
     if file then
       if value == "1" then
         file:write(getReleaseVersionDate())
@@ -128,41 +128,40 @@ GUI_.set = {
       file:close()
       return true
     else
-      return nil, "Failed to persist ignored release version: " .. err_msg, "error"
+      return nil,"Failed to persist ignored release version: " .. err_msg,"error"
     end
   end,
-  UpdateNow = function(mapping,param,value,key)
+  UpdateNow = function(_,_,value,_)
     local pgrep = io.popen("grep '/tmp/tch-gui-unhide-' | grep -v grep | wc -l","r")
     local procs = pgrep:read("*n")
     pgrep:close()
     if procs > 0 then
-      return nil, "Upgrade already running?"
+      return nil,"Upgrade already running?"
     end
-    local okay, response_code = download("", format("tch-gui-unhide-%s", value))
+    local okay,response_code = download("",format("tch-gui-unhide-%s",value))
     if okay then
-      okay, response_code = download("extras/src/", ".extras")
+      okay,response_code = download("extras/src/",".extras")
       if okay then
         local extras = io.open("/tmp/.extras","r")
         if extras then
-          local file
           for file in extras:lines() do
             if file ~= "" then
-              okay, response_code = download("extras/", file)
+              okay,response_code = download("extras/",file)
               if not okay then
-                os.execute(format("logger -t tch-gui-unhide -p user.warn Download of %s FAILED (Response code=%s)", file, response_code))
+                os.execute(format("logger -t tch-gui-unhide -p user.warn Download of %s FAILED (Response code=%s)",file,response_code))
               end
             end
           end
           extras:close()
         end
       else
-        os.execute(format("logger -t tch-gui-unhide -p user.warn Download of extras list FAILED (Response code=%s)", response_code))
+        os.execute(format("logger -t tch-gui-unhide -p user.warn Download of extras list FAILED (Response code=%s)",response_code))
       end
-      os.execute(format("cd /tmp; sh ./tch-gui-unhide-%s -y 2>&1 | logger -t tch-gui-unhide -p user.info", value))
+      os.execute(format("cd /tmp; sh ./tch-gui-unhide-%s -y 2>&1 | logger -t tch-gui-unhide -p user.info",value))
       os.execute("rm /tmp/.extras /tmp/tch-gui-unhide-*")
       return true
     end
-    return nil, format("Download of tch-gui-unhide-%s FAILED (Response code=%s)", value, response_code)
+    return nil,format("Download of tch-gui-unhide-%s FAILED (Response code=%s)",value,response_code)
   end,
 }
 

@@ -13,7 +13,6 @@ local string = string
 local format,match,find,upper = string.format,string.match,string.find,string.upper
 local iconUp = "<i class=\"icon-upload icon-large gray\"></i> "
 local iconDown = " <i class=\"icon-download icon-large gray\"></i> "
-local session = ngx.ctx.session
 local untaint_mt = require("web.taint").untaint_mt
 
 local ppp_state_map = {
@@ -58,7 +57,7 @@ local ajax_attr_light = {
   }
 }
 
-function get_ppp_state(wan_auto,wan_ppp,wan_error,ipaddr)
+local function get_ppp_state(wan_auto,wan_ppp,wan_error,_)
   -- Figure out interface state
 	if wan_auto ~= "0" then
     -- WAN enabled
@@ -87,7 +86,7 @@ end
 
 local function split(str,ang)
 	local tab = {}
-	for vari in string.gfind(format("%s",str),ang) do
+	for vari in string.gmatch(format("%s",str),ang) do
 		table.insert(tab,vari)
 	end
 	return tab
@@ -130,8 +129,8 @@ for _,v in ipairs(firewall_forwarding_path) do
     break
   end
 end
-local function validateNat(value,object,key)
-  local valid,msg = post_helper.validateBoolean(value,object,key)
+local function validateNat(value,_,_)
+  local valid,msg = post_helper.validateBoolean(value)
   if valid and zonenum ~= "" and value ~= proxy.get("uci.firewall.zone."..zonenum..".masq")[1].value then
     proxy.set("uci.firewall.zone."..zonenum..".conntrack","1")
     local fwd_enabled
@@ -148,7 +147,7 @@ local function validateNat(value,object,key)
       for _ in ipairs(firewall_forwarding_path) do
         count = count + 1
       end
-      forwdnum = "@forwarding[" .. count .. "]"
+      forwdnum = "@forwarding["..count.."]"
       -- 106-END
       proxy.set("uci.firewall.forwarding."..forwdnum..".src","wan")
       proxy.set("uci.firewall.forwarding."..forwdnum..".dest","lan")
@@ -200,14 +199,10 @@ local mapPPPstats = {
 content_helper.getExactContent(mapPPPstats)
 
 -- Shortcuts to validation helpers to make lines shorter
-local gVIPIL = post_helper.getValidationIfPropInList
-local gAV = post_helper.getAndValidation
 local gCV = post_helper.getConditionalValidation
 local gVIES = post_helper.getValidateInEnumSelect
 local vB = post_helper.validateBoolean
 local vNES = post_helper.validateNonEmptyString
-local vSII = post_helper.validateStringIsIP
-local vSIP = post_helper.validateStringIsPort
 local gVP = post_helper.getValidationPassword
 local gOV = post_helper.getOptionalValidation
 
@@ -229,11 +224,11 @@ local function validateUsername(value,postdata)
   return true
 end
 
-local function isWanEnabled(value,object,key)
+local function isWanEnabled(_,object,_)
   return object["uci_wan_auto"] ~= "0"
 end
 
-local function IPv6andUsername(value,object,key)
+local function IPv6andUsername(value,_,_)
 	local valid,msg = vB(value)
 	local ipv6_state = proxy.get("uci.network.interface.@wan6.auto")[1].value
 	if valid and ipv6_state ~= value then
@@ -276,9 +271,8 @@ local reqprefix_map = {
   { "no",T"No" },
   { "auto",T"Automatic" },
 }
-local prefix_len
 for prefix_len = 64,0,-1 do
-  reqprefix_map[#reqprefix_map+1] = { tostring(prefix_len),T("/" .. prefix_len) }
+  reqprefix_map[#reqprefix_map+1] = { tostring(prefix_len),T("/"..prefix_len) }
 end
 
 local ipv4ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
@@ -296,11 +290,11 @@ local mapValid = {
   uci_wan_auto = vB,
   uci_wan_username = gCV(isWanEnabled,validateUsername,gOV(validateUsername)),
   uci_wan_password = gCV(isWanEnabled,gVP(vNES),gVP()),
-  uci_ppp_username = function(val,object)
+  uci_ppp_username = function(_,object)
     object.uci_ppp_username = object.uci_wan_username
     return true
   end,
-  uci_ppp_password = function(val,object)
+  uci_ppp_password = function(_,object)
     object.uci_ppp_password = object.uci_wan_password
     return true
   end,
@@ -383,7 +377,7 @@ if content_rpc.dns == "" then
 end
 
 local dnstab = split(content_rpc.dns,"[^%,]+")
-local dnsv4,dnsv6 = dns_filter(dnstab)
+local _,dnsv6 = dns_filter(dnstab)
 
 local ipv6_enabled = proxy.get("uci.network.interface.@wan.ipv6")
 if ipv6_enabled and ipv6_enabled[1].value == "1" then
@@ -511,7 +505,7 @@ html[#html + 1] = ui_helper.createLight(T"Status",nil,ppp_state_map[ppp_status],
 ajax_attr.span.id = "uptime"
 ajax_attr.span.class = "span4 simple-desc"
 if not ( mapPPPstats["uptime"] == "" ) then
-  html[#html + 1] = ui_helper.createLabel(T"Uptime",post_helper.secondsToTime(mapPPPstats["uptime"]), ajax_attr)
+  html[#html + 1] = ui_helper.createLabel(T"Uptime",post_helper.secondsToTime(mapPPPstats["uptime"]),ajax_attr)
 end
 -- Switch PPP on/off
 html[#html+1] = ui_helper.createSwitch(T"IPv4 Enabled on Boot","uci_wan_auto",content.uci_wan_auto,nil,helpmsg["uci_wan_auto"])
@@ -534,14 +528,13 @@ local class_username = {
     class = "span6",
   }
 }
-html[#html + 1] = "<div class='control-group'><label class='control-label'>" .. T"Username" .. "</label><div class='controls'>"
+html[#html + 1] = "<div class='control-group'><label class='control-label'>"..T"Username".."</label><div class='controls'>"
 html[#html + 1] = ui_helper.createSimpleInputText("uci_wan_username",content["uci_wan_username"],class_username,helpmsg["uci_wan_username"])
 if content_uci["wan_domain"] ~= "" then
-  html[#html + 1] = " @ " .. content_uci["wan_domain"]
+  html[#html + 1] = " @ "..content_uci["wan_domain"]
 end
 html[#html + 1] = "</div></div>"
 -- PPP password
-local class_password = class_username
 html[#html + 1] = ui_helper.createInputText(T"Password","uci_wan_password",content["uci_wan_password"],class_username,helpmsg["uci_wan_password"])
 html[#html + 1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac",content["uci_wan_mac"],nil,helpmsg["uci_wan_mac"])
 ajax_attr.span.id = "ipaddr"

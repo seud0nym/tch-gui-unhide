@@ -74,17 +74,17 @@ end
 ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ');  ngx.print( ui_helper.createCardHeader(T"Eco Settings", modalPath, nil, nil) ); ngx.print('\
+    ');  ngx.print( ui_helper.createCardHeader(T"Eco Settings",modalPath,nil,nil) ); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf06c;">\
       <div class="divtable">\
         ');
         local html = {}
-        html[#html + 1] = ui_helper.createSimpleLight(content.cpuspeed_status, content.cpuspeed)
-        html[#html + 1] = ui_helper.createSimpleLight(content.cpuwait, content.cpuwait_text)
-        html[#html + 1] = ui_helper.createSimpleLight(content.ethapd, content.ethapd_text)
-        html[#html + 1] = ui_helper.createSimpleLight(content.eee, content.eee_text)
-        html[#html + 1] = ui_helper.createSimpleLight(content.autogreeen, content.autogreeen_text)
-        html[#html + 1] = ui_helper.createSimpleLight(content.dgm, content.dgm_text)
+        html[#html + 1] = ui_helper.createSimpleLight(content.cpuspeed_status,content.cpuspeed)
+        html[#html + 1] = ui_helper.createSimpleLight(content.cpuwait,content.cpuwait_text)
+        html[#html + 1] = ui_helper.createSimpleLight(content.ethapd,content.ethapd_text)
+        html[#html + 1] = ui_helper.createSimpleLight(content.eee,content.eee_text)
+        html[#html + 1] = ui_helper.createSimpleLight(content.autogreeen,content.autogreeen_text)
+        html[#html + 1] = ui_helper.createSimpleLight(content.dgm,content.dgm_text)
         ngx.print(html)
         ngx.print('\
       </div>\

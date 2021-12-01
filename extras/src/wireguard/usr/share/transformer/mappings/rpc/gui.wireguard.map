@@ -22,7 +22,7 @@ local wg_cache = {
     client_interfaces = {},
   },
   details = {},
-  time_check,
+  time_check = nil,
 }
 
 local ip_cache = {}

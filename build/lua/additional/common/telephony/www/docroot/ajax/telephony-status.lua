@@ -12,11 +12,11 @@ end
 local html = tch.getTelephonyCardHTML(mmpbx_state)
 
 local data = {
-  html = table.concat(html, "\n"),
+  html = table.concat(html,"\n"),
 }
 
 local buffer = {}
-if json.encode (data, { indent = false, buffer = buffer }) then
+if json.encode (data,{ indent = false,buffer = buffer }) then
   ngx.say(buffer)
 else
   ngx.say("{}")

@@ -1,7 +1,9 @@
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
-local gmatch,format,lower,match,untaint = string.gmatch,string.format,string.lower,string.match,string.untaint
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
+local gmatch,format,lower,match = string.gmatch,string.format,string.lower,string.match
 
 local M = {}
 
@@ -31,9 +33,9 @@ local function get_ddns_status(wan_services_data,family)
         end
       end
     end
-    
+
+    local state_prefix = format("%s Dynamic DNS ",family)
     if service_status then
-      local state_prefix = format("%s Dynamic DNS ",family)
       if service_status == "Domain's IP updated" then
         ddns_state = ui_helper.createSimpleLight("1",T(state_prefix.."- IP updated"..cert),attr)
       elseif service_status == "No error received from server" then
@@ -75,7 +77,7 @@ function M.getWANServicesCardHTML()
   if ddns6 then
     html[#html+1] = ddns6
   end
-  
+
   if wan_services_data["dmz_blocked"] == "1" then
       html[#html+1] = ui_helper.createSimpleLight("2",T"DMZ blocked")
   else
@@ -86,9 +88,9 @@ function M.getWANServicesCardHTML()
     end
   end
 
-  local wol = io.open("/lib/functions/firewall-wol.sh", "r") and proxy.get("uci.wol.config.")
+  local wol = io.open("/lib/functions/firewall-wol.sh","r") and proxy.get("uci.wol.config.")
   if wol then
-    wolenabled = proxy.get("uci.wol.config.enabled")
+    local wolenabled = proxy.get("uci.wol.config.enabled")
     if wolenabled then
       if wolenabled[1].value == "1" then
         html[#html+1] = ui_helper.createSimpleLight("1",T"WoL over Internet enabled")
@@ -113,4 +115,3 @@ function M.getWANServicesCardHTML()
 end
 
 return M
-  

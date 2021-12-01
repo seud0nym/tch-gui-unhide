@@ -75,7 +75,7 @@ local zone_columns = {
   },
 }
 
-local zone_sort = function(zone1, zone2)
+local zone_sort = function(zone1,zone2)
   return tolower(zone1.name) > tolower(zone2.name)
 end
 
@@ -88,13 +88,13 @@ local zone_options = {
   sorted = zone_sort,
 }
 
-local zone_data, zone_helpMsg = post_helper.handleTableQuery(zone_columns, zone_options, nil, nil, zone_valid)
+local zone_data,zone_helpMsg = post_helper.handleTableQuery(zone_columns,zone_options,nil,nil,nil)
 for _,v in ipairs(zone_data) do
   if v[1] == "" then
     v[1] = "1"
   end
   if v[6] and type(v[6]) == "table" then
-    v[6] = concat(v[6], ", ")
+    v[6] = concat(v[6],",")
     zone_columns[6].type = "text"
   end
 end
@@ -138,7 +138,7 @@ local fw_forwarding_columns = {
     readonly = true,
   },
 }
- 
+
 local fw_forwarding_options = {
   tableid = "fw_forwardings",
   basepath = "uci.firewall.forwarding.@.",
@@ -147,23 +147,23 @@ local fw_forwarding_options = {
   canDelete = false,
 }
 
-local fw_forwarding_data, fw_forwarding_helpmsg = post_helper.handleTableQuery(fw_forwarding_columns, fw_forwarding_options, nil, nil, nil)
+local fw_forwarding_data,fw_forwarding_helpmsg = post_helper.handleTableQuery(fw_forwarding_columns,fw_forwarding_options,nil,nil,nil)
 for _,v in ipairs(fw_forwarding_data) do
   if v[1] == "" then
     v[1] = "1"
   end
 end
 
-ngx.print(ui_helper.createHeader(T"Firewall", true, false))   ngx.print('\
+ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-firewall.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/firewall-zones-modal.lp">\
     '); 
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('<legend>');  ngx.print( T"Firewall Zones" ); ngx.print('</legend>');
-    ngx.print(ui_helper.createTable(zone_columns, zone_data, zone_options, nil, zone_helpMsg))
+    ngx.print(ui_helper.createTable(zone_columns,zone_data,zone_options,nil,zone_helpMsg))
     ngx.print('<legend>');  ngx.print( T"Zone Forwarding Traffic Control Rules" ); ngx.print('</legend>');
-    ngx.print(ui_helper.createTable(fw_forwarding_columns, fw_forwarding_data, fw_forwarding_options, nil, fw_forwarding_helpmsg))
+    ngx.print(ui_helper.createTable(fw_forwarding_columns,fw_forwarding_data,fw_forwarding_options,nil,fw_forwarding_helpmsg))
     ngx.print('\
   </form>\
 </div>\

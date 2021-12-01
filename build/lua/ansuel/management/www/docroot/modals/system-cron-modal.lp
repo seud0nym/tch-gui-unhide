@@ -7,9 +7,10 @@ local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
 local message_helper = require("web.uimessage_helper")
+---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
-local function validateCronTimes(value, object, key)
+local function validateCronTimes(value,_,_)
   if not value:match("^%*$")
     and not value:match("^[0-9]+-[0-9]+$")
     and not value:match("^[0-9]+$")
@@ -18,7 +19,7 @@ local function validateCronTimes(value, object, key)
     or value:match("%a")
     or value:match("%s")
   then
-    return nil, "Invalid time entered. Check linux cron documentation for correct formats"
+    return nil,"Invalid time entered. Check linux cron documentation for correct formats"
   end
   return true
 end
@@ -93,7 +94,7 @@ local cron_options = {
   basepath = "rpc.gui.cron.entries.@.",
 }
 
-cron_options.onAdd = function(index, content)
+cron_options.onAdd = function(index,content)
   if content.command == "" then
     cron_options.errmsg = T"Command input can't be empty"
     return nil
@@ -109,30 +110,28 @@ cron_options.onAdd = function(index, content)
     command = content.command,
   }
 
-  local key,v
   for key,v in pairs(tbl) do
     local value = untaint(v)
     local path = string.format("rpc.gui.cron.entries.%s.%s",index,key)
-    local result, errors = proxy.set(path,value)
+    local result,errors = proxy.set(path,value)
     if not result then
-      local err
       for _,err in ipairs(errors) do
-        message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)), "error")
+        message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
       end
     end
   end
-  
+
   proxy.set("rpc.gui.cron.writecrontab","1")
 end
 
-cron_options.onModify = function(index, content)
+cron_options.onModify = function(_,_)
   proxy.set("rpc.gui.cron.writecrontab","1")
 end
 
-local cron_data, cron_helpmsg = post_helper.handleTableQuery(cron_columns, cron_options, nil, nil, cron_valid)
+local cron_data,cron_helpmsg = post_helper.handleTableQuery(cron_columns,cron_options,nil,nil,cron_valid)
 
   ngx.print('\
-');  ngx.print(ui_helper.createHeader(T"Management", false, true) ); ngx.print('\
+');  ngx.print(ui_helper.createHeader(T"Management",false,true) ); ngx.print('\
 <div class="modal-body update">\
 ');
   local lp = require("web.lp")
@@ -140,7 +139,7 @@ local cron_data, cron_helpmsg = post_helper.handleTableQuery(cron_columns, cron_
   lp.include("tabs-management.lp")
   ngx.print('\
 ');
--- dummy form so that refresh button knows which page to reload, keep it
+-- dummy form so that refresh button knows which page to reload,keep it
   ngx.print('\
   <form class="form-horizontal" method="post" action="modals/system-cron-modal.lp">\
   </form>\
@@ -152,8 +151,8 @@ local cron_data, cron_helpmsg = post_helper.handleTableQuery(cron_columns, cron_
         class = "alert alert-warn"
       },
     }
-    ngx.print(ui_helper.createAlertBlock(T"WARNING: When you click the <i class='icon-remove-sign icon-large'/> button, the scheduled task will be deleted IMMEDIATELY!",alert_warn))
-    ngx.print(ui_helper.createTable(cron_columns, cron_data, cron_options, nil, cron_helpmsg))
+    ngx.print(ui_helper.createAlertBlock(T"WARNING: When you click the <i class='icon-remove-sign icon-large'/> button,the scheduled task will be deleted IMMEDIATELY!",alert_warn))
+    ngx.print(ui_helper.createTable(cron_columns,cron_data,cron_options,nil,cron_helpmsg))
     ngx.print('\
   </fieldset>\
 </div>\

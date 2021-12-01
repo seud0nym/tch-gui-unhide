@@ -1,5 +1,5 @@
 --pretranslated: do not change this file
- 
+
 -- Enable localization
 gettext.textdomain('webui-core')
 
@@ -15,9 +15,8 @@ if mode_active == "" then
     end
   end
 end
-  
+
 if mode_active ~= "bridge" then
-  local content_helper = require("web.content_helper")
   local ich = require("internetcard_helper")
   local ui_helper = require("web.ui_helper")
 
@@ -32,7 +31,7 @@ if mode_active ~= "bridge" then
   ngx.print('\
   <div class="span3">\
     <div class="smallcard">\
-      ');  ngx.print(ui_helper.createCardHeader(T"Internet Access", modalPath)); ngx.print('\
+      ');  ngx.print(ui_helper.createCardHeader(T"Internet Access",modalPath)); ngx.print('\
       <div class="content card_bg" data-bg-text="&#xf0ac;">\
         <div id="internet-card-content">\
         ');  ngx.print(html); ngx.print('\
@@ -43,9 +42,9 @@ if mode_active ~= "bridge" then
   <script>\
   var iFuncID;\
   function updateInternetCard(){\
-    $.post("/ajax/internet-status.lua", [tch.elementCSRFtoken()], function(data){\
+    $.post("/ajax/internet-status.lua",[tch.elementCSRFtoken()],function(data){\
       $("#internet-card-content").html(data["html"]);\
-    }, "json")\
+    },"json")\
     .fail(function(response){\
       if(response.status==403||response.status==404){clearInterval(iFuncID);}\
     });\

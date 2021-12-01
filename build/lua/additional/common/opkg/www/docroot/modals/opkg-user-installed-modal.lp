@@ -6,7 +6,8 @@ gettext.textdomain('webui-core')
 local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 local content_helper = require("web.content_helper")
-local match, untaint = string.match, string.untaint
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
@@ -15,13 +16,12 @@ if ngx.req.get_method() == "POST" then
   local proxy = require("datamodel")
   local upgrade = ngx.req.get_post_args().upgrade_pkg
   local remove = ngx.req.get_post_args().remove_pkg
-  local pkg
   if upgrade then
     if type(upgrade) == "string" or type(upgrade) == "userdata" then
       upgrade = { upgrade }
     end
     for _,pkg in pairs(upgrade) do
-      proxy.set("rpc.gui.opkg.user.@".. untaint(pkg) .. ".action", "upgrade")
+      proxy.set("rpc.gui.opkg.user.@"..untaint(pkg)..".action","upgrade")
     end
   end
   if remove then
@@ -29,7 +29,7 @@ if ngx.req.get_method() == "POST" then
       remove = { remove }
     end
     for _,pkg in pairs(remove) do
-      proxy.set("rpc.gui.opkg.user.@".. untaint(pkg) .. ".action", "remove")
+      proxy.set("rpc.gui.opkg.user.@"..untaint(pkg)..".action","remove")
     end
   end
 end
@@ -39,7 +39,7 @@ local opkg_data = {
 }
 content_helper.getExactContent(opkg_data)
 
-ngx.print(ui_helper.createHeader(T"Packages", true, false))   ngx.print('\
+ngx.print(ui_helper.createHeader(T"Packages",true,false))   ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-opkg.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/opkg-user-installed-modal.lp">\
@@ -66,20 +66,20 @@ ngx.print(ui_helper.createHeader(T"Packages", true, false))   ngx.print('\
 if opkg_data["user_installed"] ~= "0" then
   ngx.print('\
 <script>\
-  $.post("/ajax/opkg-list.lua?group=user", [tch.elementCSRFtoken()], function(data){\
+  $.post("/ajax/opkg-list.lua?group=user",[tch.elementCSRFtoken()],function(data){\
     $("#opkgs_place_holder").html(data["html"]);\
     $("#searchControlGroup").removeClass("hide");\
-    $(".btn-Remove").on("click", function(){\
+    $(".btn-Remove").on("click",function(){\
       postAction("remove",$(this).data("index"),$(this).data("name"));\
     });\
-    $(".btn-Upgrade").on("click", function(){\
+    $(".btn-Upgrade").on("click",function(){\
       postAction("upgrade",$(this).data("index"),$(this).data("name"));\
     });\
-    $(".opkg_cb").on("change", function(){\
+    $(".opkg_cb").on("change",function(){\
       $("#modal-no-change").addClass("hide");\
       $("#modal-changes").removeClass("hide");\
     });\
-  }, "json")\
+  },"json")\
   .fail(function(response){\
     if(response.status==403||response.status==404){alert("Error retrieving packages?");}\
   });\

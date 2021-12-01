@@ -11,7 +11,6 @@ local cards = {
 content_helper.getExactContent(cards)
 
 if cards.gateway == "0" or cards.broadband == "0" then
-  local ui_helper = require("web.ui_helper")
   local js_chart_rgb_helper = require("js_chart_rgb_helper")
 
   local lbl_height = 44
@@ -24,10 +23,10 @@ if cards.gateway == "0" or cards.broadband == "0" then
   end
 
   local charts = {
-    { label = "CPU", id = "cpu", unit="%", hide = cards.gateway, },
-    { label = "RAM", id = "ram", unit="%", hide = cards.gateway, },
-    { label = "WAN &#8595;", id = "wandn", unit="Mb/s", hide = cards.broadband, },
-    { label = "WAN &#8593;", id = "wanup", unit="Mb/s", hide = cards.broadband, },
+    { label = "CPU",id = "cpu",unit="%",hide = cards.gateway,},
+    { label = "RAM",id = "ram",unit="%",hide = cards.gateway,},
+    { label = "WAN &#8595;",id = "wandn",unit="Mb/s",hide = cards.broadband,},
+    { label = "WAN &#8593;",id = "wanup",unit="Mb/s",hide = cards.broadband,},
   }
 
   ngx.print('\
@@ -40,7 +39,6 @@ if cards.gateway == "0" or cards.broadband == "0" then
     <div class="smallcard chartcard chartcard-summary card_bg" data-bg-text="&#xf080;">\
     ')
     local top = 10
-    local chart
     for _,chart in pairs(charts) do
       if chart.hide == "0" then
         chart.rgb = js_chart_rgb_helper.getRGB(chart.id)

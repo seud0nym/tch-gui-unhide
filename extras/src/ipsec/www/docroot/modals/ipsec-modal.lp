@@ -7,7 +7,9 @@ local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local ui_helper = require("web.ui_helper")
 local proxy = require("datamodel")
-local format, untaint = string.format, string.untaint
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
+local format = string.format
 
 local vB = post_helper.validateBoolean
 local vNES = post_helper.validateNonEmptyString
@@ -129,7 +131,7 @@ local secret_columns = {
 local secret_valid = {
   enabled = vB,
   type = gVIES(secret_type),
-  secret = gNES,
+  secret = vNES,
 }
 
 local secret_apply = function(index, content)
@@ -159,7 +161,7 @@ local secret_filter = function(data)
   return true 
 end
 
-local secret_data,secret_helpmsg = post_helper.handleTableQuery(secret_columns,secret_options,secret_filter,nil,list_valid)
+local secret_data,secret_helpmsg = post_helper.handleTableQuery(secret_columns,secret_options,secret_filter,nil,secret_valid)
 
 if ngx.var.request_method == "POST" then
   local vars = ngx.req.get_post_args()
@@ -179,7 +181,7 @@ end
 if not psk then
   proxySet("rpc.gui.ipsec.regenpsk", "1")
   proxySet("rpc.gui.ipsec.apply_changes", "1")
-  secret_data,secret_helpmsg = post_helper.handleTableQuery(secret_columns,secret_options,secret_filter,nil,list_valid)
+  secret_data,secret_helpmsg = post_helper.handleTableQuery(secret_columns,secret_options,secret_filter,nil,secret_valid)
 end
 
 local responder_auto_attr = {

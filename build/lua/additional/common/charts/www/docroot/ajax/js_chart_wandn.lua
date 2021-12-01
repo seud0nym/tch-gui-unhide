@@ -44,5 +44,5 @@ if (wandn_data != null) {\
     wandn_config.data.datasets[0].data[i] = Number(arr[i]);\
   }\
 }\
-window.wandn_chart = new Chart(wandn_context, wandn_config);\
+window.wandn_chart = new Chart(wandn_context,wandn_config);\
 ');

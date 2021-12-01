@@ -4,26 +4,27 @@ gettext.textdomain('webui-core')
 local json = require("dkjson")
 local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
-local format, tolower, untaint = string.format, string.lower, string.untaint
+local format,tolower = string.format,string.lower
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
-local function extractHTML(source, target)
+local function extractHTML(source,target)
   if type(source) == "string" then
     target[#target+1] = source
   elseif type(source) == "userdata" then
     target[#target+1] = untaint(source)
   else
-    local v
-    for _, v in pairs(source) do
-      extractHTML(v, target)
+    for _,v in pairs(source) do
+      extractHTML(v,target)
     end
   end
 end
 
-local function genAttrib(opkg, type)
+local function genAttrib(opkg,type)
   return {
     button = {
       id = type.."-"..opkg.paramindex,
-      title = format(type, opkg.name or ""),
+      title = format(type,opkg.name or ""),
       class = "btn-mini btn-"..type,
       ["data-index"] = opkg.paramindex,
       ["data-name"] = opkg.name,
@@ -38,7 +39,7 @@ local function getOptions(basepath)
     canEdit = false,
     canAdd = false,
     canDelete = false,
-    sorted = function(opkg1, opkg2)
+    sorted = function(opkg1,opkg2)
       return tolower(opkg1.name or "") < tolower(opkg2.name or "")
     end,
   }
@@ -46,9 +47,9 @@ end
 
 local function toHTML(opkg_table)
   local opkg_html = {}
-  extractHTML(opkg_table, opkg_html)
+  extractHTML(opkg_table,opkg_html)
   return {
-    html = table.concat(opkg_html, "\n"),
+    html = table.concat(opkg_html,"\n"),
   }
 end
 
@@ -205,9 +206,9 @@ local opkg_filter = {
       data.warning = "<span class='icon-warning-sign' title='"..data.warning.."'></span>"  
     else
       if data.available_version ~= "" then
-        data.pkg_upgrade = ui_helper.createSimpleButton("","icon-plus-sign",genAttrib(data,"Upgrade %s (This is very, very risky!)"))
+        data.pkg_upgrade = ui_helper.createSimpleButton("","icon-plus-sign",genAttrib(data,"Upgrade %s (This is very,very risky!)"))
       end
-      data.pkg_remove = ui_helper.createSimpleButton("","icon-remove",genAttrib(data,"Remove %s (This is very, very risky!)"))
+      data.pkg_remove = ui_helper.createSimpleButton("","icon-remove",genAttrib(data,"Remove %s (This is very,very risky!)"))
     end
     return true
   end,
@@ -225,7 +226,7 @@ local opkg_filter = {
       end
     end
     if data.installed_time and data.installed_time ~= "" then
-      data.installed_time = os.date("%d/%m/%Y %T", tonumber(data.installed_time))
+      data.installed_time = os.date("%d/%m/%Y %T",tonumber(data.installed_time))
     end
     return true
   end,
@@ -240,11 +241,11 @@ else
 end
 
 local opkg_opts = getOptions("rpc.gui.opkg."..group..".@.")
-local opkg_data = content_helper.loadTableData(opkg_opts.basepath, opkg_columns[group], opkg_filter[group], opkg_opts.sorted)
-local opkg_tble = ui_helper.createTable(opkg_columns[group], opkg_data, opkg_opts)
+local opkg_data = content_helper.loadTableData(opkg_opts.basepath,opkg_columns[group],opkg_filter[group],opkg_opts.sorted)
+local opkg_tble = ui_helper.createTable(opkg_columns[group],opkg_data,opkg_opts)
 
 local buffer = {}
-if json.encode (toHTML(opkg_tble), { indent = false, buffer = buffer }) then
+if json.encode (toHTML(opkg_tble),{ indent = false,buffer = buffer }) then
   ngx.say(buffer)
 else
   ngx.say("{}")

@@ -16,7 +16,7 @@ local GUI_PWD_ = {
   }
 }
 
-GUI_PWD_.entries = function(mapping)
+GUI_PWD_.entries = function(_)
   local result = {}
   for s,t in pairs(uci_helper.getall_from_uci({config = "mmpbxrvsipnet"})) do
     if t[".type"] == "profile" then
@@ -26,8 +26,8 @@ GUI_PWD_.entries = function(mapping)
   return result
 end
 
-GUI_PWD_.get = function(mapping, paramname, key)
-  local data = uci_helper.get_from_uci({config="mmpbxrvsipnet", sectionname=key, option="password"})
+GUI_PWD_.get = function(_,_,key)
+  local data = uci_helper.get_from_uci({config="mmpbxrvsipnet",sectionname=key,option="password"})
   if data and #data >= 72 and string.match(data,"^$%d%d$%d%d%$") then
     return crypto.decrypt(data)
   else

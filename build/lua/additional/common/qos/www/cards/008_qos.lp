@@ -8,7 +8,7 @@ local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
-local find, gmatch, format, match = string.find, string.gmatch, string.format, string.match
+local find,gmatch,format,match = string.find,string.gmatch,string.format,string.match
 local session = ngx.ctx.session
 local qosdevice_helper = require("qosdevice_helper")
 
@@ -29,7 +29,7 @@ end
 local function queueCount(classes)
   local count = 0
   if classes then
-    for _ in gmatch(untaint(classes), "[^ ]+") do
+    for _ in gmatch(untaint(classes),"[^ ]+") do
       count = count + 1
     end
   end
@@ -39,7 +39,7 @@ end
 local dataQoS = {
   mqos_enabled = "uci.mqos.global.enabled",
   mqos_devices = "uci.mqos.deviceNumberOfEntries",
-  numShapers = "uci.qos.swshaperNumberOfEntries", -- NOT 17.2
+  numShapers = "uci.qos.swshaperNumberOfEntries",-- NOT 17.2
   wan_queues = "uci.qos.classgroup.@TO_WAN.classes",
   lan_queues = "uci.qos.classgroup.@TO_LAN.classes",
 	wlan_queues = "uci.qos.classgroup.@TO_WLAN.classes",
@@ -70,8 +70,8 @@ if not shapers.count then
 else
   local swshapers = proxy.getPN("uci.qos.swshaper.",true)
   for _,v in ipairs(swshapers) do
-    local name = match(v.path, "uci%.qos%.swshaper%.@([^%.]+)%.")
-    shapers.names[name] = untaint(proxy.get(v.path .. "enable")[1].value)
+    local name = match(v.path,"uci%.qos%.swshaper%.@([^%.]+)%.")
+    shapers.names[name] = untaint(proxy.get(v.path.."enable")[1].value)
     if shapers.names[name] == "1" then
       shapers.enabled = shapers.enabled + 1
     end
@@ -90,16 +90,16 @@ light["TO_WLAN"] = "0"
 
 local ifs = qosdevice_helper.getNetworkDevices()
 
-local data = proxy.getPN("uci.qos.device.", true)
+local data = proxy.getPN("uci.qos.device.",true)
 for _,v in ipairs(data) do
-  local device = untaint(match(v.path, "uci%.qos%.device%.@([^%.]+)%."))
+  local device = untaint(match(v.path,"uci%.qos%.device%.@([^%.]+)%."))
   if ifs[device] and ifs[device] ~= "" and ifs[device] ~= "ppp" and ifs[device] ~= "ipoe" then
-    local enabled = proxy.get(v.path .. "enable")[1].value:untaint()
+    local enabled = proxy.get(v.path.."enable")[1].value:untaint()
     if enabled ~= "0" then
-      local classgroup = proxy.get(v.path .. "classgroup")[1].value:untaint()
+      local classgroup = proxy.get(v.path.."classgroup")[1].value:untaint()
       group[classgroup] = group[classgroup] + 1
       if light[classgroup] ~= "2" then
-        if (classgroup == "TO_WAN" and not find(ifs[device], "wan")) or (classgroup == "TO_WLAN" and not find(ifs[device], "wlan")) or (classgroup == "TO_LAN" and not match(ifs[device], "^lan") and not find(ifs[device], ",lan")) then
+        if (classgroup == "TO_WAN" and not find(ifs[device],"wan")) or (classgroup == "TO_WLAN" and not find(ifs[device],"wlan")) or (classgroup == "TO_LAN" and not match(ifs[device],"^lan") and not find(ifs[device],",lan")) then
           light[classgroup] = "2"
         else
           light[classgroup] = "1"
@@ -107,7 +107,7 @@ for _,v in ipairs(data) do
       end    
     end
     -- NOT 17.2 START
-    local shaper = proxy.get(v.path .. "swshaper")[1].value:untaint()
+    local shaper = proxy.get(v.path.."swshaper")[1].value:untaint()
     if shapers.names[shaper] == "1" then
       shapers.active = shapers.active + 1
       shapers.light = "1"
@@ -119,13 +119,13 @@ end
 ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-  '); ngx.print( ui_helper.createCardHeader(T"QoS", modal_link) ); ngx.print('\
+  '); ngx.print( ui_helper.createCardHeader(T"QoS",modal_link) ); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf072;">\
       <div class="divtable">\
       ');
       ngx.print(
-        ui_helper.createSimpleLight(shapers.light, format(N("<strong %1$s>%2$d Shaper</strong>","<strong %1$s>%2$d Shapers</strong>",shapers.enabled),shape_link,shapers.enabled).." enabled on "..format(N("<strong %1$s>%2$d interface</strong>","<strong %1$s>%2$d interfaces</strong>",shapers.active),shape_link,shapers.active)),  -- NOT 17.2
-        ui_helper.createSimpleLight(dataQoS.mqos_enabled, format("<strong %1$s>MAC Address Shaping</strong> %2$s",mqos_link,mqos_status))
+        ui_helper.createSimpleLight(shapers.light,format(N("<strong %1$s>%2$d Shaper</strong>","<strong %1$s>%2$d Shapers</strong>",shapers.enabled),shape_link,shapers.enabled).." enabled on "..format(N("<strong %1$s>%2$d interface</strong>","<strong %1$s>%2$d interfaces</strong>",shapers.active),shape_link,shapers.active)), -- NOT 17.2
+        ui_helper.createSimpleLight(dataQoS.mqos_enabled,format("<strong %1$s>MAC Address Shaping</strong> %2$s",mqos_link,mqos_status))
       )
       if dataQoS.mqos_enabled == "1" then
         ngx.print(
@@ -135,9 +135,9 @@ ngx.print('\
         )
       end
       ngx.print(
-        ui_helper.createSimpleLight(light.TO_WAN, format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",wan_queues),queue_link,wan_queues).." on "..format(N("<strong %1$s>%2$d WAN interface</strong>","<strong %1$s>%2$d WAN interface</strong>",group.TO_WAN),devic_link,group.TO_WAN)),
-        ui_helper.createSimpleLight(light.TO_LAN, format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",lan_queues),queue_link,lan_queues).." on "..format(N("<strong %1$s>%2$d LAN port</strong>","<strong %1$s>%2$d LAN ports</strong>",group.TO_LAN),devic_link,group.TO_LAN)),
-        ui_helper.createSimpleLight(light.TO_WLAN, format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",wlan_queues),queue_link,wlan_queues).." on "..format(N("<strong %1$s>%2$d Wi-Fi SSID</strong>","<strong %1$s>%2$d Wi-Fi SSIDs</strong>",group.TO_WLAN),devic_link,group.TO_WLAN))
+        ui_helper.createSimpleLight(light.TO_WAN,format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",wan_queues),queue_link,wan_queues).." on "..format(N("<strong %1$s>%2$d WAN interface</strong>","<strong %1$s>%2$d WAN interface</strong>",group.TO_WAN),devic_link,group.TO_WAN)),
+        ui_helper.createSimpleLight(light.TO_LAN,format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",lan_queues),queue_link,lan_queues).." on "..format(N("<strong %1$s>%2$d LAN port</strong>","<strong %1$s>%2$d LAN ports</strong>",group.TO_LAN),devic_link,group.TO_LAN)),
+        ui_helper.createSimpleLight(light.TO_WLAN,format(N("<strong %1$s>%2$d Queue</strong>","<strong %1$s>%2$d Queues</strong>",wlan_queues),queue_link,wlan_queues).." on "..format(N("<strong %1$s>%2$d Wi-Fi SSID</strong>","<strong %1$s>%2$d Wi-Fi SSIDs</strong>",group.TO_WLAN),devic_link,group.TO_WLAN))
       )
       ngx.print('\
       </div>\

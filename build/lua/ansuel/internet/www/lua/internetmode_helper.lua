@@ -18,14 +18,14 @@ return {
     view = "internet-dhcp-routed.lp",
     card = "003_internet_dhcp_routed.lp",
     check = {
-      { "uci.network.interface.@wan.proto", "^dhcp$"},
+      { "uci.network.interface.@wan.proto","^dhcp$"},
     },
     operations = {
-      { "uci.network.interface.@wan.proto", "dhcp"},
-      { "uci.network.interface.@wan6.proto", "dhcpv6"},
-      { "uci.network.interface.@wan6.ifname", wan_ifname},
-      { "uci.network.config.wan_mode", "dhcp"},
-      { "uci.network.interface.@lan.ifname", gsub(gsub(ifnames, wan_ifname, ""), "%s$", "")},
+      { "uci.network.interface.@wan.proto","dhcp"},
+      { "uci.network.interface.@wan6.proto","dhcpv6"},
+      { "uci.network.interface.@wan6.ifname",wan_ifname},
+      { "uci.network.config.wan_mode","dhcp"},
+      { "uci.network.interface.@lan.ifname",gsub(gsub(ifnames,wan_ifname,""),"%s$","")},
     },
   },
   {
@@ -35,13 +35,13 @@ return {
     view = "internet-pppoe-routed.lp",
     card = "003_internet_pppoe_routed.lp",
     check = {
-      { "uci.network.interface.@wan.proto", "^pppoe$"},
+      { "uci.network.interface.@wan.proto","^pppoe$"},
     },
     operations = {
-      { "uci.network.interface.@wan.proto", "pppoe"},
-      { "uci.network.interface.@wan6.proto", "dhcpv6"},
-      { "uci.network.config.wan_mode", "pppoe"},
-      { "uci.network.interface.@lan.ifname", gsub(gsub(ifnames, wan_ifname, ""), "%s$", "")},
+      { "uci.network.interface.@wan.proto","pppoe"},
+      { "uci.network.interface.@wan6.proto","dhcpv6"},
+      { "uci.network.config.wan_mode","pppoe"},
+      { "uci.network.interface.@lan.ifname",gsub(gsub(ifnames,wan_ifname,""),"%s$","")},
     },
   },
   {
@@ -51,12 +51,12 @@ return {
     view = "internet-pppoa-routed.lp",
     card = "003_internet_pppoe_routed.lp",
     check = {
-      { "uci.network.interface.@wan.proto", "^pppoa$"},
+      { "uci.network.interface.@wan.proto","^pppoa$"},
     },
     operations = {
-      { "uci.network.interface.@wan.proto", "pppoa"},
-      { "uci.network.config.wan_mode", "pppoa"},
-      { "uci.network.interface.@lan.ifname", gsub(gsub(ifnames, wan_ifname, ""), "%s$", "")},
+      { "uci.network.interface.@wan.proto","pppoa"},
+      { "uci.network.config.wan_mode","pppoa"},
+      { "uci.network.interface.@lan.ifname",gsub(gsub(ifnames,wan_ifname,""),"%s$","")},
     },
   },
   {
@@ -66,14 +66,14 @@ return {
     view = "internet-static-routed.lp",
     card = "003_internet_static_routed.lp",
     check = {
-      { "uci.network.interface.@wan.proto", "^static$"},
+      { "uci.network.interface.@wan.proto","^static$"},
     },
     operations = {
-      { "uci.network.interface.@wan.proto", "static"},
-      { "uci.network.interface.@wan6.proto", "static"},
-      { "uci.network.interface.@wan6.ifname", wan_ifname},
-      { "uci.network.config.wan_mode", "static"},
-      { "uci.network.interface.@lan.ifname", gsub(gsub(ifnames, wan_ifname, ""), "%s$", "")},
+      { "uci.network.interface.@wan.proto","static"},
+      { "uci.network.interface.@wan6.proto","static"},
+      { "uci.network.interface.@wan6.ifname",wan_ifname},
+      { "uci.network.config.wan_mode","static"},
+      { "uci.network.interface.@lan.ifname",gsub(gsub(ifnames,wan_ifname,""),"%s$","")},
     },
   },
   {
@@ -83,12 +83,12 @@ return {
     view = "internet-bridged.lp",
     card = "003_internet_bridged.lp",
     check = {
-      { "uci.network.config.wan_mode", "^bridge$"}
+      { "uci.network.config.wan_mode","^bridge$"}
     },
     operations = {
-      { "uci.network.interface.@wan.proto", "bridge"},
-      { "uci.network.config.wan_mode", "bridge"},
-      { "uci.network.interface.@lan.ifname", gsub(gsub(ifnames, wan_ifname, ""), "%s$", "")},
+      { "uci.network.interface.@wan.proto","bridge"},
+      { "uci.network.config.wan_mode","bridge"},
+      { "uci.network.interface.@lan.ifname",gsub(gsub(ifnames,wan_ifname,""),"%s$","")},
     },
   },
 }

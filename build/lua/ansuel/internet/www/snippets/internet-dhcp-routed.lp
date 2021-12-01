@@ -11,7 +11,6 @@ local ajax_helper = require("web.ajax_helper")
 local tonumber = tonumber
 local match,format = string.match,string.format
 local post_helper = require("web.post_helper")
-local session = ngx.ctx.session
 
 -- State data
 local dhcp_state = "connecting"
@@ -44,9 +43,7 @@ local ajax_attr_light = {
 }
 
 local gVIES = post_helper.getValidateInEnumSelect
-local vSII = post_helper.validateStringIsIP
 local gOV = post_helper.getOptionalValidation
-local vNES = post_helper.validateNonEmptyString
 
 local function get_dhcp_state(wan_auto,ipaddr)
   -- Figure out interface state
@@ -63,7 +60,7 @@ end
 
 local function split(str,ang)
 	local tab = {}
-	for vari in string.gfind(format("%s",str),ang) do
+	for vari in string.gmatch(format("%s",str),ang) do
 		table.insert(tab,vari)
 	end
 	return tab
@@ -109,8 +106,8 @@ for _,v in ipairs(firewall_forwarding_path) do
     break
   end
 end
-local function validateNat(value,object,key)
-  local valid,msg = post_helper.validateBoolean(value,object,key)
+local function validateNat(value)
+  local valid,msg = post_helper.validateBoolean(value)
   if valid and zonenum ~= "" and value ~= proxy.get("uci.firewall.zone."..zonenum..".masq")[1].value then
     proxy.set("uci.firewall.zone."..zonenum..".conntrack","1")
     local fwd_enabled
@@ -127,7 +124,7 @@ local function validateNat(value,object,key)
       for _ in ipairs(firewall_forwarding_path) do
         count = count + 1
       end
-      forwdnum = "@forwarding[" .. count .. "]"
+      forwdnum = "@forwarding["..count.."]"
       -- 106-END
       proxy.set("uci.firewall.forwarding."..forwdnum..".src","wan")
       proxy.set("uci.firewall.forwarding."..forwdnum..".dest","lan")
@@ -156,7 +153,7 @@ local mapParams = {
 -- Shortcuts to validation helpers to make lines shorter
 local vB = post_helper.validateBoolean
 
-local function IPv6andUsername(value,object,key)
+local function IPv6andUsername(value)
 	local valid,msg = vB(value)
 	if valid then
 	local ipv6_realm = proxy.get("uci.env.var.ppp_realm_ipv6")
@@ -189,9 +186,9 @@ local reqprefix_map = {
   { "no",T"No" },
   { "auto",T"Automatic" },
 }
-local prefix_len
+
 for prefix_len = 64,0,-1 do
-  reqprefix_map[#reqprefix_map+1] = { tostring(prefix_len),T("/" .. prefix_len) }
+  reqprefix_map[#reqprefix_map+1] = { tostring(prefix_len),T("/"..prefix_len) }
 end
 
 local mapValid = {
@@ -277,7 +274,7 @@ local dhcp_lease = {
   lease_expires = "uci.network.interface.@wan.lease_expires",
 }
 
-function getLeaseTime(uptime,lease,expires)
+local function getLeaseTime(uptime,lease,expires)
   local leaseobtained = os.date("%F %T",os.time() - (tonumber(uptime) - (tonumber(expires ~="" and expires or 0) - tonumber(lease ~="" and lease or 0))))
   local leaseexpires = os.date("%F %T",os.time() + (tonumber(expires ~="" and expires or 0) - tonumber(uptime)))
   return leaseobtained,leaseexpires
@@ -301,7 +298,7 @@ ajax_helper.handleAjaxQuery(cs,function(c)
   end
   if ds == "connected" then
     content_helper.getExactContent(dhcp_lease)
-    c["leaseobtained"],c["leaseexpires"] = getLeaseTime(dhcp_lease["uptime"], dhcp_lease["lease"],dhcp_lease["lease_expires"])
+    c["leaseobtained"],c["leaseexpires"] = getLeaseTime(dhcp_lease["uptime"],dhcp_lease["lease"],dhcp_lease["lease_expires"])
   end
 end)
 -- will stop in handleAjaxQuery if it is an actual AJAX query
@@ -329,7 +326,7 @@ cs["leaseobtained"] = ""
 cs["leaseexpires"] = ""
 if dhcp_state == "connected" then
   content_helper.getExactContent(dhcp_lease)
-	cs["leaseobtained"], cs["leaseexpires"] = getLeaseTime(dhcp_lease["uptime"], dhcp_lease["lease"],dhcp_lease["lease_expires"])
+	cs["leaseobtained"],cs["leaseexpires"] = getLeaseTime(dhcp_lease["uptime"],dhcp_lease["lease"],dhcp_lease["lease_expires"])
 end
 
 local supervision_support = proxy.get("uci.supervision.global.enabled")
@@ -440,7 +437,6 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   html[#html+1] = ui_helper.createLabel(T"Gateway",cs["nexthop"],ajax_attr)
   ajax_attr.span.id = "dns"
   html[#html+1] = ui_helper.createLabel(T"IPv4 DNS servers",cs["dns"],ajax_attr)
-  local ipv6_enabled = proxy.get("uci.network.interface.@wan.ipv6")
   if cs["ip6addr"] and cs["ip6addr"]:len() > 0 then
     ajax_attr.span.id = "ip6addr"
     html[#html+1] = ui_helper.createLabel(T"IPv6 address",cs["ip6addr"],ajax_attr)

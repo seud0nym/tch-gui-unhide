@@ -5,24 +5,17 @@ gettext.textdomain('webui-core')
 
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
-local format, untaint = string.format, string.untaint
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
-local ipv = {
-  {"4", T"IPv4"},
-  {"6", T"IPv6"},
-}
-local ipv_checked = {
-  "4",
-  "6",
-}
 local fw_tables = {
-  { "filter", T"Filters"},
-  { "nat", T"NAT (IPv4 ONLY)"},
-  { "mangle", T"Mangle"},
-  { "raw", T"Raw"},
+  { "filter",T"Filters"},
+  { "nat",T"NAT (IPv4 ONLY)"},
+  { "mangle",T"Mangle"},
+  { "raw",T"Raw"},
 }
 local fw_table_name = "filter"
 
@@ -38,7 +31,7 @@ local ip6tables = {
   raw = proxy.get("rpc.gui.firewall.ip6tables_raw."),
 }
 
-ngx.print(ui_helper.createHeader(T"Firewall", true, false))   
+ngx.print(ui_helper.createHeader(T"Firewall",true,false))   
 ngx.print('\
 <div class="modal-body update" id="fw-iptables">\
 '); 
@@ -51,7 +44,7 @@ ngx.print('\
           class ="monitor-changes no-save",
       },
     }
-    ngx.print(ui_helper.createInputSelect(T"Table", "fw_table", fw_tables, fw_table_name, fw_table_attributes))
+    ngx.print(ui_helper.createInputSelect(T"Table","fw_table",fw_tables,fw_table_name,fw_table_attributes))
     ngx.print('\
     <div class="control-group">\
       <label class="control-label">Filter</label>\
@@ -165,7 +158,7 @@ ngx.print('\
       }\
       var strings = this.value.toUpperCase().split(" ");\
       rows.hide();\
-      rows.filter(function(i, v) {\
+      rows.filter(function(i,v) {\
         var $t = $(this);\
         for (var c = 0; c < strings.length; ++c) {\
           if ($t.text().toUpperCase().indexOf(strings[c]) > -1) {\
@@ -175,7 +168,7 @@ ngx.print('\
         return false;\
       }).show();\
       bodies.show();\
-      bodies.filter(function(i, v) {\
+      bodies.filter(function(i,v) {\
         var $t = $(this);\
         if ($t.children("tr:not(.iptables-chain,.iptables-head):visible").length == 0) {\
           return true;\

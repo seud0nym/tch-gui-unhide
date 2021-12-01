@@ -8,8 +8,10 @@ local post_helper = require("web.post_helper")
 local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 
-local date, time = os.date, os.time
-local match, untaint = string.match, string.untaint
+local date,time = os.date,os.time
+local match = string.match
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
@@ -24,33 +26,33 @@ if content_wan.wwan_ipaddr:len() ~= 0 or content_wan.wwan_ip6addr:len() ~= 0 the
   wan_intf = "wwan"
 end
 local content = {
-  ifname = "rpc.network.interface.@" .. wan_intf .. ".ifname",
+  ifname = "rpc.network.interface.@"..wan_intf..".ifname",
 }
 content_helper.getExactContent(content)
 
 local mapParams = {
-  rollover_day = "rpc.gui.traffichistory." .. wan_intf .. "_rollover",
+  rollover_day = "rpc.gui.traffichistory."..wan_intf.."_rollover",
 }
 
 local mapValid = {
   rollover_day = post_helper.getValidateNumberInRange(1,31),
 }
 
-local content_rollover, helpmsg_rollover = post_helper.handleQuery(mapParams, mapValid)
+local content_rollover = post_helper.handleQuery(mapParams,mapValid)
 
 local day = tonumber(untaint(content_rollover.rollover_day))
-local this, last, prev, ignr
+local this,last,prev,ignr
 local today = date("*t")
 if (today.day < day) then
-  this = time({ year=today.year, month=today.month,   day=day-1 })
-  last = time({ year=today.year, month=today.month-1, day=day-1 })
-  prev = time({ year=today.year, month=today.month-2, day=day-1 })
-  ignr = time({ year=today.year, month=today.month-3, day=day-1 })
+  this = time({ year=today.year,month=today.month,  day=day-1 })
+  last = time({ year=today.year,month=today.month-1,day=day-1 })
+  prev = time({ year=today.year,month=today.month-2,day=day-1 })
+  ignr = time({ year=today.year,month=today.month-3,day=day-1 })
 else
-  this = time({ year=today.year, month=today.month+1, day=day-1 })
-  last = time({ year=today.year, month=today.month,   day=day-1 })
-  prev = time({ year=today.year, month=today.month-1, day=day-1 })
-  ignr = time({ year=today.year, month=today.month-2, day=day-1 })
+  this = time({ year=today.year,month=today.month+1,day=day-1 })
+  last = time({ year=today.year,month=today.month,  day=day-1 })
+  prev = time({ year=today.year,month=today.month-1,day=day-1 })
+  ignr = time({ year=today.year,month=today.month-2,day=day-1 })
 end
 
 local bb_usage_columns = {
@@ -88,7 +90,7 @@ local bb_usage_columns = {
     readonly = true,
   },
 }
- 
+
 local bb_usage_options = {
   tableid = "usage",
   basepath = "rpc.gui.traffichistory.usage.@.",
@@ -107,9 +109,9 @@ local summary_options = {
 }
 
 local summary_data = {
-  { "This Month", date("%F", this), 0, 0, 0 },
-  { "Last Month", date("%F", last), 0, 0, 0 },
-  { "Previous Month", date("%F", prev), 0, 0, 0 },
+  { "This Month",date("%F",this),0,0,0 },
+  { "Last Month",date("%F",last),0,0,0 },
+  { "Previous Month",date("%F",prev),0,0,0 },
 }
 
 local function to_megabytes(val)
@@ -119,19 +121,19 @@ local function to_megabytes(val)
   if (#right == 0) then
     right = ".00"
   elseif (#right < 3) then
-    right = right..string.sub("000", 1, 3-#right)
+    right = right..string.sub("000",1,3-#right)
   end
   return left..(num:reverse():gsub('(%d%d%d)','%1,'):reverse())..right
 end
 
 local bb_usage_filter = function(data)
   if data.interface == content.ifname then
-    local yyyy, mm, dd = match(untaint(data.date), "(%d%d%d%d)-(%d%d)-(%d%d)")
-    local date = os.time({ year=yyyy, month=mm, day=dd })
+    local yyyy,mm,dd = match(untaint(data.date),"(%d%d%d%d)-(%d%d)-(%d%d)")
+    local date = os.time({ year=yyyy,month=mm,day=dd })
     if date <= ignr then
       return false
     else
-      local date_str = os.date("%F", date)
+      local date_str = os.date("%F",date)
       local idx
       if date <= prev then
         idx = 3
@@ -158,16 +160,15 @@ local bb_usage_filter = function(data)
   return false
 end
 
-local bb_usage_data, bb_usage_helpmsg = post_helper.handleTableQuery(bb_usage_columns, bb_usage_options, bb_usage_filter, nil, nil)
+local bb_usage_data,bb_usage_helpmsg = post_helper.handleTableQuery(bb_usage_columns,bb_usage_options,bb_usage_filter,nil,nil)
 
 if summary_data[3][5] == 0 then
-  table.remove(summary_data, 3)
+  table.remove(summary_data,3)
   if summary_data[2][5] == 0 then
-    table.remove(summary_data, 2)
+    table.remove(summary_data,2)
   end
 end
 
-local data
 for _,data in ipairs(summary_data) do
   data[3] = to_megabytes(data[3])
   data[4] = to_megabytes(data[4])
@@ -184,7 +185,7 @@ local number_attr = {
 }
 
 
-ngx.print(ui_helper.createHeader(T"Broadband", false, true, 600))
+ngx.print(ui_helper.createHeader(T"Broadband",false,true,600))
 ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-broadband.lp"); ngx.print('\
@@ -192,17 +193,17 @@ ngx.print('\
     '); 
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('<legend>');  ngx.print( T("Configuration") ); ngx.print('</legend>');
-    ngx.print(ui_helper.createInputText(T"Roll-over Day", "rollover_day", content_rollover["rollover_day"], number_attr))
-    ngx.print(ui_helper.createLabel(T"Interface", string.upper(wan_intf)))
-    ngx.print(ui_helper.createLabel(T"Interface Device", content["ifname"]))
+    ngx.print(ui_helper.createInputText(T"Roll-over Day","rollover_day",content_rollover["rollover_day"],number_attr))
+    ngx.print(ui_helper.createLabel(T"Interface",string.upper(wan_intf)))
+    ngx.print(ui_helper.createLabel(T"Interface Device",content["ifname"]))
     ngx.print('<legend>');  ngx.print( T("Summary Usage") ); ngx.print('</legend>');
     bb_usage_columns[1].header = T"From Date"
     bb_usage_columns[2].header = T"End Date"
-    ngx.print(ui_helper.createTable(bb_usage_columns, summary_data, summary_options))
+    ngx.print(ui_helper.createTable(bb_usage_columns,summary_data,summary_options))
     ngx.print('<legend>');  ngx.print( T("Daily Usage") ); ngx.print('</legend>');
     bb_usage_columns[1].header = T"Period"
     bb_usage_columns[2].header = T"Date"
-    ngx.print(ui_helper.createTable(bb_usage_columns, bb_usage_data, bb_usage_options, nil, bb_usage_helpmsg))
+    ngx.print(ui_helper.createTable(bb_usage_columns,bb_usage_data,bb_usage_options,nil,bb_usage_helpmsg))
     ngx.print('\
   </form>\
 </div>\

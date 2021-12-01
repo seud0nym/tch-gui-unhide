@@ -1,4 +1,4 @@
-local gsub, sub = string.gsub, string.sub
+local gsub,sub = string.gsub,string.sub
 
 local GUI_ACME_ = {
   objectType = {
@@ -38,12 +38,12 @@ GUI_ACME_.get = {
     if status == "" then
       return "<i>No recent log messages found</i>"
     end
-    return gsub(status, "\n", "<br>")
+    return gsub(status,"\n","<br>")
   end,
 }
 
 GUI_ACME_.set = {
-  enabled = function(mapping, param, value)
+  enabled = function(_,_,value)
     local state = isEnabled()
     if value == "1" then
       if state == 0 then

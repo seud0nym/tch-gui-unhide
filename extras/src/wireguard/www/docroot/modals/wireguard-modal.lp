@@ -10,7 +10,9 @@ local ui_helper = require("web.ui_helper")
 local wireguard_helper = require("wireguard_helper")
 local proxy = require("datamodel")
 
-local format,gsub,match,sub,untaint = string.format,string.gsub,string.match,string.sub,string.untaint
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
+local format,gsub,match,sub = string.format,string.gsub,string.match,string.sub
 
 local vB = post_helper.validateBoolean
 local vNES = post_helper.validateNonEmptyString
@@ -24,7 +26,6 @@ local deleting = false
 local function proxySet(path,value)
   local success,errors = proxy.set(path,value)
   if not success then
-    local err
     for _,err in ipairs(errors) do
       message_helper.pushMessage(T(format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
     end
@@ -52,7 +53,7 @@ local function importInterface(new_if_name,content)
         if errmsg then
           message_helper.pushMessage(T(string.format("Failed to add interface %s: %s",new_if_name,errmsg)),"error")
         else
-          local commit,k,v = true
+          local commit = true
           for k,v in pairs(interface_config) do
             if not proxySet(format("uci.wireguard.@%s.%s",iface,k),v) then
               commit = false
@@ -60,7 +61,6 @@ local function importInterface(new_if_name,content)
             end
           end
           if commit then
-            local i,t
             for i,t in pairs(peer_config) do
               local peer_name
               if #peer_config == 1 then
@@ -74,7 +74,6 @@ local function importInterface(new_if_name,content)
                 commit = false
                 break
               else
-                local k,v
                 for k,v in pairs(t) do
                   if not proxySet(format("uci.wireguard.@%s.peer.@%s.%s",iface,index,k),v) then
                     commit = false
@@ -110,7 +109,6 @@ end
 
 local function deleteInterface(content)
   if type(content) == "table" then
-    local checked
     for _,checked in pairs(content) do
       if checked == "_TRUE_" then
         local okay,errmsg,errcode = wireguard_helper.deleteInterface(getintf)
@@ -131,12 +129,11 @@ local function checkForMultipleEnabledClients()
   local state = proxy.get("uci.wireguard.@"..getintf..".enabled")
   if state and state[1].value == "0" then
     local commit = false
-    local intf
-    for _,intf in pairs(proxy.getPN("uci.wireguard.", true)) do
+    for _,intf in pairs(proxy.getPN("uci.wireguard.",true)) do
       if intf.path ~= "uci.wireguard.@wg0." and intf.path ~= "uci.wireguard.@"..getintf.."." then
         local path = intf.path.."enabled"
         if proxy.get(path)[1].value == "1" then
-          if proxySet(path, "0") then
+          if proxySet(path,"0") then
             commit = true
           else
             break
@@ -166,7 +163,6 @@ local function updateFirewall(args)
     end
     if fw[3] and args.ipv6 then
       local ipv6 = args.ipv6
-      local family_is = fw[3].value
       local family
       if ipv6 == "1" and family ~= "" then
         family = ""
@@ -186,7 +182,6 @@ end
 if ngx.var.request_method == "POST" then
   local args = ngx.req.get_post_args()
   if args.action == "SAVE" then
-    local arg,content
     for arg,content in pairs(args) do
       local new_if_name = match(arg,"new_interface_(.+)")
       if new_if_name then
@@ -205,8 +200,7 @@ local wg0_on = ""
 local wg_intfs = {}
 local wg_intfs_path = "uci.wireguard."
 local all_intfs = content_helper.convertResultToObject(wg_intfs_path.."@.",proxy.get(wg_intfs_path))
-local k,v
-for k,v in ipairs(all_intfs) do
+for _,v in ipairs(all_intfs) do
   local on = v.enabled == "0" and "" or "<sup class='green' style='font-variant:small-caps;'>&nbsp;on</sup>"
   if v.paramindex == getintf then
     curintf = v.paramindex
@@ -232,7 +226,7 @@ AllowedIPs = 0.0.0.0/0%s\
 Endpoint = %s\
 "
 
-local function validateLogLevel(value,object,key)
+local function validateLogLevel(value,_,_)
   if value == "" or value == "debug" then
     return true
   end
@@ -270,7 +264,7 @@ end
 
 local config,helpmsg
 if deleting then
-  config,helpmsg = mapParams, {}
+  config,helpmsg = mapParams,{}
   content_helper.getExactContent(config)
 else
   config,helpmsg = post_helper.handleQuery(mapParams,mapValid)
@@ -316,11 +310,10 @@ if ngx.var.request_method == "POST" then
         if not ipv4_next then
           message_helper.pushMessage(T(ipv4_netmask),"error")
         else
-          local result,errmsg = proxy.add("uci.wireguard.@"..curintf..".peer.",peer_name)
+          local _,errmsg = proxy.add("uci.wireguard.@"..curintf..".peer.",peer_name)
           if errmsg then
-            local err
             for _,err in ipairs(errmsg) do
-              message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
+              message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,peer_name,err.errmsg,err.errcode)),"error")
             end
             helpmsg["new_peer_name"] = "Failed to add peer"
           else
@@ -341,7 +334,6 @@ if ngx.var.request_method == "POST" then
               new_peer.ipv6_allowed_ip = ",::0/0"
             end
             if type(args["genpsk"]) == "table" then
-              local checked
               for _,checked in pairs(args["genpsk"]) do
                 if checked == "_TRUE_" then
                   new_peer.preshared_key = wireguard_helper.genpsk()
@@ -438,7 +430,6 @@ local peer_options = {
 local peer_filter = function(data)
   local pub = untaint(data.public_key)
   local psk = untaint(data.preshared_key)
-  local peer
   if data.endpoint_host == "" then
     data.endpoint = "(none)"
   else

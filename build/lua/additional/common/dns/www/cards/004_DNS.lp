@@ -29,19 +29,19 @@ if session:hasAccess(modalPath) then
       local dns_servers = {}
       local rewrites_count = 0
       local noresolv = "0"
-      local v
 
-      local find,format,match,untaint = string.find,string.format,string.match,string.untaint
+      ---@diagnostic disable-next-line: undefined-field
+      local untaint = string.untaint
+      local format,match = string.format,string.match
       local tinsert = table.insert
       local function split(x,sep)
         x = tostring(x)
-        local sep,fields = sep or ", ",{}
+        local sep,fields = sep or ",",{}
         local pattern = format("([^%s]+)",sep)
         x:gsub(pattern,function(c) fields[#fields+1] = c end)
         return fields
       end
 
-      local dnsmidx,dnsmif,dnsmsrvr
       for _,dnsmidx in pairs(proxy.getPN("uci.dhcp.dnsmasq.",true)) do
         local path = dnsmidx.path
         for _,dnsmif in pairs(proxy.get(path.."interface.")) do
@@ -88,7 +88,6 @@ if session:hasAccess(modalPath) then
         local dns_rpc_content = proxy.get(unpack(dnsservers_paths))
         for _,v in pairs (dns_rpc_content or {}) do
           if v and v.value ~= "" then
-            local server
             for _,server in pairs(split(untaint(v.value),",")) do
               dns_servers[#dns_servers+1] = server
             end
@@ -114,7 +113,7 @@ if session:hasAccess(modalPath) then
             </span>\
             <p class="subinfos" style="letter-spacing:-1px;font-size:12px;font-weight:bold;">\
               ');
-              local max_show,i,server = 4
+              local max_show = 4
               for i,server in ipairs(dns_servers) do
                 if i > 1 and i <= max_show then
                   ngx.print('<br>')
@@ -124,7 +123,7 @@ if session:hasAccess(modalPath) then
                 end
               end
               if #dns_servers > max_show then
-                ngx.print(T" ...")
+                ngx.print(T"...")
               end
               ngx.print('\
             </p>\

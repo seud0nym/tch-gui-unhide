@@ -228,7 +228,7 @@ function M.getInternetCardHTML(mode_active)
 
   if mobile_ip then
     html[#html+1] = ui_helper.createSimpleLight(mobile_status["wwan_up"],mobile_status["state"])
-    addIPs(mobile_ip,nil,mobile_dns,nil,nil,nil)
+    addIPs(mobile_ip,nil,mobile_dns,nil,nil)
   end
 
   return html

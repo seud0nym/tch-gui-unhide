@@ -23,36 +23,6 @@ local message_helper = require("web.uimessage_helper")
 local firewall_zone = proxy.get("uci.firewall.zone.")
 local firewall_zone_path = content_helper.convertResultToObject("uci.firewall.zone.",firewall_zone)
 local zonenum = ""
-local match,format = string.match,string.format
-
-local function split(str,ang)
-	local tab = {}
-	for vari in string.gfind(format("%s",str),ang) do
-		table.insert(tab,vari)
-	end
-	return tab
-end
-
-local function dns_filter(tab)
-	local ipv4_dns = ""
-	local ipv6_dns = ""
-	
-	for _,v in ipairs(tab) do
-		if match(v,"^(%d+)%.(%d+)%.(%d+)%.(%d+)$") then
-			ipv4_dns=ipv4_dns..format("%s,",v)
-		else
-			ipv6_dns=ipv6_dns..format("%s,",v)
-		end
-	end
-	
-	if #ipv4_dns > 1 then
-		ipv4_dns = string.sub(ipv4_dns,1,#ipv4_dns-1)
-	end
-	if #ipv6_dns > 1 then
-		ipv6_dns = string.sub(ipv6_dns,1,#ipv6_dns-1)
-	end
-	return ipv4_dns,ipv6_dns
-end
 
 for _,v in ipairs(firewall_zone_path) do
   if (v["name"] == "wan") then
@@ -69,8 +39,8 @@ for _,v in ipairs(firewall_forwarding_path) do
     break
   end
 end
-local function validateNat(value,object,key)
-  local valid,msg = post_helper.validateBoolean(value,object,key)
+local function validateNat(value,_,_)
+  local valid,msg = post_helper.validateBoolean(value)
   if valid and zonenum ~= "" and value ~= proxy.get("uci.firewall.zone."..zonenum..".masq")[1].value then
     proxy.set("uci.firewall.zone."..zonenum..".conntrack","1")
     local fwd_enabled
@@ -87,7 +57,7 @@ local function validateNat(value,object,key)
       for _ in ipairs(firewall_forwarding_path) do
         count = count + 1
       end
-      forwdnum = "@forwarding[" .. count .. "]"
+      forwdnum = "@forwarding["..count.."]"
       -- 106-END
       proxy.set("uci.firewall.forwarding."..forwdnum..".src","wan")
       proxy.set("uci.firewall.forwarding."..forwdnum..".dest","lan")
@@ -100,8 +70,8 @@ local function validateNat(value,object,key)
   end
   return valid,msg
 end
-local function validateIPv6(value,object,key)
-  local valid,msg = post_helper.validateBoolean(value,object,key)
+local function validateIPv6(value,object,_)
+  local valid,msg = post_helper.validateBoolean(value)
   if valid and value == "1" then
     if object.uci_wan6_addr == "" or object.uci_wan6_gw == "" or object.uci_wan6_prefix == "" then
       return nil,"IPv6 Address,Gateway and LAN Prefix are required"
@@ -265,6 +235,8 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   <legend>');  ngx.print( T"Static Connection" ); ngx.print('</legend>\
   ');
   local html = {}
+
+  local ipv4pattern = "^(((([1]?\\d)?\\d|2[0-4]\\d|25[0-5])\\.){3}(([1]?\\d)?\\d|2[0-4]\\d|25[0-5]))$"
 
   local wanIPClass = {}
   wanIPClass["input"] = {

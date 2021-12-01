@@ -10,13 +10,14 @@ local post_helper = require("web.post_helper")
 local message_helper = require("web.uimessage_helper")
 local content_helper = require("web.content_helper")
 local portslist = require("portslist_helper")
-local knownapps = require("pfwd_helper")
 local uinetwork = require("web.uinetwork_helper")
 local fwrules_helper = require("firewall-rules_helper")
 
-local hosts_ac, hosts_ac_v6 = uinetwork.getAutocompleteHostsList()
-local pairs, string = pairs, string
-local table, ipairs, tonumber, format, match, untaint = table, ipairs, tonumber, string.format, string.match, string.untaint
+local hosts_ac,hosts_ac_v6 = uinetwork.getAutocompleteHostsList()
+local pairs,string = pairs,string
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
+local table,ipairs,tonumber,format,match = table,ipairs,tonumber,string.format,string.match
 
 local del_pfw_index = nil
 
@@ -27,7 +28,7 @@ if ngx.var.request_method == "POST" then
   local content = ngx.req.get_post_args()
   local action = content.action
   if action == "SAVE" or action == "TABLE-ADD" or action == "TABLE-MODIFY" or action == "TABLE-DELETE"  then
-    proxy.set("rpc.gui.firewall.clearCache", "1")
+    proxy.set("rpc.gui.firewall.clearCache","1")
   end
 
   if action == "TABLE-DELETE" and content.tableid == "portforwarding" then
@@ -36,7 +37,7 @@ if ngx.var.request_method == "POST" then
 end
 
 -- Templates for pre-defined rules
-local function table_removekey(table, key)
+local function table_removekey(table,key)
   local element = table[key]
   table[key] = nil
   return element
@@ -44,10 +45,10 @@ end
 
 local wan_app = {}
 -- Retrieve all wan-services sections in system config
-local servicesTable = proxy.getPN("uci.system.wan-service.", true)
+local servicesTable = proxy.getPN("uci.system.wan-service.",true)
 if servicesTable then
   for _,service in ipairs(servicesTable) do
-    local port = match(service.path, "uci%.system%.wan%-service%.@([^%.]+)%.")
+    local port = match(service.path,"uci%.system%.wan%-service%.@([^%.]+)%.")
     if port then
       wan_app[#wan_app + 1 ] = port
     end
@@ -57,7 +58,7 @@ end
 local wan_ports ={}
 -- Retrieve the list of ports in all wan-services section
 for _,app in ipairs(wan_app) do
-  local wan_port_path = "uci.system.wan-service.@".. app .. ".ports"
+  local wan_port_path = "uci.system.wan-service.@"..app..".ports"
   wan_ports[#wan_ports + 1 ] = proxy.get(wan_port_path)
 end
 
@@ -80,10 +81,10 @@ end
 
 -- Function to check the port are reserved or not while adding the port mapping rule.
 local function allowed_ports()
- return function(ports, postdata, key)
+ return function(ports,_,_)
   for _,wanPort in ipairs(reserved_ports) do
     if wanPort and (wanPort == ports) then
-      return nil, T"Ports already Reserved"
+      return nil,T"Ports already Reserved"
     end
     end
     return true
@@ -93,9 +94,9 @@ end
 local knownapps = require("pfwd_helper")
 
 local pfw_helper_map = {}
-pfw_helper_map["FTP server"] = {pfw = "FTP server", helper = "ftp", wanport = "21"}
-pfw_helper_map["TFTP server"] = {pfw = "TFTP server", helper = "tftp", wanport = "69"}
-pfw_helper_map["PPTP"] = {pfw = "PPTP", helper = "pptp", wanport = "1723"}
+pfw_helper_map["FTP server"] = {pfw = "FTP server",helper = "ftp",wanport = "21"}
+pfw_helper_map["TFTP server"] = {pfw = "TFTP server",helper = "tftp",wanport = "69"}
+pfw_helper_map["PPTP"] = {pfw = "PPTP",helper = "pptp",wanport = "1723"}
 
 local portrange_pattern = "^(%d+)%:(%d+)$"
 local function compare_startport(a,b)
@@ -106,7 +107,7 @@ local function validPorts(ports)
   local curend = -1
   for _,v in ipairs(ports) do
     if v.start <= curend then
-      return nil, { wanport = T"An existing mapping overlaps with the ports range" }
+      return nil,{ wanport = T"An existing mapping overlaps with the ports range" }
     else
       curend = v["end"]
     end
@@ -139,9 +140,9 @@ local pfw_columns = {
    default = "tcp",
    type = "select",
    values = {
-     { "tcp", "TCP"},
-     { "udp", "UDP"},
-     { "tcpudp", "TCP/UDP"}
+     { "tcp","TCP"},
+     { "udp","UDP"},
+     { "tcpudp","TCP/UDP"}
    },
    attr = { select = { class="span2" } },
  },
@@ -150,21 +151,21 @@ local pfw_columns = {
    name = "wanport",
    param = "src_dport",
    type = "text",
-   attr = { input = { class="span1", maxlength="11" }, autocomplete=allowed_portlist },
+   attr = { input = { class="span1",maxlength="11" },autocomplete=allowed_portlist },
  },
  {
    header = T"LAN Port",
    name = "lanport",
    param = "dest_port",
    type = "text",
-   attr = { input = { class="span1", maxlength="11" }, autocomplete=portslist },
+   attr = { input = { class="span1",maxlength="11" },autocomplete=portslist },
  },
  {
    header = T"Destination IP",
    name = "destinationip",
    param = "dest_ip",
    type = "text",
-   attr = { input = { class="span2", maxlength="15" }, autocomplete=hosts_ac },
+   attr = { input = { class="span2",maxlength="15" },autocomplete=hosts_ac },
  },
  {
    header = T"Destination MAC",
@@ -176,15 +177,16 @@ local pfw_columns = {
  },
 }
 
+local del_pfw_data
+
 local function globalValid(data)
   local tcp = {}
   local udp = {}
   local p1,p2
-  local err, msg
+  local err,msg
 
-  local allowedIndexes
   if del_pfw_index ~= nil then
-    del_pfw_data, allowedIndexes = content_helper.loadTableData("rpc.network.firewall.portforward.", pfw_columns, nil, "name")
+    del_pfw_data = content_helper.loadTableData("rpc.network.firewall.portforward.",pfw_columns,nil,"name")
   end
 
   for i,v in ipairs(data) do
@@ -200,44 +202,44 @@ local function globalValid(data)
 
       local proto = v[3]
       if proto == "tcp" or proto == "tcpudp" then
-        tcp[#tcp+1] = { start = p1, ["end"] = p2, index = i }
+        tcp[#tcp+1] = { start = p1,["end"] = p2,index = i }
       end
       if proto == "udp" or proto == "tcpudp" then
-        udp[#udp+1] = { start = p1, ["end"] = p2, index = i }
+        udp[#udp+1] = { start = p1,["end"] = p2,index = i }
       end
     end
   end
 
-  table.sort(tcp, compare_startport)
-  table.sort(udp, compare_startport)
+  table.sort(tcp,compare_startport)
+  table.sort(udp,compare_startport)
 
-  err, msg = validPorts(tcp)
+  err,msg = validPorts(tcp)
   if not err then
-    return err, msg
+    return err,msg
   end
-  err, msg = validPorts(udp)
+  err,msg = validPorts(udp)
 
-  return err, msg
+  return err,msg
 end
 
 local function getValidateName(value)
  if #value == 0 or #value > 63 then
-   return nil, T"A name must be between 1 and 63 characters"
+   return nil,T"A name must be between 1 and 63 characters"
  end
  -- "DMZ rule" is the name reserved for DMZ portmap rule
  if value == "DMZ rule" then
-   return nil, T"Reserved name cannot be given as rule name"
+   return nil,T"Reserved name cannot be given as rule name"
  end
- if match(value, "[^%w%-%s]") then
-   return nil, T"A name must contain only alphanumeric characters and dash"
+ if match(value,"[^%w%-%s]") then
+   return nil,T"A name must contain only alphanumeric characters and dash"
  end
  return true
 end
 
 local protocolList = {
-   { "tcp", "TCP"},
-   { "udp", "UDP"},
-   { "tcpudp", "TCP+UDP"}
+   { "tcp","TCP"},
+   { "udp","UDP"},
+   { "tcpudp","TCP+UDP"}
 }
 
 -- Retrieve GW IP + netmask for use by validation function
@@ -252,10 +254,9 @@ local vB = post_helper.validateBoolean
 local vSIPR = post_helper.validateStringIsPortRange
 local gVSIDIP = post_helper.getValidateStringIsDeviceIPv4
 local vSIIP6 = post_helper.validateStringIsIPv6
-local vSIDIP = gVSIDIP(ipdetails.gw, ipdetails.netmask)
+local vSIDIP = gVSIDIP(ipdetails.gw,ipdetails.netmask)
 local gAV = post_helper.getAndValidation
 local vQTN = post_helper.validateQTN
-local validateDMZ = post_helper.validateDMZ
 
 local pfw_valid = {
    enabled = vB,
@@ -265,7 +266,7 @@ local pfw_valid = {
    destinationip = gAV(vSIDIP,vQTN),
    protocol = gVIES(protocolList),
 }
--- ip handleTableQuery parameter filter callback to only show ipv4 port forwardings ...
+-- ip handleTableQuery parameter filter callback to only show ipv4 port forwardings...
 -- and only user created rules
 -- return true if entry should be displayed
 local function pfw_filter(data)
@@ -278,7 +279,7 @@ local function pfw_filter(data)
   return false
 end
 
--- Warning, this uses transformer paths. So use correct naming
+-- Warning,this uses transformer paths. So use correct naming
 local pfw_defaultObject = {
   src = "wan",
   dest = "lan",
@@ -286,7 +287,7 @@ local pfw_defaultObject = {
   target = "DNAT",
 }
 
-local function set_helper_port(helper, port)
+local function set_helper_port(helper,port)
   local path = "uci.firewall.helper."
   local data = proxy.get(path)
   if data == nil then
@@ -294,14 +295,13 @@ local function set_helper_port(helper, port)
   end
   for _,v in ipairs(data) do
     if v.param == "helper" and v.value == helper then
-      proxy.set(v.path .. "dest_port", port)
+      proxy.set(v.path.."dest_port",port)
       return
     end
   end
 end
 
 local function get_firewall_helper(userredir_name)
-  local tmp
   for _,tmp in pairs(pfw_helper_map) do
     if userredir_name == tmp.pfw then
       return tmp
@@ -319,7 +319,7 @@ local function get_firewall_helper_name(userredir_name)
   end
 end
 
-local function update_firewall_helper(index, content)
+local function update_firewall_helper(index,content)
   if index == nil then
     return
   end
@@ -329,15 +329,15 @@ local function update_firewall_helper(index, content)
   -- the corresponding helper in firewall should be updated also
   if helper ~= nil then
     if content.enabled == "1" then
-      set_helper_port(helper, string.untaint(content.wanport))
+      set_helper_port(helper,untaint(content.wanport))
     else
-      set_helper_port(helper, pfw_helper_map[string.untaint(content.name)].wanport)
+      set_helper_port(helper,pfw_helper_map[untaint(content.name)].wanport)
     end
   end
 end
 
 
-local function onDelete(index)
+local function onDelete(_)
   if del_pfw_index == nil then
     return
   end
@@ -346,7 +346,7 @@ local function onDelete(index)
   del_pfw_index = nil
 
   if helper ~= nil and helper["wanport"] ~= nil then
-    set_helper_port(helper.helper, helper.wanport)
+    set_helper_port(helper.helper,helper.wanport)
   end
 end
 
@@ -362,7 +362,7 @@ local pfw_options = {
   onDelete = onDelete,
 }
 
-local pfw_data, pfw_helpmsg = post_helper.handleTableQuery(pfw_columns, pfw_options, pfw_filter, pfw_defaultObject, pfw_valid)
+local pfw_data,pfw_helpmsg = post_helper.handleTableQuery(pfw_columns,pfw_options,pfw_filter,pfw_defaultObject,pfw_valid)
 
 -- Ipv6 data retrieval - Start
 -- Useful pieces of transformer data for ipv6
@@ -375,15 +375,15 @@ content_helper.getExactContent(ipv6Data)
 
 -- for drop down selector and validation
 local protocolList_v6 = {
-  { "tcp", T"TCP"},
-  { "udp", T"UDP"},
-  { "tcpudp", T"TCP/UDP"},
---{ "udplite", T"UDPLite"}, -- doesn't exist
-  { "icmpv6", T"ICMPv6"},
---{ "esp", T"ESP"},  -- fails
---{ "ah", T"AH"},  -- fails
---{ "sctp", T"SCTP"}, -- fails
-  { "all", T"All"},
+  { "tcp",T"TCP"},
+  { "udp",T"UDP"},
+  { "tcpudp",T"TCP/UDP"},
+--{ "udplite",T"UDPLite"},-- doesn't exist
+  { "icmpv6",T"ICMPv6"},
+--{ "esp",T"ESP"}, -- fails
+--{ "ah",T"AH"}, -- fails
+--{ "sctp",T"SCTP"},-- fails
+  { "all",T"All"},
 }
 -- ipv6 handleTableQuery parameter to match columns to rpc table data
 -- ipv6 Firewall forwarding rules
@@ -418,14 +418,14 @@ local pfw_v6_columns = {
     name = "wanport",
     param = "dest_port",
     type = "text",
-    attr = { input = { class="span1", maxlength="11" }, autocomplete=portslist },
+    attr = { input = { class="span1",maxlength="11" },autocomplete=portslist },
   },
   {
     header = T"Destination IP",
     name = "dest_ip_v6",
     param = "dest_ip",
     type = "text",
-    attr = { input = { class="span2", maxlength="39" }, autocomplete=hosts_ac_v6 },
+    attr = { input = { class="span2",maxlength="39" },autocomplete=hosts_ac_v6 },
   },
   {
     header = T"Destination MAC",
@@ -444,7 +444,7 @@ local pfw_v6_options = {
   sorted = "name",
   newList = knownapps,
 }
--- ipv6 handleTableQuery parameter filter callback to only show ipv6 rules ...
+-- ipv6 handleTableQuery parameter filter callback to only show ipv6 rules...
 -- and only user created rules
 -- return true if entry should be displayed
 local function pfw_v6_filter(data)
@@ -470,7 +470,7 @@ local pfw_v6_valid = {
   dest_ip_v6 = vSIIP6,
 }
 -- ipv6 pull in all the data for the display
-local pfw_v6_data, pfw_v6_helpmsg = post_helper.handleTableQuery(pfw_v6_columns, pfw_v6_options, pfw_v6_filter, pfw_v6_defaultObject, pfw_v6_valid)
+local pfw_v6_data,pfw_v6_helpmsg = post_helper.handleTableQuery(pfw_v6_columns,pfw_v6_options,pfw_v6_filter,pfw_v6_defaultObject,pfw_v6_valid)
 -- Ipv6 data retrieval - End
 
 local fw_redirect_options = {
@@ -480,7 +480,7 @@ local fw_redirect_options = {
   canEdit = true,
   canDelete = false,
 }
-local fw_redirect_columns, fw_redirect_data, fw_redirect_helpmsg = fwrules_helper.handleTableQuery(fw_redirect_options)
+local fw_redirect_columns,fw_redirect_data,fw_redirect_helpmsg = fwrules_helper.handleTableQuery(fw_redirect_options)
 
 local fw_nat_options = {
   tableid = "fw_nat_rules",
@@ -489,7 +489,7 @@ local fw_nat_options = {
   canEdit = true,
   canDelete = false,
 }
-local fw_nat_columns, fw_nat_data, fw_nat_helpmsg = fwrules_helper.handleTableQuery(fw_nat_options)
+local fw_nat_columns,fw_nat_data,fw_nat_helpmsg = fwrules_helper.handleTableQuery(fw_nat_options)
 
 local range_warning = {
   alert = {
@@ -497,18 +497,18 @@ local range_warning = {
   },
 }
 
-ngx.print(ui_helper.createHeader(T"Firewall", true, false))   ngx.print('\
+ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-firewall.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/firewall-port-forwarding-modal.lp">\
     ');  
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-    ngx.print(ui_helper.createAlertBlock(format("%s <strong>\":\"</strong> %s",T"To use port ranges use", T"for example 500:505."), range_warning))
+    ngx.print(ui_helper.createAlertBlock(format("%s <strong>\":\"</strong> %s",T"To use port ranges use",T"for example 500:505."),range_warning))
     ngx.print('\
     <fieldset>\
       <legend>');  ngx.print( T"IPv4 Port Forwarding" ); ngx.print('</legend>\
       ');  
-      ngx.print(ui_helper.createTable(pfw_columns, pfw_data, pfw_options, nil, pfw_helpmsg))
+      ngx.print(ui_helper.createTable(pfw_columns,pfw_data,pfw_options,nil,pfw_helpmsg))
       ngx.print('\
     </fieldset>\
     ');  
@@ -519,7 +519,7 @@ ngx.print(ui_helper.createHeader(T"Firewall", true, false))   ngx.print('\
         ');  
           -- magic
           -- display/edit all the retrieved ipv6 firewall rule data
-          ngx.print(ui_helper.createTable(pfw_v6_columns, pfw_v6_data, pfw_v6_options, nil, pfw_v6_helpmsg))
+          ngx.print(ui_helper.createTable(pfw_v6_columns,pfw_v6_data,pfw_v6_options,nil,pfw_v6_helpmsg))
           ngx.print('\
       </fieldset>\
       ');  
@@ -528,13 +528,13 @@ ngx.print(ui_helper.createHeader(T"Firewall", true, false))   ngx.print('\
     <fieldset>\
       <legend>');  ngx.print( T"System Redirect Rules" ); ngx.print('</legend>\
       ');  
-      ngx.print(ui_helper.createTable(fw_redirect_columns, fw_redirect_data, fw_redirect_options, nil, fw_redirect_helpmsg))
+      ngx.print(ui_helper.createTable(fw_redirect_columns,fw_redirect_data,fw_redirect_options,nil,fw_redirect_helpmsg))
       ngx.print('\
     </fieldset>\
     <fieldset>\
       <legend>');  ngx.print( T"System NAT Rules" ); ngx.print('</legend>\
       ');  
-      ngx.print(ui_helper.createTable(fw_nat_columns, fw_nat_data, fw_nat_options, nil, fw_nat_helpmsg))
+      ngx.print(ui_helper.createTable(fw_nat_columns,fw_nat_data,fw_nat_options,nil,fw_nat_helpmsg))
       ngx.print('\
     </fieldset>\
   </form>\

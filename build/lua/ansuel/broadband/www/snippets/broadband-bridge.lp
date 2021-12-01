@@ -1,5 +1,5 @@
 --pretranslated: do not change this file
- 
+
 gettext.textdomain('webui-core')
 
 local lp = require("web.lp")

@@ -3,19 +3,19 @@
 gettext.textdomain('webui-core')
 
 local items = {
-  {"qos-swshaper-modal.lp", T"Traffic Shapers"},
-  {"qos-mqos-modal.lp", T"MAC Shaping"},
-  {"qos-device-modal.lp", T"Devices"},
-  {"qos-label-modal.lp", T"Labels"},
-  {"qos-classify-modal.lp", T"Classify Rules"},
-  {"qos-reclassify-modal.lp", T"Reclassify Rules"},
-  {"qos-queue-modal.lp", T"Queues"},
-  {"qos-iqos-modal.lp", T"Ingress QoS"},
+  {"qos-swshaper-modal.lp",T"Traffic Shapers"},
+  {"qos-mqos-modal.lp",T"MAC Shaping"},
+  {"qos-device-modal.lp",T"Devices"},
+  {"qos-label-modal.lp",T"Labels"},
+  {"qos-classify-modal.lp",T"Classify Rules"},
+  {"qos-reclassify-modal.lp",T"Reclassify Rules"},
+  {"qos-queue-modal.lp",T"Queues"},
+  {"qos-iqos-modal.lp",T"Ingress QoS"},
 }
 
 local uri = ngx.var.uri
 if ngx.var.args and string.len(ngx.var.args) > 0 then
-  uri = uri .. "?" .. ngx.var.args
+  uri = uri.."?"..ngx.var.args
 end
 
 local html = {}
@@ -23,11 +23,11 @@ local html = {}
 html[#html+1] = '<ul class="nav nav-tabs">'
 for _,v in ipairs(items) do
   local active = ""
-  local modal = "/modals/" .. v[1]
+  local modal = "/modals/"..v[1]
   if string.sub(uri,1,string.len(modal)) == modal then
     active = "active"
   end
-  html[#html+1] = string.format('<li class="%s"><a href="#" data-remote="/modals/%s">%s</a></li>', active, v[1], v[2])
+  html[#html+1] = string.format('<li class="%s"><a href="#" data-remote="/modals/%s">%s</a></li>',active,v[1],v[2])
 end
 html[#html+1] = '</ul>'
 

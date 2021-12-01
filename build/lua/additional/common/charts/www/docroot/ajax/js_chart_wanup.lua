@@ -44,5 +44,5 @@ if (wanup_data != null) {\
     wanup_config.data.datasets[0].data[i] = Number(arr[i]);\
   }\
 }\
-window.wanup_chart = new Chart(wanup_context, wanup_config);\
+window.wanup_chart = new Chart(wanup_context,wanup_config);\
 ');

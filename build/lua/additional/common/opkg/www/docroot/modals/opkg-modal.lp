@@ -1,5 +1,5 @@
 --pretranslated: do not change this file
- 
+
 -- Enable localization
 gettext.textdomain('webui-core')
 
@@ -8,6 +8,7 @@ local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
 local post_helper = require("web.post_helper")
 local message_helper = require("web.uimessage_helper")
+---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
 local vB = post_helper.validateBoolean
@@ -26,7 +27,7 @@ local mapValid = {
   scheduled = vB,
   run_update = gVCS,
 }
-local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)
+local content = post_helper.handleQuery(mapParams,mapValid)
 
 local opkg_data = {
   last_update = "rpc.gui.opkg.last_update",
@@ -40,12 +41,12 @@ local last_update
 if opkg_data["last_update"] == "-1" then
   last_update = T"Not since last reboot"
 else
-  last_update = T(os.date("%d/%m/%Y %H:%M:%S", tonumber(opkg_data["last_update"])))
+  last_update = T(os.date("%d/%m/%Y %H:%M:%S",tonumber(opkg_data["last_update"])))
 end
 
 ngx.print('\
 \
-');  ngx.print( ui_helper.createHeader(T"Packages", false, true, nil)); ngx.print('\
+');  ngx.print( ui_helper.createHeader(T"Packages",false,true,nil)); ngx.print('\
 <div class="modal-body update">\
 ');  lp.include("tabs-opkg.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/opkg-modal.lp">\
@@ -77,17 +78,17 @@ ngx.print('\
         },
       }
 
-      html = {}
-      html[#html+1] = ui_helper.createSwitch(T"Custom Feeds", "feeds", content["feeds"], switch_class_enable)
-      html[#html+1] = ui_helper.createLabel(T"Last Update", last_update, opkg_last_update_attr)
+      local html = {}
+      html[#html+1] = ui_helper.createSwitch(T"Custom Feeds","feeds",content["feeds"],switch_class_enable)
+      html[#html+1] = ui_helper.createLabel(T"Last Update",last_update,opkg_last_update_attr)
       if content["feeds"] == "1" then
-        html[#html+1] = ui_helper.createSwitch(T"Scheduled Update", "scheduled", content["scheduled"], switch_class_monitor)
-        html[#html+1] = ui_helper.createCheckboxSwitch(T"Update Now", "run_update", content["run_update"])
+        html[#html+1] = ui_helper.createSwitch(T"Scheduled Update","scheduled",content["scheduled"],switch_class_monitor)
+        html[#html+1] = ui_helper.createCheckboxSwitch(T"Update Now","run_update",content["run_update"])
       else
-        html[#html+1] = ui_helper.createSimpleInputHidden("scheduled", content["scheduled"])
-        html[#html+1] = ui_helper.createSimpleInputHidden("run_update", "_DUMMY_")
+        html[#html+1] = ui_helper.createSimpleInputHidden("scheduled",content["scheduled"])
+        html[#html+1] = ui_helper.createSimpleInputHidden("run_update","_DUMMY_")
       end
-      html[#html+1] = ui_helper.createLabel(T"Log Messages", untaint(opkg_data["log"]), opkg_log_attr)
+      html[#html+1] = ui_helper.createLabel(T"Log Messages",untaint(opkg_data["log"]),opkg_log_attr)
       ngx.print(html)
       ngx.print('\
     </fieldset>\
@@ -99,17 +100,17 @@ ngx.print('\
   var opkgLogFuncID;\
   function updateAcmeLog(){\
     if ($("#opkg_log").length) {\
-      $.post("/ajax/opkg-cfg.lua", [tch.elementCSRFtoken()], function(data){\
+      $.post("/ajax/opkg-cfg.lua",[tch.elementCSRFtoken()],function(data){\
         $("#opkg_log").html(data["text"]);\
         $("#opkg_last_update").html(data["updated"]);\
-      }, "json")\
+      },"json")\
       .fail(function(response){\
         if(response.status==403||response.status==404){clearInterval(opkgLogFuncID);}\
       });\
     }\
   }\
   updateAcmeLog();\
-  $("#save-config").on("click", function(){\
+  $("#save-config").on("click",function(){\
     var busy_msg = $(".loading-wrapper");\
     busy_msg.removeClass("hide");\
     busy_msg[0].scrollIntoView();\

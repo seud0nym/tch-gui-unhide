@@ -10,11 +10,11 @@ content_helper.getExactContent(wan_data)
 local html = bbch.getBroadbandCardHTML(wan_data.wans_enable)
 
 local data = {
-  html = table.concat(html, "\n"),
+  html = table.concat(html,"\n"),
 }
 
 local buffer = {}
-if json.encode (data, { indent = false, buffer = buffer }) then
+if json.encode (data,{ indent = false,buffer = buffer }) then
   ngx.say(buffer)
 else
   ngx.say("{}")

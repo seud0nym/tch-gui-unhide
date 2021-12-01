@@ -7,13 +7,14 @@ gettext.textdomain('webui-core')
 local M = {}
 
 local ngx = ngx
-local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
 local content_helper = require("web.content_helper")
 local portslist = require("portslist_helper")
-local hosts_ac, hosts_ac_v6 = require("web.uinetwork_helper").getAutocompleteHostsList()
-local concat, remove = table.concat, table.remove
-local find, match, untaint = string.find, string.match, string.untaint
+local hosts_ac,hosts_ac_v6 = require("web.uinetwork_helper").getAutocompleteHostsList()
+local concat,remove = table.concat,table.remove
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
+local find,match = string.find,string.match
 
 local vB = post_helper.validateBoolean
 local gVIES = post_helper.getValidateInEnumSelect
@@ -29,66 +30,66 @@ local isNA = post_helper.isNetworkAddress
 local rpc_fw_zone_path = "uci.firewall.zone."
 local rpc_fw_zone_content = content_helper.getMatchedContent(rpc_fw_zone_path)
 local dst_intfs = {
-  {"", T"<i>Incoming Rule</i>"},
+  {"",T"<i>Incoming Rule</i>"},
 }
 local src_intfs = {
-  {"", T"<i>Outgoing Rule</i>"},
+  {"",T"<i>Outgoing Rule</i>"},
 }
-for _, v in ipairs (rpc_fw_zone_content) do
-  dst_intfs[#dst_intfs+1] = { v.name, T(v.name) }
-  src_intfs[#src_intfs+1] = { v.name, T(v.name) }
+for _,v in ipairs (rpc_fw_zone_content) do
+  dst_intfs[#dst_intfs+1] = { v.name,T(v.name) }
+  src_intfs[#src_intfs+1] = { v.name,T(v.name) }
 end
-dst_intfs[#dst_intfs+1] = { "*", T"ALL" }
-src_intfs[#src_intfs+1] = { "*", T"ALL" }
+dst_intfs[#dst_intfs+1] = { "*",T"ALL" }
+src_intfs[#src_intfs+1] = { "*",T"ALL" }
 
 local fwrules_family = {
-  { "", T""},
-  { "ipv4", T"IPv4"},
-  { "ipv6", T"IPv6"},
+  { "",T""},
+  { "ipv4",T"IPv4"},
+  { "ipv6",T"IPv6"},
 }
 -- WARNING! Probably incomplete: derived from existing configured values
 local fwrules_icmp_types = {
-  { "echo-reply", T"echo-reply" },
-  { "destination-unreachable", T"destination-unreachable" },
-  { "echo-request", T"echo-request" },
-  { "router-advertisement", T"router-advertisement" },
-  { "router-solicitation", T"router-solicitation" },
-  { "neighbour-advertisement", T"neighbour-advertisement" },
-  { "neighbour-solicitation", T"neighbour-solicitation" },
-  { "time-exceeded", T"time-exceeded" },
-  { "packet-too-big", T"packet-too-big" },
-  { "bad-header", T"bad-header" },
-  { "unknown-header-type", T"unknown-header-type" },
+  { "echo-reply",T"echo-reply" },
+  { "destination-unreachable",T"destination-unreachable" },
+  { "echo-request",T"echo-request" },
+  { "router-advertisement",T"router-advertisement" },
+  { "router-solicitation",T"router-solicitation" },
+  { "neighbour-advertisement",T"neighbour-advertisement" },
+  { "neighbour-solicitation",T"neighbour-solicitation" },
+  { "time-exceeded",T"time-exceeded" },
+  { "packet-too-big",T"packet-too-big" },
+  { "bad-header",T"bad-header" },
+  { "unknown-header-type",T"unknown-header-type" },
 }
 
 local fwrules_targets = {
-  { "ACCEPT", T"ACCEPT"},
-  { "DROP", T"DROP"},
-  { "REJECT", T"REJECT"},
+  { "ACCEPT",T"ACCEPT"},
+  { "DROP",T"DROP"},
+  { "REJECT",T"REJECT"},
 }
 
 local fwrules_protocols = {
-  { "", T"TCP"},
-  { "tcp", T"TCP"},
-  { "udp", T"UDP"},
-  { "tcpudp", T"TCP/UDP"},
-  { "icmp", T"ICMP"},
-  { "esp", T"ESP"},
-  { "ah", T"AH"},
-  { "sctp", T"SCTP"},
-  { "all", T"all"},
+  { "",T"TCP"},
+  { "tcp",T"TCP"},
+  { "udp",T"UDP"},
+  { "tcpudp",T"TCP/UDP"},
+  { "icmp",T"ICMP"},
+  { "esp",T"ESP"},
+  { "ah",T"AH"},
+  { "sctp",T"SCTP"},
+  { "all",T"all"},
 }
 
 local fwrules_v6_protocols = {
-  { "", T"TCP"},
-  { "tcp", T"TCP"},
-  { "udp", T"UDP"},
-  { "tcpudp", T"TCP/UDP"},
-  { "icmpv6", T"ICMPv6"},
-  { "esp", T"ESP"},
-  { "ah", T"AH"},
-  { "sctp", T"SCTP"},
-  { "all", T"all"},
+  { "",T"TCP"},
+  { "tcp",T"TCP"},
+  { "udp",T"UDP"},
+  { "tcpudp",T"TCP/UDP"},
+  { "icmpv6",T"ICMPv6"},
+  { "esp",T"ESP"},
+  { "ah",T"AH"},
+  { "sctp",T"SCTP"},
+  { "all",T"all"},
 }
 
 local duplicatedErrMsg = nil
@@ -105,16 +106,16 @@ local session = ngx.ctx.session
    If anyone of the value of row is different then we don't consider as duplicated row.
 ]]
 local function rulesDuplicateCheck(basepath,tableid,columns)
-  return function(value, postdata, key)
+  return function(value,postdata,key)
   local success,msg
     if value and value ~= "" then
-      success,msg = vSIPR(value, postdata, key)
+      success,msg = vSIPR(value,postdata,key)
     else
       success = true
     end
     if success then
       -- specify column range to check for duplicates
-      local startIndex, endIndex = 3, 13
+      local startIndex,endIndex = 3,13
       local fullpath = nil
       if postdata.action =="TABLE-ADD" or postdata.action =="TABLE-MODIFY" then
         local index = tonumber(postdata.index)
@@ -123,19 +124,19 @@ local function rulesDuplicateCheck(basepath,tableid,columns)
         if allowedIndexes[index] then
           index = allowedIndexes[index].paramindex
         end
-        -- fullpath => The UCI path which is going to be modifed, Ex: rpc.network.firewall.userrule.@4.
-        fullpath = basepath .. "@"..index.."."
+        -- fullpath => The UCI path which is going to be modifed,Ex: rpc.network.firewall.userrule.@4.
+        fullpath = basepath.."@"..index.."."
       end
       local paths=nil
-      for i=startIndex, endIndex do
+      for i=startIndex,endIndex do
         local value = untaint(postdata[columns[i].name])
-        local cmatch = content_helper.getMatchedContent(basepath, {[columns[i].param] = value })
+        local cmatch = content_helper.getMatchedContent(basepath,{[columns[i].param] = value })
         if fullpath then
           for u,v in ipairs(cmatch) do
             if v.path == fullpath then
             --The rpc.network.firewall.userrule.@4. will be removed
             --because we no need to validate with the path which we need to modify
-              remove(cmatch, u)
+              remove(cmatch,u)
               break
             end
           end
@@ -178,39 +179,39 @@ local function rulesDuplicateCheck(basepath,tableid,columns)
         end
       end
       --Finally if you get one or more paths which contain all
-      --the 4 values are duplicated (sr ip,port and dest ip, port) are duplicated
+      --the 4 values are duplicated (sr ip,port and dest ip,port) are duplicated
       if paths then
           success = nil
           msg = T"Existing rule duplicates these values"
           duplicatedErrMsg = msg
       end
     end
-    return success, msg
+    return success,msg
   end
 end
 
-local function validateLanIP(value, object, key)
-  local retVal, msg
-  local ipAddress, netMask = match(value,"^([^/]+)/?(%d*)$")
-  retVal, msg = gOV(vIP4AS(value, object, key))
+local function validateLanIP(value,object,key)
+  local retVal,msg
+  local ipAddress,netMask = match(value,"^([^/]+)/?(%d*)$")
+  retVal,msg = gOV(vIP4AS(value))
   if retVal and netMask == "" and ((key == "src_ip" and object.src == "lan") or (key == "dest_ip" and object.dest == "lan")) then
     --To add default subnet mask to the IPv4 Network Address if not explicitly mentioned.
     netMask = gDSM(ipAddress)
     if netMask then
-      local isNetworkAddress = isNA(ipAddress, netMaskToMask(netMask))
+      local isNetworkAddress = isNA(ipAddress,netMaskToMask(netMask))
       if isNetworkAddress then
-        object[key] = value .. "/" .. netMask
+        object[key] = value.."/"..netMask
       end
     end
     return true
   end
-  return retVal, msg
+  return retVal,msg
 end
 
 function M.getRuleColumns(fwrule_options)
-  local dup_chk_basepath = match(fwrule_options.basepath, "^(.+)@%.$")
+  local dup_chk_basepath = match(fwrule_options.basepath,"^(.+)@%.$")
   local isIPv6 = false
-  if find(fwrule_options.basepath, "_v6") then
+  if find(fwrule_options.basepath,"_v6") then
     isIPv6 = true
   end
 
@@ -332,7 +333,7 @@ function M.getRuleColumns(fwrule_options)
       legend = T"Firewall Rule",
       name = "fwrule_entry",
       type = "aggregate",
-      synthesis = nil, --tod_aggregate,
+      synthesis = nil,--tod_aggregate,
       subcolumns = {
         { -- [1]
           header = "Enabled",
@@ -388,14 +389,14 @@ function M.getRuleColumns(fwrule_options)
           name = "src_ip",
           param = "src_ip",
           type = "text",
-          attr = { input = { class="span2", maxlength="18" }, autocomplete = hosts_ac },
+          attr = { input = { class="span2",maxlength="18" },autocomplete = hosts_ac },
         },
         { -- [8]
           header = T"Src Port",
           name = "src_port",
           param = "src_port",
           type = "text",
-          attr = { input = { class="span1", maxlength="11" }, autocomplete = portslist },
+          attr = { input = { class="span1",maxlength="11" },autocomplete = portslist },
         },
         { -- [9]
           header = T"Dest Zone",
@@ -411,21 +412,21 @@ function M.getRuleColumns(fwrule_options)
           name = "dest_mac",
           param = "dest_mac",
           type = "text",
-          attr = { input = { class="span2", maxlength="18" } },
+          attr = { input = { class="span2",maxlength="18" } },
         },
         { -- [11]
           header = T"Dest IP/Subnet",
           name = "dest_ip",
           param = "dest_ip",
           type = "text",
-          attr = { input = { class="span2", maxlength="18" }, autocomplete = hosts_ac },
+          attr = { input = { class="span2",maxlength="18" },autocomplete = hosts_ac },
         },
         { -- [12]
           header = T"Dest Port",
           name = "dest_port",
           param = "dest_port",
           type = "text",
-          attr = { input = { class="span1", maxlength="11" }, autocomplete = portslist },
+          attr = { input = { class="span1",maxlength="11" },autocomplete = portslist },
         },
         { -- [13]
           header = T"Family",
@@ -443,19 +444,19 @@ function M.getRuleColumns(fwrule_options)
 
   if isIPv6 then
     for _,v in ipairs(fwrule_columns) do
-      v.name = v.name .. "_v6"
+      v.name = v.name.."_v6"
       if v.param == "proto" then
         v.values = fwrules_v6_protocols
       end
       if v.name == "fwrule_entry_v6" then
         for _,w in ipairs(v.subcolumns) do
-          w.name = w.name .. "_v6"
+          w.name = w.name.."_v6"
           if w.param == "proto" then
             w.values = fwrules_v6_protocols
           elseif w.param == "family" then
             w.default = "ipv6"
-          elseif param == "src_ip" or param == "dest_ip" then
-            w.attr = { input = { class="span2", maxlength="39" }, autocomplete = hosts_ac_v6 }
+          elseif w.param == "src_ip" or w.param == "dest_ip" then
+            w.attr = { input = { class="span2",maxlength="39" },autocomplete = hosts_ac_v6 }
           end
         end
       end
@@ -470,7 +471,7 @@ function M.getRuleColumns(fwrule_options)
       src_port_v6 = gOV(vSIPR),
       dest_v6 = gVIES(dst_intfs),
       dest_ip_v6 = gOV(vIP6AS),
-      dest_port_v6 = rulesDuplicateCheck(dup_chk_basepath, fwrule_options.tableid, fwrule_columns[16].subcolumns),
+      dest_port_v6 = rulesDuplicateCheck(dup_chk_basepath,fwrule_options.tableid,fwrule_columns[16].subcolumns),
     }
   else
     fwrule_valid = {
@@ -483,31 +484,31 @@ function M.getRuleColumns(fwrule_options)
       src_port = gOV(vSIPR),
       dest = gVIES(dst_intfs),
       dest_ip = validateLanIP,
-      dest_port = rulesDuplicateCheck(dup_chk_basepath, fwrule_options.tableid, fwrule_columns[16].subcolumns),
+      dest_port = rulesDuplicateCheck(dup_chk_basepath,fwrule_options.tableid,fwrule_columns[16].subcolumns),
     }
   end
 
   if fwrule_options.canEdit and not fwrule_options.canAdd and not fwrule_options.canDelete then
     fwrule_columns[1].readonly = false
-    remove(fwrule_columns, 16)
+    remove(fwrule_columns,16)
   end
 
-  return fwrule_columns, fwrule_valid
+  return fwrule_columns,fwrule_valid
 end
 
-function M.fwrule_sort(rule1, rule2)
+function M.fwrule_sort(rule1,rule2)
   return tonumber(rule1.paramindex) < tonumber(rule2.paramindex)
 end
 
-function M.handleTableQuery(fwrule_options, fwrule_defaultObject)
-  local fwrule_columns, fwrule_valid = M.getRuleColumns(fwrule_options)
-  local fwrule_data, fwrule_helpmsg = post_helper.handleTableQuery(fwrule_columns, fwrule_options, nil, fwrule_defaultObject, fwrule_valid)
+function M.handleTableQuery(fwrule_options,fwrule_defaultObject)
+  local fwrule_columns,fwrule_valid = M.getRuleColumns(fwrule_options)
+  local fwrule_data,fwrule_helpmsg = post_helper.handleTableQuery(fwrule_columns,fwrule_options,nil,fwrule_defaultObject,fwrule_valid)
   for _,v in ipairs(fwrule_data) do
     if v[1] == "" then
       v[1] = "1"
     end
     if v[6] and type(v[6]) == "table" then
-      v[6] = concat(v[6], ", ")
+      v[6] = concat(v[6],",")
       fwrule_columns[6].type = "text"
       fwrule_columns[6].values = nil
     end
@@ -521,8 +522,8 @@ function M.handleTableQuery(fwrule_options, fwrule_defaultObject)
     end
     duplicatedErrMsg = nil
   end
-  
-  return fwrule_columns, fwrule_data, fwrule_helpmsg
+
+  return fwrule_columns,fwrule_data,fwrule_helpmsg
 end
 
 return M

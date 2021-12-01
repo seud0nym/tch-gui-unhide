@@ -21,7 +21,7 @@ GUI_PROC_.get = {
 }
 
 GUI_PROC_.set = {
-  filter = function(mapping,param,value,key)
+  filter = function(_,_,_,_)
   end
 }
 
@@ -72,15 +72,15 @@ local GUI_PROC_i_ = {
   }
 }
 
-GUI_PROC_i_.entries = function(mapping)
+GUI_PROC_i_.entries = function(_)
   local k = #procTable
-  for i=0, k do procTable[i]=nil end
+  for i=0,k do procTable[i]=nil end
   k = 0
 
   local top = io.popen(cmd,'r')
   for proc in top:lines() do
     if not proc:find(cmd,1,true) then
-      local pid, ppid, user, stat, vsz, vszpct, cpu = proc:match("([0-9]+) +([0-9]+) +([^ ]+) +(....) +([0-9]+[m]*) +([0-9]+)%% +([0-9]+)%%")
+      local pid,ppid,user,stat,vsz,vszpct,cpu = proc:match("([0-9]+) +([0-9]+) +([^ ]+) +(....) +([0-9]+[m]*) +([0-9]+)%% +([0-9]+)%%")
       if tonumber(pid) then
         k = k + 1
         procTable[string.format("%03d",k)] = {
@@ -106,28 +106,28 @@ GUI_PROC_i_.entries = function(mapping)
 end
 
 GUI_PROC_i_.get = {
-  process = function(mapping, param, key)
+  process = function(_,_,key)
     return procTable[key].process or 0
   end,
-  parent = function(mapping, param, key)
+  parent = function(_,_,key)
     return procTable[key].parent or 0
   end,
-  user = function(mapping, param, key)
+  user = function(_,_,key)
     return procTable[key].user or ""
   end,
-  state = function(mapping, param, key)
+  state = function(_,_,key)
     return procTable[key].state or ""
   end,
-  virtual_memory_size = function(mapping, param, key)
+  virtual_memory_size = function(_,_,key)
     return procTable[key].virtual_memory_size or 0
   end,
-  virtual_memory_percent = function(mapping, param, key)
+  virtual_memory_percent = function(_,_,key)
     return procTable[key].virtual_memory_percent or 0
   end,
-  cpu = function(mapping, param, key)
+  cpu = function(_,_,key)
     return procTable[key].cpu or 0
   end,
-  command = function(mapping, param, key)
+  command = function(_,_,key)
     return procTable[key].command or ""
   end,
 }

@@ -1,5 +1,5 @@
 --pretranslated: do not change this file
- 
+
 -- Enable localization
 gettext.textdomain('webui-core')
 
@@ -9,7 +9,9 @@ local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local qosdevice_helper = require("qosdevice_helper")
 
-local find, format, match, sub, untaint = string.find, string.format, string.match, string.sub, string.untaint
+local find,format,match,sub = string.find,string.format,string.match,string.sub
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
@@ -17,19 +19,19 @@ lp.setpath("/www/snippets/")
 local gVIES = post_helper.getValidateInEnumSelect
 local vB = post_helper.validateBoolean
 
-local ifs, ssid = qosdevice_helper.getNetworkDevices()
+local ifs,ssid = qosdevice_helper.getNetworkDevices()
 table.sort(ifs)
 
 local options_if = {}
 local device_max = 0
 local device_min = 0
 for k,v in pairs(ifs) do
-  if not find(v, "Guest") then
+  if not find(v,"Guest") then
     local backhaul = proxy.get(format("uci.wireless.wifi-iface.@%s.backhaul",k))
     if sub(k,1,1) ~= "@" and (sub(k,1,2) ~= "wl" or (backhaul and backhaul[1].value ~= "1")) then
       device_max = device_max + 1
-      options_if[#options_if+1] = {k, k}
-      if proxy.get(format("uci.qos.device.@%s.enable", k)) then
+      options_if[#options_if+1] = {k,k}
+      if proxy.get(format("uci.qos.device.@%s.enable",k)) then
         device_min = device_min + 1
       end
     end
@@ -37,9 +39,9 @@ for k,v in pairs(ifs) do
 end
 
 local options_group = {
-  { "TO_LAN", T"LAN" }, 
-  { "TO_WAN", T"WAN" },
-  { "TO_WLAN", T"WLAN" },
+  { "TO_LAN",T"LAN" },
+  { "TO_WAN",T"WAN" },
+  { "TO_WLAN",T"WLAN" },
 }
 
 local device_columns = {
@@ -90,8 +92,8 @@ local device_columns = {
 
 local function onAddDevice(current_section_index,content)
   proxy.add("uci.qos.device.",current_section_index)
-  proxy.set("uci.qos.device.@"..current_section_index..".classgroup", untaint(content["classgroup"]))
-  proxy.set("uci.qos.device.@"..current_section_index..".enable", untaint(content["enable"]))
+  proxy.set("uci.qos.device.@"..current_section_index..".classgroup",untaint(content["classgroup"]))
+  proxy.set("uci.qos.device.@"..current_section_index..".enable",untaint(content["enable"]))
   proxy.apply()
 end
 
@@ -110,9 +112,9 @@ local device_options = {
   onAdd = onAddDevice,
 }
 
-local function validateDeviceName(value, object, key)
+local function validateDeviceName(value,_,_)
   if not value:match("^[%w]+$") then
-    return nil, "must not be empty and must only contain alphanumeric characters"
+    return nil,"must not be empty and must only contain alphanumeric characters"
   end
   return true
 end
@@ -138,7 +140,7 @@ if ngx.req.get_method() == "POST" then
 end
 
 
-local device_data, device_helpMsg = post_helper.handleTableQuery(device_columns, device_options, nil, nil, device_valid)
+local device_data,device_helpMsg = post_helper.handleTableQuery(device_columns,device_options,nil,nil,device_valid)
 local script = {}
 for _,v in pairs(device_data) do
   local portname
@@ -153,7 +155,7 @@ for _,v in pairs(device_data) do
   elseif sub(device,1,2) == "wl" then
     portname = ssid[device]
   else
-    portname = "Ethernet LAN Port" .. " " .. match(device, "%d") + 1
+    portname = "Ethernet LAN Port".." "..match(device,"%d") + 1
   end
   v[2] = portname
   v[3] = ""
@@ -163,7 +165,7 @@ for _,v in pairs(device_data) do
   if v[6] == "1" then
     if not ifs[device] or ifs[device] == "" or ifs[device] == "ppp" or ifs[device] == "ipoe" then
       v[5] = "0"
-    elseif (classgroup == "TO_WAN" and not find(ifs[device], "wan")) or (classgroup == "TO_WLAN" and not find(ifs[device], "wlan")) or (classgroup == "TO_LAN" and not match(ifs[device], "^lan") and not find(ifs[device], ",lan")) then
+    elseif (classgroup == "TO_WAN" and not find(ifs[device],"wan")) or (classgroup == "TO_WLAN" and not find(ifs[device],"wlan")) or (classgroup == "TO_LAN" and not match(ifs[device],"^lan") and not find(ifs[device],",lan")) then
       v[5] = "2"
       v[3] = "<i class='icon-warning-sign'></i>"
     else
@@ -172,11 +174,11 @@ for _,v in pairs(device_data) do
   else
     v[5] = "0"
   end
-  v[3] = v[3] .. (ifs[device] or "")
-  script[#script+1] = format("$(\"#device option[value='%s']\").remove();", device)
+  v[3] = v[3]..(ifs[device] or "")
+  script[#script+1] = format("$(\"#device option[value='%s']\").remove();",device)
 end
 
-ngx.print( ui_helper.createHeader(T"QoS", false) ); ngx.print('\
+ngx.print( ui_helper.createHeader(T"QoS",false) ); ngx.print('\
 <div class="modal-body">\
 '); lp.include("tabs-qos.lp") ngx.print('\
   <form class="form-horizontal" method="post" action="modals/qos-device-modal.lp">\
@@ -185,7 +187,7 @@ ngx.print( ui_helper.createHeader(T"QoS", false) ); ngx.print('\
     local html = {}
     html[#html+1] = "<fieldset>"
     html[#html+1] =   "<legend>"..T"QoS Devices".."</legend>"
-    html[#html+1] =   ui_helper.createTable(device_columns, device_data, device_options, nil, device_helpMsg)
+    html[#html+1] =   ui_helper.createTable(device_columns,device_data,device_options,nil,device_helpMsg)
     html[#html+1] = "</fieldset>"
     ngx.print(html)
     ngx.print('\

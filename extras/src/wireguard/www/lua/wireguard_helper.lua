@@ -2,7 +2,9 @@ local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
 local proxy = require("datamodel")
 
-local find,format,gmatch,lower,match,untaint = string.find,string.format,string.gmatch,string.lower,string.match,string.untaint
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
+local find,format,gmatch,lower,match = string.find,string.format,string.gmatch,string.lower,string.match
 
 
 local M = {}
@@ -145,8 +147,8 @@ local ipv6pattern = "([:%x]+:)(%x+)/(%d+)"
 
 function M.getUnusedIP()
   local ip4_prefix,ip4_suffix,ip4_netmask,ip4_next
-  local ip6_prefix,ip6_suffix,ip6_netmask,ip6_next
-  local peer,ip,suffix,index,next_suffix,used
+  local ip6_prefix,ip6_netmask,ip6_next
+  local used
 
   for _,ip in pairs(proxy.get("uci.wireguard.@wg0.address.")) do
     local ipaddr = untaint(ip.value)
@@ -155,7 +157,7 @@ function M.getUnusedIP()
       used = { tonumber(ip4_suffix) }
     end
     if not ip6_prefix then
-      ip6_prefix,ip6_suffix,ip6_netmask = match(ipaddr,ipv6pattern)
+      ip6_prefix,_,ip6_netmask = match(ipaddr,ipv6pattern)
     end
   end
 
@@ -198,9 +200,8 @@ end
 
 function M.getDNS(include_ipv6)
   local dns = ""
-  local k,v
   
-  for k,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dhcp_option.",true)) do
+  for _,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dhcp_option.",true)) do
     local ipv4_dns = match(untaint(proxy.get(v.path.."value")[1].value),"6,(.+)")
     if ipv4_dns then
       if dns == "" then
@@ -212,7 +213,7 @@ function M.getDNS(include_ipv6)
   end
   
   if include_ipv6 == true then
-    for k,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dns.",true)) do
+    for _,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dns.",true)) do
       local ipv6_dns = untaint(proxy.get(v.path.."value")[1].value)
       if dns == "" then
         dns = ipv6_dns
@@ -230,7 +231,7 @@ function M.getDNS(include_ipv6)
 end
 
 function M.receiveFile(filename,match)
-  function do_receive(outfile,match)
+  local function do_receive(outfile,match)
     local upload = require("web.fileupload")
     local form,err = upload.fromstream()
     if not form then
@@ -300,7 +301,7 @@ local option_convert = {
 
 function M.parseConfig(content)
   local interface_config,peer_config = {},{}
-  local in_interface,in_peer,line = false,false
+  local in_interface,in_peer = false,false
   for line in gmatch(untaint(content)..'\n',"([^\r\n]*)[\r\n]") do
     if not match(line,"^%s*$") then
       local key,value = match(line,"^(%S+)%s*=%s*(.+)$")
@@ -340,8 +341,7 @@ end
 
 local function getFirewallWANZoneNetworkPath()
   local zones = proxy.getPN("uci.firewall.zone.",true)
-  local k,v
-  for k,v in ipairs(zones) do
+  for _,v in ipairs(zones) do
     local wan = proxy.get(v.path.."wan")
     if wan and wan[1].value == "1" then
       return v.path.."network."
@@ -352,7 +352,6 @@ end
 
 local function getInterfaceFirewallWANZoneNetworkPath(ifname)
   local path = getFirewallWANZoneNetworkPath()
-  local network
   for _,network in pairs(proxy.getPN(path,true)) do
     local value = proxy.get(network.path.."value")[1].value
     if value == ifname then
@@ -363,7 +362,6 @@ local function getInterfaceFirewallWANZoneNetworkPath(ifname)
 end
 
 function M.deleteInterface(ifname)
-  local peer
   for _,peer in pairs(proxy.getPN("uci.wireguard.@"..ifname..".peer.",true)) do
     local okay,errmsg,errcode = proxy.del(peer.path)
     if not okay then

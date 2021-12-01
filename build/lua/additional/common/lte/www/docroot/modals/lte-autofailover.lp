@@ -1,12 +1,11 @@
 --pretranslated: do not change this file
 
 local table = { insert = table.insert }
-local ngx,type = ngx,type
+local ngx = ngx
 
 -- Enable localization
 gettext.textdomain('webui-mobiled')
 
-local content_helper = require("web.content_helper")
 local proxy = require("datamodel")
 local post_helper = require("web.post_helper")
 local message_helper = require("web.uimessage_helper")
@@ -138,14 +137,14 @@ ngx.print( ui_helper.createHeader(params.modal_title,false,true) ); ngx.print('\
     }
 
     local html = {}
-    table.insert(html,"<fieldset><legend>" .. T"Auto-Failover Global Settings" .. "</legend>")
+    table.insert(html,"<fieldset><legend>"..T"Auto-Failover Global Settings".."</legend>")
     table.insert(html,ui_helper.createSwitch(T"Voice on Failover","voiceonfailover",content["voiceonfailover"],nil,helpmsg["voiceonfailover"]))
     table.insert(html,ui_helper.createInputText(T"Max Wait (Seconds)","autofailovermaxwait",content["autofailovermaxwait"],wait_attributes,helpmsg["autofailovermaxwait"]))
     table.insert(html,"</fieldset>")
-    table.insert(html,"<fieldset><legend>" .. T"WanSensing L2 State" .. "</legend>")
+    table.insert(html,"<fieldset><legend>"..T"WanSensing L2 State".."</legend>")
     table.insert(html,ui_helper.createTable(l2state_columns,l2state_data,l2state_options,nil,l2state_helpmsg))
     table.insert(html,"</fieldset>")
-    table.insert(html,"<fieldset><legend>" .. T"WanSensing L3 State" .. "</legend>")
+    table.insert(html,"<fieldset><legend>"..T"WanSensing L3 State".."</legend>")
     table.insert(html,ui_helper.createTable(l3state_columns,l3state_data,l3state_options,nil,l3state_helpmsg))
     table.insert(html,"</fieldset>")
     if delay then

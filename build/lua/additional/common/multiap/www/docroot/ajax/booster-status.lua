@@ -12,11 +12,11 @@ content_helper.getExactContent(content)
 local html = booster_helper.getBoosterCardHTML(content.agent_enabled,content.controller_enabled)
 
 local data = {
-  html = table.concat(html, "\n"),
+  html = table.concat(html,"\n"),
 }
 
 local buffer = {}
-if json.encode (data, { indent = false, buffer = buffer }) then
+if json.encode (data,{ indent = false,buffer = buffer }) then
   ngx.say(buffer)
 else
   ngx.say("{}")

@@ -23,7 +23,7 @@ if cards.broadband == "0" then
   <div class="span3">\
     <div class="smallcard chartcard">\
       <div class="chartdata" style="color:rgb('); ngx.print(rgb); ngx.print(')"><span id="wandn_data">0.00</span><span class="unit">Mb/s</span></div>\
-      '); ngx.print(ui_helper.createCardHeader(T"WAN Download", nil, nil, nil, attributes)); ngx.print('\
+      '); ngx.print(ui_helper.createCardHeader(T"WAN Download",nil,nil,nil,attributes)); ngx.print('\
       <div class="content card_bg" data-bg-text="&#xf0ed;">\
         <canvas id="wandn_canvas"></canvas>\
       </div>\

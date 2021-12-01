@@ -1,17 +1,19 @@
 local lfs = require("lfs")
 local logger = require("tch.logger")
-local log = logger.new("rpc.gui.ipsec", 4)
+local log = logger.new("rpc.gui.ipsec",4)
 
 local ipsec_status = "/usr/sbin/ipsec status | grep 'Security Associations'"
 local ipsec_conf = "/etc/ipsec.conf"
 local ipsec_secrets = "/etc/ipsec.secrets"
-local find, istainted, gsub, format, match, sub = string.find, string.istainted, string.gsub, string.format, string.match, string.sub
+---@diagnostic disable-next-line: undefined-field
+local istainted = string.istainted
+local find,format,match,sub = string.find,string.format,string.match,string.sub
 
 local conf_cache = {
-  cfg,
-  idx,
-  time_check, -- time cache was refreshed
-  reload -- force reload
+  cfg = nil,
+  idx = nil,
+  time_check = nil,-- time cache was refreshed
+  reload = nil -- force reload
 }
 
 local function readIPsecConfig()
@@ -19,7 +21,7 @@ local function readIPsecConfig()
 
   if conf_cache.cfg and not conf_cache.reload and ( time - conf_cache.time_check ) < 30 then
     conf_cache.time_check = time
-    return conf_cache.cfg, conf_cache.idx
+    return conf_cache.cfg,conf_cache.idx
   end
 
   local index = {}
@@ -29,7 +31,7 @@ local function readIPsecConfig()
   local f = io.open(ipsec_conf,"r")
   if f then
     for line in f:lines() do
-      local s = match(line, "^(con[%l]+ .*)[%s]*$")
+      local s = match(line,"^(con[%l]+ .*)[%s]*$")
       if s then
         local k = match(s,"[%w]+ (.*)")
         section = #sections + 1
@@ -39,7 +41,7 @@ local function readIPsecConfig()
         }
         index[k] = section
       else
-        local param, value = match(line, "^[%s]+([%w]+)[=%s]*(.*)$")
+        local param,value = match(line,"^[%s]+([%w]+)[=%s]*(.*)$")
         if param and value and section then
           sections[section]["parameters"][param] = value
         end
@@ -54,13 +56,13 @@ local function readIPsecConfig()
   conf_cache.time_check = time
   conf_cache.reload = nil
 
-  return sections, index
+  return sections,index
 end
 
 local secret_cache = {
-  secrets,
-  time_check, -- time cache was refreshed
-  reload -- force reload
+  secrets = nil,
+  time_check = nil,-- time cache was refreshed
+  reload = nil -- force reload
 }
 
 local function readIPsecSecrets()
@@ -77,11 +79,11 @@ local function readIPsecSecrets()
   local f = io.open(ipsec_secrets,"r")
   if f then
     for line in f:lines() do
-      local s, t, v = match(line, "^[%s]*([%S]*)[%s]*:[%s]*([%w]+)[%s]+\"(.*)\"[%s]*$")
+      local s,t,v = match(line,"^[%s]*([%S]*)[%s]*:[%s]*([%w]+)[%s]+\"(.*)\"[%s]*$")
       if v and sub(s,1,1) ~= "#" then
         lines[#lines+1] = {
-          selector = s, 
-          type = t, 
+          selector = s,
+          type = t,
           secret = v,
         }
       end
@@ -112,9 +114,9 @@ local function isDomainName(value)
   local j=0
   repeat
       i = i+1
-      j = find(value, ".", i, true)
-      local label = sub(value, i, j)
-      local strippedLabel = match(label, "[^%.]*")
+      j = find(value,".",i,true)
+      local label = sub(value,i,j)
+      local strippedLabel = match(label,"[^%.]*")
       if strippedLabel ~= nil then
           if #strippedLabel == 0 then
               return false
@@ -122,9 +124,9 @@ local function isDomainName(value)
           if #strippedLabel > 63 then
               return false
           end
-          local correctLabel = match(strippedLabel, "^[a-zA-z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]")
+          local correctLabel = match(strippedLabel,"^[a-zA-z0-9][a-zA-Z0-9%-]*[a-zA-Z0-9]")
           if #strippedLabel == 1 then
-              if not match(strippedLabel, "[a-zA-Z0-9]") then
+              if not match(strippedLabel,"[a-zA-Z0-9]") then
                   return false
 
               end
@@ -140,7 +142,7 @@ local function isDomainName(value)
 end
 
 local function updateSecret(type,value)
-  local found,secret,idx = false
+  local found = false
   local secrets = readIPsecSecrets()
   for idx,secret in pairs(secrets) do
     if secret["selector"] == "" and secret["type"] == type then
@@ -156,8 +158,8 @@ local function updateSecret(type,value)
     log:notice("Setting secret key=%s param=%s value=%s",newkey,"type",type)
     log:notice("Setting secret key=%s param=%s value=%s",newkey,"secret",value)
     secrets[newkey] = {
-      selector = "", 
-      type = type, 
+      selector = "",
+      type = type,
       secret = value,
     }
   end
@@ -211,7 +213,7 @@ GUI_IPSEC_.get = {
     local cmd = io.popen(ipsec_status,'r')
     local status = cmd:read()
     cmd:close()
-    return match(status, "%(([^%)]+)")
+    return match(status,"%(([^%)]+)")
   end,
   changed = function() 
     readIPsecConfig()
@@ -221,7 +223,7 @@ GUI_IPSEC_.get = {
     end
     return "0"
   end,
-  debug = function(mapping, param, value)
+  debug = function(_,_,_)
     local sections = readIPsecConfig()
     if sections[1]["parameters"]["charondebug"] then
       return "1"
@@ -240,10 +242,10 @@ GUI_IPSEC_.get = {
 }
 
 GUI_IPSEC_.set = {
-  apply_changes = function(mapping, param, value)
+  apply_changes = function(_,_,value)
     log:notice("apply_changes value=%s",value)
     if value ~= "1" then
-      return nil, "Invalid value"
+      return nil,"Invalid value"
     end
     if conf_cache.changed == "1" then
       local f = io.open(ipsec_conf,"w")
@@ -251,19 +253,17 @@ GUI_IPSEC_.set = {
         local blank_line = "\n"
         local detail_pattern = " %s = %s\n"
         local header_pattern = "%s\n"
-        local section
         f:write("# /etc/ipsec.conf - strongSwan IPsec configuration file\n")
         for _,section in pairs(conf_cache.cfg) do
-          f:write(format(header_pattern, section.name))
-          local option, value
-          for option, value in pairs(section.parameters) do
-            f:write(format(detail_pattern, option, value))
+          f:write(format(header_pattern,section.name))
+          for option,value in pairs(section.parameters) do
+            f:write(format(detail_pattern,option,value))
           end
           f:write(blank_line)
         end
         f:close()
       else
-        return nil, "Failed to open "..ipsec_conf.." in write mode"
+        return nil,"Failed to open "..ipsec_conf.." in write mode"
       end
       conf_cache.reload = true
     end
@@ -272,50 +272,49 @@ GUI_IPSEC_.set = {
       if f then
         local selector_pattern = "%s : %s \"%s\"\n"
         local no_selector_pattern = ": %s \"%s\"\n"
-        local secret
         f:write("# /etc/ipsec.secrets - strongSwan IPsec secrets file\n")
         for _,secret in pairs(secret_cache.secrets) do
-          local selector = match(secret.selector, "^%s*(.-)%s*$")
+          local selector = match(secret.selector,"^%s*(.-)%s*$")
           if selector == "" then
-            f:write(format(no_selector_pattern, secret.type, secret.secret))
+            f:write(format(no_selector_pattern,secret.type,secret.secret))
           else
-            f:write(format(selector_pattern, selector, secret.type, secret.secret))
+            f:write(format(selector_pattern,selector,secret.type,secret.secret))
           end
         end
         f:close()
       else
-        return nil, "Failed to open "..ipsec_secrets.." in write mode"
+        return nil,"Failed to open "..ipsec_secrets.." in write mode"
       end
       secret_cache.reload = true
     end
     os.execute("/etc/init.d/ipsec restart")
     return true
   end,
-  debug = function(mapping, param, value)
+  debug = function(_,_,value)
     local sections = readIPsecConfig()
     if value == "1" then
-      sections[1]["parameters"]["charondebug"] = '"ike 8, mgr 3, chd 3, net 0, knl 2, cfg 2"'
+      sections[1]["parameters"]["charondebug"] = '"ike 8,mgr 3,chd 3,net 0,knl 2,cfg 2"'
     elseif value == "0" then
       sections[1]["parameters"]["charondebug"] = nil
     else
-      return nil, "Invalid value"
+      return nil,"Invalid value"
     end
     conf_cache.changed = "1"
     return true
   end,
-  reread = function(mapping, param, value)
+  reread = function(_,_,value)
     log:notice("reread value=%s",value)
     if value ~= "1" then
-      return nil, "Invalid value"
+      return nil,"Invalid value"
     end
     conf_cache.reload = true
     secret_cache.reload = true
     return true
   end,
-  regenpsk = function(mapping, param, value)
+  regenpsk = function(_,_,value)
     log:notice("regenpsk value=%s",value)
     if value ~= "1" then
-      return nil, "Invalid value"
+      return nil,"Invalid value"
     end
     local alphanum = {"a","b","c","d","e","f","g","h","j","k","m","n","o","p","q","r","s","t","u","v","w","y","z","A","B","C","D","E","F","G","H","J","K","L","M","N","P","Q","R","S","T","U","V","W","Y","Z","2","3","4","5","6","7","8","9"}
     local psk = {}
@@ -325,10 +324,10 @@ GUI_IPSEC_.set = {
     updateSecret("PSK",table.concat(psk,""))
     return true
   end,
-  restart = function(mapping, param, value)
+  restart = function(_,_,value)
     log:notice("restart value=%s",value)
     if value ~= "1" then
-      return nil, "Invalid value"
+      return nil,"Invalid value"
     end
     os.execute("/etc/init.d/ipsec restart")
     return true
@@ -421,10 +420,9 @@ local GUI_IPSEC_CONN_i_ = {
   }
 }
 
-GUI_IPSEC_CONN_i_.entries = function(mapping)
-  local sections, index = readIPsecConfig()
+GUI_IPSEC_CONN_i_.entries = function(_)
+  local _,index = readIPsecConfig()
   local res = {}
-  local k,v
   for k,v in pairs(index) do
     if v > 1 then
       res[#res+1]=k
@@ -433,19 +431,19 @@ GUI_IPSEC_CONN_i_.entries = function(mapping)
   return res
 end
 
-GUI_IPSEC_CONN_i_.get = function(mapping, param, key)
-  local sections, index = readIPsecConfig()
+GUI_IPSEC_CONN_i_.get = function(_,param,key)
+  local sections,index = readIPsecConfig()
   local section = index[key]
   return sections[section]["parameters"][param] or ""
 end
 
-GUI_IPSEC_CONN_i_.set = function(mapping, param, value, key)
+GUI_IPSEC_CONN_i_.set = function(_,param,value,key)
   log:notice("Setting conn key=%s param=%s value=%s",key,param,value)
-  local sections, index = readIPsecConfig()
+  local sections,index = readIPsecConfig()
   local section = index[key]
   sections[section]["parameters"][param] = value
   if param == "leftid" then
-    if isDomainName(value) and lfs.attributes("/etc/ipsec.d/certs/" .. value .. ".cer", "mode") then
+    if isDomainName(value) and lfs.attributes("/etc/ipsec.d/certs/" .. value .. ".cer","mode") then
       log:notice("Setting conn key=%s param=%s value=%s",key,"leftcert",value .. ".cer")
       sections[section]["parameters"]["leftcert"] = value .. ".cer"
       log:notice("Setting conn key=%s param=%s value=%s",key,"leftsendcert","always")
@@ -456,7 +454,7 @@ GUI_IPSEC_CONN_i_.set = function(mapping, param, value, key)
       sections[section]["parameters"]["leftcert"] = ""
       log:notice("Setting conn key=%s param=%s value=%s",key,"leftsendcert","never")
       sections[section]["parameters"]["leftsendcert"] = "never"
-      local secrets,idx,secret = readIPsecSecrets()
+      local secrets = readIPsecSecrets()
       for idx,secret in pairs(secrets) do
         if secret["selector"] == "" and secret["type"] == "RSA" then
           log:notice("Deleting secret key=%s selector=%s type=%s secret=%s",idx,secret["selector"],secret["type"],secret["secret"])
@@ -471,10 +469,10 @@ GUI_IPSEC_CONN_i_.set = function(mapping, param, value, key)
   return true
 end
 
-GUI_IPSEC_CONN_i_.add = function(mapping, key)
+GUI_IPSEC_CONN_i_.add = function(_,key)
   if key and key ~= "" then
     log:notice("Adding conn key=%s",key)
-    local sections, index = readIPsecConfig()
+    local sections,index = readIPsecConfig()
     local section = #sections + 1
     sections[section] = {
       name = "conn " .. key,
@@ -484,12 +482,12 @@ GUI_IPSEC_CONN_i_.add = function(mapping, key)
     conf_cache.changed = "1"
     return key
   end
-  return nil, "No conn section name specified"
+  return nil,"No conn section name specified"
 end
 
-GUI_IPSEC_CONN_i_.delete = function(mapping, key)
+GUI_IPSEC_CONN_i_.delete = function(_,key)
   log:notice("Deleted conn key=%s",key)
-  local sections, index = readIPsecConfig()
+  local sections,index = readIPsecConfig()
   local section = index[key]
   sections[section] = nil
   index[key] = nil
@@ -523,46 +521,45 @@ local GUI_IPSEC_SECRET_i_ = {
   }
 }
 
-GUI_IPSEC_SECRET_i_.entries = function(mapping)
+GUI_IPSEC_SECRET_i_.entries = function(_)
   local secrets = readIPsecSecrets()
   local res = {}
-  local k,v
-  for k,v in pairs(secrets) do
+  for k in pairs(secrets) do
     res[#res+1]=tostring(k)
   end
   return res
 end
 
-GUI_IPSEC_SECRET_i_.get = function(mapping, param, key)
+GUI_IPSEC_SECRET_i_.get = function(_,param,key)
   local secrets = readIPsecSecrets()
   return secrets[tonumber(key)][param] or ""
 end
 
-GUI_IPSEC_SECRET_i_.set = function(mapping, param, value, key)
+GUI_IPSEC_SECRET_i_.set = function(_,param,value,key)
   log:notice("Setting secret key=%s param=%s value=%s",key,param,value)
   local secrets = readIPsecSecrets()
   if param == "type" and value ~= "PSK" and value ~= "XAUTH" and value ~= "EAP" and value ~= "RSA" then
-    return nil, "Invalid type"
+    return nil,"Invalid type"
   end
   secrets[tonumber(key)][param] = value
   secret_cache.changed = "1"
   return true
 end
 
-GUI_IPSEC_SECRET_i_.add = function(mapping, key)
+GUI_IPSEC_SECRET_i_.add = function(_,_)
   local secrets = readIPsecSecrets()
   local newkey = #secrets + 1
   log:notice("Adding secret key=%s",newkey)
   secrets[newkey] = {
-    selector = "", 
-    type = "", 
+    selector = "",
+    type = "",
     secret = "",
   }
   secret_cache.changed = "1"
   return tostring(newkey)
 end
 
-GUI_IPSEC_SECRET_i_.delete = function(mapping, key)
+GUI_IPSEC_SECRET_i_.delete = function(_,key)
   log:notice("Deleting secret key=%s",key)
   local secrets = readIPsecSecrets()
   secrets[tonumber(key)] = nil
