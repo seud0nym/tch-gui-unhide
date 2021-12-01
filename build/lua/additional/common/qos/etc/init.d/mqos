@@ -4,8 +4,11 @@
 START=70
 
 parse_device() {
-  local cfg="$1" mac download upload
-  
+  local cfg="$1" enabled mac download upload
+
+  config_get_bool enabled "$cfg" enabled 0
+  [ $enabled -eq 0 ] && return 0
+
   config_get mac "$cfg" mac
   config_get download "$cfg" download
   config_get upload "$cfg" upload
