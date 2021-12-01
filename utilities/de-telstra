@@ -205,6 +205,7 @@ SRV_dumaos=0
 SRV_fw=0
 SRV_hostapd=0
 SRV_hotspot=0
+SRV_iqos=0
 SRV_mmpbxd=0
 SRV_mobiled=0
 SRV_monitor=0
@@ -352,7 +353,8 @@ PACKAGES_TO_REMOVE=""
 
 echo [$SCRIPT]: Applying default hardening rules...
 
-if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" -o -e /etc/init.d/cwmpd ]; then
+CWMPD_IQOS=$(uci -q show iqos | grep "target='cwmpd'" | cut -d. -f1-2)
+if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" -o -e /etc/init.d/cwmpd -o -n "$CWMPD_IQOS" ]; then
   if [ "$__CWMP" = 'n' ]; then
     echo [$SCRIPT]: - Disabling CWMP
     uci set cwmpd.cwmpd_config.state='0'
@@ -364,6 +366,11 @@ if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" -o -e /etc/init.d/cwmpd ];
     uci -q del_list watchdog.@watchdog[0].pidfile='/var/run/cwmpd.pid'
     uci -q del_list watchdog.@watchdog[0].pidfile='/var/run/cwmpevents.pid'
     uci commit watchdog
+    if [ -n "$CWMPD_IQOS" ]; then
+      uci -q delete $CWMPD_IQOS
+      uci commit iqos
+      SRV_iqos=$(( $SRV_iqos + 1 ))
+    fi
     SRV_watchdog=$(( $SRV_watchdog + 2 ))
     PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE conf-cwmpd cwmpd"
   else
@@ -616,6 +623,12 @@ if [ "$__ROOT_PROTECT" = "0" ]; then
 fi
 
 # End of hardening
+
+if [ "$VERSION" = "17.2" -a -f transformer-cli -a ! -f /usr/bin/transformer-cli ]; then
+  echo [$SCRIPT]: Adding transformer-cli to command path
+  cp transformer-cli /usr/bin/transformer-cli
+  chmod 755 /usr/bin/transformer-cli
+fi
 
 VoWiFi="$(uci show qos | grep -E "$(uci show qos | grep =reclassify | cut -d= -f1 | xargs | tr " " "|")" | grep VoWiFi | cut -d. -f1-2)"
 if [ -z "$VoWiFi" ]; then
@@ -1274,6 +1287,7 @@ echo [$SCRIPT]: Applying required service changes...
 [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear reload > /dev/null 2>&1
 [ $SRV_dumaos -gt 0 ] && { /etc/init.d/dumaos enable; /etc/init.d/dumaos restart; } > /dev/null 2>&1
 [ $SRV_hotspot -gt 0 -a -e /etc/init.d/hotspotd ] && { /etc/init.d/hotspotd disable; /etc/init.d/hotspotd stop; } > /dev/null 2>&1
+[ $SRV_iqos -gt 0 ] && /etc/init.d/iqos restart
 [ $SRV_mmpbxd -gt 0 ] && { /etc/init.d/mmpbxd enable; /etc/init.d/mmpbxfwctl enable; /etc/init.d/mmpbxd restart; /etc/init.d/mmpbxfwctl restart; } > /dev/null 2>&1
 [ $SRV_mobiled -gt 0 ] && /etc/init.d/mobiled restart > /dev/null 2>&1
 [ $SRV_monitor -gt 0 -a -e /etc/init.d/autoreset ] && { /etc/init.d/autoreset disable; /etc/init.d/autoreset stop; } > /dev/null 2>&1
