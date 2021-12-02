@@ -16,3 +16,22 @@ sed \
  -e "s|Output Power|Adjust Output Power<span class='icon-question-sign' title='Increase or decrease radio output transmission power. Increasing transmission power is NOT recommended. It will cause more interference in neighboring channels, and reduce component lifetime by increasing heat generated.'></span>|" \
  -i /www/docroot/modals/wireless-modal.lp
 
+echo [$SCRIPT]: Fix spelling in WiFi error message
+sed \
+ -e 's/Mac address/MAC Address/' \
+ -i /www/docroot/modals/wireless-modal.lp
+
+echo [$SCRIPT]: Add WiFi QR Code button
+sed \
+  -e '/isguest ~= "1" and \(\(isExtRemman  ~= "1"\)\|isRadiusIncluded\)/i\    local not_security_none = {\
+        button = {\
+          id = "btn-qrcode"\
+        },\
+        group = {\
+          class ="monitor-security monitor-wep monitor-wpa-psk monitor-wpa2-psk monitor-wpa-wpa2-psk monitor-wpa3 monitor-wpa3-psk monitor-wpa2-wpa3 monitor-wpa2-wpa3-psk",\
+        },\
+     }\
+     html[#html+1] = ui_helper.createButton("QR Code","Show","icon-print",not_security_none)\
+     html[#html+1] = format("<script>$(\\"#btn-qrcode\\").click(function(){tch.loadModal(\\"/modals/wireless-qrcode-modal.lp?iface=%s&ap=%s\\");})</script>",curiface,curap)' \
+  -i /www/docroot/modals/wireless-modal.lp
+

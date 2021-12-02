@@ -30,9 +30,8 @@ fi
 #  - mmpbx-sipdevice-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
 #  - mmpbx-statistics-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
 #  - speedservice-modal.lp
-#  - wireless-qrcode-modal.lp (fails with a nil password index error)
 echo [$SCRIPT]: Checking modal visibility
-for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal.lp\|mmpbx-sipdevice-modal.lp\|mmpbx-statistics-modal.lp\|speedservice-modal.lp\|wireless-qrcode-modal.lp\) )
+for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal.lp\|mmpbx-sipdevice-modal.lp\|mmpbx-statistics-modal.lp\|speedservice-modal.lp\) )
 do
   MODAL=$(basename $f)
   uci show web | grep -q "/modals/$MODAL"
