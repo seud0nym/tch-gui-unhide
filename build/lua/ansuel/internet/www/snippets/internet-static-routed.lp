@@ -74,7 +74,7 @@ local function validateIPv6(value,object,_)
   local valid,msg = post_helper.validateBoolean(value)
   if valid and value == "1" then
     if object.uci_wan6_addr == "" or object.uci_wan6_gw == "" or object.uci_wan6_prefix == "" then
-      return nil,"IPv6 Address,Gateway and LAN Prefix are required"
+      return nil,"IPv6 Address, Gateway and LAN Prefix are required"
     end
   end
   return valid,msg

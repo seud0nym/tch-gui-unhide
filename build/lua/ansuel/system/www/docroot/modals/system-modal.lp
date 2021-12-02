@@ -262,9 +262,9 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   }
   local html = {}
   html[#html + 1] = ui_helper.createButton(T"LAN Update",T"BOOTP","icon-exchange",bootp)
-  html[#html + 1] = ui_helper.createAlertBlock(T"Entering BOOTP,please wait...",bootp_alert)
+  html[#html + 1] = ui_helper.createAlertBlock(T"Entering BOOTP. Please wait...",bootp_alert)
   html[#html + 1] = ui_helper.createButton(T"SwitchBank",T"Switchover","icon-exchange",switchover)
-  html[#html + 1] = ui_helper.createAlertBlock(T"Switching bank,please wait...",switchover_alert)
+  html[#html + 1] = ui_helper.createAlertBlock(T"Switching bank. Please wait...",switchover_alert)
   ngx.print(html)
   ngx.print('\
 </fieldset>\

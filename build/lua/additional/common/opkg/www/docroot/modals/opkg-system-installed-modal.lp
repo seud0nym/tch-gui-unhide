@@ -38,7 +38,7 @@ ngx.print(ui_helper.createHeader(T"Packages",true,false))   ngx.print('\
   <div class="loading-wrapper hide"><img src="/img/spinner.gif" /></div>\
   <script>\
     function postAction(action,idx,name) {\
-      if (confirm("Are you really,really,really sure that you want to "+action+" "+name+"?")) {\
+      if (confirm("Are you really, really, really sure that you want to "+action+" "+name+"?")) {\
         var busy_msg = $(".loading-wrapper");\
         busy_msg.removeClass("hide");\
         busy_msg[0].scrollIntoView();\

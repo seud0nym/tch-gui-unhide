@@ -243,7 +243,7 @@ ngx.print('\
     },
   }
   if wsens and wsens[1].value == "1" then
-    html[#html + 1] = ui_helper.createAlertBlock(T"WAN Sensing may not inter-operate correctly with VLAN. Disable WAN Sensing and select Connection Mode first,before setting VLAN ID.",alertclass)
+    html[#html + 1] = ui_helper.createAlertBlock(T"WAN Sensing may not inter-operate correctly with VLAN. Disable WAN Sensing and select Connection Mode first, before setting VLAN ID.",alertclass)
   end
   html[#html + 1] = ui_helper.createSwitch(T"Using VLAN","intf_vlan",difname,vlanswitchclass)
   html[#html + 1] = ui_helper.createInputRadio(T"Notation","auswahlliste" ,liste,check,vlanidclass)

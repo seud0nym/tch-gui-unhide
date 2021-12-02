@@ -110,13 +110,13 @@ if not tabdata.current.ajax then
 
         html[#html + 1] = ui_helper.createAlertBlock(T"WAN Sensing sets the connection mode automatically when enabled.",info_box)
         if content["wsens"] == "1" then
-          html[#html + 1] = ui_helper.createAlertBlock(T"Disable WAN Sensing to set the connection mode manually.<br/>After saving the change,the connection mode options will be shown.",info_box)
+          html[#html + 1] = ui_helper.createAlertBlock(T"Disable WAN Sensing to set the connection mode manually.<br/>After saving the change, the connection mode options will be shown.",info_box)
         end
         html[#html+1] = ui_helper.createSwitch(T"WAN Sensing","wsens",content["wsens"],wsensswitchclass)
         if content["wsens"] == "0" then
           html[#html + 1] = ui_helper.createInputRadio(T"Connection Mode","newmode",mode_options,mode_current,mode_attributes)
           html[#html + 1] = ui_helper.createButton("",T"Apply Connection Mode","icon-cog",mode_button)
-          html[#html + 1] = ui_helper.createAlertBlock(T"You should apply the Connection Mode after disabling WAN Sensing,even if the required mode is already selected!",warn_box)
+          html[#html + 1] = ui_helper.createAlertBlock(T"You should apply the Connection Mode after disabling WAN Sensing, even if the required mode is already selected!",warn_box)
         end
       ngx.print(html)
       ngx.print('\
@@ -152,7 +152,7 @@ if not tabdata.current.ajax then
         }
         html[#html + 1] = ui_helper.createButton("Change Mode","Bridged","icon-cog",bridged_button)
         html[#html + 1] = '<div class="control-group controls">'
-        html[#html + 1] = ui_helper.createAlertBlock(T"Switching to <strong>Bridged Mode</strong> and restarting,please wait...",bridged_rebooting)
+        html[#html + 1] = ui_helper.createAlertBlock(T"Switching to <strong>Bridged Mode</strong> and restarting. Please wait...",bridged_rebooting)
         html[#html + 1] = ui_helper.createAlertBlock(T"Are you sure you want to switch to <strong>Bridged Mode</strong>?",bridged_confirming)
         html[#html + 1] = string.format([[
           <div id="bridged-changes" class="hide">
@@ -183,7 +183,7 @@ if not tabdata.current.ajax then
         }
         html[#html + 1] = ui_helper.createButton("Change Mode","Routed","icon-cog",routed_button)
         html[#html + 1] = '<div class="control-group controls">'
-        html[#html + 1] = ui_helper.createAlertBlock(T"Switching to <strong>Routed Mode</strong> and restarting,please wait...",routed_rebooting)
+        html[#html + 1] = ui_helper.createAlertBlock(T"Switching to <strong>Routed Mode</strong> and restarting. Please wait...",routed_rebooting)
         html[#html + 1] = ui_helper.createAlertBlock(T"Are you sure you want to switch back to <strong>Routed Mode</strong>?",routed_confirming)
         html[#html + 1] = string.format([[
           <div id="routed-changes" class="hide">

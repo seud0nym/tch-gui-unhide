@@ -1230,7 +1230,7 @@ ngx.print('\
               if adguard then
                 ngx.print(ui_helper.createAlertBlock(T"DNS Servers defined on this screen only affect what is provided to LAN client devices via DHCP. You should configure custom DNS Servers for the device in AdGuard Home.",info_attr))
               else
-                ngx.print(ui_helper.createAlertBlock(T"DNS Servers defined on this screen only affect what is provided to LAN client devices via DHCP. To configure custom DNS Servers for the device,use the DNS card.",info_attr))
+                ngx.print(ui_helper.createAlertBlock(T"DNS Servers defined on this screen only affect what is provided to LAN client devices via DHCP. To configure custom DNS Servers for the device, use the DNS card.",info_attr))
               end
               if dns_int and content["dnsServer"] ~= dns_int_dest_ip then
                 local warn_attr = {
@@ -1238,7 +1238,7 @@ ngx.print('\
                     class = "alert-danger"
                   },
                 }
-                ngx.print(ui_helper.createAlertBlock(T("DNS Intercept is enabled,so IPv4 Primary DNS should be set to '"..dns_int_dest_ip.."'."),warn_attr))
+                ngx.print(ui_helper.createAlertBlock(T("DNS Intercept is enabled, so IPv4 Primary DNS should be set to '"..dns_int_dest_ip.."'."),warn_attr))
               end
               ngx.print('\
             </div>\
@@ -1319,7 +1319,7 @@ ngx.print('\
                       }
                     }
                     ngx.print(
-                      ui_helper.createAlertBlock(T"The latest added/modified static lease is set to an IP that is already in use,please perform a reboot to apply the changes",confilictipchange_alert),
+                      ui_helper.createAlertBlock(T"The latest added/modified static lease is set to an IP that is already in use, please perform a reboot to apply the changes",confilictipchange_alert),
                       ui_helper.createTable(sleases_columns,sleases_data,sleases_options,nil,sleases_helpmsg))
                     ngx.print('\
               </fieldset>\
@@ -1356,7 +1356,7 @@ ngx.print('\
                 }
                 html[#html+1] = ui_helper.createButton("Bridged Mode","Bridged Mode","icon-cog",bridged_button)
                 html[#html+1] = string.format('<div class="control-group controls">')
-                html[#html+1] = ui_helper.createAlertBlock(T"Switching to <strong>Bridged Mode</strong> and restarting,please wait...",rebooting)
+                html[#html+1] = ui_helper.createAlertBlock(T"Switching to <strong>Bridged Mode</strong> and restarting. Please wait...",rebooting)
                 html[#html+1] = ui_helper.createAlertBlock(T"Are you sure you want to switch to <strong>Bridged Mode</strong>?",confirming)
                 html[#html+1] = string.format([[
                   <div id="bridged-changes" class="hide">

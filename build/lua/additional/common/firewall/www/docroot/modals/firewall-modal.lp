@@ -148,28 +148,28 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
           class = "alert-info monitor-fw_level monitor-lax"
         },
       }
-      html[#html+1] = ui_helper.createAlertBlock(T("In <strong>Low mode</strong>,the firewall will allow all outgoing connections. Unless the firewall is disabled,it will reject unknown incoming connections but acknowledge the presence of the firewall."),lax_attr)
+      html[#html+1] = ui_helper.createAlertBlock(T("In <strong>Low mode</strong>, the firewall will allow all outgoing connections. Unless the firewall is disabled, it will reject unknown incoming connections but acknowledge the presence of the firewall."),lax_attr)
 
       local normal_attr = {
         alert = {
           class = "alert-info monitor-fw_level monitor-normal"
         },
       }
-      html[#html+1] = ui_helper.createAlertBlock(T"In <strong>Normal mode</strong>,the firewall will allow all outgoing connections. Unless the firewall is disabled,it will silently drop unknown incoming connections.",normal_attr)
+      html[#html+1] = ui_helper.createAlertBlock(T"In <strong>Normal mode</strong>, the firewall will allow all outgoing connections. Unless the firewall is disabled, it will silently drop unknown incoming connections.",normal_attr)
 
       local high_attr = {
         alert = {
           class = "alert-info monitor-fw_level monitor-high"
         },
       }
-      html[#html+1] = ui_helper.createAlertBlock(T"In <strong>High mode</strong>,the firewall will allow outgoing connections to the following services: HTTP,HTTPS,SMTP,POP3,IMAP,SSH. Unless the firewall is disabled,it will silently drop unknown incoming connections. This may impact on web services like Internet Speed Tests.",high_attr)
+      html[#html+1] = ui_helper.createAlertBlock(T"In <strong>High mode</strong>, the firewall will allow outgoing connections to the following services: HTTP,HTTPS,SMTP,POP3,IMAP,SSH. Unless the firewall is disabled, it will silently drop unknown incoming connections. This may impact on web services like Internet Speed Tests.",high_attr)
 
       local user_attr = {
         alert = {
           class = "alert-info monitor-fw_level monitor-user"
         },
       }
-      html[#html+1] = ui_helper.createAlertBlock(T"In <strong>User Defined mode</strong>,you can configure individual rules for the firewall as well as the default behavior.",user_attr)
+      html[#html+1] = ui_helper.createAlertBlock(T"In <strong>User Defined mode</strong>, you can configure individual rules for the firewall as well as the default behavior.",user_attr)
 
       local outgoing_attr = {
         group = {

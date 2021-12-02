@@ -203,7 +203,7 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
         class = "alert-info"
       },
     }
-    ngx.print(ui_helper.createAlertBlock(T"DNS hijacking only applies to IPv4 DNS requests. IPv6 DNS hijacking requires a NAT6 kernel module that is not available for this device.<br>However,IPv6 DNS-over-TLS and DNS-over-HTTPS ARE intercepted and blocked if enabled.",info_attr))
+    ngx.print(ui_helper.createAlertBlock(T"DNS hijacking only applies to IPv4 DNS requests. IPv6 DNS hijacking requires a NAT6 kernel module that is not available for this device.<br>However, IPv6 DNS-over-TLS and DNS-over-HTTPS ARE intercepted and blocked if enabled.",info_attr))
     local enabled_attr = {
       input = {
         class = "monitor-changes"

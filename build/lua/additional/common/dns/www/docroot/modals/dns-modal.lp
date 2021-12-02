@@ -295,7 +295,7 @@ ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
     <fieldset class="interface-dns">\
       <legend>'); ngx.print(T"Interface DNS Servers"); ngx.print('</legend>\
       ');
-      ngx.print(ui_helper.createAlertBlock(T"If you turn off Auto-Discovery,you <b>MUST</b> add at least one Custom DNS Server,otherwise your setting will be ignored!",{alert={class="alert alert-warn"}}))
+      ngx.print(ui_helper.createAlertBlock(T"If you turn off Auto-Discovery, you <b>MUST</b> add at least one Custom DNS Server, otherwise your setting will be ignored!",{alert={class="alert alert-warn"}}))
       ngx.print('\
         <legend><small>'); ngx.print(T"WAN Interface DNS Servers"); ngx.print('</small></legend>\
       ');

@@ -533,7 +533,7 @@ ngx.print('\
       html[#html+1] = "<legend><small>"..T"Peers".."</small></legend>"
       html[#html+1] = ui_helper.createTable(peer_columns,peer_data,peer_options,nil,peer_helpmsg)
       if new_peer then
-        html[#html+1] = ui_helper.createAlertBlock(T("Peer configuration is ONLY displayed on creation,because peer private keys are not stored and therefore the configuration cannot be regenerated. Click 'refresh data' above to clear configuration and add another peer."),{ alert = { id = "new-peer-alert",class = "alert-danger" } })
+        html[#html+1] = ui_helper.createAlertBlock(T("Peer configuration is ONLY displayed on creation, because peer private keys are not stored and therefore the configuration cannot be regenerated. Click 'refresh data' above to clear configuration and add another peer."),{ alert = { id = "new-peer-alert",class = "alert-danger" } })
         html[#html+1] = '<script src="/js/qrcode.min.js"></script>'
         html[#html+1] = "<div style='float:right;'>"
         html[#html+1] = " <a id='wg-peer-config-download'>Download "..new_peer.name..".conf</a>"

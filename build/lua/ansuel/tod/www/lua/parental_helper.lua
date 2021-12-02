@@ -57,10 +57,10 @@ local function validateTime(value,object,key)
        local hour = tonumber(time[1])
        local min = tonumber(time[2])
        if hour < 0 or hour > 23 then
-          return nil,T"Invalid hour,must be between 0 and 23"
+          return nil,T"Invalid hour, must be between 0 and 23"
        end
        if min < 0 or min > 59 then
-          return nil,T"Invalid minutes,must be between 0 and 59"
+          return nil,T"Invalid minutes, must be between 0 and 59"
        end
        if key == "stop_time" then
           local start = gsub(untaint(object["start_time"]),":","")

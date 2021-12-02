@@ -217,7 +217,7 @@ local function validateUsername(value,postdata)
   content_helper.getExactContent(content_uci)
   if content_uci["wan_domain"] ~= "" then
     if find(value,"@") then
-      return nil,T"Invalid username,domain locked"
+      return nil,T"Invalid username, domain locked"
     end
     postdata["uci_wan_username"] = format('%s@%s',value,content_uci["wan_domain"])
   end
