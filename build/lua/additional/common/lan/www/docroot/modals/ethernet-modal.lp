@@ -233,7 +233,7 @@ local sleases_columns = {
     param = "mac",
     type = "select",
     values = hosts_mac,
-    attr = { input = { class="span2",maxlength="17",id="lease_mac" },autocomplete=hosts_mac },
+    attr = { select = { class="span2",maxlength="17",id="lease_mac",style="width:150px" },autocomplete=hosts_mac },
     unique = true,
   },
   {
@@ -241,7 +241,7 @@ local sleases_columns = {
     name = "sleases_ip",
     param = "ip",
     type = "text",
-    attr = { input = { class="span2",maxlength="15" },autocomplete=hosts_ac },
+    attr = { input = { class="span2",maxlength="15",style="width:125px" },autocomplete=hosts_ac },
     unique = true,
   },
   {
@@ -256,7 +256,15 @@ local sleases_columns = {
     name = "sleases_tag",
     param = "tag",
     type = "select",
+    attr = { select = { class="span2",style="width:180px" },autocomplete=hosts_ac },
     values = tags,
+  },
+  {
+    header = T"Add to DNS&nbsp;<span class='icon-question-sign' title='Add static forward and reverse DNS entries for this host, so that the host name resolves even when lease is not active.'></span>",
+    name = "sleases_dns",
+    param = "dns",
+    type = "switch",
+    default = "0",
   },
   {
     header = "",
@@ -460,7 +468,7 @@ if ngx.var.request_method == "POST" then
           name = "sleases_mac",
           param = "mac",
           type = "text",
-          attr = { input = { class="span2",maxlength="17",id= "lease_mac",value = text_mac }},
+          attr = { input = { class="span2",maxlength="17",style="width:150px",id="lease_mac",value=text_mac }},
           unique = true,
         }
       end
@@ -1466,7 +1474,7 @@ $(function() {\
 });\
 $("[name =\'sleases_mac\']").change(function () {\
   if ((this.value) == "custom") {\
-    $(this).replaceWith($(\'<input/>\',{\'type\':\'text\',\'name\':\'sleases_mac\'}));\
+    $(this).replaceWith($(\'<input/>\',{\'type\':\'text\',\'name\':\'sleases_mac\',\'style\':\'width:140px\'}));\
   }\
 });\
 ');  if dhcpDefaultExist then ngx.print('\
