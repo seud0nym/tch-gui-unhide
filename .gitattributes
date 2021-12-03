@@ -1,5 +1,7 @@
 * text eol=lf
 
+*.ipk binary eol=unset
+
 *.gif binary eol=unset
 *.ico binary eol=unset
 *.png binary eol=unset

@@ -19,3 +19,15 @@ sed \
   -e '/qos-swshaper-modal.lp/d' \
   -i /www/snippets/tabs-qos.lp
 
+if [ ! -f /usr/sbin/tc ]; then
+  echo [$SCRIPT]: tc command not found - installing
+  grep -qE '\ball\b' /etc/opkg.conf || echo "arch all 1">>/etc/opkg.conf
+  grep -qE '\bnoarch\b' /etc/opkg.conf || echo "arch noarch 1">>/etc/opkg.conf
+  grep -qE '\barm_cortex-a9\b' /etc/opkg.conf || echo "arch arm_cortex-a9 10">>/etc/opkg.conf
+  grep -qE '\barm_cortex-a9_neon\b' /etc/opkg.conf || echo "arch arm_cortex-a9_neon 20">>/etc/opkg.conf
+  grep -qE '\bbrcm63xx-tch\b' /etc/opkg.conf || echo 'arch brcm63xx-tch 30'>>/etc/opkg.conf
+  grep -qE '\bbcm53xx\b' /etc/opkg.conf || echo 'arch bcm53xx 40'>>/etc/opkg.conf
+  opkg --force-depends install /tmp/tc_4.0.0-1_bcm53xx.ipk 2>/dev/null
+fi
+[ -f /tmp/tc_4.0.0-1_bcm53xx.ipk ] && rm /tmp/tc_4.0.0-1_bcm53xx.ipk
+
