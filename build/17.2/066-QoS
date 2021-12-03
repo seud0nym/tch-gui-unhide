@@ -2,6 +2,7 @@ echo [$SCRIPT]: Fix QoS card for 17.2 FW
 sed \
   -e '/-- NOT 17\.2[ \t]*$/d' \
   -e '/-- NOT 17\.2 START/,/-- NOT 17\.2 END/d' \
+  -e 's/qos-swshaper-modal/qos-mqos-modal/' \
   -i /www/cards/008_qos.lp
 
 echo [$SCRIPT]: Fix QoS classify modal for 17.2 FW
