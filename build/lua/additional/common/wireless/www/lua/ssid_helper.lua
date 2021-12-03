@@ -116,7 +116,12 @@ function M.getWiFiCardHTML()
       bs_lan = "enabled"
     end
     if i <= 5 then
-      local state = format("<span class='modal-link' data-toggle='modal' data-remote='/modals/wireless-qrcode-modal.lp?iface=%s&ap=%s' data-id='wireless-qrcode-modal' title='Click to display QR Code'%s>%s</span>",v.iface,ap[v.iface],hidden[v.iface],v.ssid)
+      local state
+      if v.iface and ap[v.iface] then
+        state = format("<span class='modal-link' data-toggle='modal' data-remote='/modals/wireless-qrcode-modal.lp?iface=%s&ap=%s' data-id='wireless-qrcode-modal' title='Click to display QR Code'%s>%s</span>",v.iface,ap[v.iface],hidden[v.iface],v.ssid)
+      else
+        state = v.ssid
+      end
       if v.tx_power_adjust and v.tx_power_adjust ~= "" and v.tx_power_adjust ~= "0" then
         state = format("%s&nbsp;<span style='color:gray;font-size:xx-small;'>%s dBm</span>",state,v.tx_power_adjust)
       end
