@@ -80,15 +80,17 @@ function M.getSSIDList()
   return ssid_list
 end
 
-function M.getWiFiCardHTML() 
+function M.getWiFiCardHTML()
   local ssid_list = M.getSSIDList()
   local bs_lan = "disabled"
   local html = {}
   local bs = {}
+  local ap = {}
+  local hidden = {}
 
   for _,v in ipairs(proxy.getPN("uci.wireless.wifi-ap.",true)) do
     local path = v.path
-    local values = proxy.get(path.."iface",path.."bandsteer_id")
+    local values = proxy.get(path.."iface",path.."bandsteer_id",path.."public")
     local iface = untaint(values[1].value)
     local bs_id = values[2].value
     if bs_id == "" or bs_id == "off" then
@@ -101,6 +103,12 @@ function M.getWiFiCardHTML()
         bs[iface] = "1"
       end
     end
+    ap[iface] = match(path,".*@([^.]*)")
+    if values[3].value == "0" then
+      hidden[iface] = " style='color:gray'"
+    else
+      hidden[iface] = ""
+    end
   end
 
   for i,v in ipairs(ssid_list) do
@@ -108,11 +116,11 @@ function M.getWiFiCardHTML()
       bs_lan = "enabled"
     end
     if i <= 5 then
-      if not v.tx_power_adjust or v.tx_power_adjust == "" or v.tx_power_adjust == "0" then
-        html[#html+1] = ui_helper.createSimpleLight(v.state or "0",v.ssid)
-      else
-        html[#html+1] = ui_helper.createSimpleLight(v.state or "0",format("<span>%s</span> <span style='color:gray;font-size:xx-small;'>%s dBm</span>",v.ssid,v.tx_power_adjust))
+      local state = format("<span class='modal-link' data-toggle='modal' data-remote='/modals/wireless-qrcode-modal.lp?iface=%s&ap=%s' data-id='wireless-qrcode-modal' title='Click to display QR Code'%s>%s</span>",v.iface,ap[v.iface],hidden[v.iface],v.ssid)
+      if v.tx_power_adjust and v.tx_power_adjust ~= "" and v.tx_power_adjust ~= "0" then
+        state = format("%s&nbsp;<span style='color:gray;font-size:xx-small;'>%s dBm</span>",state,v.tx_power_adjust)
       end
+      html[#html+1] = ui_helper.createSimpleLight(v.state or "0",state)
     end
   end
 
