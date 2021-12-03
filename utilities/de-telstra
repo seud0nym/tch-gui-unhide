@@ -1160,6 +1160,7 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
           echo 'arch arm_cortex-a9 10'>>/etc/opkg.conf
           echo 'arch arm_cortex-a9_neon 20'>>/etc/opkg.conf
           echo 'arch brcm63xx-tch 30'>>/etc/opkg.conf
+          echo 'arch bcm53xx 40'>>/etc/opkg.conf
           if [ $OPKG_DEP -gt 0 ]; then
             sed -e '/macoers/d' -i /etc/opkg/customfeeds.conf
             echo [$SCRIPT]: Re-configuring opkg for Homeware $HOMEWARE \(repository moved\)...
@@ -1212,6 +1213,7 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
       fi
     else
       echo [$SCRIPT]: Looks like opkg has already been configured...
+      grep -qE '\bbcm53xx\b' /etc/opkg.conf || echo 'arch bcm53xx 40'>>/etc/opkg.conf
     fi
   else
     echo [$SCRIPT]: Sorry!! I can only configure opkg for ARMv7 devices...

@@ -258,6 +258,7 @@ else
         echo "arch arm_cortex-a9 10">>/etc/opkg.conf
         echo "arch arm_cortex-a9_neon 20">>/etc/opkg.conf
         echo "arch brcm63xx-tch 30">>/etc/opkg.conf
+        echo 'arch bcm53xx 40'>>/etc/opkg.conf
         case "$HOMEWARE" in
           17) cat <<-HW17 | sed -e 's/^[ \t]*//g' > /etc/opkg/customfeeds.conf
             src/gz base https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/base
@@ -276,6 +277,9 @@ HW17
             src/gz chaos_calmer_telephony_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony
             src/gz chaos_calmer_core_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages
 HW18
+            if [ "$HOMEWARE" ] == "20" then
+              "echo 'src/gz wg_go https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/repository/arm_cortex-a9/base' >> /etc/opkg/customfeeds.conf
+            end
 ;;
         esac
         sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf

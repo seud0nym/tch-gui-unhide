@@ -374,7 +374,8 @@ GUI_OPKG_.set = {
         echo 'arch noarch 1'>>/etc/opkg.conf;\
         echo 'arch arm_cortex-a9 10'>>/etc/opkg.conf;\
         echo 'arch arm_cortex-a9_neon 20'>>/etc/opkg.conf;\
-        echo 'arch brcm63xx-tch 30'>>/etc/opkg.conf;")
+        echo 'arch brcm63xx-tch 30'>>/etc/opkg.conf;\
+        echo 'arch bcm53xx 40'>>/etc/opkg.conf;")
       if fw_version == "17.2" then
         os.execute("rm /etc/opkg/customfeeds.conf;\
           echo 'src/gz base https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/base'>/etc/opkg/customfeeds.conf;\
