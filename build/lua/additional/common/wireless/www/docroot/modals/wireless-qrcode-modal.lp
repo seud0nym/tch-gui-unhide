@@ -7,45 +7,46 @@ local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
 local untaint_mt = require("web.taint").untaint_mt
 local wireless_qr = require("wireless_qr")
-
+local format,match,toupper = string.format,string.match,string.upper
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
-local format = string.format
 
 local getargs = ngx.req.get_uri_args()
 local getiface = format("%s",getargs.iface or "wl0")
 local getap = format("%s",getargs.ap or "ap0")
-local ifacepath = "uci.wireless.wifi-iface.@"
-local appath = "uci.wireless.wifi-ap.@"
-
-local secmodes = setmetatable({
-     ["none"] =  "nopass" ,
-     ["wpa2-psk"] = "WPA",
-     ["wpa-wpa2-psk"] = "WPA",
-     ["wpa2"] = "WPA",
-     ["wpa-wpa2"] =  "WPA",
-     ["wep"] =  "WEP",
-},untaint_mt)
+local ifacepath = "uci.wireless.wifi-iface.@"..getiface
+local appath = "uci.wireless.wifi-ap.@"..getap
 
 local content = {
-    ssid = ifacepath .. getiface .. ".ssid",
-    device = ifacepath .. getiface .. ".device",
-    secmode = appath .. getap .. ".security_mode",
-    wepkey = appath .. getap .. ".wep_key",
-    wpakey = appath .. getap .. ".wpa_psk_key",
-    public = appath .. getap .. ".public",
+  ssid = ifacepath..".ssid",
+  device = ifacepath..".device",
+  secmode = appath..".security_mode",
+  wepkey = appath..".wep_key",
+  wpakey = appath..".wpa_psk_key",
+  public = appath..".public",
 }
 content_helper.getExactContent(content)
 
+local secmodes = setmetatable({
+  ["none"] =  "nopass" ,
+  ["wpa2-psk"] = "WPA",
+  ["wpa-wpa2-psk"] = "WPA",
+  ["wpa2"] = "WPA",
+  ["wpa-wpa2"] =  "WPA",
+  ["wep"] =  "WEP",
+},untaint_mt)
+
 local keypassphrases = setmetatable({
-    ["none"] = "" ,
-    ["wpa2-psk"] = content.wpakey,
-    ["wpa-wpa2-psk"] = content.wpakey,
-    ["wep"] = content.wepkey,
+  ["none"] = "",
+  ["wpa2-psk"] = content.wpakey,
+  ["wpa-wpa2-psk"] = content.wpakey,
+  ["wep"] = content.wepkey,
 },untaint_mt)
 
 local wlanconfstr = wireless_qr.format(content,secmodes,keypassphrases,false)
-local mode,ssid,password,hidden = string.match(wlanconfstr,"WIFI:T:([^:]+);S:([^:]+);P:([^:]+);H:([^:]+);;")
+local password,hidden = match(wlanconfstr,"WIFI:T:[^:]+;S:[^:]+;P:([^:]+);H:([^:]+);;")
+local ssid = untaint(content.ssid)
+local secmode = toupper(untaint(content.secmode))
 
 local monitor_attr = {
   input = {
@@ -54,7 +55,7 @@ local monitor_attr = {
 }
 
 ngx.print('\
-'); ngx.print(ui_helper.createHeader(untaint(ssid),false,false)); ngx.print('\
+'); ngx.print(ui_helper.createHeader(ssid,false,false)); ngx.print('\
 <div class="modal-body update">\
   <form class="form-horizontal" method="post" action="modals/wireless-qrcode-modal.lp">\
     <fieldset id="printable">\
@@ -62,20 +63,22 @@ ngx.print('\
         <img src="/img/Wi-Fi-Logo.png" style="height:120px" class="monitor-logo monitor-1">\
         <br>\
         <div class="monitor-ssid monitor-1">\
-          WiFi Network:\
           <br>\
-          <h2>'); ngx.print(T(ssid)); ngx.print('</h2>\
+          WiFi Network:\
+          <h2>');
+            ngx.print(ssid);
+            if hidden == "true" then
+              ngx.print('<br><i><small>(Hidden)</small></i>')
+            end
+            ngx.print('</h2>\
           ')
-          if hidden == "true" then
-            ngx.print('<br><i><small>(Hidden)</small></i>')
-          end
           ngx.print('\
           <br>\
         </div>\
         <div id="qrcode"></div>\
         <div class="monitor-password monitor-1">\
           <br>\
-          Password: <strong>'); ngx.print(T(password)); ngx.print('</strong> Mode: '); ngx.print(T(mode)); ngx.print('\
+          Password: <strong>'); ngx.print(password); ngx.print('</strong> Mode: '); ngx.print(secmode); ngx.print('\
         </div>\
         <br>\
       <center>\
@@ -95,7 +98,7 @@ ngx.print('\
 <script src="/js/qrcode-min.js"></script>\
 <script>\
 $(function(){\
-    let wlanconfstr = "');  ngx.print(wlanconfstr); ngx.print('";\
+    let wlanconfstr = "'); ngx.print(wlanconfstr); ngx.print('";\
     let typeNumber = 8;\
     let errorCorrectLevel = \'M\';\
     let qr = qrcode(typeNumber,errorCorrectLevel);\
