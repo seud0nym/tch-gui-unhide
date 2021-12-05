@@ -14,22 +14,22 @@ local session = ngx.ctx.session
 local modal_link = ""
 local devic_link = ""
 local shape_link = "" -- NOT 17.2
-local mqos_link  = ""
+local bqos_link  = ""
 local iqos_link  = ""
 
 if session:hasAccess("/modals/qos-queue-modal.lp") and session:hasAccess("/modals/qos-classify-modal.lp") then
-  modal_link = "/modals/qos-mqos-modal.lp"
+  modal_link = "/modals/qos-bqos-modal.lp"
   devic_link = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-device-modal.lp" data-id="qos-modal"'
   shape_link = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-swshaper-modal.lp" data-id="qos-modal"' -- NOT 17.2
-  mqos_link  = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-mqos-modal.lp" data-id="qos-modal"'
+  bqos_link  = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-bqos-modal.lp" data-id="qos-modal"'
   iqos_link  = 'class="modal-link" data-toggle="modal" data-remote="modals/qos-iqos-modal.lp" data-id="qos-modal"'
 end
 
 local dataQoS = {
   qos_enabled = "rpc.gui.qos.qos_enabled",
   iqos_enabled = "rpc.gui.qos.iqos_enabled",
-  mqos_enabled = "uci.mqos.global.enabled",
-  mqos_devices = "uci.mqos.deviceNumberOfEntries",
+  bqos_enabled = "uci.bqos.global.enabled",
+  bqos_devices = "uci.bqos.deviceNumberOfEntries",
   numShapers = "uci.qos.swshaperNumberOfEntries",-- NOT 17.2
 }
 content_helper.getExactContent(dataQoS)
@@ -81,11 +81,11 @@ ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf072;">\
       <div class="divtable">\
       ');
-      ngx.print(ui_helper.createSimpleLight(dataQoS.mqos_enabled,format("<strong %1$s>Bandwidth Shaping</strong> %2$s",mqos_link,status[untaint(dataQoS.mqos_enabled)])))
-      if dataQoS.mqos_enabled == "1" then
+      ngx.print(ui_helper.createSimpleLight(dataQoS.bqos_enabled,format("<strong %1$s>Bandwidth Shaping</strong> %2$s",bqos_link,status[untaint(dataQoS.bqos_enabled)])))
+      if dataQoS.bqos_enabled == "1" then
         ngx.print(
           '<p class="subinfos">',
-          format(N("<strong %1$s>%2$d MAC Address</strong> shaped","<strong %1$s>%2$d MAC Addresses</strong> shaped",dataQoS.mqos_devices),mqos_link,dataQoS.mqos_devices),
+          format(N("<strong %1$s>%2$d MAC Address</strong> shaped","<strong %1$s>%2$d MAC Addresses</strong> shaped",dataQoS.bqos_devices),bqos_link,dataQoS.bqos_devices),
           '</p>'
         )
       end

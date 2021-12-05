@@ -4,4 +4,4 @@
 [ "$ACTION" = "ifup" ] || exit 0
 [ "$INTERFACE" = "lan" ] || exit 0
 
-/etc/init.d/mqos start
+/etc/init.d/bqos start

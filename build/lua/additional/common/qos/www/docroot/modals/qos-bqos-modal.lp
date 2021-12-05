@@ -27,31 +27,31 @@ end
 hosts_mac[#hosts_mac+1] = {"custom",T"custom"}
 
 local mapParam = {
-  mqos_enabled = "uci.mqos.global.enabled",
-  mqos_download = "uci.mqos.global.download",
-  mqos_upload = "uci.mqos.global.upload",
-  mqos_r2q = "uci.mqos.global.r2q",
+  bqos_enabled = "uci.bqos.global.enabled",
+  bqos_download = "uci.bqos.global.download",
+  bqos_upload = "uci.bqos.global.upload",
+  bqos_r2q = "uci.bqos.global.r2q",
 }
 
 local mapValid = {
-  mqos_enabled = vB,
-  mqos_download = vPN,
-  mqos_upload = vPN,
-  mqos_r2q = vPN,
+  bqos_enabled = vB,
+  bqos_download = vPN,
+  bqos_upload = vPN,
+  bqos_r2q = vPN,
 }
 
 local content,helpmsg = post_helper.handleQuery(mapParam,mapValid)
-if content["mqos_enabled"] == "" then
-  content["mqos_enabled"] = "0"
+if content["bqos_enabled"] == "" then
+  content["bqos_enabled"] = "0"
 end
-if content["mqos_download"] == "" then
-  content["mqos_download"] = "50"
+if content["bqos_download"] == "" then
+  content["bqos_download"] = "50"
 end
-if content["mqos_upload"] == "" then
-  content["mqos_upload"] = "20"
+if content["bqos_upload"] == "" then
+  content["bqos_upload"] = "20"
 end
-if content["mqos_r2q"] == "" then
-  content["mqos_r2q"] = "35"
+if content["bqos_r2q"] == "" then
+  content["bqos_r2q"] = "35"
 end
 
 local device_columns = {
@@ -77,14 +77,14 @@ local device_columns = {
     name = "download",
     param = "download",
     type = "text",
-    attr = { input = { type = "number",min = "1",max = content["mqos_download"],class="span2",style = "width:50px" } },
+    attr = { input = { type = "number",min = "1",max = content["bqos_download"],class="span2",style = "width:50px" } },
   },
   { --[4]
     header = T"Max Upload (Mbit/s)",
     name = "upload",
     param = "upload",
     type = "text",
-    attr = { input = { type = "number",min = "1",max = content["mqos_upload"],class="span2",style = "width:50px" } },
+    attr = { input = { type = "number",min = "1",max = content["bqos_upload"],class="span2",style = "width:50px" } },
   },
   { --[5]
     header = T"Enabled",
@@ -108,12 +108,12 @@ local device_valid = {
 }
 local device_options = {
   tableid = "devices",
-  basepath = "uci.mqos.device.@.",
+  basepath = "uci.bqos.device.@.",
   createMsg = T"Add Device",
   addNamedObject = true,
   canEdit = true,
   onAdd = function(index,values)
-    local base="uci.mqos.device.@"..index
+    local base="uci.bqos.device.@"..index
     proxy.set(base..".enabled",untaint(values["enabled"]))
     proxy.set(base..".mac",untaint(values["mac"]))
     proxy.set(base..".download",untaint(values["download"]))
@@ -164,7 +164,7 @@ local switch_attr = {
 }
 local rate_attr = {
   group = {
-    class ="monitor-mqos_enabled monitor-1",
+    class ="monitor-bqos_enabled monitor-1",
   },
   input = {
     type = "number",
@@ -174,7 +174,7 @@ local rate_attr = {
 }
 local r2q_attr = {
   group = {
-    class ="monitor-mqos_enabled monitor-1",
+    class ="monitor-bqos_enabled monitor-1",
   },
   input = {
     type = "number",
@@ -185,7 +185,7 @@ local r2q_attr = {
 }
 local info_box = {
   alert = {
-    class = "alert alert-info monitor-mqos_enabled monitor-1",
+    class = "alert alert-info monitor-bqos_enabled monitor-1",
     style = "text-align:center",
   }
 }
@@ -206,18 +206,18 @@ ngx.print(ui_helper.createHeader(T"QoS",false)); ngx.print('\
       ')
       ngx.print(
         ui_helper.createAlertBlock(T"Bandwidth shaping will cause <B>ALL</B> traffic between LAN clients and the Gateway to be limited to the specified Global Download/Upload rates, so should not be used if the Gateway is being for services such as <B>File Sharing</B>. Traffic <I>between</I> LAN clients is unaffected and will still run at normal LAN speeds.<BR>Bandwidth shaping can also increase CPU utilisation, and may not be suitable for connections above 100Mbit/s.",warn_box),
-        ui_helper.createSwitch(T"Enabled","mqos_enabled",content["mqos_enabled"],switch_attr,helpmsg["mqos_enabled"]),
-        ui_helper.createInputText(T"Global Download Mbit/s","mqos_download",content["mqos_download"],rate_attr,helpmsg["mqos_download"]),
-        ui_helper.createInputText(T"Global Upload Mbit/s","mqos_upload",content["mqos_upload"],rate_attr,helpmsg["mqos_upload"]),
-        ui_helper.createInputText(T"Global r2q<span class='icon-question-sign' title='If you see kernel messages like \"HTB: quantum of class 20001 is big. Consider r2q change.\", increase this value by 5 and restart until the message stops. The default value is 35.'></span>","mqos_r2q",content["mqos_r2q"],r2q_attr,helpmsg["mqos_r2q"]),
+        ui_helper.createSwitch(T"Enabled","bqos_enabled",content["bqos_enabled"],switch_attr,helpmsg["bqos_enabled"]),
+        ui_helper.createInputText(T"Global Download Mbit/s","bqos_download",content["bqos_download"],rate_attr,helpmsg["bqos_download"]),
+        ui_helper.createInputText(T"Global Upload Mbit/s","bqos_upload",content["bqos_upload"],rate_attr,helpmsg["bqos_upload"]),
+        ui_helper.createInputText(T"Global r2q<span class='icon-question-sign' title='If you see kernel messages like \"HTB: quantum of class 20001 is big. Consider r2q change.\", increase this value by 5 and restart until the message stops. The default value is 35.'></span>","bqos_r2q",content["bqos_r2q"],r2q_attr,helpmsg["bqos_r2q"]),
         ui_helper.createAlertBlock(T"To eliminate buffer bloat, set the Global Download/Upload rates slightly lower than your maximum.",info_box)
       )
       ngx.print('\
     </fieldset>\
     ')
-    if content["mqos_enabled"] == "1" then
+    if content["bqos_enabled"] == "1" then
       ngx.print('\
-      <fieldset class="control-group monitor-mqos_enabled monitor-1">\
+      <fieldset class="control-group monitor-bqos_enabled monitor-1">\
         <legend>'); ngx.print( T"Devices" ); ngx.print('</legend>\
         ')
         ngx.print(ui_helper.createTable(device_columns,device_data,device_options,nil,device_helpmsg))

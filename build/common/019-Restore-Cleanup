@@ -14,7 +14,7 @@
 
 if [ $RESTORE = y ]; then
   restore_www V
-  for f in /etc/tch-gui-unhide.ignored_release /etc/tch-gui-unhide.theme /etc/hotplug.d/iface/10-mqos /etc/init.d/mqos /usr/sbin/mqos
+  for f in /etc/tch-gui-unhide.ignored_release /etc/tch-gui-unhide.theme /etc/hotplug.d/iface/10-bqos /etc/init.d/bqos /usr/sbin/bqos
   do
     if [ -f "$f" ]; then
       if [ "$(dirname $f)" = "/etc/init.d" ]; then

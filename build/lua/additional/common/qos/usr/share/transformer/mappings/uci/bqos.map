@@ -1,0 +1,23 @@
+local config_bqos = "bqos"
+
+-- uci.bqos
+mapper("uci_1to1").registerConfigMap(config_bqos)
+
+-- uci.bqos.global
+local bqos_global = {
+  config = config_bqos,
+  section = "global",
+  type = "bqos",
+  options = { "enabled","download","upload","r2q" }
+}
+
+mapper("uci_1to1").registerSimpleMap(bqos_global)
+
+-- uci.bqos.device.{i}
+local bqos_device = {
+  config = config_bqos,
+  type = "device",
+  options = { "enabled","mac","download","upload" }
+}
+
+mapper("uci_1to1").registerNamedMultiMap(bqos_device)

@@ -3,7 +3,7 @@
 gettext.textdomain('webui-core')
 
 local items = {
-  {"qos-mqos-modal.lp",T"Bandwidth Shaping"},
+  {"qos-bqos-modal.lp",T"Bandwidth Shaping"},
   {"qos-iqos-modal.lp",T"Ingress QoS"},
   {"qos-device-modal.lp",T"Egress QoS"},
   {"qos-label-modal.lp",T"Labels"},

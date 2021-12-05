@@ -13,30 +13,31 @@ parse_device() {
   config_get download "$cfg" download
   config_get upload "$cfg" upload
   
-  /usr/sbin/mqos add $mac $download $upload
+  /usr/sbin/bqos add $mac $download $upload
 }
 
-mqos_start() {
-  local cfg="$1" enabled download upload
+bqos_start() {
+  local cfg="$1" enabled download upload r2q
   
   config_get_bool enabled "$cfg" enabled 0
   [ $enabled -eq 0 ] && return 0
   
-  config_get download "$cfg" download
-  config_get upload "$cfg" upload
+  config_get download "$cfg" download 50
+  config_get upload "$cfg" upload 20
+  config_get r2q "$cfg" r2q 35
   
-  mqos start $download $upload
+  /usr/sbin/bqos start $download $upload $r2q
   
   config_foreach parse_device device
 }
 
 start() {
-  /usr/sbin/mqos stop
+  /usr/sbin/bqos stop
   
-  config_load mqos
-  config_foreach mqos_start mqos
+  config_load bqos
+  config_foreach bqos_start bqos
 }
 
 stop() {
-  /usr/sbin/mqos stop
+  /usr/sbin/bqos stop
 }
