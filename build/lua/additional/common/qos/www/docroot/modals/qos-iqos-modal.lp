@@ -9,6 +9,16 @@ local uimessage_helper = require("web.uimessage_helper")
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
+local mapParam = {
+  iqos_enabled = "rpc.gui.qos.iqos_enabled",
+}
+
+local mapValid = {
+  iqos_enabled = post_helper.validateBoolean,
+}
+
+local content,helpmsg = post_helper.handleQuery(mapParam,mapValid)
+
 local rule_columns = {
   { --[1]
     header = T"Target",
@@ -56,6 +66,12 @@ ngx.print(ui_helper.createHeader(T"QoS",false)); ngx.print('\
 '); lp.include("tabs-qos.lp");ngx.print('\
   <form class="form-horizontal" method="post" action="'); ngx.print(uri); ngx.print('">\
   '); ngx.print(ui_helper.createMessages(uimessage_helper.popMessages())); ngx.print('\
+    <fieldset>\
+      <legend>'); ngx.print(T"Ingress QoS Control"); ngx.print('</legend>\
+      ')
+      ngx.print(ui_helper.createSwitch(T"Enabled","iqos_enabled",content["iqos_enabled"],nil,helpmsg["iqos_enabled"]))
+      ngx.print('\
+    </fieldset>\
     <fieldset>\
       <legend>'); ngx.print(T"BCM Ingress QoS Control Rules"); ngx.print('</legend>\
       ')

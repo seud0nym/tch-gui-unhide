@@ -38,6 +38,16 @@ for k,v in pairs(ifs) do
   end
 end
 
+local mapParam = {
+  qos_enabled = "rpc.gui.qos.qos_enabled",
+}
+
+local mapValid = {
+  qos_enabled = vB,
+}
+
+local content,helpmsg = post_helper.handleQuery(mapParam,mapValid)
+
 local options_group = {
   { "TO_LAN",T"LAN" },
   { "TO_WAN",T"WAN" },
@@ -183,14 +193,20 @@ ngx.print( ui_helper.createHeader(T"QoS",false) ); ngx.print('\
 '); lp.include("tabs-qos.lp") ngx.print('\
   <form class="form-horizontal" method="post" action="modals/qos-device-modal.lp">\
   ');  ngx.print(ui_helper.createMessages(message_helper.popMessages())); ngx.print('\
-  ')
-    local html = {}
-    html[#html+1] = "<fieldset>"
-    html[#html+1] =   "<legend>"..T"QoS Devices".."</legend>"
-    html[#html+1] =   ui_helper.createTable(device_columns,device_data,device_options,nil,device_helpMsg)
-    html[#html+1] = "</fieldset>"
-    ngx.print(html)
-    ngx.print('\
+    <fieldset>\
+      <legend>'); ngx.print(T"Egress QoS Control"); ngx.print('</legend>\
+      ')
+      ngx.print(ui_helper.createSwitch(T"Enabled","qos_enabled",content["qos_enabled"],nil,helpmsg["qos_enabled"]))
+    if content["qos_enabled"] == "1" then
+      ngx.print('\
+    </fieldset>\
+    <fieldset>\
+      <legend>'); ngx.print(T"QoS Interface Devices"); ngx.print('</legend>\
+      ')
+      ngx.print(ui_helper.createTable(device_columns,device_data,device_options,nil,device_helpMsg))
+    end
+      ngx.print('\
+    </fieldset>\
   </form>\
 </div>\
 <script>\

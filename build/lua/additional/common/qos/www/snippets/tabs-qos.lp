@@ -3,14 +3,14 @@
 gettext.textdomain('webui-core')
 
 local items = {
-  {"qos-swshaper-modal.lp",T"Traffic Shapers"},
-  {"qos-mqos-modal.lp",T"MAC Shaping"},
-  {"qos-device-modal.lp",T"Devices"},
+  {"qos-mqos-modal.lp",T"Bandwidth Shaping"},
+  {"qos-iqos-modal.lp",T"Ingress QoS"},
+  {"qos-device-modal.lp",T"Egress QoS"},
   {"qos-label-modal.lp",T"Labels"},
   {"qos-classify-modal.lp",T"Classify Rules"},
   {"qos-reclassify-modal.lp",T"Reclassify Rules"},
   {"qos-queue-modal.lp",T"Queues"},
-  {"qos-iqos-modal.lp",T"Ingress QoS"},
+  {"qos-swshaper-modal.lp",T"Traffic Shaping"},
 }
 
 local uri = ngx.var.uri

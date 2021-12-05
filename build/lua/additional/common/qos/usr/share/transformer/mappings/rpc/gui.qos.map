@@ -1,0 +1,60 @@
+local GUI_QOS_ = {
+  objectType = {
+    name = "rpc.gui.qos.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      qos_enabled = {
+        access = "readWrite",
+        type = "int"
+      },
+      iqos_enabled = {
+        access = "readWrite",
+        type = "string"
+      },
+    }
+  }
+}
+
+local function isEnabled(service)
+  local cmd = io.popen("/etc/init.d/"..service.." enabled; echo $?","r")
+  local state = cmd:read("*n")
+  cmd:close()
+  if state == 1 then
+    return "0"
+  end
+  return "1"
+end
+
+local function setServiceState(name, state)
+  local script = "/etc/init.d/"..name
+  if state == "0" then
+    os.execute(script.." disable;"..script.." stop;")
+  elseif state == "1" then
+    os.execute(script.." enable;"..script.." restart;")
+  else
+    return nil, "Invalid value ("..state..")"
+  end
+  return true
+end
+
+GUI_QOS_.get = {
+  qos_enabled = function()
+    return isEnabled("qos")
+  end,
+  iqos_enabled = function()
+    return isEnabled("iqos")
+  end,
+}
+
+GUI_QOS_.set = {
+  qos_enabled = function(_,_,value)
+    return setServiceState("qos", value)
+  end,
+  iqos_enabled = function(_,_,value)
+    return setServiceState("iqos", value)
+  end,
+}
+
+register(GUI_QOS_)

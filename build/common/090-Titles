@@ -14,7 +14,13 @@ else
 fi
 
 echo "[$SCRIPT]: Change 'Gateway' to '$VARIANT'"
-sed -e "s/Gateway/$VARIANT/g" -i /www/cards/001_gateway.lp
-sed -e "s/Gateway/$VARIANT/g" -i /www/cards/003_internet.lp
-sed -e "s/Device/$VARIANT/g" -i /www/docroot/modals/ethernet-modal.lp
+for f in /www/cards/001_gateway.lp /www/cards/003_internet.lp /www/docroot/modals/qos-mqos-modal.lp
+do 
+  sed -e "s/Gateway/$VARIANT/g" -i $f
+done
+echo "[$SCRIPT]: Change 'Device' to '$VARIANT'"
+for f in /www/docroot/modals/ethernet-modal.lp
+do 
+  sed -e "s/Device/$VARIANT/g" -i $f
+done
 

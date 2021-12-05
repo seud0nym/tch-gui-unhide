@@ -229,14 +229,27 @@ local function makeHTMLfor(rows)
   return sectionHTML
 end
 
+local info_box = {
+  alert = {
+    class = "alert alert-info",
+    style = "text-align:center",
+  }
+}
+
+local qos_enabled = proxy.get("rpc.gui.qos.qos_enabled")[1].value
+
 ngx.print(ui_helper.createHeader(T"QoS",false)); ngx.print('\
 <div class="modal-body">\
 '); lp.include("tabs-qos.lp") ngx.print('\
   <form class="form-horizontal" method="post" action="modals/qos-swshaper-modal.lp">\
   ');  ngx.print(ui_helper.createMessages(message_helper.popMessages())); ngx.print('\
     <fieldset>\
-      <legend>'); ngx.print(T"Traffic Shaper Profiles"); ngx.print('</legend>\
+      <legend>'); ngx.print(T"Egress Traffic Shaper Profiles"); ngx.print('</legend>\
       ')
+    if qos_enabled == "0" then
+      ngx.print(ui_helper.createLabel(T"Egress QoS","Disabled"))
+    else
+      ngx.print(ui_helper.createAlertBlock(T"Traffic shaping allows you to specify different egress shaping profiles for each interface. It will <I>NOT</I> resolve issues such as buffer bloat.",info_box))
       ngx.print(ui_helper.createTable(shaper_columns,shaper_data,shaper_options,nil,shaper_helpMsg))
       ngx.print('\
     </fieldset>\
@@ -253,6 +266,7 @@ ngx.print(ui_helper.createHeader(T"QoS",false)); ngx.print('\
       <legend>'); ngx.print(T"Upload Shaping"); ngx.print('</legend>\
       ')
       ngx.print(makeHTMLfor(group.TO_WAN))
+    end
       ngx.print('\
     </fieldset>\
   </form>\

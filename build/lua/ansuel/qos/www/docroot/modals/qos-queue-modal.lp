@@ -383,70 +383,77 @@ if ngx.var.args and string.len(ngx.var.args) > 0 then
   uri = uri.."?"..ngx.var.args
 end
 
+local qos_enabled = proxy.get("rpc.gui.qos.qos_enabled")[1].value
+
 ngx.print( ui_helper.createHeader(T"QoS",false) ); ngx.print('\
 <div class="modal-body update">\
   ');  lp.include("tabs-qos.lp")   ngx.print('\
   <form class="form-horizontal" method="post" action="'); ngx.print(uri); ngx.print('">\
   '); ngx.print( ui_helper.createMessages(uimessage_helper.popMessages()) )
 	local html = {}
-	
-  html[#html+1] = "<fieldset>"
-  html[#html+1] =   "<legend>".. T"QoS Queue Scheduling on Interface WAN".."</legend>"
 
-	if content["wan_queues_enabled"] then
-		html[#html+1] =     ui_helper.createSwitch(T"Enabled","wan_queues_enabled",content["wan_queues_enabled"])
-	elseif proxy.get("uci.qos.device.@eth4.enable") then
-		html[#html + 1] = ui_helper.createCheckboxGroup(T"QoS WAN Status","wandevices",wandevices,wandevices_checked,{checkbox = { class="inline" }},nil)
-	end
-  html[#html+1] =     ui_helper.createInputSelect(T"Algorithm","wan_queues_policy",policy_options,content["wan_queues_policy"])
-  html[#html+1] =     ui_helper.createInputSelect(T"Default Queue","wan_queues_default",wan_queue_options,content["wan_queues_default"])
+  if qos_enabled == "0" then
+    html[#html+1] = "<fieldset>"
+    html[#html+1] =   "<legend>".. T"QoS Queue Scheduling".."</legend>"
+    html[#html+1] =   ui_helper.createLabel(T"Egress QoS","Disabled")
+    html[#html+1] = "</fieldset>"
+  else
+    html[#html+1] = "<fieldset>"
+    html[#html+1] =   "<legend>".. T"QoS Queue Scheduling on Interface WAN".."</legend>"
 
-  html[#html+1] =   "<legend><small>"..T"QoS Queues on Interface WAN".."</small></legend>"
-	html[#html+1] =   	ui_helper.createTable(classes_columns,wan_classes_data,wan_classes_options,nil,wan_classes_helpmsg)
-  html[#html+1] = "</fieldset>"
+    if content["wan_queues_enabled"] then
+      html[#html+1] =     ui_helper.createSwitch(T"Enabled","wan_queues_enabled",content["wan_queues_enabled"])
+    elseif proxy.get("uci.qos.device.@eth4.enable") then
+      html[#html + 1] = ui_helper.createCheckboxGroup(T"QoS WAN Status","wandevices",wandevices,wandevices_checked,{checkbox = { class="inline" }},nil)
+    end
+    html[#html+1] =     ui_helper.createInputSelect(T"Algorithm","wan_queues_policy",policy_options,content["wan_queues_policy"])
+    html[#html+1] =     ui_helper.createInputSelect(T"Default Queue","wan_queues_default",wan_queue_options,content["wan_queues_default"])
 
-  html[#html+1] = "<fieldset>"
-  html[#html+1] =   "<legend>"..T"QoS Queue Scheduling on Interface LAN".."</legend>"
-	
-	if content["lan_queues_enabled"] then
-		html[#html+1] =     ui_helper.createSwitch(T"Enabled","lan_queues_enabled",content["lan_queues_enabled"])
-	elseif proxy.get("uci.qos.device.@eth0.enable") then
-		html[#html + 1] = ui_helper.createCheckboxGroup(T"QoS LAN Status","lanports",lanports,lanports_checked,{checkbox = { class="inline" }},nil)
-	end
-  html[#html+1] =     ui_helper.createInputSelect(T"Algorithm","lan_queues_policy",policy_options,content["lan_queues_policy"])
-  html[#html+1] =     ui_helper.createInputSelect(T"Default Queue","lan_queues_default",lan_queue_options,content["lan_queues_default"])
+    html[#html+1] =   "<legend><small>"..T"QoS Queues on Interface WAN".."</small></legend>"
+    html[#html+1] =   	ui_helper.createTable(classes_columns,wan_classes_data,wan_classes_options,nil,wan_classes_helpmsg)
+    html[#html+1] = "</fieldset>"
 
-  html[#html+1] = "</fieldset>"
-  html[#html+1] = "<fieldset>"
-  html[#html+1] =   "<legend><small>"..T"QoS Queues on Interface LAN".."</small></legend>"
+    html[#html+1] = "<fieldset>"
+    html[#html+1] =   "<legend>"..T"QoS Queue Scheduling on Interface LAN".."</legend>"
 
-  --legend = T"QoS Queue Table on Interface WAN"
-  --is hardcoded in 'classes_columns',but for LAN edit panel,should be "QoS Queue Table on Interface LAN",change here
-  classes_columns[5]["legend"] = T"QoS Queue on Interface LAN"
+    if content["lan_queues_enabled"] then
+      html[#html+1] =     ui_helper.createSwitch(T"Enabled","lan_queues_enabled",content["lan_queues_enabled"])
+    elseif proxy.get("uci.qos.device.@eth0.enable") then
+      html[#html + 1] = ui_helper.createCheckboxGroup(T"QoS LAN Status","lanports",lanports,lanports_checked,{checkbox = { class="inline" }},nil)
+    end
+    html[#html+1] =     ui_helper.createInputSelect(T"Algorithm","lan_queues_policy",policy_options,content["lan_queues_policy"])
+    html[#html+1] =     ui_helper.createInputSelect(T"Default Queue","lan_queues_default",lan_queue_options,content["lan_queues_default"])
 
-  html[#html+1] =   	ui_helper.createTable(classes_columns,lan_classes_data,lan_classes_options,nil,lan_classes_helpmsg)
-  html[#html+1] = "</fieldset>"
+    html[#html+1] = "</fieldset>"
+    html[#html+1] = "<fieldset>"
+    html[#html+1] =   "<legend><small>"..T"QoS Queues on Interface LAN".."</small></legend>"
 
-	html[#html+1] = "<fieldset>"
-  html[#html+1] =   "<legend>"..T"QoS Queue Scheduling on Interface WLAN".."</legend>"
-	
-	html[#html+1] = 	ui_helper.createCheckboxGroup(T"QoS Wireless Status","wldevices",wldevices,wldevices_checked,{checkbox = { class="inline" }},nil)
-  html[#html+1] =     ui_helper.createInputSelect(T"Algorithm","wlan_queues_policy",policy_options,content["wlan_queues_policy"])
-  html[#html+1] =     ui_helper.createInputSelect(T"Default Queue","wlan_queues_default",wlan_queue_options,content["wlan_queues_default"])
+    --legend = T"QoS Queue Table on Interface WAN"
+    --is hardcoded in 'classes_columns',but for LAN edit panel,should be "QoS Queue Table on Interface LAN",change here
+    classes_columns[5]["legend"] = T"QoS Queue on Interface LAN"
 
-  html[#html+1] = "</fieldset>"
-  html[#html+1] = "<fieldset>"
-  html[#html+1] =   "<legend><small>"..T"QoS Queues on Interface WLAN".."</small></legend>"
+    html[#html+1] =   	ui_helper.createTable(classes_columns,lan_classes_data,lan_classes_options,nil,lan_classes_helpmsg)
+    html[#html+1] = "</fieldset>"
 
-  --legend = T"QoS Queue Table on Interface WAN"
-  --is hardcoded in 'classes_columns',but for LAN edit panel,should be "QoS Queue Table on Interface LAN",change here
-  classes_columns[5]["legend"] = T"QoS Queue on Interface WLAN"
+    html[#html+1] = "<fieldset>"
+    html[#html+1] =   "<legend>"..T"QoS Queue Scheduling on Interface WLAN".."</legend>"
 
-  html[#html+1] =   	ui_helper.createTable(classes_columns,wlan_classes_data,wlan_classes_options,nil,wlan_classes_helpmsg)
-  html[#html+1] = "</fieldset>"
-	
+    html[#html+1] = 	ui_helper.createCheckboxGroup(T"QoS Wireless Status","wldevices",wldevices,wldevices_checked,{checkbox = { class="inline" }},nil)
+    html[#html+1] =     ui_helper.createInputSelect(T"Algorithm","wlan_queues_policy",policy_options,content["wlan_queues_policy"])
+    html[#html+1] =     ui_helper.createInputSelect(T"Default Queue","wlan_queues_default",wlan_queue_options,content["wlan_queues_default"])
+
+    html[#html+1] = "</fieldset>"
+    html[#html+1] = "<fieldset>"
+    html[#html+1] =   "<legend><small>"..T"QoS Queues on Interface WLAN".."</small></legend>"
+
+    --legend = T"QoS Queue Table on Interface WAN"
+    --is hardcoded in 'classes_columns',but for LAN edit panel,should be "QoS Queue Table on Interface LAN",change here
+    classes_columns[5]["legend"] = T"QoS Queue on Interface WLAN"
+
+    html[#html+1] =   	ui_helper.createTable(classes_columns,wlan_classes_data,wlan_classes_options,nil,wlan_classes_helpmsg)
+    html[#html+1] = "</fieldset>"
+  end
 	ngx.print(html)
-	
 	ngx.print('\
   </form>\
 </div>\
