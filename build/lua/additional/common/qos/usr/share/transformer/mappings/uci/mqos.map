@@ -8,7 +8,7 @@ local mqos_global = {
   config = config_mqos,
   section = "global",
   type = "mqos",
-  options = { "enabled","download","upload" }
+  options = { "enabled","download","upload","r2q" }
 }
 
 mapper("uci_1to1").registerSimpleMap(mqos_global)

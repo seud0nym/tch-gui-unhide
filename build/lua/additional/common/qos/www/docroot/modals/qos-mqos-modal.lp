@@ -30,12 +30,14 @@ local mapParam = {
   mqos_enabled = "uci.mqos.global.enabled",
   mqos_download = "uci.mqos.global.download",
   mqos_upload = "uci.mqos.global.upload",
+  mqos_r2q = "uci.mqos.global.r2q",
 }
 
 local mapValid = {
   mqos_enabled = vB,
   mqos_download = vPN,
   mqos_upload = vPN,
+  mqos_r2q = vPN,
 }
 
 local content,helpmsg = post_helper.handleQuery(mapParam,mapValid)
@@ -47,6 +49,9 @@ if content["mqos_download"] == "" then
 end
 if content["mqos_upload"] == "" then
   content["mqos_upload"] = "20"
+end
+if content["mqos_r2q"] == "" then
+  content["mqos_r2q"] = "35"
 end
 
 local device_columns = {
@@ -157,13 +162,24 @@ local switch_attr = {
     class ="monitor-changes",
   },
 }
-local number_attr = {
+local rate_attr = {
   group = {
     class ="monitor-mqos_enabled monitor-1",
   },
   input = {
     type = "number",
     min = "1",
+    style = "width:100px",
+  }
+}
+local r2q_attr = {
+  group = {
+    class ="monitor-mqos_enabled monitor-1",
+  },
+  input = {
+    type = "number",
+    min = "35",
+    step = "5",
     style = "width:100px",
   }
 }
@@ -191,8 +207,9 @@ ngx.print(ui_helper.createHeader(T"QoS",false)); ngx.print('\
       ngx.print(
         ui_helper.createAlertBlock(T"Bandwidth shaping will cause <B>ALL</B> traffic between LAN clients and the Gateway to be limited to the specified Global Download/Upload rates, so should not be used if the Gateway is being for services such as <B>File Sharing</B>. Traffic <I>between</I> LAN clients is unaffected and will still run at normal LAN speeds.<BR>Bandwidth shaping can also increase CPU utilisation, and may not be suitable for connections above 100Mbit/s.",warn_box),
         ui_helper.createSwitch(T"Enabled","mqos_enabled",content["mqos_enabled"],switch_attr,helpmsg["mqos_enabled"]),
-        ui_helper.createInputText(T"Global Download Mbit/s","mqos_download",content["mqos_download"],number_attr,helpmsg["mqos_download"]),
-        ui_helper.createInputText(T"Global Upload Mbit/s","mqos_upload",content["mqos_upload"],number_attr,helpmsg["mqos_upload"]),
+        ui_helper.createInputText(T"Global Download Mbit/s","mqos_download",content["mqos_download"],rate_attr,helpmsg["mqos_download"]),
+        ui_helper.createInputText(T"Global Upload Mbit/s","mqos_upload",content["mqos_upload"],rate_attr,helpmsg["mqos_upload"]),
+        ui_helper.createInputText(T"Global r2q<span class='icon-question-sign' title='If you see kernel messages like \"HTB: quantum of class 20001 is big. Consider r2q change.\", increase this value by 5 and restart until the message stops. The default value is 35.'></span>","mqos_r2q",content["mqos_r2q"],r2q_attr,helpmsg["mqos_r2q"]),
         ui_helper.createAlertBlock(T"To eliminate buffer bloat, set the Global Download/Upload rates slightly lower than your maximum.",info_box)
       )
       ngx.print('\

@@ -11,13 +11,20 @@ NC='\033[0m' # No Color
 usage() {
   echo -e "${GREEN}Usage: $0 <command> [options]${NC}"
   echo -e "${GREEN}Commands:${NC}"
-  echo "  start <dl_rate> <up_rate>     # Total bandwidth (Mbit/s)"
+  echo "  start <dl_rate> <up_rate> [r2q] # Total bandwidth (Mbit/s)"
   echo "  stop"
-  echo "  add <mac> <dl_rate> <up_rate> # Limit the bandwidth of a single MAC (Mbit/s)"
+  echo "  add <mac> <dl_rate> <up_rate>   # Limit the bandwidth of a single MAC (Mbit/s)"
   echo "  status"
   echo -e "${GREEN}Example:${NC}"
-  echo "  $0 start 50 20                # Total bandwidth: down 50Mbit/s up 20Mbit/s"
-  echo "  $0 add xx:xx:xx:xx:xx:xx 10 2 # Limit a MAC:     down 10Mbit/s up  2Mbit/s"
+  echo "  $0 start 50 20                  # Total bandwidth: down 50Mbit/s up 20Mbit/s"
+  echo "  $0 add xx:xx:xx:xx:xx:xx 10 2   # Limit a MAC:     down 10Mbit/s up  2Mbit/s"
+  echo
+  echo -e "Kernel messages like '${RED}HTB: quantum of class 20001 is big. Consider r2q change.${NC}'"
+  echo "can be resolved by specifying a new r2q value after <dl_rate> <up_rate>. The"
+  echo -e "default value is ${GREEN}35${NC}. Increase by ${GREEN}5${NC} and stop/restart until the kernel message"
+  echo "disappears."
+  echo -e "${GREEN}Example:${NC}"
+  echo "  $0 start 50 20 40"
   echo
   echo -e "${ORANGE}NOTE:${NC}"
   echo "ALL traffic between LAN clients and the router will be also limited to the"
@@ -28,7 +35,7 @@ usage() {
 }
 
 TCF_PATTTERN="tc filter add dev %s parent 2: protocol ip prio 5 u32 match u16 0x0800 0xFFFF at -2"
-RTE_PATTERN='^[0-9]*$'
+NUM_PATTERN='^[0-9]*$'
 MAC_PATTERN='^[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]$'
 
 DEV='br-lan'
@@ -41,11 +48,12 @@ stop_qos() {
 }
 
 start_qos() {
-  local R2Q=10
   local DL=$1
   local UP=$2
+  local R2Q=$3
   local QL=$(ip link show ${DEV} | grep -o 'qlen [0-9]*' | cut -d' ' -f2)
   [ -z "${QL}" ] && QL=1000
+  [ -z "${R2Q}" ] && R2Q=35
 	
   tc qdisc add dev ${DEV} root handle 2: htb r2q ${R2Q} default 1
   tc class add dev ${DEV} parent 2: classid 2:1 htb rate ${DL}mbit
@@ -96,17 +104,18 @@ case "$1" in
     stop_qos
     ;;
   "start")
-    [ $# -ne 3 ] && usage
-    validate "download rate" "$2" "${RTE_PATTERN}"
-    validate "upload rate" "$3" "${RTE_PATTERN}"
+    [ $# -lt 3 ] && usage
+    validate "download rate" "$2" "${NUM_PATTERN}"
+    validate "upload rate" "$3" "${NUM_PATTERN}"
+    [ -n "$4" ] && validate "r2q" "$4" "${NUM_PATTERN}"
     stop_qos
-    start_qos $2 $3
+    start_qos $2 $3 $4
     ;;
   "add")
     [ $# -ne 4 ] && usage
     validate "MAC address" "$(echo $2 | tr '[A-F]' '[a-f]')" "$MAC_PATTERN"
-    validate "download rate" "$3" "${RTE_PATTERN}"
-    validate "upload rate" "$4" "${RTE_PATTERN}"
+    validate "download rate" "$3" "${NUM_PATTERN}"
+    validate "upload rate" "$4" "${NUM_PATTERN}"
     add_mac "$2" "$3" "$4"
     ;;
   "status")
