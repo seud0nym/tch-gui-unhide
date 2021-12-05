@@ -39,7 +39,7 @@ sed \
   -i /www/docroot/ajax/mobiletab.lua
 sed \
   -e 's/\(p class="subinfos"\)>/\1 style="display:none;">/' \
-  -e '/$.post/i\                                $("#mobiletab p.subinfos").show();\\' \
+  -e '/$\.\(post\|ajax\)/i\                                $("#mobiletab p.subinfos").show();\\' \
   -e '/"subinfos"/a\				<div style="height: 20px;" data-bind="visible: registrationStatus().length > 0">\\' \
   -e "/\"subinfos\"/a\					<label class=\"card-label\">');  ngx.print( T\"Network\"..\":\" ); ngx.print('</label>\\\\" \
   -e '/"subinfos"/a\					<div class="controls">\\' \
