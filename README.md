@@ -65,6 +65,7 @@ So, I set out to enable whatever hidden features were included with the firmware
     - Turn SSH access on or off for the WAN/LAN
     - Configure an external syslog server
 - The **NAT Helpers** card is enabled where you can enable or disable ALG's for FTP, IRC, SIP, PPTP, RTSP, SNMP, TFTP and AMANDA
+- The ability to generate a QR Code for configuring **WiFi** has been fixed and made available by clicking on the SSID on the card, or by clicking the button underneath the WiFi password
 - The **xDSL Config** card is enabled where you can see xDSL core settings
 
 Some hidden screens included on the device are not enabled, mainly because they fail and cause issues in the GUI, or sometimes more work would be required to implement them than can be done with simple stream editing of the existing files. Some of them are only applicable to older versions of the firmware.
@@ -84,7 +85,6 @@ Some hidden screens included on the device are not enabled, mainly because they 
     - SSH WAN status
     - Can now switch active bank from the screen
 - Modified **Eco Settings** card
-- Modified **QoS** card
 - Modified **Telephony** Global tab to allow:
     - Add/delete SIP providers (up to maximum of 2)
     - Editing of the name, and setting of interface (LAN/WAN/etc.)
@@ -97,6 +97,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - **Chart Cards** showing CPU utilization, RAM, and WAN Download/Upload Mb/s over the last minute
 - **DNS** card to manage custom DNS servers
 - **Gateway** card now has current device status for CPU usage, free RAM and temperature
+- **Gateway** screen can now configure additional NTP servers
 - **Broadband** card auto-updates and shows todays upload/download volume
 - **Broadband** screen has a new tab to show daily and monthly usage history
 - **Internet Access** card auto updates and now shows IPv6 information
@@ -111,6 +112,9 @@ Some hidden screens included on the device are not enabled, mainly because they 
     - enabling/disabling of DHCPv6 and SLAAC
     - IPv6 Unique Local Address prefix (FW 18+ only)
     - IPv6 LAN prefix size (FW 18+ only, if prefix assigned by ISP)
+    - enabling/disabling sending the device as the NTP Server to client devices over DHCP
+    - customising DNS servers sent via DHCP to static leases
+    - adding static leases to DNS
 - **WiFi** card auto-updates to reflect SSID status (e.g. when Time of Day Wireless Access Controls rules enable or disable SSIDs)
 - **WiFi Boosters** card (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
 - **Devices** card auto-refreshes, and also shows separately  the count of WiFi devices connected via a WiFi Booster (only for devices with multiap installed - i.e. DJA0230 and DJA0231)
@@ -142,7 +146,11 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - **Mobile** SMS tab now has the ability to send an SMS (not applicable if using the Telstra Backup SIM)
 - **Mobile** new Auto-Failover tab to configure global settings and failover timeouts
 - **Packages** card to manage opkg packages
-- **QoS** screen now has support for upload shapers (FW 18+ only) and shows classify/reclassify rules
+- **QoS** screen now:
+    - has support for traffic shapers (FW 18+ only)
+    - shows classify/reclassify rules
+    - allows enabling/disabling of egress and ingress QoS
+    - has support for bandwidth shaping to eliminate buffer bloat and allow bandwidth limiting by MAC address
 - **IP Routing** screen allows you to define custom DNS entries
 
 ## What else does it do?
