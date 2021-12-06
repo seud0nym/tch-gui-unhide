@@ -98,7 +98,7 @@ ngx.print('\
 <script src="/js/qrcode-min.js"></script>\
 <script>\
 $(function(){\
-    let wlanconfstr = "'); ngx.print(wlanconfstr); ngx.print('";\
+    let wlanconfstr = $("<textarea/>").html("'); ngx.print(wlanconfstr); ngx.print('").text();\
     let typeNumber = 8;\
     let errorCorrectLevel = \'M\';\
     let qr = qrcode(typeNumber,errorCorrectLevel);\
