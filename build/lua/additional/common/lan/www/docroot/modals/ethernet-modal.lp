@@ -1276,14 +1276,19 @@ ngx.print('\
                   ui_helper.createInputText(T"Lease Time","leaseTime",content["leaseTime"],advanced,helpmsg["leaseTime"])
                 )
                 if cur_dhcp_intf == "lan" and not adguard then
-                  local switchNTP = {
-                    values = {
-                      on = "42,"..content["localdevIP"],
-                      off = ""
-                    }
-                  }
                   ngx.print(ui_helper.createSwitch(T"Log DHCP Requests","dhcplog",content["dhcplog"]))
-                  ngx.print(ui_helper.createSwitch(T"Device as NTP Server","ntpServer",content["ntpServer"],switchNTP))
+                  local ntpServerEnabled = proxy.get("uci.system.ntp.enable_server")
+                  if ntpServerEnabled and ntpServerEnabled[1].value == "1" then
+                    local switchNTP = {
+                      values = {
+                        on = "42,"..content["localdevIP"],
+                        off = ""
+                      }
+                    }
+                    ngx.print(ui_helper.createSwitch(T"Device as NTP Server","ntpServer",content["ntpServer"],switchNTP))
+                  else
+                    ngx.print(ui_helper.createSimpleInputHidden("ntpServer",""))
+                  end
                   if not dns_int then
                     ngx.print(
                       ui_helper.createInputSelect(T"IPv4 Primary DNS","dnsServer",dns_list[1],content["dnsServer"],stdattributes,helpmsg["dnsServer"]),

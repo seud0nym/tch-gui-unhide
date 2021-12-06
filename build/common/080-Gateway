@@ -58,6 +58,26 @@ end' \
 sed \
   -e 's|\(/etc/init.d/dnsmasq reload\)|\1;/etc/init.d/system reload|' \
   -i /usr/share/transformer/commitapply/uci_system.ca
+
+echo [$SCRIPT]: Add option to disable/enable NTP Server
+sed \
+  -e '/uci.system.system.@system\[0\].timezone/i\   system_ntpserver = "uci.system.ntp.enable_server",' \
+  -e '/system_timezone = function/i\  system_ntpserver = post_helper.validateBoolean,' \
+  -e '/createInputSelect(T"Current Timezone"/a\    html[#html + 1] = ui_helper.createSwitch(T"Enable NTP Server", "system_ntpserver", system_data["system_ntpserver"], basic)' \
+  -e '/elseif ngx.req.get_method() == "GET"/i\  if ngx.req.get_post_args().system_ntpserver == "0" then\
+    local dhcp = {}\
+    local baseDHCPOptions = "uci.dhcp.dhcp.@lan.dhcp_option."\
+    content_helper.addListContent(dhcp,{ options = baseDHCPOptions })\
+    for i,v in ipairs(dhcp.options) do\
+      if v:find("^42,") == 1 then\
+        proxy.del(baseDHCPOptions.."@"..i..".")\
+        proxy.apply()\
+        break\
+      end\
+    end\
+  end' \
+  -i /www/docroot/modals/gateway-modal.lp
+
 echo [$SCRIPT]: Allow additional NTP servers to be added
 sed \
   -e 's/NTP servers/NTP Servers/' \
