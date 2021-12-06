@@ -19,7 +19,7 @@ local uinetwork = require("web.uinetwork_helper")
 local hosts_ac = uinetwork.getAutocompleteHostsList()
 local tonumber,tostring = tonumber,tostring
 local content,helpmsg
-local match,format = string.match,string.format
+local match,format,toupper = string.match,string.format,string.upper
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 local find = string.find
@@ -318,6 +318,9 @@ local sleases_options = {
   createMsg = T"Add Static Lease",
   objectName = post_helper.getRandomKey(),
   addNamedObject = true,
+  sorted = function(a,b)
+    return toupper(a.name or "") < toupper(b.name or "")
+  end,
 }
 
 local used_tags = {}
@@ -411,12 +414,12 @@ local tags_options = {
   createMsg = T"Add Tag",
   addNamedObject = true,
   canEdit = false,
-  onAdd = function(index,content)
+  onAdd = function(index,added)
     local value = ""
-    if content.tags_dns1 ~= "" then
-      value = "6,"..content.tags_dns1
-      if content.tags_dns2 ~= "" then
-        value = value..","..content.tags_dns2
+    if added.tags_dns1 ~= "" then
+      value = "6,"..added.tags_dns1
+      if added.tags_dns2 ~= "" then
+        value = value..","..added.tags_dns2
       end
     end
     if value ~= "" then
@@ -434,6 +437,9 @@ local tags_options = {
         end
       end
     end
+  end,
+  sorted = function(a,b)
+    return toupper(a.paramindex or "") < toupper(b.paramindex or "")
   end,
 }
 
@@ -543,9 +549,9 @@ local function isNonPublicIPRange(ip)
   return nil
 end
 
-local function split(x,sep)
+local function split(x,separator)
   x = tostring(x)
-  local sep,fields = sep or ":",{}
+  local sep,fields = separator or ":",{}
   local pattern = string.format("([^%s]+)",sep)
   x:gsub(pattern,function(c) fields[#fields+1] = c end)
   return fields
