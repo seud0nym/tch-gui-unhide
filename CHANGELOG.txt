@@ -1,3 +1,31 @@
+2021.12.06
+==========
+* tch-gui-unhide: Added ability to send the router as the client time (NTP) server via DHCP
+* tch-gui-unhide: Added ability to enable DHCP request logging
+* tch-gui-unhide: Added ability to specify custom DNS Servers for static IP addresses (using tags)
+* tch-gui-unhide: Added ability to enable DNS name resolution of static leases even when lease is not active (#52)
+* tch-gui-unhide: Added WiFi QR Code generator, accessible by clicking on the SSID name on the WiFi card or by the new button under Password (#50)
+* tch-gui-unhide: Added labels to traffic ids on QoS Queues tab
+* tch-gui-unhide: Added new QoS tab to allow bandwidth shaping on a per-MAC address basis (#47), and to eliminate buffer bloat
+* tch-gui-unhide: Added new BCM Ingress QoS Control Rules tab
+* tch-gui-unhide: Added ability to completely disable QoS
+* tch-gui-unhide: Changed QoS Shaper terminology from Upload to Traffic (scheduling happens on packet egress, so upload shaping is what happens on WAN interfaces and download shaping happens on LAN/WLAN interfaces)
+* tch-gui-unhide: Re-classified application of QoS Shapers to interfaces into upload and download shaping
+* tch-gui-unhide: Changed QoS Shaper rate to Mbit/s instead of Kbit/s
+* tch-gui-unhide: Fixed initial display of Mobile card
+* tch-gui-unhide: Hidden SSIDs are shown as grayed out on WiFi card
+* tch-gui-unhide: Added WireGuard opkg repository (20.3.c only)
+* tch-gui-unhide: Added bcm53xx as valid opkg architecture
+* tch-gui-unhide: Sorted static leases by host name
+* tch-gui-unhide: Code cleanup and optimization (mainly removed unused variables/functions)
+* de-telstra: dnsmasq is not restarted if AdGuard Home is installed
+* de-telstra: Disable WAN Sensing throughput monitoring (unless Telstra Monitoring kept enabled)
+* de-telstra: Remove tr143 network throughput monitoring package (unless Telstra Monitoring kept enabled)
+* de-telstra: Remove Telstra QoS VoWiFi reclassify rules (unless kept enabled)
+* de-telstra: Allow override of opkg repository
+* de-telstra: Added WireGuard opkg repository (20.3.c only)
+* de-telstra: Added bcm53xx as valid opkg architecture
+
 2021.11.07
 ==========
 * tch-gui-unhide: Added "Voice on Failover" switch to Telephony Global tab and Mobile Auto-Failover tab to allow SIP Network interface to switch automatically between WAN and WWAN on failover/failback

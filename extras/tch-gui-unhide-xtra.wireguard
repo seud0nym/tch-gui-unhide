@@ -13,7 +13,6 @@ fi
 # as the calling script has left a hanging echo -n. Include a leading space for clarity.
 
 FW_LAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "network='lan'" | cut -d. -f1-2)
-SRV_network=0
 
 if [ -f /usr/bin/wireguard-go -a -f /usr/bin/wg-go -a -f /lib/netifd/proto/wireguard.sh -a -z "$XTRAS_REMOVE" ]; then
   echo " Adding wireguard support..."
@@ -46,7 +45,7 @@ local wg_cache = {
     client_interfaces = {},
   },
   details = {},
-  time_check,
+  time_check = nil,
 }
 
 local ip_cache = {}
@@ -403,13 +402,10 @@ end
 register(GUI_WG_IFACE_PEER_)
 RPC
   cat <<"UCI" > /usr/share/transformer/mappings/uci/wireguard.map
-local lfs = require("lfs")
-local logger = require("tch.logger")
-local log = logger.new("uci.wireguard.interface", 4)
 local uci_helper = mapper("ucihelper")
 local commitapply = commitapply
 
-local format, gmatch, match = string.format, string.gmatch, string.match
+local format,gmatch,match = string.format,string.gmatch,string.match
 
 local function _changed(ifname)
   if ifname and ifname ~= "" then
@@ -417,93 +413,91 @@ local function _changed(ifname)
   end
 end
 
-local function _keys(option, parentkey)
+local function _keys(option,parentkey)
   local keys = {}
-  local elements = uci_helper.get_from_uci({config = 'network', sectionname = parentkey, option = option, extended = true })
+  local elements = uci_helper.get_from_uci({config = 'network',sectionname = parentkey,option = option,extended = true })
   if elements and type(elements) == "table" then
-    local index 
-    for index = 1, #elements do
-      keys[#keys+1] = format("%s|%d", parentkey, index)
+    for index = 1,#elements do
+      keys[#keys+1] = format("%s|%d",parentkey,index)
     end
   end
   return keys
 end
 
-local function _elements(option, parentkey)
-  local binding = {config = 'network', sectionname = parentkey, option = option, extended = true }
-  return uci_helper.get_from_uci(binding), binding
+local function _elements(option,parentkey)
+  local binding = {config = 'network',sectionname = parentkey,option = option,extended = true }
+  return uci_helper.get_from_uci(binding),binding
 end
 
-local function _get(option, param, key, parentkey)
-  local binding = {config = 'network', sectionname = parentkey, option = option, extended = true }
+local function _get(option,_,key,parentkey)
+  local binding = {config = 'network',sectionname = parentkey,option = option,extended = true }
   local elements = uci_helper.get_from_uci(binding)
-  local index = tonumber(match(key, "|(%d+)$"))
+  local index = tonumber(match(key,"|(%d+)$"))
   return elements[index] or ""
 end
 
-local function _set(option, param, value, key, parentkey)
-  local elements, binding = _elements(option, parentkey)
-  local index = tonumber(match(key, "|(%d+)$"))
+local function _set(option,_,value,key,parentkey)
+  local elements,binding = _elements(option,parentkey)
+  local index = tonumber(match(key,"|(%d+)$"))
   if elements[index] then
     elements[index] = value
-    uci_helper.set_on_uci(binding, elements, commitapply)
+    uci_helper.set_on_uci(binding,elements,commitapply)
     _changed(binding.sectionname)
     return true
   end
   uci_helper.revert()
-  return nil, format("Cannot set value of key %d - does not exist.", index)
+  return nil,format("Cannot set value of key %d - does not exist.",index)
 end
 
-local function _add(option, name, parentkey)
+local function _add(option,name,parentkey)
   if name then
-    return nil, "Add with given name is not supported."
+    return nil,"Add with given name is not supported."
   end
-  local elements, binding = _elements(option)
+  local elements,binding = _elements(option)
   local index = #elements + 1
   elements[index] = ""
-  uci_helper.set_on_uci(binding, elements, commitapply)
+  uci_helper.set_on_uci(binding,elements,commitapply)
   _changed(binding.sectionname)
-  return format("%s|%d", parentkey, index)
+  return format("%s|%d",parentkey,index)
 end
 
-local function _delete(option, key, parentkey)
-  local elements, binding = _elements(option, parentkey)
-  local index = tonumber(match(key, "|(%d+)$"))
+local function _delete(option,key,parentkey)
+  local elements,binding = _elements(option,parentkey)
+  local index = tonumber(match(key,"|(%d+)$"))
   if index > #elements then
-    return nil, format("Cannot delete key %d - does not exist.", index)
+    return nil,format("Cannot delete key %d - does not exist.",index)
   end
-  table.remove(elements, index)
+  table.remove(elements,index)
   if #elements > 0 then
-    uci_helper.set_on_uci(binding, elements, commitapply)
+    uci_helper.set_on_uci(binding,elements,commitapply)
   else
-    uci_helper.delete_on_uci(binding, commitapply)
+    uci_helper.delete_on_uci(binding,commitapply)
   end
   uci_helper.commit(binding)
   _changed(binding.sectionname)
   return true
 end
 
-local function _getAndJoin(option, key)
-  local elements = _elements(option, key)
+local function _getAndJoin(option,key)
+  local elements = _elements(option,key)
   if type(elements) == "table" then
-    return table.concat(elements, ",")
+    return table.concat(elements,",")
   elseif type(elements) == "string" then
     return elements
   end
   return ""
 end
 
-local function _splitAndSet(option, value, key)
-  local binding = {config = 'network', sectionname = key, option = option, extended = true }
+local function _splitAndSet(option,value,key)
+  local binding = {config = 'network',sectionname = key,option = option,extended = true }
   local elements = {}
-  local v 
-  for v in gmatch(value, "([^,]+)") do
+  for v in gmatch(value,"([^,]+)") do
     elements[#elements+1] = v
   end
   if #elements > 0 then
-    uci_helper.set_on_uci(binding, elements, commitapply)
+    uci_helper.set_on_uci(binding,elements,commitapply)
   else
-    uci_helper.delete_on_uci(binding, commitapply)
+    uci_helper.delete_on_uci(binding,commitapply)
   end
   uci_helper.commit(binding)
   _changed(binding.sectionname)
@@ -575,9 +569,9 @@ local WG_IFACE_i_ = {
   }
 }
 
-WG_IFACE_i_.entries = function(mapping)
+WG_IFACE_i_.entries = function(_)
   local keys = {}
-  uci_helper.foreach_on_uci({ config = 'network', sectionname = 'interface' }, function(s)
+  uci_helper.foreach_on_uci({ config = 'network',sectionname = 'interface' },function(s)
     if s.proto == "wireguard" then
       keys[#keys+1] = s.ifname or s[".name"]
     end
@@ -585,50 +579,50 @@ WG_IFACE_i_.entries = function(mapping)
   return keys
 end
 
-WG_IFACE_i_.get = function(mapping, param, key)
+WG_IFACE_i_.get = function(_,param,key)
   if param == "addresses" then
-    return _getAndJoin("addresses", key)
+    return _getAndJoin("addresses",key)
   end
-  return uci_helper.get_from_uci({ config = 'network', sectionname = key, option = param, extended = true }) or ""
+  return uci_helper.get_from_uci({ config = 'network',sectionname = key,option = param,extended = true }) or ""
 end
 
-WG_IFACE_i_.set = function(mapping, param, value, key)
+WG_IFACE_i_.set = function(_,param,value,key)
   if param == "addresses" then
-    return _splitAndSet("addresses", value, key)
+    return _splitAndSet("addresses",value,key)
   end
-  local binding = { config = 'network', sectionname = key, option = param, extended = true }
-  uci_helper.set_on_uci(binding, value, commitapply)
+  local binding = { config = 'network',sectionname = key,option = param,extended = true }
+  uci_helper.set_on_uci(binding,value,commitapply)
   _changed(binding.sectionname)
   return true
 end
 
-WG_IFACE_i_.add = function(mapping, name)
+WG_IFACE_i_.add = function(_,name)
   if not name or name == "" then
-    return nil, 'No interface name specified'
+    return nil,'No interface name specified'
   end
-  if uci_helper.get_from_uci({ config = 'network', sectionname = name, extended = true }) ~= "" then
-    return nil, 'Failed to add "'..name..'" - name already in use'
+  if uci_helper.get_from_uci({ config = 'network',sectionname = name,extended = true }) ~= "" then
+    return nil,'Failed to add "'..name..'" - name already in use'
   end
-  local binding = { config = 'network', sectionname = 'interface' }
-  local temp, errmsg = uci_helper.add_on_uci(binding, commitapply)
+  local binding = { config = 'network',sectionname = 'interface' }
+  local temp,errmsg = uci_helper.add_on_uci(binding,commitapply)
   if not temp then
     uci_helper.revert(binding)
-    return nil, errmsg
+    return nil,errmsg
   end
-  binding = { config = 'network', sectionname = temp, extended = true }
-  uci_helper.rename_on_uci(binding, name, commitapply)
+  binding = { config = 'network',sectionname = temp,extended = true }
+  uci_helper.rename_on_uci(binding,name,commitapply)
   binding.sectionname = name
   binding.option = "proto"
-  uci_helper.set_on_uci(binding, "wireguard", commitapply)
+  uci_helper.set_on_uci(binding,"wireguard",commitapply)
   binding.option = "enabled"
-  uci_helper.set_on_uci(binding, "0", commitapply)
+  uci_helper.set_on_uci(binding,"0",commitapply)
   _changed(binding.sectionname)
   return name
 end
 
-WG_IFACE_i_.delete = function(mapping, key)
-  local binding = { config = 'network', sectionname = key, extended = true }
-  uci_helper.delete_on_uci(binding, commitapply)
+WG_IFACE_i_.delete = function(_,key)
+  local binding = { config = 'network',sectionname = key,extended = true }
+  uci_helper.delete_on_uci(binding,commitapply)
   _changed(binding.sectionname)
   return true
 end
@@ -653,24 +647,24 @@ local WG_IFACE_ADDR_i_ = {
   }
 }
 
-WG_IFACE_ADDR_i_.entries = function(mapping, parentkey)
-  return _keys("addresses", parentkey)
+WG_IFACE_ADDR_i_.entries = function(_,parentkey)
+  return _keys("addresses",parentkey)
 end
 
-WG_IFACE_ADDR_i_.get = function(mapping, param, key, parentkey)
-  return _get("addresses", param, key, parentkey)
+WG_IFACE_ADDR_i_.get = function(_,param,key,parentkey)
+  return _get("addresses",param,key,parentkey)
 end
 
-WG_IFACE_ADDR_i_.set = function(mapping, param, value, key, parentkey)
-  return _get("addresses", param, value, key, parentkey)
+WG_IFACE_ADDR_i_.set = function(_,param,_,key,parentkey)
+  return _get("addresses",param,key,parentkey)
 end
 
-WG_IFACE_ADDR_i_.add = function(mapping, key, parentkey)
-  return _add("addresses", key, parentkey)
+WG_IFACE_ADDR_i_.add = function(_,key,parentkey)
+  return _add("addresses",key,parentkey)
 end
 
-WG_IFACE_ADDR_i_.delete = function(mapping, key, parentkey)
-  return _delete("addresses", key, parentkey)
+WG_IFACE_ADDR_i_.delete = function(_,key,parentkey)
+  return _delete("addresses",key,parentkey)
 end
 
 WG_IFACE_ADDR_i_.commit = _commit
@@ -717,10 +711,10 @@ local WG_PEER_i_ = {
   }
 }
 
-WG_PEER_i_.entries = function(mapping, parentkey)
+WG_PEER_i_.entries = function(_,parentkey)
   local keys = {}
   local iface = "wireguard_"..parentkey
-  uci_helper.foreach_on_uci({ config = 'network' }, function(s)
+  uci_helper.foreach_on_uci({ config = 'network' },function(s)
     if s[".type"] == iface then
       keys[#keys+1] = s[".name"]
     end
@@ -728,54 +722,54 @@ WG_PEER_i_.entries = function(mapping, parentkey)
   return keys
 end
 
-WG_PEER_i_.get = function(mapping, param, key)
+WG_PEER_i_.get = function(_,param,key)
   if param == "allowed_ips" then
-    return _getAndJoin("allowed_ips", key)
+    return _getAndJoin("allowed_ips",key)
   end
-  return uci_helper.get_from_uci({ config = 'network', sectionname = key, option = param, extended = true }) or ""
+  return uci_helper.get_from_uci({ config = 'network',sectionname = key,option = param,extended = true }) or ""
 end
 
-WG_PEER_i_.set = function(mapping, param, value, key, parentkey)
+WG_PEER_i_.set = function(_,param,value,key,parentkey)
   if param == "allowed_ips" then
-    return _splitAndSet("allowed_ips", value, key)
+    return _splitAndSet("allowed_ips",value,key)
   end
-  local binding = { config = 'network', sectionname = key, option = param, extended = true }
-  uci_helper.set_on_uci(binding, value, commitapply)
+  local binding = { config = 'network',sectionname = key,option = param,extended = true }
+  uci_helper.set_on_uci(binding,value,commitapply)
   uci_helper.commit(binding)
   _changed(parentkey)
   return true
 end
 
-WG_PEER_i_.add = function(mapping, name, parentkey)
+WG_PEER_i_.add = function(_,name,parentkey)
   if not parentkey or parentkey == "" then
-    return nil, 'No parent interface specified'
+    return nil,'No parent interface specified'
   end
   if not name or name == "" then
-    return nil, 'No peer name specified'
+    return nil,'No peer name specified'
   end
-  if uci_helper.get_from_uci({ config = 'network', sectionname = name, extended = true }) ~= "" then
-    return nil, 'Failed to add peer "'..name..'" - name already in use'
+  if uci_helper.get_from_uci({ config = 'network',sectionname = name,extended = true }) ~= "" then
+    return nil,'Failed to add peer "'..name..'" - name already in use'
   end
-  local proto = uci_helper.get_from_uci({ config = 'network', sectionname = parentkey, option = "proto", extended = true })
+  local proto = uci_helper.get_from_uci({ config = 'network',sectionname = parentkey,option = "proto",extended = true })
   if proto == "wireguard" then
-    local binding = { config = 'network', sectionname = "wireguard_"..parentkey }
-    local temp, errmsg = uci_helper.add_on_uci(binding, commitapply)
+    local binding = { config = 'network',sectionname = "wireguard_"..parentkey }
+    local temp,errmsg = uci_helper.add_on_uci(binding,commitapply)
     if not temp then
       uci_helper.revert(binding)
-      return nil, errmsg
+      return nil,errmsg
     end
-    binding = { config = 'network', sectionname = temp, extended = true }
-    uci_helper.rename_on_uci(binding, name, commitapply)
+    binding = { config = 'network',sectionname = temp,extended = true }
+    uci_helper.rename_on_uci(binding,name,commitapply)
     uci_helper.commit(binding)
     _changed(parentkey)
     return name
   end
-  return nil, "'"..parentkey.."' is not a WireGuard interface."
+  return nil,"'"..parentkey.."' is not a WireGuard interface."
 end
 
-WG_PEER_i_.delete = function(mapping, key, parentkey)
-  local binding = { config = 'network', sectionname = key, extended = true }
-  uci_helper.delete_on_uci(binding, commitapply)
+WG_PEER_i_.delete = function(_,key,parentkey)
+  local binding = { config = 'network',sectionname = key,extended = true }
+  uci_helper.delete_on_uci(binding,commitapply)
   uci_helper.commit(binding)
   _changed(parentkey)
   return true
@@ -801,24 +795,24 @@ local WG_PEER_IP_i_ = {
   }
 }
 
-WG_PEER_IP_i_.entries = function(mapping, parentkey)
-  return _keys("allowed_ips", parentkey)
+WG_PEER_IP_i_.entries = function(_,parentkey)
+  return _keys("allowed_ips",parentkey)
 end
 
-WG_PEER_IP_i_.get = function(mapping, param, key, parentkey)
-  return _get("allowed_ips", param, key, parentkey)
+WG_PEER_IP_i_.get = function(_,param,key,parentkey)
+  return _get("allowed_ips",param,key,parentkey)
 end
 
-WG_PEER_IP_i_.set = function(mapping, param, value, key, parentkey)
-  return _set("allowed_ips", param, value, key, parentkey)
+WG_PEER_IP_i_.set = function(_,param,value,key,parentkey)
+  return _set("allowed_ips",param,value,key,parentkey)
 end
 
-WG_PEER_IP_i_.add = function(mapping, key, parentkey)
-  return _add("allowed_ips", key, parentkey)
+WG_PEER_IP_i_.add = function(_,key,parentkey)
+  return _add("allowed_ips",key,parentkey)
 end
 
-WG_PEER_IP_i_.delete = function(mapping, key, parentkey)
-  return _delete("allowed_ips", key, parentkey)
+WG_PEER_IP_i_.delete = function(_,key,parentkey)
+  return _delete("allowed_ips",key,parentkey)
 end
 
 WG_PEER_IP_i_.commit = _commit
@@ -968,7 +962,9 @@ local ui_helper = require("web.ui_helper")
 local wireguard_helper = require("wireguard_helper")
 local proxy = require("datamodel")
 
-local format,gsub,match,sub,untaint = string.format,string.gsub,string.match,string.sub,string.untaint
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
+local format,gsub,match,sub = string.format,string.gsub,string.match,string.sub
 
 local vB = post_helper.validateBoolean
 local vNES = post_helper.validateNonEmptyString
@@ -982,7 +978,6 @@ local deleting = false
 local function proxySet(path,value)
   local success,errors = proxy.set(path,value)
   if not success then
-    local err
     for _,err in ipairs(errors) do
       message_helper.pushMessage(T(format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
     end
@@ -1010,7 +1005,7 @@ local function importInterface(new_if_name,content)
         if errmsg then
           message_helper.pushMessage(T(string.format("Failed to add interface %s: %s",new_if_name,errmsg)),"error")
         else
-          local commit,k,v = true
+          local commit = true
           for k,v in pairs(interface_config) do
             if not proxySet(format("uci.wireguard.@%s.%s",iface,k),v) then
               commit = false
@@ -1018,7 +1013,6 @@ local function importInterface(new_if_name,content)
             end
           end
           if commit then
-            local i,t
             for i,t in pairs(peer_config) do
               local peer_name
               if #peer_config == 1 then
@@ -1032,7 +1026,6 @@ local function importInterface(new_if_name,content)
                 commit = false
                 break
               else
-                local k,v
                 for k,v in pairs(t) do
                   if not proxySet(format("uci.wireguard.@%s.peer.@%s.%s",iface,index,k),v) then
                     commit = false
@@ -1068,7 +1061,6 @@ end
 
 local function deleteInterface(content)
   if type(content) == "table" then
-    local checked
     for _,checked in pairs(content) do
       if checked == "_TRUE_" then
         local okay,errmsg,errcode = wireguard_helper.deleteInterface(getintf)
@@ -1089,12 +1081,11 @@ local function checkForMultipleEnabledClients()
   local state = proxy.get("uci.wireguard.@"..getintf..".enabled")
   if state and state[1].value == "0" then
     local commit = false
-    local intf
-    for _,intf in pairs(proxy.getPN("uci.wireguard.", true)) do
+    for _,intf in pairs(proxy.getPN("uci.wireguard.",true)) do
       if intf.path ~= "uci.wireguard.@wg0." and intf.path ~= "uci.wireguard.@"..getintf.."." then
         local path = intf.path.."enabled"
         if proxy.get(path)[1].value == "1" then
-          if proxySet(path, "0") then
+          if proxySet(path,"0") then
             commit = true
           else
             break
@@ -1124,7 +1115,6 @@ local function updateFirewall(args)
     end
     if fw[3] and args.ipv6 then
       local ipv6 = args.ipv6
-      local family_is = fw[3].value
       local family
       if ipv6 == "1" and family ~= "" then
         family = ""
@@ -1144,7 +1134,6 @@ end
 if ngx.var.request_method == "POST" then
   local args = ngx.req.get_post_args()
   if args.action == "SAVE" then
-    local arg,content
     for arg,content in pairs(args) do
       local new_if_name = match(arg,"new_interface_(.+)")
       if new_if_name then
@@ -1163,8 +1152,7 @@ local wg0_on = ""
 local wg_intfs = {}
 local wg_intfs_path = "uci.wireguard."
 local all_intfs = content_helper.convertResultToObject(wg_intfs_path.."@.",proxy.get(wg_intfs_path))
-local k,v
-for k,v in ipairs(all_intfs) do
+for _,v in ipairs(all_intfs) do
   local on = v.enabled == "0" and "" or "<sup class='green' style='font-variant:small-caps;'>&nbsp;on</sup>"
   if v.paramindex == getintf then
     curintf = v.paramindex
@@ -1190,7 +1178,7 @@ AllowedIPs = 0.0.0.0/0%s\
 Endpoint = %s\
 "
 
-local function validateLogLevel(value,object,key)
+local function validateLogLevel(value,_,_)
   if value == "" or value == "debug" then
     return true
   end
@@ -1228,7 +1216,7 @@ end
 
 local config,helpmsg
 if deleting then
-  config,helpmsg = mapParams, {}
+  config,helpmsg = mapParams,{}
   content_helper.getExactContent(config)
 else
   config,helpmsg = post_helper.handleQuery(mapParams,mapValid)
@@ -1274,11 +1262,10 @@ if ngx.var.request_method == "POST" then
         if not ipv4_next then
           message_helper.pushMessage(T(ipv4_netmask),"error")
         else
-          local result,errmsg = proxy.add("uci.wireguard.@"..curintf..".peer.",peer_name)
+          local _,errmsg = proxy.add("uci.wireguard.@"..curintf..".peer.",peer_name)
           if errmsg then
-            local err
             for _,err in ipairs(errmsg) do
-              message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
+              message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,peer_name,err.errmsg,err.errcode)),"error")
             end
             helpmsg["new_peer_name"] = "Failed to add peer"
           else
@@ -1299,7 +1286,6 @@ if ngx.var.request_method == "POST" then
               new_peer.ipv6_allowed_ip = ",::0/0"
             end
             if type(args["genpsk"]) == "table" then
-              local checked
               for _,checked in pairs(args["genpsk"]) do
                 if checked == "_TRUE_" then
                   new_peer.preshared_key = wireguard_helper.genpsk()
@@ -1396,7 +1382,6 @@ local peer_options = {
 local peer_filter = function(data)
   local pub = untaint(data.public_key)
   local psk = untaint(data.preshared_key)
-  local peer
   if data.endpoint_host == "" then
     data.endpoint = "(none)"
   else
@@ -1500,7 +1485,7 @@ ngx.print('\
       html[#html+1] = "<legend><small>"..T"Peers".."</small></legend>"
       html[#html+1] = ui_helper.createTable(peer_columns,peer_data,peer_options,nil,peer_helpmsg)
       if new_peer then
-        html[#html+1] = ui_helper.createAlertBlock(T("Peer configuration is ONLY displayed on creation,because peer private keys are not stored and therefore the configuration cannot be regenerated. Click 'refresh data' above to clear configuration and add another peer."),{ alert = { id = "new-peer-alert",class = "alert-danger" } })
+        html[#html+1] = ui_helper.createAlertBlock(T("Peer configuration is ONLY displayed on creation, because peer private keys are not stored and therefore the configuration cannot be regenerated. Click 'refresh data' above to clear configuration and add another peer."),{ alert = { id = "new-peer-alert",class = "alert-danger" } })
         html[#html+1] = '<script src="/js/qrcode.min.js"></script>'
         html[#html+1] = "<div style='float:right;'>"
         html[#html+1] = " <a id='wg-peer-config-download'>Download "..new_peer.name..".conf</a>"
@@ -1632,7 +1617,9 @@ local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
 local proxy = require("datamodel")
 
-local find,format,gmatch,lower,match,untaint = string.find,string.format,string.gmatch,string.lower,string.match,string.untaint
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
+local find,format,gmatch,lower,match = string.find,string.format,string.gmatch,string.lower,string.match
 
 
 local M = {}
@@ -1775,8 +1762,8 @@ local ipv6pattern = "([:%x]+:)(%x+)/(%d+)"
 
 function M.getUnusedIP()
   local ip4_prefix,ip4_suffix,ip4_netmask,ip4_next
-  local ip6_prefix,ip6_suffix,ip6_netmask,ip6_next
-  local peer,ip,suffix,index,next_suffix,used
+  local ip6_prefix,ip6_netmask,ip6_next
+  local used
 
   for _,ip in pairs(proxy.get("uci.wireguard.@wg0.address.")) do
     local ipaddr = untaint(ip.value)
@@ -1785,7 +1772,7 @@ function M.getUnusedIP()
       used = { tonumber(ip4_suffix) }
     end
     if not ip6_prefix then
-      ip6_prefix,ip6_suffix,ip6_netmask = match(ipaddr,ipv6pattern)
+      ip6_prefix,_,ip6_netmask = match(ipaddr,ipv6pattern)
     end
   end
 
@@ -1828,9 +1815,8 @@ end
 
 function M.getDNS(include_ipv6)
   local dns = ""
-  local k,v
   
-  for k,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dhcp_option.",true)) do
+  for _,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dhcp_option.",true)) do
     local ipv4_dns = match(untaint(proxy.get(v.path.."value")[1].value),"6,(.+)")
     if ipv4_dns then
       if dns == "" then
@@ -1842,7 +1828,7 @@ function M.getDNS(include_ipv6)
   end
   
   if include_ipv6 == true then
-    for k,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dns.",true)) do
+    for _,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dns.",true)) do
       local ipv6_dns = untaint(proxy.get(v.path.."value")[1].value)
       if dns == "" then
         dns = ipv6_dns
@@ -1860,7 +1846,7 @@ function M.getDNS(include_ipv6)
 end
 
 function M.receiveFile(filename,match)
-  function do_receive(outfile,match)
+  local function do_receive(outfile,match)
     local upload = require("web.fileupload")
     local form,err = upload.fromstream()
     if not form then
@@ -1930,7 +1916,7 @@ local option_convert = {
 
 function M.parseConfig(content)
   local interface_config,peer_config = {},{}
-  local in_interface,in_peer,line = false,false
+  local in_interface,in_peer = false,false
   for line in gmatch(untaint(content)..'\n',"([^\r\n]*)[\r\n]") do
     if not match(line,"^%s*$") then
       local key,value = match(line,"^(%S+)%s*=%s*(.+)$")
@@ -1970,8 +1956,7 @@ end
 
 local function getFirewallWANZoneNetworkPath()
   local zones = proxy.getPN("uci.firewall.zone.",true)
-  local k,v
-  for k,v in ipairs(zones) do
+  for _,v in ipairs(zones) do
     local wan = proxy.get(v.path.."wan")
     if wan and wan[1].value == "1" then
       return v.path.."network."
@@ -1982,7 +1967,6 @@ end
 
 local function getInterfaceFirewallWANZoneNetworkPath(ifname)
   local path = getFirewallWANZoneNetworkPath()
-  local network
   for _,network in pairs(proxy.getPN(path,true)) do
     local value = proxy.get(network.path.."value")[1].value
     if value == ifname then
@@ -1993,7 +1977,6 @@ local function getInterfaceFirewallWANZoneNetworkPath(ifname)
 end
 
 function M.deleteInterface(ifname)
-  local peer
   for _,peer in pairs(proxy.getPN("uci.wireguard.@"..ifname..".peer.",true)) do
     local okay,errmsg,errcode = proxy.del(peer.path)
     if not okay then
@@ -2126,5 +2109,3 @@ else
     echo " Removed wireguard support"
   fi
 fi
-
-[ $SRV_network -gt 0 ] && /etc/init.d/network restart >/dev/null
