@@ -137,5 +137,28 @@ do
   fi
 done
 
+case "$CHART_CARDS" in 
+  n)  echo [$SCRIPT]: Hiding all chart cards
+      for CHART in Charts CPU RAM WANDown WANUp; do
+        uci -q set web.card_${CHART}.hide='1'
+      done
+      ;;
+  s)  echo [$SCRIPT]: Hiding individual chart cards
+      for CHART in CPU RAM WANDown WANUp; do
+        uci -q set web.card_${CHART}.hide='1'
+      done
+      echo [$SCRIPT]: Showing summary chart card
+      uci -q set web.card_Charts.hide='0'
+      ;;
+  i)  echo [$SCRIPT]: Showing individual chart cards
+      for CHART in CPU RAM WANDown WANUp; do
+        uci -q set web.card_${CHART}.hide='0'
+      done
+      echo [$SCRIPT]: Hiding summary chart card
+      uci -q set web.card_Charts.hide='1'
+      ;;
+esac
+SRV_nginx=$(( $SRV_nginx + 5 ))
+
 uci commit web
 
