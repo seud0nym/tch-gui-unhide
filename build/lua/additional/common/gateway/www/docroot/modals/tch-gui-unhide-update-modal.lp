@@ -7,7 +7,7 @@ local content_helper = require("web.content_helper")
 local message_helper = require("web.uimessage_helper")
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
-local find,match = string.find,string.match
+local find,gsub,match = string.find,string.gsub,string.match
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
@@ -44,7 +44,7 @@ if curl then
       break
     end
     if release or line == "" or find(line,"^=====") or find(line,"^%s*$") or find(line,"^%* tch%-gui%-unhide") then
-      changelog[#changelog+1] = line
+      changelog[#changelog+1] = gsub(line,"^%* tch%-gui%-unhide: ","- ")
     end
   end
   curl:close()
