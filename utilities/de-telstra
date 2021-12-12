@@ -57,7 +57,7 @@ Options:
  -p u|y|n|d          ! Power Saving:            u=unchanged y=Enable n=Disable d=Default
  -q u|y|n            * NFC:                     u=unchanged y=Enable n=Disable
  -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
- -s u|b|d|n            WAN Supervision:         u=unchanged b=BFD d=DNS n=Disable 
+ -s u|b|d|n            WAN Supervision:         u=unchanged b=BFD d=DNS n=Disable
  -t u|y|n              Telephony:               u=unchanged y=Enable n=Disable
  -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
  -w u|y|n              WPS:                     u=unchanged y=Enable n=Disable
@@ -153,11 +153,11 @@ SHOW_DEFAULTS=n
 while getopts :a:b:c:d:e:f:g:h:k:m:n:op:q:r:s:t:u:w:AF:GMO:RSU-: option
 do
  case "${option}" in
-  -)  case "${OPTARG}" in 
-        no-defaults)    set_defaults;; 
-        save-defaults)  SAVE_DEFAULTS=y;; 
-        show-defaults)  SHOW_DEFAULTS=y;; 
-        *)              usage;; 
+  -)  case "${OPTARG}" in
+        no-defaults)    set_defaults;;
+        save-defaults)  SAVE_DEFAULTS=y;;
+        show-defaults)  SHOW_DEFAULTS=y;;
+        *)              usage;;
       esac;;
   a)  case "${OPTARG}" in y) __ALG='1';; n) __ALG='0';; u) __ALG='u';; *) __ALG='u'; echo 'ERROR: -a valid options are y, n, or u'; exit 1;; esac;;
   b)  echo 'WARNING: -b option deprecated. Use -a instead!'; exit 1;;
@@ -297,7 +297,7 @@ show_default() {
       fi;;
   esac
   _OPT="$(printf '-%-15s' "$_OPT\e[0m")"
-  printf "  %-40s " "$2" 
+  printf "  %-40s " "$2"
   if [ $_ESC = 9 ]; then
     echo -e "\e[9m$_OPT $_DFLT"
   else
@@ -636,7 +636,7 @@ if [ -z "$VoWiFi" ]; then
 else
   if [ "$__QoS" = "n" ]; then
     echo [$SCRIPT]: Removing all Telstra QoS VoWiFi reclassify rules
-    for r in $VoWiFi; do 
+    for r in $VoWiFi; do
       uci delete $r
     done
     uci commit qos
@@ -1289,7 +1289,7 @@ echo [$SCRIPT]: Applying required service changes...
 [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear reload > /dev/null 2>&1
 [ $SRV_dumaos -gt 0 ] && { /etc/init.d/dumaos enable; /etc/init.d/dumaos restart; } > /dev/null 2>&1
 [ $SRV_hotspot -gt 0 -a -e /etc/init.d/hotspotd ] && { /etc/init.d/hotspotd disable; /etc/init.d/hotspotd stop; } > /dev/null 2>&1
-[ $SRV_iqos -gt 0 ] && /etc/init.d/iqos restart
+[ $SRV_iqos -gt 0 ] && /etc/init.d/iqos restart > /dev/null 2>&1
 [ $SRV_mmpbxd -gt 0 ] && { /etc/init.d/mmpbxd enable; /etc/init.d/mmpbxfwctl enable; /etc/init.d/mmpbxd restart; /etc/init.d/mmpbxfwctl restart; } > /dev/null 2>&1
 [ $SRV_mobiled -gt 0 ] && /etc/init.d/mobiled restart > /dev/null 2>&1
 [ $SRV_monitor -gt 0 -a -e /etc/init.d/autoreset ] && { /etc/init.d/autoreset disable; /etc/init.d/autoreset stop; } > /dev/null 2>&1
