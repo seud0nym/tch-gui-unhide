@@ -45,7 +45,7 @@ local function getCurrentWANInterface()
   return wan_intf
 end
 
-function M.getThroughputHTML() 
+function M.getThroughputHTML()
   local wan_data = {
     lan_rx = "rpc.network.interface.@lan.rx_bytes",
     lan_tx = "rpc.network.interface.@lan.tx_bytes",
@@ -81,13 +81,13 @@ function M.getThroughputHTML()
 
   local wan_intf = getCurrentWANInterface()
   local tx_mbps,rx_mbps = TGU_MbPS:get(wan_intf.."_tx_mbps") or 0,TGU_MbPS:get(wan_intf.."_rx_mbps") or 0
-  return 
+  return
     format("%.2f Mb/s <b>&uarr;</b><br>%.2f Mb/s <b>&darr;</b></span>",tx_mbps,rx_mbps),
     format("%.2f Mb/s <b>&uarr;</b><br>%.2f Mb/s <b>&darr;</b></span>",TGU_MbPS:get("lan_tx_mbps") or 0,TGU_MbPS:get("lan_rx_mbps") or 0),
     tx_mbps,rx_mbps
 end
 
-function M.getBroadbandCardHTML(wansensing) 
+function M.getBroadbandCardHTML(wansensing)
   local html = {}
   if bridged.isBridgedMode() then
     local ifnames = {
@@ -97,9 +97,9 @@ function M.getBroadbandCardHTML(wansensing)
 
     local intf_state = "disabled"
     local intf_state_map = {
-      disabled = T"Bridge disabled",
-      connected = T"Bridge connected",
-      disconnected = T"Bridge not connected",
+      disabled = "Bridge disabled",
+      connected = "Bridge connected",
+      disconnected = "Bridge not connected",
     }
     local intf_light_map = {
       disabled = "off",
