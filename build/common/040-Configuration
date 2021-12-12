@@ -9,7 +9,7 @@ if [ $FIX_SSH = y ]; then
   uci commit dropbear
   SRV_dropbear=$(( $SRV_dropbear + 4 ))
 fi
-  
+
 if [ $FIX_CFG_PORT = y ]; then
   echo [$SCRIPT]: Enabling unsigned configuration export/import in the web GUI
   uci set system.config.export_plaintext='1'

@@ -43,7 +43,7 @@ end
 local function download(rel_path,filename)
   os.execute(format("logger -t tch-gui-unhide -p user.debug Downloading %s/%s%s",base_url,rel_path,filename))
   local cmd = format("%s -o /dev/null -w '%%{http_code}' %s/%s%s",curl_cmd,base_url,rel_path,filename)
-  local response_code 
+  local response_code
   local curl,errmsg = io.popen(cmd,"r")
   if curl then
     response_code = curl:read("*n")
@@ -51,7 +51,7 @@ local function download(rel_path,filename)
     if response_code == 200 then
       cmd = format("%s -o/tmp/%s -w '%%{http_code}' %s/%s%s",curl_cmd,filename,base_url,rel_path,filename)
       curl,errmsg = io.popen(cmd,"r")
-      if curl then 
+      if curl then
         response_code = curl:read("*n")
         curl:close()
         if response_code == 200 then
@@ -103,7 +103,7 @@ GUI_.get = {
   UnhideVersion = function()
     return current_version
   end,
-  UpdateAvailable = function() 
+  UpdateAvailable = function()
     local release_version_date = getReleaseVersionDate()
     if release_version_date and release_version_date > current_version_date and release_version_date ~= getIgnoredReleaseVersionDate() then
       return "1"

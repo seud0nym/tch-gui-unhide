@@ -10,12 +10,12 @@ local ngx = ngx
 
 local vB = post_helper.validateBoolean
 
-local dos_Params = { 
+local dos_Params = {
 	dos_enable = "uci.dosprotect.globals.enabled",
 	dos_rpfilter = "uci.dosprotect.globals.rpfilter",
 }
 
-local dos_valid = { 
+local dos_valid = {
 	dos_enable = vB,
 	dos_rpfilter = vB,
 }
@@ -25,17 +25,17 @@ local dos_content = post_helper.handleQuery(dos_Params,dos_valid)
   ngx.print('\
 ');  ngx.print(ui_helper.createHeader(T"DoS Protect Option",false,false))   ngx.print('\
 <div class="modal-body update">\
-');  
+');
   local lp = require("web.lp")
   lp.setpath("/www/snippets/")
   lp.include("tabs-firewall.lp")
   ngx.print('\
   <form class="form-horizontal" method="post" action="modals/dosprotect-modal.lp">\
-    ');  
+    ');
       ngx.print(ui_helper.createMessages(message_helper.popMessages()))
       ngx.print('\
     <fieldset>\
-      ');  
+      ');
 			local html = {}
 			html[#html + 1] = '<legend>'..T"Settings"..'</legend>'
 			html[#html + 1] = ui_helper.createSwitch(T"Enabled","dos_enable",dos_content["dos_enable"])
@@ -46,4 +46,4 @@ local dos_content = post_helper.handleQuery(dos_Params,dos_valid)
   </form>\
 </div>\
 ');  ngx.print( ui_helper.createFooter() ); ngx.print('\
-'); 
+');

@@ -95,7 +95,7 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
   <div class="smallcard">\
     ');  ngx.print( ui_helper.createCardHeader(T"Local Network","modals/ethernet-modal.lp") ); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf015;">\
-      ');  
+      ');
       ngx.print(
         ui_helper.createSimpleLight(dhcp4State,dhcp4State_text),
         ui_helper.createSimpleLight(dhcp6State,dhcp6State_text)
@@ -114,7 +114,7 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
     </div>\
   </div>\
 </div>\
-');  
+');
 end
   ngx.print('\
-'); 
+');

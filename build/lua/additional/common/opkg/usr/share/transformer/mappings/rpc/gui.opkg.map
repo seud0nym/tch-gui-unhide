@@ -284,7 +284,7 @@ local GUI_OPKG_ = {
   }
 }
 
-local function feeds_configured() 
+local function feeds_configured()
   local cmd = popen("sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep -E 'BoLaMN|macoers' | wc -l","r")
   local status = cmd:read("*n")
   cmd:close()
@@ -294,7 +294,7 @@ local function feeds_configured()
   return "0"
 end
 
-local function update_scheduled() 
+local function update_scheduled()
   local cmd = popen("sed -e '/^#/d' /etc/crontabs/root | grep 'opkg update' | wc -l","r")
   local status = cmd:read("*n")
   cmd:close()

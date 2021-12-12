@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Fix bug in relay setup card 
+echo [$SCRIPT]: Fix bug in relay setup card
 sed \
   -e '/getExactContent/a \ ' \
   -e '/getExactContent/a local server_addr = proxy.get\("uci.dhcp.relay.@relay.server_addr"\)' \
@@ -6,7 +6,7 @@ sed \
   -e 's/\r//' \
   -i /www/cards/018_relaysetup.lp
 
-echo [$SCRIPT]: Only show xDSL Config card if WAN interface is DSL 
+echo [$SCRIPT]: Only show xDSL Config card if WAN interface is DSL
 sed \
  -e '/local content =/a \      wan_ifname = "uci.network.interface.@wan.ifname",' \
  -e '/if session:hasAccess/i \local wan_ifname = content["wan_ifname"]' \

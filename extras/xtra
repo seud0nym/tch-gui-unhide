@@ -10,7 +10,7 @@ do
   a)  REAPPLY=Y;;
   r)  XTRAS_REMOVE=Y;;
   x)  set -x;;
-  *)  echo "Usage: $0 [-x] [-r [-a]] [-c] <suffix>"; 
+  *)  echo "Usage: $0 [-x] [-r [-a]] [-c] <suffix>";
       echo
       echo " where:"
       echo "    <suffix> is the name of the script to test WITHOUT"
@@ -47,7 +47,7 @@ SRV_transformer=0
 echo -n -e "${GREEN}tch-gui-unhide-xtra.$1:${NC}"
 . ./tch-gui-unhide-xtra.$1
 if [ "$XTRAS_REMOVE" = "Y" -a "$REAPPLY" = "Y" ]; then
-  XTRAS_REMOVE="" 
+  XTRAS_REMOVE=""
   echo -n -e "${GREEN}tch-gui-unhide-xtra.$1:${NC}"
   . ./tch-gui-unhide-xtra.$1
 fi
@@ -70,7 +70,7 @@ for f in $(grep 'cat *<<' tch-gui-unhide-xtra.$1 | grep -vE '>>|/js/' | grep -E 
       RULE=$(uci show web | grep "/modals/$BASE" | grep -m 1 -v card_ | cut -d. -f2)
       [ -z "$RULE" ] && RULE=$(basename $f .lp | sed -e 's/-//g')
       ;;
-    *) 
+    *)
       continue;;
   esac
 
@@ -78,7 +78,7 @@ for f in $(grep 'cat *<<' tch-gui-unhide-xtra.$1 | grep -vE '>>|/js/' | grep -E 
     uci -q delete web.$RULE
     case $TYPE in ajax|modals) uci -q del_list web.ruleset_main.rules=$RULE;; esac
   else
-    case $TYPE in 
+    case $TYPE in
       ajax|modals)
         if [ -f /www/docroot/$TYPE/$BASE -a -z "$(uci -q get web.$RULE)" ]; then
           uci set web.$RULE=rule

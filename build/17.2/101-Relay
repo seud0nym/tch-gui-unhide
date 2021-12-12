@@ -1,3 +1,3 @@
-echo [$SCRIPT]: Missing proxy in relay setup card 
+echo [$SCRIPT]: Missing proxy in relay setup card
 sed -e '/local content_helper/a local proxy = require\("datamodel"\)' -i /www/cards/018_relaysetup.lp
 

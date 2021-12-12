@@ -27,7 +27,7 @@ sed \
 
 echo [$SCRIPT]: Fix headings on Diagnostics tabs
 for m in $(grep -L 'createHeader(T"Diagnostics"' /www/docroot/modals/diagnostics-*)
-do 
+do
     sed -e 's/\(createHeader(\)\([T]*\)\("Diagnostics\)\([^"]*\)\("\)/\1T\3\5/' -i $m
 done
 

@@ -158,7 +158,7 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-firewall.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/firewall-zones-modal.lp">\
-    '); 
+    ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('<legend>');  ngx.print( T"Firewall Zones" ); ngx.print('</legend>');
     ngx.print(ui_helper.createTable(zone_columns,zone_data,zone_options,nil,zone_helpMsg))

@@ -90,7 +90,7 @@ GUI_FIREWALL_DNS_INT_.set = {
       if ips then
         local found
         for _,v in pairs(ips) do
-          if v == value then 
+          if v == value then
             found = true
             break
           end
@@ -109,7 +109,7 @@ GUI_FIREWALL_DNS_INT_.set = {
     local ips,errmsg = readExceptions()
     if ips then
       for k,v in pairs(ips) do
-        if v == value then 
+        if v == value then
           ips[k] = nil
           return writeExceptions(ips)
         end

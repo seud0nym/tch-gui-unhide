@@ -71,7 +71,7 @@ if session:hasAccess(modalPath) then
       end
 
       if #dns_servers == 0 or noresolv ~= "1" then
-        if dnsmasq_enabled == "1" and #dns_servers == 0 then 
+        if dnsmasq_enabled == "1" and #dns_servers == 0 then
           dnsmasq_enabled = "0"
           dnsmasq_status = "Custom DNS not configured"
         end

@@ -117,11 +117,11 @@ local dsl_switch_data = post_helper.handleQuery(dsl_switch_params,dsl_switch_val
   ngx.print('\
 \
 <fieldset>\
-  ');  
+  ');
     ngx.print('\
   <legend>');  ngx.print( T"Physical Link Status" ); ngx.print('</legend>\
 \
-  ');  
+  ');
     local html = {}
 
     local statusIcon
@@ -316,4 +316,4 @@ local dsl_switch_data = post_helper.handleQuery(dsl_switch_params,dsl_switch_val
     ngx.print('\
 \
 </fieldset>\
-'); 
+');

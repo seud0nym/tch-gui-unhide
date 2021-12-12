@@ -159,7 +159,7 @@ local function wgShowAllDump()
     ip_cache[6].checked = 0
   end
 
-  return wg_cache.summary, wg_cache.details 
+  return wg_cache.summary, wg_cache.details
 end
 
 local GUI_WG_ = {
@@ -168,7 +168,7 @@ local GUI_WG_ = {
     access = "readOnly",
     minEntries = 1,
     maxEntries = 1,
-    parameters = { 
+    parameters = {
       interface_count = {
         access = "readOnly",
         type = "int"
@@ -259,7 +259,7 @@ local GUI_WG_IFACE_ = {
     access = "readOnly",
     minEntries = 0,
     maxEntries = math.huge,
-    parameters = { 
+    parameters = {
       interface = {
         access = "readOnly",
         type = "string"
@@ -307,7 +307,7 @@ local GUI_WG_IFACE_PEER_ = {
     access = "readOnly",
     minEntries = 0,
     maxEntries = math.huge,
-    parameters = { 
+    parameters = {
       interface = {
         access = "readOnly",
         type = "string"

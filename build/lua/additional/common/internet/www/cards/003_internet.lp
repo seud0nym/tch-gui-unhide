@@ -51,5 +51,5 @@ if mode_active ~= "bridge" then
   }\
   $().ready(function(){iFuncID=setInterval(updateInternetCard,20000);window.intervalIDs.push(iFuncID);});\
   </script>\
-  '); 
+  ');
 end

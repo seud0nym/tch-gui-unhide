@@ -189,7 +189,7 @@ local function setDefaultEnabled(devices)
       content[v[1]] = "1"
     end
   end
-end  
+end
 
 setDefaultEnabled(wandevices)
 setDefaultEnabled(lanports)

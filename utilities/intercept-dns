@@ -17,7 +17,7 @@ Configures DNS interception:
 NOTE: IPv6 DNS requests can NOT be hijacked (no kernel nat6 support). IPv6 DoT
       and DoH ARE blocked.
 
-NOTE: You can now configure DNS Interception through the user interface if 
+NOTE: You can now configure DNS Interception through the user interface if
       tch-gui-unhide has been installed.
 
 Usage: $0 [options]
@@ -147,7 +147,7 @@ if [ $STATUS = "y" ]; then
     else
       state=""
     fi
-    printf "$pattern" "firewall.$cfg" 
+    printf "$pattern" "firewall.$cfg"
     echo -e "$val $state"
   done
 
@@ -196,7 +196,7 @@ if [ $STATUS = "y" ]; then
       fi
       if [ "$ipset" = dns_xcptn ]; then
         found_dest_ip=0
-        for ip in $members 
+        for ip in $members
         do
           [ "$dest_lan" = 0 -a "$ip" = "$dest_ip" ] && found_dest_ip=1
           ip route get $ip | grep -q br-lan

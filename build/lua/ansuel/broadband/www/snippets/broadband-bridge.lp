@@ -17,4 +17,4 @@ local content_helper = require("web.content_helper")
 		lp.include("broadband-ethernet.lp")
 	end
     ngx.print('\
-'); 
+');

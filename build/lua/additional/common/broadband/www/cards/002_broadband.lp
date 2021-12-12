@@ -59,7 +59,7 @@ local html = bbch.getBroadbandCardHTML(WS_en)
     ');  ngx.print( ui_helper.createCardHeader(T"Broadband",modalPath,nil,nil,nil) ); ngx.print('\
     <div id="broadband-card-throughput"><div class="throughput"><span title="Raw throughput including protocol overhead"></span></div></div>\
     <div class="content card_bg mirror" data-bg-text="&#xf0c1;">\
-      ');  
+      ');
       ngx.print( ui_helper.createSimpleLight(nil,WS_Text,{ light = { class = WS_light_map[WS_State] } }) )
       if WS_en == "1" then
         ngx.print( format('<p class="subinfos">L2: <strong>%s</strong> L3: <strong>%s</strong></p>',WS_L2,WS_L3) )
@@ -118,4 +118,4 @@ $().ready(function(){\
   tpFuncID=setInterval(updateThroughput,2000);\
 });\
 </script>\
-'); 
+');

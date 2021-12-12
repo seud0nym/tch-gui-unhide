@@ -17,7 +17,7 @@ local colors = {
 
 local M = {}
 
-function M.getRGB(chart) 
+function M.getRGB(chart)
   local theme = TGU_Theme:get("THEME") or ""
   local color = TGU_Theme:get("COLOR") or ""
 

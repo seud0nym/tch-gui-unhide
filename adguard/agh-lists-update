@@ -24,7 +24,7 @@ Parameters:
 
 If -U is specified, it must be the only option. The password option (-p)
 is MANDATORY unless -U is specified, OR if you are removing the cron job.
-The username will be determined automatically from the AdGuard Home 
+The username will be determined automatically from the AdGuard Home
 configuration.
 
 EOH

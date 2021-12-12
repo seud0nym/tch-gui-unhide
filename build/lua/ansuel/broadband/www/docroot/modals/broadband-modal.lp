@@ -22,7 +22,7 @@ for idx,opt in pairs(mode_options) do
     table.remove(mode_options,idx)
     break
   end
-end    
+end
 
 local mapParam = {
 	wsens = "uci.wansensing.global.enable",
@@ -130,7 +130,7 @@ if not tabdata.current.ajax then
     ngx.print('\
     <fieldset>\
       <legend>');  ngx.print( T"Network Mode" ); ngx.print('</legend>\
-      ');  
+      ');
       if not bridged.isBridgedMode() then
         local html = {}
         local bridged_rebooting = {
@@ -250,5 +250,5 @@ if not tabdata.current.ajax then
     });\
   }());\
   </script>\
-  '); 
+  ');
 end

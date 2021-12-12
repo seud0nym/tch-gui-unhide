@@ -83,10 +83,10 @@ end
 <fieldset>\
   <legend>');  ngx.print( T"Physical Link Status" ); ngx.print('</legend>\
 \
-  ');  
+  ');
   local html = {}
   html[#html + 1] = ui_helper.createLight(T"Status",nil,intf_state_map[intf_state],{ light = { class = intf_light_map[intf_state] } })
   ngx.print(html)
   ngx.print('\
 </fieldset>\
-'); 
+');

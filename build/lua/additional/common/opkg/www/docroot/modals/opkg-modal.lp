@@ -52,7 +52,7 @@ ngx.print('\
   <form class="form-horizontal" method="post" action="modals/opkg-modal.lp">\
     ');  ngx.print(ui_helper.createMessages(message_helper.popMessages())); ngx.print('\
     <fieldset><legend>'); ngx.print( T"Configuration" ); ngx.print('</legend> \
-      ');  
+      ');
       local switch_class_enable = {
         input = {
           class = "monitor-changes",
@@ -119,4 +119,4 @@ ngx.print('\
   });\
   $().ready(function(){opkgLogFuncID=setInterval(updateAcmeLog,2000);});\
 </script>\
-'); 
+');

@@ -119,7 +119,7 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-firewall.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/firewall-rules-modal.lp">\
-    '); 
+    ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('<legend>');  ngx.print( T"Default Rules" ); ngx.print('</legend>');
     ngx.print(ui_helper.createTable(fw_dflt_rule_columns,fw_dflt_rule_data,fw_dflt_rule_options,nil,fw_dflt_rule_helpmsg))

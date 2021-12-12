@@ -50,7 +50,7 @@ for i=1,15,1 do
    options_trafficid[#options_trafficid + 1] = { id,id }
 end
 
-local function dscpAsHex(value) 
+local function dscpAsHex(value)
   if value and value ~= "" then
     local dscp = tostring(value)
     if #dscp > 2 and sub(1,2) == "0x" then

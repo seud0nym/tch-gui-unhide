@@ -3,7 +3,7 @@ local lfs = require("lfs")
 local uci_helper = mapper("ucihelper")
 local socket = require("socket")
 local adding = {
-  black = nil, 
+  black = nil,
   white = nil,
 }
 
@@ -145,7 +145,7 @@ local function readList(list)
         keys[#keys+1]=tostring(adding[list])
       end
     end
-  else 
+  else
     return nil,nil,errmsg
   end
   return hosts,keys

@@ -16,7 +16,7 @@ local function spairs(t,order)
   for k in pairs(t) do keys[#keys+1] = k end
 
   -- if order function given,sort by it by passing the table and keys a,b,
-  -- otherwise just sort the keys 
+  -- otherwise just sort the keys
   if order then
       table.sort(keys,function(a,b) return order(t,a,b) end)
   else
@@ -46,7 +46,7 @@ end
 
 local M = {}
 
-function M.getTelephonyCardHTML(mmpbx_state) 
+function M.getTelephonyCardHTML(mmpbx_state)
   local sipprofile_content = content_helper.getMatchedContent(sipprofile_uci_path)
   local sipprofile_info = {}
   for _,v in pairs(sipprofile_content) do

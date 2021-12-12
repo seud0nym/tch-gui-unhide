@@ -190,7 +190,7 @@ ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-broadband.lp"); ngx.print('\
   <form class="traffichistory form-horizontal" method="post" action="modals/broadband-usage-modal.lp">\
-    '); 
+    ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('<legend>');  ngx.print( T("Configuration") ); ngx.print('</legend>');
     ngx.print(ui_helper.createInputText(T"Roll-over Day","rollover_day",content_rollover["rollover_day"],number_attr))

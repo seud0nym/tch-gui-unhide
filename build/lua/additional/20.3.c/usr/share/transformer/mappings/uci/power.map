@@ -8,7 +8,7 @@ local power_ethernet  = {
     config = config_power,
     section = "ethernet",
     type = "ethernet",
-    options = { 
+    options = {
       "apd",
       "dgm",
       "eee",

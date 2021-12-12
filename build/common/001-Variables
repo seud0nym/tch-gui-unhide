@@ -9,7 +9,7 @@ fi
 
 TARGET_VERSION=""
 for x in $(basename $0 | tr '-' "$IFS")
-do 
+do
   TARGET_VERSION=$x
 done
 echo "$TARGET_VERSION" | grep -q '\.'

@@ -158,7 +158,7 @@ local secret_filter = function(data)
     psk = data.secret
     return { canDelete = false, canEdit = false }
   end
-  return true 
+  return true
 end
 
 local secret_data,secret_helpmsg = post_helper.handleTableQuery(secret_columns,secret_options,secret_filter,nil,secret_valid)
@@ -190,11 +190,11 @@ local responder_auto_attr = {
     off = "ignore"
   }
 }
-local info_attr = { 
-  alert = { 
+local info_attr = {
+  alert = {
     class = "alert-info span8",
     style = "float:right;"
-  } 
+  }
 }
 
 local function alert_block(text, keybase)

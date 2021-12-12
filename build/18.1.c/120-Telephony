@@ -1,5 +1,5 @@
 echo [$SCRIPT]: Fix default Telephony tab
-# Default telephony tab is DECT!!! 
+# Default telephony tab is DECT!!!
 if [ "$VERSION" != "18.1.c.0462" ]
 then
   sed \

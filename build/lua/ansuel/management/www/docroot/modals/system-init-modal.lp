@@ -16,7 +16,7 @@ local function sendcmd(cmd,service)
   proxy.apply()
   if cmd == "disable" then
     return "#"..service.."-enable"
-  elseif cmd == "enable" then  
+  elseif cmd == "enable" then
     return "#"..service.."-disable"
   end
   return "#"..service.."-"..cmd

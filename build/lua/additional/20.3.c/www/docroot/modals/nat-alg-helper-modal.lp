@@ -168,7 +168,7 @@ if card_hidden and card_hidden[1].value == "1" then
 end
 ngx.print('\
   <form class="form-horizontal" method="post" action="modals/nat-alg-helper-modal.lp">\
-    ');  
+    ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('<fieldset>');
     ngx.print('<legend>');  ngx.print( T"Helpers" ); ngx.print('</legend>');
@@ -178,4 +178,4 @@ ngx.print('\
   </form>\
 </div>\
 ');  ngx.print( ui_helper.createFooter() ); ngx.print('\
-'); 
+');

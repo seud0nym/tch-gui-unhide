@@ -43,7 +43,7 @@ ngx.print(ui_helper.createHeader(T"Packages",true,false))   ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-opkg.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/opkg-user-installed-modal.lp">\
-    '); 
+    ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('<legend>');  ngx.print( T"User Installed Packages" ); ngx.print('</legend>');
     if opkg_data["user_installed"] == "0" then
@@ -53,16 +53,16 @@ ngx.print(ui_helper.createHeader(T"Packages",true,false))   ngx.print('\
         },
       }
       ngx.print(ui_helper.createAlertBlock(T"No user-installed packages found",alert_info))
-    else 
+    else
       lp.include("opkg-form.lp");
     end
     ngx.print('\
   </form>\
-  '); 
+  ');
   lp.include("opkg-post.lp");
   ngx.print('\
 </div>\
-');  ngx.print(ui_helper.createFooter()); 
+');  ngx.print(ui_helper.createFooter());
 if opkg_data["user_installed"] ~= "0" then
   ngx.print('\
 <script>\

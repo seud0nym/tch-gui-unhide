@@ -369,11 +369,11 @@ end
 
   ngx.print('\
 <fieldset>\
-');  
+');
 ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   ngx.print('\
 <legend>');  ngx.print( T"PPP connection" ); ngx.print('</legend>\
-');  
+');
 
   local html = {}
   -- Label that shows PPP status
@@ -439,4 +439,4 @@ end
   ngx.print(html)
   ngx.print('\
 </fieldset>\
-'); 
+');

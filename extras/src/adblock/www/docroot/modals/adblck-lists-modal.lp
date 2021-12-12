@@ -13,11 +13,11 @@ local qry_result = "<style>.whitelist_cb{margin-bottom:5px}</style>"
 if ngx.req.get_method() == "POST" then
   local format, untaint = string.format, string.untaint
   local args = ngx.req.get_post_args()
-  
+
   local query = untaint(args.check_filtered)
   if query and query ~= "" then
     local _,result,host = proxy.set("rpc.gui.adblock.query", query)
-    for host in string.gmatch(untaint(result[1]["errmsg"])," %+ (%S+)") do 
+    for host in string.gmatch(untaint(result[1]["errmsg"])," %+ (%S+)") do
       qry_result = format("%s<br><input type='checkbox' class='whitelist_cb' name='wl_host' value='%s' title='Tick to whitelist %s'>%s",qry_result,host,host,host)
     end
   end

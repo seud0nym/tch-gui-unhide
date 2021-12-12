@@ -27,7 +27,7 @@ local function isEnabled()
 end
 
 GUI_ACME_.get = {
-  enabled = function() 
+  enabled = function()
     return tostring(isEnabled())
   end,
   log = function()

@@ -49,7 +49,7 @@ function M.getIPsecCardHTML()
     content.v2_psk_auto = enabled
     content.v2_psk_text = "IKEv2/PSK enabled"
   end
-  
+
   local html = {}
   html[#html+1] = ui_helper.createSimpleLight(content.firewall,content.firewall_text)
   html[#html+1] = '<p class="subinfos">'

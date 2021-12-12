@@ -14,7 +14,7 @@ local items = {
 }
 
 ngx.print('<ul class="nav nav-tabs">\
-');  
+');
 
 local html = {}
 
@@ -37,5 +37,5 @@ ngx.print(html)
   ngx.print('\
 \
 </ul>\
-'); 
+');
 end

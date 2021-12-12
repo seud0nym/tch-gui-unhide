@@ -13,4 +13,4 @@ local iperf_config = {
   }
 }
 
-mapper("uci_1to1").registerSimpleMap(iperf_config) 
+mapper("uci_1to1").registerSimpleMap(iperf_config)

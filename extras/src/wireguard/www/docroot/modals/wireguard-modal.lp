@@ -444,7 +444,7 @@ local peer_filter = function(data)
       end
       data.transfer_rx = wireguard_helper.bytes2string(peer.transfer_rx)
       data.transfer_tx = wireguard_helper.bytes2string(peer.transfer_tx)
-      if data.endpoint == "(none)" and peer.endpoint_host ~= "" then 
+      if data.endpoint == "(none)" and peer.endpoint_host ~= "" then
         data.endpoint = format("%s:%s",peer.endpoint_host,peer.endpoint_port)
       end
       break

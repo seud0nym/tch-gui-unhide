@@ -2,7 +2,7 @@ local ui_helper = require("web.ui_helper")
 
 local M = {}
 
-function M.createModalTab(items) 
+function M.createModalTab(items)
 	
 	local uri = ngx.var.uri
 	

@@ -49,7 +49,7 @@ local function getInterfaceType(data)
     local agentWiFiBand = agentSTA[data["MACAddress"]]
     if agentWiFiBand then
       return agentWiFiBand
-    else  
+    else
       return format("Ethernet - %s",data["Port"])
     end
   elseif match(data["L2Interface"],"moca*") then
@@ -141,7 +141,7 @@ if sortcol == "FriendlyName" then
   end
 elseif sortcol == "IPv4" then
   local ipv4ToNumber = function(a)
-    local ipv4 
+    local ipv4
     if (a.IPv4 == "") then
       ipv4 = a.DhcpLeaseIP
     else
@@ -192,7 +192,7 @@ elseif sortcol == "InterfaceType" then
     local bIface = getInterfaceType(b)
     if aIface == bIface then
       return lower(a.FriendlyName or "") < lower(b.FriendlyName or "")
-    else 
+    else
       return aIface < bIface
     end
   end
@@ -259,7 +259,7 @@ local devices_filter = function(data)
       else
         data["IPv6"] = data["DhcpLeaseIP"]
       end
-    end 
+    end
   end
   if data["IPv6"] and find(data["IPv6"]," ") then
     local addresses = splitter.split(untaint(data["IPv6"])," ")
@@ -311,7 +311,7 @@ ngx.print( ui_helper.createHeader(T"Devices",false,true,interval) ); ngx.print('
 <div class="modal-body update">\
 ');  lp.include("tabs-devices.lp")   ngx.print('\
   <form class="form-horizontal" method="post" action="modals/device-modal.lp?sort='); ngx.print(sortcol); ngx.print('&connected='); ngx.print(connected); ngx.print('">\
-    ');  
+    ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('\
     <fieldset>\
@@ -361,4 +361,4 @@ $("#Refresh_id").html("<i class=\'icon-trash\'></i> Clear MAC cache").removeClas
   tch.loadModal($(".modal form").attr("action")+"&cache=clear");\
 });\
 </script>\
-'); 
+');

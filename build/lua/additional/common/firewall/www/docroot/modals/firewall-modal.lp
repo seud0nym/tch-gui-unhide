@@ -80,33 +80,33 @@ local fw_valid = {
 }
 
 local content = post_helper.handleQuery(fw_params,fw_valid)
-if content.fw_accept_redirects == "" then 
+if content.fw_accept_redirects == "" then
   content.fw_accept_redirects = "0"
 end
-if content.fw_accept_source_route == "" then 
+if content.fw_accept_source_route == "" then
   content.fw_accept_source_route = "0"
 end
-if content.fw_disable_ipv6 == "" then 
+if content.fw_disable_ipv6 == "" then
   content.fw_disable_ipv6 = "0"
 end
-if content.fw_drop_invalid == "" then 
+if content.fw_drop_invalid == "" then
   content.fw_drop_invalid = "0"
 end
-if content.fw_syn_flood == "" then 
+if content.fw_syn_flood == "" then
   content.fw_syn_flood = "0"
 end
-if content.fw_synflood_burst == "" then 
+if content.fw_synflood_burst == "" then
   content.fw_synflood_burst = "50"
 end
-if content.fw_synflood_rate == "" then 
+if content.fw_synflood_rate == "" then
   content.fw_synflood_rate = "25"
 else
   content.fw_synflood_rate = string.match(content.fw_synflood_rate,"%d+")
 end
-if content.fw_tcp_ecn == "" then 
+if content.fw_tcp_ecn == "" then
   content.fw_tcp_ecn = "0"
 end
-if content.fw_tcp_window_scaling == "" then 
+if content.fw_tcp_window_scaling == "" then
   content.fw_tcp_window_scaling = "1"
 end
 
@@ -116,7 +116,7 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
   '); lp.include("tabs-firewall.lp") ngx.print('\
   <form class="form-horizontal" method="post" action="modals/firewall-modal.lp">\
     <fieldset>\
-      '); 
+      ');
       ngx.print(ui_helper.createMessages(message_helper.popMessages()))
       ngx.print('<legend>');  ngx.print( T"Firewall Configuration" ); ngx.print('</legend>');
 
@@ -125,11 +125,11 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
           class = "monitor-changes"
         }
       }
-      ngx.print(ui_helper.createSwitch(T"Enabled","fw_enable",content["fw_enable"],fwenable_attr)) 
+      ngx.print(ui_helper.createSwitch(T"Enabled","fw_enable",content["fw_enable"],fwenable_attr))
 
-      local enable_attr = { 
-        alert = { 
-          class = "alert-danger monitor-fw_enable monitor-0" 
+      local enable_attr = {
+        alert = {
+          class = "alert-danger monitor-fw_enable monitor-0"
         },
       }
       ngx.print(ui_helper.createAlertBlock(T("WARNING: Setting Enabled to OFF causes the firewall to ACCEPT all incoming connections from the WAN!<br>NOTE: You can only disable the firewall when the current level is <strong>Normal</strong>."),enable_attr)); ngx.print('\

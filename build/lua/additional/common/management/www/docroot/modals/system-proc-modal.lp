@@ -70,12 +70,12 @@ local proc_data,proc_helpmsg = post_helper.handleTableQuery(proc_columns,proc_op
   ngx.print('\
 ');  ngx.print(ui_helper.createHeader(T"Management",false,true,5) ); ngx.print('\
 <div class="modal-body update">\
-');  
+');
   local lp = require("web.lp")
   lp.setpath("/www/snippets/")
   lp.include("tabs-management.lp")
   ngx.print('\
-');  
+');
 -- dummy form so that refresh button knows which page to reload,keep it
 ngx.print('\
 <form class="form-horizontal" method="post" action="modals/system-proc-modal.lp">\

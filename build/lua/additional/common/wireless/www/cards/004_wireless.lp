@@ -58,4 +58,4 @@ function updateWirelessCard(){\
 }\
 $().ready(function(){ssidFuncID=setInterval(updateWirelessCard,19000);window.intervalIDs.push(ssidFuncID);});\
 </script>\
-'); 
+');

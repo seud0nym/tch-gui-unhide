@@ -31,7 +31,7 @@ if session:hasAccess("/modals/wanservices-modal.lp") then
   }\
   $().ready(function(){wanservicesFuncID=setInterval(updateWANServicesCard,21000);window.intervalIDs.push(wanservicesFuncID);});\
   </script>\
-  ');  
+  ');
 end
 ngx.print('\
-'); 
+');

@@ -7,7 +7,7 @@ local lp = require("web.lp")
 local ui_helper = require("web.ui_helper")
 ngx.print( ui_helper.createHeader(T"Devices",false,true,5) ); ngx.print('\
 <div class="modal-body">\
-');  
+');
   lp.setpath("/www/snippets/")
   lp.include("tabs-devices.lp")
   lp.include("networkmap.lp")
@@ -21,4 +21,4 @@ $("#networkmap a").click(function (e) {\
   e.preventDefault();\
 });\
 </script>\
-'); 
+');

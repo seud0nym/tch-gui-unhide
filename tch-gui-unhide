@@ -25,4 +25,4 @@ else
   else
     echo "$(date +%H:%M:%S): ERROR! Unknown response for latest FW $VERSION release on GitHub [$RESPONSE_CODE]"
   fi
-fi 
+fi

@@ -15,7 +15,7 @@ fi
 cp ../tch-gui-unhide-xtra.$1 $1/$1.sh
 
 grep -n 'cat *<<' $1/$1.sh | sed -e 's/:\|<\|>\|"\|cat//g' | sort -n -r | while read -r line name file
-do 
+do
   echo Extracting $file
   s=$(( $line + 1))
   d="$1$(dirname $file)"

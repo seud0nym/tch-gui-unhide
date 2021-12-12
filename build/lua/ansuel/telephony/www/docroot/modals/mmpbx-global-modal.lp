@@ -344,7 +344,7 @@ ngx.print('\
   if content and content["mmpbx_enabled"] == "1" then
     if mobile_devices > 0 then
       html[#html+1] =     ui_helper.createSwitch(T"Voice on 4G Failover","voiceonfailover",content["voiceonfailover"])
-    end  
+    end
     html[#html+1] = '<fieldset>'
     html[#html+1] = '<legend>'..T"SIP Network"..'</legend>'
     html[#html+1] =  ui_helper.createTable(sipnet_columns,sipnet_data,sipnet_options,nil,sipnet_helpmsg)

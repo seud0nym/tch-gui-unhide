@@ -38,10 +38,10 @@ options:
                   This will continue to use dnsmasq for DHCP, at the expense
                   of some additional RAM.
  -i            Install AdGuard Home on INTERNAL storage rather than USB.
-                  WARNING! This option requires the working directory to be 
+                  WARNING! This option requires the working directory to be
                   created on tmpfs, which is cleared on reboot. However, this
-                  script will set up a cron sync job, so that the most you 
-                  should lose will be the events and changes in the last 
+                  script will set up a cron sync job, so that the most you
+                  should lose will be the events and changes in the last
                   minute before an unexpected system reboot.
  -x c|g|i|u|y|x Exclude features:
                   -xc   Do not update System CA certificates
@@ -229,7 +229,7 @@ if [ $REMOVE = Y ]; then
     then
       echo -e "${GREEN}[$SCRIPT] Removing scheduled block list update...${NC}"
       sed -e "/agh-lists-update/d" -i /etc/crontabs/root
-    fi    
+    fi
 
     echo -e "${GREEN}[$SCRIPT] Done${NC}"
     exit
@@ -728,7 +728,7 @@ configure_dnmasq() {
 
 if [ -e /etc/init.d/AdGuardHome -a -d /mnt/usb/$NAME/AdGuardHome ]; then
   adguardhome_init
-  
+
   sed -e "s|/tmp/run/mountd/sd[^/]*/|/tmp/run/mountd/$DEVICE/|g" -e "s|/mnt/usb/USB-[^/]*/|/mnt/usb/$NAME/|g" -i /etc/init.d/AdGuardHome
 
   AGH_CMD=$(grep -o -m 1 -E '/.*/AdGuardHome/AdGuardHome ' /etc/init.d/AdGuardHome 2>/dev/null)

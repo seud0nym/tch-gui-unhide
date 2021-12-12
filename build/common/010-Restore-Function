@@ -3,7 +3,7 @@ restore_www() {
   if [ -f /usr/share/transformer/mappings/iperf.map ]; then
     rm /usr/share/transformer/mappings/iperf.map
   fi
-  # Need to remove existing version or it doesn't get replaced?? 
+  # Need to remove existing version or it doesn't get replaced??
   if [ -f /usr/sbin/traffichistory.lua ]; then
     if [ "$1" = "V" ]; then
       echo [$SCRIPT]: Removing file /usr/sbin/traffichistory.lua

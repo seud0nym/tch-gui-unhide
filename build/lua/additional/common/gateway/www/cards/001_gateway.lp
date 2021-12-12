@@ -126,7 +126,7 @@ function updateGatewayCard(){\
 }\
 $().ready(function(){funcID=setInterval(updateGatewayCard,1000);});\
 </script>\
-');  
+');
 end
   ngx.print('\
-'); 
+');

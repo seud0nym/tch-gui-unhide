@@ -71,7 +71,7 @@ do
 done
 
 echo "$LAN_IP_ADDR" | grep -q -E $IPv4PATTERN
-if [ $? -eq 1 ]; then 
+if [ $? -eq 1 ]; then
   echo ERROR! Invalid LAN IP address: $WAN_IP_ADDR
   exit
 fi
@@ -82,7 +82,7 @@ else
   for DNS in $LAN_DNS
   do
     echo "$DNS" | grep -q -E $IPv4PATTERN
-    if [ $? -eq 1 ]; then 
+    if [ $? -eq 1 ]; then
       echo ERROR! Invalid DNS Server IP address: $DNS
       exit
     fi
@@ -90,17 +90,17 @@ else
 fi
 if [ $WAN_DHCP = 'n' ]; then
   echo "$WAN_IP_ADDR" | grep -q -E $IPv4PATTERN
-  if [ $? -eq 1 ]; then 
+  if [ $? -eq 1 ]; then
     echo ERROR! Invalid WAN IP address: $WAN_IP_ADDR
     exit
   fi
   echo "$WAN_GATEWAY" | grep -q -E $IPv4PATTERN
-  if [ $? -eq 1 ]; then 
+  if [ $? -eq 1 ]; then
     echo ERROR! Invalid Gateway IP address: $WAN_GATEWAY
     exit
   fi
   echo "$WAN_MASK" | grep -q -E $IPv4PATTERN
-  if [ $? -eq 1 ]; then 
+  if [ $? -eq 1 ]; then
     echo ERROR! Invalid WAN Subnet Mask: $WAN_MASK
     exit
   fi
@@ -140,19 +140,19 @@ fi
 echo " - Move all LAN ports and wireless devices from the LAN bridge onto the WAN bridge"
 echo " - Enable multicast snooping on the WAN bridge"
 echo " - Create a management wireless device on the LAN bridge with an SSID of $SSID and a password of $PWD"
-echo 
+echo
 if [ $FORCE = y ]; then
   echo "The above settings will be re-applied, even if already set"
 else
   echo "The above settings will only be applied if they have not already been applied"
 fi
-echo 
+echo
 if [ $REBOOT = y ]; then
   echo "After the above settings have been applied, the device will be REBOOTED"
 else
   echo "The device will NOT be automtically rebooted after settings are applied. You should do it, though..."
 fi
-echo 
+echo
 echo If you wish to proceed, enter y otherwise just press [Enter] to stop.
 if [ $YES = y ]; then
   REPLY=y
@@ -191,7 +191,7 @@ then
   uci set wansensing.global.enable="0"
   uci commit wansensing
   /etc/init.d/wansensing restart
-else 
+else
   echo WAN Sensing is already disabled
 fi
 
@@ -201,7 +201,7 @@ then
   uci set supervision.global.enabled="0"
   uci commit supervision
   /etc/init.d/supervision reload
-else 
+else
   echo WAN Supervision is already disabled
 fi
 
@@ -214,7 +214,7 @@ then
   /etc/init.d/mobiled reload
   uci set ltedoctor.config.enabled="0"
   /etc/init.d/lte-doctor-logger restart
-else 
+else
   echo 4G Mobile Backup is already disabled
 fi
 
@@ -224,7 +224,7 @@ then
   uci set intercept.config.enabled="0"
   uci commit intercept
   /etc/init.d/intercept reload
-else 
+else
   echo The intercept daemon is already disabled
 fi
 
@@ -408,7 +408,7 @@ if [ "$REBOOT" = "y" ]
 then
   echo Attempting to reboot...
   echo "#######################################################"
-  echo "# NOTE: If the reboot fails with 'Input/output error' #" 
+  echo "# NOTE: If the reboot fails with 'Input/output error' #"
   echo "#       you can just manually power cycle the device  #"
   echo "#######################################################"
   reboot

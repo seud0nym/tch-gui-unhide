@@ -117,7 +117,7 @@ local options_dscp = {
   {"0x30","CS6"},--48
   {"0x38","CS7"},----56
 }
-for i=1,22,1 do 
+for i=1,22,1 do
   local meaning = "!"..options_dscp[i][2]
   if sub(meaning,2,1) == "<" then
     local html1,text,html2 = match(meaning,"(.*>)([^<]+)(<.*)")

@@ -64,7 +64,7 @@ if session:hasAccess("/modals/system-modal.lp") then
   <div class="smallcard">\
     ');  ngx.print( ui_helper.createCardHeader(T"System Extras",modalPath) ); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf085;">\
-        ');  
+        ');
         local html = {}
         tinsert(html,ui_helper.createSimpleLight(nil,sshlan_state_map[sshlan_enabled],{ light = { class = light_map[sshlan_enabled] } }) )
         if ssh_afg then
@@ -93,7 +93,7 @@ if session:hasAccess("/modals/system-modal.lp") then
     </div>\
   </div>\
 </div>\
-');  
+');
 end
   ngx.print('\
-'); 
+');

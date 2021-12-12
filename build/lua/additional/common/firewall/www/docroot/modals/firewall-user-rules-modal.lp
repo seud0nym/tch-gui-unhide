@@ -63,7 +63,7 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
 <div class="modal-body update">\
   '); lp.include("tabs-firewall.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/firewall-user-rules-modal.lp">\
-    '); 
+    ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     if not userLevelEnabled then
       ngx.print(ui_helper.createAlertBlock(T"User Defined Rules are only editable and only applied when the Firewall Level is configured as User-Defined.",info_attr))

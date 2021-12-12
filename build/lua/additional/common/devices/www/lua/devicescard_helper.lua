@@ -7,7 +7,7 @@ local modal_link='class="modal-link" data-toggle="modal" data-remote="modals/dev
 
 local M = {}
 
-function M.getDevicesCardHTML() 
+function M.getDevicesCardHTML()
   local devices_data = {
     numWireless = "sys.hosts.ActiveWirelessNumberOfEntries",
     numEthernet = "sys.hosts.ActiveEthernetNumberOfEntries",

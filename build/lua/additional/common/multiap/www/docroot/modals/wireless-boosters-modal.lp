@@ -79,8 +79,8 @@ ngx.print('\
 <div class="modal-body update">\
 ');  lp.include("tabs-boosters.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/wireless-boosters-modal.lp">\
-    ');  
-    ngx.print(ui_helper.createMessages(message_helper.popMessages())); 
+    ');
+    ngx.print(ui_helper.createMessages(message_helper.popMessages()));
     local switch_class_enable = {
       input = {
         class = "monitor-changes",
@@ -110,11 +110,11 @@ ngx.print('\
     ngx.print('\
   </form>\
 </div>\
-');  ngx.print(ui_helper.createFooter())   
+');  ngx.print(ui_helper.createFooter())
 if appath then
   ngx.print('\
 <script>\
 $("#wl1_2state").change(function() { $("input[name=apstate]").val(this.value); });\
 </script>\
   ');
-end 
+end

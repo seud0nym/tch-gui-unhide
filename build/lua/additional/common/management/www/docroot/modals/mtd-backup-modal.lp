@@ -73,7 +73,7 @@ if usbpath then
         if not basename then
           backups[#backups + 1] = { file,os.date("%Y/%m/%d %H:%M:%S",attributes.modification),comma_value(attributes.size),}
           space_used = space_used + attributes.size
-        end  
+        end
       end
     end
   end
@@ -133,12 +133,12 @@ local backup_options = {
   ngx.print('\
 ');  ngx.print(ui_helper.createHeader(T"Management",false,true) ); ngx.print('\
 <div class="modal-body update">\
-');  
+');
   local lp = require("web.lp")
   lp.setpath("/www/snippets/")
   lp.include("tabs-management.lp")
   ngx.print('\
-');  
+');
 -- dummy form so that refresh button knows which page to reload,keep it
 ngx.print('\
 <style>#mtdbackup table th:nth-child(3),#mtdbackup table td:nth-child(3){text-align:right;}</style>\

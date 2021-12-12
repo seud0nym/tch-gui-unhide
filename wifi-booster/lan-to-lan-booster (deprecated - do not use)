@@ -70,12 +70,12 @@ do
 done
 
 echo "$LAN_IP_ADDR" | grep -q -E $IPv4PATTERN
-if [ $? -eq 1 ]; then 
+if [ $? -eq 1 ]; then
   echo ERROR! Invalid LAN IP address: $LAN_IP_ADDR
   exit
 fi
 echo "$LAN_GATEWAY" | grep -q -E $IPv4PATTERN
-if [ $? -eq 1 ]; then 
+if [ $? -eq 1 ]; then
   echo ERROR! Invalid LAN Gateway IP address: $LAN_GATEWAY
   exit
 fi
@@ -90,7 +90,7 @@ else
   for DNS in $LAN_DNS
   do
     echo "$DNS" | grep -q -E $IPv4PATTERN
-    if [ $? -eq 1 ]; then 
+    if [ $? -eq 1 ]; then
       echo ERROR! Invalid DNS Server IP address: $DNS
       exit
     fi
@@ -126,7 +126,7 @@ then
 else
   echo "The above settings will only be applied if they have not already been applied"
 fi
-echo 
+echo
 echo If you wish to proceed, enter y otherwise just press [Enter] to stop.
 if [ $YES = y ]; then
   REPLY=y
@@ -162,7 +162,7 @@ then
   uci set wansensing.global.enable="$SET_TO_0_1"
   uci commit wansensing
   /etc/init.d/wansensing restart
-else 
+else
   echo WAN Sensing is already ${ACTION}D
 fi
 
@@ -172,7 +172,7 @@ then
   uci set supervision.global.enabled="$SET_TO_0_1"
   uci commit supervision
   /etc/init.d/supervision reload
-else 
+else
   echo WAN Supervision is already ${ACTION}D
 fi
 
@@ -185,7 +185,7 @@ then
   /etc/init.d/mobiled reload
   uci set ltedoctor.config.enabled="$SET_TO_0_1"
   /etc/init.d/lte-doctor-logger restart
-else 
+else
   echo 4G Mobile Backup is already ${ACTION}D
 fi
 
@@ -198,7 +198,7 @@ then
   uci commit dhcp
   /etc/init.d/dnsmasq restart
   /etc/init.d/odhcpd reload
-else 
+else
   echo IPv4 and IPv6 DHCP servers are already ${ACTION}D
 fi
 
@@ -208,7 +208,7 @@ then
   uci set intercept.config.enabled="$SET_TO_0_1"
   uci commit intercept
   /etc/init.d/intercept reload
-else 
+else
   echo The intercept daemon is already ${ACTION}D
 fi
 
@@ -270,13 +270,13 @@ then
     echo " -> Adding $DNS"
     uci add_list network.lan.dns="$DNS"
   done
-else  
+else
   if [ "$(uci -q get network.lan.proto)" = "dhcp" ]
   then
     echo "Setting LAN IP address to $LAN_IP_ADDR"
     uci set network.lan.proto='static'
     uci set network.lan.ipaddr="$LAN_IP_ADDR"
-  else 
+  else
     echo "Unsetting LAN Gateway IP address"
     uci -q delete network.lan.gateway
     echo "Unsetting LAN DNS"

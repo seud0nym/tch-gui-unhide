@@ -96,7 +96,7 @@ done
 
 echo [$SCRIPT]: Checking configured web rules exist
 for c in $(uci show web | grep '^web\..*\.target=' | grep -vE 'dumaos|homepage')
-do 
+do
   f=/www/docroot$(echo "$c" | cut -d"'" -f2)
   if [ ! -f "$f" ]; then
     RULE=$(echo $c | cut -d. -f2)
@@ -137,7 +137,7 @@ do
   fi
 done
 
-case "$CHART_CARDS" in 
+case "$CHART_CARDS" in
   n)  echo [$SCRIPT]: Hiding all chart cards
       for CHART in Charts CPU RAM WANDown WANUp; do
         uci -q set web.card_${CHART}.hide='1'

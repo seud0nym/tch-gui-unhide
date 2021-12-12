@@ -23,7 +23,7 @@ ngx.print(ui_helper.createHeader(T"Packages",true,false))   ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-opkg.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/opkg-system-installed-modal.lp">\
-    '); 
+    ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('<legend>');  ngx.print( T"System Installed Packages" ); ngx.print('</legend>');
     local alert_warn = {
@@ -55,7 +55,7 @@ ngx.print(ui_helper.createHeader(T"Packages",true,false))   ngx.print('\
       }\
     }\
   </script>\
-  '); 
+  ');
   ngx.print('\
 </div>\
 ');  ngx.print(ui_helper.createFooter()); ngx.print('\

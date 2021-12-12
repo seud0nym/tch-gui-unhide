@@ -17,7 +17,7 @@ done
 
 echo [$SCRIPT]: Checking configured cards exist
 for c in $(uci show web | grep '^web\.card_.*\.card=')
-do 
+do
   f=/www/cards/$(echo "$c" | cut -d"'" -f2)
   if [ ! -f "$f" ]; then
     CARDRULE=$(echo $c | cut -d. -f2)

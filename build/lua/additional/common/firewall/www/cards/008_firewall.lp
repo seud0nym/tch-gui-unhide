@@ -55,7 +55,7 @@ if session:hasAccess("/modals/firewall-modal.lp") then
     ngx.print(ui_helper.createSimpleLight(fw_status_light_map[fw_incoming_policy],fw_status))
     ngx.print('\
       <p class="subinfos">\
-        ');  
+        ');
         local html = {}
         html[#html+1] = format(T"Firewall level: <strong>%s</strong><br>",modes[content.mode] or "")
 
@@ -131,7 +131,7 @@ if session:hasAccess("/modals/firewall-modal.lp") then
     </div>\
   </div>\
 </div>\
-');  
+');
 end
   ngx.print('\
-'); 
+');

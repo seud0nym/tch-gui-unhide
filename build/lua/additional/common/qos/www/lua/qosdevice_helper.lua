@@ -5,7 +5,7 @@ local untaint = string.untaint
 
 local M = {}
 
-function M.getNetworkDevices() 
+function M.getNetworkDevices()
   local ssid = {}
   local ifs = {}
 
@@ -52,11 +52,11 @@ function M.getNetworkDevices()
         ssid[device] = wlname.." (2.4G)"
       else
         ssid[device] = wlname.." (5G)"
-      end    
+      end
     end
   end
 
   return ifs,ssid
-end  
+end
 
 return M

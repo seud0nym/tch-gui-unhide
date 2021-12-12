@@ -235,5 +235,5 @@ $("[name =\'mac\']").change(function () {\
   }\
 });\
 </script>\
-'); 
+');
 ngx.print( ui_helper.createFooter() );

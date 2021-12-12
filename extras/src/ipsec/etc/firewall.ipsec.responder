@@ -1,4 +1,4 @@
-# Creates the firewall rules for the IPSec VPN Server 
+# Creates the firewall rules for the IPSec VPN Server
 
 WAN_IFNAME="$(uci get network.wan.ifname)"
 LAN_SUBNET=$(lua -e 'require("web.taint")

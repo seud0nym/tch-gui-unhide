@@ -191,19 +191,19 @@ local opkg_columns = {
 local opkg_filter = {
   available = function(data)
     if data.warning and data.warning ~= "" then
-      data.warning = "<span class='icon-warning-sign' title='"..data.warning.."'></span>"  
+      data.warning = "<span class='icon-warning-sign' title='"..data.warning.."'></span>"
     else
       if data.paramindex and data.name then
         data.pkg_upgrade = format("<input type='checkbox' class='opkg_cb' name='install_pkg' value='%s' title='Tick to install %s'>",data.paramindex,data.name)
       else
-        data.warning = "<span class='icon-warning-sign' title='Failed to extract package name or index???'></span>"  
+        data.warning = "<span class='icon-warning-sign' title='Failed to extract package name or index???'></span>"
       end
     end
     return true
   end,
   system = function(data)
     if data.warning and data.warning ~= "" then
-      data.warning = "<span class='icon-warning-sign' title='"..data.warning.."'></span>"  
+      data.warning = "<span class='icon-warning-sign' title='"..data.warning.."'></span>"
     else
       if data.available_version ~= "" then
         data.pkg_upgrade = ui_helper.createSimpleButton("","icon-plus-sign",genAttrib(data,"Upgrade %s (This is very,very risky!)"))
@@ -214,7 +214,7 @@ local opkg_filter = {
   end,
   user = function(data)
     if data.warning and data.warning ~= "" then
-      data.warning = "<span class='icon-warning-sign' title='"..data.warning.."'></span>"  
+      data.warning = "<span class='icon-warning-sign' title='"..data.warning.."'></span>"
     else
       if data.paramindex and data.name then
         if data.available_version ~= "" then
@@ -222,7 +222,7 @@ local opkg_filter = {
         end
         data.pkg_remove = format("<input type='checkbox' class='opkg_cb' name='remove_pkg' value='%s' title='Tick to remove %s'>",data.paramindex,data.name)
       else
-        data.warning = "<span class='icon-warning-sign' title='Failed to extract package name or index???'></span>"  
+        data.warning = "<span class='icon-warning-sign' title='Failed to extract package name or index???'></span>"
       end
     end
     if data.installed_time and data.installed_time ~= "" then

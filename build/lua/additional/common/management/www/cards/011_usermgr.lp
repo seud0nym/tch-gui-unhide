@@ -59,9 +59,9 @@ if admin and assistant then
     <div class="smallcard">\
         '); ngx.print( ui_helper.createCardHeader(T"Management","modals/theme-modal.lp") ); ngx.print('\
         <div class="content card_bg" data-bg-text="&#xf0c0;">\
-          ');  
+          ');
           ngx.print(ui_helper.createSimpleLight(on_schedule,'<span class="modal-link" data-toggle="modal" data-remote="/modals/theme-modal.lp" data-id="theme-modal">Scheduled Theme Change</span> '..theme_status))
-          ngx.print( 
+          ngx.print(
             '<span class="simple-desc">',
             '<i class="icon-cog status-icon"></i>',
             format(N("<strong %s>%d process</strong> running",
@@ -83,7 +83,7 @@ if admin and assistant then
                     'class="modal-link" data-toggle="modal" data-remote="/modals/system-init-modal.lp" data-id="system-init-modal"',
                     counts.init),
             '</span>'
-          ); 
+          );
           if assistant:enabled() then
             ngx.print(ui_helper.createSimpleLight("1",T"Remote assistance enabled"))
             if admin then

@@ -88,7 +88,7 @@ local operator_data,operator_helpmsg = post_helper.handleTableQuery(operator_col
 ');  ngx.print( ui_helper.createHeader(params.modal_title,false,true) ); ngx.print('\
 <div class="modal-body update" id="lte-body">\
   <form class="form-horizontal" method="post" action="modals/lte-operators.lp">\
-    ');  
+    ');
       local lp = require("web.lp")
       lp.setpath("/www/snippets/")
       lp.include("tabs-mobiled.lp")
@@ -103,4 +103,4 @@ local operator_data,operator_helpmsg = post_helper.handleTableQuery(operator_col
   </form>\
 </div>\
 ');  ngx.print( ui_helper.createFooter() ); ngx.print('\
-'); 
+');

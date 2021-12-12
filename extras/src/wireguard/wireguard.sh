@@ -90,7 +90,7 @@ HLP
     uci commit firewall
     SRV_firewall=$(( $SRV_firewall + 1 ))
   fi
-  
+
   if ! uci -q get $FW_LAN_ZONE.network | grep -qE "\bwg0\b"; then
     uci add_list $FW_LAN_ZONE.network="wg0"
     uci commit firewall
@@ -121,7 +121,7 @@ else
     uci commit firewall
     SRV_firewall=$(( $SRV_firewall + 1 ))
   fi
-  
+
   if [ "$(uci -q get firewall.wg0)" = "rule" ]; then
     WG_INSTALLED=1
     uci -q delete firewall.wg0=

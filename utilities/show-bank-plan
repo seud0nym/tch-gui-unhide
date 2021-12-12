@@ -34,7 +34,7 @@ do
     then
       OPTIMAL=$(( $OPTIMAL + 1 ))
       [ $QUIET = N ] && echo " OK"
-    else 
+    else
       [ $QUIET = N ] && echo " !! [Should be bank_1]"
     fi
   elif [ "$f" = "/proc/banktable/booted" ]
@@ -43,7 +43,7 @@ do
     then
       OPTIMAL=$(( $OPTIMAL + 1 ))
       [ $QUIET = N ] && echo " OK"
-    else 
+    else
       [ $QUIET = N ] && echo " !! [Should be bank_2]"
     fi
   else
@@ -68,10 +68,10 @@ else
     echo "      reset of the device using the following command:"
     echo
     echo "       mtd -r erase rootfs_data"
-    echo 
+    echo
     echo "      The device will reboot, and you WILL lose root, but you will be able to set"
     echo "      the optimal bank plan after re-acquiring root."
-    echo 
+    echo
   fi
   exit 1
 fi

@@ -70,7 +70,7 @@ function M.getWireguardCardHTML()
   local interfaces = proxy.getPN("uci.wireguard.",true)
 
   local transfer_pattern = '<i class="icon-cloud-upload status-icon"></i> <span style="width:5em;display:inline-block;">%s</span>&ensp;<i class="icon-cloud-download status-icon"></i> <span style="width:5em;display:inline-block;">%s</span><br>'
-  
+
   local html = {}
   html[#html+1] = ui_helper.createSimpleLight(content.server,content.server_text)
   if content.server == "2" then
@@ -200,7 +200,7 @@ end
 
 function M.getDNS(include_ipv6)
   local dns = ""
-  
+
   for _,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dhcp_option.",true)) do
     local ipv4_dns = match(untaint(proxy.get(v.path.."value")[1].value),"6,(.+)")
     if ipv4_dns then
@@ -211,7 +211,7 @@ function M.getDNS(include_ipv6)
       end
     end
   end
-  
+
   if include_ipv6 == true then
     for _,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dns.",true)) do
       local ipv6_dns = untaint(proxy.get(v.path.."value")[1].value)

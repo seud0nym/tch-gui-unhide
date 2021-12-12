@@ -107,7 +107,7 @@ if dns_int then
         if valid and new_enabled == "1" and enabled == "0" then
           if new_dest_ip ~= "" then
             valid,errmsg = vSIIP4(new_dest_ip)
-            if not valid then 
+            if not valid then
               helpmsg["dest_ip"] = errmsg
             end
           end
@@ -124,7 +124,7 @@ if dns_int then
             end
             dest_ip = ""
           elseif new_enabled == "1" then
-            local dhcp_option6_path 
+            local dhcp_option6_path
             local dhcp_options_path = "uci.dhcp.dhcp.@lan.dhcp_option."
             local dhcp_options = proxy.get(dhcp_options_path)
             if dhcp_options then
@@ -195,7 +195,7 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-firewall.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/firewall-dns_int-modal.lp">\
-    '); 
+    ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print('<legend>'); ngx.print( T"DNS Interception/Hijacking" ); ngx.print('</legend>');
     local info_attr = {
@@ -209,14 +209,14 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
         class = "monitor-changes"
       }
     }
-    local monitor_attr = { 
-      group = { 
-        class = "monitor-enabled monitor-1" 
+    local monitor_attr = {
+      group = {
+        class = "monitor-enabled monitor-1"
       },
     }
-    ngx.print(ui_helper.createSwitch(T"Enabled","enabled",enabled,enabled_attr)) 
+    ngx.print(ui_helper.createSwitch(T"Enabled","enabled",enabled,enabled_attr))
     ngx.print(ui_helper.createInputText(T"DNS Server Address<span class='icon-question-sign' title='IPv4 address of the DNS server to which intercepted requests will be sent. Leave blank to have this device handle DNS.'></span>","dest_ip",dest_ip,monitor_attr,helpmsg["dest_ip"]))
-    ngx.print(ui_helper.createSwitch(T"Block IPv6 DoH/DoT<span class='icon-question-sign' title='Enable to block DNS-over-HTTPS and DNS-over-TLS for IPv6'></span>","ipv6",ipv6,monitor_attr,helpmsg["ipv6"])) 
+    ngx.print(ui_helper.createSwitch(T"Block IPv6 DoH/DoT<span class='icon-question-sign' title='Enable to block DNS-over-HTTPS and DNS-over-TLS for IPv6'></span>","ipv6",ipv6,monitor_attr,helpmsg["ipv6"]))
     if dns_int and enabled == "1" then
       local ipv4pattern = "^(((([1]?\\d)?\\d|2[0-4]\\d|25[0-5])\\.){3}(([1]?\\d)?\\d|2[0-4]\\d|25[0-5]))$"
       local cols = {
@@ -250,7 +250,7 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
     ngx.print('\
   </form>\
 </div>\
-'); 
+');
 if dns_int and enabled == "1" then
   ngx.print('<script>$("#excludedIPs td:contains('); ngx.print(T(dest_ip)); ngx.print(')").siblings(":last").children(".btn-table-edit,.btn-table-delete").hide();</script>');
 end

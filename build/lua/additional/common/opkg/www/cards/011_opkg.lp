@@ -43,7 +43,7 @@ ngx.print('\
   <div class="smallcard">\
     ');  ngx.print(ui_helper.createCardHeader(T"Packages",modalPath)); ngx.print('\
     <div class="content card_bg mirror" data-bg-text="&#xf06b;">\
-      ');  
+      ');
       ngx.print(ui_helper.createSimpleLight(opkg_data["configured"],opkg_text["configured"]))
       if opkg_data["configured"] ~= "0" then
         ngx.print('\
@@ -66,4 +66,4 @@ ngx.print('\
     </div>\
   </div>\
 </div>\
-'); 
+');

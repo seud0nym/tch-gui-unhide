@@ -31,8 +31,8 @@ for _,v in ipairs(items) do
 end
 
 ngx.print('<ul class="nav nav-tabs">\
-');  
+');
 ngx.print(html)
 ngx.print('\
 </ul>\
-'); 
+');

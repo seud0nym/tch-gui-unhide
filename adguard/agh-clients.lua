@@ -31,7 +31,7 @@ cmd:close()
 function process(target)
   local address = target.address
   local credentials = target.credentials
-  
+
   local append = {}
   local delete = {}
   local update = {}
@@ -71,7 +71,7 @@ function process(target)
       end
     end
   end
-  
+
   delete[device_hostname] = false
   if not clients[device_hostname] then
     clients[device_hostname] = {
@@ -124,7 +124,7 @@ function process(target)
         target = "A",
         index = #append
       }
-    elseif not i.target then 
+    elseif not i.target then
       update[#update+1] = {
         name = hostname,
         data = {
@@ -137,7 +137,7 @@ function process(target)
           name = hostname,
           ids = {}
         }
-      }    
+      }
       index[hostname] = {
         target = "U",
         index = #update

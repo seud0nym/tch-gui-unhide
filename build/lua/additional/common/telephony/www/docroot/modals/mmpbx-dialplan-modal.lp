@@ -31,8 +31,8 @@ if ngx.req.get_method() == "POST" then
         end
       end
       proxy.apply()
-    end    
-  end  
+    end
+  end
 end
 
 local plans_base_path = "uci.mmpbx.dial_plan."
@@ -45,7 +45,7 @@ if plans_content then
     local name = path:match("uci.mmpbx.dial_plan.@dial_plan_(%w+)%.")
     if #plans == 0 or name ~= plans[#plans][1] then
       if not inTableAction or (inTableAction and name == plan_name) then
-        plans[#plans + 1] = { name,T(name:upper()) } 
+        plans[#plans + 1] = { name,T(name:upper()) }
       end
       plan_details[name] = {}
     end

@@ -145,8 +145,8 @@ if ngx.req.get_method() == "POST" then
         device_columns[1]["name"] = "name"
         device_columns[1]["readonly"] = true
       end
-    end    
-  end  
+    end
+  end
 end
 
 
@@ -213,4 +213,4 @@ ngx.print( ui_helper.createHeader(T"QoS",false) ); ngx.print('\
 ');  ngx.print(script); ngx.print('\
 $("#device option[value=\'lo\']").remove();\
 </script>\
-');  ngx.print( ui_helper.createFooter() ); 
+');  ngx.print( ui_helper.createFooter() );

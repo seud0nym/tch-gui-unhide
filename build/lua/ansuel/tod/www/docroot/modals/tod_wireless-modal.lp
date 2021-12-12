@@ -136,7 +136,7 @@ local tod_options = {
   addNamedObject  = true,
 }
 
-local function getWifiTodListFromIndex(index) 
+local function getWifiTodListFromIndex(index)
   if not index then
     return nil
   end
@@ -272,7 +272,7 @@ local function onDelete(success)
   delObject[#delObject+1] = format("uci.tod.wifitod.@wifitod_%s.",index)
 
   for _ ,obj in pairs(delObject) do
-    ret = proxy.del(obj) 
+    ret = proxy.del(obj)
   end
 
   return ret

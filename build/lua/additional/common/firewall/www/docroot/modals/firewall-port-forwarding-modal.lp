@@ -501,39 +501,39 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-firewall.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/firewall-port-forwarding-modal.lp">\
-    ');  
+    ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     ngx.print(ui_helper.createAlertBlock(format("%s <strong>\":\"</strong> %s",T"To use port ranges use",T"for example 500:505."),range_warning))
     ngx.print('\
     <fieldset>\
       <legend>');  ngx.print( T"IPv4 Port Forwarding" ); ngx.print('</legend>\
-      ');  
+      ');
       ngx.print(ui_helper.createTable(pfw_columns,pfw_data,pfw_options,nil,pfw_helpmsg))
       ngx.print('\
     </fieldset>\
-    ');  
+    ');
     if ipv6Data.lanIpv6Enabled ~= "0" and ipv6Data.pinholeEnabled == "1" then
       ngx.print('\
       <fieldset>\
         <legend>');  ngx.print( T"IPv6 Port Forwarding" ); ngx.print('</legend>\
-        ');  
+        ');
           -- magic
           -- display/edit all the retrieved ipv6 firewall rule data
           ngx.print(ui_helper.createTable(pfw_v6_columns,pfw_v6_data,pfw_v6_options,nil,pfw_v6_helpmsg))
           ngx.print('\
       </fieldset>\
-      ');  
+      ');
     end
     ngx.print('\
     <fieldset>\
       <legend>');  ngx.print( T"System Redirect Rules" ); ngx.print('</legend>\
-      ');  
+      ');
       ngx.print(ui_helper.createTable(fw_redirect_columns,fw_redirect_data,fw_redirect_options,nil,fw_redirect_helpmsg))
       ngx.print('\
     </fieldset>\
     <fieldset>\
       <legend>');  ngx.print( T"System NAT Rules" ); ngx.print('</legend>\
-      ');  
+      ');
       ngx.print(ui_helper.createTable(fw_nat_columns,fw_nat_data,fw_nat_options,nil,fw_nat_helpmsg))
       ngx.print('\
     </fieldset>\

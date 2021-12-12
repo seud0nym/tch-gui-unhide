@@ -55,7 +55,7 @@ usage() {
   echo "                     When specifying the -r option, it must be the ONLY parameter specifed."
   echo " -y               : Bypass confirmation prompt (answers 'y')"
   echo " -V               : Show the release number of this script, the current installed release, and the latest available release on GitHub"
-  echo 
+  echo
   echo "NOTE #1: Theme (-t) does not need to be re-specified when re-running the script: current state will be 'remembered'"
   echo "         between executions (unless you execute with the -r option, which will remove all state information)"
   echo "NOTE #2: Use tch-gui-unhide-cards to set card order and visibility"
@@ -66,17 +66,17 @@ usage() {
 while getopts :a:c:d:f:h:i:l:p:rt:uv:x:yC:TVWX-: option
 do
  case "${option}" in
-   -) case "${OPTARG}" in 
-        debug)  DEBUG="V";; 
-        *)      usage;; 
+   -) case "${OPTARG}" in
+        debug)  DEBUG="V";;
+        *)      usage;;
       esac;;
    a) if [ "${OPTARG}" -eq 4 -o "${OPTARG}" -eq 5 ]; then ACROSS=$OPTARG; else echo "ERROR: Cards across must be either 4 or 5"; exit 2; fi;;
    c) case "$(echo ${OPTARG} | sed 's/\(.\)\(.*\)/\1/')" in
-        b) COLOR=blue;; 
-        g) COLOR=green;; 
-        o) COLOR=orange;; 
-        p) COLOR=purple;; 
-        r) COLOR=red;; 
+        b) COLOR=blue;;
+        g) COLOR=green;;
+        o) COLOR=orange;;
+        p) COLOR=purple;;
+        r) COLOR=red;;
         m) COLOR=monochrome;;
         M) COLOR=MONOCHROME;;
         *) echo "ERROR: Unknown color option - $OPTARG"; exit 2;;
@@ -94,9 +94,9 @@ do
    p) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then SIP_PWDS=y; else SIP_PWDS=n; fi;;
    r) RESTORE=y;;
    t) case "${OPTARG}" in
-        g) THEME=night; COLOR=green; KEEPLP=n; echo WARNING: -tg deprecated. Use -tn -cg in future;; 
-        o) THEME=night; COLOR=orange; KEEPLP=n; echo WARNING: -to deprecated. Use -tn -co in future;; 
-        p) THEME=night; COLOR=purple; KEEPLP=n; echo WARNING: -tp deprecated. Use -tn -cp in future;; 
+        g) THEME=night; COLOR=green; KEEPLP=n; echo WARNING: -tg deprecated. Use -tn -cg in future;;
+        o) THEME=night; COLOR=orange; KEEPLP=n; echo WARNING: -to deprecated. Use -tn -co in future;;
+        p) THEME=night; COLOR=purple; KEEPLP=n; echo WARNING: -tp deprecated. Use -tn -cp in future;;
         l) THEME=light; COLOR=monochrome; KEEPLP=n;;
         m) THEME=telstramodern; COLOR=blue; KEEPLP=y;;
         n) THEME=night; COLOR=blue; KEEPLP=n;;
@@ -107,7 +107,7 @@ do
       then
         echo "002@$(date +%H:%M:%S): GitHub check of $FILENAME failed with an unknown error. Do you have an internet connection?"
         return 5
-      else 
+      else
         STATUS=$(echo $RESULT | grep '^HTTP' | cut -d' ' -f2)
         LENGTH=$(echo $RESULT | grep '^Content-Length' | cut -d' ' -f2)
         next=''
@@ -154,7 +154,7 @@ do
    y) YES=y;;
    x) XTRAS="${XTRAS} ${OPTARG}";;
    C) case "${OPTARG}" in
-        n|s|i) CHART_CARDS="$OPTARG";; 
+        n|s|i) CHART_CARDS="$OPTARG";;
         *) echo "ERROR: Unknown chart card option - $OPTARG"; exit 2;;
       esac;;
    T) THEME_ONLY=y;;
@@ -170,7 +170,7 @@ do
       else
         echo "002@$(date +%H:%M:%S): Latest Release     $LATEST_RELEASE"
       fi
-      exit;;      
+      exit;;
    W) WRAPPER=y;;
    X) UPDATE_XTRAS=y;;
    ?) usage;;

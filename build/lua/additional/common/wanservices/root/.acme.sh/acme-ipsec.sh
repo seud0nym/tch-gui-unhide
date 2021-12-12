@@ -103,7 +103,7 @@ do
   -)  case "$OPTARG" in
         force)  FORCE_RENEW="--force";;
         test)   SERVER="letsencrypt_test";;
-        *)      usage; 
+        *)      usage;
       esac;;
   *)  usage;;
  esac

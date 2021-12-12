@@ -206,7 +206,7 @@ local GUI_IPSEC_ = {
 }
 
 GUI_IPSEC_.get = {
-  apply_changes = function() 
+  apply_changes = function()
     return "0"
   end,
   associations = function()
@@ -215,7 +215,7 @@ GUI_IPSEC_.get = {
     cmd:close()
     return match(status,"%(([^%)]+)")
   end,
-  changed = function() 
+  changed = function()
     readIPsecConfig()
     readIPsecSecrets()
     if conf_cache.changed == "1" or secret_cache.changed == "1" then
@@ -230,13 +230,13 @@ GUI_IPSEC_.get = {
     end
     return "0"
   end,
-  regenpsk = function() 
+  regenpsk = function()
     return "0"
   end,
-  reread = function() 
+  reread = function()
     return "0"
   end,
-  restart = function() 
+  restart = function()
     return "0"
   end,
 }

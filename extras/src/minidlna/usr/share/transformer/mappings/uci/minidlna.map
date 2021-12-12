@@ -18,4 +18,4 @@ local minidlna_config = {
   }
 }
 
-mapper("uci_1to1").registerSimpleMap(minidlna_config) 
+mapper("uci_1to1").registerSimpleMap(minidlna_config)

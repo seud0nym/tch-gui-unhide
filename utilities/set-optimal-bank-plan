@@ -29,7 +29,7 @@ then
       if [ "$(cat /proc/banktable/booted)" = "bank_1" ]; then
         mtd -e bank_2 write /dev/$(grep bank_1 /proc/mtd | cut -d: -f1) bank_2 && \
         mtd verify /dev/$(grep bank_1 /proc/mtd | cut -d: -f1) bank_2 || \
-        { echo "ERROR: Clone verification failed! Retry"; exit; } 
+        { echo "ERROR: Clone verification failed! Retry"; exit; }
       fi
       echo Make a temp copy of overlay for booted firmware
       cp -rf /overlay/$(cat /proc/banktable/booted) /tmp/bank_overlay_backup

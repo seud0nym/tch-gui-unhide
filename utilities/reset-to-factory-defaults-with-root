@@ -20,12 +20,12 @@ but with some additional options.
 Usage: $0 [options]
 
 Options:
- -b               Make a full backup of your booted bank configuration 
+ -b               Make a full backup of your booted bank configuration
                     (requires attached USB device).
  -c               Disable CWMP configuration during first boot after reset
  -e               Disable any 'noexec' flags on USB mounted filesystems
- -f filename      Flash 'filename' into the mounted bank ($BOOTED) after reset 
-                    and before reboot. If 'filename' ends with .rbi, it will be 
+ -f filename      Flash 'filename' into the mounted bank ($BOOTED) after reset
+                    and before reboot. If 'filename' ends with .rbi, it will be
                     unpacked first, either to an attached USB device, or /tmp if
                     no USB detected.
  -i               Keep existing IP address [$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)] after reset and
@@ -89,10 +89,10 @@ SAVE_DEFAULTS=n
 while getopts :bcef:iI:knp:vyU-: option
 do
  case "${option}" in
-  -)  case "${OPTARG}" in 
-        no-defaults)    set_defaults;; 
-        save-defaults)  SAVE_DEFAULTS=y;; 
-        *)              usage;; 
+  -)  case "${OPTARG}" in
+        no-defaults)    set_defaults;;
+        save-defaults)  SAVE_DEFAULTS=y;;
+        *)              usage;;
       esac;;
   b)  __BKUP="Y";;
   c)  __CWMP="Y";;

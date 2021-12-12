@@ -18,7 +18,7 @@ else
   ethname =  "eth3"
 end
 
-local function get_wansensing() 
+local function get_wansensing()
   local ws = proxy.get("uci.wansensing.global.enable")
   if ws then
     return ws[1].value
