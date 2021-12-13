@@ -30,7 +30,7 @@ local cfg = {
   mobile_devices = "rpc.mobiled.DeviceNumberOfEntries",
 }
 content_helper.getExactContent(cfg)
-local wansensing,mobile_devices = cfg["wansensing_enabled"] == "1",tonumber(cfg["mobile_devices"]) or 0
+local mobile_devices = tonumber(cfg["mobile_devices"]) or 0
 
 local mapValid = {
   mmpbx_enabled = vB,
@@ -316,7 +316,7 @@ local sipnet_options = {
 
 local sipnet_data,sipnet_helpmsg = post_helper.handleTableQuery(sipnet_columns,sipnet_options,nil,nil,sipnet_valid)
 
-if wansensing then
+if cfg["wansensing_enabled"] == "1" and content["voiceonfailover"] == "1" then
   sipnet_columns[10]["readonly"] = true
   sipnet_columns[10]["header"] = sipnet_columns[10]["header"].." <span class='icon-question-sign' title='Interface is controlled by WAN Sensing.'></span>"
 end
@@ -341,8 +341,8 @@ ngx.print('\
   html[#html+1] = '<fieldset id="mmpbx-global-tab">'
   html[#html+1] =     '<legend>'..T"Global Information"..'</legend>'
   html[#html+1] =     ui_helper.createSwitch(T"Enabled","mmpbx_enabled",content["mmpbx_enabled"])
-  if content and content["mmpbx_enabled"] == "1" then
-    if mobile_devices > 0 then
+  if content["mmpbx_enabled"] == "1" then
+    if cfg["wansensing_enabled"] == "1" and mobile_devices > 0 then
       html[#html+1] =     ui_helper.createSwitch(T"Voice on 4G Failover","voiceonfailover",content["voiceonfailover"])
     end
     html[#html+1] = '<fieldset>'
