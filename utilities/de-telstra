@@ -353,8 +353,9 @@ PACKAGES_TO_REMOVE=""
 
 echo [$SCRIPT]: Applying default hardening rules...
 
+CWMPD_WANS=$(grep "^ *set_cwmpd" /usr/lib/lua/wansensingfw/failoverhelper.lua | wc -l)
 CWMPD_IQOS=$(uci -q show iqos | grep "target='cwmpd'" | cut -d. -f1-2)
-if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" -o -e /etc/init.d/cwmpd -o -n "$CWMPD_IQOS" ]; then
+if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" -o -e /etc/init.d/cwmpd -o -n "$CWMPD_IQOS" -o $CWMPD_WANS -gt 0 ]; then
   if [ "$__CWMP" = 'n' ]; then
     echo [$SCRIPT]: - Disabling CWMP
     uci set cwmpd.cwmpd_config.state='0'
@@ -366,12 +367,17 @@ if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" -o -e /etc/init.d/cwmpd -o
     uci -q del_list watchdog.@watchdog[0].pidfile='/var/run/cwmpd.pid'
     uci -q del_list watchdog.@watchdog[0].pidfile='/var/run/cwmpevents.pid'
     uci commit watchdog
+    SRV_watchdog=$(( $SRV_watchdog + 2 ))
     if [ -n "$CWMPD_IQOS" ]; then
+      echo [$SCRIPT]: - Removing CWMPD Ingress QoS settings
       uci -q delete $CWMPD_IQOS
       uci commit iqos
       SRV_iqos=$(( $SRV_iqos + 1 ))
     fi
-    SRV_watchdog=$(( $SRV_watchdog + 2 ))
+    if [ $CWMPD_WANS -gt 0 ]; then
+      echo [$SCRIPT]: - Disabling CWMP in WAN Sensing failover
+      sed -e 's/^\( *set_cwmpd\)/-- \1/' -i /usr/lib/lua/wansensingfw/failoverhelper.lua
+    fi
     PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE conf-cwmpd cwmpd"
   else
     echo [$SCRIPT]: - OVERRIDE! CWMP NOT Disabled
@@ -380,25 +386,33 @@ else
   echo [$SCRIPT]: - CWMP already Disabled
 fi
 
-ws_worker=$(uci -q get wansensing.@worker[0].enable)
-if [ -z "$(uci -q get autoreset.vsparc_enabled)" -a -z "$(uci -q get autoreset.thor_enabled)" -a -z "$(uci -q get wifi_doctor_agent.acs)" -a -z "$(uci -q get wifi_doctor_agent.config)" -a -z "$(uci -q get wifi_doctor_agent.as_config)" -a \( -z "$ws_worker" -o "$ws_worker" = "0" \) ]; then
+WIFI_WANS=$(grep "^ *set_wifi_doctor" /usr/lib/lua/wansensingfw/failoverhelper.lua | wc -l)
+WRKR_WANS=$(uci -q get wansensing.@worker[0].enable)
+if [ -z "$(uci -q get autoreset.vsparc_enabled)" -a -z "$(uci -q get autoreset.thor_enabled)" -a -z "$(uci -q get wifi_doctor_agent.acs)" -a -z "$(uci -q get wifi_doctor_agent.config)" -a -z "$(uci -q get wifi_doctor_agent.as_config)" -a \( -z "$WRKR_WANS" -o "$WRKR_WANS" = "0" \) -a $WIFI_WANS -eq 0 ]; then
   echo [$SCRIPT]: - Telstra monitoring already Disabled
 else
   if [ "$__MONITORING" = 'n' ]; then
     echo [$SCRIPT]: - Disabling Telstra monitoring
     uci -q get autoreset
     if [ $? -eq 0 ]; then
+      echo [$SCRIPT]: - Removing autoreset config
       uci -q delete autoreset.vsparc_enabled
       uci -q delete autoreset.thor_enabled
       uci commit autoreset
       SRV_monitor=$(( $SRV_monitor + 2 ))
     fi
+    echo [$SCRIPT]: - Removing WiFi Doctor config
     uci -q delete wifi_doctor_agent.acs
     uci -q delete wifi_doctor_agent.config
     uci -q delete wifi_doctor_agent.as_config
     uci commit wifi_doctor_agent
     SRV_monitor=$(( $SRV_monitor + 3 ))
-    if [ "$ws_worker" = "1" ]; then
+    if [ $WIFI_WANS -gt 0 ]; then
+      echo [$SCRIPT]: - Disabling WiFi Doctor in WAN Sensing failover
+      sed -e 's/^\( *set_wifi_doctor\)/-- \1/' -i /usr/lib/lua/wansensingfw/failoverhelper.lua
+    fi
+    if [ "$WRKR_WANS" = "1" ]; then
+      echo [$SCRIPT]: - Disabling throughput monitoring 
       uci set wansensing.@worker[0].enable='0'
       uci commit wansensing
       SRV_wansensing=$(( $SRV_wansensing + 1 ))
