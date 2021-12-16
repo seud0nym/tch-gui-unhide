@@ -12,6 +12,21 @@ end
 
 return {
   {
+    name = "bridge",
+    default = false,
+    description = T"Bridge mode",
+    view = "internet-bridged.lp",
+    card = "003_internet_bridged.lp",
+    check = {
+      { "uci.network.config.wan_mode","^bridge$"}
+    },
+    operations = {
+      { "uci.network.interface.@wan.proto","bridge"},
+      { "uci.network.config.wan_mode","bridge"},
+      { "uci.network.interface.@lan.ifname",gsub(gsub(ifnames,wan_ifname,""),"%s$","")},
+    },
+  },
+  {
     name = "dhcp",
     default = true,
     description = T"DHCP routed mode",
@@ -73,21 +88,6 @@ return {
       { "uci.network.interface.@wan6.proto","static"},
       { "uci.network.interface.@wan6.ifname",wan_ifname},
       { "uci.network.config.wan_mode","static"},
-      { "uci.network.interface.@lan.ifname",gsub(gsub(ifnames,wan_ifname,""),"%s$","")},
-    },
-  },
-  {
-    name = "bridge",
-    default = false,
-    description = T"Bridge mode",
-    view = "internet-bridged.lp",
-    card = "003_internet_bridged.lp",
-    check = {
-      { "uci.network.config.wan_mode","^bridge$"}
-    },
-    operations = {
-      { "uci.network.interface.@wan.proto","bridge"},
-      { "uci.network.config.wan_mode","bridge"},
       { "uci.network.interface.@lan.ifname",gsub(gsub(ifnames,wan_ifname,""),"%s$","")},
     },
   },

@@ -26,8 +26,8 @@ sed \
 
 echo [$SCRIPT]: Check for fake WAN in bridged mode \(nqe bind errors fix\)
 sed \
-  -e 's/if (proxy.get("uci.network.interface.@wan.")) then/local ifname = proxy.get("uci.network.interface.@wan.ifname")\
-    if ifname and ifname[1].value ~= "lo" then/' \
+  -e 's/if (proxy.get("uci.network.interface.@wan.")) then/local wan_mode = proxy.get("uci.network.config.wan_mode")\
+    if wan_mode and wan_mode[1].value ~= "bridge" then/' \
   -i /www/lua/bridgedmode_helper.lua
 
 echo [$SCRIPT]: Allow reset to Routed Mode without RTFD
