@@ -6,6 +6,8 @@ ORANGE='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+FW_VER=$(uci get version.@version[0].marketing_version)
+
 # Make sure that we are running on Telstra firmware
 if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]
 then
@@ -29,15 +31,25 @@ Options:
  -i n.n.n.n  Set LAN IP address to n.n.n.n (default is -i$LAN_IP_ADDR)
               The IP address must be in the same LAN subnet as the primary device
  -m n.n.n.n  Set LAN Subnet Mask to n.n.n.n (default is -m$LAN_NETMASK)
-              The Subnet Mask must be the same as the LAN subnet mask configured on the primary device
+              The Subnet Mask must be the same as the LAN subnet mask configured 
+              on the primary device.
  -g n.n.n.n  Set LAN Gateway IP address to n.n.n.n (default is -g$LAN_GATEWAY)
-              This is the LAN IP address of the primary device
+              This is the LAN IP address of the primary device.
               (This option is ignored if -R specified)
  -n n.n.n.n  Set LAN DNS Server IP address to n.n.n.n
-              Specify multiple times for multiple DNS servers. Default is the LAN Gateway IP address.
+              Specify multiple times for multiple DNS servers. 
+              Default is the LAN Gateway IP address.
               (This option is ignored if -R specified)
  -l 0-9      Set MultiAP logging level
               0=off 2=Default 9=very verbose
+EOH
+if [ $FW_VER = "20.3.c" ]; then cat <<EOH
+ -s          Apply the Samba (NQE) fix for Firmware 20.3.c to allow the booster 
+              device to run as a file server.
+              (This option is ignored if -R specified)
+EOH
+fi
+cat <<EOH
  -R          Restore to Routed Mode
  -r          Skip reboot (NOT recommended!)
  -y          Skip the confirmation prompt
@@ -58,6 +70,7 @@ LAN_DNS=''
 MULTIAP_LOGGING_LEVEL=2
 REBOOT='y'
 RESTORE='n'
+SAMBA='n'
 YES='n'
 
 if [ "$LAN_IP_ADDR" = "$LAN_GATEWAY" ]; then
@@ -75,7 +88,7 @@ else
   UHTTPD=''
 fi
 
-while getopts :g:i:l:m:n:ryR option
+while getopts :g:i:l:m:n:rsyR option
 do
   case "${option}" in
     g)  LAN_GATEWAY="$OPTARG";;
@@ -88,6 +101,7 @@ do
           LAN_DNS="$LAN_DNS $OPTARG"
         fi;;
     r)  REBOOT='n';;
+    s)  [ $FW_VER = "20.3.c" ] && SAMBA='y' || usage;;
     y)  YES='y';;
     R)  RESTORE='y';;
     *)  usage;;
@@ -163,6 +177,13 @@ if [ $RESTORE = n ]; then
   echo -e " - ${GREEN}Set LAN Gateway IP address to $LAN_GATEWAY${NC}"
   echo -e " - ${GREEN}Set LAN DNS to $(echo $LAN_DNS | tr \"$IFS\" ' ')${NC}"
   echo -e " - ${GREEN}ENABLE Bridged Mode${NC}"
+  if [ $FW_VER = "20.3.c" ]; then
+  if [ $SAMBA = y ]; then
+  echo -e " - ${GREEN}Apply the SAMBA (NQE) fix for FW 20.3.c${NC}"
+  else
+  echo -e " - ${ORANGE}Apply a partial fix for NQE bind errors on FW 20.3.c${NC}"
+  fi
+  fi
   echo -e " - ${GREEN}ENABLE MultiAP on the bridge${NC}"
   echo -e " - ${ORANGE}DISABLE MultiAP Controller${NC}"
   echo -e " - ${GREEN}Set MultiAP logging level to $MULTIAP_LOGGING_LEVEL${NC}"
@@ -263,17 +284,29 @@ if [ $RESTORE = n ]; then
   done
   echo -e "${GREEN}Configuring bridged mode${NC}"
   uci set network.config.wan_mode='bridge'
-  uci set network.lan.ifname='eth0 eth1 eth2 eth3 eth4 wl0 wl1 wl1_2 atm_8_35 ptm0'
+  uci set network.lan.ifname='eth0 eth1 eth2 eth3 eth4 wl0 wl1 wl1_2'
   for ifname in ppp ipoe wan wan6 wwan lan.pppoerelay
   do
     uci -q delete network.$ifname
     uci -q delete dhcp.$ifname
   done
   uci -q delete network.@ppp_placeholder[0]
-  # Partial fix for nqe bind errors
-  uci set network.wan=interface
-  uci set network.wan.auto='0'
-  uci set network.wan.ifname='lo'
+  if [ $FW_VER = "20.3.c" ]; then
+    uci set network.wan=interface
+    if [ $SAMBA = n ]; then
+      echo -e "${ORANGE}Applying partial fix for NQE bind errors${NC}"
+      uci set network.wan.auto='0'
+      uci set network.wan.ifname='lo'
+    else
+      echo -e "${GREEN}Applying SAMBA (NQE) fix${NC}"
+      local_wifi_mac=$(uci get env.var.local_wifi_mac)
+      uci set network.wan.ifname='atm_8_35'
+      uci set network.wan.proto='static'
+      uci set network.wan.netmask="$LAN_NETMASK"
+      uci set network.wan.ipaddr="10.$(printf '%d' 0x$(echo $local_wifi_mac | cut -d: -f4)).$(printf '%d' 0x$(echo $local_wifi_mac | cut -d: -f5)).$(printf '%d' 0x$(echo $local_wifi_mac | cut -d: -f6))"
+      uci set network.wan.gateway="$LAN_GATEWAY"
+    fi
+  fi
   uci commit network
   uci commit dhcp
 
