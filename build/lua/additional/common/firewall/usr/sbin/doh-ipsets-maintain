@@ -1,0 +1,33 @@
+#!/bin/sh
+
+if [ "$(uci -q get firewall.doh)" = "ipset" ]
+then
+  if [ -f /tmp/doh-ipv4.txt ]
+  then
+    rm /tmp/doh-ipv4.txt
+  fi
+  curl -s -k -L https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv4.txt > /tmp/doh-ipv4.txt
+  if [ -f /tmp/doh-ipv4.txt ]
+  then
+    sed -e 's/\([^ ]*\) .*/add doh \1/' /tmp/doh-ipv4.txt > /etc/firewall.ipset.doh
+    rm /tmp/doh-ipv4.txt
+    ipset flush doh
+    ipset -f /etc/firewall.ipset.doh restore
+  fi
+fi
+
+if [ "$(uci -q get firewall.doh6)" = "ipset" ]
+then
+  if [ -f /tmp/doh-ipv6.txt ]
+  then
+    rm /tmp/doh-ipv6.txt
+  fi
+  curl -s -k -L https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv6.txt > /tmp/doh-ipv6.txt
+  if [ -f /tmp/doh-ipv6.txt ]
+  then
+    sed -e 's/\([^ ]*\) .*/add doh6 \1/' /tmp/doh-ipv6.txt > /etc/firewall.ipset.doh6
+    rm /tmp/doh-ipv6.txt
+    ipset flush doh6
+    ipset -f /etc/firewall.ipset.doh6 restore
+  fi
+fi

@@ -172,21 +172,6 @@ if [ "$(uci -q get firewall.ipsets_restore)" != "include" ]; then
   uci set firewall.ipsets_restore.enabled='0'
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
-if [ ! -e /usr/sbin/ipsets-restore ]; then
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating script /usr/sbin/ipsets-restore"
-  cat<<"END-RESTORE" > /usr/sbin/ipsets-restore
-#!/bin/sh
-for set in $(ipset -n list)
-do
-  if [ -f /etc/firewall.ipset.$set ]
-  then
-    ipset flush $set
-    ipset -f /etc/firewall.ipset.$set restore
-  fi
-done
-END-RESTORE
-  chmod +x /usr/sbin/ipsets-restore
-fi
 if [ "$(uci -q get firewall.doh_fwd_xcptn)" != "rule" ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.doh_fwd_xcptn"
   uci set firewall.doh_fwd_xcptn='rule'
@@ -228,45 +213,6 @@ if [ "$(uci -q get firewall.doh6_fwd)" != "rule" ]; then
   uci set firewall.doh6_fwd.target='REJECT'
   uci set firewall.doh6_fwd.enabled='0'
   SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ ! -e /usr/sbin/doh-ipsets-maintain ]; then
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating script /usr/sbin/doh-ipsets-maintain"
-  cat<<"END-MAINTAIN" > /usr/sbin/doh-ipsets-maintain
-#!/bin/sh
-
-if [ "$(uci -q get firewall.doh)" = "ipset" ]
-then
-  if [ -f /tmp/doh-ipv4.txt ]
-  then
-    rm /tmp/doh-ipv4.txt
-  fi
-  curl -s -k -L https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv4.txt > /tmp/doh-ipv4.txt
-  if [ -f /tmp/doh-ipv4.txt ]
-  then
-    sed -e 's/\([^ ]*\) .*/add doh \1/' /tmp/doh-ipv4.txt > /etc/firewall.ipset.doh
-    rm /tmp/doh-ipv4.txt
-    ipset flush doh
-    ipset -f /etc/firewall.ipset.doh restore
-  fi
-fi
-
-if [ "$(uci -q get firewall.doh6)" = "ipset" ]
-then
-  if [ -f /tmp/doh-ipv6.txt ]
-  then
-    rm /tmp/doh-ipv6.txt
-  fi
-  curl -s -k -L https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv6.txt > /tmp/doh-ipv6.txt
-  if [ -f /tmp/doh-ipv6.txt ]
-  then
-    sed -e 's/\([^ ]*\) .*/add doh6 \1/' /tmp/doh-ipv6.txt > /etc/firewall.ipset.doh6
-    rm /tmp/doh-ipv6.txt
-    ipset flush doh6
-    ipset -f /etc/firewall.ipset.doh6 restore
-  fi
-fi
-END-MAINTAIN
-  chmod +x /usr/sbin/doh-ipsets-maintain
 fi
 if [ $(grep doh-ipsets-maintain /etc/crontabs/root | wc -l) -eq 0 ]; then
   mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
