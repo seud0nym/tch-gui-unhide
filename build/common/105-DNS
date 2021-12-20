@@ -19,7 +19,6 @@ then
     if [ -n "$ip" ]
     then
       ipv6=$(echo $ip  | tr ':' '-')
-      sed -e "/2001-4860-4860--8888/i\    {\"$ipv6\", T\"$host ($ip)\"}," -i /www/docroot/modals/ethernet-modal.lp
       sed -e "/2001-4860-4860--8888/i\    {\"$ipv6\", T\"$host ($ip)\"}," -i /www/docroot/modals/dns-modal.lp
     fi
   done
