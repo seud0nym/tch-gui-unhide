@@ -20,6 +20,7 @@ Options:
     where a            - Keep Telstra AIR enabled
           c            - Keep CWMP installed
           k            - Keep default public authorized keys
+          l            - Keep Telstra APN check
           m            - Keep Telstra monitoring and data collection enabled
           n            - Keep Telstra NTP servers
           q            - Keep Telstra QoS VoWiFi reclassify rules
@@ -28,7 +29,7 @@ Options:
                           and ntfs filesystems (i.e. prevent execution of
                           scripts/programs on USB devices)
           T            - Keep all default Telstra configuration (Equivalent
-                          to: -ka -kc -kk -km -kn -kq -ks -kx)
+                          to: -ka -kc -kk -kl -km -kn -kq -ks -kx)
  -h u|d|s|<hostname>
     where u            Leave hostname unchanged
           d            Set the hostname to $VARIANT
@@ -136,6 +137,7 @@ set_defaults() {
   __AIR='n'
   __CWMP='n'
   __KEYS='n'
+  __LTE='n'
   __MONITORING='n'
   __NTP='n'
   __NOEXEC='n'
@@ -167,7 +169,7 @@ do
   f)  case "${OPTARG}" in y) __SAMBA='1';; n) __SAMBA='0';; u) __SAMBA='u';; *) __SAMBA='u'; echo 'ERROR: -f valid options are y, n, or u'; exit 1;; esac;;
   g)  case "${OPTARG}" in y) __DUMAOS='1';; n) __DUMAOS='0';; u) __DUMAOS='u';; *) __DUMAOS='u'; echo 'ERROR: -g valid options are y, n, or u'; exit 1;; esac;;
   h)  __HOST=${OPTARG};;
-  k)  case "${OPTARG}" in k) __KEYS='y';; c) __CWMP='y';; m) __MONITORING='y';; a) __AIR='y';; n) __NTP='y';; q) __QoS='y';; s) __SUPERVISION='BFD';; x) __NOEXEC='y';; T) __KEYS='y'; __CWMP='y'; __MONITORING='y'; __AIR='y'; __NTP='y'; __QoS='y'; __SUPERVISION='BFD'; __NOEXEC='y';; *) echo "ERROR: Unknown override option $OPTARG"; exit 1;; esac;;
+  k)  case "${OPTARG}" in a) __AIR='y';; c) __CWMP='y';; k) __KEYS='y';; l) __LTE='y';; m) __MONITORING='y';; n) __NTP='y';; q) __QoS='y';; s) __SUPERVISION='BFD';; x) __NOEXEC='y';; T) __LTE='y'; __KEYS='y'; __CWMP='y'; __MONITORING='y'; __AIR='y'; __NTP='y'; __QoS='y'; __SUPERVISION='BFD'; __NOEXEC='y';; *) echo "ERROR: Unknown override option $OPTARG"; exit 1;; esac;;
   m)  case "${OPTARG}" in y) __MULTIAP='1';; n) __MULTIAP='0';; u) __MULTIAP='u';; *) __MULTIAP='u'; echo 'ERROR: -m valid options are y, n, or u'; exit 1;; esac;;
   n)  __NS=${OPTARG};;
   o)  __OPKG='y';;
@@ -634,6 +636,18 @@ else
 fi
 if [ "$__ROOT_PROTECT" = "0" ]; then
   echo -e "[$SCRIPT]:\033[1;32m NOTE: Installation of tch-gui-unhide will ALWAYS enable RTFD protection!\033[0m"
+fi
+
+if grep -q 'set_voip_iface(x, mobileiface4, mobileiface6)' /usr/lib/lua/wansensingfw/failoverhelper.lua; then
+  if [ "$__LTE" == 'n' ]; then
+    echo [$SCRIPT]: - Removing Telstra APN check
+    sed -e 's/\(set_voip_iface(x, mobileiface4, mobileiface6\)\()\)/\1, true\2/' -i /usr/lib/lua/wansensingfw/failoverhelper.lua
+    SRV_wansensing=$(( $SRV_wansensing + 1 ))
+  else
+    echo [$SCRIPT]: - OVERRIDE! Telstra APN check NOT removed
+  fi
+else
+  echo [$SCRIPT]: - Telstra APN check already removed
 fi
 
 # End of hardening

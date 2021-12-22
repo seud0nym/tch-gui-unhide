@@ -44,14 +44,16 @@ Options:
     where a            - Keep Telstra AIR enabled
           c            - Keep CWMP installed
           k            - Keep default public authorized keys
+          l            - Keep Telstra APN check
           m            - Keep Telstra monitoring and data collection enabled
           n            - Keep Telstra NTP servers
+          q            - Keep Telstra QoS VoWiFi reclassify rules
           s            - Keep WAN Supervision as BFD
           x            - Keep noexec on ext2/3/4, fat, hfsplus, hfsplusjournal
                           and ntfs filesystems (i.e. prevent execution of
                           scripts/programs on USB devices)
           T            - Keep all default Telstra configuration (Equivalent
-                          to: -ka -kc -kk -km -kn -ks -kx)
+                          to: -ka -kc -kk -kl -km -kn -kq -ks -kx)
  -h u|d|s|<hostname>
     where u            Leave hostname unchanged
           d            Set the hostname to $VARIANT
