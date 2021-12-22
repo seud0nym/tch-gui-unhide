@@ -142,6 +142,7 @@ local sipnet_columns = {
     type = "select",
     values = wan_intfs,
     attr = { select = { class="span2 centered" } },
+    readonly = false,
   },
 }
 
@@ -311,15 +312,18 @@ local sipnet_options = {
   addNamedObject = true,
   onAdd = onAddVoice,
   onDelete = onDeleteVoice,
-  maxEntries = 2,
+  maxEntries = 1,
+  minEntries = 1,
+  canAdd = false,
+  canDelete = false,
 }
-
-local sipnet_data,sipnet_helpmsg = post_helper.handleTableQuery(sipnet_columns,sipnet_options,nil,nil,sipnet_valid)
 
 if cfg["wansensing_enabled"] == "1" and content["voiceonfailover"] == "1" then
   sipnet_columns[10]["readonly"] = true
   sipnet_columns[10]["header"] = sipnet_columns[10]["header"].." <span class='icon-question-sign' title='Interface is controlled by WAN Sensing.'></span>"
 end
+
+local sipnet_data,sipnet_helpmsg = post_helper.handleTableQuery(sipnet_columns,sipnet_options,nil,nil,sipnet_valid)
 
 local uri = ngx.var.uri
 if ngx.var.args and string.len(ngx.var.args) > 0 then
@@ -348,7 +352,6 @@ ngx.print('\
     html[#html+1] = '<fieldset>'
     html[#html+1] = '<legend>'..T"SIP Network"..'</legend>'
     html[#html+1] =  ui_helper.createTable(sipnet_columns,sipnet_data,sipnet_options,nil,sipnet_helpmsg)
-    html[#html+1] = '<p><strong>Warning:</strong> A second SIP Network will probably not work. <a target="_blank" href="https://hack-technicolor.readthedocs.io/en/stable/Unlock/#unlocking-the-option-to-setup-a-second-sip-network">Click here</a> for more information.</p>'
     html[#html+1] = '</fieldset>'
   end
   ngx.print (html)
