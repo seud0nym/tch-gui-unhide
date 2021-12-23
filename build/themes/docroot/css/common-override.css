@@ -37,8 +37,9 @@
 #mobiletab .subinfos div{line-height: 20px;}
 #opkgs>tbody>tr>td:nth-child(1){white-space:nowrap;}
 #opkgs>tbody>tr>td:nth-child(n+3):nth-child(-n+4){text-overflow:ellipsis;overflow:hidden;white-space:nowrap;max-width:100px;}
-#opkgs>tbody>tr>td:nth-child(n+3):nth-child(-n+4):hover{text-overflow:clip;white-space:normal;word-break:break-all;}#proctable>tbody>tr>td:nth-child(1),#proctable>tbody>tr>td:nth-child(2),#proctable>tbody>tr>td:nth-child(5),#proctable>tbody>tr>td:nth-child(6),#proctable>tbody>tr>td:nth-child(7){text-align:right;}
-#proctable>tbody>tr>td:nth-child(6):after,#proctable>tbody>tr>td:nth-child(7):after{content:"%";}
+#opkgs>tbody>tr>td:nth-child(n+3):nth-child(-n+4):hover{text-overflow:clip;white-space:normal;word-break:break-all;}
+#proctable>tbody>tr>td:nth-child(1),#proctable>tbody>tr>td:nth-child(2),#proctable>tbody>tr>td:nth-child(n+5):nth-child(-n+9){text-align:right;}
+#proctable>tbody>tr>td:nth-child(6):after,#proctable>tbody>tr>td:nth-child(n+8):nth-child(-n+9):after{content:"%";}
 #proctable>thead>tr>th{white-space:nowrap;}
 #telephony-card-content p.subinfos{margin-top:-1px;margin-bottom:0px;}
 #tod>tbody>tr.additional-edit>td:nth-child(1)>fieldset>div:nth-child(3)>div.controls>label.checkbox{padding-left:0px;}

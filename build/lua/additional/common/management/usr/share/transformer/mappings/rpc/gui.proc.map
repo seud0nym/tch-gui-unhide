@@ -52,6 +52,14 @@ local GUI_PROC_i_ = {
         access = "readOnly",
         type = "string",
       },
+      resident_set_size = {
+        access = "readOnly",
+        type = "unsignedInt",
+      },
+      resident_set_percent = {
+        access = "readOnly",
+        type = "unsignedInt",
+      },
       virtual_memory_size = {
         access = "readOnly",
         type = "unsignedInt",
@@ -77,6 +85,18 @@ GUI_PROC_i_.entries = function(_)
   for i=0,k do procTable[i]=nil end
   k = 0
 
+
+  local rss = {}
+  local status = io.popen("grep ^VmRSS /proc/[0-9]*/status",'r')
+  for proc in status:lines() do
+    local pid,vmrss = proc:match("^/proc/(%d+)/status:VmRSS:%s+(%d+) kB$")
+    if tonumber(pid) then
+      rss[pid] = vmrss
+    end
+  end
+  status:close()
+
+  local total = nil
   local top = io.popen(cmd,'r')
   for proc in top:lines() do
     if not proc:find(cmd,1,true) then
@@ -88,11 +108,18 @@ GUI_PROC_i_.entries = function(_)
           parent = ppid,
           user = user,
           state = stat,
+          resident_set_size = rss[pid] or "",
+          resident_set_percent = tostring(math.modf((rss[pid] or 0)*100/total)),
           virtual_memory_size = vsz,
           virtual_memory_percent = vszpct,
           cpu = cpu,
           command = proc:sub(43),
         }
+      elseif not total then
+        local used,free = proc:match("^Mem:%s+(%d+)K used,%s+(%d+)K free")
+        if used and free then
+          total = tonumber(used) + tonumber(free)
+        end
       end
     end
   end
@@ -105,31 +132,16 @@ GUI_PROC_i_.entries = function(_)
   return res
 end
 
-GUI_PROC_i_.get = {
-  process = function(_,_,key)
-    return procTable[key].process or 0
-  end,
-  parent = function(_,_,key)
-    return procTable[key].parent or 0
-  end,
-  user = function(_,_,key)
-    return procTable[key].user or ""
-  end,
-  state = function(_,_,key)
-    return procTable[key].state or ""
-  end,
-  virtual_memory_size = function(_,_,key)
-    return procTable[key].virtual_memory_size or 0
-  end,
-  virtual_memory_percent = function(_,_,key)
-    return procTable[key].virtual_memory_percent or 0
-  end,
-  cpu = function(_,_,key)
-    return procTable[key].cpu or 0
-  end,
-  command = function(_,_,key)
-    return procTable[key].command or ""
-  end,
-}
+GUI_PROC_i_.get = function(_,param,key)
+  local value = procTable[key][param]
+  if not value then
+    if (param == "user" or param == "state" or param == "command") then
+      value = ""
+    else
+      value = "0"
+    end
+  end
+  return value
+end
 
 register(GUI_PROC_i_)

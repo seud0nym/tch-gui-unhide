@@ -7,49 +7,61 @@ local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
 
 local proc_columns = {
-  { --[1]
+  {
     header = T"Process ID",
     name = "process",
     param = "process",
     type = "text",
   },
-  { --[2]
+  {
     header = T"Parent",
     name = "parent",
     param = "parent",
     type = "text",
   },
-  { --[3]
+  {
     header = T"User",
     name = "user",
     param = "user",
     type = "text",
   },
-  { --[4]
+  {
     header = T"State",
     name = "state",
     param = "state",
     type = "text",
   },
-  { --[5]
-    header = T"Memory",
+  {
+    header = T"Resident<br>Mem <small>KB</small>",
+    name = "resident_set_size",
+    param = "resident_set_size",
+    type = "text",
+  },
+  {
+    header = T"Resident<br>Mem %",
+    name = "resident_set_percent",
+    param = "resident_set_percent",
+    type = "text",
+  },
+  {
+    header = T"Virtual<br>Mem <small>KB</small>",
     name = "virtual_memory_size",
     param = "virtual_memory_size",
     type = "text",
   },
-  { --[6]
-    header = T"Memory %",
+  {
+    header = T"Virtual<br>Mem %",
     name = "virtual_memory_percent",
     param = "virtual_memory_percent",
     type = "text",
   },
-  { --[6]
+  {
     header = T"CPU%",
     name = "cpu",
     param = "cpu",
     type = "text",
   },
-  { --[6]
+  {
     header = T"Command",
     name = "command",
     param = "command",
@@ -68,7 +80,7 @@ local proc_options = {
 local proc_data,proc_helpmsg = post_helper.handleTableQuery(proc_columns,proc_options,nil,nil,nil)
 
   ngx.print('\
-');  ngx.print(ui_helper.createHeader(T"Management",false,true,5) ); ngx.print('\
+');  ngx.print(ui_helper.createHeader(T"Management",false,true,10) ); ngx.print('\
 <div class="modal-body update">\
 ');
   local lp = require("web.lp")
