@@ -17,10 +17,10 @@ if ngx.var.request_method == "POST" then
   end
 end
 
-local state2G = proxy.get("rpc.wireless.radio.@radio_2G.oper_state")[1].value
-local state5G = proxy.get("rpc.wireless.radio.@radio_5G.oper_state")[1].value
+local state2G = proxy.get("rpc.wireless.radio.@radio_2G.oper_state")
+local state5G = proxy.get("rpc.wireless.radio.@radio_5G.oper_state")
 local wifiState
-if state2G == "1" or state5G == "1" then
+if (state2G and state2G[1].value == "1") or (state5G and state5G[1].value == "1") then
   wifiState = "1"
 else
   wifiState = "0"
