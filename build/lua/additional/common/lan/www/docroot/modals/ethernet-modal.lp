@@ -384,8 +384,8 @@ local tags_valid = {
     end
     return true
   end,
-  tags_dns1 = gAV(vNES,gVIES(dns_list[1])),
-  tags_dns2 = gVIES(dns_list[1]),
+  tags_dns1 = vSIIP4,
+  tags_dns2 = gOV(vSIIP4),
 }
 
 local tags_options = {
@@ -1364,7 +1364,7 @@ $(function() {\
         $("#isAdvanced").val("0");\
     });\
 });\
-$("[name =\'sleases_mac\'],[name =\'dnsServer\'],[name =\'ipv4_dns_sec\']").change(function () {\
+$("[name =\'sleases_mac\'],[name =\'dnsServer\'],[name =\'ipv4_dns_sec\'],[name =\'tags_dns1\'],[name =\'tags_dns2\']").change(function () {\
   if ((this.value) == "custom") {\
     $(this).replaceWith($(\'<input/>\',{\'type\':\'text\',\'name\':this.name,\'class\':this.className}));\
   }\
