@@ -4,3 +4,10 @@ echo [$SCRIPT]: Clearing page cache...
 sync
 echo 1 > /proc/sys/vm/drop_caches
 
+# acme-ipsec.sh was broken in release 2021.12.06, and leaves processes waiting on shared lock
+ACME_PROCS=$(ps | grep acme | grep -v grep | cut -c1-5)
+if [ -n "$ACME_PROCS" ]; then
+  kill $ACME_PROCS >/dev/null 2>&1
+  [ -e /var/lock/acme-ipsec.sh.pre ] && rm /var/lock/acme-ipsec.sh.pre
+fi
+
