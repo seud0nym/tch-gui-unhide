@@ -58,13 +58,7 @@ local function get_dhcp_state(wan_auto,ipaddr)
   end
 end
 
-local function split(str,ang)
-	local tab = {}
-	for vari in string.gmatch(format("%s",str),ang) do
-		table.insert(tab,vari)
-	end
-	return tab
-end
+local split = require("split").split
 
 local function dns_filter(tab)
 	local ipv4_dns = ""

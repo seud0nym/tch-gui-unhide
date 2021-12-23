@@ -34,13 +34,7 @@ if session:hasAccess(modalPath) then
       local untaint = string.untaint
       local format,match = string.format,string.match
       local tinsert = table.insert
-      local function split(x,sep)
-        x = tostring(x)
-        local sep,fields = sep or ",",{}
-        local pattern = format("([^%s]+)",sep)
-        x:gsub(pattern,function(c) fields[#fields+1] = c end)
-        return fields
-      end
+      local split = require("split").split
 
       for _,dnsmidx in pairs(proxy.getPN("uci.dhcp.dnsmasq.",true)) do
         local path = dnsmidx.path

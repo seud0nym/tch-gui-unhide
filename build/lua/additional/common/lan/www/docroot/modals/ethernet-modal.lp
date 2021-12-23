@@ -527,13 +527,7 @@ local function isNonPublicIPRange(ip)
   return nil
 end
 
-local function split(x,separator)
-  x = tostring(x)
-  local sep,fields = separator or ":",{}
-  local pattern = string.format("([^%s]+)",sep)
-  x:gsub(pattern,function(c) fields[#fields+1] = c end)
-  return fields
-end
+local split = require("split").split
 
 local function find_dns(ip,list)
   local dns = untaint(ip)

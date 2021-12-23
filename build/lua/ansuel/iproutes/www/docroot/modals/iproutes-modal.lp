@@ -75,14 +75,7 @@ local dyn_route_attributes = {
 
 local dyn_route_data,dyn_route_helpmsg = content_helper.loadTableData("sys.class.iproutes.",dyn_route_columns)
 
-local function split(x,sep)
-  local sep,fields = sep or ":",{}
-  local pattern = format("([^%s]+)",sep)
-  for field in x:gmatch(pattern) do
-    fields[#fields+1] = field
-  end
-  return fields
-end
+local split = require("split").split
 
 local network_rpc_content = content_helper.getMatchedContent ("rpc.network.interface.")
 local wan_intfs = {}

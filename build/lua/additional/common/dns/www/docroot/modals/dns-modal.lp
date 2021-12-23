@@ -98,14 +98,7 @@ for _,dnsmidx in pairs(proxy.getPN("uci.dhcp.dnsmasq.",true)) do
   end
 end
 
-local function split(x,s)
-  local sep,fields = s or ":",{}
-  local pattern = format("([^%s]+)",sep)
-  for field in x:gmatch(pattern) do
-    fields[#fields+1] = field
-  end
-  return fields
-end
+local split = require("split").split
 
 local function handleDNSTableQuery(columns,options,filter,defaultObject,mapValidation)
   local data,helpmsg = post_helper.handleTableQuery(columns,options,filter,defaultObject,mapValidation)

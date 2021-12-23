@@ -42,14 +42,7 @@ local mapParams = {
 }
 local content = post_helper.handleQuery(mapParams,mapValid)
 
-local function split(x,sep)
-  local sep,fields = sep or ":",{}
-  local pattern = string.format("([^%s]+)",sep)
-  for field in x:gmatch(pattern) do
-    fields[#fields+1] = field
-  end
-  return fields
-end
+local split = require("split").split
 
 local network_rpc_path = "rpc.network.interface."
 local network_rpc_content = content_helper.getMatchedContent(network_rpc_path)

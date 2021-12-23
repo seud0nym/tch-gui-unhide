@@ -84,13 +84,7 @@ local function get_ppp_state(wan_auto,wan_ppp,wan_error,_)
 	end
 end
 
-local function split(str,ang)
-	local tab = {}
-	for vari in string.gmatch(format("%s",str),ang) do
-		table.insert(tab,vari)
-	end
-	return tab
-end
+local split = require("split").split
 
 local function dns_filter(tab)
 	local ipv4_dns = ""
