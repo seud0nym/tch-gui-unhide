@@ -1,0 +1,23 @@
+local config_tproxy = "tproxy"
+
+-- uci.tproxy
+mapper("uci_1to1").registerConfigMap(config_tproxy)
+
+-- uci.tproxy.config
+local tproxy_global = {
+  config = config_tproxy,
+  section = "config",
+  type = "tproxy",
+  options = { "enabled","verbose" }
+}
+
+mapper("uci_1to1").registerSimpleMap(tproxy_global)
+
+-- uci.tproxy.rule.{i}
+local tproxy_rule = {
+  config = config_tproxy,
+  type = "rule",
+  options = { "enabled", "name", "family", "proto", "listenIP", "listenPort", "destIP", "destPort", "ipset" }
+}
+
+mapper("uci_1to1").registerNamedMultiMap(tproxy_rule)

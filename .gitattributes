@@ -5,3 +5,5 @@
 *.gif binary eol=unset
 *.ico binary eol=unset
 *.png binary eol=unset
+
+tproxy-go binary eol=unset

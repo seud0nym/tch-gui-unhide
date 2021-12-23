@@ -1,15 +1,24 @@
 local lfs = require("lfs")
 local dns_xcptn = "/etc/firewall.ipset.dns_xcptn"
+local dns6_xcptn = "/etc/firewall.ipset.dns6_xcptn"
 local match = string.match
-local adding
+local adding = {
+  [dns_xcptn] = nil,
+  [dns6_xcptn] = nil,
+}
 
-local function readExceptions()
+local function ipsetName(ipset_file)
+  return match(ipset_file,"/etc/firewall%.ipset%.(.+)")
+end
+
+local function readExceptions(ipset_file)
   local ips = {}
-  if lfs.attributes(dns_xcptn, "mode") then
-    local f,errmsg = io.open(dns_xcptn, "r")
+  if lfs.attributes(ipset_file, "mode") then
+    local f,errmsg = io.open(ipset_file, "r")
     if f then
+      local pattern = "add "..ipsetName(ipset_file).." (%S+)"
       for l in f:lines() do
-        local ip = match(l, "add dns_xcptn (%S+)")
+        local ip = match(l, pattern)
         if ip then
           ips[#ips+1] = ip
         end
@@ -22,23 +31,124 @@ local function readExceptions()
   return ips
 end
 
-local function writeExceptions(ips)
-  local f,errmsg = io.open(dns_xcptn, "w+")
+local function writeExceptions(ipset_file,ips)
+  local f,errmsg = io.open(ipset_file, "w+")
   if f then
+    local ipset_name = ipsetName(ipset_file)
     for _,v in pairs(ips) do
       if v then
-        f:write("add dns_xcptn ")
+        f:write("add ")
+        f:write(ipset_name)
+        f:write(" ")
         f:write(v)
         f:write("\n")
       end
     end
     f:close()
-    os.execute("ipset flush dns_xcptn");
-    os.execute("ipset -f "..dns_xcptn);
+    os.execute("ipset flush "..ipset_name);
+    os.execute("ipset -f "..ipset_file.." restore");
   else
     return nil,errmsg
   end
   return true
+end
+
+local function addException(ipset_file,value)
+  if value and value ~= "" then
+    local ips,errmsg = readExceptions(ipset_file)
+    if ips then
+      local found
+      for _,v in pairs(ips) do
+        if v == value then
+          found = true
+          break
+        end
+      end
+      if not found then
+        ips[#ips+1] = value
+        return writeExceptions(ipset_file,ips)
+      end
+      return true
+    end
+    return nil,errmsg
+  end
+  return true
+end
+
+local function delException(ipset_file,value)
+  local ips,errmsg = readExceptions(ipset_file)
+  if ips then
+    for k,v in pairs(ips) do
+      if v == value then
+        ips[k] = nil
+        return writeExceptions(ipset_file,ips)
+      end
+    end
+    return false
+  end
+  return nil,errmsg
+end
+
+local function getEntries(ipset_file)
+  local ips,errmsg = readExceptions(ipset_file)
+  if ips then
+    local res = {}
+    for key in pairs(ips) do
+      res[#res+1]=tostring(key)
+    end
+    if adding[ipset_file] then
+      if adding[ipset_file] == #res then
+        adding[ipset_file] = nil
+      else
+        res[#res+1]=tostring(adding[ipset_file])
+      end
+    end
+    return res
+  end
+  return nil,errmsg
+end
+
+local function addEntry(ipset_file)
+  local ips,errmsg = readExceptions(ipset_file)
+  if ips then
+    adding[ipset_file] = #ips+1
+    return "@"..tostring(adding[ipset_file])
+  end
+  return nil,errmsg
+end
+
+local function delEntry(ipset_file,key)
+  local ips,errmsg = readExceptions(ipset_file)
+  if ips then
+    ips[tonumber(key)] = nil
+    return writeExceptions(ipset_file,ips)
+  end
+  return nil,errmsg
+end
+
+local function getEntry(ipset_file,key)
+  local ips,errmsg = readExceptions(ipset_file)
+  if ips then
+    return ips[tonumber(key)] or ""
+  end
+  return nil,errmsg
+end
+
+local function setEntry(ipset_file,value,key)
+  local ips,errmsg = readExceptions(ipset_file)
+  if ips then
+    ips[tonumber(key)] = value
+    return writeExceptions(ipset_file,ips)
+  end
+  return nil,errmsg
+end
+
+local function returnEmptyString()
+  return ""
+end
+
+local function returnZero()
+  return "0"
 end
 
 local GUI_FIREWALL_DNS_INT_ = {
@@ -69,58 +179,22 @@ local GUI_FIREWALL_DNS_INT_ = {
 }
 
 GUI_FIREWALL_DNS_INT_.get = {
-  add_exception = function()
-    return ""
-  end,
-  delete_exception = function()
-    return ""
-  end,
-  delete_all_exceptions = function()
-    return "0"
-  end,
-  populate_ipsets = function()
-    return "0"
-  end,
+  add_exception = returnEmptyString,
+  delete_exception = returnEmptyString,
+  delete_all_exceptions = returnZero,
+  populate_ipsets = returnZero,
 }
 
 GUI_FIREWALL_DNS_INT_.set = {
   add_exception = function(_,_,value,_)
-    if value and value ~= "" then
-      local ips,errmsg = readExceptions()
-      if ips then
-        local found
-        for _,v in pairs(ips) do
-          if v == value then
-            found = true
-            break
-          end
-        end
-        if not found then
-          ips[#ips+1] = value
-          return writeExceptions(ips)
-        end
-        return true
-      end
-      return nil,errmsg
-    end
-    return true
+    return addException(dns_xcptn,value)
   end,
   delete_exception = function(_,_,value,_)
-    local ips,errmsg = readExceptions()
-    if ips then
-      for k,v in pairs(ips) do
-        if v == value then
-          ips[k] = nil
-          return writeExceptions(ips)
-        end
-      end
-      return false
-    end
-    return nil,errmsg
+    return delException(dns_xcptn,value)
   end,
   delete_all_exceptions = function(_,_,value,_)
     if value == "1" then
-      return writeExceptions({})
+      return writeExceptions(dns_xcptn,{})
     end
     return true
   end,
@@ -151,61 +225,116 @@ local GUI_FIREWALL_DNS_INT_i_ = {
 }
 
 GUI_FIREWALL_DNS_INT_i_.entries = function(_)
-  local ips,errmsg = readExceptions()
-  if ips then
-    local res = {}
-    for key in pairs(ips) do
-      res[#res+1]=tostring(key)
-    end
-    if adding then
-      if adding == #res then
-        adding = nil
-      else
-        res[#res+1]=tostring(adding)
-      end
-    end
-    return res
-  end
-  return nil,errmsg
+  return getEntries(dns_xcptn)
 end
 
 GUI_FIREWALL_DNS_INT_i_.add = function(_)
-  local ips,errmsg = readExceptions()
-  if ips then
-    adding = #ips+1
-    return "@"..tostring(adding)
-  end
-  return nil,errmsg
+  return addEntry(dns_xcptn)
 end
 
-GUI_FIREWALL_DNS_INT_i_.delete = function(_, key)
-  local ips,errmsg = readExceptions()
-  if ips then
-    ips[tonumber(key)] = nil
-    return writeExceptions(ips)
-  end
-  return nil,errmsg
+GUI_FIREWALL_DNS_INT_i_.delete = function(_,key)
+  return delEntry(dns_xcptn,key)
 end
 
 GUI_FIREWALL_DNS_INT_i_.get = {
   ip = function(_,_,key)
-    local ips,errmsg = readExceptions()
-    if ips then
-      return ips[tonumber(key)] or ""
-    end
-    return nil,errmsg
+    return getEntry(dns_xcptn,key)
   end
 }
 
 GUI_FIREWALL_DNS_INT_i_.set = {
   ip = function(_,_,value,key)
-    local ips,errmsg = readExceptions()
-    if ips then
-      ips[tonumber(key)] = value
-      return writeExceptions(ips)
-    end
-    return nil,errmsg
+    return setEntry(dns_xcptn,value,key)
   end
 }
 
 register(GUI_FIREWALL_DNS_INT_i_)
+
+
+local GUI_FIREWALL_DNS6_INT_ = {
+  objectType = {
+    name = "rpc.gui.firewall.dns6_intercept.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      add_exception = {
+        access = "readWrite",
+        type = "string"
+      },
+      delete_exception = {
+        access = "readWrite",
+        type = "string"
+      },
+      delete_all_exceptions = {
+        access = "readWrite",
+        type = "boolean"
+      },
+    }
+  }
+}
+
+GUI_FIREWALL_DNS6_INT_.get = {
+  add_exception = returnEmptyString,
+  delete_exception = returnEmptyString,
+  delete_all_exceptions = returnZero,
+}
+
+GUI_FIREWALL_DNS6_INT_.set = {
+  add_exception = function(_,_,value,_)
+    return addException(dns6_xcptn,value)
+  end,
+  delete_exception = function(_,_,value,_)
+    return delException(dns6_xcptn,value)
+  end,
+  delete_all_exceptions = function(_,_,value,_)
+    if value == "1" then
+      return writeExceptions(dns6_xcptn,{})
+    end
+    return true
+  end,
+}
+
+register(GUI_FIREWALL_DNS6_INT_)
+
+local GUI_FIREWALL_DNS6_INT_i_ = {
+  objectType = {
+    name = "rpc.gui.firewall.dns6_intercept.exceptions.@.",
+    access = "readWrite",
+    numEntriesParameter = "ExceptionNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      ip = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_FIREWALL_DNS6_INT_i_.entries = function(_)
+  return getEntries(dns6_xcptn)
+end
+
+GUI_FIREWALL_DNS6_INT_i_.add = function(_)
+  return addEntry(dns6_xcptn)
+end
+
+GUI_FIREWALL_DNS6_INT_i_.delete = function(_,key)
+  return delEntry(dns6_xcptn,key)
+end
+
+GUI_FIREWALL_DNS6_INT_i_.get = {
+  ip = function(_,_,key)
+    return getEntry(dns6_xcptn,key)
+  end
+}
+
+GUI_FIREWALL_DNS6_INT_i_.set = {
+  ip = function(_,_,value,key)
+    return setEntry(dns6_xcptn,value,key)
+  end
+}
+
+register(GUI_FIREWALL_DNS6_INT_i_)

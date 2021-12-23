@@ -37,6 +37,23 @@ function M.validateStringIsIPv4(ip)\
 end\' -i /usr/lib/lua/web/post_helper.lua
 fi
 
+grep -q '^function M.validateStringIsIPv6' /usr/lib/lua/web/post_helper.lua
+if [ $? -eq 1 ];then
+  echo [$SCRIPT]: Add missing validateStringIsIPv6 post_helper function
+  sed -e '/^return M$/i\
+--- This function returns a validator that will check that the provided value is an IPv6 address\
+-- @param #string value the IPv6 Address\
+-- @return true or nil+error message\
+function M.validateStringIsIPv6(value)\
+  value = string.untaint(value)\
+  if value and inet.isValidIPv6(value) then\
+    return true\
+  else\
+    return nil, T"Invalid IPv6 Address, address group is invalid."\
+  end\
+end\' -i /usr/lib/lua/web/post_helper.lua
+fi
+
 grep -q '^function M.reservedIPValidation' /usr/lib/lua/web/post_helper.lua
 if [ $? -eq 1 ];then
   echo [$SCRIPT]: Add missing reservedIPValidation post_helper function

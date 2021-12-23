@@ -16,6 +16,7 @@ legend{color:#fff;}
 .grey{background:#353c42;}
 .header .btn{background-color:var(--RGB_BTN);color:#fff;}
 .header .btn:hover{background-color:#fff;color:#000;}
+.header .btn .caret{border-top-color:#fff;}
 .header .btn:hover .caret{border-top-color:#000;}
 .header img,.logo-technicolor{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/night/logo.gif) no-repeat;width:180px;height:70px;padding-left:180px;background-size:180px;}
 .loading{background:#000000e0;}

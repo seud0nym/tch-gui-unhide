@@ -1,0 +1,183 @@
+#!/bin/sh /etc/rc.common
+
+START=70
+USE_PROCD=1
+PROG=$(which tproxy-go)
+
+RULE_COUNT=0
+VERBOSE=$(uci_get tproxy config enabled 0)
+
+__log() { # Writes the message to the syslog
+  local priority="daemon.notice"
+  if [ "!$1" = "!-p" ]; then
+    priority="$2"
+    shift 2
+  fi
+  logger -t tproxy -p $priority "$*"
+}
+
+__debug() { # Logs the message if verbose messages are configured
+  if [ $VERBOSE = 1 ]; then
+    __log -p daemon.debug $*
+  fi
+}
+
+__exec() { # Executes parameters 2 onwards after logging the parameters for debugging
+  __debug $*
+  shift
+  $*
+  return $?
+}
+
+__add_rule() { # Adds the rules as defined by the specified configuration 
+  local cfg="$1"
+  local enabled family proto listenIP listenPort destIP destPort ipset_cfg ipset name direction cmd p created
+
+  config_get enabled "$cfg" enabled
+
+  [ "$enabled" != "1" ] && return 1
+
+  config_get family "$cfg" family
+  config_get proto "$cfg" proto
+  config_get listenIP "$cfg" listenIP
+  config_get listenPort "$cfg" listenPort
+  config_get destIP "$cfg" destIP
+  config_get destPort "$cfg" destPort
+  config_get ipset_cfg "$cfg" ipset
+
+  # Validate options
+  [ "$proto" != "tcp" -a "$proto" != "udp" -a "$proto" != "tcp udp" ] && { __log "SKIPPED Rule $cfg: Invalid proto '$proto'"; return 1; }
+
+  case "$family" in
+    ipv4)
+      [ -z "$listenIP" ] && listenIP="127.0.0.1"
+      [ -z "$destIP" ] && destIP="127.0.0.1"
+      ip -4 route get "$listenIP" 2>/dev/null | grep -q "dev \b[^ ]*\b" || { __log "SKIPPED Rule $cfg: Unable to route $family destIP '$listenIP'"; return 1; }
+      ip -4 route get "$destIP" 2>/dev/null | grep -q "dev \b[^ ]*\b" || { __log "SKIPPED Rule $cfg: Unable to route $family destIP '$destIP'"; return 1; }
+      cmd="iptables"
+      ;;
+    ipv6)
+      [ -z "$listenIP" ] && listenIP="::1"
+      [ -z "$destIP" ] && destIP="::1"
+      ip -6 route get "$listenIP" 2>/dev/null | grep -q "dev \b[^ ]*\b" || { __log "SKIPPED Rule $cfg: Unable to route $family destIP '$listenIP'"; return 1; }
+      ip -6 route get "$destIP" 2>/dev/null | grep -q "dev \b[^ ]*\b" || { __log "SKIPPED Rule $cfg: Unable to route $family destIP '$destIP'"; return 1; }
+      cmd="ip6tables"
+      ;;
+    *)
+      __log "SKIPPED Rule $cfg: Invalid family '$family'"; return 1;;
+  esac
+
+  [ -z "$(echo "$destPort" | grep -o '^[0-9]*$')" -o $destPort -lt 1 -o $destPort -gt 65535 ] && { __log "SKIPPED Rule $cfg: Invalid port number for destPort '$destPort'"; return 1; }
+  [ -z "$(echo "$listenPort" | grep -o '^[0-9]*$')" -o $listenPort -lt 1 -o $listenPort -gt 65535 ] && { __log "SKIPPED Rule $cfg: Invalid port number for listenPort '$listenPort'"; return 1; }
+
+  if [ -n "$ipset_cfg" ]; then
+    ipset="-m set "
+    name=$(echo $ipset_cfg | cut -d' ' -f1)
+    direction=$(echo $ipset_cfg | xargs | cut -d' ' -f2)
+    [ -z "$direction" ] && direction="src"
+    if [ "$(echo $name | cut -c1)" = "!" ]; then
+      ipset="$ipset !"
+      name=$(echo $name | cut -c2-)
+    fi
+    ipset -n list | grep -q "^${name}\b" || { __log "SKIPPED Rule $cfg: ipset '$name' not found"; return 1; }
+    [ "$direction" != "src" -a "$direction" != "dest" ] && { __log "SKIPPED Rule $cfg: Invalid direction ($direction) for ipset '$name'"; return 1; }
+    ipset="$ipset --match-set $name $direction"
+  fi
+
+  # If we get here, the options were valid, so create the rules
+  created=0
+  for p in $proto; do
+    # Use DIVERT to prevent existing connections going through TPROXY twice
+    __exec [__add_rule] $cmd -t mangle -I PREROUTING --protocol $p -m socket -m comment --comment "!tproxy-go/$cfg" -j DIVERT && created=$(( $created + 1 ))
+    # Mark all other (new) packets and use TPROXY to pass into handler
+    __exec [__add_rule] $cmd -t mangle -I PREROUTING --protocol $p --dport $destPort $ipset -m comment --comment "!tproxy-go/$cfg@$destIP" -j TPROXY --on-port $listenPort --on-ip $listenIP --tproxy-mark 0x1/0x1 && created=$(( $created + 1 ))
+  done
+
+  if [ $created -eq 2 -o $created -eq 4 ]; then
+    RULE_COUNT=$(( $RULE_COUNT + $created ))
+  else
+    __log "SKIPPED Rule $cfg: Failed to add mangle table PREROUTING chain rules"
+    __del_rules /$cfg
+    return 1
+  fi
+
+  return 0
+}
+
+__del_divert() { # Delete the DIVERT chain
+  if iptables -t mangle -S DIVERT >/dev/null 2>&1; then
+    local cmd opt
+
+    for cmd in iptables ip6tables; do
+      for opt in F X; do
+        __exec [__del_divert] $cmd -t mangle -$opt DIVERT
+      done
+    done
+  fi
+
+  __exec [__del_divert] ip -f inet  rule  del fwmark 1 lookup 100 2>/dev/null
+  __exec [__del_divert] ip -f inet6 rule  del fwmark 1 lookup 100 2>/dev/null
+  __exec [__del_divert] ip -f inet  route del local 0.0.0.0/0 dev lo table 100 2>/dev/null
+  __exec [__del_divert] ip -f inet6 route del local      ::/0 dev lo table 100 2>/dev/null
+}
+
+__del_rules() { # Delete all currently configured rules
+  local filter="$1"
+  local cmd action param
+
+  for cmd in iptables ip6tables; do
+    $cmd -t mangle -S | grep "!tproxy-go$filter" | tr -d '"' | while read -r action param; do
+      __exec [__del_rules] $cmd -t mangle -D $param
+    done
+  done
+
+  __del_divert
+}
+
+start_service() { # PROCD implementation
+  local enabled=$(uci_get tproxy config enabled 0)
+  local cmd
+
+  # Delete all existing rules
+  __del_rules
+
+  [ "$enabled" = "0" ] && { __log Disabled; return 1; }
+
+  # Enable correct handling of the intercepted packets (both arriving and leaving)
+  __exec [start_service] ip -f inet  rule  add fwmark 1 lookup 100
+  __exec [start_service] ip -f inet6 rule  add fwmark 1 lookup 100
+  __exec [start_service] ip -f inet  route add local 0.0.0.0/0 dev lo table 100
+  __exec [start_service] ip -f inet6 route add local      ::/0 dev lo table 100
+
+  # Setup DIVERT chains to mark packets
+  for cmd in iptables ip6tables; do
+    __exec [start_service] $cmd -t mangle -N DIVERT
+    __exec [start_service] $cmd -t mangle -A DIVERT -m comment --comment "!tproxy-go" -j MARK --set-mark 1
+    __exec [start_service] $cmd -t mangle -A DIVERT -m comment --comment "!tproxy-go" -j ACCEPT
+  done
+
+  # Add configured rules
+  config_load tproxy
+  config_foreach __add_rule rule
+
+  if [ $RULE_COUNT -gt 0 ]; then
+    __debug [start_service] Spawning "$PROG"
+    procd_open_instance
+    procd_set_param command "$PROG"
+    [ "$VERBOSE" = "1" ] && procd_append_param command -v
+    procd_set_param file /etc/config/tproxy
+    procd_set_param respawn
+    procd_close_instance
+  else
+    __log [start_service] No enabled rules found 
+    __del_divert
+    __log [start_service] Stopped "$PROG"
+  fi
+}
+
+stop_service() { # PROCD implementation
+  VERBOSE=$(uci_get tproxy config verbose 0)
+  # Delete all existing rules
+  __del_rules
+  __log [stop_service] Stopping "$PROG"
+}

@@ -19,8 +19,8 @@ do
   sed -e "s/Gateway/$VARIANT/g" -i $f
 done
 echo "[$SCRIPT]: Change 'Device' to '$VARIANT'"
-for f in /www/docroot/modals/ethernet-modal.lp
+for f in /www/docroot/modals/ethernet-modal.lp /www/docroot/modals/firewall-dns_int-modal.lp
 do
-  sed -e "s/Device/$VARIANT/g" -i $f
+  sed -e "s/\bDevice\b/$VARIANT/g" -i $f
 done
 
