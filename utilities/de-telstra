@@ -263,7 +263,7 @@ show_default() {
   local _OPT=$1
   local _ESC=1
   case "$1" in
-    ka|kc|kk|km|kn|kq|kx|M|G|o) _OPT="$1"; [ "$3" = "n" ] && _ESC=9;;
+    ka|kc|kk|kl|km|kn|kq|kx|M|G|o) _OPT="$1"; [ "$3" = "n" ] && _ESC=9;;
     *) case "$3" in 0) _OPT="${1}n";; 1) _OPT="${1}y";; *) _OPT="$1$3";; esac;;
   esac
   case "$3" in
@@ -289,11 +289,8 @@ show_default() {
           *) _DFLT="$3";;
         esac
       elif [ "$1" = 'O' ]; then
-        if [ -z "$3" ]; then
-          _DFLT="$HOMEWARE"
-        else
-          _DFLT="$3"
-        fi
+        _DFLT="$HOMEWARE"
+        [ -z "$3" ] && _OPT="O$HOMEWARE"
       else
         _DFLT="$3"
       fi;;
@@ -315,6 +312,7 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y ]; then
   show_default "ka" "Keep Telstra AIR enabled" $__AIR
   show_default "kc" "Keep CWMP installed" $__CWMP
   show_default "kk" "Keep default public authorized keys" $__KEYS
+  show_default "kl" "Keep Telstra APN check" $__LTE
   show_default "km" "Keep Telstra monitoring/data collection" $__MONITORING
   show_default "kn" "Keep Telstra NTP servers" $__NTP
   show_default "kq" "Keep Telstra QoS VoWiFi reclassify rules" $__QoS
