@@ -555,6 +555,18 @@ else
   echo [$SCRIPT]: - noexec on ext2/3/4, fat, hfsplus, hfsplusjournal and ntfs mounts already Disabled
 fi
 
+if grep -q 'set_voip_iface(x, mobileiface4, mobileiface6)' /usr/lib/lua/wansensingfw/failoverhelper.lua; then
+  if [ "$__LTE" == 'n' ]; then
+    echo [$SCRIPT]: - Removing Telstra APN check
+    sed -e 's/\(set_voip_iface(x, mobileiface4, mobileiface6\)\()\)/\1, true\2/' -i /usr/lib/lua/wansensingfw/failoverhelper.lua
+    SRV_wansensing=$(( $SRV_wansensing + 1 ))
+  else
+    echo [$SCRIPT]: - OVERRIDE! Telstra APN check NOT removed
+  fi
+else
+  echo [$SCRIPT]: - Telstra APN check already removed
+fi
+
 if [ -f authorized_keys ]; then
   if [ "$__KEYS" = 'n' ]; then
     cmp -s authorized_keys /etc/dropbear/authorized_keys
@@ -634,18 +646,6 @@ else
 fi
 if [ "$__ROOT_PROTECT" = "0" ]; then
   echo -e "[$SCRIPT]:\033[1;32m NOTE: Installation of tch-gui-unhide will ALWAYS enable RTFD protection!\033[0m"
-fi
-
-if grep -q 'set_voip_iface(x, mobileiface4, mobileiface6)' /usr/lib/lua/wansensingfw/failoverhelper.lua; then
-  if [ "$__LTE" == 'n' ]; then
-    echo [$SCRIPT]: - Removing Telstra APN check
-    sed -e 's/\(set_voip_iface(x, mobileiface4, mobileiface6\)\()\)/\1, true\2/' -i /usr/lib/lua/wansensingfw/failoverhelper.lua
-    SRV_wansensing=$(( $SRV_wansensing + 1 ))
-  else
-    echo [$SCRIPT]: - OVERRIDE! Telstra APN check NOT removed
-  fi
-else
-  echo [$SCRIPT]: - Telstra APN check already removed
 fi
 
 # End of hardening
