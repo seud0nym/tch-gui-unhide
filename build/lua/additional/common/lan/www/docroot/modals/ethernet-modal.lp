@@ -40,6 +40,7 @@ local vNES = post_helper.validateNonEmptyString
 local vSIDN = post_helper.validateStringIsDomainName
 local vSIIP = post_helper.validateStringIsIP
 local vSIIP4 = post_helper.validateStringIsIPv4
+local vSIIP6 = post_helper.validateStringIsIPv6
 local vSILT = post_helper.validateStringIsLeaseTime
 local vSIM = post_helper.validateStringIsMAC
 
@@ -96,6 +97,30 @@ local dns_list = {
     {"54.252.183.4",T"GetFlix (54.252.183.4)"},
     {"54.252.183.5",T"GetFlix (54.252.183.5)"},
   },
+  { -- IPv6 DNS servers
+    {"",T""},
+    {"custom",T"Enter Custom IP Address"},
+    {"2001-4860-4860--8888",T"Google (2001:4860:4860::8888)"},
+    {"2001-4860-4860--8844",T"Google (2001:4860:4860::8844)"},
+    {"2606-4700-4700--1111",T"Cloudflare (2606:4700:4700::1111)"},
+    {"2606-4700-4700--1001",T"Cloudflare (2606:4700:4700::1001)"},
+    {"2606-4700-4700--1112",T"Cloudflare (2606:4700:4700::1112)"},
+    {"2606-4700-4700--1002",T"Cloudflare (2606:4700:4700::1002)"},
+    {"2606-4700-4700--1113",T"Cloudflare (2606:4700:4700::1113)"},
+    {"2606-4700-4700--1003",T"Cloudflare (2606:4700:4700::1003)"},
+    {"2620-119-35--35",T"OpenDNS (2620:119:35::35)"},
+    {"2620-119-53--53",T"OpenDNS (2620:119:53::53)"},
+    {"2620-74-1b--1-1",T"Verisign (2620:74:1b::1:1)"},
+    {"2620-74-1c--2-2",T"Verisign (2620:74:1c::2:2)"},
+    {"2a02-6b8--feed-0ff",T"Yandex.DNS (2a02:6b8::feed:0ff)"},
+    {"2a02-6b8-0-1--feed-0ff",T"Yandex.DNS (2a02:6b8:0:1::feed:0ff)"},
+    {"2001-67c-28a4--",T"UncensoredDNS (2001:67c:28a4::)"},
+    {"2a01-3a0-53-53--",T"UncensoredDNS (2a01:3a0:53:53::)"},
+    {"2610-a1-1018--1",T"Neustar (2610:a1:1018::1)"},
+    {"2610-a1-1019--1",T"Neustar (2610:a1:1019::1)"},
+    {"2a0d-2a00-1--2",T"CleanBrowsing (2a0d:2a00:1::2)"},
+    {"2a0d-2a00-2--2",T"CleanBrowsing (2a0d:2a00:2::2)"},
+  }
 }
 
 if lfs.attributes("/www/lua/dhcpreset_helper.lua","mode") == "file" then
@@ -515,7 +540,9 @@ local mapParams = {
 local dnsIndex = 0
 local ntpIndex = 0
 local dhcp = {}
+local dhcp_dns = {}
 local baseDHCPOptions = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcp_option."
+local baseDHCPDNS = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dns."
 local dns_servers = {""}
 
 local function isNonPublicIPRange(ip)
@@ -527,7 +554,20 @@ local function isNonPublicIPRange(ip)
   return nil
 end
 
-local split = require("split").split
+local splitter = require("split")
+local split = splitter.split
+
+
+local function get_lan_ula()
+  local ula = proxy.get("rpc.network.interface.@lan.ipv6uniquelocaladdr")
+  if ula == nil or ula[1].value == nil then
+    return nil
+  end
+
+  return split(format("%s",ula[1].value),"&")[1]
+end
+
+local lan_ula = get_lan_ula()
 
 local function find_dns(ip,list)
   local dns = untaint(ip)
@@ -537,6 +577,70 @@ local function find_dns(ip,list)
     end
   end
   return false
+end
+
+local function validateDNSv6(value,object,key)
+  if value ~= "" and vSIIP6(untaint(value):gsub("-",":")) ~= true then
+    if mapParams[key] ~= nil then
+      proxy.del(mapParams[key]:sub(1,-6))
+      mapParams[key] = nil
+    end
+    return nil,"Invalid DNS server"
+  end
+
+  if object["dns_v6_pri"] == "" and object["dns_v6_sec"] ~= "" then
+    return nil,"Primary should not be empty"
+  end
+
+  if object["dns_v6_pri"] == object["dns_v6_sec"] and object["dns_v6_pri"] ~= "" then
+    return nil,"Primary and secondary DNS servers should not be same"
+  end
+
+  if value == "" then
+    if mapParams[key] ~= nil then
+      proxy.del(mapParams[key]:sub(1,-6))
+      mapParams[key] = nil
+    end
+    return true
+  end
+
+  local dns_ip = value:gsub("-",":")
+
+  if dns_ip == "::1" then -- Localhost as DNS server
+    if object["dns_v6_sec"] == "" then
+     -- only localhost
+      if mapParams["dns_v6_pri"] ~= nil then
+        proxy.del(mapParams["dns_v6_pri"]:sub(1,-6))
+        mapParams["dns_v6_pri"] = nil
+      end
+      if mapParams["dns_v6_sec"] ~= nil then
+        proxy.del(mapParams["dns_v6_sec"]:sub(1,-6))
+        mapParams["dns_v6_sec"] = nil
+      end
+      object["dns_v6_pri"] = ""
+      return true
+    else
+      dns_ip = lan_ula
+    end
+  end
+
+  if object["dns_v6_pri"] ~= nil and object["dns_v6_pri"] ~= "" and mapParams["dns_v6_pri"] == nil then
+    local index = proxy.add(baseDHCPDNS)
+    if index == "1" then
+      mapParams["dns_v6_pri"] = baseDHCPDNS.."@1.value"
+    end
+  end
+
+  if object["dns_v6_sec"] ~= nil and object["dns_v6_sec"] ~= "" and mapParams["dns_v6_sec"] == nil then
+    local index = proxy.add(baseDHCPDNS)
+    if index == "2" then
+      mapParams["dns_v6_sec"] = baseDHCPDNS.."@2.value"
+    end
+  end
+
+  object[key] = dns_ip
+
+  return true
 end
 
 local function validateDNS(value,object,key)
@@ -838,7 +942,7 @@ local dhcpStateselect = {
 local mapValid = {
   localdevIP = validateGWIP,
   localIPv6 = validateIPv6,
-  dnsServer = validateDNS,
+  dns_v4_pri = validateDNS,
   ntpServer = validateNTP,
   leaseTime = validateLeaseTime,
   localdevmask = gAV(vIP4N,vSIIP),
@@ -850,6 +954,8 @@ local mapValid = {
   localdomain = vNES,
   localgw = gOV(vSIIP4),
   dhcpIgnore = validatedhcpIgnore,
+  dns_v6_pri = validateDNSv6,
+  dns_v6_sec = validateDNSv6,
   dhcplog = vB,
 }
 
@@ -862,18 +968,27 @@ if bridged.isBridgedMode() then
     mapValid.dhcpv4State = validateByPass
 end
 
--- Check if there is a custom DNS server,if so,then retrieve its index
+-- Check if there is a custom DNS server, if so, then retrieve its index
 -- we'll update the parameters list to include it for retrieval
 content_helper.addListContent(dhcp,{ options = baseDHCPOptions })
 for i,v in ipairs(dhcp.options) do
   if v:find("^6,") == 1 then
     dnsIndex = i
-    mapParams["dnsServer"] = baseDHCPOptions.."@"..i..".value"
+    mapParams["dns_v4_pri"] = baseDHCPOptions.."@"..i..".value"
   end
   if v:find("^42,") == 1 then
     ntpIndex = i
     mapParams["ntpServer"] = baseDHCPOptions.."@"..i..".value"
   end
+end
+
+content_helper.addListContent(dhcp_dns,{ dnses = baseDHCPDNS })
+if dhcp_dns.dnses[1] ~= nil then
+  mapParams["dns_v6_pri"] = baseDHCPDNS.."@".."1.value"
+end
+
+if dhcp_dns.dnses[2] ~= nil then
+  mapParams["dns_v6_sec"] = baseDHCPDNS.."@".."2.value"
 end
 
 content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
@@ -896,23 +1011,49 @@ if (ngx.var.request_method == "POST") and not next(helpmsg) then
   end
 end
 
-if #dns_servers == 1 and content["dnsServer"] ~= nil and content["dnsServer"] ~= "" then
-  dns_servers = split(format("%s",content["dnsServer"]),",")
+if #dns_servers == 1 and content["dns_v4_pri"] ~= nil and content["dns_v4_pri"] ~= "" then
+  dns_servers = split(format("%s",content["dns_v4_pri"]),",")
 end
 
 -- set the local host IP
 dns_list[1][2][1] = content["localdevIP"]
 
-content["dnsServer"] = content["localdevIP"]
+content["dns_v4_pri"] = content["localdevIP"]
 content["dns_v4_sec"] = ""
 if dns_servers[2] ~= nil and find_dns(dns_servers[2],dns_list[1]) then
-  content["dnsServer"] = dns_servers[2]
+  content["dns_v4_pri"] = dns_servers[2]
 end
 if dns_servers[3] ~= nil and find_dns(dns_servers[3],dns_list[1]) then
   content["dns_v4_sec"] = dns_servers[3]
 end
 
--- because we do the localdevmask validation in localdevIP validation,we check if local ip starts with error msg "[netmask]".
+if content["dns_v6_pri"] ~= nil and content["dns_v6_pri"] ~= "" then
+  if content["dns_v6_pri"] == lan_ula then
+    content["dns_v6_pri"] = "::1"
+  end
+  content["dns_v6_pri"] = content["dns_v6_pri"]:gsub(":","-")
+else
+  content["dns_v6_pri"] = "--1"
+end
+if content["dns_v6_sec"] ~= nil then
+  if content["dns_v6_sec"] == lan_ula then
+    content["dns_v6_sec"] = "::1"
+  end
+  content["dns_v6_sec"] = content["dns_v6_sec"]:gsub(":","-")
+else
+  content["dns_v6_sec"] = "--1"
+end
+
+if content["dns_v6_pri"] ~= nil and content["dns_v6_pri"] ~= "" and content["dns_v6_pri"] ~= "--1" and not find_dns(content["dns_v6_pri"],dns_list[2]) then
+  local customipv6dns = content["dns_v6_pri"]:gsub("-",":")
+  dns_list[2][#dns_list[2]+1]={ content["dns_v6_pri"],T("Custom ("..customipv6dns..")")}
+end
+if content["dns_v6_sec"] ~= nil and content["dns_v6_sec"] ~= "" and content["dns_v6_sec"] ~= "--1" and not find_dns(content["dns_v6_sec"],dns_list[2]) then
+  local customipv6dns = content["dns_v6_sec"]:gsub("-",":")
+  dns_list[2][#dns_list[2]+1]={ content["dns_v6_sec"],T("Custom ("..customipv6dns..")")}
+end
+
+-- because we do the localdevmask validation in localdevIP validation, we check if local ip starts with error msg "[netmask]".
 -- If so move it to localdevmask
 if helpmsg["localdevIP"] then
   local msg = match(helpmsg["localdevIP"],'^%[netmask%] (.*)')
@@ -1020,8 +1161,10 @@ if content["dhcpv4State"] == "disabled" and content["dhcpv6State"] == "disabled"
   end
 end
 
-local dns_int = false
-local dns_int_dest_ip = ""
+local dns_int_ipv4 = false
+local dns_int_ipv4_dest_ip = ""
+local dns_int_ipv6 = false
+local dns_int_ipv6_dest_ip = ""
 if curintf == "lan" then
   for _,v in ipairs(proxy.getPN("uci.firewall.redirect.",true)) do
     local values = proxy.get(v.path.."name")
@@ -1030,16 +1173,26 @@ if curintf == "lan" then
       if name and (name == "Intercept-DNS" or name == "Redirect-DNS") then
         values = proxy.get(v.path.."enabled",v.path.."dest_ip")
         if values then
-          dns_int = values[1].value ~= "0"
-          dns_int_dest_ip = untaint(values[2].value)
-          if not dns_int_dest_ip or dns_int_dest_ip == "" then
-            dns_int_dest_ip = untaint(content["localdevIP"])
+          dns_int_ipv4 = values[1].value ~= "0"
+          dns_int_ipv4_dest_ip = untaint(values[2].value)
+          if not dns_int_ipv4_dest_ip or dns_int_ipv4_dest_ip == "" then
+            dns_int_ipv4_dest_ip = untaint(content["localdevIP"])
           end
         end
       end
     end
   end
+  local values = proxy.get("uci.tproxy.config.enabled","uci.tproxy.rule.@dnsv6.enabled","uci.tproxy.rule.@dnsv6.destIP")
+  if values then
+    dns_int_ipv6 = values[1].value ~= "0" and values[2].value ~= "0"
+    dns_int_ipv6_dest_ip = untaint(values[3].value)
+    if not dns_int_ipv6_dest_ip or dns_int_ipv6_dest_ip == "" then
+      dns_int_ipv6_dest_ip = lan_ula
+    end
+  end
 end
+local dns_int_ipv4_ok = dns_int_ipv4 and content["dns_v4_pri"] == dns_int_ipv4_dest_ip
+local dns_int_ipv6_ok = dns_int_ipv6 and find(dns_int_ipv6_dest_ip:gsub(":","-"),untaint(content["dns_v6_pri"]),1,true)
 
 ngx.print(ui_helper.createHeader(T"Local Network",true,false));
 ngx.print('\
@@ -1079,7 +1232,7 @@ ngx.print('\
             ');
             local advanced = {
               group = {
-                class = "advanced hide"
+                class = "advanced"
               },
               input = {
                 class = "span2"
@@ -1092,7 +1245,7 @@ ngx.print('\
             }
             local stdattributes = {
               group = {
-                class = "advanced hide",
+                class = "advanced",
               },
               select = {
                 class = "monitor-changes span2"
@@ -1118,20 +1271,25 @@ ngx.print('\
                   class = "alert-info"
                 },
               }
-              if dns_int then
-                if content["dnsServer"] ~= dns_int_dest_ip then
-                  local warn_attr = {
-                    alert = {
-                      class = "alert-danger"
-                    },
-                  }
-                  ngx.print(ui_helper.createAlertBlock(T("DNS Intercept is enabled, so IPv4 Primary DNS should be set to '"..dns_int_dest_ip.."'."),warn_attr))
-                end
-              elseif cur_dhcp_intf == "lan" then
-                if adguard then
-                  ngx.print(ui_helper.createAlertBlock(T"DNS Servers defined on this screen only affect what is provided to LAN client devices via IPv4 DHCP. You should configure custom DNS Servers for the device in AdGuard Home.",info_attr))
+              local warn_attr = {
+                alert = {
+                  class = "alert-danger"
+                },
+              }
+              if cur_dhcp_intf == "lan" then
+                if dns_int_ipv4 or dns_int_ipv6 then
+                  if dns_int_ipv4 and not dns_int_ipv4_ok then
+                    ngx.print(ui_helper.createAlertBlock(T("DNS Intercept is enabled, so IPv4 Primary DNS should be set to '"..dns_int_ipv4_dest_ip.."'."),warn_attr))
+                  end
+                  if dns_int_ipv6 and not dns_int_ipv6_ok then
+                    ngx.print(ui_helper.createAlertBlock(T("DNS Intercept is enabled, so IPv6 Primary DNS should be set to '"..dns_int_ipv6_dest_ip.."'."),warn_attr))
+                  end
                 else
-                  ngx.print(ui_helper.createAlertBlock(T"DNS Servers defined on this screen only affect what is provided to LAN client devices via IPv4 DHCP. To configure custom DNS Servers for the device and IPv6 LAN clients, use the DNS card.",info_attr))
+                  if adguard then
+                    ngx.print(ui_helper.createAlertBlock(T"DNS Servers defined on this screen only affect what is provided to LAN client devices via DHCP. You should configure custom DNS Servers for the device in AdGuard Home.",info_attr))
+                  else
+                    ngx.print(ui_helper.createAlertBlock(T"DNS Servers defined on this screen only affect what is provided to LAN client devices via DHCP. To configure custom DNS Servers for the device, use the DNS card.",info_attr))
+                  end
                 end
               end
             ngx.print('\
@@ -1169,29 +1327,30 @@ ngx.print('\
                   else
                     ngx.print(ui_helper.createSimpleInputHidden("ntpServer",""))
                   end
-                  if not dns_int then
-                    ngx.print(
-                      ui_helper.createInputSelect(T"IPv4 Primary DNS","dnsServer",dns_list[1],content["dnsServer"],stdattributes,helpmsg["dnsServer"]),
-                      ui_helper.createInputSelect(T"IPv4 Secondary DNS","ipv4_dns_sec",dns_list[1],content["dns_v4_sec"],stdattributes,helpmsg["dns_v4_sec"])
-                    )
+                  if dns_int_ipv4_ok and not helpmsg["dns_v4_pri"] and not helpmsg["dns_v4_sec"] then
+                    ngx.print(ui_helper.createLabel(T"IPv4 DNS Server","Interception enabled",advanced))
+                    ngx.print(ui_helper.createSimpleInputHidden("dns_v4_pri",content["dns_v4_pri"]))
+                    ngx.print(ui_helper.createSimpleInputHidden("ipv4_dns_sec",content["dns_v4_sec"]))
                   else
-                    if content["dnsServer"] == dns_int_dest_ip and not helpmsg["dnsServer"] and content["dns_v4_sec"] == "" and not helpmsg["dns_v4_sec"] then
-                      ngx.print(ui_helper.createLabel(T"IPv4 Primary DNS<span class='icon-question-sign' title='DNS Interception enabled'></span>",content["dnsServer"],advanced,helpmsg["dnsServer"]))
-                      ngx.print(ui_helper.createLabel(T"IPv4 Secondary DNS<span class='icon-question-sign' title='DNS Interception enabled'></span>",content["dns_v4_sec"],advanced,helpmsg["dns_v4_sec"]))
-                      ngx.print(ui_helper.createSimpleInputHidden("dnsServer",content["dnsServer"]))
-                      ngx.print(ui_helper.createSimpleInputHidden("ipv4_dns_sec",content["ipv4_dns_sec"]))
-                    else
-                      ngx.print(ui_helper.createInputSelect(T"IPv4 Primary DNS","dnsServer",dns_list[1],content["dnsServer"],stdattributes,helpmsg["dnsServer"]))
-                      ngx.print(ui_helper.createInputSelect(T"IPv4 Secondary DNS","ipv4_dns_sec",dns_list[1],content["dns_v4_sec"],stdattributes,helpmsg["dns_v4_sec"]))
-                    end
+                    ngx.print(ui_helper.createInputSelect(T"IPv4 Primary DNS","dns_v4_pri",dns_list[1],content["dns_v4_pri"],stdattributes,helpmsg["dns_v4_pri"]))
+                    ngx.print(ui_helper.createInputSelect(T"IPv4 Secondary DNS","ipv4_dns_sec",dns_list[1],content["dns_v4_sec"],stdattributes,helpmsg["dns_v4_sec"]))
                   end
                 end
                 ngx.print(
                   [[<div class="monitor-localIPv6 monitor-1 monitor-hidden-localIPv6">]],
                   ui_helper.createSwitch(T"DHCPv6 Server","dhcpv6State",content["dhcpv6State"],switchDHCP),
-                  ui_helper.createSwitch(T"SLAAC + RA<span class='icon-question-sign' title='IPv6 Stateless Address Auto-Configuration + Router Advertisement'></span>","slaacState",content["slaacState"],switchDHCP),
-                  ui_helper.createAlertBlock(T"IPv6 DNS Servers are defined on the DNS card as Custom DNS Servers, and are sent to LAN clients using Router Advertisement (RA).",info_attr)
+                  ui_helper.createSwitch(T"SLAAC + RA<span class='icon-question-sign' title='IPv6 Stateless Address Auto-Configuration + Router Advertisement'></span>","slaacState",content["slaacState"],switchDHCP)
                 )
+                if cur_dhcp_intf == "lan" and not adguard then
+                  if dns_int_ipv6_ok and not helpmsg["dns_v6_pri"] and not helpmsg["dns_v6_sec"]  then
+                    ngx.print(ui_helper.createLabel(T"IPv6 DNS Server","Interception enabled",advanced))
+                    ngx.print(ui_helper.createSimpleInputHidden("dns_v6_pri",content["dns_v6_pri"]))
+                    ngx.print(ui_helper.createSimpleInputHidden("dns_v6_sec",content["dns_v6_sec"]))
+                  else
+                    ngx.print(ui_helper.createInputSelect(T"IPv6 Primary DNS","dns_v6_pri",dns_list[2],content["dns_v6_pri"],stdattributes,helpmsg["dns_v4_pri"]))
+                    ngx.print(ui_helper.createInputSelect(T"IPv6 Secondary DNS","dns_v6_sec",dns_list[2],content["dns_v6_sec"],stdattributes,helpmsg["dns_v6_sec"]))
+                  end
+                end
                 ngx.print(
                   [[</div>]]
                 )
@@ -1358,7 +1517,7 @@ $(function() {\
         $("#isAdvanced").val("0");\
     });\
 });\
-$("[name =\'sleases_mac\'],[name =\'dnsServer\'],[name =\'ipv4_dns_sec\'],[name =\'tags_dns1\'],[name =\'tags_dns2\']").change(function () {\
+$("[name =\'sleases_mac\'],[name =\'dns_v4_pri\'],[name =\'ipv4_dns_sec\'],[name =\'dns_v6_pri\'],[name =\'dns_v6_sec\'],[name =\'tags_dns1\'],[name =\'tags_dns2\']").change(function () {\
   if ((this.value) == "custom") {\
     $(this).replaceWith($(\'<input/>\',{\'type\':\'text\',\'name\':this.name,\'class\':this.className}));\
   }\

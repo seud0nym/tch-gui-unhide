@@ -375,7 +375,6 @@ ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
       <fieldset>\
         <legend>'); ngx.print(T"Custom DNS Servers"); ngx.print('</legend>\
         ');
-        ngx.print(ui_helper.createAlertBlock(T"Custom IPv6 DNS Servers defined here will be sent to LAN clients via Router Advertisement (if SLAAC + RA enabled)",{alert={class="alert alert-info"}}))
         ngx.print(ui_helper.createTable(custom_dns_columns,custom_dns_data,custom_dns_options,nil,custom_dns_helpmsg))
         ngx.print('\
       </fieldset>\
