@@ -212,11 +212,9 @@ if dns_int then
             dest_ipv6 = ""
           elseif new_enabledv6 == "1" then
             local lan_dns_path = "uci.dhcp.dhcp.@lan.dns."
-            local lan_dns_svrs = proxy.getPN(lan_dns_path,true)
-            if lan_dns_svrs then
-              for _,o in pairs(lan_dns_svrs) do
-                proxy.del(o.path.."value")
-              end
+            local first_lan_dns_svr = lan_dns_path.."@1."
+            while (proxy.get(first_lan_dns_svr)) do
+                proxy.del(first_lan_dns_svr)
             end
             if new_dest_ipv6 and new_dest_ipv6 ~= "" then
               local idx = proxy.add(lan_dns_path)
@@ -226,7 +224,14 @@ if dns_int then
               dest_ipv6 = new_dest_ipv6
             else
               proxySet(path["Intercept-DNSv6"].."destIP","")
-              proxy.set("rpc.gui.firewall.dns6_intercept.delete_exception",dest_ipv6)
+              if dest_ipv6 and dest_ipv6 ~= "" then
+                proxy.set("rpc.gui.firewall.dns6_intercept.delete_exception",dest_ipv6)
+              end
+              local ula = proxy.get("rpc.network.interface.@lan.ipv6uniquelocaladdr")
+              if ula and ula[1].value ~= "" then
+                local idx = proxy.add(lan_dns_path)
+                proxySet(lan_dns_path.."@"..idx..".value",untaint(ula[1].value))
+              end
               dest_ipv6 = ""
             end
             if new_ipv6 == "0" then
