@@ -100,10 +100,8 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled,modalPath)
       end
     end
     controllerStatus = "Multi-AP Controller enabled"
-    modalPath = "/modals/wireless-boosters-status-modal.lp"
   else
     controllerStatus = "Multi-AP Controller disabled"
-    modalPath = "/modals/wireless-boosters-modal.lp"
   end
   if appath and content["apstate"] and content["apiface"] == "wl1_2" and content["wl1_2ssid"] ~= "" then
     if content["apstate"] == "0" then
@@ -136,7 +134,7 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled,modalPath)
     html[#html+1] = ui_helper.createSimpleLight(content["apstate"],backhaulStatus)
   end
 
-  return html,modalPath
+  return html
 end
 
 return M

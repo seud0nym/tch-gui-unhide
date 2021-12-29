@@ -18,7 +18,7 @@ if content.agent_enabled and content.agent_enabled ~= "" and content.controller_
   local ui_helper = require("web.ui_helper")
   local booster_helper = require("booster_helper")
 
-  local html,modalPath = booster_helper.getBoosterCardHTML(content.agent_enabled,content.controller_enabled,modalPath)
+  local html = booster_helper.getBoosterCardHTML(content.agent_enabled,content.controller_enabled,modalPath)
 
   ngx.print('\
   <div class="span3">\
