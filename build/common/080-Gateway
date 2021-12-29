@@ -87,6 +87,16 @@ sed \
   -e "s/maxEntries = 3,/maxEntries = 6,/" \
   -i /www/docroot/modals/gateway-modal.lp
 
+if [ "$MINIFY" = y ]; then
+  echo [$SCRIPT]: Pre-minify fixes
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/gateway-modal.lp"
+  sed \
+    -e 's|\(var retain_contact_mode = "default"\)\\|\1;\\|' \
+    -e "s|\(ngx.print('\" + data.errorcode + \")\")\)\\\\|\1;\\\\|" \
+    -e 's|\(toobig_msg.addClass("hide");\)|;\1|' \
+    -i /www/docroot/modals/gateway-modal.lp
+fi
+
 if [ "$UPDATE_BTN" = y ]; then
   echo [$SCRIPT]: Add update available button
   sed \

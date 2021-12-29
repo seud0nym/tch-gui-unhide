@@ -10,3 +10,14 @@ do
     -i $f
 done
 
+if [ "$MINIFY" = y ]; then
+  echo [$SCRIPT]: Pre-minify fixes
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/usermgr-modal.lp"
+  sed \
+    -e 's/\(var oldpassword\)/;\1/' \
+    -e 's/\(split(",")\)\(\\\)/\1;\2/' \
+    -e "s|\(</div>\\\\')\)\(\\\\\)|\1;\2|" \
+    -e 's/\("5px")\)\(\\\)/\1;\2/' \
+    -i /www/docroot/modals/usermgr-modal.lp
+fi
+

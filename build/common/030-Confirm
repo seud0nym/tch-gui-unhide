@@ -64,6 +64,9 @@ if [ "$UPDATE_XTRAS" = y ]; then
 else
   echo "[$SCRIPT]: Any existing extra feature scripts will NOT be updated to the latest version"
 fi
+if [ "$MINIFY" = y ]; then
+  echo -e "[$SCRIPT]: \033[0;33mWARNING! Experimental Lua GUI code minification is enabled!\033[0m"
+fi
 
 echo [$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop.
 if [ $YES = y ]; then

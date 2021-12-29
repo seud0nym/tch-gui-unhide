@@ -4,11 +4,11 @@ for CARDFILE in $(find /www/cards/ -maxdepth 1 -type f | sort)
 do
   CARD="${CARDFILE#*_}"
   CARDRULE="card_$(basename $CARD .lp)"
-  MODAL=$(grep createCardHeader $CARDFILE | grep -o "modals/.*\.lp")
+  MODAL=$(grep -o 'createCardHeader[^(]*([^)]*)' $CARDFILE | grep -o "modals/[^.]*\.lp")
   MODALRULE=""
   HIDDEN=$(uci -q get web.${CARDRULE}.hide)
   if [ -z "$MODAL" ]; then
-    MODAL=$(grep '\(modalPath\|modal_link\)' $CARDFILE | grep -m 1 -o "modals/.*\.lp")
+    MODAL=$(grep -o "\(modalPath\|modal_link\)[^\"']*[\"'][^\"']*.lp[\"']" $CARDFILE | grep -m 1 -o "modals/[^.]*\.lp")
   fi
   if [ -n "$MODAL" ]; then
     MODALRULE=$(uci show web | grep $MODAL | grep -m 1 -v card_ | cut -d. -f2)

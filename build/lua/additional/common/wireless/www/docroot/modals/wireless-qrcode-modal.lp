@@ -106,7 +106,7 @@ $(function(){\
     qr.make();\
     qr.createImgTag(typeNumber);\
     let html = qr.createTableTag(typeNumber);\
-    $("#qrcode").html(html)\
+    $("#qrcode").html(html);\
     $("#btn-close").click(function() {\
       let busy_msg = $(".loading-wrapper");\
       busy_msg.removeClass("hide");\

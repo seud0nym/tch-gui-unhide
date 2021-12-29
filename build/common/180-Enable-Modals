@@ -23,6 +23,13 @@ then
   uci -q delete web.card_fon
 else
   echo [$SCRIPT]: Telstra Air and Fon SSIDs FOUND - Leaving in GUI
+  if [ "$MINIFY" = y ]; then
+    echo [$SCRIPT]: Pre-minify fixes
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/fon-modal.lp"
+    sed \
+      -e 's/\(})\)\(\\\)/\1;\2/' \
+      -i /www/docroot/modals/fon-modal.lp
+  fi
 fi
 
 # Check all modals are enabled, except:

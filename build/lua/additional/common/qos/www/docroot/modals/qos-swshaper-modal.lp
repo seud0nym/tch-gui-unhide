@@ -273,7 +273,7 @@ ngx.print(ui_helper.createHeader(T"QoS",false)); ngx.print('\
 </div>\
 ');  ngx.print(ui_helper.createFooter()); ngx.print('\
 <script>\
-$("#shaper #btn-table-modify").parent().parent().find("#qosSWShaper").prop("readonly",true)\
+$("#shaper #btn-table-modify").parent().parent().find("#qosSWShaper").prop("readonly",true);\
 $("#shaper tr td:nth-child(4):contains(Yes)").siblings(":last").children(".btn-table-delete").hide();\
 </script>\
 ');

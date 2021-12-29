@@ -2,68 +2,76 @@ DEBUG=""
 RESTORE=n
 WRAPPER=n
 YES=n
-THEME_ONLY='n'
+THEME_ONLY=n
 XTRAS=""
 UPDATE_XTRAS=n
 
 FILENAME=$(basename $0)
 
 usage() {
-  echo "Optional parameters:"
-  echo " Control Options:"
-  echo " -d y|n           : Enable (y) or Disable (n) Default user (i.e. GUI access without password)"
-  echo "                     (Default is current setting)"
-  echo " -f y|n           : Enable (y) or Disable (n) firmware upgrade in the web GUI"
-  echo "                     (Default is current setting)"
-  echo " -p y|n           : Use decrypted text (y) or masked password (n) field for SIP Profile passwords"
-  echo "                     (Default is current setting i.e (n) by default)"
-  echo " -v y|n           : Enable (y) check for new releases and show 'Update Available' button in GUI, or Disable (n)"
-  echo "                     (Default is current setting or (y) for first time installs)"
-  echo " -x <feature>     : Download the specified tch-gui-unhide-xtra.<feature> script."
-  echo "                     Specify -x<feature> multiple times to download multiple scripts"
-  echo "                     NOTE: This does NOT download or install the feature pre-requisites!"
-  echo "                           You must do that BEFORE running this script!"
-  echo " -X               : Download the latest version of any existing extra feature scripts."
-  echo " Theme Options:"
-  echo " -a 4|5           : Set the number of cards across on screen width greater than 1200px"
-  echo "                     (Default is current setting, or 4 for first time installs)"
-  echo " -c b|o|g|p|r|m|M : Set the theme highlight colour"
-  echo "                     b=blue o=orange g=green p=purple r=red m=monochrome M=monochrome (with monochrome charts)"
-  echo "                     (Default is current setting, or (m) for light theme or (b) for night theme)"
-  echo " -h d|s|n|\"txt\" : Set the browser tabs title (Default is current setting)"
-  echo "                     (d)=$VARIANT (s)=$VARIANT-$MAC (n)=$HOSTNAME (\"txt\")=Specified \"txt\""
-  echo " -i y|n           : Show (y) or hide (n) the card icons"
-  echo "                      (Default is current setting, or (n) for light theme and (y) for night theme)"
-  echo " -l y|n           : Keep the Telstra landing page (y) or de-brand the landing page (n)"
-  echo "                      (Default is current setting, or (n) if no theme has been applied)"
-  echo " -t l|n|t|m       : Set a light (l), night (n), or Telstra-branded Classic (t) or Modern (m) theme"
-  echo "                      (Default is current setting, or Telstra Classic if no theme has been applied)"
-  echo " -C n|s|i         : Keep or remove chart cards"
-  echo "                     n=No Chart Cards will be available"
-  echo "                     s=Only the Summary Chart Card will be available"
-  echo "                     i=Only the Individual Chart Cards will be available (default)"
-  echo " -T               : Apply theme ONLY - bypass all other processing"
-  echo " Update Options:"
-  echo " -u               : Check for and download any changes to this script (may be newer than latest release version)"
-  echo "                      When specifying the -u option, it must be the ONLY parameter specifed."
-  if [ $WRAPPER = y ]; then
-  echo " -U               : Download the latest release, including utility scripts (will overwrite all existing script versions)."
-  echo "                      After download, tch-gui-unhide will be automatically executed."
-  fi
-  echo " Miscellaneous Options:"
-  echo " -r               : Restore changed GUI files to their original state (config changes are NOT restored)"
-  echo "                     When specifying the -r option, it must be the ONLY parameter specifed."
-  echo " -y               : Bypass confirmation prompt (answers 'y')"
-  echo " -V               : Show the release number of this script, the current installed release, and the latest available release on GitHub"
+cat <<EOH
+Optional parameters:
+ Control Options:
+ -d y|n           Enable (y) or Disable (n) Default user (i.e. GUI access without password)
+                   (Default is current setting)
+ -f y|n           Enable (y) or Disable (n) firmware upgrade in the web GUI
+                   (Default is current setting)
+ -p y|n           Use decrypted text (y) or masked password (n) field for SIP Profile passwords
+                   (Default is current setting i.e (n) by default)
+ -v y|n           Enable (y) check for new releases and show 'Update Available' button in GUI, or Disable (n)
+                   (Default is current setting or (y) for first time installs)
+ -x <feature>     Download the specified tch-gui-unhide-xtra.<feature> script.
+                   Specify -x<feature> multiple times to download multiple scripts
+                   NOTE: This does NOT download or install the feature pre-requisites!
+                         You must do that BEFORE running this script!
+ -X               Download the latest version of any existing extra feature scripts.
+ -m y|n           Minify (y) GUI Lua code (EXPERIMENTAL!!)
+                   (Default is current setting)
+ Theme Options:
+ -a 4|5           Set the number of cards across on screen width greater than 1200px
+                   (Default is current setting, or 4 for first time installs)
+ -c b|o|g|p|r|m|M Set the theme highlight colour
+                   b=blue o=orange g=green p=purple r=red m=monochrome M=monochrome (with monochrome charts)
+                   (Default is current setting, or (m) for light theme or (b) for night theme)
+ -h d|s|n|"txt"   Set the browser tabs title (Default is current setting)
+                   (d)=$VARIANT (s)=$VARIANT-$MAC (n)=$HOSTNAME ("txt")=Specified "txt"
+ -i y|n           Show (y) or hide (n) the card icons
+                    (Default is current setting, or (n) for light theme and (y) for night theme)
+ -l y|n           Keep the Telstra landing page (y) or de-brand the landing page (n)
+                    (Default is current setting, or (n) if no theme has been applied)
+ -t l|n|t|m       Set a light (l), night (n), or Telstra-branded Classic (t) or Modern (m) theme
+                    (Default is current setting, or Telstra Classic if no theme has been applied)
+ -C n|s|i         Keep or remove chart cards
+                   n=No Chart Cards will be available
+                   s=Only the Summary Chart Card will be available
+                   i=Only the Individual Chart Cards will be available (default)
+ -T               Apply theme ONLY - bypass all other processing
+ Update Options:
+ -u               Check for and download any changes to this script (may be newer than latest release version)
+                    When specifying the -u option, it must be the ONLY parameter specifed.
+EOH
+if [ $WRAPPER = y ]; then
+cat <<EOW
+ -U               Download the latest release, including utility scripts (will overwrite all existing script versions).
+                    After download, tch-gui-unhide will be automatically executed.
+EOW
+fi
+cat <<EOM
+ Miscellaneous Options:
+ -r               Restore changed GUI files to their original state (config changes are NOT restored)
+                    When specifying the -r option, it must be the ONLY parameter specifed.
+ -y               Bypass confirmation prompt (answers 'y')
+ -V               Show the release number of this script, the current installed release, and the latest available release on GitHub
   echo
-  echo "NOTE #1: Theme (-t) does not need to be re-specified when re-running the script: current state will be 'remembered'"
-  echo "         between executions (unless you execute with the -r option, which will remove all state information)"
-  echo "NOTE #2: Use tch-gui-unhide-cards to set card order and visibility"
-  echo
-  exit
+NOTE #1: Theme (-t) does not need to be re-specified when re-running the script: current state will be 'remembered'
+         between executions (unless you execute with the -r option, which will remove all state information)
+NOTE #2: Use tch-gui-unhide-cards to set card order and visibility
+
+EOM
+exit
 }
 
-while getopts :a:c:d:f:h:i:l:p:rt:uv:x:yC:TVWX-: option
+while getopts :a:c:d:f:h:i:l:m:p:rt:uv:x:yC:TVWX-: option
 do
  case "${option}" in
    -) case "${OPTARG}" in
@@ -91,6 +99,7 @@ do
       esac;;
    i) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then ICONS=visible; else ICONS=hidden; fi;;
    l) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then KEEPLP=y; else KEEPLP=n; fi;;
+   m) case "${OPTARG}" in y|Y) MINIFY=y;; n|N) MINIFY=n;; *) echo 'WARNING: -m valid options are y or n'; exit 2;; esac;;
    p) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then SIP_PWDS=y; else SIP_PWDS=n; fi;;
    r) RESTORE=y;;
    t) case "${OPTARG}" in

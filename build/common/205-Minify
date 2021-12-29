@@ -1,0 +1,72 @@
+MARKER='--pretranslated: do not change this file'
+BEFORE_MIN=0
+AFTER_MIN=0
+
+minify() {
+  local f="$1"
+  local m="/tmp/$(basename $f).minified"
+  local pretranslated=0
+  grep -qe "$MARKER" "$f" && pretranslated=1
+
+  sed \
+    -e 's/^[ \t]*//g' -e 's/[ \t]*$//g' \
+    -e 's/[ \t]*=[ \t]*/=/g' -e 's/\([ \t]*\)\([=!~<>]=\)\([ \t]*\)/\2/g' -e 's/ >[ \t]*/>/g' -e 's/[ \t]*< /</g' -e 's/[ \t]*+[ \t]*/+/g' -e 's/ - /-/g' -e 's/\([^0-9]\)\([ \t]*\.\.[ \t]*\)\([^0-9]\)/\1..\3/g' \
+    -e 's/{ */{/g' -e 's/} */}/g' -e 's/ *{/{/g' -e 's/ *}/}/g' -e 's/( */(/g' -e 's/) */)/g' -e 's/ *(/(/g' -e 's/ *)/)/g' \
+    -e '/^[ \t]*$/d' -e '/^[ \t]*\\$/d' \
+    -e '/--\[\[/,/\]\]/d' -e '/^[ \t]*--/d' -e "s/--[^'\">){]*$//" \
+    -e '/^[ \t]\/\//d' -e '/^\/\/.*$/d' -e 's|\([^:]\)\(//[^\\]*\)|\1|g' \
+  $f | awk '
+    /[[:blank:]]*,[[:blank:]]*/ {
+      n=split($0,quoted,/"/);
+      if(n==1)
+        gsub(/[[:blank:]]*,[[:blank:]]*/,",")
+      else{
+        for(i=1;i<=n;i+=2)
+          gsub(/[[:blank:]]*,[[:blank:]]*/,",",quoted[i]);
+        j=s="";
+        for(i=1;i<=n;i++){
+          j=j s quoted[i];
+          s="\"";
+        }
+        $0=j;
+      }
+    }
+    /\\$/ {
+      gsub(/[[:blank:]]*\\$/,"");
+      printf "%s",$0;
+      next;
+    }
+    /%>[^%]*$/ {
+      html=1
+    }
+    /<%[^%]*$/ {
+      html=0
+    }
+    1 {
+      if(html==0) print; else printf "%s",$0;
+    }' > "$m"
+
+  [ $pretranslated = 1 ] && sed -e "1i$MARKER" -i "$m"
+  mv "$m" "$f"
+}
+
+if [ "$MINIFY" = y ]; then
+  echo [$SCRIPT]: Pre-minify fixes
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/snippets/networkmap.lp"
+  sed \
+    -e 's/\("pointer"})\)\(\\\)/\1;\2/' \
+    -i /www/snippets/networkmap.lp
+
+  echo [$SCRIPT]: Minifying GUI Lua code
+  STARTED=$(date +%s)
+  for lua in $(find /www/cards /www/docroot /www/lua /www/snippets -type f \( -name "*.lp" -o -name "*.lua" \) -a ! -name "help_*.lp"); do
+    was=$(ls -l "$lua" | tr -s ' ' | cut -d' ' -f5)
+    minify "$lua"
+    is=$(ls -l "$lua" | tr -s ' ' | cut -d' ' -f5)
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Minified $lua: Before=$was bytes Now=$is bytes ($(expr 100 - \( $is \* 100 / $was \))% reduction)"
+    BEFORE_MIN=$(( $BEFORE_MIN + $was ))
+    AFTER_MIN=$(( $AFTER_MIN + $is ))
+  done
+  echo -e "[$SCRIPT]: - Lua GUI code size reduced by \033[0;33m$(expr 100 - \( $AFTER_MIN \* 100 / $BEFORE_MIN \))%\033[0m in $(( $(date +%s) - $STARTED )) seconds"
+fi
+

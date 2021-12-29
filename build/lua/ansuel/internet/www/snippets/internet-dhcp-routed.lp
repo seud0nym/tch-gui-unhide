@@ -255,7 +255,6 @@ local cs = {
   nexthop = "rpc.network.interface.@wan.nexthop",
   dns = "rpc.network.interface.@wan.dnsservers",
   ipv6_gua = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
-  dns_loopback = "rpc.network.interface.@loopback.dnsservers",-- Added to include static dns servers configured on loopback interface (for TI custo)
   ip6addr = "rpc.network.interface.@wan6.ip6addr",
   ip6prefix = "rpc.network.interface.@wan6.ip6prefix",
   dnsv6 = "rpc.network.interface.@wan6.dnsservers",

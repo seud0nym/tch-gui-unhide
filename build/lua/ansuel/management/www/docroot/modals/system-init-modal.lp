@@ -213,8 +213,8 @@ local init_data = post_helper.handleTableQuery(init_columns,init_options,init_fi
       0 < t.length && ($("#modal-no-change").hide(),$("#modal-changes").show());\
       var e = $(".modal-action-advanced:first").is(":visible");\
       0 < t.closest(".advanced").length && !e && r(),\
-      $(\'.error input:not([type="hidden"])\').first().trigger("focus")\
-    })\
+      $(\'.error input:not([type="hidden"])\').first().trigger("focus");\
+    });\
     return false;\
 	}\
 	$(".btn-disable").on("click",function(){\

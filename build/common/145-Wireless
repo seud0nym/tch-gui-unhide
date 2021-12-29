@@ -35,3 +35,20 @@ sed \
      html[#html+1] = format("<script>$(\\"#btn-qrcode\\").click(function(){tch.loadModal(\\"/modals/wireless-qrcode-modal.lp?iface=%s&ap=%s\\");})</script>",curiface,curap)' \
   -i /www/docroot/modals/wireless-modal.lp
 
+if [ "$MINIFY" = y ]; then
+  echo [$SCRIPT]: Pre-minify fixes
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/wireless-modal.lp"
+  sed \
+    -e "s/\(ngx.print(bandLockState); ngx.print('\)\"/\1\";/" \
+    -e 's/\(Class("tooltipEnabled")\)/\1;/' \
+    -e 's|content["phy_rate"] / 1000|(content["phy_rate"]/1000)|' \
+    -i /www/docroot/modals/wireless-modal.lp
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/wireless-client-modal.lp"
+  sed \
+    -e 's/\(var timerajax\)\(\\\)/\1;\2/' \
+    -e 's/\(var gets =  {}\)\(\\\)/\1;\2/' \
+    -e 's/\(var x = parseInt(x) \* -1\)\(\\\)/\1;\2/' \
+    -e 's/\(var \$d = \$("#bar-"+countwifi)\)\(\\\)/\1;\2/' \
+    -e "s|//left: \\\\'5px\\\\'||" \
+    -i /www/docroot/modals/wireless-client-modal.lp
+fi
