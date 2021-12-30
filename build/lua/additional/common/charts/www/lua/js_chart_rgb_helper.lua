@@ -1,4 +1,4 @@
-local TGU_Theme = ngx.shared.TGU_Theme
+local TGU_Config = ngx.shared.TGU_Config
 
 local colors = {
   night = {
@@ -18,8 +18,8 @@ local colors = {
 local M = {}
 
 function M.getRGB(chart)
-  local theme = TGU_Theme:get("THEME") or ""
-  local color = TGU_Theme:get("COLOR") or ""
+  local theme = TGU_Config:get("THEME") or ""
+  local color = TGU_Config:get("COLOR") or ""
 
   if theme ~= "night" then
     theme = "light"

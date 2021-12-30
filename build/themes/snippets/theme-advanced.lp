@@ -41,12 +41,12 @@ html[#html+1] = format(stylesheet, settings["THEME"], "/advanced-override.css")
 
 ngx.print(html)
 
-local TGU_Theme = ngx.shared.TGU_Theme
-local ok, err = TGU_Theme:safe_set("THEME", untaint(settings["THEME"]))
+local TGU_Config = ngx.shared.TGU_Config
+local ok, err = TGU_Config:safe_set("THEME", untaint(settings["THEME"]))
 if not ok then
   ngx.log(ngx.ERR, "Failed to store current theme: ", err)
 end
-ok, err = TGU_Theme:safe_set("COLOR", untaint(settings["COLOR"]))
+ok, err = TGU_Config:safe_set("COLOR", untaint(settings["COLOR"]))
 if not ok then
   ngx.log(ngx.ERR, "Failed to store current theme colour: ", err)
 end
