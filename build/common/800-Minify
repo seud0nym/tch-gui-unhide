@@ -15,7 +15,7 @@ minify() {
     -e '/^[ \t]*$/d' -e '/^[ \t]*\\$/d' \
     -e '/--\[\[/,/\]\]/d' -e '/^[ \t]*--/d' -e "s/--[^'\">){]*$//" \
     -e '/^[ \t]\/\//d' -e '/^\/\/.*$/d' -e 's|\([^:]\)\(//[^\\]*\)|\1|g' \
-  $f | awk '
+  $f | awk 'BEGIN{prev="";}
     /[[:blank:]]*,[[:blank:]]*/ {
       n=split($0,quoted,/"/);
       if(n==1)
@@ -32,8 +32,10 @@ minify() {
       }
     }
     /\\$/ {
+      if(match(substr(prev,length(prev),1),/[[:alnum:]]/)!=0 && match(substr($0,1,1),/[[:alnum:]]/)!=0) printf "%s"," ";
       gsub(/[[:blank:]]*\\$/,"");
       printf "%s",$0;
+      prev=$0;
       next;
     }
     /%>[^%]*$/ {
@@ -44,6 +46,7 @@ minify() {
     }
     1 {
       if(html==0) print; else printf "%s",$0;
+      prev=$0;
     }' > "$m"
 
   [ $pretranslated = 1 ] && sed -e "1i$MARKER" -i "$m"

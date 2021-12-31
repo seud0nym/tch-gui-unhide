@@ -1,8 +1,8 @@
+echo [$SCRIPT]: Fixing card background image
 sed \
   -e '$ a .card_bg:after{font-size:110px;bottom:-5px;z-index:-20;}' \
   -i /www/docroot/css/gw.css
-if [ -f /www/docroot/landingpage.lp -a "$KEEPLP" = "n" ]
-then
+if [ -f /www/docroot/landingpage.lp -a "$KEEPLP" = "n" ];then
   echo [$SCRIPT]: Theming and de-branding landing page
   sed \
     -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color:#f8f8f8;}" \
@@ -41,8 +41,32 @@ then
   # Have to restart if changing landing page
   SRV_nginx=$(( $SRV_nginx + 1 ))
 fi
+
+if [ "$MINIFY" = y ]; then
+  echo [$SCRIPT]: Pre-minify fixes
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/landingpage.lp"
+  sed \
+    -e 's/\(window.location.href\)\(\\\)/\1;\2/' \
+    -e 's/\(blink_on)\)\(\\\)/\1;\2/' \
+    -e 's/\(blink_off)\)\(\\\)/\1;\2/' \
+    -e 's/\(250)()\)\(\\\)/\1;\2/' \
+    -e 's/\(container")\)\(\\\)/\1;\2/' \
+    -e 's/\(srp\.error\)/;\1/' \
+    -e 's/\(srp\.identify\)/;\1/' \
+    -e 's/\(})\)\(\\\)/\1;\2/' \
+    -e 's/\(broadbandparent.onblur\)/;\1/' \
+    -e 's/\(var phoneparent\)/;\1/' \
+    -e 's/\(phoneparent.onblur\)/;\1/' \
+    -e 's/\(var wifiparent\)/;\1/' \
+    -e 's/\(wifiparent.onblur\)/;\1/' \
+    -e 's/\(var gameparent\)/;\1/' \
+    -e 's/\(gameparent.onblur\)/;\1/' \
+    -i /www/docroot/landingpage.lp
+fi
+
 if [ -f /www/snippets/tabs-home.lp ]
 then
   echo [$SCRIPT]: "Removing 'Boost Your Wi-Fi' tab from basic view"
   sed -e '/^else/,/T"Boost Your Wi-Fi"/d' -i /www/snippets/tabs-home.lp
 fi
+
