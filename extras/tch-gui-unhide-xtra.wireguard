@@ -182,7 +182,7 @@ local function wgShowAllDump()
     ip_cache[6].checked = 0
   end
 
-  return wg_cache.summary, wg_cache.details 
+  return wg_cache.summary, wg_cache.details
 end
 
 local GUI_WG_ = {
@@ -191,7 +191,7 @@ local GUI_WG_ = {
     access = "readOnly",
     minEntries = 1,
     maxEntries = 1,
-    parameters = { 
+    parameters = {
       interface_count = {
         access = "readOnly",
         type = "int"
@@ -282,7 +282,7 @@ local GUI_WG_IFACE_ = {
     access = "readOnly",
     minEntries = 0,
     maxEntries = math.huge,
-    parameters = { 
+    parameters = {
       interface = {
         access = "readOnly",
         type = "string"
@@ -330,7 +330,7 @@ local GUI_WG_IFACE_PEER_ = {
     access = "readOnly",
     minEntries = 0,
     maxEntries = math.huge,
-    parameters = { 
+    parameters = {
       interface = {
         access = "readOnly",
         type = "string"
@@ -1179,16 +1179,16 @@ Endpoint = %s\
 "
 
 local function validateLogLevel(value,_,_)
-  if value == "" or value == "debug" then
+  if value == "none" or value == "debug" then
     return true
   end
-  return nil,T"'debug' or '' (empty string) expected."
+  return nil,T"'debug' or 'none' expected."
 end
 
 local log_level_attr = {
   values = {
     on = "debug",
-    off = ""
+    off = "none"
   }
 }
 
@@ -1225,8 +1225,8 @@ end
 if config.enabled ~= "0" then
   config.enabled = "1"
 end
-if config.log_level ~= "" then
-  config.log_level = "debug"
+if config.log_level ~= "debug" then
+  config.log_level = "none"
 end
 if curintf == "wg0" then
   if config.ipv6 == "" then
@@ -1396,7 +1396,7 @@ local peer_filter = function(data)
       end
       data.transfer_rx = wireguard_helper.bytes2string(peer.transfer_rx)
       data.transfer_tx = wireguard_helper.bytes2string(peer.transfer_tx)
-      if data.endpoint == "(none)" and peer.endpoint_host ~= "" then 
+      if data.endpoint == "(none)" and peer.endpoint_host ~= "" then
         data.endpoint = format("%s:%s",peer.endpoint_host,peer.endpoint_port)
       end
       break
@@ -1579,7 +1579,7 @@ $("#config-file").on("change",function(evt) {\
       reader.readAsText(f);\
       reader.onload = function() {\
         addNewInterface(f.name,reader.result);\
-      }\
+      };\
       reader.onerror = function() {\
         target.append($("<div>",{\
             "class" : "alert alert-danger",\
@@ -1685,7 +1685,7 @@ function M.getWireguardCardHTML()
   local interfaces = proxy.getPN("uci.wireguard.",true)
 
   local transfer_pattern = '<i class="icon-cloud-upload status-icon"></i> <span style="width:5em;display:inline-block;">%s</span>&ensp;<i class="icon-cloud-download status-icon"></i> <span style="width:5em;display:inline-block;">%s</span><br>'
-  
+
   local html = {}
   html[#html+1] = ui_helper.createSimpleLight(content.server,content.server_text)
   if content.server == "2" then
@@ -1815,7 +1815,7 @@ end
 
 function M.getDNS(include_ipv6)
   local dns = ""
-  
+
   for _,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dhcp_option.",true)) do
     local ipv4_dns = match(untaint(proxy.get(v.path.."value")[1].value),"6,(.+)")
     if ipv4_dns then
@@ -1826,7 +1826,7 @@ function M.getDNS(include_ipv6)
       end
     end
   end
-  
+
   if include_ipv6 == true then
     for _,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dns.",true)) do
       local ipv6_dns = untaint(proxy.get(v.path.."value")[1].value)
@@ -2054,7 +2054,7 @@ HLP
     uci commit firewall
     SRV_firewall=$(( $SRV_firewall + 1 ))
   fi
-  
+
   if ! uci -q get $FW_LAN_ZONE.network | grep -qE "\bwg0\b"; then
     uci add_list $FW_LAN_ZONE.network="wg0"
     uci commit firewall
@@ -2085,7 +2085,7 @@ else
     uci commit firewall
     SRV_firewall=$(( $SRV_firewall + 1 ))
   fi
-  
+
   if [ "$(uci -q get firewall.wg0)" = "rule" ]; then
     WG_INSTALLED=1
     uci -q delete firewall.wg0=

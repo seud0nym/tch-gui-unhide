@@ -227,16 +227,16 @@ Endpoint = %s\
 "
 
 local function validateLogLevel(value,_,_)
-  if value == "" or value == "debug" then
+  if value == "none" or value == "debug" then
     return true
   end
-  return nil,T"'debug' or '' (empty string) expected."
+  return nil,T"'debug' or 'none' expected."
 end
 
 local log_level_attr = {
   values = {
     on = "debug",
-    off = ""
+    off = "none"
   }
 }
 
@@ -273,8 +273,8 @@ end
 if config.enabled ~= "0" then
   config.enabled = "1"
 end
-if config.log_level ~= "" then
-  config.log_level = "debug"
+if config.log_level ~= "debug" then
+  config.log_level = "none"
 end
 if curintf == "wg0" then
   if config.ipv6 == "" then
@@ -627,7 +627,7 @@ $("#config-file").on("change",function(evt) {\
       reader.readAsText(f);\
       reader.onload = function() {\
         addNewInterface(f.name,reader.result);\
-      }\
+      };\
       reader.onerror = function() {\
         target.append($("<div>",{\
             "class" : "alert alert-danger",\
