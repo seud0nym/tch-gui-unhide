@@ -1,3 +1,22 @@
+2022.01.01
+==========
+* tch-gui-unhide: Added ability to enable/disable NTP server (#54)
+* tch-gui-unhide: Do not show option to send the router as the client time (NTP) server via DHCP if NTP server disabled (#54)
+* tch-gui-unhide: Changed chart card processing so that you can show/hide cards from the Management Theme tab (#53) (previously you could only show/hide the charts you selected during installation with the -C option)
+* tch-gui-unhide: Added ability to add custom DNS server IP addresses on LAN screen, in addition to the ipv4/6-DNS-Servers files optional processing (#55)
+* tch-gui-unhide: Added ability to select known DNS servers on Custom DNS Screen
+* tch-gui-unhide: Added support for intercepting IPv6 DNS queries (using a transparent proxy instead of NAT, because IPv6 NAT needs a kernel module that these devices do not have)
+* tch-gui-unhide: Added Resident Set Size and memory percentage to Management Process Viewer tab
+* tch-gui-unhide: Added new experimental option (-m) to reduce GUI code size by approximately 21% to try and improve performance
+* tch-gui-unhide: Reworked cards that took a relatively long time to render and changed them to background load their status displays to improve perceived performance
+* tch-gui-unhide: Fixed broken acme-ipsec.sh
+* tch-gui-unhide: Fixed bridged mode detection on booster device
+* tch-gui-unhide: Fixed bug that prevented changing of SIP Network Interface
+* tch-gui-unhide: Removed option to create multiple SIP Networks (because support for multiple SIP Networks is broken: https://hack-technicolor.readthedocs.io/en/stable/Unlock/#unlocking-the-option-to-setup-a-second-sip-network)
+* tch-gui-unhide: NOTE: There are de-telstra changes, so manual download and upgrade after re-running de-telstra is recommended!
+* de-telstra: Disabled CWMP and WiFi-Doctor in WAN Sensing failover helper
+* de-telstra: Bypass check for telstra.hybrid APN when failing over VoIP to WWAN
+
 2021.12.06
 ==========
 * tch-gui-unhide: Added ability to send the router as the client time (NTP) server via DHCP

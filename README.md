@@ -17,7 +17,6 @@ Skip any of these steps that you have already done.
 9. Optionally create your *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* files in the same directory as the scripts. (See [**Custom DNS Servers**](https://github.com/seud0nym/tch-gui-unhide#custom-dns-servers))
 10. Apply the GUI changes. Run `./tch-gui-unhide -?` to see available options, or just execute: `./tch-gui-unhide`
 11. Optionally run `./tch-gui-unhide-cards` to change card sequence and visibility
-12. Clear cached images and files from your browser to see the changes.
 
 #### NOTES:
 - If you reset your device, *or* restore it to a state before you applied the scripts, *or* upgrade the firmware, you will need to run `de-telstra` and `tch-gui-unhide` again!
@@ -97,7 +96,7 @@ Some hidden screens included on the device are not enabled, mainly because they 
 - **Chart Cards** showing CPU utilization, RAM, and WAN Download/Upload Mb/s over the last minute
 - **DNS** card to manage custom DNS servers
 - **Gateway** card now has current device status for CPU usage, free RAM and temperature
-- **Gateway** screen can now configure additional NTP servers
+- **Gateway** screen can now configure additional NTP servers, and enable/disable the device NTP server
 - **Broadband** card auto-updates and shows todays upload/download volume
 - **Broadband** screen has a new tab to show daily and monthly usage history
 - **Internet Access** card auto updates and now shows IPv6 information
@@ -246,7 +245,6 @@ The script accepts the following options:
 - -C n|s|i
     - Keep or remove chart cards: *-Cn*=No Chart Cards will be available *-Cs*=Only the Summary Chart Card will be available *-Ci*=Only the Individual Chart Cards will be available
     - The default is the current setting, or *-Ci* if no theme has been applied
-
 - -h d|s|n|"text"
     - Set the browser tabs title to VARIANT (d), VARIANT-MAC_ADDRESS (s), HOSTNAME (n) or ("text") the specified "text".
     - Default is the current setting
@@ -265,6 +263,9 @@ The script accepts the following options:
 - -v y|n
     - Enable (y) check for new releases and show 'Update Available' button in GUI, or Disable (n)
     - The default is current setting or (y) for first time installs
+- -m y|n
+    - Minify (y) GUI Lua code (*EXPERIMENTAL!!*)
+    - The default is current setting or (n) for first time installs
 - -T
     - Apply the theme settings *ONLY*. All other processing is bypassed.
 - -x *feature*

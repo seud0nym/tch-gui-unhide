@@ -85,9 +85,10 @@
         "N",
         "commitapply"
     ],
-    "Lua.runtime.version": "Lua 5.1",
+    "Lua.runtime.version": "LuaJIT",
     "Lua.workspace.library": [
-        "C:\\Users\\Stephen\\Box\\Technicolor\\Extracted\\vcnt-a_20.3.c.0329-MR19-RB\\usr\\lib\\lua\\web"
+        "C:\\Users\\Stephen\\Box\\Technicolor\\Extracted\\vcnt-a_20.3.c.0329-MR19-RB\\usr\\lib\\lua\\web",
+        "${3rd}/OpenResty/library"
     ],
     "Lua.runtime.path": [
         "?.lua",
@@ -97,5 +98,6 @@
     "Lua.diagnostics.severity": {
         "unused-local": "Information"
     },
-    "Lua.diagnostics.ignoredFiles": "Enable"
+    "Lua.diagnostics.ignoredFiles": "Enable",
+    "Lua.workspace.checkThirdParty": false
 }

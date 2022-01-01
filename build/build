@@ -136,7 +136,7 @@ do
           [ -n "$DEBUG" ] && echo " - Appending /tmp/themes.b64"
           sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" /tmp/themes.b64 >> $TARGET
         fi
-      elif [ $FILENAME = "200-Services" ]; then
+      elif [ $FILENAME = "900-Services" ]; then
         [ -n "$DEBUG" ] && echo " - Adding version to copyright and auto-refreshing cache"
         echo "if [ \$THEME_ONLY = n ]; then" >> $TARGET
         echo "  MKTING_VERSION=\$(uci get version.@version[0].marketing_version)" >> $TARGET

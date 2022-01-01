@@ -49,7 +49,7 @@ local minidlna_config = {
   }
 }
 
-mapper("uci_1to1").registerSimpleMap(minidlna_config) 
+mapper("uci_1to1").registerSimpleMap(minidlna_config)
 MAP
     chmod 644 /usr/share/transformer/mappings/uci/minidlna.map
     SRV_transformer=$(( $SRV_transformer + 1 ))
@@ -160,14 +160,7 @@ PLUG
     -e '/^local function valid_samba_dlna_string/i \local network_rpc_path = "rpc.network.interface."' \
     -e '/^local function valid_samba_dlna_string/i \local network_rpc_content = content_helper.getMatchedContent (network_rpc_path)' \
     -e '/^local function valid_samba_dlna_string/i \local intfs = {}' \
-    -e '/^local function valid_samba_dlna_string/i \local function split(x, sep)' \
-    -e '/^local function valid_samba_dlna_string/i \  local sep, fields = sep or ":", {}' \
-    -e '/^local function valid_samba_dlna_string/i \  local pattern = string.format("([^%s]+)", sep)' \
-    -e '/^local function valid_samba_dlna_string/i \  for field in x:gmatch(pattern) do' \
-    -e '/^local function valid_samba_dlna_string/i \    fields[#fields+1] = field' \
-    -e '/^local function valid_samba_dlna_string/i \  end' \
-    -e '/^local function valid_samba_dlna_string/i \  return fields' \
-    -e '/^local function valid_samba_dlna_string/i \end' \
+    -e '/^local function valid_samba_dlna_string/i \local split = require("split").split' \
     -e '/^local function valid_samba_dlna_string/i \for _, v in ipairs (network_rpc_content) do' \
     -e '/^local function valid_samba_dlna_string/i \  local path = split(split(format("%s",v.path),"@")[2],".")[1]' \
     -e '/^local function valid_samba_dlna_string/i \  if path == "wan" or path == "lan" then' \
