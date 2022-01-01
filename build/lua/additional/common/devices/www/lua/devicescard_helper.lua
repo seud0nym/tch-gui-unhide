@@ -7,7 +7,7 @@ local modal_link='class="modal-link" data-toggle="modal" data-remote="modals/dev
 
 local M = {}
 
-function M.getDevicesCardHTML()
+function M.getDevicesCardHTML(all)
   local devices_data = {
     numWireless = "sys.hosts.ActiveWirelessNumberOfEntries",
     numEthernet = "sys.hosts.ActiveEthernetNumberOfEntries",
@@ -17,7 +17,7 @@ function M.getDevicesCardHTML()
   local nAgtDevices = 0
   local multiap_controller_enabled = proxy.get("uci.multiap.controller.enabled")
   local multiap = (multiap_controller_enabled and multiap_controller_enabled[1].value == "1")
-  if multiap then
+  if all and multiap then
     local agents = proxy.get("Device.Services.X_TELSTRA_MultiAP.Controller.MultiAPAgentNumberOfEntries")
     if agents and tonumber(agents[1].value) > 0 then
         for i = 1,tonumber(agents[1].value),1 do

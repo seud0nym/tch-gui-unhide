@@ -3,34 +3,24 @@
 -- Enable localization
 gettext.textdomain('webui-core')
 
-local ui_helper = require("web.ui_helper")
-
 local session = ngx.ctx.session
 if session:hasAccess("/modals/wanservices-modal.lp") then
-  local wanservicescard_helper = require("wanservicescard_helper")
-  local html = wanservicescard_helper.getWANServicesCardHTML()
-
+  local ui_helper = require("web.ui_helper")
   ngx.print('\
   <div class="span3">\
     <div class="smallcard">\
       ');  ngx.print(ui_helper.createCardHeader(T"WAN Services","modals/wanservices-modal.lp")); ngx.print('\
       <div id="wanservices-card-content" class="content card_bg" data-bg-text="&#xf0c2;">\
-      ');  ngx.print(html); ngx.print('\
+      ');
+      ngx.print(ui_helper.createSimpleLight("3","Getting Dynamic DNS status..."));
+      ngx.print(ui_helper.createSimpleLight("3","Getting DMZ status..."));
+      ngx.print(ui_helper.createSimpleLight("3","Getting WoL over Internet status..."));
+      ngx.print(ui_helper.createSimpleLight("3","Getting UPnP status..."));
+      ngx.print('\
       </div>\
     </div>\
   </div>\
-  <script>\
-  var wanservicesFuncID;\
-  function updateWANServicesCard(){\
-    $.post("/ajax/wanservices-status.lua",[tch.elementCSRFtoken()],function(data){\
-      $("#wanservices-card-content").html(data["html"]);\
-    },"json")\
-    .fail(function(response){\
-      if(response.status==403||response.status==404){clearInterval(wanservicesFuncID);}\
-    });\
-  }\
-  $().ready(function(){wanservicesFuncID=setInterval(updateWANServicesCard,21000);window.intervalIDs.push(wanservicesFuncID);});\
-  </script>\
+  <script src="/js/007_wanservices.js"></script>\
   ');
 end
 ngx.print('\

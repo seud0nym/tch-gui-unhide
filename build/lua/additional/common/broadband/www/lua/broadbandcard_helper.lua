@@ -1,14 +1,12 @@
 local bridged = require("bridgedmode_helper")
 local content_helper = require("web.content_helper")
 local proxy = require("datamodel")
-local socket = require("socket")
 local ui_helper = require("web.ui_helper")
 
 local floor,find,format,match = math.floor,string.find,string.format,string.match
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 local tonumber = tonumber
-local TGU_MbPS = ngx.shared.TGU_MbPS
 
 local M = {}
 
@@ -43,48 +41,6 @@ local function getCurrentWANInterface()
     wan_intf = "wwan"
   end
   return wan_intf
-end
-
-function M.getThroughputHTML()
-  local wan_data = {
-    lan_rx = "rpc.network.interface.@lan.rx_bytes",
-    lan_tx = "rpc.network.interface.@lan.tx_bytes",
-    wan_rx = "rpc.network.interface.@wan.rx_bytes",
-    wan_tx = "rpc.network.interface.@wan.tx_bytes",
-    wwan_rx = "rpc.network.interface.@wwan.rx_bytes",
-    wwan_tx = "rpc.network.interface.@wwan.tx_bytes",
-  }
-  content_helper.getExactContent(wan_data)
-
-  local ok,err
-  for key,value in pairs(wan_data) do
-    local is = tonumber(value) or 0
-    local now = socket.gettime()
-    local from = TGU_MbPS:get(key.."_time")
-    if from then
-      local elapsed = now - from
-      local was = TGU_MbPS:get(key.."_bytes")
-      ok,err = TGU_MbPS:safe_set(key.."_mbps",(is - was) / elapsed * 0.000008)
-      if not ok then
-        ngx.log(ngx.ERR,"Failed to store current Mb/s into ",key,"_mbps: ",err)
-      end
-    end
-    ok,err = TGU_MbPS:safe_set(key.."_time",now)
-    if not ok then
-      ngx.log(ngx.ERR,"Failed to store current time into ",key,"_time: ",err)
-    end
-    ok,err = TGU_MbPS:safe_set(key.."_bytes",is)
-    if not ok then
-      ngx.log(ngx.ERR,"Failed to store ",is," into ",key,"_bytes: ",err)
-    end
-  end
-
-  local wan_intf = getCurrentWANInterface()
-  local tx_mbps,rx_mbps = TGU_MbPS:get(wan_intf.."_tx_mbps") or 0,TGU_MbPS:get(wan_intf.."_rx_mbps") or 0
-  return
-    format("%.2f Mb/s <b>&uarr;</b><br>%.2f Mb/s <b>&darr;</b></span>",tx_mbps,rx_mbps),
-    format("%.2f Mb/s <b>&uarr;</b><br>%.2f Mb/s <b>&darr;</b></span>",TGU_MbPS:get("lan_tx_mbps") or 0,TGU_MbPS:get("lan_rx_mbps") or 0),
-    tx_mbps,rx_mbps
 end
 
 function M.getBroadbandCardHTML(wansensing)

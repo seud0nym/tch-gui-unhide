@@ -54,6 +54,8 @@ if content["bqos_r2q"] == "" then
   content["bqos_r2q"] = "35"
 end
 
+local bqos_devices_editable = content["bqos_enabled"] == 1
+
 local device_columns = {
   { --[1]
     header = T"Name",
@@ -111,7 +113,9 @@ local device_options = {
   basepath = "uci.bqos.device.@.",
   createMsg = T"Add Device",
   addNamedObject = true,
-  canEdit = true,
+  canEdit = bqos_devices_editable,
+  canDelete = bqos_devices_editable;
+  canAdd = bqos_devices_editable,
   onAdd = function(index,values)
     local base="uci.bqos.device.@"..index
     proxy.set(base..".enabled",untaint(values["enabled"]))
@@ -157,15 +161,7 @@ if ngx.var.args and string.len(ngx.var.args) > 0 then
   uri = uri.."?"..ngx.var.args
 end
 
-local switch_attr = {
-  input = {
-    class ="monitor-changes",
-  },
-}
 local rate_attr = {
-  group = {
-    class ="monitor-bqos_enabled monitor-1",
-  },
   input = {
     type = "number",
     min = "1",
@@ -173,9 +169,6 @@ local rate_attr = {
   }
 }
 local r2q_attr = {
-  group = {
-    class ="monitor-bqos_enabled monitor-1",
-  },
   input = {
     type = "number",
     min = "35",
@@ -185,7 +178,7 @@ local r2q_attr = {
 }
 local info_box = {
   alert = {
-    class = "alert alert-info monitor-bqos_enabled monitor-1",
+    class = "alert alert-info",
     style = "text-align:center",
   }
 }
@@ -206,7 +199,7 @@ ngx.print(ui_helper.createHeader(T"QoS",false)); ngx.print('\
       ')
       ngx.print(
         ui_helper.createAlertBlock(T"Bandwidth shaping will cause <B>ALL</B> traffic between LAN clients and the Gateway to be limited to the specified Global Download/Upload rates, so should not be used if the Gateway is being for services such as <B>File Sharing</B>. Traffic <I>between</I> LAN clients is unaffected and will still run at normal LAN speeds.<BR>Bandwidth shaping can also increase CPU utilisation, and may not be suitable for connections above 100Mbit/s.",warn_box),
-        ui_helper.createSwitch(T"Enabled","bqos_enabled",content["bqos_enabled"],switch_attr,helpmsg["bqos_enabled"]),
+        ui_helper.createSwitch(T"Enabled","bqos_enabled",content["bqos_enabled"],nil,helpmsg["bqos_enabled"]),
         ui_helper.createInputText(T"Global Download Mbit/s","bqos_download",content["bqos_download"],rate_attr,helpmsg["bqos_download"]),
         ui_helper.createInputText(T"Global Upload Mbit/s","bqos_upload",content["bqos_upload"],rate_attr,helpmsg["bqos_upload"]),
         ui_helper.createInputText(T"Global r2q<span class='icon-question-sign' title='If you see kernel messages like \"HTB: quantum of class 20001 is big. Consider r2q change.\", increase this value by 5 and restart until the message stops. The default value is 35.'></span>","bqos_r2q",content["bqos_r2q"],r2q_attr,helpmsg["bqos_r2q"]),

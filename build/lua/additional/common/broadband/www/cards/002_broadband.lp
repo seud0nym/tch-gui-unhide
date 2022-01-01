@@ -6,7 +6,6 @@ gettext.textdomain('webui-core')
 local format = string.format
 local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
-local bbch = require("broadbandcard_helper")
 
 -- wan status data
 local wan_data = {
@@ -48,12 +47,10 @@ local WS_light_map = {
 local session = ngx.ctx.session
 local modalPath
 if session:hasAccess("/modals/broadband-modal.lp") then
-    modalPath = "modals/broadband-modal.lp"
+  modalPath = "modals/broadband-modal.lp"
 end
 
-local html = bbch.getBroadbandCardHTML(WS_en)
-
-  ngx.print('\
+ngx.print('\
 <div class="span3" id="broadband-card">\
   <div class="smallcard">\
     ');  ngx.print( ui_helper.createCardHeader(T"Broadband",modalPath,nil,nil,nil) ); ngx.print('\
@@ -66,56 +63,9 @@ local html = bbch.getBroadbandCardHTML(WS_en)
       end
       ngx.print('\
       <div id="broadband-card-content">\
-        ');  ngx.print(html); ngx.print('\
       </div>\
     </div>\
   </div>\
 </div>\
-<script>\
-var bbFuncID;\
-var tpFuncID;\
-function updateBroadbandCard(){\
-  $.post("/ajax/broadband-status.lua",[tch.elementCSRFtoken()],function(data){\
-    $("#broadband-card-content").html(data["html"]);\
-  },"json")\
-  .fail(function(response){\
-    if(response.status==403||response.status==404){clearInterval(bbFuncID);}\
-  });\
-}\
-function updateThroughput(){\
-  $.post("/ajax/network-throughput.lua",[tch.elementCSRFtoken()],function(data){\
-    $("#broadband-card-throughput .throughput span").html(data["wan"]);\
-    $("#lan-card-throughput .throughput span").html(data["lan"]);\
-    $("#wanup_data").text(data["wan_tx_mbps"].toFixed(2));\
-    if (typeof window.wanup_chart != "undefined") {\
-      wanup_config.data.datasets[0].data.shift();\
-      wanup_config.data.datasets[0].data.push(data["wan_tx_mbps"]);\
-      window.wanup_chart.update();\
-      sessionStorage.setItem("wanup_data",JSON.stringify(wanup_config.data.datasets[0].data));\
-    }\
-    if (typeof window.wandn_chart != "undefined") {\
-      $("#wandn_data").text(data["wan_rx_mbps"].toFixed(2));\
-      wandn_config.data.datasets[0].data.shift();\
-      wandn_config.data.datasets[0].data.push(data["wan_rx_mbps"]);\
-      window.wandn_chart.update();\
-      sessionStorage.setItem("wandn_data",JSON.stringify(wandn_config.data.datasets[0].data));\
-    }\
-  },"json")\
-  .fail(function(response){\
-    if(response.status==403||response.status==404){clearInterval(tpFuncID);}\
-  });\
-}\
-$().ready(function(){\
-  bbFuncID=setInterval(updateBroadbandCard,15000);\
-  var bbdiv = document.querySelector("#broadband-card-throughput");\
-  var bbhdr = document.querySelector("#broadband-card .header-title");\
-  bbhdr.parentNode.insertBefore(bbdiv,bbhdr.nextSibling);\
-  var landiv = bbdiv.cloneNode(true);\
-  var lanhdr = document.querySelector("#Local,#Local_Network_tab").closest(".header-title");\
-  landiv.setAttribute("id","lan-card-throughput");\
-  lanhdr.parentNode.insertBefore(landiv,lanhdr.nextSibling);\
-  updateThroughput();\
-  tpFuncID=setInterval(updateThroughput,2000);\
-});\
-</script>\
+<script src="/js/002_broadband.js"></script>\
 ');

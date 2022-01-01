@@ -5,7 +5,6 @@ gettext.textdomain('webui-core')
 
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
-local ssid_helper = require("ssid_helper")
 
 -- Should be in wireless-modal.lp
 if ngx.var.request_method == "POST" then
@@ -26,8 +25,6 @@ else
   wifiState = "0"
 end
 
-local html = ssid_helper.getWiFiCardHTML()
-
 local session = ngx.ctx.session
 local modalPath = nil
 local switchName = nil
@@ -41,21 +38,9 @@ end
   <div class="smallcard">\
     ');  ngx.print(ui_helper.createCardHeader(T"Wi-Fi",modalPath,switchName,wifiState) ); ngx.print('\
     <div id="wifi-card-content" class="content card_bg" data-bg-text="&#xf09e;">\
-      ');  ngx.print(html); ngx.print('\
+      ');  ngx.print(ui_helper.createSimpleLight("3","Getting SSID status...")); ngx.print('\
     </div>\
   </div>\
 </div>\
-<script>\
-$(".header input#set_wifi_radio_state").on("change",function(){$("#waiting").removeClass("hide")});\
-var ssidFuncID;\
-function updateWirelessCard(){\
-  $.post("/ajax/ssid-status.lua",[tch.elementCSRFtoken()],function(data){\
-    $("#wifi-card-content").html(data["html"]);\
-  },"json")\
-  .fail(function(response){\
-    if(response.status==403||response.status==404){clearInterval(ssidFuncID);}\
-  });\
-}\
-$().ready(function(){ssidFuncID=setInterval(updateWirelessCard,19000);window.intervalIDs.push(ssidFuncID);});\
-</script>\
+<script src="/js/004_wireless.js"></script>\
 ');

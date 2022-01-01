@@ -123,14 +123,32 @@ sed \
   -e '/id="waiting"/a\    <script>$(".smallcard .header,.modal-link").click(function(){if ($(this).attr("data-remote")||$(this).find("[data-remote]").length>0){$("#waiting").fadeIn();}});</script>\\' \
   -i /www/docroot/gateway.lp
 
+echo [$SCRIPT]: Improve performance of card loading
+sed \
+  -e 's/\(local cards = require("cards")\)/\1.cards()/' \
+  -e 's/_,v in pairs(cards.cards())/k=1,#cards,1/' \
+  -e '/lp.include(v)/i\         local v = cards[k]' \
+  -i /www/docroot/gateway.lp
+
 echo [$SCRIPT]: Add improved debugging when errors cause cards to fail to load
 sed \
+  -e '/local cards/a\        local xpcall = xpcall' \
   -e '/lp.include(v)/i\         local success,msg = xpcall(function()' \
   -e '/lp.include(v)/a\         end, function(err)' \
   -e '/lp.include(v)/a\          ngx.print("<pre>", debug.traceback(err),"</pre>")' \
   -e '/lp.include(v)/a\          ngx.log(ngx.ERR, debug.traceback(err))' \
   -e '/lp.include(v)/a\         end)' \
   -i /www/docroot/gateway.lp
+
+if [ "$DEBUG" = "V" ]; then
+  echo [$SCRIPT]: Log card loading times
+  sed \
+    -e '/local cards/i\        local gettime = require("socket").gettime' \
+    -e '/local cards/i\        local log = require("tch.logger").new("gateway.lp",7)' \
+    -e '/lp.include(v)/i\          local started = gettime()' \
+    -e '/lp.include(v)/a\          log:notice("Card %s loaded in %.4f sec",v,gettime()-started)' \
+    -i /www/docroot/gateway.lp
+fi
 
 echo [$SCRIPT]: Fix uptime on basic Broadband tab
 sed -e 's/days > 1/days > 0/' -i /www/docroot/broadband.lp

@@ -3,9 +3,8 @@
 -- Enable localization
 gettext.textdomain('webui-qos')
 
-local proxy = require("datamodel")
 local content_helper = require("web.content_helper")
-local format,match = string.format,string.match
+local format = string.format
 local ui_helper = require("web.ui_helper")
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
@@ -30,7 +29,6 @@ local dataQoS = {
   iqos_enabled = "rpc.gui.qos.iqos_enabled",
   bqos_enabled = "uci.bqos.global.enabled",
   bqos_devices = "uci.bqos.deviceNumberOfEntries",
-  numShapers = "uci.qos.swshaperNumberOfEntries",-- NOT 17.2
 }
 content_helper.getExactContent(dataQoS)
 
@@ -38,41 +36,6 @@ local status = {
   ["0"] = "disabled",
   ["1"] = "enabled",
 }
-
--- NOT 17.2 START
-local shapers = {
-  count = tonumber(dataQoS.numShapers),
-  enabled = 0,
-  active = 0,
-  light = "0",
-  names = {},
-}
-if not shapers.count then
-  shapers.count = 0
-else
-  local swshapers = proxy.getPN("uci.qos.swshaper.",true)
-  for _,v in ipairs(swshapers) do
-    local name = match(v.path,"uci%.qos%.swshaper%.@([^%.]+)%.")
-    shapers.names[name] = untaint(proxy.get(v.path.."enable")[1].value)
-    if shapers.names[name] == "1" then
-      shapers.enabled = shapers.enabled + 1
-    end
-  end
-end
-
-local ifs = require("qosdevice_helper").getNetworkDevices()
-local data = proxy.getPN("uci.qos.device.",true)
-for _,v in ipairs(data) do
-  local device = untaint(match(v.path,"uci%.qos%.device%.@([^%.]+)%."))
-  if ifs[device] and ifs[device] ~= "" and ifs[device] ~= "ppp" and ifs[device] ~= "ipoe" then
-    local shaper = proxy.get(v.path.."swshaper")[1].value:untaint()
-    if shapers.names[shaper] == "1" then
-      shapers.active = shapers.active + 1
-      shapers.light = "1"
-    end
-  end
-end
--- NOT 17.2 END
 
 ngx.print('\
 <div class="span3">\
@@ -92,11 +55,20 @@ ngx.print('\
       ngx.print(ui_helper.createSimpleLight(dataQoS.qos_enabled,format("<strong %1$s>Egress QoS</strong> %2$s",devic_link,status[untaint(dataQoS.qos_enabled)])))
 -- NOT 17.2 START
       if dataQoS.qos_enabled == "1" then
-        ngx.print(
-          '<p class="subinfos">',
-          format(N("<strong %1$s>%2$d Shaper</strong>","<strong %1$s>%2$d Shapers</strong>",shapers.enabled),shape_link,shapers.enabled).." enabled on "..format(N("<strong %1$s>%2$d interface</strong>","<strong %1$s>%2$d interfaces</strong>",shapers.active),shape_link,shapers.active),
-          '</p>'
-        )
+        ngx.print('\
+          <p id="shaper_info_content" class="subinfos">\
+          ')
+          ngx.print(format("<strong %1$s>0 Shapers</strong>",shape_link).." enabled on "..format("<strong %1$s>0 interfaces</strong>",shape_link))
+          ngx.print('\
+          </p>\
+          <script>\
+          $().ready(function(){\
+            $.post("/ajax/qos-swshaper-status.lua",[tch.elementCSRFtoken()],function(data){\
+              $("#shaper_info_content").html(data["html"]);\
+            },"json");\
+          });\
+          </script>\
+        ')
       end
 -- NOT 17.2 END
         ngx.print(ui_helper.createSimpleLight(dataQoS.iqos_enabled,format("<strong %1$s>Ingress QoS</strong> %2$s",iqos_link,status[untaint(dataQoS.iqos_enabled)])))

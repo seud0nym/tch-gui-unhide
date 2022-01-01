@@ -1,7 +1,7 @@
 local json = require("dkjson")
 local dch = require("devicescard_helper")
 
-local html = dch.getDevicesCardHTML()
+local html = dch.getDevicesCardHTML(true)
 
 local data = {
   html = table.concat(html,"\n"),
