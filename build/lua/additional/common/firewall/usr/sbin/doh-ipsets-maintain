@@ -1,33 +1,99 @@
 #!/bin/sh
 
-if [ "$(uci -q get firewall.doh)" = "ipset" ]
-then
-  if [ -f /tmp/doh-ipv4.txt ]
-  then
-    rm /tmp/doh-ipv4.txt
+TMP_TARGET=/tmp/ipset.downloaded
+TMP_CONVERTED=/tmp/ipset.downloaded.ip.list
+IPv4_INTERMEDIATE=/tmp/ipset.intermediate.ipv4
+IPv6_INTERMEDIATE=/tmp/ipset.intermediate.ipv6
+
+add_single_hostname() {
+  local HOSTNAME="$1"
+  local DIG_TYPE="$2"
+  local TARGET="$IPv4_INTERMEDIATE"
+  [ $DIG_TYPE = AAAA ] && TARGET="$IPv6_INTERMEDIATE"  
+
+  echo "INFO:  Adding $HOSTNAME"
+  dig +short -t $DIG_TYPE $HOSTNAME | grep -v '\.$' >> $TARGET
+}
+
+cleanup() {
+  for f in $TMP_TARGET $TMP_CONVERTED $IPv4_INTERMEDIATE $IPv6_INTERMEDIATE; do
+    [ -f "$f" ] && rm "$f"
+  done
+}
+
+download() {
+  local SOURCE="$1"
+  local TARGET="$2"
+  local AWK_PROGRAM="$3"
+  local DIG_TYPE="$4"
+  local RESPONSE_CODE RETURN_CODE HOSTNAME IGNORED IP
+
+  [ -f $TMP_TARGET ] && rm $TMP_TARGET
+  [ -f $TMP_CONVERTED ] && rm $TMP_CONVERTED
+
+  echo "INFO:  Downloading $SOURCE"
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' $SOURCE)
+  if [ "$RESPONSE_CODE" = 200 ]; then
+    curl -kLs -o $TMP_TARGET $SOURCE
+    if [ -n "$AWK_PROGRAM" ]; then
+      echo "INFO:  - Removing comments"
+      awk -e "$AWK_PROGRAM" $TMP_TARGET >> $TMP_CONVERTED
+      if [ $? -ne 0 ]; then
+        echo "ERROR: - Conversion failed! (awk -e '$AWK_PROGRAM' $TMP_TARGET)"
+        return 2
+      fi
+      rm $TMP_TARGET
+    else
+      mv $TMP_TARGET $TMP_CONVERTED
+    fi
+    if [ -z "$DIG_TYPE" ]; then
+      cat $TMP_CONVERTED >> $TARGET
+    else
+      echo "INFO:  - Converting hostnames to IP addresses (this can take a while)"
+      dig +short -t $DIG_TYPE -f $TMP_CONVERTED | grep -v '\.$' >> $TARGET
+      [ $? -ne 0 ] && echo "ERROR: - Conversion failed!"
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]; then
+    echo "ERROR: $SOURCE was not found???"
+  elif [ "$RESPONSE_CODE" = 000 ]; then
+    echo "ERROR: Failed to download $SOURCE - No Internet connection???"
+  else
+    echo "ERROR: Failed to download $SOURCE - Unknown response code $RESPONSE_CODE"
   fi
-  curl -s -k -L https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv4.txt > /tmp/doh-ipv4.txt
-  if [ -f /tmp/doh-ipv4.txt ]
-  then
-    sed -e 's/\([^ ]*\) .*/add doh \1/' /tmp/doh-ipv4.txt > /etc/firewall.ipset.doh
-    rm /tmp/doh-ipv4.txt
-    ipset flush doh
-    ipset -f /etc/firewall.ipset.doh restore
-  fi
+  [ -f "$TMP_TARGET" ] && rm "$TMP_TARGET"
+  return 1
+}
+
+update_ipset() {
+  local IPSET="$1"
+  local SOURCE="$2"
+  local FAMILY="IPv4"
+  [ "$SOURCE" = "$IPv4_INTERMEDIATE" ] && FAMILY="IPv6"
+
+  echo "INFO:  Converting intermediate file to ipset $IPSET backup"
+  sort -u $SOURCE | awk -e "/^[[:blank:]]*$/||/0\.0\.0\.0/||/::/||/Last/{next;}{print \"add $IPSET \" \$1;}0" > /etc/firewall.ipset.$IPSET
+  rm $SOURCE
+  echo "INFO:  Updating ipset $IPSET to block $(cat /etc/firewall.ipset.$IPSET | wc -l) DoH $FAMILY addresses"
+  ipset flush $IPSET
+  ipset -f /etc/firewall.ipset.$IPSET restore
+}
+
+cleanup
+
+if [ "$(uci -q get firewall.doh)" = "ipset" ];then
+  add_single_hostname doh.umbrella.com A
+  download https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv4.txt $IPv4_INTERMEDIATE "{print \$1}0"
+  download https://raw.githubusercontent.com/oneoffdallas/dohservers/master/iplist.txt $IPv4_INTERMEDIATE "/^#/{next;}1"
+  download https://raw.githubusercontent.com/Zelo72/adguard/main/doh-vpn-proxy-bypass.adblock $IPv4_INTERMEDIATE "/^\|\|/{print substr(\$0,3,length(\$0)-3);}0" A
+  update_ipset doh $IPv4_INTERMEDIATE
 fi
 
-if [ "$(uci -q get firewall.doh6)" = "ipset" ]
-then
-  if [ -f /tmp/doh-ipv6.txt ]
-  then
-    rm /tmp/doh-ipv6.txt
-  fi
-  curl -s -k -L https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv6.txt > /tmp/doh-ipv6.txt
-  if [ -f /tmp/doh-ipv6.txt ]
-  then
-    sed -e 's/\([^ ]*\) .*/add doh6 \1/' /tmp/doh-ipv6.txt > /etc/firewall.ipset.doh6
-    rm /tmp/doh-ipv6.txt
-    ipset flush doh6
-    ipset -f /etc/firewall.ipset.doh6 restore
-  fi
+if [ "$(uci -q get firewall.doh6)" = "ipset" ]; then
+  add_single_hostname doh.umbrella.com AAAA
+  download https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv6.txt $IPv6_INTERMEDIATE "{print \$1}0"
+  download https://raw.githubusercontent.com/oneoffdallas/dohservers/master/ipv6list.txt $IPv6_INTERMEDIATE "/^#/{next;}1"
+  download https://raw.githubusercontent.com/Zelo72/adguard/main/doh-vpn-proxy-bypass.adblock $IPv6_INTERMEDIATE "/^\|\|/{print substr(\$0,3,length(\$0)-3);}0" AAAA
+  update_ipset doh6 $IPv6_INTERMEDIATE
 fi
+
+cleanup
