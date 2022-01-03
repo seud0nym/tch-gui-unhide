@@ -1,6 +1,9 @@
 #!/bin/sh
 
 SCRIPT="$(basename $0)"
+LOCK="/var/run/${SCRIPT}"
+exec 200>$LOCK
+flock -n 200 || { echo "ERROR: $SCRIPT already running!"; exit 2; }
 
 GREEN='\033[1;32m'
 GREY='\033[90m'

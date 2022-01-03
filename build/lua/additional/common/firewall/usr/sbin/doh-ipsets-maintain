@@ -1,5 +1,10 @@
 #!/bin/sh
 
+SCRIPT=$(basename $0)
+LOCK="/var/run/${SCRIPT}"
+exec 200>$LOCK
+flock -n 200 || { echo "ERROR: $SCRIPT already running!"; exit 2; }
+
 TMP_TARGET=/tmp/ipset.downloaded
 TMP_CONVERTED=/tmp/ipset.downloaded.ip.list
 IPv4_INTERMEDIATE=/tmp/ipset.intermediate.ipv4
@@ -97,3 +102,5 @@ if [ "$(uci -q get firewall.doh6)" = "ipset" ]; then
 fi
 
 cleanup
+
+rm $LOCK

@@ -8,6 +8,9 @@ fi
 # Based on https://hack-technicolor.readthedocs.io/en/stable/Hardening/
 
 SCRIPT="$(basename $0)"
+LOCK="/var/run/${SCRIPT}"
+exec 200>$LOCK
+flock -n 200 || { echo "[$SCRIPT] ERROR! Already running!"; exit 2; }
 
 usage() {
 cat <<EOH

@@ -22,6 +22,10 @@ then
 fi
 SCRIPT=$(basename $0 | sed "s/-$TARGET_VERSION//")
 
+LOCK="/var/run/${SCRIPT}"
+exec 200>$LOCK
+flock -n 200 || { echo "ERROR: $SCRIPT already running!"; exit 2; }
+
 DFLT_USR=$(uci -q get web.uidefault.defaultuser)
 FW_UPGRD=$(uci -q get web.uidefault.upgradefw)
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
