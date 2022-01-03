@@ -1014,6 +1014,12 @@ end
 if #dns_servers == 1 and content["dns_v4_pri"] ~= nil and content["dns_v4_pri"] ~= "" then
   dns_servers = split(format("%s",content["dns_v4_pri"]),",")
 end
+if dns_servers[2] ~= nil and dns_servers[2] ~= "" and not find_dns(dns_servers[2],dns_list[1]) then
+  dns_list[1][#dns_list[1]+1]={dns_servers[2],T("Custom ("..dns_servers[2]..")")}
+end
+if dns_servers[3] ~= nil and dns_servers[3] ~= "" and not find_dns(dns_servers[3],dns_list[1]) then
+  dns_list[1][#dns_list[1]+1]={dns_servers[3],T("Custom ("..dns_servers[3]..")")}
+end
 
 -- set the local host IP
 dns_list[1][2][1] = content["localdevIP"]
