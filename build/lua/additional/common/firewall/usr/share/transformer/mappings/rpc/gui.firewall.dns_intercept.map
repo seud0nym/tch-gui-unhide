@@ -200,7 +200,7 @@ GUI_FIREWALL_DNS_INT_.set = {
   end,
   populate_ipsets = function(_,_,value,_)
     if value == "1" then
-      os.execute("/usr/sbin/doh-ipsets-maintain")
+      os.execute("nohup /usr/sbin/doh-ipsets-maintain >/dev/null 2>&1 &")
     end
     return true
   end,
