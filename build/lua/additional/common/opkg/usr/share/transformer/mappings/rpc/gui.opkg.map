@@ -184,7 +184,7 @@ local function checkPackages(grp)
     local pkg,available_version,description = match(line,"(%S+)%s+%-%s+(%S+)%s*%-*%s*(.*)")
     local warning = ""
     if not pkg then
-      pkg,available_version = match(line,"Package (%S+) version (%S+) has no valid architecture, ignoring.")
+      pkg,available_version = match(line,"Package%s(%S+)%sversion%s(%S+)%shas no valid architecture, ignoring.")
       description = ""
       warning = line
     end

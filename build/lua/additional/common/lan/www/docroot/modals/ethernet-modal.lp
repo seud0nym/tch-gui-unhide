@@ -1072,14 +1072,14 @@ end
 -- because we do the localdevmask validation in localdevIP validation, we check if local ip starts with error msg "[netmask]".
 -- If so move it to localdevmask
 if helpmsg["localdevIP"] then
-  local msg = match(helpmsg["localdevIP"],'^%[netmask%] (.*)')
+  local msg = match(helpmsg["localdevIP"],'^%[netmask%]%s(.*)')
   if msg then
     helpmsg["localdevIP"] = nil
     helpmsg["localdevmask"] = msg
   end
 end
 if helpmsg["dhcpLimit"] then
-    local msg = match(helpmsg["dhcpLimit"],'^%[dhcpStart%] (.*)')
+    local msg = match(helpmsg["dhcpLimit"],'^%[dhcpStart%]%s(.*)')
     if msg then
       helpmsg["dhcpLimit"] = nil
       helpmsg["dhcpStart"] = msg

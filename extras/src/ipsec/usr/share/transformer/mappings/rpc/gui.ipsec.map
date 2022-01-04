@@ -33,7 +33,7 @@ local function readIPsecConfig()
     for line in f:lines() do
       local s = match(line,"^(con[%l]+ .*)[%s]*$")
       if s then
-        local k = match(s,"[%w]+ (.*)")
+        local k = match(s,"[%w]+%s(.*)")
         section = #sections + 1
         sections[section] = {
           name = s,

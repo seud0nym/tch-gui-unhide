@@ -12,7 +12,7 @@ local function exec_nqcsctrl(params)\
       message_helper.pushMessage(T(result), "error")\
     end\
   else\
-    message_helper.pushMessage(T("Failed to execute command with parameters: "..params), "error")\
+    message_helper.pushMessage(T("Failed to execute command with parameters: "..params),"error")\
   end\
 end\
 local function get_nqe_users()\
@@ -22,7 +22,7 @@ local function get_nqe_users()\
   if cmd then\
     local line,name,desc = nil,"",""\
     for line in cmd:lines() do\
-      local k,v = match(line, "User ([^:]*): (.*)")\
+      local k,v = match(line, "User%s([^:]*):%s(.*)")\
       if k and v then\
         if k == "name" then\
           name = v\
@@ -34,7 +34,7 @@ local function get_nqe_users()\
           else\
             tbl[#tbl+1]={name,desc,"**********","0"}\
           end\
-          allowedIdx[#allowedIdx+1] = { canEdit = false, canDelete = true, }\
+          allowedIdx[#allowedIdx+1]={canEdit=false,canDelete=true,}\
           name,desc = "",""\
         end\
       end\
