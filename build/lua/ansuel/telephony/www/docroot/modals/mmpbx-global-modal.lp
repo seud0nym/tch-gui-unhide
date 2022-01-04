@@ -49,7 +49,7 @@ local network_rpc_content = content_helper.getMatchedContent(network_rpc_path)
 
 local wan_intfs = {}
 for _,v in ipairs (network_rpc_content) do
-  local path = split(split(format("%s",v.path),"@")[2],".")
+  local path = split(split(format("%s",v.path),"@")[2],"%.")
   if v.type == "wan" or v.type == "lan" then
     if v.proto ~= "dhcpv6" and v.proto ~= "6rd" then
       wan_intfs[#wan_intfs+1] = { path[1],T(path[1]) }
