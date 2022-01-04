@@ -247,7 +247,6 @@ local sleases_columns = {
     param = "ip",
     type = "text",
     attr = { input = { class="span2",maxlength="15",style="width:125px" },autocomplete=hosts_ac },
-    unique = true,
   },
   {
     header = T"Host Name" ,
@@ -302,7 +301,16 @@ local function sleases_mac_validation(value,object,key)
   return r1,r2
 end
 
-local function sleases_ip_validation(value,_,_)
+local function sleases_ip_validation(value,object,_)
+  if value == "" then
+    return true
+  end
+  for _,host in pairs(proxy.getPN("uci.dhcp.host.",true)) do
+    local existing = proxy.get(host.path.."ip", host.path.."mac")
+    if value == existing[1].value and object.mac ~= existing[2].value then
+      return nil,"IP already in use for MAC "..untaint(existing[2].value)
+    end
+  end
   local contentdata = {
     localdevIP = "uci.network.interface.@"..curintf..".ipaddr",
     localdevmask = "uci.network.interface.@"..curintf..".netmask",
@@ -314,7 +322,7 @@ end
 local sleases_valid = {
   sleases_name = gAV(sleases_name_validation,vSIDN),
   sleases_mac = gAV(sleases_mac_validation,vQTN),
-  sleases_ip = gAV(sleases_ip_validation,vQTN),
+  sleases_ip = gOV(gAV(sleases_ip_validation,vQTN)),
 }
 
 local sleases_options = {
@@ -485,12 +493,14 @@ if ngx.var.request_method == "POST" then
       end
       if post_data.action == "TABLE-MODIFY" or post_data.action == "TABLE-ADD" then
         local slease_ip = post_data.sleases_ip
-        local arranged_data = content_helper.convertResultToObject("sys.hosts.host.",syshosts_data)
-        if arranged_data then
-          for _,v in pairs(arranged_data) do
-            if v.DhcpLeaseTime ~= "" and v.IPAddress == slease_ip then
-              inUseFlag = true
-              break
+        if slease_ip ~= "" then
+          local arranged_data = content_helper.convertResultToObject("sys.hosts.host.",syshosts_data)
+          if arranged_data then
+            for _,v in pairs(arranged_data) do
+              if v.DhcpLeaseTime ~= "" and v.IPAddress == slease_ip then
+                inUseFlag = true
+                break
+              end
             end
           end
         end
