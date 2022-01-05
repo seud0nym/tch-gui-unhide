@@ -136,7 +136,6 @@ local tablesessionindexes = nqe_user_options.tableid .. ".allowedindexes"\
 session:store(tablesessionindexes, nqe_user_idx)' \
   -e '/"File Server descript/a\
                 tinsert(html, format("<label class=\\"control-label\\">%s</label><div class=\\"controls\\">", T"Users: ")) \
-                tinsert(html, ui_helper.createAlertBlock(T("You will need to create at least one user before you can access the Share."), { alert = { class = \"alert-info\" }, })) \
                 tinsert(html, ui_helper.createTable(nqe_user_columns, nqe_user_data, nqe_user_options, nil, nqe_user_helpmsg)) \
                 tinsert(html, "<\/div>")' \
   -i /www/docroot/modals/contentsharing-modal.lp
