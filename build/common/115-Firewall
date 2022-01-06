@@ -106,6 +106,56 @@ if [ "$(uci -q get firewall.dns_masq)" != "nat" ]; then
   uci set firewall.dns_masq.enabled='0'
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
+if [ "$(uci -q get firewall.dns6_xcptn)" != "ipset" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dns6_xcptn"
+  uci set firewall.dns6_xcptn='ipset'
+  uci set firewall.dns6_xcptn.name='dns6_xcptn'
+  uci set firewall.dns6_xcptn.family='ipv6'
+  uci set firewall.dns6_xcptn.storage='hash'
+  uci set firewall.dns6_xcptn.match='ip'
+  uci set firewall.dns6_xcptn.enabled='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
+if [ ! -e /etc/firewall.ipset.dns6_xcptn ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating file /etc/firewall.ipset.dns6_xcptn"
+  echo -n > /etc/firewall.ipset.dns6_xcptn
+fi
+if [ ! -e /etc/config/tproxy ]; then
+  echo [$SCRIPT]: Creating tproxy config for IPv6 DNS interception
+  cat <<TPROXY > /etc/config/tproxy
+config tproxy 'config'
+        option enabled '1'
+        option verbose '0'
+
+TPROXY
+  chmod 644 /etc/config/tproxy
+  /etc/init.d/tproxy enable
+fi
+if [ "$(uci -q get tproxy.dnsv6)" != "rule" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration tproxy.dnsv6"
+  uci set tproxy.dnsv6=rule
+  uci set tproxy.dnsv6.enabled='0'
+  uci set tproxy.dnsv6.name='Intercept-DNSv6'
+  uci set tproxy.dnsv6.family='ipv6'
+  uci set tproxy.dnsv6.proto='tcp udp'
+  uci set tproxy.dnsv6.listenPort='8053'
+  uci set tproxy.dnsv6.destPort='53'
+  uci set tproxy.dnsv6.ipset='!dns6_xcptn src'
+  uci commit tproxy
+elif [ "$(uci -q get tproxy.dnsv6.name)" != "Intercept-DNSv6" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Setting tproxy.dnsv6.name to Intercept-DNSv6"
+  uci set tproxy.dnsv6.name='Intercept-DNSv6'
+  uci commit tproxy
+fi
+if [ "$(uci -q get firewall.tproxy)" != "include" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.tproxy"
+  uci set firewall.tproxy='include'
+  uci set firewall.tproxy.type='script'
+  uci set firewall.tproxy.path='/usr/sbin/tproxy-firewall'
+  uci set firewall.tproxy.reload='1'
+  uci set firewall.tproxy.enabled='1'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
 if [ "$(uci -q get firewall.dot_fwd_xcptn)" != "rule" ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dot_fwd_xcptn"
   uci set firewall.dot_fwd_xcptn='rule'
@@ -120,6 +170,28 @@ if [ "$(uci -q get firewall.dot_fwd_xcptn)" != "rule" ]; then
   uci set firewall.dot_fwd_xcptn.enabled='0'
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
+if [ "$(uci -q get firewall.dot6_fwd_xcptn)" != "rule" ]; then
+  if [ "$(uci -q get firewall.dot_fwd)" = "rule" ]; then
+    dot_fwd_enabled="$(uci -q get firewall.dot_fwd.enabled)"
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Removing firewall.dot_fwd to ensure rule sequencing is correct"
+    uci -q delete firewall.dot_fwd
+    uci commit firewall
+  else
+    dot_fwd_enabled='0'
+  fi
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dot6_fwd_xcptn"
+  uci set firewall.dot6_fwd_xcptn='rule'
+  uci set firewall.dot6_fwd_xcptn.name='Allow-DoTv6'
+  uci set firewall.dot6_fwd_xcptn.src='lan'
+  uci set firewall.dot6_fwd_xcptn.dest='wan'
+  uci set firewall.dot6_fwd_xcptn.dest_port='853'
+  uci set firewall.dot6_fwd_xcptn.proto='tcp udp'
+  uci set firewall.dot6_fwd_xcptn.target='ACCEPT'
+  uci set firewall.dot6_fwd_xcptn.family='ipv6'
+  uci set firewall.dot6_fwd_xcptn.ipset='dns6_xcptn src'
+  uci set firewall.dot6_fwd_xcptn.enabled="$(uci get tproxy.dnsv6.enabled)"
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
 if [ "$(uci -q get firewall.dot_fwd)" != "rule" ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dot_fwd"
   uci set firewall.dot_fwd='rule'
@@ -129,7 +201,12 @@ if [ "$(uci -q get firewall.dot_fwd)" != "rule" ]; then
   uci set firewall.dot_fwd.dest_port='853'
   uci set firewall.dot_fwd.proto='tcp udp'
   uci set firewall.dot_fwd.target='REJECT'
-  uci set firewall.dot_fwd.enabled='0'
+  uci set firewall.dot_fwd.enabled="$dot_fwd_enabled"
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
+if [ "$(uci -q get firewall.dot_fwd.family)" != "" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Removinf family configuration from firewall.dot_fwd"
+  uci -q delete firewall.dot_fwd.family
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ ! -e /etc/firewall.ipset.doh ]; then
@@ -197,10 +274,32 @@ if [ "$(uci -q get firewall.doh_fwd)" != "rule" ]; then
   uci set firewall.doh_fwd.enabled='0'
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
+if [ "$(uci -q get firewall.doh6_fwd_xcptn)" != "rule" ]; then
+  if [ "$(uci -q get firewall.doh6_fwd)" = "rule" ]; then
+    doh6_fwd_enabled="$(uci -q get firewall.doh6_fwd.enabled)"
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Removing firewall.doh6_fwd to ensure rule sequencing is correct"
+    uci -q delete firewall.doh6_fwd
+    uci commit firewall
+  else
+    doh6_fwd_enabled='0'
+  fi
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dot6_fwd_xcptn"
+  uci set firewall.doh6_fwd_xcptn='rule'
+  uci set firewall.doh6_fwd_xcptn.name='Allow-DoHv6'
+  uci set firewall.doh6_fwd_xcptn.src='lan'
+  uci set firewall.doh6_fwd_xcptn.dest='wan'
+  uci set firewall.doh6_fwd_xcptn.dest_port='443'
+  uci set firewall.doh6_fwd_xcptn.proto='tcp udp'
+  uci set firewall.doh6_fwd_xcptn.family='ipv6'
+  uci set firewall.doh6_fwd_xcptn.ipset='dns6_xcptn src'
+  uci set firewall.doh6_fwd_xcptn.target='ACCEPT'
+  uci set firewall.doh6_fwd_xcptn.enabled="$doh6_fwd_enabled"
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
 if [ "$(uci -q get firewall.doh6_fwd)" != "rule" ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.doh6_fwd"
   uci set firewall.doh6_fwd='rule'
-  uci set firewall.doh6_fwd.name='Deny-v6-DoH'
+  uci set firewall.doh6_fwd.name='Deny-DoHv6'
   uci set firewall.doh6_fwd.src='lan'
   uci set firewall.doh6_fwd.dest='wan'
   uci set firewall.doh6_fwd.dest_port='443'
@@ -208,65 +307,17 @@ if [ "$(uci -q get firewall.doh6_fwd)" != "rule" ]; then
   uci set firewall.doh6_fwd.family='ipv6'
   uci set firewall.doh6_fwd.ipset='doh6 dest'
   uci set firewall.doh6_fwd.target='REJECT'
-  uci set firewall.doh6_fwd.enabled='0'
+  uci set firewall.doh6_fwd.enabled="$doh6_fwd_enabled"
   SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
+if [ "$(uci -q get firewall.doh6_fwd.name)" != "Deny-DoHv6" ]; then
+  uci set firewall.doh6_fwd.name='Deny-DoHv6'
 fi
 if [ $(grep doh-ipsets-maintain /etc/crontabs/root | wc -l) -eq 0 ]; then
   mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
   hh=$(awk 'BEGIN{srand();print int(rand()*2)+3;}')
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Adding /usr/sbin/doh-ipsets-maintain cron job for Sunday $hh:$mm"
   echo "#$mm $hh * * 6 /usr/sbin/doh-ipsets-maintain" >> /etc/crontabs/root
-fi
-# IPv6 DNS intercept
-if [ "$(uci -q get firewall.dns6_xcptn)" != "ipset" ]; then
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dns6_xcptn"
-  uci set firewall.dns6_xcptn='ipset'
-  uci set firewall.dns6_xcptn.name='dns6_xcptn'
-  uci set firewall.dns6_xcptn.family='ipv6'
-  uci set firewall.dns6_xcptn.storage='hash'
-  uci set firewall.dns6_xcptn.match='ip'
-  uci set firewall.dns6_xcptn.enabled='0'
-  SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ ! -e /etc/firewall.ipset.dns6_xcptn ]; then
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating file /etc/firewall.ipset.dns6_xcptn"
-  echo -n > /etc/firewall.ipset.dns6_xcptn
-fi
-if [ ! -e /etc/config/tproxy ]; then
-  echo [$SCRIPT]: Creating tproxy config for IPv6 DNS interception
-  cat <<TPROXY > /etc/config/tproxy
-config tproxy 'config'
-        option enabled '1'
-        option verbose '0'
-
-TPROXY
-  chmod 644 /etc/config/tproxy
-  /etc/init.d/tproxy enable
-fi
-if [ "$(uci -q get tproxy.dnsv6)" != "rule" ]; then
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration tproxy.dnsv6"
-  uci set tproxy.dnsv6=rule
-  uci set tproxy.dnsv6.enabled='0'
-  uci set tproxy.dnsv6.name='Intercept-DNSv6'
-  uci set tproxy.dnsv6.family='ipv6'
-  uci set tproxy.dnsv6.proto='tcp udp'
-  uci set tproxy.dnsv6.listenPort='8053'
-  uci set tproxy.dnsv6.destPort='53'
-  uci set tproxy.dnsv6.ipset='!dns6_xcptn src'
-  uci commit tproxy
-elif [ "$(uci -q get tproxy.dnsv6.name)" != "Intercept-DNSv6" ]; then
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Setting tproxy.dnsv6.name to Intercept-DNSv6"
-  uci set tproxy.dnsv6.name='Intercept-DNSv6'
-  uci commit tproxy
-fi
-if [ "$(uci -q get firewall.tproxy)" != "include" ]; then
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.tproxy"
-  uci set firewall.tproxy='include'
-  uci set firewall.tproxy.type='script'
-  uci set firewall.tproxy.path='/usr/sbin/tproxy-firewall'
-  uci set firewall.tproxy.reload='1'
-  uci set firewall.tproxy.enabled='1'
-  SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 
 [ $SRV_firewall -gt 0 ] && uci commit firewall

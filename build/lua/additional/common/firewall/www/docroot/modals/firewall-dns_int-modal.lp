@@ -92,23 +92,19 @@ local enabledv4 = "0"
 local enabledv6 = "0"
 local dest_ipv4
 local dest_ipv6
-local ipv6 = "1"
 local dns_int = path["Intercept-DNS"] or path["Redirect-DNS"]
 if dns_int then
-  if cronjob and path["Masquerade-DNS"] and path["Allow-DoT"] and path["Deny-DoT"] and path["Allow-DoH"] and path["Deny-DoH"] and path["Deny-v6-DoH"] and path["dns_xcptn"] and path["doh"] and path["doh6"] and path["/usr/sbin/ipsets-restore"] and path["dns6_xcptn"] and path["/usr/sbin/tproxy-firewall"] and path["Intercept-DNSv6"] then
-    local state = proxy.get(dns_int.."enabled",path["Masquerade-DNS"].."dest_ip",path["Deny-DoT"].."family",path["Intercept-DNSv6"].."enabled",path["Intercept-DNSv6"].."destIP")
+  if cronjob and path["Masquerade-DNS"] and path["Allow-DoT"] and path["Allow-DoTv6"] and path["Deny-DoT"] and path["Allow-DoH"] and path["Allow-DoHv6"] and path["Deny-DoH"] and path["Deny-DoHv6"] and path["dns_xcptn"] and path["doh"] and path["doh6"] and path["/usr/sbin/ipsets-restore"] and path["dns6_xcptn"] and path["/usr/sbin/tproxy-firewall"] and path["Intercept-DNSv6"] then
+    local state = proxy.get(dns_int.."enabled",path["Masquerade-DNS"].."dest_ip",path["Intercept-DNSv6"].."enabled",path["Intercept-DNSv6"].."destIP")
     if state then
       if state[1].value and state[1].value ~= "0" then
         enabledv4 = "1"
       end
       dest_ipv4 = untaint(state[2].value)
-      if state[3].value and state[3].value == "ipv4" then
-        ipv6 = "0"
-      end
-      if state[4].value and state[4].value ~= "0" then
+      if state[3].value and state[3].value ~= "0" then
         enabledv6 = "1"
       end
-      dest_ipv6 = untaint(state[5].value)
+      dest_ipv6 = untaint(state[4].value)
     end
 
     if ngx.var.request_method == "POST" then
@@ -138,7 +134,7 @@ if dns_int then
             local dhcp_options_path = "uci.dhcp.dhcp.@lan.dhcp_option."
             local dhcp_options = proxy.get(dhcp_options_path)
             if dhcp_options then
-              for _,o in pairs(dhcp_options) do
+              for _,o in ipairs(dhcp_options) do
                 if find(untaint(o.value),"^6,") == 1 then
                   dhcp_option6_path = o.path.."value"
                   break
@@ -173,42 +169,28 @@ if dns_int then
           end
           proxySet(dns_int.."enabled",new_enabledv4)
           local paths = { "Allow-DoT","Allow-DoH","Deny-DoT","Deny-DoH","dns_xcptn","doh","/usr/sbin/ipsets-restore" }
-          for _,p in pairs(paths) do
+          for _,p in ipairs(paths) do
             proxySet(path[p].."enabled",new_enabledv4)
-          end
-          proxySet("rpc.gui.firewall.dns_intercept.populate_ipsets",new_enabledv4)
-          if proxySet(cronjob.."enabled",new_enabledv4) then
-            proxySet("rpc.gui.cron.writecrontab","1")
           end
           enabledv4 = new_enabledv4
         end
 
         local new_enabledv6 = untaint(args["enabledv6"])
         local new_dest_ipv6 = gsub(untaint(args["dest_ipv6"]),"^%s*(.-)%s*$","%1")
-        local new_ipv6 = untaint(args["ipv6"])
 
         local validv6,errmsg = vB(new_enabledv6)
         if not validv6 then
           helpmsg["enabledv6"] = errmsg
-        else
-          validv6,errmsg = vB(new_ipv6)
+        elseif new_dest_ipv6 ~= "" then
+          validv6,errmsg = vSIIP6(new_dest_ipv6)
           if not validv6 then
-            helpmsg["ipv6"] = errmsg
-          elseif new_dest_ipv6 ~= "" then
-            validv6,errmsg = vSIIP6(new_dest_ipv6)
-            if not validv6 then
-              helpmsg["dest_ipv6"] = errmsg
-            end
+            helpmsg["dest_ipv6"] = errmsg
           end
         end
 
         if validv6 then
           if new_enabledv6 == "0" then
             proxySet(path["Intercept-DNSv6"].."destIP","")
-            local paths = { "Deny-v6-DoH","doh6" }
-            for _,p in pairs(paths) do
-              proxySet(path[p].."enabled",new_enabledv6)
-            end
             dest_ipv6 = ""
           elseif new_enabledv6 == "1" then
             local lan_dns_path = "uci.dhcp.dhcp.@lan.dns."
@@ -234,20 +216,23 @@ if dns_int then
               end
               dest_ipv6 = ""
             end
-            if new_ipv6 == "0" then
-              proxySet(path["Deny-DoT"].."family","ipv6")
-              proxySet(path["Deny-v6-DoH"].."enabled","0")
-              proxySet(path["doh6"].."enabled","0")
-            else
-              proxySet(path["Deny-DoT"].."family","")
-              proxySet(path["Deny-v6-DoH"].."enabled",new_enabledv6)
-              proxySet(path["doh6"].."enabled",new_enabledv6)
-            end
           end
           proxySet(path["Intercept-DNSv6"].."enabled",new_enabledv6)
           proxySet(path["dns6_xcptn"].."enabled",new_enabledv6)
+          local paths = { "Allow-DoTv6","Allow-DoHv6","Deny-DoHv6","doh6" }
+          for _,p in ipairs(paths) do
+            proxySet(path[p].."enabled",new_enabledv6)
+          end
           enabledv6 = new_enabledv6
-          ipv6 = new_ipv6
+        end
+
+        local cron = "0"
+        if new_enabledv4 == "1" or new_enabledv6 == "1" then
+          proxySet("rpc.gui.firewall.dns_intercept.populate_ipsets","1")
+          cron="1"
+        end
+        if proxy.get(cronjob.."enabled")[1].value ~= cron and proxySet(cronjob.."enabled",cron) then
+          proxySet("rpc.gui.cron.writecrontab","1")
         end
 
         proxy.apply()
@@ -400,7 +385,6 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
     ngx.print('<legend><small>'); ngx.print( T"IPv6" ); ngx.print('</small></legend>');
     ngx.print(ui_helper.createSwitch(T"Enabled","enabledv6",enabledv6,enabled_attr))
     ngx.print(ui_helper.createInputText(T"DNS Server Address<span class='icon-question-sign' title='IPv6 address of the DNS server to which intercepted requests will be sent. Leave blank to have this device handle IPv6 DNS.'></span>","dest_ipv6",dest_ipv6,monitor6_attr,helpmsg["dest_ipv6"]))
-    ngx.print(ui_helper.createSwitch(T"Block IPv6 DoH/DoT<span class='icon-question-sign' title='Enable to block DNS-over-HTTPS and DNS-over-TLS for IPv6'></span>","ipv6",ipv6,monitor_attr,helpmsg["ipv6"]))
     if dns_int and enabledv6 == "1" then
       ngx.print(ui_helper.createSwitch(T"Verbose Logging","verbose",content["verbose"],monitor6_attr,vhelpmsg["verbose"]))
       ngx.print(
