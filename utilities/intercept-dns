@@ -6,6 +6,9 @@ SCRIPT="$(basename $0)"
 
 usage() {
 cat <<EOH
+WARNING! This script is no longer actively maintained! Using it may break
+         configuration created through the user interface!
+
 Configures DNS interception:
  - Hijacks IPv4 DNS requests to ensure that they are handled by this device,
     or by a specified DNS Server
@@ -18,7 +21,8 @@ NOTE: IPv6 DNS requests can NOT be hijacked (no kernel nat6 support). IPv6 DoT
       and DoH ARE blocked.
 
 NOTE: You can now configure DNS Interception through the user interface if
-      tch-gui-unhide has been installed.
+      tch-gui-unhide has been installed. The user interface DOES support 
+      interception of IPv6 DNS requests.
 
 Usage: $0 [options]
 
@@ -103,6 +107,12 @@ do
     ?)  usage;;
   esac
 done
+
+echo -e "${RED}WARNING! This script is no longer actively maintained! Using it"
+echo -e "         MAY break configuration created through the Firewall GUI."
+echo -en "         Enter y to continue anyway, or anything else to abort:${NC} "
+read
+[ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
 
 LAN_IP=$(uci get network.lan.ipaddr)
 DHCP_OPT6=$(uci -d"$IFS" get dhcp.lan.dhcp_option | grep '^6,' | xargs)
@@ -427,7 +437,7 @@ uci set firewall.doh_fwd.enabled='1'
 if [ "$IPv6" = "y" ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring IPv6 DNS over HTTPS rejection${NC}"
   uci set firewall.doh6_fwd='rule'
-  uci set firewall.doh6_fwd.name='Deny-v6-DoH'
+  uci set firewall.doh6_fwd.name='Deny-DoHv6'
   uci set firewall.doh6_fwd.src='lan'
   uci set firewall.doh6_fwd.dest='wan'
   uci set firewall.doh6_fwd.dest_port='443'

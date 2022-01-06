@@ -31,7 +31,7 @@ fi
 echo Cleaning up..
 rm ../*.tar.gz *.tar.gz 2>/dev/null
 
-common=$(find ../utilities/ -type f | grep -v -E '(README|dumaos|transformer)' | sed -e 's,^\.\./,,' | tr "$IFS" " ")
+common=$(find ../utilities/ -type f | grep -v -E '(README|dumaos|transformer|intercept-dns)' | sed -e 's,^\.\./,,' | tr "$IFS" " ")
 
 for major in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1)
 do

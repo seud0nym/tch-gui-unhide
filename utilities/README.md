@@ -125,7 +125,7 @@ If you enable DumaOS *after* running the `tch-gui-unhide` script, you will need 
 
 ## intercept-dns
 
-**NOTE:** tch-gui-unhide releases *after* 2021.08.05 allow you to enable and manage DNS interception through a tab on the Firewall.
+_NOTE_: **tch-gui-unhide releases starting with 2021.08.18 allow you to enable and configure DNS interception through a tab on the Firewall, AND releases starting with 2022.01.01 support DNS interception on IPv6 using a transparent proxy.** You should use the user interface rather than this script, because the script only supports IPv4 interception.
 
 Configures DNS interception:
 - Hijacks IPv4 DNS requests to ensure that they are handled by the router, or by a specified DNS Server
@@ -152,7 +152,7 @@ Options:
 ```
 The list of known DoH hosts is retrieved from https://github.com/dibdot/DoH-IP-blocklists.
 
-*Please note* that, as the Telstra Technicolor devices do not have the `kmod-ipt-nat6` kernel module installed, DNS hijacking is **NOT** possible for IPv6. Blocking DoT and DoH **IS** supported for IPv6, because they rely on blocking a specific port for DoT and the IP Set of known DoH hosts.
+*Please note* that, as the Telstra Technicolor devices do not have the `kmod-ipt-nat6` kernel module installed, NAT-based DNS hijacking is NOT possible for IPv6. Blocking DoT and DoH **IS** supported for IPv6, because they rely on blocking a specific port for DoT and the IP Set of known DoH hosts. IPv6 DNS interception is implemented by tch-gui-unhide using a transparent proxy, rather than NAT.
 
 ## mtd-backup
 Backs up the MTD partitions to an attached USB device or SSHFS attached filesystem. Only unchanged partitions are backed up after the first execution.
