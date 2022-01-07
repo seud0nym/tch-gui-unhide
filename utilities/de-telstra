@@ -179,7 +179,7 @@ do
   p)  case "${OPTARG}" in y) __POWER='y';; n) __POWER='n';; u) __POWER='u';; d) __POWER='d';; *) __POWER='u'; echo 'ERROR: -p valid options are y, n, u or d'; exit 1;; esac;;
   q)  case "${OPTARG}" in y) __NFC='1';; n) __NFC='0';; u) __NFC='u';; *) __NFC='u'; echo 'ERROR: -q valid options are y, n, or u'; exit 1;; esac;;
   r)  case "${OPTARG}" in y) __PRNTR='1';; n) __PRNTR='0';; u) __PRNTR='u';; *) __PRNTR='u'; echo 'ERROR: -r valid options are y, n, or u'; exit 1;; esac;;
-  s)  case "${OPTARG}" in d) __SUPERVISION='BFD';; d) __SUPERVISION='DNS';; n) __SUPERVISION='Disabled';; u) __SUPERVISION='u';; *) __SUPERVISION='u'; echo 'ERROR: -s valid options are b, d, n, or u'; exit 1;; esac;;
+  s)  case "${OPTARG}" in b|B) __SUPERVISION='BFD';; d|D) __SUPERVISION='DNS';; n) __SUPERVISION='Disabled';; u) __SUPERVISION='u';; *) __SUPERVISION='u'; echo 'ERROR: -s valid options are b, d, n, or u'; exit 1;; esac;;
   t)  case "${OPTARG}" in y) __MMPBX='1';; n) __MMPBX='0';; u) __MMPBX='u';; *) __MMPBX='u'; echo 'ERROR: -t valid options are y, n, or u'; exit 1;; esac;;
   u)  case "${OPTARG}" in y) __UPNP='1';; n) __UPNP='0';; u) __UPNP='u';; *) __UPNP='u'; echo 'ERROR: -u valid options are y, n, or u'; exit 1;; esac;;
   w)  case "${OPTARG}" in y) __WPS='1';; n) __WPS='0';; u) __WPS='u';; *) __WPS='u'; echo 'ERROR: -w valid options are y, n, or u'; exit 1;; esac;;
@@ -267,6 +267,7 @@ show_default() {
   local _ESC=1
   case "$1" in
     ka|kc|kk|kl|km|kn|kq|kx|M|G|o) _OPT="$1"; [ "$3" = "n" ] && _ESC=9;;
+    s) case "$3" in BFD) _OPT="sb";; DNS) _OPT="sd";; Disabled) _OPT="sn";; *) _OPT='su';; esac;;
     *) case "$3" in 0) _OPT="${1}n";; 1) _OPT="${1}y";; *) _OPT="$1$3";; esac;;
   esac
   case "$3" in
@@ -921,12 +922,9 @@ if [ $SRV_supervision -ge 0 ]; then
     echo [$SCRIPT]: WAN Supervision unchanged \[$SUPERVISION_NOW\]
   else
     uci set supervision.global.mode="$__SUPERVISION"
-    SUPERVISION_ENABLED="$(uci -q get supervision.global.enabled)"
-    if [ "$SUPERVISION_ENABLED" = "DNS" -o "$SUPERVISION_ENABLED" = "BFD" -o "$SUPERVISION_ENABLED" = "Disabled" ]; then
-      if [ $SUPERVISION_ENABLED = "Disabled" ]
-        then uci set supervision.global.enabled="0"
-        else uci set supervision.global.enabled="1"
-      fi
+    if [ $__SUPERVISION = "Disabled" ]
+      then uci set supervision.global.enabled="0"
+      else uci set supervision.global.enabled="1"
     fi
     uci commit supervision
     SRV_supervision=$(( $SRV_supervision + 1 ))
