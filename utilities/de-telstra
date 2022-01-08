@@ -8,9 +8,6 @@ fi
 # Based on https://hack-technicolor.readthedocs.io/en/stable/Hardening/
 
 SCRIPT="$(basename $0)"
-LOCK="/var/run/${SCRIPT}"
-exec 200>$LOCK
-flock -n 200 || { echo "[$SCRIPT] ERROR! Already running!"; exit 2; }
 
 usage() {
 cat <<EOH
@@ -352,6 +349,10 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y -o $__YES = n ]; then
   read
   [ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
 fi
+
+LOCK="/var/run/${SCRIPT}"
+exec 200>$LOCK
+flock -n 200 || { echo "[$SCRIPT]: ERROR! Already running!"; exit 2; }
 
 status2text() {
   if [ "$1" = "0" ]; then
@@ -1390,4 +1391,5 @@ echo [$SCRIPT]: Cleaning up broken links in /etc/rc.d
 find /etc/rc.d -type l ! -exec test -e {} \; -exec rm {} \;
 
 echo [$SCRIPT]: Done!
+[ -f $LOCK ] && rm $LOCK
 echo -e "[$SCRIPT]: \033[1;32mNOTE: If you haven't changed the root password, you should do it now...\033[0m"
