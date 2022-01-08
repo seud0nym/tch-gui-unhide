@@ -961,13 +961,17 @@ fi
 
 if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
   if [ "$__ALG" = "u" ]; then
-    echo [$SCRIPT]: ALGs unchanged \[$(uci show firewall | grep helper | grep -E "enable='(1|y)'" | wc -l) Enabled\]
+    ALG_ENABLED=0
+    for g in $(uci show firewall | grep '\.helper' | cut -d\' -f2); do
+      key=$(uci show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
+      ALG_ENABLED=$(( $ALG_ENABLED + $(uci -q get $key.enable || echo 1) ))
+    done
+    echo [$SCRIPT]: ALGs unchanged \[$ALG_ENABLED Enabled\]
   else
-    for g in $(uci show firewall | grep '\.helper' | cut -d\' -f2)
-    do
+    for g in $(uci show firewall | grep '\.helper' | cut -d\' -f2); do
       key=$(uci show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
       G=$(echo $g | tr "[a-z]" "[A-Z]")
-      G_NOW="$(uci -q get -q $key.enable)"
+      G_NOW="$(uci -q get $key.enable || echo 1)"
       if [ "$G_NOW" != "$__ALG" ]; then
         if [ "$__ALG" = "0" ]; then
           echo [$SCRIPT]: $G ALG Disabled
