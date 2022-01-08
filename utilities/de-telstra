@@ -82,6 +82,8 @@ Options:
  --show-defaults       Shows the settings that would be applied (defaults and over-rides)
                          When specified, NO changes are applied to the device
  --no-defaults         Ignores any saved defaults for this execution
+ --no-service-restart  Do NOT restart services after applying configuration changes
+ --no-password-remind  Do NOT remind to change root password
 
 NOTE #1: Default for all optional parameters is u (unchanged)
 NOTE #2: Options marked with * are only applicable if the service is installed
@@ -143,6 +145,7 @@ set_defaults() {
   __NTP='n'
   __NOEXEC='n'
   __QoS='n'
+  __ROOT_PWD_REMINDER='y'
   __YES='n'
 }
 
@@ -151,17 +154,19 @@ if [ -f .defaults.de-telstra ]; then
   . ./.defaults.de-telstra
 fi
 
+RESTART_SERVICES=y
 SAVE_DEFAULTS=n
 SHOW_DEFAULTS=n
 
-while getopts :a:b:c:d:e:f:g:h:k:m:n:op:q:r:s:t:u:w:yAF:GMO:RSU-: option
-do
+while getopts :a:b:c:d:e:f:g:h:k:m:n:op:q:r:s:t:u:w:yAF:GMO:RSU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
-        no-defaults)    set_defaults;;
-        save-defaults)  SAVE_DEFAULTS=y;;
-        show-defaults)  SHOW_DEFAULTS=y;;
-        *)              usage;;
+        no-defaults) set_defaults;;
+        save-defaults) SAVE_DEFAULTS=y;;
+        show-defaults) SHOW_DEFAULTS=y;;
+        no-password-remind) __ROOT_PWD_REMINDER=n;;
+        no-service-restart) RESTART_SERVICES=n;;
+        *) usage;;
       esac;;
   a)  case "${OPTARG}" in y) __ALG='1';; n) __ALG='0';; u) __ALG='u';; *) __ALG='u'; echo 'ERROR: -a valid options are y, n, or u'; exit 1;; esac;;
   b)  echo 'WARNING: -b option deprecated. Use -a instead!'; exit 1;;
@@ -206,7 +211,7 @@ SRV_cwmp=0
 SRV_dhcp=0
 SRV_dlna=0
 SRV_dropbear=0
-SRV_dumaos=0
+[ -e /etc/init.d/dumaos ] && SRV_dumaos=0 ||  SRV_dumaos=-1
 SRV_fw=0
 SRV_hostapd=0
 SRV_hotspot=0
@@ -215,41 +220,18 @@ SRV_mmpbxd=0
 SRV_mobiled=0
 SRV_monitor=0
 SRV_mountd=0
+[ -e /etc/config/multiap ] && SRV_multiap=0 || SRV_multiap=-1
 SRV_network=0
+[ -e /etc/config/nfc ] && SRV_nfc=0 || SRV_nfc=-1
 SRV_nginx=0
 SRV_ntp=0
 SRV_qos=0
 SRV_samba=0
-SRV_supervision=0
+uci -q get supervision && SRV_supervision=0 || SRV_supervision=-1
 SRV_system=0
 SRV_upnp=0
 SRV_wansensing=0
 SRV_watchdog=0
-
-if [ -e /etc/init.d/dumaos ]; then
-  SRV_dumaos=0
-else
-  SRV_dumaos=-1
-fi
-
-if [ -e /etc/config/multiap ]; then
-  SRV_multiap=0
-else
-  SRV_multiap=-1
-fi
-
-if [ -e /etc/config/nfc ]; then
-  SRV_nfc=0
-else
-  SRV_nfc=-1
-fi
-
-uci -q get supervision
-if [ $? -eq 0 ]; then
-  SRV_supervision=0
-else
-  SRV_supervision=-1
-fi
 
 HOMEWARE=$(uci get version.@version[0].version | cut -d. -f1)
 if [ "$HOMEWARE" -eq 20 ]; then
@@ -342,9 +324,8 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y -o $__YES = n ]; then
   show_default "G"  "Remove Guest Wi-Fi" $__GUEST
   show_default "o"  "Configure opkg" $__OPKG
   show_default "O"  " - opkg repository" $__REPO
-
   [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y ] && exit
-
+  [ $RESTART_SERVICES = n ] && echo -e "[$SCRIPT]: \e[0;33mServices will NOT be restarted after configuration applied!\e[0m"
   echo -en "[$SCRIPT]: \e[1;32mApply changes? Enter y to confirm otherwise just [Enter] to exit: \e[0m"
   read
   [ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
@@ -1305,7 +1286,7 @@ if [ $__GUEST = y ]; then
   uci commit firewall
 fi
 
-echo [$SCRIPT]: Applying required service changes...
+echo [$SCRIPT]: Applying service changes...
 [ "$__LITE" = 'R' ] && {
   for s in cupsd dumaos lte-doctor-logger mmpbxfwctl mmpbxd mmpbxbrcmdect mud multiap_agent multiap_controller multiap_vendorextensions ndhttpd telemetry-daemon xl2tpd; do
     [ -e /etc/init.d/$s -a ! $(/etc/init.d/$s enabled) ] && { /etc/init.d/$s enable; /etc/init.d/$s start; } > /dev/null 2>&1
@@ -1313,46 +1294,60 @@ echo [$SCRIPT]: Applying required service changes...
 }
 /etc/init.d/watchdog-tch reload > /dev/null 2>&1
 [ "$DECT_NOW" = "0" -o "$__DECT" = "0" ] && /etc/init.d/mmpbxbrcmdect stop > /dev/null 2>&1
-[ "$DECT_NOW" = "0" -a "$__DECT" = "1" ] && { /etc/init.d/mmpbxbrcmdect enable; /etc/init.d/mmpbxbrcmdect restart; } > /dev/null 2>&1
-[ "$DLNA_NOW" = "0" -a "$__DLNAD" = "1" ] && { /etc/init.d/mud enable; /etc/init.d/mud restart; } > /dev/null 2>&1
+[ "$DECT_NOW" = "0" -a "$__DECT" = "1" ] && /etc/init.d/mmpbxbrcmdect enable > /dev/null 2>&1
 [ "$DLNA_NOW" = "0" -o "$__DLNAD" = "0" ] && /etc/init.d/mud stop > /dev/null 2>&1
-[ "$PS_NOW" = "0" -a "$__PRNTR" = "1" ] && { /etc/init.d/cupsd enable; /etc/init.d/cupsd restart; } > /dev/null 2>&1
+[ "$DLNA_NOW" = "0" -a "$__DLNAD" = "1" ] && /etc/init.d/mud enable > /dev/null 2>&1
 [ "$PS_NOW" = "0" -o "$__PRNTR" = "0" ] && /etc/init.d/cupsd stop > /dev/null 2>&1
+[ "$PS_NOW" = "0" -a "$__PRNTR" = "1" ] && /etc/init.d/cupsd enable > /dev/null 2>&1
 [ $SRV_bulkdata -gt 0 ] && { /etc/init.d/bulkdata disable; /etc/init.d/bulkdata stop; } > /dev/null 2>&1
-[ $SRV_cwmp -gt 0 -a -e /etc/init.d/cwmpd ] && { /etc/init.d/cwmpd disable;/etc/init.d/cwmpd stop; } > /dev/null 2>&1
-[ $SRV_dhcp -gt 0 -a ! -e /etc/init.d/AdGuardHome ] && /etc/init.d/dnsmasq reload > /dev/null 2>&1
-[ $SRV_dlna -gt 0 ] && /etc/init.d/dlnad restart > /dev/null 2>&1
-[ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear reload > /dev/null 2>&1
-[ $SRV_dumaos -gt 0 ] && { /etc/init.d/dumaos enable; /etc/init.d/dumaos restart; } > /dev/null 2>&1
+[ $SRV_cwmp -gt 0 -a -e /etc/init.d/cwmpd ] && { /etc/init.d/cwmpd disable; /etc/init.d/cwmpd stop; } > /dev/null 2>&1
+[ $SRV_dumaos -gt 0 ] && /etc/init.d/dumaos enable > /dev/null 2>&1
 [ $SRV_hotspot -gt 0 -a -e /etc/init.d/hotspotd ] && { /etc/init.d/hotspotd disable; /etc/init.d/hotspotd stop; } > /dev/null 2>&1
-[ $SRV_iqos -gt 0 ] && /etc/init.d/iqos restart > /dev/null 2>&1
-[ $SRV_mmpbxd -gt 0 ] && { /etc/init.d/mmpbxd enable; /etc/init.d/mmpbxfwctl enable; /etc/init.d/mmpbxd restart; /etc/init.d/mmpbxfwctl restart; } > /dev/null 2>&1
-[ $SRV_mobiled -gt 0 ] && /etc/init.d/mobiled restart > /dev/null 2>&1
+[ $SRV_mmpbxd -gt 0 ] && { /etc/init.d/mmpbxd enable; /etc/init.d/mmpbxfwctl enable; } > /dev/null 2>&1
 [ $SRV_monitor -gt 0 -a -e /etc/init.d/autoreset ] && { /etc/init.d/autoreset disable; /etc/init.d/autoreset stop; } > /dev/null 2>&1
 [ $SRV_monitor -gt 0 -a -e /etc/init.d/tls-thor ] && { /etc/init.d/tls-thor disable; /etc/init.d/tls-thor stop; } > /dev/null 2>&1
-[ $SRV_monitor -gt 0 -a -e /etc/init.d/wifi-doctor-agent ] && /etc/init.d/wifi-doctor-agent reload > /dev/null 2>&1
-[ $SRV_multiap -gt 0 ] && { /etc/init.d/multiap_controller enable; /etc/init.d/multiap_agent enable; /etc/init.d/multiap_vendorextensions enable; /etc/init.d/multiap_controller restart; /etc/init.d/multiap_agent restart; /etc/init.d/multiap_vendorextensions restart; } > /dev/null 2>&1
-[ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
-[ $SRV_qos -gt 0 ] && /etc/init.d/qos reload > /dev/null 2>&1
-[ $SRV_nfc -gt 0 ] && /etc/init.d/nfcd restart > /dev/null 2>&1
-[ $SRV_ntp -gt 0 ] && /etc/init.d/sysntpd restart > /dev/null 2>&1
-[ $SRV_samba -gt 0 ] && { /etc/init.d/samba enable; /etc/init.d/samba reload; } > /dev/null 2>&1
-[ $SRV_samba -gt 0 -a -e /etc/init.d/samba-nmbd ] && { /etc/init.d/samba-nmbd enable; /etc/init.d/samba-nmbd reload; } > /dev/null 2>&1
-[ $SRV_supervision -gt 0 ] && /etc/init.d/supervision reload > /dev/null 2>&1
-[ $SRV_system -gt 0 ] && /etc/init.d/system reload > /dev/null 2>&1
-[ $SRV_upnp -gt 0 ] && { /etc/init.d/miniupnpd-tch enable; /etc/init.d/miniupnpd-tch restart; } > /dev/null 2>&1
-[ $SRV_hostapd -gt 0 ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1
-[ $SRV_network -gt 0 ] && /etc/init.d/network reload > /dev/null 2>&1
-[ $SRV_fw -gt 0 ] && /etc/init.d/firewall reload > /dev/null 2>&1
-[ $SRV_wansensing -gt 0 ] && /etc/init.d/wansensing restart > /dev/null 2>&1
-[ $SRV_mountd -gt 0 ] && {
+[ $SRV_multiap -gt 0 ] && { /etc/init.d/multiap_controller enable; /etc/init.d/multiap_agent enable; /etc/init.d/multiap_vendorextensions enable; } > /dev/null 2>&1
+[ $SRV_samba -gt 0 ] && /etc/init.d/samba enable > /dev/null 2>&1
+[ $SRV_samba -gt 0 -a -e /etc/init.d/samba-nmbd ] && /etc/init.d/samba-nmbd enable > /dev/null 2>&1
+[ $SRV_upnp -gt 0 ] && /etc/init.d/miniupnpd-tch enable > /dev/null 2>&1
+if [ $RESTART_SERVICES = n ]; then
+  echo -e "[$SCRIPT]: \e[0;33mSkipping service restarts\e[0m"
+else
+  echo [$SCRIPT]: Restarting services...
+  [ "$DECT_NOW" = "0" -a "$__DECT" = "1" ] && /etc/init.d/mmpbxbrcmdect restart > /dev/null 2>&1
+  [ "$DLNA_NOW" = "0" -a "$__DLNAD" = "1" ] && /etc/init.d/mud restart > /dev/null 2>&1
+  [ "$PS_NOW" = "0" -a "$__PRNTR" = "1" ] && /etc/init.d/cupsd restart > /dev/null 2>&1
+  [ $SRV_dhcp -gt 0 -a ! -e /etc/init.d/AdGuardHome ] && /etc/init.d/dnsmasq reload > /dev/null 2>&1
+  [ $SRV_dlna -gt 0 ] && /etc/init.d/dlnad restart > /dev/null 2>&1
+  [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear reload > /dev/null 2>&1
+  [ $SRV_dumaos -gt 0 ] && /etc/init.d/dumaos restart > /dev/null 2>&1
+  [ $SRV_iqos -gt 0 ] && /etc/init.d/iqos restart > /dev/null 2>&1
+  [ $SRV_mmpbxd -gt 0 ] && { /etc/init.d/mmpbxd restart; /etc/init.d/mmpbxfwctl restart; } > /dev/null 2>&1
+  [ $SRV_mobiled -gt 0 ] && /etc/init.d/mobiled restart > /dev/null 2>&1
+  [ $SRV_monitor -gt 0 -a -e /etc/init.d/wifi-doctor-agent ] && /etc/init.d/wifi-doctor-agent reload > /dev/null 2>&1
+  [ $SRV_multiap -gt 0 ] && { /etc/init.d/multiap_controller restart; /etc/init.d/multiap_agent restart; /etc/init.d/multiap_vendorextensions restart; } > /dev/null 2>&1
+  [ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
+  [ $SRV_qos -gt 0 ] && /etc/init.d/qos reload > /dev/null 2>&1
+  [ $SRV_nfc -gt 0 ] && /etc/init.d/nfcd restart > /dev/null 2>&1
+  [ $SRV_ntp -gt 0 ] && /etc/init.d/sysntpd restart > /dev/null 2>&1
+  [ $SRV_samba -gt 0 ] && /etc/init.d/samba reload > /dev/null 2>&1
+  [ $SRV_samba -gt 0 -a -e /etc/init.d/samba-nmbd ] && /etc/init.d/samba-nmbd reload > /dev/null 2>&1
+  [ $SRV_supervision -gt 0 ] && /etc/init.d/supervision reload > /dev/null 2>&1
+  [ $SRV_system -gt 0 ] && /etc/init.d/system reload > /dev/null 2>&1
+  [ $SRV_upnp -gt 0 ] && /etc/init.d/miniupnpd-tch restart > /dev/null 2>&1
+  [ $SRV_hostapd -gt 0 ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1
+  [ $SRV_network -gt 0 ] && /etc/init.d/network reload > /dev/null 2>&1
+  [ $SRV_fw -gt 0 ] && /etc/init.d/firewall reload > /dev/null 2>&1
+  [ $SRV_wansensing -gt 0 ] && /etc/init.d/wansensing restart > /dev/null 2>&1
+fi
+if [ $SRV_mountd -gt 0 ]; then
   mnt_path=$(uci get mountd.mountd.path);
   for f in $(find ${mnt_path} -type l);do
     pwd | grep -q -v "$f" && echo "[$SCRIPT]: Attempting to unmount $f..." && umount $f;
   done;
   echo -e "[$SCRIPT]: \033[1;32mNOTE: You should remove and re-insert any mounted USB device\033[0m";
-}
-[ "$__LITE" = 'y' ] && {
+fi
+if [ "$__LITE" = 'y' ]; then
   echo [$SCRIPT]: Disabling services to save memory...
   [ "$__DECT" = "0" ] && { /etc/init.d/mmpbxbrcmdect disable; /etc/init.d/mmpbxbrcmdect stop; } > /dev/null 2>&1
   [ "$__DLNAD" = "0" ] && { /etc/init.d/dlnad disable; /etc/init.d/dlnad stop; /etc/init.d/mud disable; /etc/init.d/mud stop; } > /dev/null 2>&1
@@ -1367,7 +1362,7 @@ echo [$SCRIPT]: Applying required service changes...
   [ "$__UPNP" = "0" ] && { /etc/init.d/miniupnpd-tch disable; /etc/init.d/miniupnpd-tch stop; } > /dev/null 2>&1
   { /etc/init.d/lte-doctor-logger disable; /etc/init.d/lte-doctor-logger stop; } > /dev/null 2>&1
   [ ! -e /etc/ipsec.conf ] && { /etc/init.d/xl2tpd disable; /etc/init.d/xl2tpd stop; } > /dev/null 2>&1
-}
+fi
 
 if [ -n "$PACKAGES_TO_REMOVE" ]; then
   echo [$SCRIPT]: Removing packages that are no longer required \($PACKAGES_TO_REMOVE\)
@@ -1392,4 +1387,4 @@ find /etc/rc.d -type l ! -exec test -e {} \; -exec rm {} \;
 
 echo [$SCRIPT]: Done!
 [ -f $LOCK ] && rm $LOCK
-echo -e "[$SCRIPT]: \033[1;32mNOTE: If you haven't changed the root password, you should do it now...\033[0m"
+[ $__ROOT_PWD_REMINDER = y ] && echo -e "[$SCRIPT]: \033[1;32mNOTE: If you haven't changed the root password, you should do it now...\033[0m"
