@@ -79,6 +79,7 @@ Options:
  -o                    Configures opkg
  -O 17|18|19           Overrides the default opkg repository with the specified version
  -U                    Download the latest version of $SCRIPT from GitHub
+ -y                    Bypass the confirmation prompt (answers 'y')
  --save-defaults       Saves the command line options as defaults for future executions
                          When specified, NO changes are applied to the device
  --show-defaults       Shows the settings that would be applied (defaults and over-rides)
@@ -145,6 +146,7 @@ set_defaults() {
   __NTP='n'
   __NOEXEC='n'
   __QoS='n'
+  __YES='n'
 }
 
 set_defaults
@@ -155,7 +157,7 @@ fi
 SAVE_DEFAULTS=n
 SHOW_DEFAULTS=n
 
-while getopts :a:b:c:d:e:f:g:h:k:m:n:op:q:r:s:t:u:w:AF:GMO:RSU-: option
+while getopts :a:b:c:d:e:f:g:h:k:m:n:op:q:r:s:t:u:w:yAF:GMO:RSU-: option
 do
  case "${option}" in
   -)  case "${OPTARG}" in
@@ -183,6 +185,7 @@ do
   t)  case "${OPTARG}" in y) __MMPBX='1';; n) __MMPBX='0';; u) __MMPBX='u';; *) __MMPBX='u'; echo 'ERROR: -t valid options are y, n, or u'; exit 1;; esac;;
   u)  case "${OPTARG}" in y) __UPNP='1';; n) __UPNP='0';; u) __UPNP='u';; *) __UPNP='u'; echo 'ERROR: -u valid options are y, n, or u'; exit 1;; esac;;
   w)  case "${OPTARG}" in y) __WPS='1';; n) __WPS='0';; u) __WPS='u';; *) __WPS='u'; echo 'ERROR: -w valid options are y, n, or u'; exit 1;; esac;;
+  y)  __YES='y';;
   A)  __HOST='d'; __DOMAIN='gateway'; __ALG='0'; __DLNAD='0'; __SAMBA='0'; __PRNTR='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1'; __SUPERVISION='DNS';;
   F)  case "${OPTARG}" in y) __ROOT_PROTECT='1';; n) __ROOT_PROTECT='0';; u) __ROOT_PROTECT='u';; *) __ROOT_PROTECT='u'; echo 'ERROR: -F valid options are y, n, or u'; exit 1;; esac;;
   G)  __GUEST='y';;
@@ -312,7 +315,7 @@ if [ $SAVE_DEFAULTS = y ]; then
   set | grep '^__' > .defaults.de-telstra
   echo -e "[$SCRIPT]: \e[1;32mDefaults saved\e[0m"
 fi
-if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y ]; then
+if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y -o $__YES = n ]; then
   show_default "ka" "Keep Telstra AIR enabled" $__AIR
   show_default "kc" "Keep CWMP installed" $__CWMP
   show_default "kk" "Keep default public authorized keys" $__KEYS
@@ -342,7 +345,12 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y ]; then
   show_default "G"  "Remove Guest Wi-Fi" $__GUEST
   show_default "o"  "Configure opkg" $__OPKG
   show_default "O"  " - opkg repository" $__REPO
-  exit
+
+  [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y ] && exit
+
+  echo -en "[$SCRIPT]: \e[1;32mApply changes? Enter y to confirm otherwise just [Enter] to exit: \e[0m"
+  read
+  [ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
 fi
 
 status2text() {
@@ -1254,8 +1262,7 @@ fi
 if [ $__GUEST = y ]; then
   uci -q delete dhcp.guest
   SRV_dhcp=$(( $SRV_dhcp + 1 ))
-  for nw in $(uci show network | grep -E '\.Guest.*=interface'  | cut -d= -f1)
-  do
+  for nw in $(uci show network | grep -E '\.Guest.*=interface'  | cut -d= -f1); do
     nwname=$(echo $nw | cut -d. -f2)
     ifname=$(uci get $nw.ifname)
     ipaddr=$(uci get $nw.ipaddr)
@@ -1269,15 +1276,13 @@ if [ $__GUEST = y ]; then
     uci -q del_list parental.general.lan_intf="$nwname"
     SRV_fw=$(( $SRV_fw + 1 ))
 
-    for q in $(uci show qos | grep "'$nwname'" | cut -d= -f1)
-    do
+    for q in $(uci show qos | grep "'$nwname'" | cut -d= -f1); do
       uci -q del_list $q="$nwname"
       SRV_qos=$(( $SRV_qos + 1 ))
     done
 
     fw=$(uci show firewall | grep -m1 -E "'$nwname'|'$ipaddr'" | cut -d. -f1-2)
-    while [ -n "$fw" ]
-    do
+    while [ -n "$fw" ]; do
       uci -q delete $fw
       SRV_fw=$(( $SRV_fw + 1 ))
       fw=$(uci show firewall | grep -m1 -E "'$nwname'|'$ipaddr'" | cut -d. -f1-2)
@@ -1301,8 +1306,7 @@ fi
 
 echo [$SCRIPT]: Applying required service changes...
 [ "$__LITE" = 'R' ] && {
-  for s in cupsd dumaos lte-doctor-logger mmpbxfwctl mmpbxd mmpbxbrcmdect mud multiap_agent multiap_controller multiap_vendorextensions ndhttpd telemetry-daemon xl2tpd
-  do
+  for s in cupsd dumaos lte-doctor-logger mmpbxfwctl mmpbxd mmpbxbrcmdect mud multiap_agent multiap_controller multiap_vendorextensions ndhttpd telemetry-daemon xl2tpd; do
     [ -e /etc/init.d/$s -a ! $(/etc/init.d/$s enabled) ] && { /etc/init.d/$s enable; /etc/init.d/$s start; } > /dev/null 2>&1
   done
 }

@@ -100,6 +100,7 @@ Options:
                          -hmymodem -dmodem -na -ay -cy -fy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn -sb
  -o                    Configures opkg
  -U                    Download the latest version of de-telstra from GitHub
+ -y                    Bypass the confirmation prompt (answers 'y')
  --save-defaults       Saves the command line options as defaults for future executions
                          When specified, NO changes are applied to the device
  --show-defaults       Shows the settings that would be applied (defaults and over-rides)
