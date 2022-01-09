@@ -28,7 +28,7 @@ end
 
 GUI_PWD_.get = function(_,_,key)
   local data = uci_helper.get_from_uci({config="mmpbxrvsipnet",sectionname=key,option="password"})
-  if data and #data >= 72 and string.match(data,"^$%d%d$%d%d%$") then
+  if data and #data >= 72 and string.match(data,"^$%x%x$%x%x%$") then
     return crypto.decrypt(data)
   else
     return data
