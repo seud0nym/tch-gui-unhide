@@ -31,7 +31,7 @@ FW_UPGRD=$(uci -q get web.uidefault.upgradefw)
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 MAC=$(uci -q get env.var.ssid_mac_postfix_r0)
 HOSTNAME=$(uci -q get system.@system[0].hostname)
-tmpTITLE="$(grep 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1)"
+tmpTITLE="$(grep -o 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1)"
 echo $tmpTITLE | grep -q ngx.print
 if [ $? -eq 1 ]; then
   TITLE="$tmpTITLE"
@@ -157,6 +157,7 @@ SRV_nginx=0
 SRV_power=0
 SRV_system=0
 SRV_transformer=0
+RESTART_SERVICES=y
 
 check_pwr_setting() {
   section="$1"
@@ -172,20 +173,22 @@ check_pwr_setting() {
 }
 
 apply_service_changes() {
-  echo [$SCRIPT]: Applying service changes if required...
-  if [ $SRV_transformer -gt 0 ]; then
-    # Need to stop watchdog whilst we restart transformer, because if it does not find /var/run/transformer.pid, it will reboot the system!
-    /etc/init.d/watchdog-tch stop >/dev/null 2>&1
-    /etc/init.d/transformer restart
-    /etc/init.d/watchdog-tch start >/dev/null 2>&1
+  if [ $RESTART_SERVICES = y ]; then
+    echo [$SCRIPT]: Restarting any changed services...
+    if [ $SRV_transformer -gt 0 ]; then
+      # Need to stop watchdog whilst we restart transformer, because if it does not find /var/run/transformer.pid, it will reboot the system!
+      /etc/init.d/watchdog-tch stop >/dev/null 2>&1
+      /etc/init.d/transformer restart
+      /etc/init.d/watchdog-tch start >/dev/null 2>&1
+    fi
+    [ $SRV_cron -gt 0 ] && /etc/init.d/cron restart
+    [ $SRV_dnsmasq -gt 0 ] && /etc/init.d/dnsmasq restart
+    [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear restart
+    [ $SRV_system -gt 0 ] && /etc/init.d/system reload
+    [ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
+    [ $SRV_firewall -gt 0 ] && /etc/init.d/firewall reload 2> /dev/null
+    [ $SRV_network -gt 0 ] && /etc/init.d/network reload > /dev/null 2>&1
   fi
-  [ $SRV_cron -gt 0 ] && /etc/init.d/cron restart
-  [ $SRV_dnsmasq -gt 0 ] && /etc/init.d/dnsmasq restart
-  [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear restart
-  [ $SRV_system -gt 0 ] && /etc/init.d/system reload
-  [ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
-  [ $SRV_firewall -gt 0 ] && /etc/init.d/firewall reload 2> /dev/null
-  [ $SRV_network -gt 0 ] && /etc/init.d/network reload > /dev/null 2>&1
 
   echo [$SCRIPT]: Applying power settings...
   if [ -z "$(uci -q get power.cpu)" ];then

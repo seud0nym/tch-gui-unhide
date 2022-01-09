@@ -90,6 +90,10 @@ NOTE #2: Options marked with * are only applicable if the service is installed
 NOTE #3: Enabling power saving on FW 20.3.c will power down WAN/LAN ports!!
 
 EOH
+
+if [ "/$1/" != "//" ]; then
+  echo -e "[$SCRIPT]: \e[0;33mIllegal option: $1\e[0m"
+fi
 exit
 }
 
@@ -166,7 +170,7 @@ while getopts :a:b:c:d:e:f:g:h:k:m:n:op:q:r:s:t:u:w:yAF:GMO:RSU-: option; do
         show-defaults) SHOW_DEFAULTS=y;;
         no-password-remind) __ROOT_PWD_REMINDER=n;;
         no-service-restart) RESTART_SERVICES=n;;
-        *) usage;;
+        *) usage --$OPTARG;;
       esac;;
   a)  case "${OPTARG}" in y) __ALG='1';; n) __ALG='0';; u) __ALG='u';; *) __ALG='u'; echo 'ERROR: -a valid options are y, n, or u'; exit 1;; esac;;
   b)  echo 'WARNING: -b option deprecated. Use -a instead!'; exit 1;;
@@ -196,7 +200,8 @@ while getopts :a:b:c:d:e:f:g:h:k:m:n:op:q:r:s:t:u:w:yAF:GMO:RSU-: option; do
   R)  __LITE='R'; __HOST='mymodem'; __DOMAIN='modem'; __NS='a'; __ALG='1'; __DLNAD='1'; __DUMAOS='0'; __SAMBA='1'; __MULTIAP='1'; __POWER='d'; __PRNTR='1'; __MMPBX='1'; __DECT='1'; __UPNP='1'; __ROOT_PROTECT='0'; __NFC='y'; __SUPERVISION='BFD';;
   S)  __HOST='s'; __DOMAIN='gateway'; __ALG='0'; __DLNAD='0'; __SAMBA='0'; __PRNTR='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1'; __SUPERVISION='DNS';;
   U)  upgrade;;
-  *)  usage;;
+  ?)  usage;;
+  *)  usage -$OPTARG;;
  esac
 done
 
