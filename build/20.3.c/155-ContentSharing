@@ -76,9 +76,9 @@ local nqe_user_valid = {\
 }\
 local nqe_user_options = {\
   tableid = "nqe_user",\
-  canAdd = true,\
+  canAdd = content["samba_filesharing"] == "1",\
   canEdit = false,\
-  canDelete = true,\
+  canDelete = content["samba_filesharing"] == "1",\
   createMsg = T"Add a User",\
 }\
 local nqe_user_data\
