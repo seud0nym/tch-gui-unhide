@@ -2,6 +2,10 @@ echo [$SCRIPT]: Clearing page cache...
 sync
 echo 1 > /proc/sys/vm/drop_caches
 
+echo [$SCRIPT]: Releasing lock...
+lock -u $LOCK
+[ -f $LOCK ] && rm $LOCK
+
 echo [$SCRIPT]: Done!!!
 echo
 echo "++ TIP #1: Bookmark http://$(uci get network.lan.ipaddr)/gateway.lp"

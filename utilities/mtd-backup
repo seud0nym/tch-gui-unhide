@@ -1,9 +1,6 @@
 #!/bin/sh
 
 SCRIPT="$(basename $0)"
-LOCK="/var/run/${SCRIPT}"
-exec 200>$LOCK
-flock -n 200 || { echo "[$SCRIPT] ERROR! Already running!"; exit 2; }
 
 SERIAL=$(uci get env.var.serial)
 VARIANT=$(uci -q get env.var.variant_friendly_name)
@@ -147,6 +144,9 @@ fi
 if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
   exit
 fi
+
+LOCK="/var/run/${SCRIPT}"
+lock -n $LOCK || { echo "[$SCRIPT] ERROR! Already running!"; exit 2; }
 
 if [ $CRON = Y ]; then
   if [ $CRON_ACTION = remove ]; then
@@ -312,6 +312,9 @@ if [ $FLUSH = Y ]; then
   sync
   echo 1 > /proc/sys/vm/drop_caches
 fi
+
+lock -u $LOCK
+[ -f $LOCK ] && rm $LOCK
 
 [ $DEBUG = Y ] && $LOGGER user.debug "Backup completed in $(( $(date +%s) - $STARTED )) seconds"
 
