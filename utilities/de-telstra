@@ -336,9 +336,6 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y -o $__YES = n ]; then
   [ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
 fi
 
-LOCK="/var/run/${SCRIPT}"
-lock -n $LOCK || { echo "[$SCRIPT]: ERROR! Already running!"; exit 2; }
-
 status2text() {
   if [ "$1" = "0" ]; then
     echo Disabled
@@ -346,6 +343,24 @@ status2text() {
     echo Enabled
   fi
 }
+
+LOCK="/var/run/${SCRIPT}.lck"
+unlock() { 
+  if [ "$1" != "normally" ]; then
+    echo
+    echo "[$SCRIPT]: Ctrl-C caught...performing clean up"
+  fi
+
+  echo "[$SCRIPT]: Releasing lock on $LOCK..."
+  lock -u $LOCK
+  [ -f $LOCK ] && rm $LOCK
+
+  [ "$1" = "normally" ] && exit || exit 2
+}
+trap "unlock" 2
+
+echo "[$SCRIPT]: Attempting to acquire lock on $LOCK..."
+lock $LOCK
 
 PACKAGES_TO_REMOVE=""
 
@@ -1389,7 +1404,7 @@ done
 echo [$SCRIPT]: Cleaning up broken links in /etc/rc.d
 find /etc/rc.d -type l ! -exec test -e {} \; -exec rm {} \;
 
+unlock normally
+
 echo [$SCRIPT]: Done!
-lock -u $LOCK
-[ -f $LOCK ] && rm $LOCK
 [ $__ROOT_PWD_REMINDER = y ] && echo -e "[$SCRIPT]: \033[1;32mNOTE: If you haven't changed the root password, you should do it now...\033[0m"

@@ -75,6 +75,7 @@ while getopts :a:c:d:f:h:i:l:m:p:rt:uv:x:yC:TVWX-: option
 do
  case "${option}" in
    -) case "${OPTARG}" in
+        abort) exit;;
         debug) DEBUG="V";;
         no-service-restart) RESTART_SERVICES=n;;
         *) usage;;

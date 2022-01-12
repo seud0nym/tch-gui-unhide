@@ -2,7 +2,22 @@
 
 SCRIPT=$(basename $0)
 LOCK="/var/run/${SCRIPT}"
-lock -n $LOCK || { echo "ERROR: $SCRIPT already running!"; exit 2; }
+unlock() { 
+  if [ "$1" != "normally" ]; then
+    echo
+    echo "WARN:  Ctrl-C caught...performing clean up"
+  fi
+
+  echo "INFO:  Releasing lock on $LOCK..."
+  lock -u $LOCK
+  [ -f $LOCK ] && rm $LOCK
+
+  [ "$1" = "normally" ] && exit || exit 2
+}
+trap "unlock" 2
+echo "INFO:  Attempting to acquire lock on $LOCK..."
+lock $LOCK
+
 
 TMP_TARGET=/tmp/ipset.downloaded
 TMP_CONVERTED=/tmp/ipset.downloaded.ip.list
@@ -102,5 +117,4 @@ fi
 
 cleanup
 
-lock -u $LOCK
-[ -f $LOCK ] && rm $LOCK
+unlock normally

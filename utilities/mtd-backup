@@ -145,8 +145,23 @@ if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
   exit
 fi
 
-LOCK="/var/run/${SCRIPT}"
-lock -n $LOCK || { echo "[$SCRIPT] ERROR! Already running!"; exit 2; }
+LOCK="/var/run/${SCRIPT}.lck"
+unlock() { 
+  if [ "$1" != "normally" ]; then
+    echo
+    echo "[$SCRIPT]: Ctrl-C caught...performing clean up"
+  fi
+
+  echo "[$SCRIPT] Releasing lock on $LOCK..."
+  lock -u $LOCK
+  [ -f $LOCK ] && rm $LOCK
+
+  [ "$1" = "normally" ] && exit || exit 2
+}
+trap "unlock" 2
+
+echo "[$SCRIPT] Attempting to acquire lock on $LOCK..."
+lock $LOCK
 
 if [ $CRON = Y ]; then
   if [ $CRON_ACTION = remove ]; then
@@ -316,8 +331,7 @@ if [ $FLUSH = Y ]; then
   echo 1 > /proc/sys/vm/drop_caches
 fi
 
-lock -u $LOCK
-[ -f $LOCK ] && rm $LOCK
+unlock normally
 
 [ $DEBUG = Y ] && $LOGGER user.debug "Backup completed in $(( $(date +%s) - $STARTED )) seconds"
 
