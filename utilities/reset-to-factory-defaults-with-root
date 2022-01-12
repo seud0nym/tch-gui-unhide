@@ -304,10 +304,7 @@ if [ -n "$FIRMWARE" ]; then
 fi
 
 if [ "$__REBOOT" = "Y" ]; then
-  echo -e "${GREEN}Attempting to reboot...${NC}"
-  echo "######################################################"
-  echo "# NOTE: If the reboot fails with an error message,   #"
-  echo "#       you can just manually power cycle the device #"
-  echo "######################################################"
-  reboot
+  echo -e "${ORANGE}Rebooting...${NC}"
+  echo 1 > /proc/sys/kernel/sysrq
+  echo b > /proc/sysrq-trigger
 fi
