@@ -86,14 +86,14 @@ PLUG
     -e '/^local function valid_samba_dlna_string/i \local dir_valid = {' \
     -e '/^local function valid_samba_dlna_string/i \  dns_server = vNES' \
     -e '/^local function valid_samba_dlna_string/i \}' \
-    -e '/^local function valid_samba_dlna_string/i \local dir_data, dir_helpmsg = post_helper.handleTableQuery(dir_columns, dir_options, nil, nil, dir_valid)' \
+    -e '/^local function valid_samba_dlna_string/i \local dir_data, dir_helpmsg = post_helper.handleTableQuery(dir_columns,dir_options,nil,nil,dir_valid)' \
     -e '/^local function valid_samba_dlna_string/i' \
     -e '/^local function valid_samba_dlna_string/i \local network_rpc_path = "rpc.network.interface."' \
-    -e '/^local function valid_samba_dlna_string/i \local network_rpc_content = content_helper.getMatchedContent (network_rpc_path)' \
+    -e '/^local function valid_samba_dlna_string/i \local network_rpc_content = content_helper.getMatchedContent(network_rpc_path)' \
     -e '/^local function valid_samba_dlna_string/i \local intfs = {}' \
     -e '/^local function valid_samba_dlna_string/i \local split = require("split").split' \
-    -e '/^local function valid_samba_dlna_string/i \for _, v in ipairs (network_rpc_content) do' \
-    -e '/^local function valid_samba_dlna_string/i \  local path = split(split(format("%s",v.path),"@")[2],".")[1]' \
+    -e '/^local function valid_samba_dlna_string/i \for _,v in ipairs(network_rpc_content) do' \
+    -e '/^local function valid_samba_dlna_string/i \  local path = split(split(format("%s",v.path),"@")[2],"%.")[1]' \
     -e '/^local function valid_samba_dlna_string/i \  if path == "wan" or path == "lan" then' \
     -e '/^local function valid_samba_dlna_string/i \    intfs[#intfs+1] = { v.ifname, T(v.ifname) }' \
     -e '/^local function valid_samba_dlna_string/i \  end' \
