@@ -1,3 +1,3 @@
 # Lines in this file must be specified in the format <source dirname relative to build dir>:<target filepath> e.g. lua/additional/17.2/:www/docroot/js/chart-min.js
 lua/additional/17.2/:www/docroot/js/chart-min.js
-lua/additional/17.2.:etc/init.d/power
+lua/additional/17.2/:etc/init.d/power
