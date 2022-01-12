@@ -2,8 +2,6 @@ echo [$SCRIPT]: Clearing page cache...
 sync
 echo 1 > /proc/sys/vm/drop_caches
 
-unlock normally
-
 echo [$SCRIPT]: Done!!!
 if [ "$UPDATE_BTN" = n ]; then
   echo
@@ -21,3 +19,5 @@ if [ $RESTART_SERVICES = y ]; then
   echo "++         change card order and visibility"
   echo
 fi
+
+unlock normally
