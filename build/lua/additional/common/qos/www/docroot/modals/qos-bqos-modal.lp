@@ -54,7 +54,7 @@ if content["bqos_r2q"] == "" then
   content["bqos_r2q"] = "35"
 end
 
-local bqos_devices_editable = content["bqos_enabled"] == 1
+local bqos_devices_editable = content["bqos_enabled"] == "1"
 
 local device_columns = {
   { --[1]
