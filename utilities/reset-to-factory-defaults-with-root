@@ -258,7 +258,7 @@ fi
 
 echo -e "${GREEN}Resetting...${NC}"
 # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#clean-up
-rm -rf /overlay/`cat /proc/banktable/booted`
+rm -rf /overlay/$(cat /proc/banktable/booted)
 # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
 mkdir -p /overlay/$(cat /proc/banktable/booted)/etc
 chmod 755 /overlay/$(cat /proc/banktable/booted) /overlay/$(cat /proc/banktable/booted)/etc
@@ -299,12 +299,13 @@ if [ $__VERBOSE = Y ]; then
 fi
 
 if [ -n "$FIRMWARE" ]; then
-  echo -e "${GREEN}Writing $FIRMWARE into $(cat /proc/banktable/booted)...${NC}"
-  mtd write "$FIRMWARE" $(cat /proc/banktable/booted)
+  echo -e "${GREEN}Erasing and writing $FIRMWARE into $(cat /proc/banktable/booted)...${NC}"
+  mtd -e $(cat /proc/banktable/booted) write "$FIRMWARE" $(cat /proc/banktable/booted)
 fi
 
 if [ "$__REBOOT" = "Y" ]; then
   echo -e "${ORANGE}Rebooting...${NC}"
+  sleep 1
   echo 1 > /proc/sys/kernel/sysrq
   echo b > /proc/sysrq-trigger
 fi

@@ -227,10 +227,10 @@ do
         if [ $REBOOT = Y -a "$LAST" = "$gz" ]
         then
           echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partion $dev ($target) and rebooting"
-          mtd $QUIET -r write $SOURCE/$VARIANT-$dev-$name.img $target
+          mtd $QUIET -r -e $target write $SOURCE/$VARIANT-$dev-$name.img $target
         else
           echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partion $dev ($target)"
-          mtd $QUIET write $SOURCE/$VARIANT-$dev-$name.img $target
+          mtd $QUIET -e $target write $SOURCE/$VARIANT-$dev-$name.img $target
         fi
         if [ $? -eq 0 ]
         then
