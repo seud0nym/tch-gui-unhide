@@ -401,6 +401,9 @@ GUI_OPKG_.set = {
         for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2); do\
           curl -skL $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/$IPK\
         done")
+      if fw_version == "18.1.c" then
+        os.execute("curl -skL https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages/wget_1.19.5-4_arm_cortex-a9_neon.ipk -o /tmp/wget_1.19.5-4_arm_cortex-a9_neon.ipk && opkg --force-overwrite install /tmp/wget_1.19.5-4_arm_cortex-a9_neon.ipk 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/wget_1.19.5-4_arm_cortex-a9_neon.ipk")
+      end
       opkg_cache.reload = true
       checkPackages()
     elseif value == "0" and feeds_configured() == "1" then

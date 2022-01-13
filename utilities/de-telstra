@@ -1243,6 +1243,11 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
           for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2); do
             curl -skL $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
           done
+          if [ "$VERSION" = "18.1.c" ]; then
+            echo [$SCRIPT]: Applying wget fix for 18.1.c...
+            IPK="wget_1.19.5-4_arm_cortex-a9_neon.ipk"
+            curl -skL https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages/$IPK  -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
+          fi
           echo [$SCRIPT]: Updating local package list
           opkg update | logger -s -t rpc.gui.opkg -p user.info;
         else
