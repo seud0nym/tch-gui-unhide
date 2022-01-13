@@ -7,11 +7,12 @@ local gmatch,format,lower,match = string.gmatch,string.format,string.lower,strin
 
 local M = {}
 
+local ddns_status = '<span class="modal-link" data-toggle="modal" data-remote="/modals/wanservices-ddns-modal.lp" data-id="wanservices-ddns-modal">%s Dynamic DNS %s%s</span>'
 local function get_ddns_status(wan_services_data,family)
   local ddns_state
 
   if wan_services_data["ddns_"..family.."_enabled"] ~= "1" then
-    ddns_state = ui_helper.createSimpleLight("0",T(format("%s Dynamic DNS disabled",family)))
+    ddns_state = ui_helper.createSimpleLight("0",format(ddns_status,family,"disabled",""))
   else
     local service_name = format("myddns_%s",lower(family))
     local name = untaint(wan_services_data["ddns_"..family.."_domain"])
@@ -34,17 +35,16 @@ local function get_ddns_status(wan_services_data,family)
       end
     end
 
-    local state_prefix = format("%s Dynamic DNS ",family)
     if service_status then
       if service_status == "Domain's IP updated" then
-        ddns_state = ui_helper.createSimpleLight("1",T(state_prefix.."- IP updated"..cert),attr)
+        ddns_state = ui_helper.createSimpleLight("1",format(ddns_status,family,"- IP updated",cert),attr)
       elseif service_status == "No error received from server" then
-        ddns_state = ui_helper.createSimpleLight("2",T(state_prefix.."- IP updating"..cert),attr)
+        ddns_state = ui_helper.createSimpleLight("2",format(ddns_status,family,"- IP updating",cert),attr)
       else
-        ddns_state = ui_helper.createSimpleLight("4",T(state_prefix.."update error"..cert),attr)
+        ddns_state = ui_helper.createSimpleLight("4",format(ddns_status,family,"update error",cert),attr)
       end
     else
-      ddns_state = ui_helper.createSimpleLight("4",T(state_prefix.."state unknown"..cert),attr)
+      ddns_state = ui_helper.createSimpleLight("4",format(ddns_status,family,"state unknown",cert),attr)
     end
   end
 
@@ -78,37 +78,40 @@ function M.getWANServicesCardHTML()
     html[#html+1] = ddns6
   end
 
+  local dmz_status = '<span class="modal-link" data-toggle="modal" data-remote="/modals/wanservices-dmz-modal.lp" data-id="wanservices-dmz-modal">DMZ %s</span>'
   if wan_services_data["dmz_blocked"] == "1" then
-      html[#html+1] = ui_helper.createSimpleLight("2",T"DMZ blocked")
+    html[#html+1] = ui_helper.createSimpleLight("2",format(dmz_status,"blocked"))
   else
     if wan_services_data["dmz_enable"] == "1" then
-      html[#html+1] = ui_helper.createSimpleLight("1",T"DMZ enabled")
+      html[#html+1] = ui_helper.createSimpleLight("1",format(dmz_status,"enabled"))
     else
-      html[#html+1] = ui_helper.createSimpleLight("0",T"DMZ disabled")
+      html[#html+1] = ui_helper.createSimpleLight("0",format(dmz_status,"disabled"))
     end
   end
 
   local wol = io.open("/lib/functions/firewall-wol.sh","r") and proxy.get("uci.wol.config.")
   if wol then
-    local wolenabled = proxy.get("uci.wol.config.enabled")
-    if wolenabled then
-      if wolenabled[1].value == "1" then
-        html[#html+1] = ui_helper.createSimpleLight("1",T"WoL over Internet enabled")
+    local wol_status = '<span class="modal-link" data-toggle="modal" data-remote="/modals/wanservices-wol-modal.lp" data-id="wanservices-wol-modal">WoL over Internet %s</span>'
+    local wol_enabled = proxy.get("uci.wol.config.enabled")
+    if wol_enabled then
+      if wol_enabled[1].value == "1" then
+        html[#html+1] = ui_helper.createSimpleLight("1",format(wol_status,"enabled"))
       else
-        html[#html+1] = ui_helper.createSimpleLight("0",T"WoL over Internet disabled")
+        html[#html+1] = ui_helper.createSimpleLight("0",format(wol_status,"disabled"))
       end
     end
   end
 
   local n_upnp_rules = tonumber(wan_services_data["upnp_rules"])
+  local upnp_status = '<span class="modal-link" data-toggle="modal" data-remote="/modals/wanservices-upnp-modal.lp" data-id="wanservices-upnp-modal">UPnP %s</span>'
   if wan_services_data["upnp_status"] == "1" then
-    html[#html+1] = ui_helper.createSimpleLight("1",T"UPnP enabled")
+    html[#html+1] = ui_helper.createSimpleLight("1",format(upnp_status,"enabled"))
     html[#html+1] = '<p class="subinfos">'
     html[#html+1] = format(N("<strong %s>%d UPnP rule</strong> is active","<strong %s>%d UPnP rules</strong> are active",n_upnp_rules),
-              'class="modal-link" data-toggle="modal" data-remote="modals/wanservices-modal.lp" data-id="wanservices-modal"',n_upnp_rules)
+              'class="modal-link" data-toggle="modal" data-remote="modals/wanservices-upnp-modal.lp" data-id="wanservices-upnp-modal"',n_upnp_rules)
     html[#html+1] = '</p>'
   else
-    html[#html+1] = ui_helper.createSimpleLight("0",T"UPnP disabled")
+    html[#html+1] = ui_helper.createSimpleLight("0",format(upnp_status,"disabled"))
   end
 
   return html

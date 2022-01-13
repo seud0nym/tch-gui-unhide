@@ -1,7 +1,7 @@
 echo [$SCRIPT]: Fix WoL configuration
-for f in /www/cards/007_wanservices.lp /www/docroot/modals/wanservices-modal.lp /www/lua/wanservicescard_helper.lua; do
+for f in /www/cards/007_wanservices.lp /www/docroot/modals/wanservices-wol-modal.lp /www/lua/wanservicescard_helper.lua /www/snippets/tabs-wanservices.lp; do
   sed \
-    -e 's/io.open("\/lib\/functions\/firewall-wol.sh", "r") and //' \
+    -e 's|/lib/functions/firewall-wol.sh|/etc/init.d/wol|' \
     -e 's/uci.wol.config.enabled/uci.wol.proxy.@wan2lan.enable/' \
     -e 's/uci.wol.config.src_dport/uci.wol.proxy.@wan2lan.src_port/' \
     -e 's/uci.wol.config/uci.wol.proxy.@wan2lan/' \
