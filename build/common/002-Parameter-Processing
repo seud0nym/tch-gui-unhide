@@ -135,8 +135,7 @@ do
           esac
         done
         case "$STATUS" in
-          200)  if [ -f $FILENAME ]
-                then
+          200)  if [ -f $FILENAME ]; then
                   SIZE=$(ls -l $FILENAME | tr -s ' ' | cut -d' ' -f5)
                   if [ $SIZE -eq $LENGTH ]
                   then
@@ -145,8 +144,7 @@ do
                   fi
                 fi
                 curl -k -L https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME > $FILENAME
-                if [ $? -eq 0 ]
-                then
+                if [ $? -eq 0 ]; then
                   chmod +x $FILENAME
                   echo "002@$(date +%H:%M:%S): Successfully updated $FILENAME."
                   return 0

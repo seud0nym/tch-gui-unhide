@@ -65,10 +65,6 @@ if [ "$MINIFY" = y ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/loginbasic.lp"
   sed \
     -e 's/\(window.location.href\)\(\\\)/\1;\2/' \
-    -e 's/\(blink_on)\)\(\\\)/\1;\2/' \
-    -e 's/\(blink_off)\)\(\\\)/\1;\2/' \
-    -e 's/\(250)()\)\(\\\)/\1;\2/' \
-    -e 's/\(container")\)\(\\\)/\1;\2/' \
     -e 's/\(srp\.error\)/;\1/' \
     -e 's/\(srp\.identify\)/;\1/' \
     -e 's/\(})\)\(\\\)/\1;\2/' \

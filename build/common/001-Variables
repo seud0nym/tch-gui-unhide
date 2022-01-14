@@ -20,16 +20,17 @@ then
   echo "       Aborting..."
   exit 1
 fi
+
 SCRIPT=$(basename $0 | sed "s/-$TARGET_VERSION//")
 
+INSTALLED_RELEASE="$(grep -o -m 1 -E '[0-9][0-9][0-9][0-9]\.[0-9][0-9]\.[0-9][0-9]@[0-9][0-9]:[0-9][0-9]' /usr/share/transformer/mappings/rpc/gui.map 2>/dev/null)"
 DFLT_USR=$(uci -q get web.uidefault.defaultuser)
 FW_UPGRD=$(uci -q get web.uidefault.upgradefw)
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 MAC=$(uci -q get env.var.ssid_mac_postfix_r0)
 HOSTNAME=$(uci -q get system.@system[0].hostname)
 tmpTITLE="$(grep -o 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1)"
-echo $tmpTITLE | grep -q ngx.print
-if [ $? -eq 1 ]; then
+if echo $tmpTITLE | grep -q ngx.print; then
   TITLE="$tmpTITLE"
 else
   TITLE=""
@@ -95,18 +96,6 @@ else
   MINIFY=n
 fi
 
-INSTALLED_RELEASE="$(grep -o -m 1 -E '[0-9][0-9][0-9][0-9]\.[0-9][0-9]\.[0-9][0-9]@[0-9][0-9]:[0-9][0-9]' /usr/share/transformer/mappings/rpc/gui.map 2>/dev/null)"
-
-if [ -z "$INSTALLED_RELEASE" ]; then
-  CHART_CARDS='i'
-elif [ -e /www/cards/000_Charts.lp ]; then
-  CHART_CARDS='s'
-elif [ -e /www/cards/000_CPU.lp ]; then
-  CHART_CARDS='i'
-else
-  CHART_CARDS='n'
-fi
-
 grep -q 'rpc.gui.UpdateAvailable' /www/docroot/gateway.lp
 if [ $? -eq 0 ]; then
   UPDATE_BTN=y
@@ -121,10 +110,6 @@ fi
 
 FIX_DFLT_USR=n
 FIX_FW_UPGRD=n
-
-if [ -z "$INSTALLED_RELEASE" -a -f .defaults.tch-gui-unhide ]; then
-  . ./.defaults.tch-gui-unhide
-fi
 
 if [ "$(uci -q get dropbear.lan.enable)" = "1" -a "$(uci -q get dropbear.lan.PasswordAuth)" = "on" -a "$(uci -q get dropbear.lan.RootPasswordAuth)" = "on" -a "$(uci -q get dropbear.lan.RootLogin)" = "1" ]; then
   FIX_SSH=n
@@ -141,6 +126,13 @@ if [ $? -eq 0 ]; then
   FIX_PARENT_BLK=n
 else
   FIX_PARENT_BLK=y
+fi
+
+if [ -z "$INSTALLED_RELEASE" ]; then
+  CHART_CARDS='i'
+  if [ -f .defaults.tch-gui-unhide ]; then
+    . ./.defaults.tch-gui-unhide
+  fi
 fi
 
 # Keep count of changes so we know whether to restart services
