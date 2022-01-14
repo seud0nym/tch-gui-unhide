@@ -62,6 +62,17 @@ if [ "$MINIFY" = y ]; then
     -e 's/\(var gameparent\)/;\1/' \
     -e 's/\(gameparent.onblur\)/;\1/' \
     -i /www/docroot/landingpage.lp
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/loginbasic.lp"
+  sed \
+    -e 's/\(window.location.href\)\(\\\)/\1;\2/' \
+    -e 's/\(blink_on)\)\(\\\)/\1;\2/' \
+    -e 's/\(blink_off)\)\(\\\)/\1;\2/' \
+    -e 's/\(250)()\)\(\\\)/\1;\2/' \
+    -e 's/\(container")\)\(\\\)/\1;\2/' \
+    -e 's/\(srp\.error\)/;\1/' \
+    -e 's/\(srp\.identify\)/;\1/' \
+    -e 's/\(})\)\(\\\)/\1;\2/' \
+    -i /www/docroot/loginbasic.lp
 fi
 
 if [ -f /www/snippets/tabs-home.lp ]
