@@ -187,7 +187,7 @@ if [ -n "$__IPADDR" ]; then
 fi
 if [ -n "$__CWMP" ]; then
   echo -e "NOTE:    CWMP will be ${ORANGE}stopped${NC} during the reboot"
-  CWMP_CFG="echo 'Disabling CWMP';uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop;"
+  CWMP_CFG="echo 'Disabling CWMP (acs_url was $(uci get cwmpd.cwmpd_config.acs_url))';uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop &"
 fi
 if [ -n "$__NOEXEC" ]; then
   echo -e "NOTE:    Any 'noexec' flags will be ${GREEN}removed${NC} from USB filesystem mounts after reset"
@@ -262,7 +262,9 @@ rm -rf /overlay/$(cat /proc/banktable/booted)
 # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
 mkdir -p /overlay/$(cat /proc/banktable/booted)/etc
 chmod 755 /overlay/$(cat /proc/banktable/booted) /overlay/$(cat /proc/banktable/booted)/etc
-echo -e "echo root:$__ROOTPWD | chpasswd
+echo -e "logger '/etc/rc.local'
+logread | grep -q '/etc/rc.local' || /etc/init.d/log restart
+echo root:$__ROOTPWD | chpasswd
 sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
 sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
 $LAN_CFG
