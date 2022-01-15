@@ -187,7 +187,7 @@ if [ -n "$__IPADDR" ]; then
 fi
 if [ -n "$__CWMP" ]; then
   echo -e "NOTE:    CWMP will be ${ORANGE}stopped${NC} during the reboot"
-  CWMP_CFG="echo 'Disabling CWMP (acs_url was $(uci get cwmpd.cwmpd_config.acs_url))';uci delete cwmpd.cwmpd_config.acs_url;uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop &"
+  CWMP_CFG="echo 'Disabling CWMP';uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop &"
 fi
 if [ -n "$__NOEXEC" ]; then
   echo -e "NOTE:    Any 'noexec' flags will be ${GREEN}removed${NC} from USB filesystem mounts after reset"
@@ -268,7 +268,6 @@ echo root:$__ROOTPWD | chpasswd
 sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
 sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
 $LAN_CFG
-$CWMP_CFG
 uci -q set \$(uci show firewall | grep -m 1 \$(fw3 -q print | \
 egrep 'iptables -t filter -A zone_lan_input -p tcp -m tcp --dport 22 -m comment --comment \"!fw3: .+\" -j DROP' 2>/dev/null | \
 sed -n -e 's/^iptables.\+fw3: \(.\+\)\".\+/\1/p') 2>/dev/null | \
@@ -288,6 +287,7 @@ $KEYS_CFG
 /etc/init.d/dropbear enable
 /etc/init.d/dropbear restart
 $NOEXEC_CFG
+$CWMP_CFG
 rm /overlay/\$(cat /proc/banktable/booted)/etc/rc.local
 source /rom/etc/rc.local
 " > /overlay/$(cat /proc/banktable/booted)/etc/rc.local
