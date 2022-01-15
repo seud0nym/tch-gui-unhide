@@ -39,7 +39,7 @@ if [ "$MINIFY" = y ]; then
   echo [$SCRIPT]: Pre-minify fixes
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/wireless-modal.lp"
   sed \
-    -e 's/\(if(bandLockState\)/;\1/' \
+    -e 's/\(if *(bandLockState\)/;\1/' \
     -e 's/\(Class("tooltipEnabled")\)/\1;/' \
     -e 's|content["phy_rate"] / 1000|(content["phy_rate"]/1000)|' \
     -i /www/docroot/modals/wireless-modal.lp
