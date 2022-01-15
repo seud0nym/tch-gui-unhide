@@ -38,20 +38,17 @@ fi
 #  - mmpbx-statistics-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
 #  - speedservice-modal.lp
 echo [$SCRIPT]: Checking modal visibility
-for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal.lp\|mmpbx-sipdevice-modal.lp\|mmpbx-statistics-modal.lp\|speedservice-modal.lp\) )
-do
+for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal.lp\|mmpbx-sipdevice-modal.lp\|mmpbx-statistics-modal.lp\|speedservice-modal.lp\)); do
   MODAL=$(basename $f)
   uci show web | grep -q "/modals/$MODAL"
-  if [ $? -eq 1 ]
-  then
+  if [ $? -eq 1 ]; then
     CREATE_RULE=y
     RULE=$(basename $f .lp | sed -e 's/-//g')
   else
     CREATE_RULE=n
     RULE=$(uci show web | grep "/modals/$MODAL" | grep -m 1 -v card_ | cut -d. -f2)
   fi
-  if [ $CREATE_RULE = y ]
-  then
+  if [ $CREATE_RULE = y ]; then
     echo "[$SCRIPT]: - Enabling $MODAL"
     [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Creating Rule $RULE: target=/modals/$MODAL"
     uci add_list web.ruleset_main.rules=$RULE
@@ -60,8 +57,7 @@ do
     uci set web.$RULE.normally_hidden='1'
     uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 4 ))
-  elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]
-  then
+  elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]; then
     [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing Rule $RULE: target=/modals/$MODAL Setting role to admin"
     uci -q delete web.$RULE.roles
     uci add_list web.$RULE.roles='admin'
@@ -70,20 +66,17 @@ do
 done
 
 echo [$SCRIPT]: Checking ajax visibility
-for f in $(find /www/docroot/ajax -type f | grep -vE 'internet.lua|wirelesscard.lua')
-do
+for f in $(find /www/docroot/ajax -type f | grep -vE 'internet.lua|wirelesscard.lua'); do
   AJAX=$(basename $f)
   uci show web | grep -q "/ajax/$AJAX"
-  if [ $? -eq 1 ]
-  then
+  if [ $? -eq 1 ]; then
     CREATE_RULE=y
     RULE="$(basename $f .lua | sed -e 's/-//g')ajax"
   else
     CREATE_RULE=n
     RULE=$(uci show web | grep "/ajax/$AJAX" | grep -m 1 -v card_ | cut -d. -f2)
   fi
-  if [ $CREATE_RULE = y ]
-  then
+  if [ $CREATE_RULE = y ]; then
     [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Creating Rule $RULE: target=/ajax/$AJAX"
     echo "[$SCRIPT]: - Enabling $AJAX"
     uci add_list web.ruleset_main.rules=$RULE
@@ -92,8 +85,7 @@ do
     uci set web.$RULE.normally_hidden='1'
     uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 4 ))
-  elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]
-  then
+  elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]; then
     [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing Rule $RULE: target=/ajax/$AJAX Setting role to admin"
     uci -q delete web.$RULE.roles
     uci add_list web.$RULE.roles='admin'

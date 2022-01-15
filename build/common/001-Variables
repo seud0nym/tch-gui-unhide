@@ -8,13 +8,11 @@ fi
 # Based on various pages https://hack-technicolor.readthedocs.io/en/stable/
 
 TARGET_VERSION=""
-for x in $(basename $0 | tr '-' "$IFS")
-do
+for x in $(basename $0 | tr '-' "$IFS"); do
   TARGET_VERSION=$x
 done
-echo "$TARGET_VERSION" | grep -q '\.'
-if [ $? -eq 1 ]
-then
+
+if ! echo "$TARGET_VERSION" | grep -q '\.'; then
   echo "ERROR: Unable to determine Target Version!"
   echo "       Did the script get renamed??"
   echo "       Aborting..."
@@ -29,20 +27,11 @@ FW_UPGRD=$(uci -q get web.uidefault.upgradefw)
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 MAC=$(uci -q get env.var.ssid_mac_postfix_r0)
 HOSTNAME=$(uci -q get system.@system[0].hostname)
-tmpTITLE="$(grep -o 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1)"
-if echo $tmpTITLE | grep -q ngx.print; then
-  TITLE="$tmpTITLE"
-else
-  TITLE=""
-fi
-unset tmpTITLE
+TITLE="$(grep -o 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1 | grep -v 'ngx.print')"
 
-if [ -f /usr/tch-gui-unhide.theme ]; then
-  mv /usr/tch-gui-unhide.theme /etc/tch-gui-unhide.theme
-fi
-if [ -f /etc/tch-gui-unhide.theme ]; then
-  . /etc/tch-gui-unhide.theme
-fi
+
+[ -f /usr/tch-gui-unhide.theme ] && mv /usr/tch-gui-unhide.theme /etc/tch-gui-unhide.theme
+[ -f /etc/tch-gui-unhide.theme ] && source /etc/tch-gui-unhide.theme
 if [ -z "$THEME" ]; then
   KEEPLP=n
   grep -q 'body{background-color:#353c42;' /www/docroot/css/gw.css
@@ -76,15 +65,13 @@ if [ -z "$THEME" ]; then
   ICONS="$(grep '.card_bg:after{visibility:' /www/docroot/css/gw.css | cut -d: -f3 | cut -d\; -f1)"
 fi
 
-grep -q 'rpc.gui.pwd.@' /www/docroot/modals/mmpbx-profile-modal.lp
-if [ $? -eq 0 ]; then
+if grep -q 'rpc.gui.pwd.@' /www/docroot/modals/mmpbx-profile-modal.lp; then
   SIP_PWDS=y
 else
   SIP_PWDS=n
 fi
 
-grep -q '@media screen and (min-width:1200px) and (max-width:1499px){' /www/docroot/css/responsive.css
-if [ $? -eq 0 ]; then
+if grep -q '@media screen and (min-width:1200px) and (max-width:1499px){' /www/docroot/css/responsive.css; then
   ACROSS=5
 else
   ACROSS=4
@@ -96,16 +83,12 @@ else
   MINIFY=n
 fi
 
-grep -q 'rpc.gui.UpdateAvailable' /www/docroot/gateway.lp
-if [ $? -eq 0 ]; then
+if grep -q 'rpc.gui.UpdateAvailable' /www/docroot/gateway.lp; then
   UPDATE_BTN=y
+elif grep -q 'tch-gui-unhide' /www/docroot/gateway.lp; then
+  UPDATE_BTN=n
 else
-  grep -q 'tch-gui-unhide' /www/docroot/gateway.lp
-  if [ $? -eq 0 ]; then
-    UPDATE_BTN=n
-  else
-    UPDATE_BTN=y
-  fi
+  UPDATE_BTN=y
 fi
 
 FIX_DFLT_USR=n
