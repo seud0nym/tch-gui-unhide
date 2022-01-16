@@ -1185,7 +1185,7 @@ OPKG_DEP=$(grep -c 'www.macoers.com/repository' /etc/opkg/customfeeds.conf)
 if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
   cat /proc/cpuinfo | grep -q 'ARMv7 Processor rev 1 (v7l)'
   if [ $? -eq 0 ]; then
-    if [ $OPKG_DEP -gt 0 -o \( "$HOMEWARE" -eq 17 -a $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep 'BoLaMN' | wc -l) -eq 0 \) -o \( "$HOMEWARE" -eq 18 -a $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep 'homeware/18' | wc -l) -eq 0 \) -o \( \( "$HOMEWARE" -eq 19 -o "$HOMEWARE" -eq 20 \) -a $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep 'homeware/19' | wc -l) -eq 0 \) ]; then
+    if [ $OPKG_DEP -gt 0 -o $(find /var/opkg-lists/ -type f | wc -l) -eq 0 -o \( "$HOMEWARE" -eq 17 -a $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep 'BoLaMN' | wc -l) -eq 0 \) -o \( "$HOMEWARE" -eq 18 -a $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep 'homeware/18' | wc -l) -eq 0 \) -o \( \( "$HOMEWARE" -eq 19 -o "$HOMEWARE" -eq 20 \) -a $(sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep 'homeware/19' | wc -l) -eq 0 \) ]; then
       if [ "$HOMEWARE" -ge 17 -a "$HOMEWARE" -le 20 ]; then
         ping -c 1 -W 2 -q 1.1.1.1 >/dev/null 2>&1
         if [ $? -eq 0 ]; then
