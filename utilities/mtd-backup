@@ -150,6 +150,10 @@ unlock() {
   if [ "$1" != "normally" ]; then
     echo
     echo "$SCRIPT: Ctrl-C caught...performing clean up"
+    if [ -n "$ACTIVE" ]; then
+      echo "$SCRIPT: WARNING! Removing possibly incomplete backup $ACTIVE"
+      rm -f $ACTIVE
+    fi
   fi
 
   echo "$SCRIPT: Releasing lock on $LOCK..."
@@ -187,7 +191,7 @@ if [ $CRON = Y ]; then
     echo
   fi
   /etc/init.d/cron reload
-  exit
+  unlock normally
 fi
 
 [ $DEBUG = Y ] && $LOGGER user.debug "Backup commenced"
@@ -221,12 +225,14 @@ if [ $DUMP_CFG = Y ]; then
   fi
   $LOGGER user.info "WRITING current configuration to $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz"
   SECONDS=$(date +%s)
+  ACTIVE="$TARGET/$VARIANT-$SERIAL-$VERSION-config.gz"
   uci show 2>/dev/null | awk -e "$(lua -e 'proxy=require("datamodel");
   for _,v in ipairs(proxy.get("rpc.gui.pwd.")) do
     profile=string.match(v.path,"rpc%.gui%.pwd%.@([^%.]*)%.")
     print(string.format("/^mmpbxrvsipnet.%s.password=/{print \"mmpbxrvsipnet.%s.password=\\\"%s\\\"\";next;}",profile,profile,v.value))
   end
   print("1")')" | gzip > $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz
+  ACTIVE=""
   [ $DEBUG = Y ] && $LOGGER user.debug "WRITING current configuration to $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz took $(( $(date +%s) - $SECONDS )) seconds"
   for f in $(find $TARGET -type f -name '*-packages.gz'); do
     [ $DEBUG = Y ] && $LOGGER user.debug "REMOVING obsolete user installed packages list: $f"
@@ -246,7 +252,9 @@ if [ $DUMP_ENV = Y ]; then
   fi
   $LOGGER user.info "WRITING current environment to $TARGET/$VARIANT-$SERIAL-$VERSION-env"
   SECONDS=$(date +%s)
+  ACTIVE="$TARGET/$VARIANT-$SERIAL-$VERSION-env"
   uci show env.var > $TARGET/$VARIANT-$SERIAL-$VERSION-env
+  ACTIVE=""
   [ $DEBUG = Y ] && $LOGGER user.debug "WRITING current environment to $TARGET/$VARIANT-$SERIAL-$VERSION-env took $(( $(date +%s) - $SECONDS )) seconds"
 else
   [ $DEBUG = Y ] && $LOGGER user.debug "SKIPPED environment backup - Not requested"
@@ -262,7 +270,9 @@ if [ $DUMP_OVL = Y ]; then
   fi
   $LOGGER user.info "WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz"
   SECONDS=$(date +%s)
+  ACTIVE="$TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz"
   tar -C /overlay -czf $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz .
+  ACTIVE=""
   [ $DEBUG = Y ] && $LOGGER user.debug "WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz took $(( $(date +%s) - $SECONDS )) seconds"
 else
   [ $DEBUG = Y ] && $LOGGER user.debug "SKIPPED overlay contents backup - Not requested"
@@ -396,6 +406,7 @@ do
     fi
     $LOGGER user.info "WRITING $dev to $TARGET/$VARIANT-$dev-$name.img.gz"
     SECONDS=$(date +%s)
+    ACTIVE="$TARGET/$VARIANT-$dev-$name.img.*"
     dd if="/dev/${dev}ro" bs=1M | gzip > $TARGET/$VARIANT-$dev-$name.img.gz
     [ $DEBUG = Y ] && $LOGGER user.debug "WRITING $dev to $TARGET/$VARIANT-$dev-$name.img.gz took $(( $(date +%s) - $SECONDS )) seconds"
     if [ $RECALC_SHA = N ]; then
@@ -411,6 +422,7 @@ do
       echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256=
       [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256
     fi
+    ACTIVE=""
   fi
 done
 
