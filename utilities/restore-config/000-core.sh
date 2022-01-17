@@ -391,7 +391,7 @@ DEVICE_VERSION=$(uci -q get version.@version[0].marketing_version)
 DEVICE_VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 DEVICE_SERIAL=$(uci get env.var.serial)
 
-for EXTENSION in $(ls $SOURCE_DIR/[0]*.sh | grep -v '^000' | sort); do
+for EXTENSION in $(ls $SOURCE_DIR/[0]*.sh | grep -v '000-core.sh' | sort); do
   log D "Importing $EXTENSION"
   source "$EXTENSION"
 done
