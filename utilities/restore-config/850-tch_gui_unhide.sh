@@ -24,12 +24,18 @@ uci_set system.config.import_unsigned
 uci -q commit system
 
 log D "Calculating tch-gui-unhide options"
-options="--no-service-restart -X -y"
+options="--no-service-restart -y"
+
+[ $VERBOSE = y ] && options="$options --debug"
 
 [ -n "$($UCI -q get web.uidefault.defaultuser)" ]  && options="$options -dy" || options="$options -dn"
 [ "$($UCI -q get web.uidefault.upgradefw)" = "1" ] && options="$options -fy" || options="$options -fn"
 
-[ $VERBOSE = y ] && options="$options --debug"
+[ -e /etc/config/adblock ] && options="$options -x adblock"
+[ -e /etc/config/minidlna ] && options="$options -x minidlna"
+[ -e /etc/rsyncd.conf ] && options="$options -x rsyncd"
+[ -e /usr/sbin/smbd ] && /usr/sbin/smbd -V | grep -q '^Version 3\.6\.' && options="$options -x samba36-server"
+[ -e /usr/bin/wireguard-go ] && options="$options -x wireguard"
 
 title="$(grep -o 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1 | grep -v 'ngx.print')"
 if [ -n "$title" ]; then
