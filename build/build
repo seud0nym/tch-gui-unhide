@@ -60,6 +60,11 @@ cd ../extras/src
 ./make
 cd - >/dev/null
 
+echo "${GREEN}Recreating SHA256 check sums..${NC}"
+cd ../utilities/restore-config
+./create-sha256.sh
+cd - >/dev/null
+
 echo "${GREEN}Building /tmp/themes.b64...${NC}"
 echo "echo [\$SCRIPT]: Deploy theme files" > /tmp/themes.b64
 echo "echo '$(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -cf - -C themes . | bzip2 --best | base64)' | base64 -d | bzcat | tar -xf - -C /" >> /tmp/themes.b64

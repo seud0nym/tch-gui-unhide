@@ -149,10 +149,10 @@ LOCK="/var/run/${SCRIPT}.lck"
 unlock() { 
   if [ "$1" != "normally" ]; then
     echo
-    echo "[$SCRIPT]: Ctrl-C caught...performing clean up"
+    echo "$SCRIPT: Ctrl-C caught...performing clean up"
   fi
 
-  echo "[$SCRIPT] Releasing lock on $LOCK..."
+  echo "$SCRIPT: Releasing lock on $LOCK..."
   lock -u $LOCK
   [ -f $LOCK ] && rm $LOCK
 
@@ -160,19 +160,28 @@ unlock() {
 }
 trap "unlock" 2
 
-echo "[$SCRIPT] Attempting to acquire lock on $LOCK..."
+if [ -e $LOCK ]; then
+  if ps | grep -qE "\b$(cat $LOCK)\b.*$SCRIPT"; then
+    echo "$SCRIPT: Restore already running?"
+    exit 2
+  else
+    lock -u $LOCK
+    rm $LOCK
+  fi
+fi
+echo "$SCRIPT: Attempting to acquire lock on $LOCK..."
 lock $LOCK
 
 if [ $CRON = Y ]; then
   if [ $CRON_ACTION = remove ]; then
     sed -e "/$SCRIPT/d" -i /etc/crontabs/root
-    echo "[$SCRIPT] Scheduled backup has been removed."
+    echo "$SCRIPT: Scheduled backup has been removed."
   else
     mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
     hh=$(awk 'BEGIN{srand();print int(rand()*3)+4;}')
     echo "$mm $hh * * * $(cd $(dirname $0); pwd)/$SCRIPT -d $DIR -ceoy" >> /etc/crontabs/root
-    echo "[$SCRIPT] Backup has been scheduled to execute at $hh:$(printf '%02d' $mm)am every day."
-    echo "[$SCRIPT] Execution messages will be written to the system log, and can be viewed with the following command:"
+    echo "$SCRIPT: Backup has been scheduled to execute at $hh:$(printf '%02d' $mm)am every day."
+    echo "$SCRIPT: Execution messages will be written to the system log, and can be viewed with the following command:"
     echo
     echo "  logread -e mtd-backup"
     echo
@@ -258,6 +267,86 @@ if [ $DUMP_OVL = Y ]; then
 else
   [ $DEBUG = Y ] && $LOGGER user.debug "SKIPPED overlay contents backup - Not requested"
 fi
+
+[ $DUMP_OVL = Y -a $DUMP_CFG = Y ] && cat <<"EoSH" > $TARGET/restore-config.sh
+#!/bin/sh
+
+SCRIPT="$(basename $0)"
+DIR="$(cd $(dirname $0); pwd)/restore-config"
+
+log() {
+  local flag="$1"
+  local colour level
+  shift
+  case "$flag" in
+    D|V)  colour="\033[90m";   level="DEBUG:";;
+    E)    colour="\033[0;31m"; level="ERROR:";;
+    I)    colour="\033[1;32m"; level="INFO: ";;
+    W)    colour="\033[1;32m"; level="WARN: ";;
+  esac
+  echo -e "${level}  ${colour}$*\033[0m"
+}
+
+download() {
+  local SOURCE="$1"
+  local TARGET="$(basename $1)"
+  local FOLDER="$2"
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' $SOURCE)
+  if [ "$RESPONSE_CODE" = 200 ]; then
+    log D "Downloading ${SOURCE}"
+    mkdir -p $FOLDER
+    curl -kLs $SOURCE -o $FOLDER/$TARGET
+  else
+    case "$RESPONSE_CODE" in
+      404)  log E "$SOURCE was not found???";;
+      000)  log E "Failed to download $SOURCE - No Internet connection???";;
+      *)    log E "Failed to download $SOURCE - Unknown response code $RESPONSE_CODE";;
+    esac
+    unlock normally
+  fi
+}
+
+unlock() { 
+  if [ "$1" != "normally" ]; then
+    echo
+    log W "Ctrl-C caught...performing clean up"
+  fi
+
+  log I "Releasing lock on $LOCK..."
+  lock -u $LOCK
+  [ -f $LOCK ] && rm $LOCK
+
+  [ "$1" != "normally" ] && exit 2
+}
+
+LOCK="/var/run/${SCRIPT}.lck"
+if [ -e $LOCK ]; then
+  if ps | grep -qE "\b$(cat $LOCK)\b.*$SCRIPT"; then
+    log E "Restore already running (PID=$(cat $LOCK))"
+    exit 2
+  else
+    lock -u $LOCK
+    rm $LOCK
+  fi
+fi
+log I "Attempting to acquire lock on $LOCK..."
+lock $LOCK
+trap "unlock" 2
+
+log I "Checking scripts..."
+download https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/restore-config/.sha256 ${DIR}
+cat "${DIR}/.sha256" | while read -r sha256 file; do
+  if [ !-e "${DIR}/{$file}" -o "$sha256" -ne "$(sha256sum "${DIR}/{$file}" 2>/dev/null)" ]; then
+    download https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/restore-config/$file ${DIR}
+  fi
+done
+rm -f "${DIR}/.sha256"
+
+unlock normally
+
+sh "${DIR}/000-core.sh" $*
+EoSH
+[ -e $TARGET/restore-config.sh ] && chmod +x $TARGET/restore-config.sh
 
 sed -e '/dev:/d' -e 's/\(mtd.\)[^"]*"\([^"]*\)"/\1 \2/' /proc/mtd | while read -r dev name
 do

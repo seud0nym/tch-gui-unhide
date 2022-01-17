@@ -1,0 +1,40 @@
+#!/bin/sh
+
+log I "Restoring subset of GUI files..."
+find /www/cards/ /www/docroot/modals/ -maxdepth 1 -type f -exec rm {} \;
+restore_directory /www/cards -maxdepth 1
+restore_directory /www/docroot/modals -maxdepth 1
+restore_file /www/docroot/gateway.lp /www/docroot/css/gw-telstra.css /www/docroot/css/gw.css /www/docroot/css/responsive.css /usr/share/transformer/mappings/rpc/gui.map /etc/tch-gui-unhide.theme 
+
+log I "Restoring GUI configuration..."
+uci -q revert web
+uci_copy web rule 'dumaos' "roles"
+for cfg in $($UCI show web | grep 'web\.card_'); do
+  uci_set $cfg
+done
+uci_set web.usr_admin.srp_salt
+uci_set web.usr_admin.srp_verifier
+uci -q commit web
+
+uci -q revert system
+uci_set system.config.export_plaintext
+uci_set system.config.export_unsigned
+uci_set system.config.import_plaintext
+uci_set system.config.import_unsigned
+uci -q commit system
+
+log D "Calculating tch-gui-unhide options"
+options="--no-service-restart -X -y"
+
+[ -n "$($UCI -q get web.uidefault.defaultuser)" ]  && options="$options -dy" || options="$options -dn"
+[ "$($UCI -q get web.uidefault.upgradefw)" = "1" ] && options="$options -fy" || options="$options -fn"
+
+[ $VERBOSE = y ] && options="$options --debug"
+
+title="$(grep -o 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1 | grep -v 'ngx.print')"
+if [ -n "$title" ]; then
+  options="$options -h$(echo "$title" | sed -e "s/$BACKUP_VARIANT/$DEVICE_VARIANT/")"
+  [ $TEST_MODE = y ] && options="${options}-TEST"
+fi
+
+run_script tch-gui-unhide-$DEVICE_VERSION $options
