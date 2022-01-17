@@ -346,7 +346,7 @@ trap "unlock" 2
 log I "Checking scripts..."
 download https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/restore-config/.sha256 ${DIR}
 cat "${DIR}/.sha256" | while read -r sha256 file; do
-  if [ !-e "${DIR}/{$file}" -o "$sha256" -ne "$(sha256sum "${DIR}/{$file}" 2>/dev/null)" ]; then
+  if [ ! -e "${DIR}/${file}" -o "$sha256" != "$(sha256sum "${DIR}/${file}" 2>/dev/null | cut -d' ' -f1)" ]; then
     download https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/restore-config/$file ${DIR}
   fi
 done
