@@ -104,13 +104,14 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled,modalPath)
     controllerStatus = "Multi-AP Controller disabled"
   end
   if appath and content["apstate"] and content["apiface"] == "wl1_2" and content["wl1_2ssid"] ~= "" then
+    local pattern="Backhaul %s ".."%s %s"
     if content["apstate"] == "0" then
-      backhaulStatus = T"Backhaul "..content["wl1_2ssid"].." (5G) disabled"
+      backhaulStatus = T(format(pattern,content["wl1_2ssid"],"(5G)","disabled"))
     elseif content["state5g"] == "0" then
       content["apstate"] = "2"
-      backhaulStatus = T"Backhaul "..content["wl1_2ssid"].." (5G) radio off"
+      backhaulStatus = T(format(pattern,content["wl1_2ssid"],"(5G)","radio off"))
     else
-      backhaulStatus = T"Backhaul "..content["wl1_2ssid"].." (5G) enabled"
+      backhaulStatus = T(format(pattern,content["wl1_2ssid"],"(5G)","enabled"))
     end
   end
 

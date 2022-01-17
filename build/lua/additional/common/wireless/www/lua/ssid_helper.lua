@@ -33,9 +33,9 @@ function M.getSSIDList()
           local isguest
           local sortby
           if radio_name == "radio_2G" then
-            radio_suffix = " (2.4G)"
+            radio_suffix = format(" %s","(2.4G)")
           else
-            radio_suffix = " (5G)"
+            radio_suffix = format(" %s","(5G)")
           end
           if ap_display_name ~= "" then
             display_ssid = ap_display_name..radio_suffix
