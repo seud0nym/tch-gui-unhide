@@ -266,7 +266,7 @@ local devices_filter = function(data)
     sort(addresses,function(a,b)
       return a < b
     end)
-    data["IPv6"] = concat(addresses," ")
+    data["IPv6"] = concat(addresses,"<br>")
   end
   local mac = untaint(data["MACAddress"])
   data["MACAddress"] = format("%s<i class='macvendor'>%s</i>",mac,mac_vendor[mac] or "")
