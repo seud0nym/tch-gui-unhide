@@ -83,7 +83,7 @@ find_scripts() {
   log D "Searching for de-telstra and tch-gui-unhide-${DEVICE_VERSION}"
   MOUNT_PATH=$(uci -q get mountd.mountd.path)
   log V " ++ Searching /tmp/ ${MOUNT_PATH}"
-  f=$(find /tmp/ $MOUNT_PATH -follow -name de-telstra -o -name tch-gui-unhide-$DEVICE_VERSION 2>/dev/null | grep -vE 'mvfs|^/tmp/run' | xargs)
+  f=$(find /tmp/ $MOUNT_PATH -follow -maxdepth 2 -name de-telstra -o -name tch-gui-unhide-$DEVICE_VERSION 2>/dev/null | grep -vE 'mvfs|^/tmp/run' | xargs)
   log V " == Found ${f}"
   [ -n "$f" ] && SCRIPT_DIR="$(dirname $(ls -t $f 2>/dev/null | head -n 1) 2>/dev/null)"
   [ -z "$SCRIPT_DIR" ] && SCRIPT_DIR=/tmp
