@@ -1,7 +1,7 @@
 #!/bin/sh
 
 SCRIPT="$(basename $0)"
-SOURCE_DIR=$(dirname $0)
+SOURCE_DIR="$(cd $(dirname $0); pwd)"
 
 usage() {
 cat <<EOH
