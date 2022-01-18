@@ -62,7 +62,7 @@ cd - >/dev/null
 
 echo "${GREEN}Recreating SHA256 check sums..${NC}"
 cd ../utilities/restore-config
-./create-sha256.sh
+./update-sha256.sh
 cd - >/dev/null
 
 echo "${GREEN}Building /tmp/themes.b64...${NC}"
