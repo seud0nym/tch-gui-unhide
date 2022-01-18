@@ -41,6 +41,11 @@ Options:
  --save-defaults  Saves the command line options (except -f and -y) as defaults
                     When specified, NO changes are applied to the device
  --no-defaults    Ignores any saved defaults for this execution
+ --restore-config Runs the restore-config.sh script after reboot if it is found
+                    in the USB backups directory. Output will be written to the 
+                    system log. --restore-config should be the LAST option
+                    specified, and may optionally be followed by the name of
+                    the overlay backup file to be restored.
 
 EOH
 exit
@@ -85,11 +90,13 @@ fi
 FIRMWARE=""
 YES=N
 SAVE_DEFAULTS=n
+RESTORE_CONFIG=n
 
 while getopts :bcef:iI:knp:vyU-: option
 do
  case "${option}" in
   -)  case "${OPTARG}" in
+        restore-config) RESTORE_CONFIG=y;;
         no-defaults)    set_defaults;;
         save-defaults)  SAVE_DEFAULTS=y;;
         *)              usage;;
@@ -115,6 +122,7 @@ do
   *)  usage;;
  esac
 done
+shift $((OPTIND-1))
 
 if [ $SAVE_DEFAULTS = y ]; then
   set | grep '^__' > .defaults.reset-to-factory-defaults-with-root
@@ -126,6 +134,27 @@ ACTIVE="$(cat /proc/banktable/active)"
 BOOTED="$(cat /proc/banktable/booted)"
 MOUNT_PATH=$(uci get mountd.mountd.path)
 USB="$(ls $MOUNT_PATH | head -n1)"
+
+if [ $RESTORE_CONFIG = y ]; then
+  if [ -n "$USB" -a ! -e ${MOUNT_PATH}${USB}/backups/restore-config.sh ]; then
+    echo -e "${RED}ABORTING: Configuration restore requested, but ${MOUNT_PATH}${USB}/backups/restore-config.sh not found${NC}"
+    exit
+  else
+    if [ -z "$1" ]; then
+      DEVICE_SERIAL=$(uci get env.var.serial)
+      RESTORE_OVERLAY=$(ls ${MOUNT_PATH}${USB}/backups/$(uci -q get env.var.variant_friendly_name)-$DEVICE_SERIAL-*-overlay-files-backup.tgz 2>/dev/null | sort -r | head -n 1)
+      if [ -z "$RESTORE_OVERLAY" ]; then
+        echo -e "${RED}ABORTING: Configuration restore requested, but no overlay backups for serial number $DEVICE_SERIAL found!${NC}"
+        exit
+      fi
+    elif ! echo "$1" | grep -q 'overlay-files-backup.tgz$'; then
+      echo -e "${RED}ABORTING: Configuration restore requested,  $1 is not an overlay files backup!${NC}"
+      exit
+    else
+      RESTORE_OVERLAY="$(cd $(dirname $1);pwd)/$(basename $1)"
+    fi
+  fi
+fi
 
 if [ -n "$__BKUP" ]; then
   if [ -z "$USB" ]; then
@@ -196,20 +225,19 @@ fi
 if [ -n "$__KEYS" ]; then
   echo -e "NOTE:    SSH keys will be ${GREEN}restored${NC} after reset:"
   KEYS_CFG="echo 'Restoring SSH keys';echo '$(tar -czvf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
-  echo
+fi
+if [ $RESTORE_CONFIG = y ]; then
+  echo -e "${ORANGE}WARNING: Configuration backup from $RESTORE_OVERLAY will be restored to the device!${NC}"
+  RESTORE_CFG="(while [ ! -e ${MOUNT_PATH}${USB}/backups/restore-config.sh ]; do sleep 2; done; sh ${MOUNT_PATH}${USB}/backups/restore-config.sh -vvy $RESTORE_OVERLAY 2>&1 | logger -t restore-config) &"
+else
+  echo -e "${ORANGE}WARNING: You are resetting to factory defaults!${NC}"
+  echo -e "${ORANGE}         Any customisation or settings you have changed will be lost!${NC}"
+  grep -q 'tch-gui-unhide' /www/docroot/gateway.lp && echo "NOTE:    You will also need to re-run tch-gui-unhide after rebooting!"
 fi
 if [ "$__REBOOT" = "Y" ]; then
   echo -e "${ORANGE}WARNING: Device will attempt to reboot!${NC}"
 fi
 echo
-echo -e "${ORANGE}WARNING: You are resetting to factory defaults!${NC}"
-echo -e "${ORANGE}         Any customisation or settings you have changed will be lost!${NC}"
-echo
-grep -q 'tch-gui-unhide' /www/docroot/gateway.lp
-if [ $? -eq 0 ]; then
-  echo "NOTE:    You will also need to re-run tch-gui-unhide after rebooting!"
-  echo
-fi
 echo -n -e "${GREEN}ACTION:  Enter y to continue, or anything else to exit now${NC} "
 if [ $YES = N ]; then
   read
@@ -288,6 +316,7 @@ $KEYS_CFG
 /etc/init.d/dropbear restart
 $NOEXEC_CFG
 $CWMP_CFG
+$RESTORE_CFG
 rm /overlay/\$(cat /proc/banktable/booted)/etc/rc.local
 source /rom/etc/rc.local
 " > /overlay/$(cat /proc/banktable/booted)/etc/rc.local
