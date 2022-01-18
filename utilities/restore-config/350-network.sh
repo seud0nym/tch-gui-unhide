@@ -4,10 +4,10 @@ log I "Restoring network configuration..."
 LAN_IP_ADDR="$(uci get network.lan.ipaddr)"
 LAN_IP_MASK="$(uci get network.lan.netmask)"
 
-restore_file /etc/config/dhcp
-restore_file /etc/config/network
-restore_file /etc/config/wireless
-restore_file /etc/config/user_friendly_name
+for cfg in dhcp network wireless user_friendly_name; do
+  uci -q revert $cfg
+  restore_file /etc/config/$cfg
+done
 
 if [ $TEST_MODE = y ]; then
   log W "TEST MODE: Disabling Dynamic DNS..."
