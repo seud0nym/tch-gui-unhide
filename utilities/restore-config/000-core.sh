@@ -339,7 +339,7 @@ elif [ -z "$1" ]; then
   if [ -f $DFLT_OVERLAY ]; then
     OVERLAY=$DFLT_OVERLAY
   else 
-    PREV_OVERLAY=$(ls $(uci -q get env.var.variant_friendly_name)-$DEVICE_SERIAL-*-overlay-files-backup.tgz 2>/dev/null | sort | head -n 1)
+    PREV_OVERLAY=$(ls $(uci -q get env.var.variant_friendly_name)-$DEVICE_SERIAL-*-overlay-files-backup.tgz 2>/dev/null | sort -r | head -n 1)
     if [ -n "$PREV_OVERLAY" ]; then
       OVERLAY=$PREV_OVERLAY
     else
