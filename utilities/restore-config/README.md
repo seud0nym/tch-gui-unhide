@@ -8,6 +8,8 @@ It can be used to:
 - upgrade firmware without tediously re-entering all your configuration; and
 - restore configuration to a replacement device (even to a different Technicolor variant and firmware version) should a primary device fail.
 
+**A working internet connection is required on the device to be restored!**
+
 ## restore-config.sh Options
 ```
 Usage: restore-config.sh [options] <overlay-files-backup>
@@ -35,6 +37,12 @@ Options:
 ```
 
 **NOTE:** You do not need to have downloaded [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) and/or [`tch-gui-unhide`](https://github.com/seud0nym/tch-gui-unhide#readme); the restore will either locate these scripts or download them as needed.
+
+## Known Issues
+- /etc/dropbear/authorized_keys is sometimes emptied rather than replaced/updated.
+- Doesn't seem to work well when restoring a Wi-Fi Booster after a firmware upgrade.
+- The wireless back-haul for multiap does not get disabled if it was set that way in the backup.
+- Probably other things I haven't noticed.
 
 ## Examples
 
