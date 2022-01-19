@@ -228,6 +228,7 @@ if [ -n "$__KEYS" ]; then
 fi
 if [ $RESTORE_CONFIG = y ]; then
   echo -e "${ORANGE}WARNING: Configuration backup from $RESTORE_OVERLAY will be restored to the device!${NC}"
+  echo -e "${ORANGE}         The device MUST have internet access after factory reset or the configuration restore will FAIL!${NC}"
   RESTORE_CFG="(while [ ! -e ${MOUNT_PATH}${USB}/backups/restore-config.sh ]; do sleep 2; done; sh ${MOUNT_PATH}${USB}/backups/restore-config.sh -vvy $RESTORE_OVERLAY 2>&1 | logger -t restore-config) &"
 else
   echo -e "${ORANGE}WARNING: You are resetting to factory defaults!${NC}"
