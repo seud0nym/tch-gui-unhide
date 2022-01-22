@@ -307,7 +307,7 @@ local function sleases_ip_validation(value,object,_)
   end
   for _,host in pairs(proxy.getPN("uci.dhcp.host.",true)) do
     local existing = proxy.get(host.path.."ip", host.path.."mac")
-    if value == existing[1].value and object.mac ~= existing[2].value then
+    if value == existing[1].value and object.sleases_mac ~= existing[2].value then
       return nil,"IP already in use for MAC "..untaint(existing[2].value)
     end
   end
