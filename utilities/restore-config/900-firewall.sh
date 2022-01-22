@@ -23,7 +23,7 @@ uci_copy firewall userrule "" "proto"
 uci_copy firewall userrule_v6 "" "proto"
 log D " ++ Includes"
 uci_copy_by_match firewall include path enabled reload
-log D " ++ IPv4 DNS Interception"
+log D " ++ DNS Interception"
 restore_file /etc/firewall.ipset.dns6_xcptn /etc/firewall.ipset.dns_xcptn /etc/firewall.ipset.doh /etc/firewall.ipset.doh6 /etc/config/tproxy
 for cfg in dns_xcptn dns_int dns_masq dns6_xcptn tproxy dot_fwd_xcptn dot_fwd dot6_fwd_xcptn dot_fwd doh doh6 ipsets_restore doh_fwd_xcptn doh_fwd doh6_fwd doh6_fwd_xcptn doh6_fwd; do
   uci_set firewall.${cfg}.enabled
