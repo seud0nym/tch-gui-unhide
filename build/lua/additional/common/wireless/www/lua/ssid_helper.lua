@@ -39,10 +39,13 @@ function M.getSSIDList()
           end
           if ap_display_name ~= "" then
             display_ssid = ap_display_name..radio_suffix
-          elseif proxy.get(path.."stb")[1].value == "1" then
-            display_ssid = "IPTV"..radio_suffix
           else
-            display_ssid = ssid..radio_suffix
+            local stb = proxy.get(path.."stb")
+            if stb and stb[1].value == "1" then
+              display_ssid = "IPTV"..radio_suffix
+            else
+              display_ssid = ssid..radio_suffix
+            end
           end
           if values[4].value:sub(1,5) == "Guest" then
             sortby = "yyyyy"
@@ -87,10 +90,11 @@ function M.getWiFiCardHTML()
   local bs = {}
   local ap = {}
   local hidden = {}
+  local wps = {}
 
   for _,v in ipairs(proxy.getPN("uci.wireless.wifi-ap.",true)) do
     local path = v.path
-    local values = proxy.get(path.."iface",path.."bandsteer_id",path.."public")
+    local values = proxy.get(path.."iface",path.."bandsteer_id",path.."public",path.."wps_state")
     local iface = untaint(values[1].value)
     local bs_id = values[2].value
     if bs_id == "" or bs_id == "off" then
@@ -109,7 +113,18 @@ function M.getWiFiCardHTML()
     else
       hidden[iface] = ""
     end
+    if values[4].value == "1" then
+      wps[iface] = "<img src='/img/Pair_green.png' title='WPS Enabled' style='height:12px;width:20px;object-position:top;object-fit:cover;padding-left:4px;'>"
+    else
+      wps[iface] = ""
+    end
   end
+
+  local ssid_attr = {
+    span = {
+      style = "height:20px;overflow:hidden;",
+    },
+  }
 
   for i,v in ipairs(ssid_list) do
     if bs_lan == "disabled" and v.network == "lan" and bs[v.iface] == "1" then
@@ -118,14 +133,14 @@ function M.getWiFiCardHTML()
     if i <= 5 then
       local state
       if v.iface and ap[v.iface] then
-        state = format("<span class='modal-link' data-toggle='modal' data-remote='/modals/wireless-qrcode-modal.lp?iface=%s&ap=%s' data-id='wireless-qrcode-modal' title='Click to display QR Code'%s>%s</span>",v.iface,ap[v.iface],hidden[v.iface],v.ssid)
+        state = format("<span class='modal-link' data-toggle='modal' data-remote='/modals/wireless-qrcode-modal.lp?iface=%s&ap=%s' data-id='wireless-qrcode-modal' title='Click to display QR Code'%s>%s</span>%s",v.iface,ap[v.iface],hidden[v.iface],v.ssid,wps[v.iface])
       else
         state = v.ssid
       end
       if v.tx_power_adjust and v.tx_power_adjust ~= "" and v.tx_power_adjust ~= "0" then
         state = format("%s&nbsp;<span style='color:gray;font-size:xx-small;'>%s dBm</span>",state,v.tx_power_adjust)
       end
-      html[#html+1] = ui_helper.createSimpleLight(v.state or "0",state)
+      html[#html+1] = ui_helper.createSimpleLight(v.state or "0",state,ssid_attr)
     end
   end
 
