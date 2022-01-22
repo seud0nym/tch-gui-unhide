@@ -42,6 +42,7 @@ Options:
 - /etc/dropbear/authorized_keys is sometimes emptied rather than replaced/updated.
 - Doesn't seem to work well when restoring a Wi-Fi Booster after a firmware upgrade.
 - The wireless back-haul for multiap does not get disabled if it was set that way in the backup.
+- Telephony call logs are not restored.
 - Probably other things I haven't noticed.
 
 ## Examples
