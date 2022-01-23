@@ -30,7 +30,7 @@ local function getReleaseVersionDate()
 
   local curl = io.popen(release_version_cmd,"r")
   if curl then
-    local v = match(curl:read(),"^%d%d%d%d%.%d%d%.%d%d$")
+    local v = match(curl:read() or "","^%d%d%d%d%.%d%d%.%d%d$")
     curl:close()
     if v then
       release_version.date = v
