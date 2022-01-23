@@ -1,9 +1,9 @@
-local format = string.format
+local format,match = string.format,string.match
 local curl_cmd = "curl -qskL"
 local base_url = "https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master"
-local release_version_cmd = format("%s -r0-9 %s/VERSION.txt",curl_cmd,base_url)
+local release_version_cmd = format("%s -r0-9 -m5 %s/VERSION.txt",curl_cmd,base_url)
 local current_version = "" -- Set by build script
-local current_version_date = string.match(current_version,"([0-9.]+)@.*")
+local current_version_date = match(current_version,"(%d%d%d%d%.%d%d%.%d%d)@.*")
 local ignored_release_version_file = "/etc/tch-gui-unhide.ignored_release"
 
 local release_version = {
@@ -30,11 +30,12 @@ local function getReleaseVersionDate()
 
   local curl = io.popen(release_version_cmd,"r")
   if curl then
-    for v in curl:lines() do
-      release_version.date = v
-    end
+    local v = match(curl:read(),"^%d%d%d%d%.%d%d%.%d%d$")
     curl:close()
-    release_version.lastRetrieved = time
+    if v then
+      release_version.date = v
+      release_version.lastRetrieved = time
+    end
   end
 
   return release_version.date
@@ -42,7 +43,7 @@ end
 
 local function download(rel_path,filename)
   os.execute(format("logger -t tch-gui-unhide -p user.debug Downloading %s/%s%s",base_url,rel_path,filename))
-  local cmd = format("%s -o /dev/null -w '%%{http_code}' %s/%s%s",curl_cmd,base_url,rel_path,filename)
+  local cmd = format("%s -m5 -o /dev/null -w '%%{http_code}' %s/%s%s",curl_cmd,base_url,rel_path,filename)
   local response_code
   local curl,errmsg = io.popen(cmd,"r")
   if curl then
