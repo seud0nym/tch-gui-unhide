@@ -205,7 +205,7 @@ if [ "$(uci -q get firewall.dot_fwd)" != "rule" ]; then
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ "$(uci -q get firewall.dot_fwd.family)" != "" ]; then
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Removinf family configuration from firewall.dot_fwd"
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Removing family configuration from firewall.dot_fwd"
   uci -q delete firewall.dot_fwd.family
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
@@ -242,8 +242,12 @@ if [ "$(uci -q get firewall.ipsets_restore)" != "include" ]; then
   uci set firewall.ipsets_restore='include'
   uci set firewall.ipsets_restore.type='script'
   uci set firewall.ipsets_restore.path='/usr/sbin/ipsets-restore'
-  uci set firewall.ipsets_restore.reload='0'
+  uci set firewall.ipsets_restore.reload='1'
   uci set firewall.ipsets_restore.enabled='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
+if [ "$(uci -q get firewall.ipsets_restore.reload)" != "1" ]; then
+  uci set firewall.ipsets_restore.reload='1'
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ "$(uci -q get firewall.doh_fwd_xcptn)" != "rule" ]; then
