@@ -48,7 +48,6 @@ for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal
     CREATE_RULE=n
   fi
   if [ $CREATE_RULE = y ]; then
-    echo "[$SCRIPT]: - Enabling $MODAL"
     [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Creating Rule $RULE: target=/modals/$MODAL"
     uci set web.$RULE=rule
     uci set web.$RULE.target=/modals/$MODAL
@@ -76,7 +75,6 @@ for f in $(find /www/docroot/ajax -type f | grep -vE 'internet.lua|wirelesscard.
   fi
   if [ $CREATE_RULE = y ]; then
     [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Creating Rule $RULE: target=/ajax/$AJAX"
-    echo "[$SCRIPT]: - Enabling $AJAX"
     uci set web.$RULE=rule
     uci set web.$RULE.target=/ajax/$AJAX
     uci set web.$RULE.normally_hidden='1'
