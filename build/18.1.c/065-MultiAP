@@ -1,5 +1,4 @@
-if [ -f /www/docroot/booster.lp ]
-then
+if [ -f /www/docroot/booster.lp ]; then
   echo [$SCRIPT]: Importing Booster screen into advanced view
   sed \
     -e '/lp.include("header.lp")/,/lp.include("message.lp")/d' \
@@ -12,8 +11,7 @@ then
     -e 's#\(str\[2\]\)\(\\\)#\1;\2#' \
     /www/docroot/booster.lp > /www/docroot/modals/wireless-boosters-boosters-modal.lp
 fi
-if [ -f /www/docroot/boosterstatus.lp ]
-then
+if [ -f /www/docroot/boosterstatus.lp ]; then
   echo [$SCRIPT]: Importing Booster status screen into advanced view
   sed \
     -e '/lp.include("header.lp")/,/lp.include("message.lp")/d' \
@@ -26,8 +24,7 @@ then
     -e 's#lp.include("footer.lp")#ngx.print(ui_helper.createFooter())#' \
     /www/docroot/boosterstatus.lp > /www/docroot/modals/wireless-boosters-status-modal.lp
 fi
-if [ -f /www/docroot/wifidevices.lp ]
-then
+if [ -f /www/docroot/wifidevices.lp ]; then
   echo [$SCRIPT]: Importing Booster Wi-Fi devices screen into advanced view
   sed \
     -e '/lp.include("header.lp")/,/lp.include("message.lp")/d' \
@@ -38,4 +35,7 @@ then
     -e 's#lp.include("footer.lp")#ngx.print(ui_helper.createFooter())#' \
     /www/docroot/wifidevices.lp > /www/docroot/modals/wireless-boosters-devices-modal.lp
 fi
+
+echo "[$SCRIPT]: Fixing 'sh: missing ]' bug in /etc/init.d/multiap_controller"
+sed -e 's/al_mac"\]/al_mac" ]/' -i /etc/init.d/multiap_controller
 
