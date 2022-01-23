@@ -217,9 +217,7 @@ if dns_int then
               dest_ipv6 = ""
             end
           end
-          proxySet(path["Intercept-DNSv6"].."enabled",new_enabledv6)
-          proxySet(path["dns6_xcptn"].."enabled",new_enabledv6)
-          local paths = { "Allow-DoTv6","Allow-DoHv6","Deny-DoHv6","doh6" }
+          local paths = { "Intercept-DNSv6","dns6_xcptn","Allow-DoTv6","Allow-DoHv6","Deny-DoHv6","doh6" }
           for _,p in ipairs(paths) do
             proxySet(path[p].."enabled",new_enabledv6)
           end
