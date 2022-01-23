@@ -23,17 +23,20 @@ Where:
       on device variant, serial number and optionally firmware version.
 
 Options:
-  -n  Do NOT reboot after restoring the configuration.
-        This is NOT recommended.
-  -t  Enable test mode. In test mode:
-        - Wi-Fi will be disabled;
-        - Dynamic DNS will be disabled;
-        - Telephony will be disabled; and
-        - "-TEST" is appended to the hostname and browser tabs if the 
-            serial number in the backup does not match the device.
-  -v  Enable debug messages. 
-        Use twice for verbose messages.
-  -y  Bypass confirmation prompt (answers 'y')
+  -i n.n.n.n  Use LAN IP address n.n.n.n instead of the IP address in
+                the backup.
+  -n          Do NOT reboot after restoring the configuration.
+                This is NOT recommended.
+  -t          Enable test mode. In test mode:
+                - Wi-Fi will be disabled;
+                - Dynamic DNS will be disabled;
+                - Telephony will be disabled; and
+                - "-TEST" is appended to the hostname and browser tabs 
+                    if the serial number in the backup does not match
+                    the device.
+  -v          Enable debug messages. 
+                Use twice for verbose messages.
+  -y          Bypass confirmation prompt (answers 'y')
 ```
 
 **NOTE:** You do not need to have downloaded [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) and/or [`tch-gui-unhide`](https://github.com/seud0nym/tch-gui-unhide#readme); the restore will either locate these scripts or download them as needed.

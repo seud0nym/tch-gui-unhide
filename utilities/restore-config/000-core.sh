@@ -5,8 +5,8 @@ SOURCE_DIR="$(cd $(dirname $0); pwd)"
 
 usage() {
 cat <<EOH
-Restores device configuration from the overlay backup and configuration dump
-created by mtd-backup using the -c and -o options.
+Restores device configuration from the overlay backup and configuration
+dump created by mtd-backup using the -c and -o options.
 
 Usage: restore-config.sh [options] <overlay-files-backup>
 
@@ -16,20 +16,23 @@ Where:
       configuration will be restored. 
         e.g. DJA0231-CP1234S6789-20.3.c.0329-overlay-files-backup.tgz
       If not specified, it will attempt to find a backup by matching
-      on device variant, serial number and optionally firmware version.
+      on device variant, serial number and firmware version.
 
 Options:
-  -n  Do NOT reboot after restoring the configuration.
-        This is NOT recommended.
-  -t  Enable test mode. In test mode:
-        - Wi-Fi will be disabled;
-        - Dynamic DNS will be disabled;
-        - Telephony will be disabled; and
-        - "-TEST" is appended to the hostname and browser tabs if the 
-            serial number in the backup does not match the device.
-  -v  Enable debug messages. 
-        Use twice for verbose messages.
-  -y  Bypass confirmation prompt (answers 'y')
+  -i n.n.n.n  Use LAN IP address n.n.n.n instead of the IP address in
+                the backup.
+  -n          Do NOT reboot after restoring the configuration.
+                This is NOT recommended.
+  -t          Enable test mode. In test mode:
+                - Wi-Fi will be disabled;
+                - Dynamic DNS will be disabled;
+                - Telephony will be disabled; and
+                - "-TEST" is appended to the hostname and browser tabs 
+                    if the serial number in the backup does not match
+                    the device.
+  -v          Enable debug messages. 
+                Use twice for verbose messages.
+  -y          Bypass confirmation prompt (answers 'y')
 
 EOH
 exit
@@ -310,13 +313,15 @@ unlock() {
 }
 
 DEBUG=n
+IPADDR=""
 REBOOT=y
 TEST_MODE=n
 VERBOSE=n
 YES=n
 
-while getopts :ntvy option; do
+while getopts :i:ntvy option; do
   case "${option}" in
+    i)  IPADDR="${OPTARG}";;
     n)  REBOOT=n;;
     t)  TEST_MODE=y;;
     v)  [ $DEBUG = n ] && DEBUG=y || VERBOSE=y;;

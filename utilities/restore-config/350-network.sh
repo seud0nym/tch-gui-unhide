@@ -20,9 +20,17 @@ if [ $TEST_MODE = y ]; then
   uci set wireless.radio_5G.state='0'
   uci -q commit wireless
 
-  log W "TEST MODE: Retaining current LAN IPv4 Address..."
-  uci set network.lan.ipaddr="$LAN_IP_ADDR"
-  uci set network.lan.netmask="$LAN_IP_MASK"
+  if [ -z "$IPADDR" ]; then
+    log W "TEST MODE: Retaining current LAN IPv4 Address..."
+    uci set network.lan.ipaddr="$LAN_IP_ADDR"
+    uci set network.lan.netmask="$LAN_IP_MASK"
+    uci -q commit network
+  fi
+fi
+
+if [ -n "$IPADDR" ]; then
+  log I "Setting LAN IPv4 Address to $IPADDR"
+  uci set network.lan.ipaddr="$IPADDR"
   uci -q commit network
 fi
 
