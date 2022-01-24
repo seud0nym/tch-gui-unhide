@@ -44,3 +44,5 @@ if [ -n "$title" ]; then
 fi
 
 run_script tch-gui-unhide-$DEVICE_VERSION $options
+
+unset cfg options title

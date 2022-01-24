@@ -45,3 +45,5 @@ if [ -f $BANK2/etc/config/$config ]; then
   uci_set dosprotect.globals.rpfilter
   uci -q commit dosprotect
 fi
+
+unset cfg

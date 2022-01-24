@@ -13,3 +13,5 @@ cat /etc/crontabs/root | while read -r mm hh day mth wkday cmd params; do
 done > /tmp/restore-config_cron-exceptions
 grep -vwf /tmp/restore-config_cron-exceptions $BANK2/etc/crontabs/root >> /etc/crontabs/root
 rm /tmp/restore-config_cron-exceptions
+
+unset mm hh day mth wkday cmd params

@@ -10,3 +10,5 @@ for cfg in $(cat $CONFIG | gunzip | grep -E '^mmpbxrvsipnet\.[^\.]*\.password=')
   uci_set "$cfg"
 done
 uci -q commit mmpbxrvsipnet
+
+unset cfg

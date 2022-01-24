@@ -7,3 +7,5 @@ for service in $(ls -l $BANK2/etc/rc.d | grep ^c | grep -oE '[KS][0-9][0-9].*$' 
     /etc/init.d/$service disable
   fi
 done
+
+unset service

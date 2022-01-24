@@ -11,4 +11,6 @@ if [ "$DEVICE_VERSION" != "17.2" -o "$BACKUP_VERSION" != "17.2" ]; then
     done
   done
   uci -q commit qos
+
+  unset shaper device
 fi
