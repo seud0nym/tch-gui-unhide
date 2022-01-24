@@ -120,7 +120,7 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled,modalPath)
 
   html[#html+1] = ui_helper.createSimpleLight(controller_enabled,controllerStatus)
   if controller_enabled == "1" then
-    local modalLink = format('class="modal-link" data-toggle="modal" data-remote="%s" data-id="booster-modal"',modalPath)
+    local modalLink = 'class="modal-link" data-toggle="modal" data-remote="/modals/wireless-boosters-boosters-modal.lp" data-id="boosters-boosters-modal"'
     html[#html+1] = '<p class="subinfos">'
     html[#html+1] = format(N("<strong %1$s>%2$d booster</strong> found","<strong %1$s>%2$d boosters</strong> found",boosters),modalLink,boosters)
     html[#html+1] = '</p>'
