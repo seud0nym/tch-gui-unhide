@@ -28,9 +28,12 @@ Options:
                     and before reboot. If 'filename' ends with .rbi, it will be
                     unpacked first, either to an attached USB device, or /tmp if
                     no USB detected.
- -i               Keep existing IP address [$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)] after reset and
-                    reboot.
+ -i               Keep the existing LAN IP address after reset and reboot. If 
+                    specified with --restore-config, it will be passed to the 
+                    restore script and NOT applied during the initial RTFD.
  -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
+                    If specified with --restore-config, it will be passed to the 
+                    restore script and NOT applied during the initial RTFD.
  -k               Keep existing SSH keys after reset and reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
@@ -45,7 +48,8 @@ Options:
                     in the USB backups directory. Output will be written to the 
                     system log. --restore-config should be the LAST option
                     specified, and may optionally be followed by the name of
-                    the overlay backup file to be restored.
+                    the overlay backup file to be restored. Saved defaults are
+                    IGNORED when --restore-config is specified.
 
 EOH
 exit
@@ -83,41 +87,41 @@ set_defaults() {
 }
 
 set_defaults
-if [ -f .defaults.reset-to-factory-defaults-with-root ]; then
+if [ -f .defaults.reset-to-factory-defaults-with-root -a "$(echo "$*" | grep -o '\brestore-config\b')" != "restore-config" ]; then
   . ./.defaults.reset-to-factory-defaults-with-root
 fi
 
 FIRMWARE=""
-YES=N
+YES="N"
 SAVE_DEFAULTS=n
 RESTORE_CONFIG=n
+RESTORE_OPTIONS=""
 
 while getopts :bcef:iI:knp:vyU-: option
 do
  case "${option}" in
   -)  case "${OPTARG}" in
-        restore-config) RESTORE_CONFIG=y;;
+        restore-config) RESTORE_CONFIG="y"; __CWMP="Y"; __NOEXEC="Y"; __KEYS="Y"; __VERBOSE="Y";;
         no-defaults)    set_defaults;;
-        save-defaults)  SAVE_DEFAULTS=y;;
+        save-defaults)  SAVE_DEFAULTS="y";;
         *)              usage;;
       esac;;
   b)  __BKUP="Y";;
   c)  __CWMP="Y";;
   e)  __NOEXEC="Y";;
   f)  FIRMWARE="${OPTARG}";;
-  i)  __IPADDR="$(ip address show dev br-lan | grep "inet " | tr -s " " | cut -d" " -f3 | cut -d/ -f1)";;
-  I)  echo "${OPTARG}" | grep -q -E "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
-      if [ $? -eq 1 ]; then
+  i)  __IPADDR="$(uci get network.lan.ipaddr)"; [ $? -ne 0 ] && exit;;
+  I)  if  echo "${OPTARG}" | grep -q -E "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"; then
+        __IPADDR="${OPTARG}"
+      else
         echo -e "${RED}ERROR! Invalid IP address: $OPTARG${NC}"
         exit
-      else
-        __IPADDR="${OPTARG}"
       fi;;
   k)  __KEYS="Y";;
   n)  __REBOOT="N";;
   p)  __ROOTPWD="${OPTARG}";;
-  v)  __VERBOSE=Y;;
-  y)  YES=Y;;
+  v)  __VERBOSE="Y";;
+  y)  YES="Y";;
   U)  upgrade;;
   *)  usage;;
  esac
@@ -142,8 +146,8 @@ if [ $RESTORE_CONFIG = y ]; then
   else
     if [ -z "$1" ]; then
       DEVICE_SERIAL=$(uci get env.var.serial)
-      RESTORE_OVERLAY=$(ls ${MOUNT_PATH}${USB}/backups/$(uci -q get env.var.variant_friendly_name)-$DEVICE_SERIAL-*-overlay-files-backup.tgz 2>/dev/null | sort -r | head -n 1)
-      if [ -z "$RESTORE_OVERLAY" ]; then
+      RESTORE_OPTIONS=$(ls ${MOUNT_PATH}${USB}/backups/$(uci -q get env.var.variant_friendly_name)-$DEVICE_SERIAL-*-overlay-files-backup.tgz 2>/dev/null | sort -r | head -n 1)
+      if [ -z "$RESTORE_OPTIONS" ]; then
         echo -e "${RED}ABORTING: Configuration restore requested, but no overlay backups for serial number $DEVICE_SERIAL found!${NC}"
         exit
       fi
@@ -151,7 +155,11 @@ if [ $RESTORE_CONFIG = y ]; then
       echo -e "${RED}ABORTING: Configuration restore requested,  $1 is not an overlay files backup!${NC}"
       exit
     else
-      RESTORE_OVERLAY="$(cd $(dirname $1);pwd)/$(basename $1)"
+      RESTORE_OPTIONS="$(cd $(dirname $1);pwd)/$(basename $1)"
+    fi
+    if [ -n "$__IPADDR" ]; then
+      RESTORE_OPTIONS="-i $__IPADDR $RESTORE_OPTIONS"
+      __IPADDR=""
     fi
   fi
 fi
@@ -227,9 +235,10 @@ if [ -n "$__KEYS" ]; then
   KEYS_CFG="echo 'Restoring SSH keys';echo '$(tar -czvf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
 fi
 if [ $RESTORE_CONFIG = y ]; then
-  echo -e "${ORANGE}WARNING: Configuration backup from $RESTORE_OVERLAY will be restored to the device!${NC}"
+  echo -e "${ORANGE}WARNING: Configuration backup will be restored to the device using options: ${RESTORE_OPTIONS}${NC}"
   echo -e "${ORANGE}         The device MUST have internet access after factory reset or the configuration restore will FAIL!${NC}"
-  RESTORE_CFG="(while [ ! -e ${MOUNT_PATH}${USB}/backups/restore-config.sh ]; do sleep 2; done; sh ${MOUNT_PATH}${USB}/backups/restore-config.sh -vvy $RESTORE_OVERLAY 2>&1 | logger -t restore-config) &"
+
+  RESTORE_CFG="(while [ -e /etc/rc.local -a ! -e ${MOUNT_PATH}${USB}/backups/restore-config.sh ]; do sleep 2; done; sh ${MOUNT_PATH}${USB}/backups/restore-config.sh -vvy $RESTORE_OPTIONS 2>&1 | logger -t restore-config) &"
 else
   echo -e "${ORANGE}WARNING: You are resetting to factory defaults!${NC}"
   echo -e "${ORANGE}         Any customisation or settings you have changed will be lost!${NC}"
