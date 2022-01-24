@@ -373,10 +373,11 @@ fi
 
 BACKUP_DIR="$(cd $(dirname $OVERLAY); pwd)"
 
-log I "Restoring: ${OVERLAY}"
-log I "Config:    ${CONFIG}"
-log I "Test Mode: ${TEST_MODE}"
-log I "Reboot:    ${REBOOT}"
+log I "Restoring:  ${OVERLAY}"
+log I "Config:     ${CONFIG}"
+[ -n "$IPADDR" ] && log I "IP Address: ${IPADDR}"
+log I "Test Mode:  ${TEST_MODE}"
+log I "Reboot:     ${REBOOT}"
 
 if [ $YES = n ]; then
   echo -n -e "ACTION: \033[1;32mEnter y to restore, or anything else to exit now:\033[0m "
