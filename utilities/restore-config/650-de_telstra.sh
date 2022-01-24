@@ -60,7 +60,9 @@ else # 20.3.c
 fi
 [ $alg -eq 0 ] && options="${options} -an" || options="${options} -ay"
 [ -e /etc/init.d/dumaos ] && options="${options} -g$(config2yn dumaos.tr69.dumaos_enabled)"
-[ -e /etc/config/multiap ] && options="${options} -m$(config2yn multiap.agent.enabled)"
+if [ -e /etc/config/multiap -a -e $BANK2/etc/config/multiap ]; then
+  options="${options} -mu"
+fi
 [ -e /etc/config/nfc ] && options="${options} -q$(config2yn nfc.@nfc[0].enabled)"
 if grep -qE 'macoers|BoLaMN' $BANK2/etc/opkg/customfeeds.conf; then
   options="${options} -o"
@@ -79,3 +81,5 @@ else
 fi
 
 run_script de-telstra $options
+
+unset alg g key options wan_zone
