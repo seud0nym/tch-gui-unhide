@@ -48,9 +48,10 @@ local dhcpDefaultExist
 
 local hosts_mac = {}
 for k,_ in pairs(hosts_ac) do
-  local mac = match(k,"%[(.*)%]")
-  hosts_mac[#hosts_mac+1] = {mac,mac}
+  local hostname,mac = match(k,"([%w%s%p]+) %[([%x:]+)%]$")
+  hosts_mac[#hosts_mac+1] = {mac,mac.." ["..hostname.."]"}
 end
+table.sort(hosts_mac,function(k1,k2) return k1[1] < k2[1] end)
 hosts_mac[#hosts_mac+1] = {"custom",T"custom"}
 
 local dns_list = {
@@ -268,7 +269,7 @@ local sleases_columns = {
     name = "sleases_dns",
     param = "dns",
     type = "switch",
-    default = "0",
+    default = "1",
   },
   {
     header = "",
@@ -365,6 +366,14 @@ local sleases_filter = function(data)
 end
 
 local sleases_data,sleases_helpmsg = post_helper.handleTableQuery(sleases_columns,sleases_options,sleases_filter,nil,sleases_valid)
+for _,v in ipairs(sleases_data) do
+  for _,m in ipairs(hosts_mac) do
+    if v[1] == m[1] then
+      m[2] = m[1]
+      break
+    end
+  end
+end
 
 -- Tags
 local tags_columns = {
