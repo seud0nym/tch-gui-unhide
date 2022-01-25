@@ -2,13 +2,16 @@
 
 These scripts are auto-downloaded by the `restore-config.sh` script, which is automatically created in the backups directory by an execution of the [`mtd-backup`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-backup) script when both the `-c` and `-o` parameters are specified.
 
-This goes beyond the simple "dump-and-load" approach of the built-in configuration export and import. It will re-install missing packages and automatically re-run the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) and [`tch-gui-unhide`](https://github.com/seud0nym/tch-gui-unhide#readme) scripts with their original parameters. 
+This goes beyond the simple "dump-and-load" approach of the built-in configuration export and import. It will also:
+- re-install missing packages;
+- restore services status (i.e. enabled and disabled status); and
+- automatically re-run the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) and [`tch-gui-unhide`](https://github.com/seud0nym/tch-gui-unhide#readme) scripts with their original parameters.
 
 It can be used to:
 - upgrade firmware without tediously re-entering all your configuration; and
 - restore configuration to a replacement device (even to a different Technicolor variant and firmware version) should a primary device fail.
 
-**A working internet connection is required on the device to be restored!**
+**WARNING: A working internet connection is *REQUIRED* on the device to be restored!**
 
 ## restore-config.sh Options
 ```
@@ -39,7 +42,7 @@ Options:
   -y          Bypass confirmation prompt (answers 'y')
 ```
 
-**NOTE:** You do not need to have downloaded [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) and/or [`tch-gui-unhide`](https://github.com/seud0nym/tch-gui-unhide#readme); the restore will either locate these scripts or download them as needed.
+**NOTE:** You do *not* need to have downloaded [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) and/or [`tch-gui-unhide`](https://github.com/seud0nym/tch-gui-unhide#readme); the restore will either locate these scripts or download them as needed.
 
 ## Known Issues
 - /etc/dropbear/authorized_keys is sometimes emptied rather than replaced/updated.
