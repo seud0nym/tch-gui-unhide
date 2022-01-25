@@ -243,18 +243,18 @@ local sleases_columns = {
     unique = true,
   },
   {
-    header = T"IP Address",
-    name = "sleases_ip",
-    param = "ip",
-    type = "text",
-    attr = { input = { class="span2",maxlength="15",style="width:125px" },autocomplete=hosts_ac },
-  },
-  {
     header = T"Host Name" ,
     name = "sleases_name",
     param = "name",
     type = "text",
     attr = { input = { class="span2" } },
+  },
+  {
+    header = T"IP Address",
+    name = "sleases_ip",
+    param = "ip",
+    type = "text",
+    attr = { input = { class="span2",maxlength="15",style="width:125px" },autocomplete=hosts_ac },
   },
   {
     header = T"Custom DHCP Options Tag",
