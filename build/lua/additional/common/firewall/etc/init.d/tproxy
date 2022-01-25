@@ -87,10 +87,10 @@ __add_rule() { # Adds the rules as defined by the specified configuration
   # If we get here, the options were valid, so create the rules
   created=0
   for p in $proto; do
-    # Use DIVERT to prevent existing connections going through TPROXY twice
-    __exec [__add_rule] $cmd -t mangle -I PREROUTING --protocol $p -m socket -m comment --comment "!tproxy-go/$cfg" -j DIVERT && created=$(( $created + 1 ))
     # Mark all other (new) packets and use TPROXY to pass into handler
     __exec [__add_rule] $cmd -t mangle -I PREROUTING --protocol $p --dport $destPort $ipset -m comment --comment "!tproxy-go/$cfg@$destIP" -j TPROXY --on-port $listenPort --on-ip $listenIP --tproxy-mark 0x1/0x1 && created=$(( $created + 1 ))
+    # Use DIVERT to prevent existing connections going through TPROXY twice (We are INSERTing rather than ADDing rules, so we have to configure the DIVERT AFTER the TPROXY so that it ends up in the rule list FIRST!)
+    __exec [__add_rule] $cmd -t mangle -I PREROUTING --protocol $p -m socket -m comment --comment "!tproxy-go/$cfg" -j DIVERT && created=$(( $created + 1 ))
   done
 
   if [ $created -eq 2 -o $created -eq 4 ]; then
