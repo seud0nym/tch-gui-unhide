@@ -18,7 +18,13 @@ for service in $(find $BANK2/etc/init.d -type l | xargs -r -n 1 basename); do
 done
 
 log I "Restoring service status..."
-for service in $(ls -l $BANK2/etc/rc.d | grep ^c | grep -oE '[KS][0-9][0-9].*$' | cut -c4- | sort -u); do
+for service in $(find $BANK2/etc/rc.d -type l | xargs -r -n 1 basename | sed 's/^[SK][0-9][0-9]\(.*\)$/\1/' | sort -u); do
+  if [ -n "$service" -a -e /etc/init.d/$service ]; then
+    log D " -- Enabling $service service"
+    /etc/init.d/$service enable
+  fi
+done
+for service in $(find $BANK2/etc/rc.d -type c | xargs -r -n 1 basename | sed 's/^[SK][0-9][0-9]\(.*\)$/\1/' | sort -u); do
   if [ -n "$service" -a -e /etc/init.d/$service ]; then
     log D " -- Disabling $service service"
     /etc/init.d/$service disable
