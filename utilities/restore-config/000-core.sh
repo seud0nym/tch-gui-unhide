@@ -304,6 +304,7 @@ unlock() {
     log I "Restore completed at $(date +%H:%M:%S) and took $(( $(date +%s) - $STARTED )) seconds"
     if [ "$REBOOT" = "y" ]; then
       log W "Rebooting..."
+      sync
       reboot
     fi
     exit
