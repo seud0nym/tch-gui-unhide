@@ -86,16 +86,16 @@ find_scripts() {
   log D "Searching for de-telstra and tch-gui-unhide-${DEVICE_VERSION}"
   MOUNT_PATH=$(uci -q get mountd.mountd.path)
   log V " ++ Searching /tmp/ ${MOUNT_PATH}"
-  f=$(find /tmp/ $MOUNT_PATH -follow -maxdepth 2 -name de-telstra -o -name tch-gui-unhide-$DEVICE_VERSION 2>/dev/null | grep -vE 'mvfs|^/tmp/run' | xargs)
+  f=$(find /tmp/ $BANK2 $MOUNT_PATH -follow -name de-telstra -o -name tch-gui-unhide-$DEVICE_VERSION 2>/dev/null | grep -vE 'mvfs|^/tmp/run' | xargs)
   log V " == Found ${f}"
   [ -n "$f" ] && SCRIPT_DIR="$(dirname $(ls -t $f 2>/dev/null | head -n 1) 2>/dev/null)"
   [ -z "$SCRIPT_DIR" ] && SCRIPT_DIR=/tmp
   log V " >> Latest modified time is in ${SCRIPT_DIR}"
-  if [ ! -e "$SCRIPT_DIR/de-telstra" -o $(grep no-service-restart "$SCRIPT_DIR/de-telstra" | wc -l) -eq 0 ]; then
+  if [ ! -e "$SCRIPT_DIR/de-telstra" -o $(grep no-service-restart "$SCRIPT_DIR/de-telstra" 2>/dev/null | wc -l) -eq 0 ]; then
     log W "Could not locate up-to-date de-telstra. Downloading..."
     download https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/de-telstra $SCRIPT_DIR
   fi
-  if [ ! -e "$SCRIPT_DIR/tch-gui-unhide-$DEVICE_VERSION" -o $(grep no-service-restart "$SCRIPT_DIR/tch-gui-unhide-$DEVICE_VERSION" | wc -l) -eq 0 ]; then
+  if [ ! -e "$SCRIPT_DIR/tch-gui-unhide-$DEVICE_VERSION" -o $(grep no-service-restart "$SCRIPT_DIR/tch-gui-unhide-$DEVICE_VERSION" 2>/dev/null | wc -l) -eq 0 ]; then
     log W "Could not locate up-to-date tch-gui-unhide-$DEVICE_VERSION. Downloading..."
     download https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/tch-gui-unhide-$DEVICE_VERSION $SCRIPT_DIR
   fi
@@ -107,7 +107,7 @@ find_scripts() {
   log D "Searching for tch-gui-unhide customisation files"
   for c in authorized_keys ipv4-DNS-Servers ipv6-DNS-Servers; do
     log V " ++ Searching for $c in /root/ $BANK2/root/ $MOUNT_PATH"
-    f=$(find /root/ $BANK2/root/ $MOUNT_PATH -follow -maxdepth 2 -type f -name $c 2>/dev/null | xargs)
+    f=$(find /root/ $BANK2/root/ $MOUNT_PATH -follow -type f -name $c 2>/dev/null | xargs)
     if [ -n "$f" ]; then
       log V " == Found ${f}"
       f=$(ls -tr $f 2>/dev/null | head -n 1)
@@ -388,7 +388,7 @@ if [ $YES = n ]; then
   fi
 fi
 
-BASE="/tmp/restore"
+BASE="/tmp/.restore-config"
 BANK2="$BASE/bank_2"
 PREFIX_LENGTH=$(( ${#BANK2} + 1 ))
 UCI="uci -c $BANK2/etc/config"

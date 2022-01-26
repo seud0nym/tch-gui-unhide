@@ -16,8 +16,8 @@ trap "unlock" 2
 
 STARTED=$(date +%s)
 log I "Restore commenced at $(date +%H:%M:%S)"
-find_scripts
 restore_overlay_to_tmp
+find_scripts
 for EXTENSION in $(ls $SOURCE_DIR/[1-9]*.sh | sort); do
   log D "Importing $EXTENSION"
   source "$EXTENSION"
