@@ -163,7 +163,7 @@ if [ $RESTORE_CONFIG = y ]; then
     if [ ! -e "${RESTORE_OPTIONS%-overlay-files-backup.tgz}-config.gz" ]; then
       echo -e "${RED}ABORTING: $RESTORE_OPTIONS found, but ${RESTORE_OPTIONS%-overlay-files-backup.tgz}-config.gz does not exist!${NC}"
     fi
-    OVERLAY_BACKUP=$(basename $RESTORE_OPTIONS | cut -d- -f1-3)
+    OVERLAY_BACKUP="$(basename $RESTORE_OPTIONS | cut -d- -f1-3) ($(ls -l $RESTORE_OPTIONS | tr -s ' ' | cut -d' ' -f6-8))"
     if [ -n "$__IPADDR" ]; then
       RESTORE_OPTIONS="-i $__IPADDR $RESTORE_OPTIONS"
       __IPADDR=""

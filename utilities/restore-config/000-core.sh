@@ -46,7 +46,7 @@ log() {
     D|V)  colour="\033[90m";   level="DEBUG:";;
     E)    colour="\033[0;31m"; level="ERROR:";;
     I)    colour="\033[1;32m"; level="INFO: ";;
-    W)    colour="\033[1;32m"; level="WARN: ";;
+    W)    colour="\033[0;33m"; level="WARN: ";;
   esac
   [ \( "$flag" != "D" -a "$flag" != "V" \) -o \( "$flag" = "D" -a $DEBUG = y \) -o \( "$flag" = "V" -a $VERBOSE = y \) ] && echo -e "${level}  ${colour}$*\033[0m"
 }
@@ -374,8 +374,8 @@ fi
 
 BACKUP_DIR="$(cd $(dirname $OVERLAY); pwd)"
 
-log I "Restoring:  ${OVERLAY}"
-log I "Config:     ${CONFIG}"
+log I "Restoring:  ${OVERLAY} ($(ls -l ${OVERLAY} | tr -s ' ' | cut -d' ' -f6-8))"
+log I "Config:     ${CONFIG} ($(ls -l ${CONFIG} | tr -s ' ' | cut -d' ' -f6-8))"
 [ -n "$IPADDR" ] && log I "IP Address: ${IPADDR}"
 log I "Test Mode:  ${TEST_MODE}"
 log I "Reboot:     ${REBOOT}"
