@@ -1304,10 +1304,10 @@ ngx.print('\
               if cur_dhcp_intf == "lan" then
                 if dns_int_ipv4 or dns_int_ipv6 then
                   if dns_int_ipv4 and not dns_int_ipv4_ok then
-                    ngx.print(ui_helper.createAlertBlock(T("DNS Intercept is enabled, so IPv4 Primary DNS should be set to '"..dns_int_ipv4_dest_ip.."'."),warn_attr))
+                    ngx.print(ui_helper.createAlertBlock(T("DNS Hijacking is enabled, so IPv4 Primary DNS should be set to '"..dns_int_ipv4_dest_ip.."'."),warn_attr))
                   end
                   if dns_int_ipv6 and not dns_int_ipv6_ok then
-                    ngx.print(ui_helper.createAlertBlock(T("DNS Intercept is enabled, so IPv6 Primary DNS should be set to '"..dns_int_ipv6_dest_ip.."'."),warn_attr))
+                    ngx.print(ui_helper.createAlertBlock(T("DNS Hijacking is enabled, so IPv6 Primary DNS should be set to '"..dns_int_ipv6_dest_ip.."'."),warn_attr))
                   end
                 else
                   if adguard then
@@ -1353,7 +1353,7 @@ ngx.print('\
                     ngx.print(ui_helper.createSimpleInputHidden("ntpServer",""))
                   end
                   if dns_int_ipv4_ok and not helpmsg["dns_v4_pri"] and not helpmsg["dns_v4_sec"] then
-                    ngx.print(ui_helper.createLabel(T"IPv4 DNS Server","Interception enabled",advanced))
+                    ngx.print(ui_helper.createLabel(T"IPv4 DNS Server","Hijacking enabled",advanced))
                     ngx.print(ui_helper.createSimpleInputHidden("dns_v4_pri",content["dns_v4_pri"]))
                     ngx.print(ui_helper.createSimpleInputHidden("ipv4_dns_sec",content["dns_v4_sec"]))
                   else
@@ -1368,7 +1368,7 @@ ngx.print('\
                 )
                 if cur_dhcp_intf == "lan" and not adguard then
                   if dns_int_ipv6_ok and not helpmsg["dns_v6_pri"] and not helpmsg["dns_v6_sec"]  then
-                    ngx.print(ui_helper.createLabel(T"IPv6 DNS Server","Interception enabled",advanced))
+                    ngx.print(ui_helper.createLabel(T"IPv6 DNS Server","Hijacking enabled",advanced))
                     ngx.print(ui_helper.createSimpleInputHidden("dns_v6_pri",content["dns_v6_pri"]))
                     ngx.print(ui_helper.createSimpleInputHidden("dns_v6_sec",content["dns_v6_sec"]))
                   else

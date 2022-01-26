@@ -65,7 +65,7 @@ sed \
 echo [$SCRIPT]: Add transformer mapping for uci.firewall.nat.
 sed -n '/-- uci.firewall.redirect/,/MultiMap/p' /usr/share/transformer/mappings/uci/firewall.map | sed -e 's/redirect/nat/g' >> /usr/share/transformer/mappings/uci/firewall.map
 
-echo [$SCRIPT]: Checking firewall configuration for DNS interception
+echo [$SCRIPT]: Checking firewall configuration for DNS hijacking
 if [ "$(uci -q get firewall.dns_xcptn)" != "ipset" ]; then
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.dns_xcptn"
   uci set firewall.dns_xcptn='ipset'
@@ -121,7 +121,7 @@ if [ ! -e /etc/firewall.ipset.dns6_xcptn ]; then
   echo -n > /etc/firewall.ipset.dns6_xcptn
 fi
 if [ ! -e /etc/config/tproxy ]; then
-  echo [$SCRIPT]: Creating tproxy config for IPv6 DNS interception
+  echo [$SCRIPT]: Creating tproxy config for IPv6 DNS hijacking
   cat <<TPROXY > /etc/config/tproxy
 config tproxy 'config'
         option enabled '1'

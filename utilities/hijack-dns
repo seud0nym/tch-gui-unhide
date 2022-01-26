@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 
 usage() {
 cat <<EOH
-Configures DNS interception:
+Configures DNS hijacking:
  - Hijacks DNS requests to ensure that they are handled by this device,
     or by a specified DNS Server
  - Rejects DNS-over-TLS (DoT) requests over IPv4 and IPv6
@@ -19,28 +19,28 @@ Configures DNS interception:
  - Configures a scheduled weekly cron job to maintain IP Sets of known HTTPS
     DNS Servers
 
-NOTE: You can now configure DNS Interception through the user interface if
+NOTE: You can now configure DNS Hijacking through the user interface if
       tch-gui-unhide has been installed.
 
 Usage: $0 [options]
 
 Options:
- -4 y|n       Enables IPv4 DNS interception. Defaults to y if not specified.
- -6 y|n       Enables IPv6 DNS interception. Defaults to y if not specified.
+ -4 y|n       Enables IPv4 DNS hijacking. Defaults to y if not specified.
+ -6 y|n       Enables IPv6 DNS hijacking. Defaults to y if not specified.
  -d <ip_addr> The IPaddress of the local DNS Server to which DNS queries
                 will be redirected. You can specify this option twice: once 
                 for an IPv4 address and a second time for an IPv6 address.
                 If either is not specified, it defaults to the router. 
  -x <ip_addr> Exclude the specified IPv4 or IPv6 address from being 
-                intercepted. You may specify this option multiple times to 
+                hijacked. You may specify this option multiple times to 
                 exclude multiple IP addresses. The local DNS Server specified
                 with -d is automatically excluded and does not need to be 
                 re-specified with -x.
- -r           Disables DNS interception. Specify twice to remove configuration
+ -r           Disables DNS hijacking. Specify twice to remove configuration
                 and three times to remove support files. Removing the
                 configuration and support files is NOT recommended. They will
                 also be recreated automatically by tch-gui-unhide.
- --status     Shows and verifies DNS interception status
+ --status     Shows and verifies DNS hijacking status
  --fix        Only applicable with --status. Attempts to correct errors.
  -U           Download the latest version of the script and supporting files
                 from GitHub
@@ -371,7 +371,7 @@ if [ $STATUS = "y" ]; then
     state="${RED}NOT CONFIGURED${NC}"
     okay=n
   fi
-  status "IPv4 DNS Interception:" "$state"
+  status "IPv4 DNS Hijacking:" "$state"
 
   if [ "$dns_intv4" = "1" ]; then
     cfg="firewall.dns_int.dest_ip"
@@ -405,7 +405,7 @@ if [ $STATUS = "y" ]; then
     if [ "$dns_masq" = "0" ]; then
       state="${ORANGE}DISABLED${NC}"
     elif [ "$dns_intv4" = "0" ]; then
-      state="${RED}ENABLED BUT interception DISABLED${NC}"
+      state="${RED}ENABLED BUT hijacking DISABLED${NC}"
       okay=n
     else
       state="${GREEN}ENABLED${NC}"
@@ -463,7 +463,7 @@ if [ $STATUS = "y" ]; then
     state="${RED}NOT CONFIGURED${NC}"
     okay=n
   fi
-  status "IPv6 DNS Interception:" "$state"
+  status "IPv6 DNS Hijacking:" "$state"
 
   if [ "$dns_intv6" = "1" ]; then
     cfg="tproxy.dnsv6.destIP"
@@ -589,7 +589,7 @@ if [ $STATUS = "y" ]; then
   unlock normally
 fi
 
-echo -e "[$SCRIPT]${GREEN} Disabling existing DNS interception configuration${NC}"
+echo -e "[$SCRIPT]${GREEN} Disabling existing DNS hijacking configuration${NC}"
 uci -q delete firewall.doh_ipsets_restore # Used by previous version of this script
 for section in $SECTIONS; do
   if [ "$section" != "tproxy" ]; then
@@ -604,7 +604,7 @@ sed -e 's/^\([^#].*doh-ipsets-maintain\)$/#\1/' -i /etc/crontabs/root
 
 if [ $DISABLE = y ]; then
   commit_changes
-  echo -e "[$SCRIPT]${ORANGE} DNS interception DISABLED${NC}"
+  echo -e "[$SCRIPT]${ORANGE} DNS hijacking DISABLED${NC}"
   if [ $DECONFIGURE = y ]; then
     for section in $SECTIONS; do
       if [ "$section" != "tproxy" ]; then
@@ -614,7 +614,7 @@ if [ $DISABLE = y ]; then
       fi
     done
     commit_changes
-    echo -e "[$SCRIPT]${ORANGE} DNS interception configuration REMOVED${NC}"
+    echo -e "[$SCRIPT]${ORANGE} DNS hijacking configuration REMOVED${NC}"
     if [ $REMOVE = y ]; then
       echo "[$SCRIPT]  -> Deleting firewall.tproxy"
       uci -q delete firewall.tproxy
@@ -632,7 +632,7 @@ if [ $DISABLE = y ]; then
           rm $f
         fi
       done
-      echo -e "[$SCRIPT]${ORANGE} DNS interception completely REMOVED${NC}"
+      echo -e "[$SCRIPT]${ORANGE} DNS hijacking completely REMOVED${NC}"
     fi
   fi
   echo -e "[$SCRIPT]${GREEN} DONE!${NC}"
@@ -675,7 +675,7 @@ uci set firewall.tproxy.enabled='1'
 if [ "$IPv4" = "y" ]; then
   uci set firewall.dns_int.enabled='1'
   if [ -z "$IPv4_DNS" ]; then
-    echo -e "[$SCRIPT]${GREEN} Configuring IPv4 DNS Interception${NC}"
+    echo -e "[$SCRIPT]${GREEN} Configuring IPv4 DNS Hijacking${NC}"
     uci set firewall.dns_int.name='Intercept-DNS'
     uci -q delete firewall.dns_int.dest_ip
     uci -q delete firewall.dns_masq.dest_ip
@@ -721,7 +721,7 @@ if [ "$IPv6" = "y" ]; then
     echo -e "[$SCRIPT]${GREEN} Enabling IPv6 DNS Redirection to $IPv6_DNS${NC}"
     uci set tproxy.dnsv6.destIP="$IPv6_DNS"
   else
-    echo -e "[$SCRIPT]${GREEN} Enabling IPv6 DNS Interception${NC}"
+    echo -e "[$SCRIPT]${GREEN} Enabling IPv6 DNS Hijacking${NC}"
     uci -q delete tproxy.dnsv6.destIP
   fi
   echo -n > /etc/firewall.ipset.dns6_xcptn
@@ -757,5 +757,5 @@ commit_changes
 echo -e "[$SCRIPT]${GREEN} Populating ipsets as a background task${NC}"
 nohup /usr/sbin/doh-ipsets-maintain >/dev/null 2>&1 &
 
-echo -e "[$SCRIPT]${GREEN} DONE: DNS interception installed${NC}"
+echo -e "[$SCRIPT]${GREEN} DONE: DNS hijacking installed${NC}"
 unlock normally

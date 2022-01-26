@@ -238,7 +238,7 @@ if dns_int then
     end
   else
     dns_int = nil
-    message_helper.pushMessage(T"Firewall configuration for DNS interception is incomplete! Please re-run tch-gui-unhide to fix.","error")
+    message_helper.pushMessage(T"Firewall configuration for DNS hijacking is incomplete! Please re-run tch-gui-unhide to fix.","error")
   end
 end
 
@@ -258,7 +258,7 @@ if dns_int and enabledv4 == "1" then
   }
   ipv4cols = {
     {
-      header = T"IPv4 Addresses Excluded from Interception",
+      header = T"IPv4 Addresses Excluded from Hijacking",
       name = "ip",
       param = "ip",
       type = "text",
@@ -300,7 +300,7 @@ if dns_int and enabledv6 == "1" then
   }
   ipv6cols = {
     {
-      header = T"IPv6 Addresses Excluded from Interception",
+      header = T"IPv6 Addresses Excluded from Hijacking",
       name = "ip",
       param = "ip",
       type = "text",
@@ -345,7 +345,7 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
   <form class="form-horizontal" method="post" action="modals/firewall-dns_int-modal.lp">\
     ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-    ngx.print('<legend>'); ngx.print( T"DNS Interception/Hijacking" ); ngx.print('</legend>');
+    ngx.print('<legend>'); ngx.print( T"DNS Hijacking" ); ngx.print('</legend>');
     ngx.print('<legend><small>'); ngx.print( T"IPv4" ); ngx.print('</small></legend>');
     local enabled_attr = {
       input = {
@@ -371,7 +371,7 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
       }
     }
     ngx.print(ui_helper.createSwitch(T"Enabled","enabledv4",enabledv4,enabled_attr))
-    ngx.print(ui_helper.createInputText(T"DNS Server Address<span class='icon-question-sign' title='IPv4 address of the DNS server to which intercepted requests will be sent. Leave blank to have this device handle IPv4 DNS.'></span>","dest_ipv4",dest_ipv4,monitor_attr,helpmsg["dest_ipv4"]))
+    ngx.print(ui_helper.createInputText(T"DNS Server Address<span class='icon-question-sign' title='IPv4 address of the DNS server to which hijacked requests will be sent. Leave blank to have this device handle IPv4 DNS.'></span>","dest_ipv4",dest_ipv4,monitor_attr,helpmsg["dest_ipv4"]))
     if dns_int and enabledv4 == "1" then
       ngx.print(
         '<div class="control-group monitor-enabledv4 monitor-1 monitor-show-enabledv4" style="display; block">',
@@ -382,7 +382,7 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
     end
     ngx.print('<legend><small>'); ngx.print( T"IPv6" ); ngx.print('</small></legend>');
     ngx.print(ui_helper.createSwitch(T"Enabled","enabledv6",enabledv6,enabled_attr))
-    ngx.print(ui_helper.createInputText(T"DNS Server Address<span class='icon-question-sign' title='IPv6 address of the DNS server to which intercepted requests will be sent. Leave blank to have this device handle IPv6 DNS.'></span>","dest_ipv6",dest_ipv6,monitor6_attr,helpmsg["dest_ipv6"]))
+    ngx.print(ui_helper.createInputText(T"DNS Server Address<span class='icon-question-sign' title='IPv6 address of the DNS server to which hijacked requests will be sent. Leave blank to have this device handle IPv6 DNS.'></span>","dest_ipv6",dest_ipv6,monitor6_attr,helpmsg["dest_ipv6"]))
     if dns_int and enabledv6 == "1" then
       ngx.print(ui_helper.createSwitch(T"Verbose Logging","verbose",content["verbose"],monitor6_attr,vhelpmsg["verbose"]))
       ngx.print(

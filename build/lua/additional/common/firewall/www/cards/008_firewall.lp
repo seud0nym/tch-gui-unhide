@@ -141,7 +141,7 @@ if session:hasAccess("/modals/firewall-modal.lp") then
           dns_int_family = ""
         end
 
-        html[#html+1] = ui_helper.createSimpleLight(dns_int_state,T(format("<span %s>%s DNS Intercept %s</span>",dns_int_modal_link,dns_int_family,dns_int_text)))
+        html[#html+1] = ui_helper.createSimpleLight(dns_int_state,T(format("<span %s>%s DNS Hijacking %s</span>",dns_int_modal_link,dns_int_family,dns_int_text)))
         html[#html+1] = "<br>"
 
         ngx.print(html)

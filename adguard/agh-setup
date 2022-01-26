@@ -49,7 +49,7 @@ options:
                                 will FAIL to download filters
                   -xg   Do not get the latest version of AdGuard Home if it has
                           already been downloaded
-                  -xi   Do not enable DNS hijacking/interception
+                  -xi   Do not enable DNS hijacking
                   -xu   Do not download utility scripts
                   -xy   Do not replace an existing AdGuard Home Configuration
                           file (no effect if the .yaml file does not exist)
@@ -83,7 +83,7 @@ CA_CERT=Y
 DEL_AGH=Y
 AGH_DHCP=true
 DOWNLOAD=Y
-INTERCEPTION=Y
+HIJACKING=Y
 UTILITIES=Y
 EXTERNAL=Y
 REMOVE=N
@@ -106,10 +106,10 @@ do
   x)  case "$OPTARG" in
         c)  CA_CERT=N;;
         g)  DOWNLOAD=N;;
-        i)  INTERCEPTION=N;;
+        i)  HIJACKING=N;;
         u)  UTILITIES=N;;
         y)  OVERWRITE=N;;
-        x)  CA_CERT=N;DOWNLOAD=N;INTERCEPTION=N;UTILITIES=N;OVERWRITE=N;;
+        x)  CA_CERT=N;DOWNLOAD=N;HIJACKING=N;UTILITIES=N;OVERWRITE=N;;
         *)  echo -e "${RED}[$SCRIPT] Unknown -x$OPTARG option! Aborting...${NC}"; exit 2;;
       esac;;
   *)  usage;;
@@ -384,15 +384,15 @@ if [ -z "$PWD_HASH" -a -n "$PASSWORD" ]; then
   fi
 fi
 
-if [ $INTERCEPTION = Y ]; then
-  echo -e "${GREEN}[$SCRIPT] Downlading latest version of intercept-dns...${NC}"
-  curl -kL -o /tmp/intercept-dns https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/intercept-dns
+if [ $HIJACKING = Y ]; then
+  echo -e "${GREEN}[$SCRIPT] Downlading latest version of hijack-dns...${NC}"
+  curl -kL -o /tmp/hijack-dns https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/hijack-dns
   if [ $? -eq 0 ]
   then
-    chmod +x /tmp/intercept-dns
-    echo "[$SCRIPT] Successfully downloaded intercept-dns."
+    chmod +x /tmp/hijack-dns
+    echo "[$SCRIPT] Successfully downloaded hijack-dns."
   else
-    echo -e "${RED}[$SCRIPT] Failed to download intercept-dns! Aborting...${NC}"
+    echo -e "${RED}[$SCRIPT] Failed to download hijack-dns! Aborting...${NC}"
     exit 2
   fi
 fi
@@ -790,10 +790,10 @@ fi
 echo -e "${GREEN}[$SCRIPT] Installing AdGuard Home...${NC}"
 AdGuardHome/AdGuardHome -s install -c $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml -w $WORKING_DIR
 
-if [ $INTERCEPTION = Y ]; then
-  echo -e "${GREEN}[$SCRIPT] Running intercept-dns...${NC}"
-  sh /tmp/intercept-dns -d $IPv4
-  rm /tmp/intercept-dns
+if [ $HIJACKING = Y ]; then
+  echo -e "${GREEN}[$SCRIPT] Running hijack-dns...${NC}"
+  sh /tmp/hijack-dns -d $IPv4
+  rm /tmp/hijack-dns
 fi
 
 echo -e "${GREEN}[$SCRIPT] Checking AdGuard Home status...${NC}"
