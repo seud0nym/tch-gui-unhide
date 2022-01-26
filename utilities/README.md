@@ -78,26 +78,26 @@ Options:
  -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
  -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
  -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
+ -i u|y|n              Intercept Daemon:        u=unchanged y=Enable n=Disable
  -m u|y|n            * MultiAP (EasyMesh):      u=unchanged y=Enable n=Disable
  -p u|y|n|d          ! Power Saving:            u=unchanged y=Enable n=Disable d=Default
  -q u|y|n            * NFC:                     u=unchanged y=Enable n=Disable
  -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
- -s u|b|d|n            WAN Supervision:         u=unchanged b=BFD d=DNS n=Disable 
+ -s u|b|d|n            WAN Supervision:         u=unchanged b=BFD d=DNS n=Disable
  -t u|y|n              Telephony:               u=unchanged y=Enable n=Disable
  -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
  -w u|y|n              WPS:                     u=unchanged y=Enable n=Disable
                          (on non-Guest and non-Backhaul SSIDs)
  -F u|y|n              RTFD root protection:    u=unchanged y=Enable n=Disable
-                        NOTE: tch-gui-unhide will ALWAYS enable RTFD protection
- -A                    Equivalent to: -hd -dg -an -cn -fn -rn -sd -un -wn -Fy
- -S                    Equivalent to: -hs -dg -an -cn -fn -rn -sd -un -wn -Fy
+                         NOTE: tch-gui-unhide will ALWAYS enable RTFD protection
+ -A                    Equivalent to: -hd -dg -an -cn -fn -in -rn -sd -un -wn -Fy
+ -S                    Equivalent to: -hs -dg -an -cn -fn -in -rn -sd -un -wn -Fy
  -M                    Minimum memory mode: Equivalent to:
-                           -an -cn -fn -rn -tn -en -un -mn -gn -qn -Fy
+                           -an -cn -fn -in -rn -tn -en -un -mn -gn -qn -Fy
                          PLUS stops and disables the associated services
- -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and
-                         guest networks
+ -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks
  -R                    Reset to device defaults: Equivalent to:
-                         -hmymodem -dmodem -na -ay -cy -fy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn -sb
+                         -hmymodem -dmodem -na -ay -cy -fy -iy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn -sb
  -o                    Configures opkg
  -U                    Download the latest version of de-telstra from GitHub
  -y                    Bypass the confirmation prompt (answers 'y')
