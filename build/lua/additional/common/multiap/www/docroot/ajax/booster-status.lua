@@ -9,7 +9,7 @@ local content = {
 
 content_helper.getExactContent(content)
 
-local html = booster_helper.getBoosterCardHTML(content.agent_enabled,content.controller_enabled,"/modals/wireless-boosters-modal.lp")
+local html = booster_helper.getBoosterCardHTML(content.agent_enabled,content.controller_enabled)
 
 local data = {
   html = table.concat(html,"\n"),

@@ -68,7 +68,7 @@ function M.getSSIDList()
   return credentials,synced
 end
 
-function M.getBoosterCardHTML(agent_enabled,controller_enabled,modalPath)
+function M.getBoosterCardHTML(agent_enabled,controller_enabled)
   local content = {
     state5g = "uci.wireless.wifi-device.@radio_5G.state",
   }
@@ -80,10 +80,17 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled,modalPath)
     content["wl1_2ssid"] = "uci.wireless.wifi-iface.@wl1_2.ssid"
   end
 
+  local bandlock = proxy.get("uci.multiap.bandlock.supported")
+  if bandlock and bandlock[1].value == "1" then
+    bandlock = "1"
+    content["bandlock"] = "uci.multiap.bandlock.active"
+  end
+
   content_helper.getExactContent(content)
 
   local agentStatus,controllerStatus
   local backhaulStatus = nil
+  local bandlockStatus = nil
   local boosters = 0
 
   if agent_enabled == "1" then
@@ -114,6 +121,13 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled,modalPath)
       backhaulStatus = T(format(pattern,content["wl1_2ssid"],"(5G)","enabled"))
     end
   end
+  if bandlock == "1" and content["bandlock"] then
+    if content["bandlock"] == "1" then
+      bandlockStatus = "Band Lock Active"
+    else
+      bandlockStatus = "Band Lock Inactive"
+    end
+  end
 
   local ssids,synced = M.getSSIDList()
   local html = {}
@@ -133,6 +147,9 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled,modalPath)
   end
   if backhaulStatus then
     html[#html+1] = ui_helper.createSimpleLight(content["apstate"],backhaulStatus)
+  end
+  if bandlockStatus then
+    html[#html+1] = ui_helper.createSimpleLight(content["bandlock"],bandlockStatus)
   end
 
   return html
