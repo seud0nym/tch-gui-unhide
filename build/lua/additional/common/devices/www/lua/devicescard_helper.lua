@@ -3,7 +3,7 @@ local content_helper = require("web.content_helper")
 local format = string.format
 local tonumber = tonumber
 
-local modal_link='class="modal-link" data-toggle="modal" data-remote="modals/device-modal.lp" data-id="device-modal"'
+local device_modal_link='class="modal-link" data-toggle="modal" data-remote="modals/device-modal.lp" data-id="device-modal"'
 
 local M = {}
 
@@ -39,16 +39,16 @@ function M.getDevicesCardHTML(all)
 
   html[#html+1] = '<span class="simple-desc">'
   html[#html+1] = '<i class="icon-link status-icon"></i>'
-  html[#html+1] = format(N('<strong %1$s>%2$d ethernet device</strong> connected','<strong %1$s>%2$d ethernet devices</strong> connected',nEth),modal_link,nEth)
+  html[#html+1] = format(N('<strong %1$s>%2$d ethernet device</strong> connected','<strong %1$s>%2$d ethernet devices</strong> connected',nEth),device_modal_link,nEth)
   html[#html+1] = '</span>'
   html[#html+1] = '<span class="simple-desc">'
   html[#html+1] = '<i class="icon-wifi status-icon"></i>'
-  html[#html+1] = format(N('<strong %1$s>%2$d Wi-Fi device</strong> connected','<strong %1$s>%2$d Wi-Fi devices</strong> connected',nWiFi),modal_link,nWiFi)
+  html[#html+1] = format(N('<strong %1$s>%2$d Wi-Fi device</strong> connected','<strong %1$s>%2$d Wi-Fi devices</strong> connected',nWiFi),device_modal_link,nWiFi)
   html[#html+1] = '</span>'
   if multiap then
     html[#html+1] = '<span class="simple-desc">'
     html[#html+1] = '<i class="icon-sitemap status-icon"></i>'
-    html[#html+1] = format(N('<strong %1$s>%2$d Wi-Fi device</strong> booster connected','<strong %1$s>%2$d Wi-Fi devices</strong> booster connected',nAgtDevices),modal_link,nAgtDevices)
+    html[#html+1] = format(N('<strong %1$s>%2$d Wi-Fi device</strong> booster connected','<strong %1$s>%2$d Wi-Fi devices</strong> booster connected',nAgtDevices),device_modal_link,nAgtDevices)
     html[#html+1] = '</span>'
   end
 
