@@ -79,7 +79,12 @@ Options:
  -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
  -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
  -i u|y|n              Intercept Daemon:        u=unchanged y=Enable n=Disable
- -m u|y|n            * MultiAP (EasyMesh):      u=unchanged y=Enable n=Disable
+ -m u|a|b|c|v|y|n    * MultiAP (EasyMesh):      u=unchanged a=Enable Agent
+                                                            b=Enable BackHaul SSID
+                                                            c=Enable Controller 
+                                                            v=Enable Vendor Extensions
+                                                            y=same as -ma -mb -mc -mv
+                                                            n=Disable
  -p u|y|n|d          ! Power Saving:            u=unchanged y=Enable n=Disable d=Default
  -q u|y|n            * NFC:                     u=unchanged y=Enable n=Disable
  -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable

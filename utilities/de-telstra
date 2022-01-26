@@ -55,7 +55,12 @@ Options:
  -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
  -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
  -i u|y|n              Intercept Daemon:        u=unchanged y=Enable n=Disable
- -m u|y|n            * MultiAP (EasyMesh):      u=unchanged y=Enable n=Disable
+ -m u|a|b|c|v|y|n    * MultiAP (EasyMesh):      u=unchanged a=Enable Agent
+                                                            b=Enable BackHaul SSID
+                                                            c=Enable Controller 
+                                                            v=Enable Vendor Extensions
+                                                            y=same as -ma -mb -mc -mv
+                                                            n=Disable
  -p u|y|n|d          ! Power Saving:            u=unchanged y=Enable n=Disable d=Default
  -q u|y|n            * NFC:                     u=unchanged y=Enable n=Disable
  -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
@@ -130,7 +135,10 @@ set_defaults() {
   __INTERCEPT='u'
   __LITE='n'
   __MMPBX='u'
-  __MULTIAP='u'
+  __MULTIAP_AGT='u'
+  __MULTIAP_BKH='u'
+  __MULTIAP_CTL='u'
+  __MULTIAP_VND='u'
   __NFC='u'
   __NS='u'
   __OPKG='n'
@@ -184,7 +192,7 @@ while getopts :a:b:c:d:e:f:g:h:i:k:m:n:op:q:r:s:t:u:w:yAF:GMO:RSU-: option; do
   h)  __HOST=${OPTARG};;
   i)  case "${OPTARG}" in y) __INTERCEPT='1';; n) __INTERCEPT='0';; u) __INTERCEPT='u';; *) echo 'ERROR: -i valid options are y, n, or u'; exit 1;; esac;;
   k)  case "${OPTARG}" in a) __AIR='y';; c) __CWMP='y';; k) __KEYS='y';; l) __LTE='y';; m) __MONITORING='y';; n) __NTP='y';; q) __QoS='y';; s) __SUPERVISION='BFD';; x) __NOEXEC='y';; T) __LTE='y'; __KEYS='y'; __CWMP='y'; __MONITORING='y'; __AIR='y'; __NTP='y'; __QoS='y'; __SUPERVISION='BFD'; __NOEXEC='y';; *) echo "ERROR: Unknown override option $OPTARG"; exit 1;; esac;;
-  m)  case "${OPTARG}" in y) __MULTIAP='1';; n) __MULTIAP='0';; u) __MULTIAP='u';; *) echo 'ERROR: -m valid options are y, n, or u'; exit 1;; esac;;
+  m)  case "${OPTARG}" in a) __MULTIAP_AGT='1';; b) __MULTIAP_BKH='1';; c) __MULTIAP_CTL='1';; v) __MULTIAP_VND='1';; y) __MULTIAP_AGT='1'; __MULTIAP_BKH='1'; __MULTIAP_CTL='1'; __MULTIAP_VND='1';; n) __MULTIAP_AGT='0'; __MULTIAP_BKH='0'; __MULTIAP_CTL='0'; __MULTIAP_VND='0';; u) __MULTIAP_AGT='u'; __MULTIAP_BKH='u'; __MULTIAP_CTL='u'; __MULTIAP_VND='u';; *) echo 'ERROR: -m valid options are a, b, c, v, y, n, or u'; exit 1;; esac;;
   n)  __NS=${OPTARG};;
   o)  __OPKG='y';;
   p)  case "${OPTARG}" in y) __POWER='y';; n) __POWER='n';; u) __POWER='u';; d) __POWER='d';; *) echo 'ERROR: -p valid options are y, n, u or d'; exit 1;; esac;;
@@ -198,9 +206,9 @@ while getopts :a:b:c:d:e:f:g:h:i:k:m:n:op:q:r:s:t:u:w:yAF:GMO:RSU-: option; do
   A)  __HOST='d'; __DOMAIN='gateway'; __ALG='0'; __DLNAD='0'; __SAMBA='0'; __PRNTR='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1'; __SUPERVISION='DNS'; __INTERCEPT='0';;
   F)  case "${OPTARG}" in y) __ROOT_PROTECT='1';; n) __ROOT_PROTECT='0';; u) __ROOT_PROTECT='u';; *) echo 'ERROR: -F valid options are y, n, or u'; exit 1;; esac;;
   G)  __GUEST='y';;
-  M)  __LITE='y'; __ALG='0'; __DECT='0'; __DLNAD='0'; __DUMAOS='0'; __INTERCEPT='0' __MMPBX='0'; __MULTIAP='0'; __NFC='0'; __PRNTR='0'; __SAMBA='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1';;
+  M)  __LITE='y'; __ALG='0'; __DECT='0'; __DLNAD='0'; __DUMAOS='0'; __INTERCEPT='0' __MMPBX='0'; __MULTIAP_AGT='0'; __MULTIAP_BKH='0'; __MULTIAP_CTL='0'; __NFC='0'; __PRNTR='0'; __SAMBA='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1';;
   O)  case "${OPTARG}" in 17|18|19) __REPO=$OPTARG;; *) echo 'ERROR: -O valid options are 17, 18 or 19'; exit 1;; esac;;
-  R)  __LITE='R'; __HOST='mymodem'; __DOMAIN='modem'; __NS='a'; __ALG='1'; __DLNAD='1'; __DUMAOS='0'; __SAMBA='1'; __MULTIAP='1'; __POWER='d'; __PRNTR='1'; __MMPBX='1'; __DECT='1'; __UPNP='1'; __ROOT_PROTECT='0'; __NFC='y'; __SUPERVISION='BFD'; __INTERCEPT='1';;
+  R)  __LITE='R'; __HOST='mymodem'; __DOMAIN='modem'; __NS='a'; __ALG='1'; __DLNAD='1'; __DUMAOS='0'; __SAMBA='1'; __MULTIAP_AGT='1'; __MULTIAP_BKH='1'; __MULTIAP_CTL='1'; __POWER='d'; __PRNTR='1'; __MMPBX='1'; __DECT='1'; __UPNP='1'; __ROOT_PROTECT='0'; __NFC='y'; __SUPERVISION='BFD'; __INTERCEPT='1';;
   S)  __HOST='s'; __DOMAIN='gateway'; __ALG='0'; __DLNAD='0'; __SAMBA='0'; __PRNTR='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1'; __SUPERVISION='DNS'; __INTERCEPT='0';;
   U)  upgrade;;
   ?)  usage;;
@@ -264,7 +272,16 @@ show_default() {
   case "$3" in
     u) _DFLT=Unchanged;;
     0) _DFLT=Disabled;;
-    1) _DFLT=Enabled;;
+    1) if [ "$1" = "m" ]; then 
+        case "$2" in
+          *Agen*) _OPT="ma";;
+          *Back*) _OPT="mb";;
+          *Cont*) _OPT="mc";;
+          *Vend*) _OPT="mv";;
+        esac
+       fi
+       _DFLT=Enabled
+       ;;
     y) _DFLT=Yes;;
     n) _DFLT=No;;
     d) _DFLT="System Default";;
@@ -321,7 +338,10 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y -o $__YES = n ]; then
   show_default "f"  "File Sharing" $__SAMBA
   [ $SRV_dumaos -ge 0 ] && show_default "g"  "DumaOS (Game Optimiser)" $__DUMAOS
   show_default "i"  "Intercept Daemon" $__INTERCEPT
-  [ $SRV_multiap -ge 0 ] && show_default "m"  "MultiAP (EasyMesh)" $__MULTIAP
+  [ $SRV_multiap -ge 0 ] && show_default "m"  "MultiAP (EasyMesh) Agent" $__MULTIAP_AGT
+  [ $SRV_multiap -ge 0 ] && show_default "m"  "MultiAP (EasyMesh) Controller" $__MULTIAP_CTL
+  [ $SRV_multiap -ge 0 ] && show_default "m"  "MultiAP (EasyMesh) BackHaul SSID" $__MULTIAP_BKH
+  [ $SRV_multiap -ge 0 ] && show_default "m"  "MultiAP (EasyMesh) Vendor Extensions" $__MULTIAP_VND
   show_default "p"  "Power Saving" $__POWER
   [ $SRV_nfc -ge 0 ] && show_default "q"  "NFC" $__NFC
   show_default "r"  "Printer Sharing" $__PRNTR
@@ -1085,24 +1105,25 @@ if [ $SRV_multiap -ge 0 ]; then
   VNDRX_NOW="$(uci -q get vendorextensions.multiap_vendorextensions.enable)"
   BHAUL_AP_NOW="$(uci -q get wireless.$BHAUL_AP.state)"
   BHAUL_IF_NOW="$(uci -q get wireless.wl1_2.state)"
-  if [ "$__MULTIAP" = "u" -o \( "$AGENT_NOW" = "$__MULTIAP" -a "$CTRLR_NOW" = "$__MULTIAP" -a "$VNDRX_NOW" = "$__MULTIAP" -a "$BHAUL_AP_NOW" = "$__MULTIAP" -a "$BHAUL_IF_NOW" = "$__MULTIAP" \) ]; then
+  if [ \( "$__MULTIAP_AGT" = "u" -a "$__MULTIAP_BKH" = "u" -a "$__MULTIAP_CTL" = "u" -a "$__MULTIAP_VND" = "u" \) -o \( "$AGENT_NOW" = "$__MULTIAP_AGT" -a "$CTRLR_NOW" = "$__MULTIAP_CTL" -a "$VNDRX_NOW" = "$__MULTIAP_VND" -a "$BHAUL_AP_NOW" = "$__MULTIAP_BKH" -a "$BHAUL_IF_NOW" = "$__MULTIAP_BKH" \) ]; then
     echo [$SCRIPT]: MultiAP unchanged \[Controller: $(status2text $CTRLR_NOW) Agent: $(status2text $AGENT_NOW) Vendor Extensions: $(status2text $VNDRX_NOW) BackHaul SSID: $(status2text $BHAUL_IF_NOW)\]
   else
-    uci set multiap.agent.enabled="$__MULTIAP"
-    uci set multiap.controller.enabled="$__MULTIAP"
-    uci commit multiap
-    SRV_multiap=$(( $SRV_multiap + 2 ))
-    uci set vendorextensions.multiap_vendorextensions.enable="$__MULTIAP"
-    SRV_multiap=$(( $SRV_multiap + 1 ))
-    uci set wireless.$BHAUL_AP.state="$__MULTIAP"
-    uci set wireless.wl1_2.state="$__MULTIAP"
-    SRV_hostapd=$(( $SRV_hostapd + 2 ))
-    SRV_network=$(( $SRV_network + 1 ))
-    uci commit wireless
-    echo [$SCRIPT]: MultiAP $(status2text $__MULTIAP)
+    [ "$__MULTIAP_AGT" != "u" ] && { uci set multiap.agent.enabled="$__MULTIAP_AGT"; SRV_multiap=$(( $SRV_multiap + 1 )); }
+    [ "$__MULTIAP_CTL" != "u" ] && { uci set multiap.controller.enabled="$__MULTIAP_CTL"; SRV_multiap=$(( $SRV_multiap + 1 )); }
+    [ $SRV_multiap -gt 0 ] && uci commit multiap
+    [ "$__MULTIAP_VND" != "u" ] && { uci set vendorextensions.multiap_vendorextensions.enable="$__MULTIAP_VND"; SRV_multiap=$(( $SRV_multiap + 1 )); }
+    if [ "$__MULTIAP_BKH" != "u" ]; then
+      uci set wireless.$BHAUL_AP.state="$__MULTIAP_BKH"
+      uci set wireless.wl1_2.state="$__MULTIAP_BKH"
+      SRV_hostapd=$(( $SRV_hostapd + 2 ))
+      SRV_network=$(( $SRV_network + 1 ))
+      uci commit wireless
+    fi
+    echo [$SCRIPT]: MultiAP Agent $(status2text $__MULTIAP_AGT)
+    echo [$SCRIPT]: MultiAP Controller $(status2text $__MULTIAP_CTL)
+    echo [$SCRIPT]: MultiAP BackHaul SSID $(status2text $__MULTIAP_BKH)
+    echo [$SCRIPT]: MultiAP Vendor Extensions $(status2text $__MULTIAP_VND)
   fi
-elif [ "$__MULTIAP" != "u" ]; then
-  echo [$SCRIPT]: MultiAP not found on device
 fi
 
 if [ $SRV_nfc -ge 0 ]; then
