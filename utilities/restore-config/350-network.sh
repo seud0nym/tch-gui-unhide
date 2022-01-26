@@ -9,6 +9,11 @@ for cfg in dhcp network wireless user_friendly_name; do
   restore_file /etc/config/$cfg
 done
 
+log I "Configuring intercept daemon..."
+uci -q revert intercept
+uci_set intercept.config.enabled
+uci -q commit intercept
+
 if [ $TEST_MODE = y ]; then
   log W "TEST MODE: Disabling Dynamic DNS..."
   uci set ddns.myddns_ipv4.enabled='0'
