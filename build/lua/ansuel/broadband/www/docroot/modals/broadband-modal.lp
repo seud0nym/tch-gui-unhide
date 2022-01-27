@@ -87,7 +87,7 @@ if not tabdata.current.ajax then
         }
         local wsensswitchclass = {
           input = {
-            class = "monitor-changes",
+            class = "monitor-changes save",
           },
         }
         local mode_button = {
