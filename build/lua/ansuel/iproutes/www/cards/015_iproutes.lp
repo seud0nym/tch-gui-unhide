@@ -10,8 +10,8 @@ local session = ngx.ctx.session
 local modalPath = "/modals/iproutes-modal.lp"
 
 if session:hasAccess(modalPath) then
-  local bridge_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/bridge-grouping-modal.lp" data-id="dns-modal"'
-  local routes_modal_link = format('class="modal-link" data-toggle="modal" data-remote="%s" data-id="device-modal"',modalPath)
+  local bridge_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/bridge-grouping-modal.lp" data-id="bridge-grouping-modal"'
+  local routes_modal_link = format('class="modal-link" data-toggle="modal" data-remote="%s" data-id="routes-modal"',modalPath)
 
   local dyn_count = proxy.getPN("sys.class.iproutes.",true)
   dyn_count = dyn_count and #dyn_count or 0
@@ -30,7 +30,7 @@ if session:hasAccess(modalPath) then
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ');  ngx.print( ui_helper.createCardHeader(T"IP Routing","/modals/iproutes-modal.lp") ); ngx.print('\
+    ');  ngx.print( ui_helper.createCardHeader(T"IP Routing",modalPath) ); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf018;">\
       <span class="simple-desc">\
         <i href="#">&nbsp</i>\
