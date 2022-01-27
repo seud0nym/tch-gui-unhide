@@ -1,43 +1,35 @@
+local dns_helper = require("dns_helper")
 local json = require("dkjson")
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
-local format,match = string.format,string.match
+local format = string.format
 local tinsert = table.insert
 local split = require("split").split
 
+local dnsmasq_path = dns_helper.dnsmasq_path
 local dnsmasq_enabled = "0"
 local dnsmasq_status = "Custom DNS disabled"
 local dns_servers = {}
 local rewrites_count = 0
-local noresolv = "0"
 
-for _,dnsmidx in pairs(proxy.getPN("uci.dhcp.dnsmasq.",true)) do
-  local path = dnsmidx.path
-  for _,dnsmif in pairs(proxy.get(path.."interface.")) do
-    if dnsmif.value == "lan" then
-      noresolv = proxy.get(path.."noresolv")[1].value
-      local disabled = proxy.get(path.."disabled")
-      if not disabled or disabled[1].value == "0" then
-        dnsmasq_enabled = "1"
-        dnsmasq_status = "Custom DNS enabled"
-        local addresses = proxy.getPN(path.."address.",true)
-        rewrites_count = #addresses
-        local at = 1
-        for _,dnsmsrvr in pairs(proxy.get(path.."server.")) do
-          local server = untaint(dnsmsrvr.value)
-          local domain,ip = match(server,"/([^/]+)/(.+)")
-          if not domain or not ip then
-            tinsert(dns_servers,at,server)
-          else
-            tinsert(dns_servers,1,format("%s&rarr;%s",domain,ip))
-            at = at + 1
-          end
-        end
-      end
-      break
+local noresolv = proxy.get(dnsmasq_path.."noresolv")[1].value
+local disabled = proxy.get(dnsmasq_path.."disabled")
+if not disabled or disabled[1].value == "0" then
+  dnsmasq_enabled = "1"
+  dnsmasq_status = "Custom DNS enabled"
+  local addresses = proxy.getPN(dnsmasq_path.."address.",true)
+  rewrites_count = #addresses
+  local at = 1
+  for _,dnsmsrvr in pairs(proxy.get(dnsmasq_path.."server.")) do
+    local domain,ip = dns_helper.toDomainAndIP(dnsmsrvr.value)
+    if not domain then
+      tinsert(dns_servers,at,ip)
+    else
+      tinsert(dns_servers,1,format("%s&rarr;%s",domain,ip))
+      at = at + 1
     end
   end
 end
@@ -67,11 +59,14 @@ if #dns_servers == 0 or noresolv ~= "1" then
   end
 end
 
+local dns_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dns-modal.lp" data-id="dns-modal"'
+local rewrites_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dns-rewrites-modal.lp" data-id="dns-rewrites-modal"'
+
 local html = {}
 
 html[#html+1] = ui_helper.createSimpleLight(dnsmasq_enabled,dnsmasq_status)
 html[#html+1] = '<span class="simple-desc"><i>&nbsp</i>'
-html[#html+1] = format(N('<strong>%d</strong><span> DNS Server:</span>','<strong>%d</strong><span> DNS Servers:</span>',#dns_servers),#dns_servers)
+html[#html+1] = format(N('<strong %s>%d</strong><span %s> DNS Server:</span>','<strong %s>%d</strong><span %s> DNS Servers:</span>',#dns_servers),dns_modal_link,#dns_servers,dns_modal_link)
 html[#html+1] = '</span><p class="subinfos" style="letter-spacing:-1px;font-size:12px;font-weight:bold;">'
 local max_show = 4
 for i,server in ipairs(dns_servers) do
@@ -86,7 +81,7 @@ if #dns_servers > max_show then
   html[#html+1] = T"..."
 end
 html[#html+1] = '</p><span class="simple-desc"><i>&nbsp</i>'
-html[#html+1] = format(N('<strong>%d</strong><span> DNS Rewrite</span>','<strong>%d</strong><span> DNS Rewrites</span>',rewrites_count),rewrites_count)
+html[#html+1] = format(N('<strong%s >%d</strong><span %s> DNS Rewrite</span>','<strong %s>%d</strong><span %s> DNS Rewrites</span>',rewrites_count),rewrites_modal_link,rewrites_count,rewrites_modal_link)
 html[#html+1] = '</span>'
 
 local data = {

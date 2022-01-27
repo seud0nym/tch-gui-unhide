@@ -4,10 +4,17 @@
 gettext.textdomain('webui-core')
 local ajax_helper = require("web.ajax_helper")
 local content_helper = require("web.content_helper")
-local ui_helper = require("web.ui_helper")
+local dns_helper = require("dns_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
+local ui_helper = require("web.ui_helper")
+local split = require("split").split
+
+local dns_list = require('dns_servers_helper').external
+
+local lp = require("web.lp")
+lp.setpath("/www/snippets/")
 
 local format,match = string.format,string.match
 ---@diagnostic disable-next-line: undefined-field
@@ -17,37 +24,13 @@ local vB = post_helper.validateBoolean
 local vSII = post_helper.validateStringIsIP
 local vSIDN = post_helper.validateStringIsDomainName
 
-local dns_list = require('dns_servers_helper').external
-
 local add_options = {
   { text = "Manually enter a custom DNS Server IP Address", values = {} },
   { text = "Select from known IPv4 DNS Servers", values = {} },
   { text = "Select from known IPv6 DNS Servers", values = {} },
 }
 
-local dnsmasq_path
-for _,dnsmidx in pairs(proxy.getPN("uci.dhcp.dnsmasq.",true)) do
-  for _,dnsmif in pairs(proxy.get(dnsmidx.path.."interface.")) do
-    if dnsmif.value == "lan" then
-      dnsmasq_path = dnsmidx.path
-      break
-    end
-  end
-end
-
-local split = require("split").split
-
-local function handleDNSTableQuery(columns,options,filter,defaultObject,mapValidation)
-  local data,helpmsg = post_helper.handleTableQuery(columns,options,filter,defaultObject,mapValidation)
-  for k,v in pairs (data) do
-    local domain,ip = match(untaint(v[2]),"/([^/]+)/(.+)")
-    if domain and ip then
-      data[k][1] = domain
-      data[k][2] = ip
-    end
-  end
-  return data,helpmsg
-end
+local dnsmasq_path = dns_helper.dnsmasq_path
 
 local dns_params = {
   logqueries = dnsmasq_path.."logqueries",
@@ -140,52 +123,7 @@ if ngx.var.request_method == "POST" then
   end
 end
 
-local custom_dns_data,custom_dns_helpmsg = handleDNSTableQuery(custom_dns_columns,custom_dns_options,nil,nil,custom_dns_valid)
-
-local rewrites_columns = {
-  {
-    header = T"Domain Address Query",
-    name = "domain",
-    type = "text",
-    attr = { input = { class="span2" } },
-  },
-  {
-    header = T"IPv4/IPv6 Address to Return",
-    name = "value",
-    param = "value",
-    type = "text",
-    attr = { input = { class="span2" } },
-  },
-}
-local rewrites_valid = {
-  domain = vSIDN,
-  value = function(value,object)
-    local ret,err = vSII(value)
-    if ret then
-      object.value = format("/%s/%s",object.domain,value)
-      return true
-    end
-    return ret,err
-  end
-}
-local rewrites_options = {
-  canEdit = true,
-  canAdd = true,
-  canDelete = true,
-  createMsg = T"Add DNS rewrite",
-  tableid = "rewrites",
-  basepath = dnsmasq_path.."address.@.",
-}
-local function rewrites_filter(data)
-  if data.value then
-    local domain,ip = match(untaint(data.value),"/([^/]+)/(.+)")
-    if domain and ip then
-      return true
-    end
-  end
-  return false
-end
-local rewrites_data,rewrites_helpmsg = handleDNSTableQuery(rewrites_columns,rewrites_options,rewrites_filter,nil,rewrites_valid)
+local custom_dns_data,custom_dns_helpmsg = dns_helper.handleDNSTableQuery(custom_dns_columns,custom_dns_options,nil,nil,custom_dns_valid)
 
 local ipv4pattern = "^(((([1]?\\d)?\\d|2[0-4]\\d|25[0-5])\\.){3}(([1]?\\d)?\\d|2[0-4]\\d|25[0-5]))$"
 local ipv4DNScolumns = {
@@ -293,37 +231,24 @@ end
 
 ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
 <div class="modal-body update">\
+'); lp.include("tabs-dns.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/dns-modal.lp">\
-    <style>\
-    #custom_dns>thead>tr>th:nth-child(-n+2),#rewrites>thead>tr>th:nth-child(-n+2){width:46%;}\
-    #dns-modal .interface-dns .control-label{width: 170px;color: #999999;}\
-    </style>\
     ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-    if dnsmasq_path then
-      ngx.print('\
-      <fieldset>\
-        <legend>'); ngx.print(T"Configuration"); ngx.print('</legend>\
-        ');
-        ngx.print(ui_helper.createSwitch(T"Ignore Interface DNS<span class='icon-question-sign' title='When ON,do NOT fallback to the Interface DNS Servers if the Custom DNS Servers fail to respond.'></span>","noresolv",dns_config["noresolv"],nil,dns_config_helpmsg["noresolv"]))
-        ngx.print(ui_helper.createSwitch(T"Log Queries","logqueries",dns_config["logqueries"],nil,dns_config_helpmsg["logqueries"]))
-        ngx.print('\
-      </fieldset>\
-      <fieldset>\
-        <legend>'); ngx.print(T"Custom DNS Servers"); ngx.print('</legend>\
-        ');
-        ngx.print(ui_helper.createTable(custom_dns_columns,custom_dns_data,custom_dns_options,nil,custom_dns_helpmsg))
-        ngx.print('\
-      </fieldset>\
-      <fieldset>\
-        <legend>'); ngx.print(T"DNS Rewrites"); ngx.print('</legend>\
-        ');
-        ngx.print(ui_helper.createTable(rewrites_columns,rewrites_data,rewrites_options,nil,rewrites_helpmsg))
-        ngx.print('\
-      </fieldset>\
-      ')
-    end
     ngx.print('\
+    <fieldset>\
+      <legend>'); ngx.print(T"Configuration"); ngx.print('</legend>\
+      ');
+      ngx.print(ui_helper.createSwitch(T"Ignore Interface DNS<span class='icon-question-sign' title='When ON,do NOT fallback to the Interface DNS Servers if the Custom DNS Servers fail to respond.'></span>","noresolv",dns_config["noresolv"],nil,dns_config_helpmsg["noresolv"]))
+      ngx.print(ui_helper.createSwitch(T"Log Queries","logqueries",dns_config["logqueries"],nil,dns_config_helpmsg["logqueries"]))
+      ngx.print('\
+    </fieldset>\
+    <fieldset>\
+      <legend>'); ngx.print(T"Custom DNS Servers"); ngx.print('</legend>\
+      ');
+      ngx.print(ui_helper.createTable(custom_dns_columns,custom_dns_data,custom_dns_options,nil,custom_dns_helpmsg))
+      ngx.print('\
+    </fieldset>\
     <fieldset class="interface-dns">\
       <legend>'); ngx.print(T"Interface DNS Servers"); ngx.print('</legend>\
       ');

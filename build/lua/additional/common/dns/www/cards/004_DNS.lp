@@ -26,6 +26,16 @@ if session:hasAccess(modalPath) then
     if mode_active ~= "bridge" then
       local ui_helper = require("web.ui_helper")
       local format = string.format
+      local interceptd = proxy.get("uci.intercept.config.enabled","uci.intercept.dns.spoofip")
+      local interceptd_enabled
+      local interceptd_status
+      if interceptd and interceptd[1].value == "0" then
+        interceptd_enabled = "0"
+        interceptd_status = "disabled"
+      else
+        interceptd_enabled = "1"
+        interceptd_status = "enabled"
+      end
 
       ngx.print('\
       <div class="span3">\
@@ -51,6 +61,9 @@ if session:hasAccess(modalPath) then
                 ngx.print('\
               </span>\
             </div>\
+            ')
+            ngx.print(ui_helper.createSimpleLight(interceptd_enabled,T(format('<span class="modal-link" data-toggle="modal" data-remote="/modals/dns-interceptd-modal.lp" data-id="dns-interceptd-modal">Intercept Daemon %s</span>',interceptd_status))))
+            ngx.print('\
           </div>\
         </div>\
         <script>\

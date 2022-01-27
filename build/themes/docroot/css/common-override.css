@@ -29,9 +29,11 @@
 .traffichistory tr th:nth-child(3),.traffichistory tr th:nth-child(4),.traffichistory tr th:nth-child(5),.traffichistory tr td:nth-child(3),.traffichistory tr td:nth-child(4),.traffichistory tr td:nth-child(5){text-align:right;width:25%;}
 #broadband-card-content>span.simple-desc.modal-link{font-size:13px;}
 #classify .checkbox{width:60px;}
+#custom_dns>thead>tr>th:nth-child(-n+2){width:46%;}
 #device-modal>div.modal-body>div.container{width:1060px !important;}
 #devices>tbody>tr>td:nth-child(2) input{width:110px;}
 #devices>tbody>tr>td:nth-child(2),#devices>tbody>tr>td:nth-child(6),#devices>tbody>tr>td:nth-child(7),#devices>tbody>tr>td:nth-child(8){white-space:nowrap;}
+#dns-modal .interface-dns .control-label{width: 170px;color: #999999;}
 #dns_v4_pri,#ipv4_dns_sec,#dns_v6_pri,#dns_v6_sec{width:190px;}
 #fw-iptables tr>td:nth-child(n+1):nth-child(-n+2),#fw-iptables tr:not(.iptables-chain)>th:nth-child(n+1):nth-child(-n+2){text-align:right;}
 #fw-iptables tr{white-space:nowrap;}
@@ -46,6 +48,7 @@
 #proctable>tbody>tr>td:nth-child(1),#proctable>tbody>tr>td:nth-child(2),#proctable>tbody>tr>td:nth-child(n+5):nth-child(-n+9){text-align:right;}
 #proctable>tbody>tr>td:nth-child(6):after,#proctable>tbody>tr>td:nth-child(n+8):nth-child(-n+9):after{content:"%";}
 #proctable>thead>tr>th{white-space:nowrap;}
+#rewrites>thead>tr>th:nth-child(-n+2){width:46%;}
 #telephony-card-content p.subinfos{margin-top:-1px;margin-bottom:0px;}
 #tod>tbody>tr.additional-edit>td:nth-child(1)>fieldset>div:nth-child(3)>div.controls>label.checkbox{padding-left:0px;}
 #tod>tbody>tr.additional-edit>td:nth-child(1)>fieldset>div:nth-child(3)>div.controls>label.checkbox>input[type="checkbox"]{margin-left:2px;width:20px;}
