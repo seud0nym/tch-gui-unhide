@@ -1,13 +1,10 @@
 if [ -f ipv4-DNS-Servers ]
 then
   echo [$SCRIPT]: Adding custom IPv4 DNS Servers
-  sed -e 's/\r//g' ipv4-DNS-Servers | sort -r | while read -r host ip
-  do
+  sed -e 's/\r//g' ipv4-DNS-Servers | sort | while read -r host ip; do
     if [ -n "$ip" ]; then
-      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $host ($ip) to /www/docroot/modals/ethernet-modal.lp"
-      sed -e "/127.0.0.1/a\    {\"$ip\", T\"$host ($ip)\"}," -i /www/docroot/modals/ethernet-modal.lp
-      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $host ($ip) to /www/docroot/modals/dns-modal.lp"
-      sed -e "/8.8.8.8/i\    {\"$ip\", T\"$host ($ip)\"}," -i /www/docroot/modals/dns-modal.lp
+      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $host ($ip) to /www/lua/dns_servers_helper.lua"
+      sed -e "/ipv4-DNS-Servers/i\    {\"$ip\", T\"$host ($ip)\"}," -i /www/lua/dns_servers_helper.lua
     fi
   done
 fi
@@ -15,14 +12,11 @@ fi
 if [ -f ipv6-DNS-Servers ]
 then
   echo [$SCRIPT]: Adding custom IPv6 DNS Servers
-  sed -e 's/\r//g' ipv6-DNS-Servers | sort | while read -r host ip
-  do
+  sed -e 's/\r//g' ipv6-DNS-Servers | sort | while read -r host ip; do
     if [ -n "$ip" ]; then
       ipv6=$(echo $ip  | tr ':' '-')
-      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $host ($ip) to /www/docroot/modals/ethernet-modal.lp"
-      sed -e "/2001-4860-4860--8888/i\    {\"$ipv6\", T\"$host ($ip)\"}," -i /www/docroot/modals/ethernet-modal.lp
-      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $host ($ip) to /www/docroot/modals/dns-modal.lp"
-      sed -e "/2001-4860-4860--8888/i\    {\"$ipv6\", T\"$host ($ip)\"}," -i /www/docroot/modals/dns-modal.lp
+      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $host ($ip) to /www/lua/dns_servers_helper.lua"
+      sed -e "/ipv6-DNS-Servers/i\    {\"$ipv6\", T\"$host ($ip)\"}," -i /www/lua/dns_servers_helper.lua
     fi
   done
 fi
