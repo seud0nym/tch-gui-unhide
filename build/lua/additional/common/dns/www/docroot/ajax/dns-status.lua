@@ -67,8 +67,8 @@ local html = {}
 html[#html+1] = ui_helper.createSimpleLight(dnsmasq_enabled,dnsmasq_status)
 html[#html+1] = '<span class="simple-desc"><i>&nbsp</i>'
 html[#html+1] = format(N('<strong %s>%d</strong><span %s> DNS Server:</span>','<strong %s>%d</strong><span %s> DNS Servers:</span>',#dns_servers),dns_modal_link,#dns_servers,dns_modal_link)
-html[#html+1] = '</span><p class="subinfos" style="letter-spacing:-1px;font-size:12px;font-weight:bold;">'
-local max_show = 4
+html[#html+1] = '</span><p class="subinfos" style="letter-spacing:-1px;font-size:12px;font-weight:bold;line-height:15px;">'
+local max_show = 3
 for i,server in ipairs(dns_servers) do
   if i > 1 and i <= max_show then
     html[#html+1] = '<br>'
@@ -78,7 +78,7 @@ for i,server in ipairs(dns_servers) do
   end
 end
 if #dns_servers > max_show then
-  html[#html+1] = T"..."
+  html[#html+1] = "<small>+".." "..(#dns_servers - max_show).." more</small>"
 end
 html[#html+1] = '</p><span class="simple-desc"><i>&nbsp</i>'
 html[#html+1] = format(N('<strong%s >%d</strong><span %s> DNS Rewrite</span>','<strong %s>%d</strong><span %s> DNS Rewrites</span>',rewrites_count),rewrites_modal_link,rewrites_count,rewrites_modal_link)
