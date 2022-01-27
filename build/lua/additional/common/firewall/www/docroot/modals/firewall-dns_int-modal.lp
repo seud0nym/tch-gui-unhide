@@ -161,9 +161,6 @@ if dns_int then
               proxySet(dns_int.."name","Intercept-DNS")
               proxySet(path["Masquerade-DNS"].."dest_ip","")
               proxySet(path["Masquerade-DNS"].."enabled","0")
-              if vSIDIP(dest_ipv4) then
-                proxySet("rpc.gui.firewall.dns_intercept.delete_exception",dest_ipv4)
-              end
               dest_ipv4 = ""
             end
           end
@@ -206,9 +203,6 @@ if dns_int then
               dest_ipv6 = new_dest_ipv6
             else
               proxySet(path["Intercept-DNSv6"].."destIP","")
-              if dest_ipv6 and dest_ipv6 ~= "" then
-                proxy.set("rpc.gui.firewall.dns6_intercept.delete_exception",dest_ipv6)
-              end
               local ula = proxy.get("rpc.network.interface.@lan.ipv6uniquelocaladdr")
               if ula and ula[1].value ~= "" then
                 local idx = proxy.add(lan_dns_path)
