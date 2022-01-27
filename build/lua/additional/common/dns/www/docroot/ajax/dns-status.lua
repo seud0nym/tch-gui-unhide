@@ -22,14 +22,12 @@ if not disabled or disabled[1].value == "0" then
   dnsmasq_status = "Custom DNS enabled"
   local addresses = proxy.getPN(dnsmasq_path.."address.",true)
   rewrites_count = #addresses
-  local at = 1
   for _,dnsmsrvr in pairs(proxy.get(dnsmasq_path.."server.")) do
     local domain,ip = dns_helper.toDomainAndIP(dnsmsrvr.value)
     if not domain then
-      tinsert(dns_servers,at,ip)
+      dns_servers[#dns_servers+1] = ip
     else
       tinsert(dns_servers,1,format("%s&rarr;%s",domain,ip))
-      at = at + 1
     end
   end
 end
