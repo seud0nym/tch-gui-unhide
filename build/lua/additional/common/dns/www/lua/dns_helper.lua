@@ -4,7 +4,6 @@ local match = string.match
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
-
 local M = {}
 
 M.dnsmasq_path = nil
@@ -17,12 +16,6 @@ for _,dnsmidx in pairs(proxy.getPN("uci.dhcp.dnsmasq.",true)) do
   end
 end
 
-function M.toDomainAndIP(value)
-  local v = untaint(value)
-  local domain,ip = match(v,"/([^/]+)/(.+)")
-  return domain,ip or v
-end
-
 function M.handleDNSTableQuery(columns,options,filter,defaultObject,mapValidation)
   local data,helpmsg = post_helper.handleTableQuery(columns,options,filter,defaultObject,mapValidation)
   for k,v in pairs (data) do
@@ -33,6 +26,12 @@ function M.handleDNSTableQuery(columns,options,filter,defaultObject,mapValidatio
     end
   end
   return data,helpmsg
+end
+
+function M.toDomainAndIP(value)
+  local v = untaint(value)
+  local domain,ip = match(v,"/([^/]+)/(.+)")
+  return domain,ip or v
 end
 
 return M
