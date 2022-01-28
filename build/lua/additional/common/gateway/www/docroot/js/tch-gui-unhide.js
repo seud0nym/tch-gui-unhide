@@ -14,3 +14,14 @@ $(document).bind("DOMSubtreeModified",function(){
     }
   }
 });
+function unhideWaiting(){
+  if ($(this).attr("data-remote")||$(this).find("[data-remote]").length>0){
+    $("#waiting").fadeIn();
+  }
+}
+$("body").on("click",".smallcard .header,.modal-link",unhideWaiting);
+$(document).ajaxComplete(function( event, xhr, settings ) {
+  if(xhr.responseText.search("modal-link")!=-1){
+    $("body").off("click",".smallcard .header,.modal-link",unhideWaiting).on("click",".smallcard .header,.modal-link",unhideWaiting);
+  }
+});

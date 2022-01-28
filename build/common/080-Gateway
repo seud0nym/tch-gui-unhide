@@ -120,7 +120,6 @@ echo [$SCRIPT]: Add auto-refresh management, chart library, and wait indicator w
 sed \
   -e '/<title>/i\    <script src="/js/tch-gui-unhide.js"></script>\\' \
   -e '/<title>/i\    <script src="/js/chart-min.js"></script>\\' \
-  -e '/id="waiting"/a\    <script>$(".smallcard .header,.modal-link").click(function(){if ($(this).attr("data-remote")||$(this).find("[data-remote]").length>0){$("#waiting").fadeIn();}});</script>\\' \
   -i /www/docroot/gateway.lp
 
 echo [$SCRIPT]: Improve performance of card loading
