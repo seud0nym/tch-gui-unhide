@@ -21,6 +21,8 @@ local vSII = post_helper.validateStringIsIP
 local vSIP = post_helper.validateStringIsPort
 local vSIPR = post_helper.validateStringIsPortRange
 
+local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
+
 local syslog_present,syslog_filter_sw = "0","0"
 local Syslog = proxy.get("uci.system.system.@system[0].log_ip","uci.system.system.@system[0].log_filter_ip")
 if Syslog[1].value ~= "" or Syslog[2].value ~= "" then
@@ -261,10 +263,10 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     }
   }
   local html = {}
-  html[#html + 1] = ui_helper.createButton(T"LAN Update",T"BOOTP","icon-exchange",bootp)
-  html[#html + 1] = ui_helper.createAlertBlock(T"Entering BOOTP. Please wait...",bootp_alert)
-  html[#html + 1] = ui_helper.createButton(T"SwitchBank",T"Switchover","icon-exchange",switchover)
-  html[#html + 1] = ui_helper.createAlertBlock(T"Switching bank. Please wait...",switchover_alert)
+  html[#html+1] = ui_helper.createButton(T"LAN Update",T"BOOTP","icon-exchange",bootp)
+  html[#html+1] = ui_helper.createAlertBlock(T"Entering BOOTP. Please wait...",bootp_alert)
+  html[#html+1] = ui_helper.createButton(T"SwitchBank",T"Switchover","icon-exchange",switchover)
+  html[#html+1] = ui_helper.createAlertBlock(T"Switching bank. Please wait...",switchover_alert)
   ngx.print(html)
   ngx.print('\
 </fieldset>\
@@ -276,36 +278,11 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
       class ="monitor-ssh_lan_enable monitor-1",
     },
   }
-  local ssh_wan_input = {
-    group = {
-      class ="monitor-ssh_wan_enable monitor-1",
-    },
-  }
-  local port_attributes = {
-    group = {
-      class ="monitor-ssh_wan_enable monitor-1",
-    },
-    input = {
-      type = "number",
-      min = "1",
-      max = "65535",
-      style = "width:70px",
-    }
-  }
-  local src_ip_attributes = {
-    group = {
-      class ="monitor-ssh_wan_enable monitor-1",
-    },
-    input = {
-      maxlength= "45",
-      class = "span5",
-    }
-  }
   local html = {}
-  html[#html + 1] = '<fieldset><legend><small>'..T"LAN Access"..'</small></legend>'
-  html[#html + 1] = ui_helper.createSwitch(T"SSH LAN Enabled","ssh_lan_enable",ssh_params["ssh_lan_enable"],switch_class_enable)
-  html[#html + 1] = ui_helper.createInputSelect(T"LAN User Authentication","ssh_lan_pwd_auth",authentication_choices,ssh_params["ssh_lan_pwd_auth"],ssh_lan_input,ssh_helpmsg["ssh_lan_pwd_auth"])
-  html[#html + 1] = ui_helper.createInputSelect(T"LAN Root Authentication","ssh_lan_root_pwd_auth",authentication_choices,ssh_params["ssh_lan_root_pwd_auth"],ssh_lan_input,ssh_helpmsg["ssh_lan_root_pwd_auth"])
+  html[#html+1] = '<fieldset><legend><small>'..T"LAN Access"..'</small></legend>'
+  html[#html+1] = ui_helper.createSwitch(T"SSH LAN Enabled","ssh_lan_enable",ssh_params["ssh_lan_enable"],switch_class_enable)
+  html[#html+1] = ui_helper.createInputSelect(T"LAN User Authentication","ssh_lan_pwd_auth",authentication_choices,ssh_params["ssh_lan_pwd_auth"],ssh_lan_input,ssh_helpmsg["ssh_lan_pwd_auth"])
+  html[#html+1] = ui_helper.createInputSelect(T"LAN Root Authentication","ssh_lan_root_pwd_auth",authentication_choices,ssh_params["ssh_lan_root_pwd_auth"],ssh_lan_input,ssh_helpmsg["ssh_lan_root_pwd_auth"])
   if ssh_afg_if then
     local ssh_afg_input = {
       group = {
@@ -317,21 +294,48 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
         class = "alert alert-info",
       }
     }
-    html[#html + 1] = ui_helper.createAlertBlock(T(format("The AFG configuration is added by the root acquisition process to allow SSH access over the %s interface.",string.upper(ssh_afg_if[1].value))),info_box)
-    html[#html + 1] = ui_helper.createSwitch(T"SSH AFG Enabled","ssh_afg_enable",ssh_params["ssh_afg_enable"],switch_class_enable)
-    html[#html + 1] = ui_helper.createInputSelect(T"AFG User Authentication","ssh_afg_pwd_auth",authentication_choices,ssh_params["ssh_afg_pwd_auth"],ssh_afg_input,ssh_helpmsg["ssh_afg_pwd_auth"])
-    html[#html + 1] = ui_helper.createInputSelect(T"AFG Root Authentication","ssh_afg_root_pwd_auth",authentication_choices,ssh_params["ssh_afg_root_pwd_auth"],ssh_afg_input,ssh_helpmsg["ssh_afg_root_pwd_auth"])
+    html[#html+1] = ui_helper.createAlertBlock(T(format("The AFG configuration is added by the root acquisition process to allow SSH access over the %s interface.",string.upper(ssh_afg_if[1].value))),info_box)
+    html[#html+1] = ui_helper.createSwitch(T"SSH AFG Enabled","ssh_afg_enable",ssh_params["ssh_afg_enable"],switch_class_enable)
+    html[#html+1] = ui_helper.createInputSelect(T"AFG User Authentication","ssh_afg_pwd_auth",authentication_choices,ssh_params["ssh_afg_pwd_auth"],ssh_afg_input,ssh_helpmsg["ssh_afg_pwd_auth"])
+    html[#html+1] = ui_helper.createInputSelect(T"AFG Root Authentication","ssh_afg_root_pwd_auth",authentication_choices,ssh_params["ssh_afg_root_pwd_auth"],ssh_afg_input,ssh_helpmsg["ssh_afg_root_pwd_auth"])
   end
-  html[#html + 1] = '</fieldset>'
-  html[#html + 1] = '<fieldset><legend><small>'..T"WAN Access"..'</small></legend>'
-  html[#html + 1] = ui_helper.createSwitch(T"SSH WAN Enabled","ssh_wan_enable",ssh_params["ssh_wan_enable"],switch_class_enable)
-  html[#html + 1] = ui_helper.createInputSelect(T"WAN User Authentication","ssh_wan_pwd_auth",authentication_choices,ssh_params["ssh_wan_pwd_auth"],ssh_wan_input,ssh_helpmsg["ssh_wan_pwd_auth"])
-  html[#html + 1] = ui_helper.createInputSelect(T"WAN Root Authentication","ssh_wan_root_pwd_auth",authentication_choices,ssh_params["ssh_wan_root_pwd_auth"],ssh_wan_input,ssh_helpmsg["ssh_wan_root_pwd_auth"])
-  html[#html + 1] = ui_helper.createInputText(T"WAN SSH Port","ssh_wan_port",ssh_params["ssh_wan_port"],port_attributes,ssh_helpmsg["ssh_wan_port"])
-  if ssh_wan_src_ip then
-    html[#html + 1] = ui_helper.createInputText(T"Allowed Client IP","ssh_wan_src_ip",ssh_params["ssh_wan_src_ip"],src_ip_attributes,ssh_helpmsg["ssh_wan_src_ip"])
+  if not isBridgedMode then
+    local ssh_wan_input = {
+      group = {
+        class ="monitor-ssh_wan_enable monitor-1",
+      },
+    }
+    local port_attributes = {
+      group = {
+        class ="monitor-ssh_wan_enable monitor-1",
+      },
+      input = {
+        type = "number",
+        min = "1",
+        max = "65535",
+        style = "width:70px",
+      }
+    }
+    local src_ip_attributes = {
+      group = {
+        class ="monitor-ssh_wan_enable monitor-1",
+      },
+      input = {
+        maxlength= "45",
+        class = "span5",
+      }
+    }
+    html[#html+1] = '</fieldset>'
+    html[#html+1] = '<fieldset><legend><small>'..T"WAN Access"..'</small></legend>'
+    html[#html+1] = ui_helper.createSwitch(T"SSH WAN Enabled","ssh_wan_enable",ssh_params["ssh_wan_enable"],switch_class_enable)
+    html[#html+1] = ui_helper.createInputSelect(T"WAN User Authentication","ssh_wan_pwd_auth",authentication_choices,ssh_params["ssh_wan_pwd_auth"],ssh_wan_input,ssh_helpmsg["ssh_wan_pwd_auth"])
+    html[#html+1] = ui_helper.createInputSelect(T"WAN Root Authentication","ssh_wan_root_pwd_auth",authentication_choices,ssh_params["ssh_wan_root_pwd_auth"],ssh_wan_input,ssh_helpmsg["ssh_wan_root_pwd_auth"])
+    html[#html+1] = ui_helper.createInputText(T"WAN SSH Port","ssh_wan_port",ssh_params["ssh_wan_port"],port_attributes,ssh_helpmsg["ssh_wan_port"])
+    if ssh_wan_src_ip then
+      html[#html+1] = ui_helper.createInputText(T"Allowed Client IP","ssh_wan_src_ip",ssh_params["ssh_wan_src_ip"],src_ip_attributes,ssh_helpmsg["ssh_wan_src_ip"])
+    end
+    html[#html+1] = '</fieldset>'
   end
-  html[#html + 1] = '</fieldset>'
   ngx.print(html)
   ngx.print('\
 </fieldset>\
@@ -339,7 +343,7 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   <legend>');  ngx.print( T"System Log" ); ngx.print('</legend>\
   ');
   local html = {}
-  html[#html + 1] = ui_helper.createSwitch(T"Enable Syslog","syslog_present",syslog_present,switch_class_enable)
+  html[#html+1] = ui_helper.createSwitch(T"Enable Syslog","syslog_present",syslog_present,switch_class_enable)
   local switch_class_filter = {
     group = {
       class ="monitor-syslog_present monitor-1",
@@ -385,10 +389,10 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   html[#html+1] = [[</div>]]
   html[#html+1] = ui_helper.createInputText(T"Server IP","syslog_filter_ip",syslog_params["syslog_filter_ip"],Sysloginputip_fltr,syslog_helpmsg["syslog_filter_ip"])
   html[#html+1] = ui_helper.createSwitch(T"Enable Filter","syslog_filter_sw",syslog_filter_sw,switch_class_filter)
-  html[#html + 1] = ui_helper.createAlertBlock(T"Every filter is a regular expression string; Start with '!' to invert selection",filter_warning)
-  html[#html + 1] = format('<div class="control-group"><label class="control-label monitor-syslog_present monitor-1 monitor-syslog_filter_sw monitor-1">%s</label><div class="controls">',T"Syslog Filters")
+  html[#html+1] = ui_helper.createAlertBlock(T"Every filter is a regular expression string; Start with '!' to invert selection",filter_warning)
+  html[#html+1] = format('<div class="control-group"><label class="control-label monitor-syslog_present monitor-1 monitor-syslog_filter_sw monitor-1">%s</label><div class="controls">',T"Syslog Filters")
   html[#html+1] = ui_helper.createTable(filter_columns,filter_data,filter_options,Sysloginputip_fltr_fltr,filter_helpmsg)
-  html[#html + 1] = '</div></div>'
+  html[#html+1] = '</div></div>'
   html[#html+1] = ui_helper.createInputText(T"Server Port","syslog_port",syslog_params["syslog_port"],Sysloginput,syslog_helpmsg["syslog_port"])
   ngx.print(html)
   ngx.print('\
@@ -416,9 +420,9 @@ if iperf_available then
         }
       }
       local html = {}
-      html[#html + 1] = ui_helper.createSwitch(T"iperf Server","iperf_enable",iperf_params["iperf_enable"],switch_class_enable)
-      html[#html + 1] = ui_helper.createInputText(T"Port","iperf_port",iperf_params["iperf_port"],port_attributes,ssh_helpmsg["iperf_port"])
-      html[#html + 1] = ui_helper.createInputSelect(T"Protocol","iperf_proto",proto_choices,iperf_params["iperf_proto"],iperf_input,ssh_helpmsg["iperf_proto"])
+      html[#html+1] = ui_helper.createSwitch(T"iperf Server","iperf_enable",iperf_params["iperf_enable"],switch_class_enable)
+      html[#html+1] = ui_helper.createInputText(T"Port","iperf_port",iperf_params["iperf_port"],port_attributes,ssh_helpmsg["iperf_port"])
+      html[#html+1] = ui_helper.createInputSelect(T"Protocol","iperf_proto",proto_choices,iperf_params["iperf_proto"],iperf_input,ssh_helpmsg["iperf_proto"])
       ngx.print(html)
       ngx.print('\
   </fieldset>\
