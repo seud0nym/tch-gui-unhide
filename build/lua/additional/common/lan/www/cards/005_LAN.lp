@@ -107,10 +107,17 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
         '<p class="subinfos">',
         format(T'LAN IP: <strong style="letter-spacing:-1px;font-size:12px;">%s</strong> <br>Subnet Mask: <strong style="letter-spacing:-1px;font-size:12px;">%s</strong>',mapParams["localdevIP"],mapParams["localdevmask"]),
         '<br>',
-        format(T'%s <nobr><strong style="letter-spacing:-1px;font-size:12px;">%s</strong></nobr>',ipv6State_text,mapParams["ipv6prefix"]),
-        '</p>'
+        format(T'%s <nobr><strong style="letter-spacing:-1px;font-size:12px;">%s</strong></nobr>',ipv6State_text,mapParams["ipv6prefix"])
       )
-      ngx.print('\
+      if require("bridgedmode_helper").isBridgedMode() then
+        local dns = proxy.get('uci.network.interface.@lan.dns.')
+        ngx.print('DNS:<strong style="letter-spacing:-1px;font-size:12px;">');
+        for _,server in ipairs(dns) do
+          ngx.print(server.value,' ')
+        end
+        ngx.print("</strong>")
+      end
+      ngx.print('</p>\
     </div>\
   </div>\
 </div>\
