@@ -12,18 +12,6 @@ if session:hasAccess(modalPath) then
 
   if not adguard or adguard[1].value ~= "1" then
     local ui_helper = require("web.ui_helper")
-    local format = string.format
-    local interceptd = proxy.get("uci.intercept.config.enabled","uci.intercept.dns.spoofip")
-    local interceptd_enabled
-    local interceptd_status
-    if interceptd and interceptd[1].value == "0" then
-      interceptd_enabled = "0"
-      interceptd_status = "disabled"
-    else
-      interceptd_enabled = "1"
-      interceptd_status = "enabled"
-    end
-
     ngx.print('\
     <div class="span3">\
       <div class="smallcard">\
@@ -31,7 +19,6 @@ if session:hasAccess(modalPath) then
         <div class="content card_bg mirror" data-bg-text="&#xf002">\
           <div id="dns-card-content">\
             ')
-            ngx.print(ui_helper.createSimpleLight("3","Checking Custom DNS status..."))
             ngx.print('\
             <span class="simple-desc">\
               <i>&nbsp</i><strong>0</strong><span> DNS Servers</span>\
@@ -41,9 +28,12 @@ if session:hasAccess(modalPath) then
             <span class="simple-desc">\
               <i>&nbsp</i><strong>0</strong><span> DNS Rewrites</span>\
             </span>\
+            ')
+            ngx.print(ui_helper.createSimpleLight("3","Checking DNS Hijacking status..."))
+            ngx.print(ui_helper.createSimpleLight("3","Checking Intercept Daemon status..."))
+            ngx.print('\
           </div>\
           ')
-          ngx.print(ui_helper.createSimpleLight(interceptd_enabled,T(format('<span class="modal-link" data-toggle="modal" data-remote="/modals/dns-interceptd-modal.lp" data-id="dns-interceptd-modal">Intercept Daemon %s</span>',interceptd_status))))
           ngx.print('\
         </div>\
       </div>\

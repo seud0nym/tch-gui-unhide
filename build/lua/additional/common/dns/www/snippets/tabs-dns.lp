@@ -8,6 +8,7 @@ local format,len,sub = string.format,string.len,string.sub
 local items = {
   {"dns-modal.lp",T"Configuration"},
   {"dns-rewrites-modal.lp",T"Rewrites"},
+  {"firewall-dns_int-modal.lp",T"DNS Hijacking"},
   {"dns-interceptd-modal.lp",T"Intercept Daemon"},
 }
 

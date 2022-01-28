@@ -94,8 +94,8 @@ if session:hasAccess("/modals/firewall-modal.lp") then
 
         local dosprotect = proxy.get("uci.dosprotect.globals.enabled")
         if dosprotect and dosprotect[1].value ~="" then
-          local dosprotect = dosprotect[1].value or "0"
           local dosprotect_status
+          dosprotect = dosprotect[1].value or "0"
           if dosprotect and dosprotect == "1" then
             dosprotect_status = T"DoS Protect enabled"
           else
@@ -104,45 +104,6 @@ if session:hasAccess("/modals/firewall-modal.lp") then
           html[#html+1] = ui_helper.createSimpleLight(dosprotect,dosprotect_status)
           html[#html+1] = "<br>"
         end
-
-        local dns6_int_state = proxy.get("uci.tproxy.rule.@dnsv6.enabled")
-        local dns4_int_state = "0"
-        local dns_int_modal_link = "class=\"modal-link\" data-toggle=\"modal\" data-remote=\"/modals/firewall-dns_int-modal.lp\" data-id=\"firewall-dns_int-modal\""
-        for _,v in ipairs(proxy.getPN("uci.firewall.redirect.",true)) do
-          local path = v.path
-          local values = proxy.get(path.."name",path.."enabled")
-          if values then
-            local name = values[1].value
-            if name == "Redirect-DNS" or name == "Intercept-DNS" then
-              if values[2] and values[2].value ~= "0" then
-                dns4_int_state = "1"
-              end
-              break
-            end
-          end
-        end
-        if dns6_int_state then
-          dns6_int_state = dns6_int_state[1].value
-        end
-        local dns_int_state, dns_int_text, dns_int_family
-        if dns4_int_state == "1" or dns6_int_state == "1" then
-          dns_int_state = "1"
-          dns_int_text = "enabled"
-          if dns4_int_state == "1" and dns6_int_state == "1" then
-            dns_int_family = ""
-          elseif dns4_int_state == "1" then
-            dns_int_family = "IPv4"
-          else
-            dns_int_family = "IPv6"
-          end
-        else
-          dns_int_state = "0"
-          dns_int_text = "disabled"
-          dns_int_family = ""
-        end
-
-        html[#html+1] = ui_helper.createSimpleLight(dns_int_state,T(format("<span %s>%s DNS Hijacking %s</span>",dns_int_modal_link,dns_int_family,dns_int_text)))
-        html[#html+1] = "<br>"
 
         ngx.print(html)
         ngx.print('\
