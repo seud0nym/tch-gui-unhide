@@ -35,9 +35,9 @@ echo "[$SCRIPT]:  - Pretty up the GUI screens a bit"
 echo "[$SCRIPT]:  - Apply the $THEME theme with $COLOR highlights and $ICONS card icons"
 echo "[$SCRIPT]:  - Allow $ACROSS cards across the page on wide screens"
 case "$CHART_CARDS" in
-  n)  echo "[$SCRIPT]:  - All chart cards will be removed";;
-  s)  echo "[$SCRIPT]:  - Only the Summary Chart Card will be available";;
-  i)  echo "[$SCRIPT]:  - The Individual Chart Cards will be available";;
+  n)  echo "[$SCRIPT]:  - All chart cards will be hidden";;
+  s)  echo "[$SCRIPT]:  - Only the Summary Chart Card will be visible";;
+  i)  echo "[$SCRIPT]:  - The Individual Chart Cards will be visible";;
 esac
 if [ -f /www/docroot/landingpage.lp -a $KEEPLP = n ]; then
   echo "[$SCRIPT]:  - Theme and de-brand the Telstra Landing Page"

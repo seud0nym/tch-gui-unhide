@@ -115,7 +115,7 @@ do
     fi
     continue
   fi
-  if [ -z "$CARDRULE" -o -z "$(uci -q get web.${CARDRULE}.modal)" ]; then
+  if [ -z "$CARDRULE" -o \( "$CARDRULE" != "card_Charts" -a -z "$(uci -q get web.${CARDRULE}.modal)" \) ]; then
     CARDRULE="card_$(basename ${CARDFILE#*_} .lp)"
     MODAL=$(grep createCardHeader $CARDFILE | grep -o "modals/.*\.lp")
     if [ -z "$MODAL" ]; then
