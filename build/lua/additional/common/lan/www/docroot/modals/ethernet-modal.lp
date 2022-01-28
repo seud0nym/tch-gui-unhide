@@ -907,7 +907,7 @@ local mapValid = {
   dhcpIgnore = validatedhcpIgnore,
   dns_v6_pri = validateDNSv6,
   dns_v6_sec = validateDNSv6,
-  dhcplog = vB,
+  dhcplog = gOV(vB),
 }
 
 local function validateByPass(_,_,_)
@@ -1213,8 +1213,9 @@ ngx.print('\
             if curintf == "lan" then
               if bridged.isBridgedMode() then
                 ngx.print(ui_helper.createInputText(T"Local Gateway","localgw",content["localgw"],advanced,helpmsg["localgw"]))
+              else
+                ngx.print(ui_helper.createInputText(T"Local Domain Name","localdomain",content["localdomain"],advanced,helpmsg["localdomain"]))
               end
-              ngx.print(ui_helper.createInputText(T"Local Domain Name","localdomain",content["localdomain"],advanced,helpmsg["localdomain"]))
             end
 
             ngx.print(ui_helper.createSwitch(T"IPv6 State","localIPv6",content["localIPv6"],switch_class_enable))
