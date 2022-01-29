@@ -329,13 +329,12 @@ if dns_int and enabledv6 == "1" then
       end
     end
   }
-
   ipv6excdata,ipv6exchelpmsg = post_helper.handleTableQuery(ipv6cols,ipv6opts,ip2hostnameFilter,nil,ipv6validation)
 end
 
-ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
+ngx.print(ui_helper.createHeader(T"DNS",true,false))   ngx.print('\
 <div class="modal-body update">\
-'); lp.include("tabs-firewall.lp"); ngx.print('\
+'); lp.include("tabs-dns.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/firewall-dns_int-modal.lp">\
     ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))

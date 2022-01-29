@@ -133,35 +133,34 @@ local custom_dns_data,custom_dns_helpmsg = dns_helper.handleDNSTableQuery(custom
 
 local current_dns,ipv4DNScolumns,ipv4DNSoptions,ipv4DNSdata,ipv4DNShelpmsg,ipv6DNScolumns,ipv6DNSoptions,ipv6DNSdata,ipv6DNShelpmsg
 
-if not isBridgedMode then
-  local ipv4pattern = "^(((([1]?\\d)?\\d|2[0-4]\\d|25[0-5])\\.){3}(([1]?\\d)?\\d|2[0-4]\\d|25[0-5]))$"
-  ipv4DNScolumns = {
-    {
-      header = T"DNS Server IPv4 Address",
-      name = "wanDnsParam",
-      param = "value",
-      type = "text",
-      attr = { input = { class="span2",maxlength="15",pattern = ipv4pattern } },
-    },
-  }
-  ipv4DNSoptions = {
-    canEdit = true,
-    canAdd = true,
-    canDelete = true,
-    tableid = "dns4server",
-    basepath = "uci.network.interface.@wan.dns.@.",
-    createMsg = T"Add IPv4 DNS Server",
-    minEntries = 0,
-    maxEntries = 4,
-    sorted = function(a,b)
-      return tonumber(a.paramindex) < tonumber(b.paramindex)
-    end
-  }
-  local ipv4DNSvalid = {
-    wanDnsParam =  post_helper.advancedIPValidation,
-  }
-  ipv4DNSdata,ipv4DNShelpmsg = post_helper.handleTableQuery(ipv4DNScolumns,ipv4DNSoptions,nil,nil,ipv4DNSvalid)
+local ipv4pattern = "^(((([1]?\\d)?\\d|2[0-4]\\d|25[0-5])\\.){3}(([1]?\\d)?\\d|2[0-4]\\d|25[0-5]))$"
+ipv4DNScolumns = {
+  {
+    header = T"DNS Server IPv4 Address",
+    name = "wanDnsParam",
+    param = "value",
+    type = "text",
+    attr = { input = { class="span2",maxlength="15",pattern = ipv4pattern } },
+  },
+}
+ipv4DNSoptions = {
+  canEdit = true,
+  canAdd = true,
+  canDelete = true,
+  tableid = "dns4server",
+  basepath = "uci.network.interface.@wan.dns.@.",
+  createMsg = T"Add IPv4 DNS Server",
+  minEntries = 0,
+  maxEntries = 4,
+  sorted = function(a,b)
+    return tonumber(a.paramindex) < tonumber(b.paramindex)
+  end
+}
+local ipv4DNSvalid = {
+  wanDnsParam =  post_helper.advancedIPValidation,
+}
 
+if not isBridgedMode then
   ipv6DNScolumns = {
     {
       header = T"DNS Server IPv6 Address",
@@ -188,6 +187,7 @@ if not isBridgedMode then
     wanDnsParam =  post_helper.validateStringIsIPv6,
   }
   ipv6DNSdata,ipv6DNShelpmsg = post_helper.handleTableQuery(ipv6DNScolumns,ipv6DNSoptions,nil,nil,ipv6DNSvalid)
+  ipv4DNSdata,ipv4DNShelpmsg = post_helper.handleTableQuery(ipv4DNScolumns,ipv4DNSoptions,nil,nil,ipv4DNSvalid)
 
   current_dns = {
     ipv4 = "rpc.network.interface.@wan.dnsservers",
@@ -235,16 +235,18 @@ ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
   <form class="form-horizontal" method="post" action="modals/dns-modal.lp">\
     ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-    ngx.print('\
-    <fieldset>\
-      <legend>'); ngx.print(T"Configuration"); ngx.print('</legend>\
-      ');
-      if not isBridgedMode then
-        ngx.print(ui_helper.createSwitch(T"Ignore Interface DNS<span class='icon-question-sign' title='When ON,do NOT fallback to the Interface DNS Servers if the Custom DNS Servers fail to respond.'></span>","noresolv",dns_config["noresolv"],nil,dns_config_helpmsg["noresolv"]))
-      end
-      ngx.print(ui_helper.createSwitch(T"Log Queries","logqueries",dns_config["logqueries"],nil,dns_config_helpmsg["logqueries"]))
+    if not isBridgedMode then
       ngx.print('\
-    </fieldset>\
+      <fieldset>\
+        <legend>'); ngx.print(T"Configuration"); ngx.print('</legend>\
+        ');
+        ngx.print(ui_helper.createSwitch(T"Ignore Interface DNS<span class='icon-question-sign' title='When ON,do NOT fallback to the Interface DNS Servers if the Custom DNS Servers fail to respond.'></span>","noresolv",dns_config["noresolv"],nil,dns_config_helpmsg["noresolv"]))
+        ngx.print(ui_helper.createSwitch(T"Log Queries","logqueries",dns_config["logqueries"],nil,dns_config_helpmsg["logqueries"]))
+        ngx.print('\
+      </fieldset>\
+      ');
+    end
+    ngx.print('\
     <fieldset>\
       <legend>'); ngx.print(T"Custom DNS Servers"); ngx.print('</legend>\
       ');
@@ -252,13 +254,17 @@ ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
       ngx.print('\
     </fieldset>\
     ');
-    if not isBridgedMode then
+    if isBridgedMode then
+      ipv4DNSoptions.basepath = "uci.network.interface.@lan.dns.@."
+      ipv4DNSdata,ipv4DNShelpmsg = post_helper.handleTableQuery(ipv4DNScolumns,ipv4DNSoptions,nil,nil,ipv4DNSvalid)
+      ngx.print("<legend>LAN Interface DNS Servers</legend>")
+      ngx.print(ui_helper.createTable(ipv4DNScolumns,ipv4DNSdata,ipv4DNSoptions,nil,ipv4DNShelpmsg))
+    else
       local ajax_attr = {
         span = {
           ["data-ajaxrefresh"] = "5",
         }
       }
-
       ngx.print('\
       <fieldset class="interface-dns">\
         <legend>'); ngx.print(T"Interface DNS Servers"); ngx.print('</legend>\

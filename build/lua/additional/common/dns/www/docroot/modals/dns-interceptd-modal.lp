@@ -32,7 +32,12 @@ ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
     <fieldset>\
       <legend>'); ngx.print(T"Intercept Daemon"); ngx.print('</legend>\
       ');
-      ngx.print(ui_helper.createAlertBlock(T"<a href='https://whrl.pl/Rf8ZXP' target='_blank'>The Intercept Daemon is used for captive portals, initial setup wizards and offline alerts. It is capable of DNS spoofing to a dummy IP and L4 port interception with some rules.</a>"))
+      local info_attr = {
+        alert = {
+          class = "alert-info"
+        },
+      }
+      ngx.print(ui_helper.createAlertBlock(T"<a href='https://whrl.pl/Rf8ZXP' target='_blank'>The Intercept Daemon is used for captive portals, initial setup wizards and offline alerts. It is capable of DNS spoofing to a dummy IP and L4 port interception with some rules.</a>",info_attr))
       ngx.print(ui_helper.createSwitch(T"Enabled","enabled",content["enabled"],nil,content_helpmsg["enabled"]))
       ngx.print(ui_helper.createInputText(T"DNS Spoof IP","spoofip",content["spoofip"],nil,content_helpmsg["spoofip"]))
       ngx.print('\

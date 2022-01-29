@@ -18,23 +18,8 @@ if session:hasAccess(modalPath) then
         ');  ngx.print( ui_helper.createCardHeader(T"DNS",modalPath) ); ngx.print('\
         <div class="content card_bg mirror" data-bg-text="&#xf002">\
           <div id="dns-card-content">\
-            ')
-            ngx.print('\
-            <span class="simple-desc">\
-              <i>&nbsp</i><strong>0</strong><span> DNS Servers</span>\
-            </span>\
-            <p class="subinfos" style="letter-spacing:-1px;font-size:12px;font-weight:bold;">\
-            </p>\
-            <span class="simple-desc">\
-              <i>&nbsp</i><strong>0</strong><span> DNS Rewrites</span>\
-            </span>\
-            ')
-            ngx.print(ui_helper.createSimpleLight("3","Checking DNS Hijacking status..."))
-            ngx.print(ui_helper.createSimpleLight("3","Checking Intercept Daemon status..."))
-            ngx.print('\
+            <span class="simple-desc">Getting DNS Status...</span>\
           </div>\
-          ')
-          ngx.print('\
         </div>\
       </div>\
       <script>\

@@ -26,6 +26,8 @@ local find = string.find
 local ipv42num = post_helper.ipv42num
 local bridged = require("bridgedmode_helper")
 
+local isBridgedMode = bridged.isBridgedMode()
+
 -- Shortcuts to validation helpers to make lines shorter
 local aIPV = post_helper.advancedIPValidation
 local vB = post_helper.validateBoolean
@@ -913,7 +915,7 @@ local mapValid = {
 local function validateByPass(_,_,_)
     return true
 end
-if bridged.isBridgedMode() then
+if isBridgedMode then
     mapValid.dhcpStart = validateByPass
     mapValid.dhcpLimit = validateByPass
     mapValid.dhcpv4State = validateByPass
@@ -1082,7 +1084,7 @@ if ngx.var.request_method == "POST" then
   local content1 = ngx.req.get_post_args()
   local action = content1["action"]
   if action == "BRIDGED" then
-    if not bridged.isBridgedMode() then
+    if not isBridgedMode then
       bridged.configBridgedMode()
       return resetreboot("rpc.system.reboot","GUI")
     end
@@ -1153,7 +1155,7 @@ ngx.print('\
    <div class="modal-body update">\
      <form class="form-horizontal" method="post" action="'); ngx.print(ngx.var.request_uri); ngx.print('">\
      ');
-     if #lan_intfs> 1 and (not bridged.isBridgedMode()) then
+     if #lan_intfs> 1 and (not isBridgedMode) then
        ngx.print('\
      <div class="span2">\
         <ul class="nav nav-list">\
@@ -1179,7 +1181,7 @@ ngx.print('\
       ngx.print(ui_helper.createMessages(message_helper.popMessages()))
       ngx.print('\
         <fieldset>\
-          '); if not bridged.isBridgedMode() then ngx.print('\
+          '); if not isBridgedMode then ngx.print('\
           <div class="span4">\
           '); end ngx.print('\
             <legend>'); ngx.print(T"Global Information"); ngx.print('</legend>\
@@ -1211,7 +1213,7 @@ ngx.print('\
             )
 
             if curintf == "lan" then
-              if bridged.isBridgedMode() then
+              if isBridgedMode then
                 ngx.print(ui_helper.createInputText(T"Local Gateway","localgw",content["localgw"],advanced,helpmsg["localgw"]))
               else
                 ngx.print(ui_helper.createInputText(T"Local Domain Name","localdomain",content["localdomain"],advanced,helpmsg["localdomain"]))
@@ -1220,7 +1222,7 @@ ngx.print('\
 
             ngx.print(ui_helper.createSwitch(T"IPv6 State","localIPv6",content["localIPv6"],switch_class_enable))
 
-            if not bridged.isBridgedMode() then
+            if not isBridgedMode then
               local info_attr = {
                 alert = {
                   class = "alert-info"
@@ -1382,34 +1384,6 @@ ngx.print('\
                   class = "alert",
                 }
               }
-              local ipv4DNScolumns = {
-                {
-                  header = T"IPv4 DNS Server Address",
-                  name = "wanDnsParam",
-                  param = "value",
-                  type = "text",
-                  attr = { input = { class="span2",maxlength="15" } },
-                },
-              }
-              local ipv4DNSoptions = {
-                canEdit = true,
-                canAdd = true,
-                canDelete = true,
-                tableid = "dns4server",
-                basepath = "uci.network.interface.@lan.dns.@.",
-                createMsg = T"Add IPv4 DNS Server",
-                minEntries = 0,
-                maxEntries = 4,
-                sorted = function(a,b)
-                  return tonumber(a.paramindex) < tonumber(b.paramindex)
-                end
-              }
-              local ipv4DNSvalid = {
-                wanDnsParam = aIPV,
-              }
-              local ipv4DNSdata,ipv4DNShelpmsg = post_helper.handleTableQuery(ipv4DNScolumns,ipv4DNSoptions,nil,nil,ipv4DNSvalid)
-              html[#html+1] = "<legend>LAN Domain Name Server Configuration</legend>"
-              html[#html+1] = ui_helper.createTable(ipv4DNScolumns,ipv4DNSdata,ipv4DNSoptions,nil,ipv4DNShelpmsg)
               html[#html+1] = "<legend>Network Mode</legend>"
               html[#html+1] = ui_helper.createAlertBlock(T[[Note: your Device is in Bridged Mode. If you want the Device to run in Routed Mode again,you can revert without factory reset <a href="javascript:tch.loadModal('/modals/broadband-modal.lp')">here</a>]],infomessage)
               ngx.print(html)
@@ -1417,7 +1391,7 @@ ngx.print('\
             ngx.print('\
           </fieldset>\
           ');
-          if #lan_intfs> 1 and (not bridged.isBridgedMode()) then
+          if #lan_intfs> 1 and (not isBridgedMode) then
             ngx.print('\
           </div>\
           ');

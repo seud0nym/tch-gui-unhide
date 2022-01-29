@@ -4,13 +4,18 @@ gettext.textdomain('webui-core')
 
 local ipairs,string = ipairs,string
 local format,len,sub = string.format,string.len,string.sub
+local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
 
 local items = {
   {"dns-modal.lp",T"Configuration"},
-  {"dns-rewrites-modal.lp",T"Rewrites"},
-  {"firewall-dns_int-modal.lp",T"DNS Hijacking"},
-  {"dns-interceptd-modal.lp",T"Intercept Daemon"},
 }
+if not isBridgedMode then
+  items[#items+1] = {"dns-rewrites-modal.lp",T"Rewrites"}
+end
+if not isBridgedMode then
+  items[#items+1] = {"firewall-dns_int-modal.lp",T"DNS Hijacking"}
+end
+items[#items+1] = {"dns-interceptd-modal.lp",T"Intercept Daemon"}
 
 local html = {}
 
