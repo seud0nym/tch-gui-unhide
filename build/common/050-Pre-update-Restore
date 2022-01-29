@@ -20,7 +20,9 @@ do
     fi
   elif [ "$CARDRULE" = "card_Charts" ]; then
     MODALRULE='gatewaymodal'
-    [ -z "$HIDDEN" -a \( "$(uci -q get web.card_gateway.hide)" = "0" -o "$(uci -q get web.card_broadband.hide)" = "0" \) ] && HIDDEN="0" || HIDDEN="1"
+    if [ -z "$HIDDEN" ]; then
+      [ "$(uci -q get web.card_gateway.hide)" = "0" -o "$(uci -q get web.card_broadband.hide)" = "0"  ] && HIDDEN="0" || HIDDEN="1"
+    fi
   elif [ "$CARDRULE" = "card_CPU" ]; then
     MODALRULE='gatewaymodal'
     [ -z "$HIDDEN" ] && HIDDEN=$(uci -q get web.card_gateway.hide)
