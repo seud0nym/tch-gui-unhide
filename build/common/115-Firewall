@@ -320,8 +320,69 @@ fi
 if [ $(grep doh-ipsets-maintain /etc/crontabs/root | wc -l) -eq 0 ]; then
   mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
   hh=$(awk 'BEGIN{srand();print int(rand()*2)+3;}')
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Adding /usr/sbin/doh-ipsets-maintain cron job for Sunday $hh:$mm"
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Adding /usr/sbin/doh-ipsets-maintain cron task for Sunday at $hh:$mm"
   echo "#$mm $hh * * 6 /usr/sbin/doh-ipsets-maintain" >> /etc/crontabs/root
+  SRV_cron=$(( $SRV_cron + 1 ))
+fi
+
+echo [$SCRIPT]: Checking firewall configuration for Intrusion Protection
+chmod +x /usr/share/intrusion-protection/firewall.sh
+if [ ! -e /etc/config/intrusion_protect ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: echo [$SCRIPT]: Creating /etc/config/intrusion_protect"
+  cat <<IP_CONFIG > /etc/config/intrusion_protect
+config intrusion_protect 'config'
+        option enabled '0'
+
+config whitelist 'WhiteList'
+        option enabled '0'
+
+config blacklist 'BlackList'
+        option enabled '0'
+        option logging '1'
+
+config blocklist 'ETfwip'
+        option enabled '1'
+        option url 'http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt'
+        option description 'Emerging Threats lists offensive IPs such as botnet command servers.'
+        option logging '1'
+
+config blocklist 'ETcompromised'
+        option enabled '0'
+        option url 'https://rules.emergingthreats.net/blockrules/compromised-ips.txt'
+        option description 'This is a list of hosts from Emerging Threats that are known to be compromised.'
+        option logging '1'
+
+config blocklist 'CIArmy'
+        option enabled '0'
+        option url 'http://cinsscore.com/list/ci-badguys.txt'
+        option description 'The CINS Army list is a subset of the CINS Active Threat Intelligence ruleset, and consists of IP addresses that meet one of two basic criteria: 1) The IPs recent Rogue Packet score factor is very poor, or 2) The IP has tripped a designated number of "trusted" alerts across a given number of our Sentinels deployed around the world.'
+        option logging '1'
+
+config blocklist 'BlockListDE'
+        option enabled '0'
+        option url 'https://www.blocklist.de/downloads/export-ips_all.txt'
+        option description 'blocklist.de collects reports from fail2ban probes, listing password brute-forces, scanners and other offenders.'
+        option logging '1'
+
+IP_CONFIG
+  chmod 644 /etc/config/intrusion_protect
+fi
+if [ "$(uci -q get firewall.intrusion_protect)" != "include" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.intrusion_protect"
+  uci set firewall.intrusion_protect='include'
+  uci set firewall.intrusion_protect.type='script'
+  uci set firewall.intrusion_protect.family='IPv4'
+  uci set firewall.intrusion_protect.path='/usr/share/intrusion-protection/firewall.sh'
+  uci set firewall.intrusion_protect.reload='1'
+  uci set firewall.intrusion_protect.enabled='1'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
+if [ $(grep /usr/share/intrusion-protection/firewall.sh /etc/crontabs/root | wc -l) -eq 0 ]; then
+  mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
+  hh=$(awk 'BEGIN{srand();print int(rand()*2)+3;}')
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Adding /usr/share/intrusion-protection/firewall.sh cron task every day at $hh:$mm"
+  echo "$mm $hh * * * /usr/share/intrusion-protection/firewall.sh update" >> /etc/crontabs/root
+  SRV_cron=$(( $SRV_cron + 1 ))
 fi
 
 [ $SRV_firewall -gt 0 ] && uci commit firewall

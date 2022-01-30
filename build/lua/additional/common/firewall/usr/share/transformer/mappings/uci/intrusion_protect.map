@@ -1,0 +1,43 @@
+local config_intrusion_protect = "intrusion_protect"
+
+-- uci.intrusion_protect
+mapper("uci_1to1").registerConfigMap(config_intrusion_protect)
+
+-- uci.intrusion_protect.config
+local intrusion_protect_global = {
+  config = config_intrusion_protect,
+  section = "config",
+  type = "intrusion_protect",
+  options = { "enabled" }
+}
+
+mapper("uci_1to1").registerSimpleMap(intrusion_protect_global)
+
+-- uci.intrusion_protect.whitelist
+local intrusion_protect_whitelist = {
+  config = config_intrusion_protect,
+  type = "whitelist",
+  options = { "enabled" },
+  lists = { "ip" }
+}
+
+mapper("uci_1to1").registerNamedMultiMap(intrusion_protect_whitelist)
+
+-- uci.intrusion_protect.blacklist
+local intrusion_protect_blacklist = {
+  config = config_intrusion_protect,
+  type = "blacklist",
+  options = { "enabled", "logging" },
+  lists = { "ip" }
+}
+
+mapper("uci_1to1").registerNamedMultiMap(intrusion_protect_blacklist)
+
+-- uci.intrusion_protect.blocklist.{i}
+local intrusion_protect_blocklist = {
+  config = config_intrusion_protect,
+  type = "blocklist",
+  options = { "enabled", "url", "description", "logging" }
+}
+
+mapper("uci_1to1").registerNamedMultiMap(intrusion_protect_blocklist)

@@ -20,6 +20,7 @@ if session:hasAccess("/modals/firewall-modal.lp") then
     fwd_ipv6_rules = "uci.firewall.pinholeruleNumberOfEntries",
     lanIpv6Enabled = "uci.network.interface.@lan.ipv6",
     pinholeEnabled = "uci.firewall.rulesgroup.@pinholerules.enabled",
+    ip_enabled = "uci.intrusion_protect.config.enabled",
   }
 
   content_helper.getExactContent(content)
@@ -59,7 +60,7 @@ if session:hasAccess("/modals/firewall-modal.lp") then
         local html = {}
         html[#html+1] = format(T"Firewall level: <strong>%s</strong><br>",modes[content.mode] or "")
 
-        local fwd_modal_link = "class=\"modal-link\" data-toggle=\"modal\" data-remote=\"/modals/firewall-port-forwarding-modal.lp\" data-id=\"firewall-port-forwarding-modal\""
+        local fwd_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/firewall-port-forwarding-modal.lp" data-id="firewall-port-forwarding-modal"'
         local fwd_count = tonumber(content.fwd_ipv4_rules)
         if content.lanIpv6Enabled ~= "0" and content.pinholeEnabled == "1" then
           fwd_count = fwd_count + tonumber(content.fwd_ipv6_rules)
@@ -69,7 +70,7 @@ if session:hasAccess("/modals/firewall-modal.lp") then
 
         local nat_alg_card_hidden = proxy.get("uci.web.card.@card_natalghelper.hide")
         if not nat_alg_card_hidden or nat_alg_card_hidden[1].value == "1" then
-          local alg_modal_link = "class=\"modal-link\" data-toggle=\"modal\" data-remote=\"/modals/nat-alg-helper-modal.lp\" data-id=\"nat-alg-helper-modal\""
+          local alg_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/nat-alg-helper-modal.lp" data-id="nat-alg-helper-modal"'
           local enabled_count = 0
           local disabled_count = 0
           local helper_uci_path = "uci.firewall.helper."
@@ -85,26 +86,36 @@ if session:hasAccess("/modals/firewall-modal.lp") then
             end
           end
           if enabled_count > 0 then
-            html[#html+1] = format(N("<strong %1$s>%2$d NAT Helper</strong> enabled","<strong %1$s>%2$d NAT Helpers</strong> enabled",enabled_count),alg_modal_link,enabled_count)
+            html[#html+1] = T(format(N("<strong %1$s>%2$d NAT Helper</strong> enabled","<strong %1$s>%2$d NAT Helpers</strong> enabled",enabled_count),alg_modal_link,enabled_count))
           else
-            html[#html+1] = format(N("<strong %1$s>%2$d NAT Helper</strong> disabled","<strong %1$s>%2$d NAT Helpers</strong> disabled",disabled_count),alg_modal_link,disabled_count)
+            html[#html+1] = T(format(N("<strong %1$s>%2$d NAT Helper</strong> disabled","<strong %1$s>%2$d NAT Helpers</strong> disabled",disabled_count),alg_modal_link,disabled_count))
           end
           html[#html+1] = "<br>"
         end
 
         local dosprotect = proxy.get("uci.dosprotect.globals.enabled")
         if dosprotect and dosprotect[1].value ~="" then
+          local dosprotect_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dosprotect-modal.lp" data-id="dosprotect-modal"'
           local dosprotect_status
           dosprotect = dosprotect[1].value or "0"
           if dosprotect and dosprotect == "1" then
-            dosprotect_status = T"DoS Protect enabled"
+            dosprotect_status = "enabled"
           else
-            dosprotect_status = T"DoS Protect disabled"
+            dosprotect_status = "disabled"
           end
-          html[#html+1] = ui_helper.createSimpleLight(dosprotect,dosprotect_status)
+          html[#html+1] = ui_helper.createSimpleLight(dosprotect,T(format("<span %s>DoS Protection %s</span>",dosprotect_modal_link,dosprotect_status)))
           html[#html+1] = "<br>"
         end
 
+        local ip_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/firewall-intrusion_protect-modal.lp" data-id="intrusion_protect-modal"'
+        local ip_status
+        if content["ip_enabled"] == "1" then
+          ip_status = "enabled"
+        else
+          content["ip_enabled"] = "0"
+          ip_status = "disabled"
+        end
+        html[#html+1] = ui_helper.createSimpleLight(content["ip_enabled"],T(format("<span %s>Intrusion Protection %s</span>",ip_modal_link,ip_status)))
         ngx.print(html)
         ngx.print('\
       </p>\

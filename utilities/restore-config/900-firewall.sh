@@ -38,12 +38,16 @@ log D " ++ DMZ"
 uci_set firewall.dmzredirects.enabled
 uci_set firewall.dmzredirect.dest_ip
 uci -q commit firewall
-if [ -f $BANK2/etc/config/$config ]; then
-  log D " ++ DoS Protect"
+if [ -e /etc/config/dosprotect -a -e $BANK2/etc/config/dosprotect ]; then
+  log D " ++ DoS Protection"
   uci -q revert dosprotect
   uci_set dosprotect.globals.enabled
   uci_set dosprotect.globals.rpfilter
   uci -q commit dosprotect
 fi
+log D " ++ Intrusion Protection"
+uci -q revert intrusion_protect
+restore_file /etc/config/intrusion_protect
+uci_set firewall.intrusion_protect.enabled
 
 unset cfg

@@ -23,8 +23,10 @@ end
 
 local dosprotect = proxy.get("uci.dosprotect.globals.enabled")
 if dosprotect and dosprotect[1].value ~="" then
-  items[#items+1] = {"dosprotect-modal.lp",T"DoS Protect"}
+  items[#items+1] = {"dosprotect-modal.lp",T"DoS Protection"}
 end
+
+items[#items+1] = {"firewall-intrusion_protect-modal.lp",T"Intrusion Protection"}
 
 local html = {}
 
