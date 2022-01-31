@@ -374,7 +374,7 @@ if [ "$(uci -q get firewall.intrusion_protect)" != "include" ]; then
   uci set firewall.intrusion_protect.family='IPv4'
   uci set firewall.intrusion_protect.path='/usr/share/intrusion-protection/firewall.sh'
   uci set firewall.intrusion_protect.reload='1'
-  uci set firewall.intrusion_protect.enabled='1'
+  uci set firewall.intrusion_protect.enabled='0'
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ $(grep /usr/share/intrusion-protection/firewall.sh /etc/crontabs/root | wc -l) -eq 0 ]; then
