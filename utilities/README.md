@@ -245,12 +245,9 @@ Options:
                     and before reboot. If 'filename' ends with .rbi, it will be 
                     unpacked first, either to an attached USB device, or /tmp if
                     no USB detected.
- -i               Keep the existing LAN IP address after reset and reboot. If 
-                    specified with --restore-config, it will be passed to the 
-                    restore script and NOT applied during the initial RTFD.
+ -i               Keep the existing LAN IP address after reset and reboot.
+                    This is the default if --restore-config is specified.
  -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
-                    If specified with --restore-config, it will be passed to the 
-                    restore script and NOT applied during the initial RTFD.
  -k               Keep existing SSH keys after reset and reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
@@ -267,6 +264,11 @@ Options:
                     specified, and may optionally be followed by the name of
                     the overlay backup file to be restored. Saved defaults are
                     IGNORED when --restore-config is specified.
+ --i              Specifies that the IP address configured by the -i or -I options 
+                    is also to be applied after the configuration is restored. If
+                    not specified, the IP address used will be the one found in the 
+                    configuration backup. Ignored unless --restore-config is also 
+                    specified.
 ```
 
 ## set-optimal-bank-plan
