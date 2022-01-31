@@ -338,31 +338,31 @@ config whitelist 'WhiteList'
 
 config blacklist 'BlackList'
         option enabled '0'
-        option logging '1'
+        option logging '0'
 
 config blocklist 'ETfwip'
         option enabled '1'
         option url 'http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt'
         option description 'Emerging Threats lists offensive IPs such as botnet command servers.'
-        option logging '1'
+        option logging '0'
 
 config blocklist 'ETcompromised'
         option enabled '0'
         option url 'https://rules.emergingthreats.net/blockrules/compromised-ips.txt'
         option description 'This is a list of hosts from Emerging Threats that are known to be compromised.'
-        option logging '1'
+        option logging '0'
 
 config blocklist 'CIArmy'
         option enabled '0'
         option url 'http://cinsscore.com/list/ci-badguys.txt'
         option description 'The CINS Army list is a subset of the CINS Active Threat Intelligence ruleset, and consists of IP addresses that meet one of two basic criteria: 1) The IPs recent Rogue Packet score factor is very poor, or 2) The IP has tripped a designated number of "trusted" alerts across a given number of our Sentinels deployed around the world.'
-        option logging '1'
+        option logging '0'
 
 config blocklist 'BlockListDE'
         option enabled '0'
         option url 'https://www.blocklist.de/downloads/export-ips_all.txt'
         option description 'blocklist.de collects reports from fail2ban probes, listing password brute-forces, scanners and other offenders.'
-        option logging '1'
+        option logging '0'
 
 IP_CONFIG
   chmod 644 /etc/config/intrusion_protect
