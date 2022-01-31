@@ -131,4 +131,4 @@ manual WhiteList RETURN
 manual BlackList DROP
 config_foreach download blocklist
 
-exit
+exit 0
