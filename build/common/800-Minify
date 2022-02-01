@@ -67,10 +67,12 @@ if [ "$MINIFY" = y ]; then
   sed -e 's/\("pointer"})\)\(\\\)/\1;\2/' -i /www/snippets/networkmap.lp
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/lua/parental_helper.lua"
   sed -e '/--\[\[/,/\]\]/d' -e 's/[ \t]*--[ \t]*\(T"ToD"\|tod_aggregate\|.*getTod()\).*$//' -i /www/lua/parental_helper.lua
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/cwmpconf-modal.lp"
-  sed -e 's/\(block\|none\)\(")\)\\/\1\2;\\/' -i /www/docroot/modals/cwmpconf-modal.lp
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/tod_wireless-modal.lp"
   sed -e 's/[ \t]*-- weekdays can be empty.*$//' -i /www/docroot/modals/tod_wireless-modal.lp
+  if [ -e /www/docroot/modals/cwmpconf-modal.lp ]; then
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/cwmpconf-modal.lp"
+    sed -e 's/\(block\|none\)\(")\)\\/\1\2;\\/' -i /www/docroot/modals/cwmpconf-modal.lp
+  fi
 
   echo [$SCRIPT]: Minifying GUI Lua code
   chmod +x /usr/share/lua/LuaSrcDiet.lua
