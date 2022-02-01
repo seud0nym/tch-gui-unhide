@@ -19,7 +19,7 @@ if user then
   local total = user + sys + nice + idle + wait + irq + srq + zero
   local diff_idle = idle - prev_idle
   local diff_total = total - prev_total
-  cpu_usage = floor(((diff_total-diff_idle)/diff_total*100)+.05)
+  cpu_usage = floor(((diff_total-diff_idle)/diff_total*100)+0.05)
   ok,err = TGU_CPU:safe_set("total",total)
   if not ok then
     ngx.log(ngx.ERR,"Failed to store current CPU total: ",err)

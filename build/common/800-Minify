@@ -9,12 +9,12 @@ minify() {
   grep -qe "$MARKER" "$f" && pretranslated=1
 
   sed \
+    -e '/^[ \t]*$/d' -e '/^[ \t]*\\$/d' \
+    -e '/--\[\[/,/\]\]/d' -e '/^[ \t]*--/d' -e 's/[ \t]*--[ \t]*\[[0-9]*\][ \t]*$//' -e "s/--[^\['\">){]*$//" \
+    -e '/^[ \t]\/\//d' -e '/^\/\/.*$/d' -e 's|\([^:]\)\(//[^\\]*\)|\1|g' \
     -e 's/^[ \t]*//g' -e 's/[ \t]*$//g' \
     -e 's/[ \t]*=[ \t]*/=/g' -e 's/\([ \t]*\)\([=!~<>]=\)\([ \t]*\)/\2/g' -e 's/ >[ \t]*/>/g' -e 's/[ \t]*< /</g' -e 's/[ \t]*+[ \t]*/+/g' -e 's/ - /-/g' -e 's/\([^0-9]\)\([ \t]*\.\.[ \t]*\)\([^0-9]\)/\1..\3/g' \
     -e 's/{ */{/g' -e 's/} */}/g' -e 's/ *{/{/g' -e 's/ *}/}/g' -e 's/( */(/g' -e 's/) */)/g' -e 's/ *(/(/g' -e 's/ *)/)/g' \
-    -e '/^[ \t]*$/d' -e '/^[ \t]*\\$/d' \
-    -e '/--\[\[/,/\]\]/d' -e '/^[ \t]*--/d' -e "s/--[^'\">){]*$//" \
-    -e '/^[ \t]\/\//d' -e '/^\/\/.*$/d' -e 's|\([^:]\)\(//[^\\]*\)|\1|g' \
   $f | awk 'BEGIN{prev="";}
     /[[:blank:]]*,[[:blank:]]*/ {
       n=split($0,quoted,/"/);
@@ -31,8 +31,8 @@ minify() {
         $0=j;
       }
     }
-    /\\$/ {
-      if(match(substr(prev,length(prev),1),/[[:alnum:]]/)!=0 && match(substr($0,1,1),/[[:alnum:]]/)!=0) printf "%s"," ";
+    /[({,\\]$/ {
+      if(match(substr(prev,length(prev),1),/[[:alnum:]]/)!=0 && match(substr($0,1,1),/[[:alnum:]]|\$/)!=0) printf "%s"," ";
       gsub(/[[:blank:]]*\\$/,"");
       printf "%s",$0;
       prev=$0;
@@ -47,20 +47,33 @@ minify() {
     1 {
       if(html==0) print; else printf "%s",$0;
       prev=$0;
-    }' > "$m"
+    }' | sed -ne ":a ; \$! { N ; ba }; s/ngx.print('');*//g; s/\n\}/\}/g; :r; s/\(ngx.print([^)]*\|ngx.print(ui_helper.create[^)]*)\)\()[; \n]*ngx.print(\)/\1,/g; t r; p" > "$m"
 
-  [ $pretranslated = 1 ] && sed -e "1i$MARKER" -i "$m"
-  mv "$m" "$f"
+  if grep -q '<%' "$m"; then
+    mv "$m" "$f"
+  elif ! /usr/share/lua/LuaSrcDiet.lua --maximum --quiet $m -o $m.diet; then
+    echo "800@$(date +%H:%M:%S): - LuaSrcDiet failed for $f"
+    mv "$m" "$f"
+  else
+    mv "$m.diet" "$f"
+    rm "$m"
+  fi
+  [ $pretranslated = 1 ] && sed -e "1i$MARKER" -i "$f"
 }
 
 if [ "$MINIFY" = y ]; then
   echo [$SCRIPT]: Pre-minify fixes
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/snippets/networkmap.lp"
-  sed \
-    -e 's/\("pointer"})\)\(\\\)/\1;\2/' \
-    -i /www/snippets/networkmap.lp
+  sed -e 's/\("pointer"})\)\(\\\)/\1;\2/' -i /www/snippets/networkmap.lp
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/lua/parental_helper.lua"
+  sed -e '/--\[\[/,/\]\]/d' -e 's/[ \t]*--[ \t]*\(T"ToD"\|tod_aggregate\|.*getTod()\).*$//' -i /www/lua/parental_helper.lua
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/cwmpconf-modal.lp"
+  sed -e 's/\(block\|none\)\(")\)\\/\1\2;\\/' -i /www/docroot/modals/cwmpconf-modal.lp
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/tod_wireless-modal.lp"
+  sed -e 's/[ \t]*-- weekdays can be empty.*$//' -i /www/docroot/modals/tod_wireless-modal.lp
 
   echo [$SCRIPT]: Minifying GUI Lua code
+  chmod +x /usr/share/lua/LuaSrcDiet.lua
   STARTED=$(date +%s)
   for lua in $(find /www/cards /www/docroot /www/lua /www/snippets -type f \( -name "*.lp" -o -name "*.lua" \) -a ! -name "help_*.lp"); do
     was=$(ls -l "$lua" | tr -s ' ' | cut -d' ' -f5)
@@ -72,4 +85,5 @@ if [ "$MINIFY" = y ]; then
   done
   echo -e "[$SCRIPT]: - Lua GUI code size reduced by \033[0;33m$(expr 100 - \( $AFTER_MIN \* 100 / $BEFORE_MIN \))%\033[0m in $(( $(date +%s) - $STARTED )) seconds"
 fi
+rm -rf /usr/share/lua/LuaSrcDiet.lua /usr/share/lua/optlex.lua /usr/share/lua/optparser.lua /usr/share/lua/llex.lua /usr/share/lua/lparser.lua
 

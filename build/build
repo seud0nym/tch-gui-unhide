@@ -106,6 +106,7 @@ do
       tar --exclude README.md --transform='s/^\.\.\/[^\/]*//' -cf - -C $p | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
     done
   fi
+  tar --exclude COPYRIGHT --exclude COPYRIGHT_Lua51 -cf - -C lua/minifier/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
 
   echo "${GREEN}Updating rpc.gui.UnhideVersion...${NC}"
   sed -e "s/current_version = \"\"/current_version = \"$FULL_VERSION\"/" -i /tmp/tch-gui-unhide/$MAJOR/usr/share/transformer/mappings/rpc/gui.map
@@ -147,7 +148,7 @@ do
         echo "  MKTING_NAME=\$(uci get version.@version[0].marketing_name)" >> $TARGET
         echo "  MKTING_VERSION=\$(uci get version.@version[0].marketing_version)" >> $TARGET
         echo "  CUSTOM_VERSION=\$(uci get version.@version[0].version | cut -d- -f1)\$(uci get versioncusto.override.fwversion_suffix)" >> $TARGET
-        echo "  echo BLD@\$(date +%H:%M:%S): Adding tch-gui-unhide version to copyright" >> $TARGET
+        echo "  echo BLD@\$(date +%H:%M:%S): Adding version details to copyright" >> $TARGET
         echo "  for l in \$(grep -l -r 'current_year); ngx.print(' /www 2>/dev/null)" >> $TARGET
         echo "  do" >> $TARGET
         echo "    sed -e \"s/\(current_year); ngx.print('\)/\\\1 \[tch-gui-unhide Release $DATE_VERSION for Firmware \$CUSTOM_VERSION (\$MKTING_NAME)\]/\" -i \$l" >> $TARGET
