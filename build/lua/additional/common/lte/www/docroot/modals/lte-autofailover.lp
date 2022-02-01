@@ -1,6 +1,5 @@
 --pretranslated: do not change this file
 
-local table = { insert = table.insert }
 local ngx = ngx
 
 -- Enable localization
@@ -12,9 +11,13 @@ local message_helper = require("web.uimessage_helper")
 local ui_helper = require("web.ui_helper")
 local utils = require("web.lte-utils")
 
+local lp = require("web.lp")
+lp.setpath("/www/snippets/")
+
 local params = utils.get_params()
 
 local vB = post_helper.validateBoolean
+local gOV = post_helper.getOptionalValidation
 local gVNIR = post_helper.getValidateNumberInRange
 
 local mapParams = {
@@ -96,62 +99,39 @@ local l3state_options = {
 
 local l3state_valid = {
   ["timeout"] = gVNIR(1,300),
-  ["fasttimeout"] = gVNIR(1,300),
+  ["fasttimeout"] = gOV(gVNIR(1,300)),
 }
 
 local l3state_data,l3state_helpmsg = post_helper.handleTableQuery(l3state_columns,l3state_options,nil,nil,l3state_valid)
 
-local delay
-local l3type = proxy.get("uci.wansensing.global.l3type")
-if l3type and l3type[1] then
-  local t = l3type[1].value
-  for _,v in ipairs(l3state_data) do
-    if v[1] == t and v[5] then
-      delay = ((tonumber(v[5]) or 0) * 11) + (tonumber(content["autofailovermaxwait"]) or 0)
-      break
-    end
-  end
+if ngx.var.request_method == "POST" then
+  proxy.apply()
 end
 
-ngx.print( ui_helper.createHeader(params.modal_title,false,true) ); ngx.print('\
-<div class="modal-body update" id="lte-body">\
-  <form class="form-horizontal" method="post" action="modals/lte-autofailover.lp">\
-  ');  ngx.print(ui_helper.createMessages(message_helper.popMessages()));
-    local lp = require("web.lp")
-    lp.setpath("/www/snippets/")
-    lp.include("tabs-mobiled.lp")
+local wait_attributes = {
+  input = {
+    type = "number",
+    min = "1",
+    max = "10",
+    style = "width:50px",
+  }
+}
 
-    local alert_attributes = {
-      alert = {
-        class = "alert-info",
-        style = "text-align: center;"
-      },
-    }
-    local wait_attributes = {
-      input = {
-        type = "number",
-        min = "1",
-        max = "10",
-        style = "width:70px",
-      }
-    }
-
-    local html = {}
-    table.insert(html,"<fieldset><legend>"..T"Auto-Failover Global Settings".."</legend>")
-    table.insert(html,ui_helper.createSwitch(T"Voice on Failover","voiceonfailover",content["voiceonfailover"],nil,helpmsg["voiceonfailover"]))
-    table.insert(html,ui_helper.createInputText(T"Max Wait (Seconds)","autofailovermaxwait",content["autofailovermaxwait"],wait_attributes,helpmsg["autofailovermaxwait"]))
-    table.insert(html,"</fieldset>")
-    table.insert(html,"<fieldset><legend>"..T"WanSensing L2 State".."</legend>")
-    table.insert(html,ui_helper.createTable(l2state_columns,l2state_data,l2state_options,nil,l2state_helpmsg))
-    table.insert(html,"</fieldset>")
-    table.insert(html,"<fieldset><legend>"..T"WanSensing L3 State".."</legend>")
-    table.insert(html,ui_helper.createTable(l3state_columns,l3state_data,l3state_options,nil,l3state_helpmsg))
-    table.insert(html,"</fieldset>")
-    if delay then
-      table.insert(html,ui_helper.createAlertBlock(T(string.format("Maximum estimated auto-failover delay is <strong>%s</strong> seconds after the connection drops.",delay)),alert_attributes))
-    end
-    ngx.print(html)
-    ngx.print('\
+ngx.print(ui_helper.createHeader(params.modal_title,false,true),'\
+<div class="modal-body update">\
+'); lp.include("tabs-firewall.lp"); ngx.print('\
+  <form class="form-horizontal" method="post" action="modals/lte-autofailover.lp">',
+    ui_helper.createMessages(message_helper.popMessages()),'\
+    <fieldset><legend>',T"Auto-Failover Global Settings",'</legend>',
+      ui_helper.createSwitch(T"Voice on Failover","voiceonfailover",content["voiceonfailover"],nil,helpmsg["voiceonfailover"]),
+      ui_helper.createInputText(T"Max Wait (Seconds)","autofailovermaxwait",content["autofailovermaxwait"],wait_attributes,helpmsg["autofailovermaxwait"]),'\
+    </fieldset>\
+    <fieldset><legend>',T"WanSensing L2 State",'</legend>',
+      ui_helper.createTable(l2state_columns,l2state_data,l2state_options,nil,l2state_helpmsg),'\
+    </fieldset>\
+    <fieldset><legend>',T"WanSensing L3 State",'</legend>',
+      ui_helper.createTable(l3state_columns,l3state_data,l3state_options,nil,l3state_helpmsg),'\
+    </fieldset>\
   </form>\
 </div>\
-');  ngx.print( ui_helper.createFooter() );
+',ui_helper.createFooter());
