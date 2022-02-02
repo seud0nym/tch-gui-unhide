@@ -1,3 +1,13 @@
 echo [$SCRIPT]: Add TCP Dump to Diagnostics
-sed -e 's/    {"logviewer-modal.lp", T"Log Viewer"},/    {"logviewer-modal.lp", T"Log Viewer"},\n    {"diagnostics-tcpdump-modal.lp", T"TCP Dump"},/' -i /www/snippets/tabs-diagnostics.lp
+sed \
+  -e 's/    {"logviewer-modal.lp", T"Log Viewer"},/    {"logviewer-modal.lp", T"Log Viewer"},\n    {"diagnostics-tcpdump-modal.lp", T"TCP Dump"},/' \
+  -i /www/snippets/tabs-diagnostics.lp
+
+echo [$SCRIPT]: Fix tabs on Diagnostics Ports Map
+sed \
+  -e '/createModalTabs/a\local lp = require("web.lp");lp.setpath("/www/snippets/");lp.include("tabs-diagnostics.lp");' \
+  -i /www/docroot/modals/diagnostics-network-modal.lp
+sed \
+  -e '/local tabs/,/createModalTabs/d' \
+  -i /www/docroot/modals/diagnostics-network-modal.lp
 
