@@ -1,3 +1,70 @@
+2022.02.02
+==========
+* tch-gui-unhide: Manual update recommended, as there are changes to de-telstra, mtd-backup, mtd-restore and reset-to-factory-defaults-with-root
+* tch-gui-unhide: Fixed incorrect error message on Local Network screen when a custom DNS IPv4 address was specified for DNS intercept (#58)
+* tch-gui-unhide: Fixed bug that prevented the drop down list of interface names on Telephony Global tab from displaying correctly
+* tch-gui-unhide: Fixed bug that prevented adding a device to be bandwidth shaped
+* tch-gui-unhide: Fixed bug that prevented editing an existing static lease
+* tch-gui-unhide: Allow DHCP static lease without specifying an IP address (#59)
+* tch-gui-unhide: Fixed overly-aggressive space removal in code minification (#60)
+* tch-gui-unhide: Renamed DNS Intercept to DNS Hijacking to avoid confusion with the intercept daemon
+* tch-gui-unhide: Added additional DoH IP address sources for DNS hijacking (#57)
+* tch-gui-unhide: IPv6 DNS hijacking exceptions were not applied to DoH and DoT
+* tch-gui-unhide: IPv6 DNS hijacking DIVERT rule was configured out of sequence, so existing connections could go through the transparent proxy twice
+* tch-gui-unhide: Removed inconsistent option to disable DoH/DoT hijacking for IPv6
+* tch-gui-unhide: DNS hijacking IP Sets are now restored on firewall reload as well as restart
+* tch-gui-unhide: De-duplicated DNS Server lists to separate module to improve performance
+* tch-gui-unhide: Moved DNS Hijacking to DNS card
+* tch-gui-unhide: Moved bridged mode DNS Servers from Local Network card to DNS card
+* tch-gui-unhide: Split DNS card into multiple tabs and added the ability to enable/disable the intercept daemon
+* tch-gui-unhide: DNS card now visible in bridged mode
+* tch-gui-unhide: Fixed error when adding and deleting file sharing users when file sharing disabled (FW 20.3.c)
+* tch-gui-unhide: /etc/init.d/power was incorrectly replaced on FW 20.3.c
+* tch-gui-unhide: Fixed opkg download failures on FW 18.1.c by applying the full wget package during opkg configuration (#56)
+* tch-gui-unhide: Split WAN Services into tabs and removed unused MWAN DNS rules
+* tch-gui-unhide: Added Wi-Fi Devices List tab to Devices card
+* tch-gui-unhide: Separate IPv6 addresses on device list with line breaks instead of spaces
+* tch-gui-unhide: Added the Pair icon after the SSID on the Wireless card if WPS is enabled
+* tch-gui-unhide: Added 5 second timeout to version check
+* tch-gui-unhide: Fixed 'sh: missing ]' bug in /etc/init.d/multiap_controller
+* tch-gui-unhide: Fixed version numbers in copyright notice (again)
+* tch-gui-unhide: Exposed additional MultiAP configuration on Wi-Fi Boosters card
+* tch-gui-unhide: Fixed 'Save' and 'Cancel' buttons not being replaced with 'Close' when saving WAN Sensing state change
+* tch-gui-unhide: Fixed WAN Sensing Auto-Failover changes not being correctly applied
+* tch-gui-unhide: Fixed WAN Sensing Auto-Failover tab on FW 17.2
+* tch-gui-unhide: Do not show SSH WAN on the System Extras card in bridged mode
+* tch-gui-unhide: Removed IPv6 ULA from Local Network when in bridged mode
+* tch-gui-unhide: Configured DNS Servers now shown on Local Network card when in bridged mode
+* tch-gui-unhide: Removed local domain name from Local Network card when in bridged mode
+* tch-gui-unhide: Sorted new static lease drop down list by MAC, and added Hostname/IP address
+* tch-gui-unhide: Fixed bug that showed summary Chart card after updating tch-gui-unhide even if it was previously hidden
+* tch-gui-unhide: Fixed bug that prevented the loading spinner from displaying on card links created by an Ajax request
+* tch-gui-unhide: Added new Intrusion Protection feature to the Firewall (#65)
+* tch-gui-unhide: Improved performance of Firewall IP Tables tab and fixed filter to 1) show Chain headers if rules found within a Chain; and 2) show all Chain rules if filter matches Chain name 
+* tch-gui-unhide: Improved experimental GUI code size reduction from ~21% to ~37%
+* tch-gui-unhide: Fixed log viewer issues when code minified
+* tch-gui-unhide: Fixed tabs on Diagnostics Ports Map for FW 17.2
+* tch-gui-unhide: Active Ajax requests are cancelled when a modal window is opened to try and improve performance
+* de-telstra: Added confirmation prompt and -y bypass switch (#63)
+* de-telstra: Added some new options for scripting
+* de-telstra: Added new -i option to configure the intercept daemon, and the -A/-M/-S convenience options now apply -in
+* de-telstra: Added new options to enable individual MultiAP components (-ma Agent -mc Controller -mb Backhaul SSID -mv Vendor Extensions)
+* de-telstra: Fixed minor bug in WAN Supervision setting
+* de-telstra: Fixed enabled NAT ALG checks and counts
+* de-telstra: Fixed opkg download failures on FW 18.1.c by applying the full wget package during opkg configuration (#56)
+* de-telstra: Removed CWMP logging and log files when CWMPD removed
+* intercept-dns: Renamed to hijack-dns to avoid confusion with the intercept daemon
+* hijack-dns: Reworked to add IPv6 support
+* mtd-backup: Save un-encrypted SIP passwords in config backup, because decryption does not appear to be possible on a different device
+* mtd-backup: Clean up old restored images before backup
+* mtd-backup: Delete possibly incomplete backup on Ctrl-C interrupt
+* mtd-backup: Create restore-config.sh script in backups directory when both configuration (-c) and overlay (-o) backups requested (see https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities/restore-config#readme)
+* mtd-restore: Erase the target device before restoring image backup
+* reset-to-factory-defaults-with-root: Force reboot with SysRq trigger
+* reset-to-factory-defaults-with-root: Erase the target device before flashing new firmware
+* reset-to-factory-defaults-with-root: Speeded up availability when CWMP stopped at boot
+* reset-to-factory-defaults-with-root: Added new --restore-config option (see https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities/restore-config#readme)
+
 2022.01.01
 ==========
 * tch-gui-unhide: Added ability to enable/disable NTP server (#54)
