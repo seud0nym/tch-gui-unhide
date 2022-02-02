@@ -119,7 +119,7 @@ local wait_attributes = {
 
 ngx.print(ui_helper.createHeader(params.modal_title,false,true),'\
 <div class="modal-body update">\
-'); lp.include("tabs-firewall.lp"); ngx.print('\
+'); lp.include("tabs-mobiled.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/lte-autofailover.lp">',
     ui_helper.createMessages(message_helper.popMessages()),'\
     <fieldset><legend>',T"Auto-Failover Global Settings",'</legend>',
