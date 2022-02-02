@@ -25,9 +25,13 @@ if mac then
 
     if result and result ~= "" then
       vendor = result
-      local cache = io.open("/tmp/mac.cache","a")
-      cache:write(mac," ",vendor,"\n")
-      cache:close()
+      local cache,errmsg = io.open("/tmp/mac.cache","a")
+      if errmsg then
+        ngx.log(ngx.ERR,"Failed to open /tmp/mac.cache: "..errmsg)
+      else
+        cache:write(mac," ",vendor,"\n")
+        cache:close()
+      end
     end
   end
 
