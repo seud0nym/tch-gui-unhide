@@ -103,7 +103,6 @@ if [ "$(uci -q get firewall.doh)" = "ipset" ];then
   add_single_hostname doh.umbrella.com A
   download https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv4.txt $IPv4_INTERMEDIATE "{print \$1}0"
   download https://raw.githubusercontent.com/oneoffdallas/dohservers/master/iplist.txt $IPv4_INTERMEDIATE "/^#/{next;}1"
-  download https://raw.githubusercontent.com/Zelo72/adguard/main/doh-vpn-proxy-bypass.adblock $IPv4_INTERMEDIATE "/^\|\|/{print substr(\$0,3,length(\$0)-3);}0" A
   update_ipset doh $IPv4_INTERMEDIATE
 fi
 
@@ -111,7 +110,6 @@ if [ "$(uci -q get firewall.doh6)" = "ipset" ]; then
   add_single_hostname doh.umbrella.com AAAA
   download https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv6.txt $IPv6_INTERMEDIATE "{print \$1}0"
   download https://raw.githubusercontent.com/oneoffdallas/dohservers/master/ipv6list.txt $IPv6_INTERMEDIATE "/^#/{next;}1"
-  download https://raw.githubusercontent.com/Zelo72/adguard/main/doh-vpn-proxy-bypass.adblock $IPv6_INTERMEDIATE "/^\|\|/{print substr(\$0,3,length(\$0)-3);}0" AAAA
   update_ipset doh6 $IPv6_INTERMEDIATE
 fi
 
