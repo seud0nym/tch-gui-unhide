@@ -241,3 +241,9 @@ if [ -e /usr/share/transformer/commitapply/uci_wansensing.ca ]; then
   SRV_transformer=$(( $SRV_transformer + 1 ))
 fi
 
+if [ "$MINIFY" = y ]; then
+  echo [$SCRIPT]: Pre-minify fixes
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/lte-doctor.lp"
+  sed -e '/[ \t]*\/\/[ \t]*Zooming with more than 100/d' -i /www/docroot/modals/lte-doctor.lp
+fi
+
