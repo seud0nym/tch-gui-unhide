@@ -56,8 +56,8 @@ Options:
                           to: -ka -kc -kk -kl -km -kn -kq -ks -kx)
  -h u|d|s|<hostname>
     where u            Leave hostname unchanged
-          d            Set the hostname to $VARIANT
-          s            Set the hostname to $VARIANT-$MAC_HEX
+          d            Set the hostname to VARIANT (e.g. DJA0231)
+          s            Set the hostname to VARIANT-MAC_HEX (e.g. DJA0231-XXXXXX)
           <hostname>   Use the specified hostname
  -d u|g|l|<domainname>
     where u            Leave domain name unchanged
@@ -117,7 +117,9 @@ Options:
 #### Notes
 1. The default for all optional parameters is u (unchanged).
 2. The options to disable/enable NFC, EasyMesh and DumaOS are only applicable to devices with those services installed.
-#### Warning!
+3. Shortcut options (e.g. *-A*, *-S*, *-M* and *-R*) can have their settings overridden by specifying the required option **AFTER** the shortcut option. For example, the *-A* option disables Content Sharing (*-cn*). However, you can specify *-A -cy* to enable Content Sharing and still apply all the other options implied by *-A*.
+
+#### Warning
 * Enabling power saving on FW 20.3.c will power down WAN/LAN ports!!
 
 ## dumaos

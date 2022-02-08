@@ -95,9 +95,13 @@ Options:
  --no-service-restart  Do NOT restart services after applying configuration changes
  --no-password-remind  Do NOT remind to change root password
 
-NOTE #1: Default for all optional parameters is u (unchanged)
-NOTE #2: Options marked with * are only applicable if the service is installed
-NOTE #3: Enabling power saving on FW 20.3.c will power down WAN/LAN ports!!
+NOTE #1:  Default for all optional parameters is u (unchanged)
+NOTE #2:  Options marked with * are only applicable if the service is installed
+NOTE #3:  Shortcut options (e.g. -A, -S, -M and -R) can have their settings overriden 
+          by specifying the required option AFTER the shortcut option. For example, 
+          the -A option disables Content Sharing (-cn). However, you can specify -A -cy 
+          to enable Content Sharing and still apply all the other options implied by -A.
+WARNING:  Enabling power saving on FW 20.3.c will power down WAN/LAN ports!!
 
 EOH
 
