@@ -21,6 +21,12 @@ local untaint = string.untaint
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
+local bwstats,download,upload = proxy.get("rpc.gui.bwstats.show_in_device_list"),nil,nil
+if bwstats and bwstats[1] and bwstats[1].value == "1" then
+  bwstats = true
+  download,upload = require("devicesbandwidth_helper").getBandwithStatisticsByMAC()
+end
+
 local agentSTA = {}
 local multiap = proxy.getPN("Device.Services.X_TELSTRA_MultiAP.Agent.",true)
 if multiap then
@@ -274,6 +280,22 @@ local devices_filter = function(data)
 end
 
 local devices_data,devices_helpmsg = post_helper.handleTableQuery(devices_columns,devices_options,devices_filter,nil,device_valid)
+if bwstats then
+  devices_columns[#devices_columns+1] = {--[9]
+    header = "<i class='icon-cloud-download status-icon'></i> MB",
+    name = "Download",
+    param = "Download",
+    type = "text",
+    readonly = true,
+  }
+  devices_columns[#devices_columns+1] = {--[10]
+    header = "<i class='icon-cloud-upload status-icon'></i> MB",
+    name = "Upload",
+    param = "Upload",
+    type = "text",
+    readonly = true,
+  }
+end
 
 local function secondsToTime(time)
   local time_no = tonumber(time)
@@ -286,16 +308,21 @@ end
 for k,v in pairs (devices_data) do
   devices_data[k][1] = format("%s",v[1])
   devices_data[k][5] = format("%s",v[5])
-    if v[8] ~= "" and v[7] ~= "" then
-      v[8] = secondsToTime(tonumber(v[8])- (os.time()- tonumber(v[7]))%tonumber(v[8])) or T"Infinite"
-    else
-      v[8]="-"
-    end
-    if v[7] ~= "" then
-      v[7] = secondsToTime(os.time()- tonumber(v[7]))
-    else
-      v[7] = "-"
-    end
+  if v[8] ~= "" and v[7] ~= "" then
+    v[8] = secondsToTime(tonumber(v[8])- (os.time()- tonumber(v[7]))%tonumber(v[8])) or T"Infinite"
+  else
+    v[8]="-"
+  end
+  if v[7] ~= "" then
+    v[7] = secondsToTime(os.time()- tonumber(v[7]))
+  else
+    v[7] = "-"
+  end
+  if bwstats then
+    local mac = match(v[5],"^([%x:]+)")
+    devices_data[k][9] = format("%.2f",(download[mac] or 0)/1048576)
+    devices_data[k][10] = format("%.2f",(upload[mac] or 0)/1048576)
+  end
 end
 
 local interval = 10
@@ -306,20 +333,18 @@ if ngx.var.request_method == "POST" and ngx.var.content_type and match(ngx.var.c
   end
 end
 
-ngx.print( ui_helper.createHeader(T"Devices",false,true,interval) ); ngx.print('\
+ngx.print(ui_helper.createHeader(T"Devices",false,true,interval),'\
 <style>.macvendor{display:block;font-size:8px;line-height:8px;}</style>\
 <div class="modal-body update">\
-');  lp.include("tabs-devices.lp")   ngx.print('\
-  <form class="form-horizontal" method="post" action="modals/device-modal.lp?sort='); ngx.print(sortcol); ngx.print('&connected='); ngx.print(connected); ngx.print('">\
-    ');
-    ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-    ngx.print('\
-    <fieldset>\
-      ');  ngx.print( ui_helper.createTable(devices_columns,devices_data,devices_options,nil,devices_helpmsg) ); ngx.print('\
+'); lp.include("tabs-devices.lp") ngx.print('\
+  <form class="form-horizontal" method="post" action="modals/device-modal.lp?sort=',sortcol,'&connected=',connected,'">',
+    ui_helper.createMessages(message_helper.popMessages()),'\
+    <fieldset>',
+      ui_helper.createTable(devices_columns,devices_data,devices_options,nil,devices_helpmsg),'\
     </fieldset>\
   </form>\
-</div>\
-');  ngx.print( ui_helper.createFooter() ); ngx.print('\
+</div>',
+ui_helper.createFooter(),'\
 <script>\
 $("#devices>tbody>tr>td:nth-child(5)").each(function(index,cell){\
   var i=($(cell).children(".macvendor"));\
@@ -338,9 +363,9 @@ for(var i=0;i<hdrs.length;i++){\
   var text=hdrs[i].innerText;\
   var sort="";\
   var title="";\
-  var connected="'); ngx.print(connected); ngx.print('";\
+  var connected="',connected,'";\
   switch(text){\
-    case "Status":sort="'); ngx.print(sortcol); ngx.print('";connected="'); ngx.print(connectedAction); ngx.print('";title="Show '); ngx.print(connectedAction); ngx.print('";break;\
+    case "Status":sort="',sortcol,'";connected="',connectedAction,'";title="Show ',connectedAction,'";break;\
     case "Hostname":sort="FriendlyName";break;\
     case "IPv4":sort="IPv4";break;\
     case "IPv6":sort="IPv6";break;\

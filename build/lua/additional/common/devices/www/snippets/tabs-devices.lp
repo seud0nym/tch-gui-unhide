@@ -3,39 +3,27 @@
 gettext.textdomain('webui-core')
 
 local ipairs,string = ipairs,string
-local proxy = require("datamodel")
-
-local wan_mode = proxy.get("uci.network.config.wan_mode")
-if not wan_mode or wan_mode[1].value ~= "bridge" then
+local format,length,substring = string.format,string.len,string.sub
 
 local items = {
   {"device-modal.lp",T"Device List"},
-  {"device-map-modal.lp",T"Network Map"}
+  {"device-map-modal.lp",T"Network Map"},
+  {"device-bwstats-modal.lp",T"Device Bandwidth Monitor"},
 }
 
-ngx.print('<ul class="nav nav-tabs">\
-');
-
-local html = {}
-
 local uri = ngx.var.uri
-if ngx.var.args and string.len(ngx.var.args) > 0 then
+if ngx.var.args and length(ngx.var.args) > 0 then
   uri = uri.."?"..ngx.var.args
 end
 
+local html = { '<ul class="nav nav-tabs">' }
 for _,v in ipairs(items) do
   local active = ""
   local modal = "/modals/"..v[1]
-  if string.sub(uri,1,string.len(modal)) == modal then
+  if substring(uri,1,length(modal)) == modal then
     active = "active"
   end
-
-  html[#html+1] = string.format('<li class="%s"><a href="#" data-remote="/modals/%s">%s</a></li>',active,v[1],v[2])
+  html[#html+1] = format('<li class="%s"><a href="#" data-remote="/modals/%s">%s</a></li>',active,v[1],v[2])
 end
-ngx.print(html)
-
-  ngx.print('\
-\
-</ul>\
-');
-end
+html[#html+1] = '</ul>'
+ngx.print(html);

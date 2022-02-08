@@ -1,0 +1,26 @@
+if [ ! -e /etc/config/bwstats ]; then
+  echo [$SCRIPT]: Creating device bandwidth monitoring config
+  cat <<BWSTATS > /etc/config/bwstats
+config bwstats 'config'
+        option enabled '0'
+        option show_in_device_list '0'
+        option log_level '3'
+BWSTATS
+  chmod 644 /etc/config/bwstats
+fi
+chmod 755 /usr/share/tch-gui-unhide/bwstats.*
+
+if [ "$(uci -q get firewall.bwstats)" != "include" ]; then
+  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Creating configuration firewall.bwstats"
+  uci set firewall.bwstats='include'
+  uci set firewall.bwstats.type='script'
+  uci set firewall.bwstats.path='/usr/share/tch-gui-unhide/bwstats.sh'
+  uci set firewall.bwstats.reload='0'
+  uci set firewall.bwstats.enabled='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
+if [ "$(uci -q get firewall.bwstats.reload)" != "0" ]; then
+  uci set firewall.bwstats.reload='0'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
+

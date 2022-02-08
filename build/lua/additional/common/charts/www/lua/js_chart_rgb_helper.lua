@@ -17,17 +17,19 @@ local colors = {
 
 local M = {}
 
-function M.getRGB(chart)
+function M.getRGB(chart,ignoreMonochrome)
   local theme = TGU_Config:get("THEME") or ""
-  local color = TGU_Config:get("COLOR") or ""
 
   if theme ~= "night" then
     theme = "light"
   end
 
   local index = 2
-  if color == "MONOCHROME" then
-    index = 1
+  if not ignoreMonochrome then
+    local color = TGU_Config:get("COLOR") or ""
+    if color == "MONOCHROME" then
+      index = 1
+    end
   end
 
   return colors[theme][chart][index]

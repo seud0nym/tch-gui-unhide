@@ -1,0 +1,209 @@
+local uci_helper = mapper("ucihelper")
+local uci_enabled_binding = {config="bwstats",sectionname="config",option="enabled"}
+local uci_showinlist_binding = {config="bwstats",sectionname="config",option="show_in_device_list"}
+local uci_logging_binding = {config="bwstats",sectionname="config",option="log_level"}
+
+local commitapply = commitapply
+local tolower,match = string.lower,string.match
+local run = os.execute
+
+local commands = { 
+  iptables =  "ipv4",
+  ip6tables = "ipv6",
+}
+
+local GUI_BWSTATS_ = {
+  objectType = {
+    name = "rpc.gui.bwstats.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      enabled = {
+        access = "readWrite",
+        type = "boolean"
+      },
+      log_level = {
+        access = "readWrite",
+        type = "int"
+      },
+      zero_counters = {
+        access = "readWrite",
+        type = "boolean"
+      },
+      show_in_device_list = {
+        access = "readWrite",
+        type = "boolean"
+      },
+    }
+  }
+}
+
+GUI_BWSTATS_.get = {
+  enabled = function()
+    local level = uci_helper.get_from_uci(uci_enabled_binding)
+    if level ~= "1" then
+      level = "0"
+    end
+    return level
+  end,
+  log_level = function()
+    local level = tonumber(uci_helper.get_from_uci(uci_logging_binding))
+    if level and level >= 1 and level <= 6 then
+      return tostring(level)
+    end
+    return "3"
+  end,
+  show_in_device_list = function()
+    local level = uci_helper.get_from_uci(uci_showinlist_binding)
+    if level ~= "1" then
+      level = "0"
+    end
+    return level
+  end,
+  zero_counters = function()
+    return "0"
+  end
+}
+
+GUI_BWSTATS_.set = {
+  enabled = function(_,_,value,_)
+    if value == "1" or value == "0" then
+      uci_helper.set_on_uci(uci_enabled_binding,value)
+      uci_helper.commit(uci_enabled_binding,value)
+      commitapply:newset("rpc.gui.bwstats.enabled")
+      return true
+    end
+    return nil,"enabled value must be 1 or 0"
+  end,
+  log_level = function(_,_,value,_)
+    local level = tonumber(value)
+    if level and level >= 1 and level <= 6 then
+      uci_helper.set_on_uci(uci_logging_binding,value)
+      uci_helper.commit(uci_logging_binding,value)
+      commitapply:newset("rpc.gui.bwstats.log_level")
+      return true
+    end
+    return nil,"log_level value must be between 1 and 6"
+  end,
+  show_in_device_list = function(_,_,value,_)
+    if value == "1" or value == "0" then
+      uci_helper.set_on_uci(uci_showinlist_binding,value)
+      uci_helper.commit(uci_showinlist_binding,value)
+      return true
+    end
+    return nil,"show_in_device_list value must be 1 or 0"
+  end,
+  zero_counters = function(_,_,value,_)
+    if value == "0" then
+      return true
+    elseif value == "1" then
+      for command in pairs(commands) do
+        local output = io.popen(command.." -t mangle -nL FORWARD --line-numbers | grep -E 'BWSTATS[RT]X' | tr -s ' ' | cut -d' ' -f1-2",'r')
+        for line in output:lines() do
+          local rulenum,chain = match(line,"^(%d+)%s+(%S+)$")
+          run(command.." -t mangle -Z FORWARD "..rulenum..";"..command.." -t mangle -Z "..chain)
+        end
+        output:close()
+      end
+      return true
+    end
+    return nil,"zero_counters value must be 1 or 0"
+  end,
+}
+
+register(GUI_BWSTATS_)
+
+local GUI_BWSTATS_DEVICE_i_ = {
+  objectType = {
+    name = "rpc.gui.bwstats.device.@.",
+    access = "readOnly",
+    numEntriesParameter = "deviceNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      mac = {
+        access = "readOnly",
+        type = "string",
+      },
+      ipv4_rx = {
+        access = "readOnly",
+        type = "int",
+      },
+      ipv4_tx = {
+        access = "readOnly",
+        type = "int",
+      },
+      ipv6_rx = {
+        access = "readOnly",
+        type = "int",
+      },
+      ipv6_tx = {
+        access = "readOnly",
+        type = "int",
+      },
+    }
+  }
+}
+
+local iptables = {}
+
+GUI_BWSTATS_DEVICE_i_.entries = function(_)
+  local size = #iptables
+  local key = 0
+  local keys = {}
+  local mac_index = {}
+
+  for command,prefix in pairs(commands) do
+    local output = io.popen(command.." -t mangle -nvxL | grep -E 'BWSTATS[RT]X MAC'",'r')
+    for rule in output:lines() do
+      local b,direction,mac = match(rule,"^%s*%d+%s+(%d+)%s+RETURN.*BWSTATS([RT]X) MAC: ([%x:]+) .*$")
+      local bytes = tonumber(b)
+      if bytes and direction and (direction == "RX" or direction == "TX") and mac and mac ~= "" then
+        local counter = prefix.."_"..tolower(direction)
+        local index = mac_index[mac]
+        if not index then
+          key = key + 1
+          keys[#keys+1] = tostring(key)
+          mac_index[mac] = key
+          iptables[key] = {
+            mac = mac,
+            ipv4_rx = 0,
+            ipv4_tx = 0,
+            ipv6_rx = 0,
+            ipv6_tx = 0,
+          }
+          index = key
+        end
+        iptables[index][counter] = iptables[index][counter] + bytes
+      end
+    end
+    output:close()
+  end
+
+  if size > #iptables then
+    for i=#iptables+1,size do
+      iptables[i] = nil
+    end
+  end
+
+  return keys
+end
+
+GUI_BWSTATS_DEVICE_i_.get = function(_,param,key)
+  local device = iptables[tonumber(key)]
+  if device then
+    local value = device[param]
+    if not value then
+      if (param == "mac") then
+        return ""
+      else
+        return "0"
+      end
+    end
+    return tostring(value)
+  end
+  return ""
+end
+
+register(GUI_BWSTATS_DEVICE_i_)
