@@ -9,6 +9,10 @@ fi
 
 SCRIPT="$(basename $0)"
 
+VERSION=$(uci get version.@version[0].marketing_version)
+VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
+MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
+
 usage() {
 cat <<EOH
 Hardens root access and applies optional service configuration changes.
@@ -215,10 +219,6 @@ while getopts :a:b:c:d:e:f:g:h:i:k:m:n:op:q:r:s:t:u:w:yAF:GMO:RSU-: option; do
   *)  usage -$OPTARG;;
  esac
 done
-
-VERSION=$(uci get version.@version[0].marketing_version)
-VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
-MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
 
 # Keep count of changes so we know whether to restart services
 SRV_bulkdata=0
