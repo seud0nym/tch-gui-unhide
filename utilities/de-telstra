@@ -366,7 +366,7 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y -o $__YES = n ]; then
 fi
 
 status2text() {
-  if [ "$1" = "0" ]; then
+  if [ "$1" = "0" -o "$1" = "no" ]; then
     echo Disabled
   else
     echo Enabled
@@ -888,34 +888,50 @@ else
 fi
 
 PS_NOW="$(uci -q get printersharing.config.enabled)"
-if [ "$__PRNTR" = "u" -o "$PS_NOW" = "$__PRNTR" ]; then
+if [ \( "$__PRNTR" = "u" -o "$PS_NOW" = "$__PRNTR" \) -a "$(iptables -S | grep -c 'lan.*--dport 631 .*DROP')" != "$__PRNTR" ]; then
   echo [$SCRIPT]: Printer sharing unchanged \[$(status2text $PS_NOW)\]
+  SAMBA_PS="$PS_NOW"
 else
+  [ "$__PRNTR" = "1" ] && { CUPS_FW="0"; CUPS_WI="yes"; } || { CUPS_FW="1"; CUPS_WI="no"; }
   uci set printersharing.config.enabled="$__PRNTR"
   uci commit printersharing
+  for rule in $(uci show firewall | grep -i Deny-CUPS-lan | cut -d. -f1-2); do
+    if [ "$(uci -q get ${rule}.src)" = "lan" -a "$(uci -q get ${rule}.enabled)" != "$CUPS_FW" ]; then
+      uci set ${rule}.enabled="$CUPS_FW"
+      SRV_fw=$(( $SRV_fw + 1 ))
+      echo [$SCRIPT]: Printer sharing firewall rule $(uci -q get ${rule}.name) $(status2text $CUPS_FW)
+    fi
+  done
+  uci commit firewall
+  for f in $(grep -li WebInterface $(find /etc/ -type f -name '*cups*')); do
+    sed -e "s/\(WebInterface[ =]*\)\(no\|yes\)/\1${CUPS_WI}/" -i "$f"
+  done
+  grep -q WebInterface /etc/cups/cupsd.conf || echo "WebInterface ${CUPS_WI}" >> /etc/cups/cupsd.conf
+  echo [$SCRIPT]: CUPSD Web Interface $(status2text $CUPS_WI)
   SRV_cups=$(( $SRV_cups + 1 ))
-  PS_NOW="$__PRNTR"
+  SAMBA_PS="$__PRNTR"
   echo [$SCRIPT]: Printer sharing $(status2text $__PRNTR)
 fi
 
 FS_NOW="$(uci -q get samba.samba.filesharing)"
 if [ "$__SAMBA" = "u" -o "$FS_NOW" = "$__SAMBA" ]; then
   echo [$SCRIPT]: File sharing unchanged \[$(status2text $FS_NOW)\]
+  SAMBA_FS="$FS_NOW"
 else
   uci set samba.samba.filesharing="$__SAMBA"
   uci commit samba
   SRV_samba=$(( $SRV_samba + 1 ))
-  FS_NOW="$__SAMBA"
+  SAMBA_FS="$__SAMBA"
   echo [$SCRIPT]: File sharing $(status2text $__SAMBA)
 fi
 
 SAMBA_NOW="$(uci -q get samba.samba.enabled)"
-if [ "$SAMBA_NOW" = "1" -a "$PS_NOW" = "0" -a "$FS_NOW" = "0" ]; then
+if [ "$SAMBA_NOW" = "1" -a "$SAMBA_PS" = "0" -a "$SAMBA_FS" = "0" ]; then
   uci set samba.samba.enabled="0"
   uci commit samba
   SRV_samba=$(( $SRV_samba + 1 ))
   echo [$SCRIPT]: SAMBA Disabled
-elif [ "$SAMBA_NOW" = "0" -a \( "$PS_NOW" = "1" -o "$FS_NOW" = "1" \) ]; then
+elif [ "$SAMBA_NOW" = "0" -a \( "$SAMBA_PS" = "1" -o "$SAMBA_FS" = "1" \) ]; then
   uci set samba.samba.enabled="1"
   uci commit samba
   SRV_samba=$(( $SRV_samba + 1 ))
