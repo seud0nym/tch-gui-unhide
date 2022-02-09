@@ -1,0 +1,16 @@
+echo [$SCRIPT]: Configure SAMBA Printer Sharing when printer sharing enabled or disabled
+sed \
+  -e '/^createUsbPartitionTable/a\
+if ngx.req.get_method() == "POST" then\
+  local postArgs = ngx.req.get_post_args()\
+  proxy.set("uci.samba.sambashare.@printers.enabled", postArgs.printersharing_enabled)\
+  proxy.apply()\
+end' \
+  -i /www/docroot/modals/printersharing-modal.lp
+
+echo [$SCRIPT]: Change checkbox to switch
+sed \
+  -e 's/getValidateCheckboxSwitch()/validateBoolean/' \
+  -e 's/createCheckboxSwitch/createSwitch/' \
+  -i /www/docroot/modals/printersharing-modal.lp
+
