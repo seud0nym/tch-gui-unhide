@@ -1,0 +1,28 @@
+local GUI_CUPS_ = {
+  objectType = {
+    name = "rpc.gui.cups.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      printers = {
+        access = "readOnly",
+        type = "string"
+      }
+    }
+  }
+}
+
+GUI_CUPS_.get = {
+  printers = function()
+    local result = ""
+    local info = io.popen("sed -e '/^Info/!d' -e 's/^Info *//' /etc/cups/printers.conf | xargs","r")
+    if info then
+      result = info:read("*a")
+      info:close()
+    end
+    return result
+  end,
+}
+
+register(GUI_CUPS_)

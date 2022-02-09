@@ -8,7 +8,6 @@ sed \
 local usb = {}\
 local usbdev_data = proxy.getPN("sys.usb.device.", true)\
 if usbdev_data then\
-  local v\
   for _,v in ipairs(usbdev_data) do\
     local partitions = proxy.get(v.path .. "partitionOfEntries")\
     if partitions then\
@@ -25,12 +24,11 @@ if usbdev_data then\
 end' \
   -e '/ngx.print(html)/i\
 if #usb == 0 then\
-  tinsert(html, ui_helper.createSimpleLight("0", T"No USB devices found", attributes))\
+  tinsert(html, ui_helper.createSimpleLight("0", T"No USB Storage Devices found", attributes))\
 else\
-  tinsert(html, ui_helper.createSimpleLight("1", format(N("%d USB Device found:","%d USB devices found:",#usb),#usb), attributes))\
+  tinsert(html, ui_helper.createSimpleLight("1", format(N("%d USB Storage Device found:","%d USB Storage Devices found:",#usb),#usb), attributes))\
   tinsert(html, T"<p class=\\"subinfos\\">")\
-  local v\
-  for _,v in pairs(usb) do\
+  for _,v in ipairs(usb) do\
     tinsert(html, format("<span class=\\"simple-desc\\"><i class=\\"icon-hdd status-icon\\"></i>&nbsp;%s [%s Free]</span>", v.product, v.size))\
   end\
   tinsert(html, T"</p>")\
@@ -50,8 +48,7 @@ sed \
   -e '/DLNA name"/a\                tinsert(html, "</fieldset>")' \
   -i /www/docroot/modals/contentsharing-modal.lp
 
-
-echo [$SCRIPT]: Enable or disable SAMBA service when file and printer sharing completely enabled or disabled
+echo [$SCRIPT]: Enable or disable SAMBA service when file and printer sharing completely enabled or disabled \(CS\)
 sed \
   -e '/if samba_available and type/i\
     if samba_available and type(post_data["samba_filesharing"]) == "userdata" then\
@@ -77,26 +74,4 @@ sed \
       end\
     end' \
   -i /www/docroot/modals/contentsharing-modal.lp
-sed \
-  -e '/proxy.apply/i\
-  local ps = string.untaint(postArgs.printersharing_enabled)\
-  local fs = proxy.get("uci.samba.samba.filesharing")\
-  local svc_status\
-  if not fs then\
-    svc_status = ps\
-  else\
-    fs = string.untaint(fs[1].value)\
-    if ps == fs then\
-      svc_status = ps\
-    elseif (ps == "0" and fs == "1") or (ps == "1" and fs == "0") then\
-      svc_status = "1"\
-    end\
-  end\
-  if svc_status then\
-    local svc = proxy.get("uci.samba.samba.enabled")\
-    if svc and svc[1].value ~= svc_status then\
-      proxy.set("uci.samba.samba.enabled", svc_status)\
-    end\
-  end' \
-  -i /www/docroot/modals/printersharing-modal.lp
 

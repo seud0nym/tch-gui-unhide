@@ -1,0 +1,77 @@
+echo [$SCRIPT]: Enable or disable SAMBA service when file and printer sharing completely enabled or disabled \(PS\)
+sed \
+  -e '/proxy.apply/i\
+  local ps = string.untaint(postArgs.printersharing_enabled)\
+  local fs = proxy.get("uci.samba.samba.filesharing")\
+  local svc_status\
+  if not fs then\
+    svc_status = ps\
+  else\
+    fs = string.untaint(fs[1].value)\
+    if ps == fs then\
+      svc_status = ps\
+    elseif (ps == "0" and fs == "1") or (ps == "1" and fs == "0") then\
+      svc_status = "1"\
+    end\
+  end\
+  if svc_status then\
+    local svc = proxy.get("uci.samba.samba.enabled")\
+    if svc and svc[1].value ~= svc_status then\
+      proxy.set("uci.samba.samba.enabled", svc_status)\
+    end\
+  end' \
+  -i /www/docroot/modals/printersharing-modal.lp
+
+echo [$SCRIPT]: Fix printer sharing HTML and add CUPS urls
+sed \
+  -e 's/General/Printer Sharing/' \
+  -e '/uci.network.interface.@lan.ipaddr/a\  cups_printers = "rpc.gui.cups.printers",' \
+  -e '/createSwitch/a\ html[#html+1] = "<\/fieldset>"' \
+  -e 's/To connect: /Connect using SAMBA Share:<br>\&nbsp;\&nbsp;\&nbsp;\&nbsp;/' \
+  -e 's/Samba is disabled/Connect using SAMBA Share:<br>\&nbsp;\&nbsp;\&nbsp;\&nbsp;SAMBA Disabled/' \
+  -e 's/\\ or \\/\\<br>\&nbsp;\&nbsp;\&nbsp;\&nbsp;\\/' \
+  -e '/if content_samba.samba_enabled == /i\
+        local addrWithIP = format("://%s:631/printers/%s",content_samba.localdevIP,content_samba.cups_printers)\
+        local addrWithName = format("://%s:631/printers/%s",content_samba.samba_name,content_samba.cups_printers)\
+        html[#html+1] = format(T"<div class=\\"simple-desc\\">Connect using CUPS:<br>&nbsp;&nbsp;&nbsp;&nbsp;<a target=\\"_blank\\" href=\\"http%s\\">http%s</a><br>&nbsp;&nbsp;&nbsp;&nbsp;<a target=\\"_blank\\" href=\\"http%s\\">http%s</a></div>\",addrWithIP,addrWithIP,addrWithName,addrWithName)\
+        html[#html+1] = format(T"<div class=\\"simple-desc\\">Connect using IPP:<br>&nbsp;&nbsp;&nbsp;&nbsp;ipp%s<br>&nbsp;&nbsp;&nbsp;&nbsp;ipp%s</div>\",addrWithIP,addrWithName)'\
+  -e '/createTable/i\ html[#html+1] = "<br>"' \
+  -i /www/docroot/modals/printersharing-modal.lp
+
+echo [$SCRIPT]: Add Mounted USB Printers to Printer Sharing card
+sed \
+  -e 's/Printer sharing/Printer Sharing/' \
+  -e 's/); *ngx.print( */,/' \
+  -e '/^local content /i\
+local format = string.format\
+local usb = {}\
+local usbdev_data = proxy.getPN("sys.usb.device.", true)\
+if usbdev_data then\
+  for _,dev in ipairs(usbdev_data) do\
+    local usbdeviface_data = proxy.getPN(dev.path.."interface.",true)\
+    if usbdeviface_data then\
+      for _,iface in ipairs(usbdeviface_data) do\
+        local class = proxy.get(iface.path.."bInterfaceClass")\
+        if class and class[1] and class[1].value == "07" then\
+        print(iface.path.."bInterfaceClass=",class[1].value)\
+          local printer = proxy.get(dev.path .. "manufacturer",dev.path .. "product")\
+          usb[#usb+1] = format("%s %s",printer[1].value,printer[2].value)\
+        end\
+      end\
+    end\
+  end\
+end' \
+  -e "/createSimpleLight/a\');\
+if #usb == 0 then\
+  ngx.print(ui_helper.createSimpleLight('0', T'No USB Printers found', attributes))\
+else\
+  ngx.print(ui_helper.createSimpleLight('1', format(N('%d USB Printer found:','%d USB Printers found:',#usb),#usb), attributes))\
+  ngx.print(T'<p class=\"subinfos\">')\
+  for _,printer in ipairs(usb) do\
+    ngx.print(format('<span class=\"simple-desc\"><i class=\"icon-print status-icon\"></i>&nbsp;%s</span>',printer))\
+  end\
+  ngx.print(T'</p>')\
+end;\
+ngx.print('\\\\" \
+  -i /www/cards/012_printersharing.lp
+
