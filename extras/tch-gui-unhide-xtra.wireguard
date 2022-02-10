@@ -1692,7 +1692,7 @@ function M.getWireguardCardHTML()
     html[#html+1] = ui_helper.createSimpleLight(content.firewall,content.firewall_text)
   elseif content.server == "1" then
     html[#html+1] = '<p class="subinfos">'
-    html[#html+1] = format("%d of %d server peers active<br>",content.server_active_peers,content.server_peers)
+    html[#html+1] = format("%s of %s server peers active<br>",content.server_active_peers,content.server_peers)
     html[#html+1] = format(transfer_pattern,M.bytes2string(content.server_tx_bytes),M.bytes2string(content.server_rx_bytes))
     html[#html+1] = '</p>'
   end
