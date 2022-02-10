@@ -206,41 +206,41 @@ apply_suggested() {
     HIDE=$HIDDEN
     case "${FILE#*_}" in
       Charts.lp)            SEQ="000";;
-      CPU.lp)               SEQ="000";;
-      RAM.lp)               SEQ="000";;
-      WANDown.lp)           SEQ="000";;
-      WANUp.lp)             SEQ="000";;
-      gateway.lp)           SEQ="001";;
-      broadband.lp)         SEQ="002";;
-      internet.lp)          SEQ="003";;
-      DNS.lp)               SEQ="004";;
-      WireGuard.lp)         SEQ="004";;
-      lte.lp)               SEQ="004";;
-      nfc.lp)               SEQ="004";;
-      fon.lp)               SEQ="005";;
-      wireless.lp)          SEQ="006";;
-      wireless_boosters.lp) SEQ="007";;
-      LAN.lp)               SEQ="008";;
-      Devices.lp)           SEQ="009";;
-      adblock.lp)           SEQ="010";;
-      firewall.lp)          SEQ="011";;
-      natalghelper.lp)      SEQ="012"; HIDE="$HIDE_EXTRA";;
-      system.lp)            SEQ="013";;
-      wanservices.lp)       SEQ="014";;
-      iproutes.lp)          SEQ="015";;
-      telephony.lp)         SEQ="016";;
-      qos.lp)               SEQ="017";;
-      usermgr.lp)           SEQ="018";;
-      opkg.lp)              SEQ="019";;
-      eco.lp)               SEQ="020";;
-      contentsharing.lp)    SEQ="021";;
-      printersharing.lp)    SEQ="022"; HIDE="$HIDE_EXTRA";;
-      parental.lp)          SEQ="023";;
-      tod.lp)               SEQ="024";;
-      diagnostics.lp)       SEQ="025";;
-      xdsl.lp)              SEQ="026";;
-      relaysetup.lp)        SEQ="027"; HIDE="$HIDE_EXTRA";;
-      cwmpconf.lp)          SEQ="028"; if [ ! -f /etc/init.d/cwmpd ]; then HIDE=1; fi;;
+      CPU.lp)               SEQ="010"; HIDE="$HIDE_EXTRA";;
+      RAM.lp)               SEQ="020"; HIDE="$HIDE_EXTRA";;
+      WANDown.lp)           SEQ="030"; HIDE="$HIDE_EXTRA";;
+      WANUp.lp)             SEQ="040"; HIDE="$HIDE_EXTRA";;
+      gateway.lp)           SEQ="050";;
+      broadband.lp)         SEQ="060";;
+      internet.lp)          SEQ="070";;
+      DNS.lp)               SEQ="080";;
+      WireGuard.lp)         SEQ="090";;
+      lte.lp)               SEQ="100";;
+      nfc.lp)               SEQ="110";;
+      fon.lp)               SEQ="120";;
+      wireless.lp)          SEQ="130";;
+      wireless_boosters.lp) SEQ="140";;
+      LAN.lp)               SEQ="150";;
+      Devices.lp)           SEQ="160";;
+      adblock.lp)           SEQ="170";;
+      firewall.lp)          SEQ="180";;
+      natalghelper.lp)      SEQ="190"; HIDE="$HIDE_EXTRA";;
+      system.lp)            SEQ="200";;
+      wanservices.lp)       SEQ="210";;
+      iproutes.lp)          SEQ="220";;
+      telephony.lp)         SEQ="230";;
+      qos.lp)               SEQ="240";;
+      usermgr.lp)           SEQ="250";;
+      opkg.lp)              SEQ="260";;
+      eco.lp)               SEQ="270";;
+      contentsharing.lp)    SEQ="280";;
+      printersharing.lp)    SEQ="290";;
+      parental.lp)          SEQ="300";;
+      tod.lp)               SEQ="310";;
+      diagnostics.lp)       SEQ="320";;
+      xdsl.lp)              SEQ="330";;
+      relaysetup.lp)        SEQ="340"; HIDE="$HIDE_EXTRA";;
+      cwmpconf.lp)          SEQ="350"; if [ ! -f /etc/init.d/cwmpd ]; then HIDE=1; fi;;
       *)                    SEQ=$(basename $FILE | cut -c1-3);;
     esac
     if [ -z "$TMP" ]
@@ -312,6 +312,12 @@ then
   exit
 fi
 
+if grep -q '@media screen and (min-width:1200px) and (max-width:1499px){' /www/docroot/css/responsive.css; then
+  ACROSS=5
+else
+  ACROSS=4
+fi
+
 MESSAGE=""
 while [ true ]
 do
@@ -332,7 +338,7 @@ do
       TITLE="($TITLE)"
     fi
     printf "%2d %-20s" $I "$TITLE"
-    if [ $(( $I % 4 )) -eq 0 ]
+    if [ $(( $I % $ACROSS )) -eq 0 ]
     then
       echo
     fi
@@ -352,6 +358,7 @@ do
       echo $CARD | tr ';' ' ' | tr '|' '\t'
     done
   fi
+  echo
   echo
   echo "NOTE: Titles in () indicate hidden cards. They will always appear above after the last visible card." 
   echo -e "NOTE: '${GREEN}CWMP${NC}' card is only visible if CWMP has NOT been disabled"
