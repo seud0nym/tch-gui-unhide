@@ -1129,12 +1129,13 @@ if [ $SRV_dumaos -ge 0 ]; then
 fi
 
 if [ $SRV_multiap -ge 0 ]; then
-  BHAUL_AP=$(uci show wireless | grep -E "wireless\.ap.*\.iface='wl1_2'" | cut -d. -f2)
+  BHAUL_IF="$(uci show wireless | grep "backhaul='1'" | cut -d. -f2)"
+  BHAUL_AP=$(uci show wireless | grep -E "wireless\.ap.*\.iface='$BHAUL_IF'" | cut -d. -f2)
   AGENT_NOW="$(uci -q get multiap.agent.enabled)"
   CTRLR_NOW="$(uci -q get multiap.controller.enabled)"
   VNDRX_NOW="$(uci -q get vendorextensions.multiap_vendorextensions.enable)"
   BHAUL_AP_NOW="$(uci -q get wireless.$BHAUL_AP.state)"
-  BHAUL_IF_NOW="$(uci -q get wireless.wl1_2.state)"
+  BHAUL_IF_NOW="$(uci -q get wireless.$BHAUL_IF.state)"
   if [ \( "$__MULTIAP_AGT" = "u" -a "$__MULTIAP_BKH" = "u" -a "$__MULTIAP_CTL" = "u" -a "$__MULTIAP_VND" = "u" \) -o \( "$AGENT_NOW" = "$__MULTIAP_AGT" -a "$CTRLR_NOW" = "$__MULTIAP_CTL" -a "$VNDRX_NOW" = "$__MULTIAP_VND" -a "$BHAUL_AP_NOW" = "$__MULTIAP_BKH" -a "$BHAUL_IF_NOW" = "$__MULTIAP_BKH" \) ]; then
     echo [$SCRIPT]: MultiAP unchanged \[Controller: $(status2text $CTRLR_NOW) Agent: $(status2text $AGENT_NOW) Vendor Extensions: $(status2text $VNDRX_NOW) BackHaul SSID: $(status2text $BHAUL_IF_NOW)\]
   else
@@ -1144,7 +1145,7 @@ if [ $SRV_multiap -ge 0 ]; then
     [ "$__MULTIAP_VND" != "u" ] && { uci set vendorextensions.multiap_vendorextensions.enable="$__MULTIAP_VND"; SRV_multiap=$(( $SRV_multiap + 1 )); }
     if [ "$__MULTIAP_BKH" != "u" ]; then
       uci set wireless.$BHAUL_AP.state="$__MULTIAP_BKH"
-      uci set wireless.wl1_2.state="$__MULTIAP_BKH"
+      uci set wireless.$BHAUL_IF.state="$__MULTIAP_BKH"
       SRV_hostapd=$(( $SRV_hostapd + 2 ))
       SRV_network=$(( $SRV_network + 1 ))
       uci commit wireless
@@ -1374,6 +1375,21 @@ if [ $__GUEST = y ]; then
   uci commit wireless
   uci commit network
   uci commit firewall
+fi
+if [ $(uci show network | grep -E '\.Guest.*=interface' | wc -l) -eq 0 -a "$(uci get wireless.wl1_2)" = "wifi-iface" -a -z "$(uci -q get wireless.wl1_1)" ]; then
+  echo [$SCRIPT]: Renaming wireless interface wl1_2 to wl1_1...
+  ap=$(uci show wireless | grep "iface='wl1_2'" | cut -d. -f1-2)
+  uci -q rename wireless.wl1_2='wl1_1'
+  uci -q set $ap.iface='wl1_1'
+  uci -q commit wireless
+  SRV_hostapd=$(( $SRV_hostapd + 2 ))
+  if [ $SRV_multiap -ge 0 ]; then
+    uci -q set multiap.al_entity.interfaces="$(uci -q get multiap.al_entity.interfaces | sed -e 's/wl1_2/wl1_1/')"
+    uci -q set multiap.agent.bss_list="$(uci -q get multiap.agent.bss_list | sed -e 's/wl1_2/wl1_1/')"
+    uci -q set multiap.agent.backhaul_list='wl1_1'
+    uci -q commit multiap
+    SRV_multiap=$(( $SRV_multiap + 3 ))
+  fi
 fi
 
 echo [$SCRIPT]: Applying service changes...
