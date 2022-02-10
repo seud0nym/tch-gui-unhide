@@ -42,13 +42,13 @@ local mapValid = {
   cpc_slsts = vPN,
 }
 
-local appath = booster_helper.findBackhaulAPPath()
-if appath then
-  mapParams["apstate"] = appath.."state"
-  mapParams["wl1_2ssid"] = "uci.wireless.wifi-iface.@wl1_2.ssid"
-  mapParams["wl1_2state"] = "uci.wireless.wifi-iface.@wl1_2.state"
-  mapValid["apstate"] = vB
-  mapValid["wl1_2state"] = vB
+local ap_path,bh_path = booster_helper.findBackhaulPaths()
+if ap_path then
+  mapParams["ap_state"] = ap_path.."state"
+  mapParams["bh_ssid"] = bh_path.."ssid"
+  mapParams["bh_state"] = bh_path.."state"
+  mapValid["ap_state"] = vB
+  mapValid["bh_state"] = vB
 end
 
 local bandlock = proxy.get("uci.multiap.bandlock.supported")
@@ -147,10 +147,10 @@ ngx.print( ui_helper.createHeader(T"Wi-Fi Boosters",false,true,nil)); ngx.print(
       html[#html+1] = ui_helper.createSwitch(T"Active","bandlock",content["bandlock"])
     end
     html[#html+1] = "</fieldset>"
-    if appath then
+    if ap_path then
       html[#html+1] = "<fieldset><legend>"..T"Wireless Backhaul".."</legend>"
-      html[#html+1] = ui_helper.createSwitch(T"SSID "..content["wl1_2ssid"],"wl1_2state",content["wl1_2state"])
-      html[#html+1] = ui_helper.createSimpleInputHidden("apstate",content["apstate"])
+      html[#html+1] = ui_helper.createSwitch(T"SSID "..content["bh_ssid"],"bh_state",content["bh_state"])
+      html[#html+1] = ui_helper.createSimpleInputHidden("ap_state",content["ap_state"])
       html[#html+1] = "</fieldset>"
     end
     ngx.print(html)
@@ -158,10 +158,10 @@ ngx.print( ui_helper.createHeader(T"Wi-Fi Boosters",false,true,nil)); ngx.print(
   </form>\
 </div>\
 ');  ngx.print(ui_helper.createFooter())
-if appath then
+if ap_path then
   ngx.print('\
 <script>\
-$("#wl1_2state").change(function() { $("input[name=apstate]").val(this.value); });\
+$("#bh_state").change(function() { $("input[name=ap_state]").val(this.value); });\
 </script>\
   ');
 end

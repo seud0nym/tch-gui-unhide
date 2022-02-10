@@ -1,21 +1,35 @@
 local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
 local proxy = require("datamodel")
-local find,format = string.find,string.format
+local find,format,match = string.find,string.format,string.match
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
 local M = {}
 
-function M.findBackhaulAPPath()
-  for _,v in ipairs(proxy.getPN("uci.wireless.wifi-ap.",true)) do
-    local path = v.path
-    local iface = proxy.get(path.."iface")
-    if iface and iface[1].value == "wl1_2" then
-      return path
+function M.findBackhaulPaths()
+  local ap_path,bh_path,bh_iface
+  for _,v in ipairs(proxy.getPN("uci.wireless.wifi-iface.",true)) do
+    local backhaul = proxy.get(v.path.."backhaul")
+    if backhaul and backhaul[1] and backhaul[1].value == "1" then
+      bh_path = v.path
+      bh_iface = match(bh_path,"^[^@]+@([^%.]+)%.")
+      break
     end
   end
-  return nil
+
+  if bh_path then
+    for _,v in ipairs(proxy.getPN("uci.wireless.wifi-ap.",true)) do
+      local path = v.path
+      local iface = proxy.get(path.."iface")
+      if iface and iface[1].value == bh_iface then
+        ap_path = path
+        break
+      end
+    end
+  end
+
+  return ap_path,bh_path,bh_iface
 end
 
 function M.getSSIDList()
@@ -73,11 +87,11 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled)
     state5g = "uci.wireless.wifi-device.@radio_5G.state",
   }
 
-  local appath = M.findBackhaulAPPath()
-  if appath then
-    content["apiface"] = appath.."iface"
-    content["apstate"] = appath.."state"
-    content["wl1_2ssid"] = "uci.wireless.wifi-iface.@wl1_2.ssid"
+  local ap_path,bh_path,bh_iface = M.findBackhaulPaths()
+  if ap_path then
+    content["ap_iface"] = ap_path.."iface"
+    content["ap_state"] = ap_path.."state"
+    content["bh_ssid"] = bh_path.."ssid"
   end
 
   local bandlock = proxy.get("uci.multiap.bandlock.supported")
@@ -110,15 +124,15 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled)
   else
     controllerStatus = "Multi-AP Controller disabled"
   end
-  if appath and content["apstate"] and content["apiface"] == "wl1_2" and content["wl1_2ssid"] ~= "" then
+  if ap_path and content["ap_state"] and content["ap_iface"] == bh_iface and content["bh_ssid"] ~= "" then
     local pattern="Backhaul %s ".."%s %s"
-    if content["apstate"] == "0" then
-      backhaulStatus = T(format(pattern,content["wl1_2ssid"],"(5G)","disabled"))
+    if content["ap_state"] == "0" then
+      backhaulStatus = T(format(pattern,content["bh_ssid"],"(5G)","disabled"))
     elseif content["state5g"] == "0" then
-      content["apstate"] = "2"
-      backhaulStatus = T(format(pattern,content["wl1_2ssid"],"(5G)","radio off"))
+      content["ap_state"] = "2"
+      backhaulStatus = T(format(pattern,content["bh_ssid"],"(5G)","radio off"))
     else
-      backhaulStatus = T(format(pattern,content["wl1_2ssid"],"(5G)","enabled"))
+      backhaulStatus = T(format(pattern,content["bh_ssid"],"(5G)","enabled"))
     end
   end
   if bandlock == "1" and content["bandlock"] then
@@ -146,7 +160,7 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled)
     html[#html+1] = '</p>'
   end
   if backhaulStatus then
-    html[#html+1] = ui_helper.createSimpleLight(content["apstate"],backhaulStatus)
+    html[#html+1] = ui_helper.createSimpleLight(content["ap_state"],backhaulStatus)
   end
   if bandlockStatus then
     html[#html+1] = ui_helper.createSimpleLight(content["bandlock"],bandlockStatus)
