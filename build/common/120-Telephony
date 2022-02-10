@@ -39,8 +39,9 @@ if [ $SIP_PWDS = y ]; then
   -i /www/docroot/modals/mmpbx-profile-modal.lp
 fi
 
-if [ "$(uci -q show mmpbxbrcmfxsdev | grep '=device' | wc -l)" -eq 2 ]; then
-  echo [$SCRIPT]: Remove non-existing FXS2 device CODEC config
+if [ "$(uci -q show mmpbxbrcmfxsdev | grep '=device' | wc -l)" -eq 1 ]
+then
+  echo [$SCRIPT]: Remove extra FXS device from Telephony Codecs tab
   sed -e '/fxs2/d' -e '/FXS2/d' -i /www/docroot/modals/mmpbx-codec-modal.lp
 fi
 
