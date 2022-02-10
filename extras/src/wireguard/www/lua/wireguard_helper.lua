@@ -1,3 +1,4 @@
+local common = require("common_helper")
 local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
 local proxy = require("datamodel")
@@ -8,26 +9,6 @@ local find,format,gmatch,lower,match = string.find,string.format,string.gmatch,s
 
 
 local M = {}
-
-function M.bytes2string(s_bytes)
-  if s_bytes=="" then
-    return "0<small>B</small>"
-  else
-    local bytes = tonumber(untaint(s_bytes))
-    local kb = bytes/1024
-    local mb = kb/1024
-    local gb = mb/1024
-    if gb >= 1 then
-      return format("%.1f",gb).."<small>GB</small>"
-    elseif mb >= 1 then
-      return format("%.1f",mb).."<small>MB</small>"
-    elseif kb >= 1 then
-      return format("%.1f",kb).."<small>KB</small>"
-    else
-      return format("%d",s_bytes).."<small>B</small>"
-    end
-  end
-end
 
 function M.getWireguardCardHTML()
   local content = {
@@ -78,7 +59,7 @@ function M.getWireguardCardHTML()
   elseif content.server == "1" then
     html[#html+1] = '<p class="subinfos">'
     html[#html+1] = format("%s of %s server peers active<br>",content.server_active_peers,content.server_peers)
-    html[#html+1] = format(transfer_pattern,M.bytes2string(content.server_tx_bytes),M.bytes2string(content.server_rx_bytes))
+    html[#html+1] = format(transfer_pattern,common.bytes2string(content.server_tx_bytes),common.bytes2string(content.server_rx_bytes))
     html[#html+1] = '</p>'
   end
   if #interfaces > 1 then
@@ -87,7 +68,7 @@ function M.getWireguardCardHTML()
     else
       html[#html+1] = ui_helper.createSimpleLight("1",T(format("VPN Client %s active",content.client_interfaces)))
       html[#html+1] = '<p class="subinfos">'
-      html[#html+1] = format(transfer_pattern,M.bytes2string(content.client_tx_bytes),M.bytes2string(content.client_rx_bytes))
+      html[#html+1] = format(transfer_pattern,common.bytes2string(content.client_tx_bytes),common.bytes2string(content.client_rx_bytes))
       if content.external_ipv4_address or content.external_ipv6_address then
         html[#html+1] = format(T'External IP: <strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>',content.external_ipv4_address)
         html[#html+1] = format(T'<br><strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>',content.external_ipv6_address)
@@ -99,7 +80,7 @@ function M.getWireguardCardHTML()
   elseif tonumber(content.client_interface_count) > 1 then
     html[#html+1] = ui_helper.createSimpleLight("1",T(format('%s of %s VPN Clients active',content.client_active_peers,content.client_interface_count)))
     html[#html+1] = '<p class="subinfos">'
-    html[#html+1] = format(transfer_pattern,M.bytes2string(content.client_tx_bytes),M.bytes2string(content.client_rx_bytes))
+    html[#html+1] = format(transfer_pattern,common.bytes2string(content.client_tx_bytes),common.bytes2string(content.client_rx_bytes))
     html[#html+1] = '</p>'
   end
 

@@ -3,6 +3,7 @@
 -- Enable localization
 gettext.textdomain('webui-code')
 
+local common = require("common_helper")
 local content_helper = require("web.content_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
@@ -442,8 +443,8 @@ local peer_filter = function(data)
       else
         data.latest_handshake = os.date("%Y-%m-%d %T",tonumber(untaint(peer.latest_handshake)))
       end
-      data.transfer_rx = wireguard_helper.bytes2string(peer.transfer_rx)
-      data.transfer_tx = wireguard_helper.bytes2string(peer.transfer_tx)
+      data.transfer_rx = common.bytes2string(peer.transfer_rx)
+      data.transfer_tx = common.bytes2string(peer.transfer_tx)
       if data.endpoint == "(none)" and peer.endpoint_host ~= "" then
         data.endpoint = format("%s:%s",peer.endpoint_host,peer.endpoint_port)
       end

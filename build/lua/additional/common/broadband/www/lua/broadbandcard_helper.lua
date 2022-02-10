@@ -1,4 +1,5 @@
 local bridged = require("bridgedmode_helper")
+local common = require("common_helper")
 local content_helper = require("web.content_helper")
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
@@ -9,26 +10,6 @@ local untaint = string.untaint
 local tonumber = tonumber
 
 local M = {}
-
-local function bytes2string(s_bytes)
-  if s_bytes=="" then
-    return "0<small>B</small>"
-  else
-    local bytes = tonumber(s_bytes)
-    local kb = bytes/1024
-    local mb = kb/1024
-    local gb = mb/1024
-    if gb >= 1 then
-      return format("%.1f",gb).."<small>GB</small>"
-    elseif mb >= 1 then
-      return format("%.1f",mb).."<small>MB</small>"
-    elseif kb >= 1 then
-      return format("%.1f",kb).."<small>KB</small>"
-    else
-      return format("%d",s_bytes).."<small>B</small>"
-    end
-  end
-end
 
 local function getCurrentWANInterface()
   local wan_intf = "wan"
@@ -198,7 +179,7 @@ function M.getBroadbandCardHTML(wansensing)
     end
     if rpc_ifname then
       html[#html+1] = format('<span class="simple-desc modal-link" data-toggle="modal" data-remote="/modals/broadband-usage-modal.lp" data-id="bb-usage-modal" style="padding-top:5px"><span class="icon-small status-icon">&udarr;</span>%s&ensp;<i class="icon-cloud-upload status-icon"></i> %s&ensp;<i class="icon-cloud-download status-icon"></i> %s</span>',
-        bytes2string(content_rpc.total_bytes),bytes2string(content_rpc.tx_bytes),bytes2string(content_rpc.rx_bytes))
+        common.bytes2string(content_rpc.total_bytes),common.bytes2string(content_rpc.tx_bytes),common.bytes2string(content_rpc.rx_bytes))
     end
   end
 

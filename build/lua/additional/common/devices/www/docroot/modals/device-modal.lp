@@ -4,6 +4,7 @@
 gettext.textdomain('webui-core')
 
 local proxy = require("datamodel")
+local common = require("common_helper")
 local content_helper = require("web.content_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
@@ -12,7 +13,6 @@ local lfs = require("lfs")
 local splitter = require("split")
 local string,ngx,os = string,ngx,os
 local tonumber = tonumber
-local floor = math.floor
 local concat,sort = table.concat,table.sort
 local find,format,match,lower = string.find,string.format,string.match,string.lower
 ---@diagnostic disable-next-line: undefined-field
@@ -282,14 +282,14 @@ end
 local devices_data,devices_helpmsg = post_helper.handleTableQuery(devices_columns,devices_options,devices_filter,nil,device_valid)
 if bwstats then
   devices_columns[#devices_columns+1] = {--[9]
-    header = "<i class='icon-cloud-download status-icon'></i> MB",
+    header = "<i class='icon-cloud-download'></i>",
     name = "Download",
     param = "Download",
     type = "text",
     readonly = true,
   }
   devices_columns[#devices_columns+1] = {--[10]
-    header = "<i class='icon-cloud-upload status-icon'></i> MB",
+    header = "<i class='icon-cloud-upload'></i>",
     name = "Upload",
     param = "Upload",
     type = "text",
@@ -297,31 +297,23 @@ if bwstats then
   }
 end
 
-local function secondsToTime(time)
-  local time_no = tonumber(time)
-  if (time_no and time_no >= 0) then
-    return format("%dd %02d:%02d:%02d",floor(time_no/86400),floor(time_no/3600)%24,floor(time_no/60)%60,floor(time_no)%60)
-  end
-  return nil,T"Positive number expected."
-end
-
 for k,v in pairs (devices_data) do
   devices_data[k][1] = format("%s",v[1])
   devices_data[k][5] = format("%s",v[5])
   if v[8] ~= "" and v[7] ~= "" then
-    v[8] = secondsToTime(tonumber(v[8])- (os.time()- tonumber(v[7]))%tonumber(v[8])) or T"Infinite"
+    v[8] = common.secondsToTime(tonumber(v[8])- (os.time()- tonumber(v[7]))%tonumber(v[8])) or T"Infinite"
   else
     v[8]="-"
   end
   if v[7] ~= "" then
-    v[7] = secondsToTime(os.time()- tonumber(v[7]))
+    v[7] = common.secondsToTime(os.time()- tonumber(v[7]))
   else
     v[7] = "-"
   end
   if bwstats then
     local mac = match(v[5],"^([%x:]+)")
-    devices_data[k][9] = format("%.2f",(download[mac] or 0)/1048576)
-    devices_data[k][10] = format("%.2f",(upload[mac] or 0)/1048576)
+    devices_data[k][9] = common.bytes2string(download[mac] or 0)
+    devices_data[k][10] = common.bytes2string(upload[mac] or 0)
   end
 end
 
