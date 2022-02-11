@@ -97,7 +97,7 @@ else
       uci delete $CARD_RULE
       SRV_nginx=$(( $SRV_nginx + 1 ))
     elif [ "$CARD" != "$(basename $CARD_FILE)" ]; then
-      echo "[$SCRIPT]: - Renaming $CARD_FILE to /www/cards/$CARD"
+      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Renaming $CARD_FILE to /www/cards/$CARD"
       mv $CARD_FILE /www/cards/$CARD
     fi
   done
