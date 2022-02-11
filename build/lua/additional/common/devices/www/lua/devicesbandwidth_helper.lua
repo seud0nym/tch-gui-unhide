@@ -25,12 +25,18 @@ function M.getBandwithStatisticsByMAC()
 
   local stats = proxy.get("rpc.gui.bwstats.device.")
   local device = {}
+  local ipv4_rx,ipv6_rx,ipv4_tx,ipv6_tx = "ipv4_rx","ipv6_rx","ipv4_tx","ipv6_tx"
   for _,item in pairs(stats) do
     device[item.param] = untaint(item.value)
-    if device["mac"] and device["ipv4_rx"] and device["ipv6_rx"] and device["ipv4_tx"] and device["ipv6_tx"] then
-      hosts[index[device["mac"]]][3] = true
-      download[device["mac"]] = download[device["mac"]] + (tonumber(device["ipv4_tx"]) or 0 ) + (tonumber(device["ipv6_tx"]) or 0 )
-      upload[device["mac"]] = upload[device["mac"]] + (tonumber(device["ipv4_rx"]) or 0 ) + (tonumber(device["ipv6_rx"]) or 0 )
+    if device["mac"] and device[ipv4_rx] and device[ipv6_rx] and device[ipv4_tx] and device[ipv6_tx] then
+      local mac = device["mac"]
+      if index[mac] then
+        hosts[index[mac]][3] = true
+      end
+      if download[mac] and upload[mac] then
+        download[mac] = download[mac] + (tonumber(device[ipv4_tx]) or 0 ) + (tonumber(device[ipv6_tx]) or 0 )
+        upload[mac] = upload[mac] + (tonumber(device[ipv4_rx]) or 0 ) + (tonumber(device[ipv6_rx]) or 0 )
+      end
       device = {}
     end
   end

@@ -312,8 +312,13 @@ for k,v in pairs (devices_data) do
   end
   if bwstats then
     local mac = match(v[5],"^([%x:]+)")
-    devices_data[k][9] = common.bytes2string(download[mac] or 0)
-    devices_data[k][10] = common.bytes2string(upload[mac] or 0)
+    if mac and download[mac] then
+      devices_data[k][9] = common.bytes2string(download[mac])
+      devices_data[k][10] = common.bytes2string(upload[mac])
+    else
+      devices_data[k][9] = ""
+      devices_data[k][10] = ""
+    end
   end
 end
 
