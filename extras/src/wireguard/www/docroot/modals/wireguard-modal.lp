@@ -216,16 +216,7 @@ for _,v in ipairs(all_intfs) do
   end
 end
 
-local config_template ="[Interface]\
-PrivateKey = %s\
-Address = %s\
-\
-[Peer]\
-PublicKey = %s\
-PresharedKey = %s\
-AllowedIPs = 0.0.0.0/0%s\
-Endpoint = %s\
-"
+local config_template ="[Interface]\nPrivateKey = %s\nAddress = %s\n\n[Peer]\nPublicKey = %s\nPresharedKey = %s\nAllowedIPs = 0.0.0.0/0%s\nEndpoint = %s\n"
 
 local function validateLogLevel(value,_,_)
   if value == "none" or value == "debug" then
