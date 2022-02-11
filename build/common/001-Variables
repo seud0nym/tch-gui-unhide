@@ -29,7 +29,6 @@ MAC=$(uci -q get env.var.ssid_mac_postfix_r0)
 HOSTNAME=$(uci -q get system.@system[0].hostname)
 TITLE="$(grep -o 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1 | grep -v 'ngx.print')"
 
-
 [ -f /usr/tch-gui-unhide.theme ] && mv /usr/tch-gui-unhide.theme /etc/tch-gui-unhide.theme
 [ -f /etc/tch-gui-unhide.theme ] && source /etc/tch-gui-unhide.theme
 if [ -z "$THEME" ]; then

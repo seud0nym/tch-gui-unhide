@@ -102,58 +102,5 @@ do
   fi
 done
 
-echo [$SCRIPT]: Processing any additional cards
-for CARDFILE in $(find /www/cards/ -maxdepth 1 -type f | sort)
-do
-  CARD="$(basename $CARDFILE)"
-  CARDRULE=$(uci show web | grep "^web\.card_.*${CARDFILE#*_}" | cut -d. -f2)
-  if [ "$CARD" = "016_speedservice.lp" ]; then
-    rm $CARDFILE
-    if [ -n "$CARDRULE" ]; then
-      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Deleting rule $RULE for missing target $f"
-      uci -q delete web.${CARDRULE}
-    fi
-    continue
-  fi
-  if [ -z "$CARDRULE" -o -z "$(uci -q get web.${CARDRULE}.modal)" ]; then
-    CARDRULE="card_$(basename ${CARDFILE#*_} .lp)"
-    MODAL=$(grep createCardHeader $CARDFILE | grep -o "modals/.*\.lp")
-    if [ -z "$MODAL" ]; then
-      MODAL=$(grep '\(modalPath\|modal_link\)' $CARDFILE | grep -m 1 -o "modals/.*\.lp")
-    fi
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Card Rule $CARDRULE: card=$CARD hide=0"
-    uci set web.${CARDRULE}=card
-    uci set web.${CARDRULE}.card="$CARD"
-    uci set web.${CARDRULE}.hide='0'
-    if [ -n "$MODAL" ]; then
-      uci set web.${CARDRULE}.modal="$(uci show web | grep $MODAL | grep -m 1 -v card_ | cut -d. -f2)"
-    fi
-    SRV_nginx=$(( $SRV_nginx + 1 ))
-  fi
-done
-
-case "$CHART_CARDS" in
-  n)  echo [$SCRIPT]: Hiding all chart cards
-      for CHART in Charts CPU RAM WANDown WANUp; do
-        uci -q set web.card_${CHART}.hide='1'
-      done
-      ;;
-  s)  echo [$SCRIPT]: Hiding individual chart cards
-      for CHART in CPU RAM WANDown WANUp; do
-        uci -q set web.card_${CHART}.hide='1'
-      done
-      echo [$SCRIPT]: Showing summary chart card
-      uci -q set web.card_Charts.hide='0'
-      ;;
-  i)  echo [$SCRIPT]: Showing individual chart cards
-      for CHART in CPU RAM WANDown WANUp; do
-        uci -q set web.card_${CHART}.hide='0'
-      done
-      echo [$SCRIPT]: Hiding summary chart card
-      uci -q set web.card_Charts.hide='1'
-      ;;
-esac
-SRV_nginx=$(( $SRV_nginx + 5 ))
-
 uci commit web
 

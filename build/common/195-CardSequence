@@ -1,36 +1,119 @@
-echo [$SCRIPT]: Sequencing cards
-for RULE in $(uci show web | grep '=card' | cut -d= -f1)
-do
-  CARD=$(uci -q get ${RULE}.card)
-  FILE=$(ls /www/cards/ | grep "..._${CARD#*_}")
-  if [ -z "$FILE" ]
-  then
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]:  - Removing obsolete configuration $RULE"
-    uci delete $RULE
-    SRV_nginx=$(( $SRV_nginx + 1 ))
-  elif [ "$CARD" != "$FILE" ]
-  then
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]:  - Renaming $FILE to $CARD"
-    mv /www/cards/$FILE /www/cards/$CARD
+echo [$SCRIPT]: Checking card visibility
+ALLCARDRULES="$(uci show web | grep =card)"
+for CARD_PATH in $(find /www/cards/ -maxdepth 1 -type f -name '*.lp' | sort); do
+  CARD_FILE="$(basename $CARD_PATH)"
+  if [ "$CARD_FILE" = "016_speedservice.lp" ]; then
+    rm $CARD_PATH
+    continue
   fi
-done
-
-echo [$SCRIPT]: Checking configured cards exist
-for c in $(uci show web | grep '^web\.card_.*\.card=')
-do
-  f=/www/cards/$(echo "$c" | cut -d"'" -f2)
-  if [ ! -f "$f" ]; then
-    CARDRULE=$(echo $c | cut -d. -f2)
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Deleting card configuration $CARDRULE for missing card $f"
-    uci -q delete web.$CARDRULE
-    SRV_nginx=$(( $SRV_nginx + 1 ))
+  CARD="$(basename $CARD_PATH .lp | cut -d_ -f2-)"
+  CARD_RULE="card_$CARD"
+  MODAL=$(grep -o 'createCardHeader[^(]*([^)]*)' $CARD_PATH | grep -o "modals/[^.]*\.lp")
+  MODAL_RULE=""
+  HIDDEN=$(uci -q get web.${CARD_RULE}.hide)
+  if [ -z "$MODAL" ]; then
+    MODAL=$(grep -o "\(modalPath\|modal_link\)[^\"']*[\"'][^\"']*.lp[\"']" $CARD_PATH | grep -m 1 -o "modals/[^.]*\.lp")
   fi
+  if [ -n "$MODAL" ]; then
+    MODAL_RULE=$(uci show web | grep $MODAL | grep -m 1 -v card_ | cut -d. -f2)
+    if [ -n "$MODAL_RULE" -a -n "$(uci -q get web.$MODAL_RULE.roles | grep -v -E 'admin|guest')" ]; then
+      echo "[$SCRIPT]:  - Converting $CARD card visibility from modal-based visibility"
+      HIDDEN=1
+      uci add_list web.$MODAL_RULE.roles='admin'
+      SRV_nginx=$(( $SRV_nginx + 1 ))
+    fi
+  elif [ "$CARD_RULE" = "card_Charts" ]; then
+    MODAL_RULE='gatewaymodal'
+    if [ -z "$HIDDEN" ]; then
+      [ "$(uci -q get web.card_gateway.hide)" = "0" -o "$(uci -q get web.card_broadband.hide)" = "0"  ] && HIDDEN="0" || HIDDEN="1"
+    fi
+  elif [ "$CARD_RULE" = "card_CPU" ]; then
+    MODAL_RULE='gatewaymodal'
+    [ -z "$HIDDEN" ] && HIDDEN=$(uci -q get web.card_gateway.hide)
+  elif [ "$CARD_RULE" = "card_RAM" ]; then
+    MODAL_RULE='gatewaymodal'
+    [ -z "$HIDDEN" ] && HIDDEN=$(uci -q get web.card_gateway.hide)
+  elif [ "$CARD_RULE" = "card_WANDown" ]; then
+    MODAL_RULE='broadbandmodal'
+    [ -z "$HIDDEN" ] && HIDDEN=$(uci -q get web.card_broadband.hide)
+  elif [ "$CARD_RULE" = "card_WANUp" ]; then
+    MODAL_RULE='broadbandmodal'
+    [ -z "$HIDDEN" ] && HIDDEN=$(uci -q get web.card_broadband.hide)
+  fi
+  if [ -z "$HIDDEN" -o \( "$HIDDEN" != "0" -a "$HIDDEN" != "1" \) ]; then
+    HIDDEN=0
+  fi
+  if [ "$(uci -q get web.${CARD_RULE})" != "card" ]; then
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Card Rule $CARD_RULE: card=$CARD_FILE hide=$HIDDEN modal=$MODAL_RULE"
+    uci set web.${CARD_RULE}=card
+    uci set web.${CARD_RULE}.card="$CARD_FILE"
+  fi
+  uci set web.${CARD_RULE}.hide="$HIDDEN"
+  if [ -z "$MODAL_RULE" ]; then
+    uci -q delete web.${CARD_RULE}.modal
+  else
+    uci set web.${CARD_RULE}.modal="$MODAL_RULE"
+  fi
+  SRV_nginx=$(( $SRV_nginx + 1 ))
 done
-
 uci commit web
 
-if [ -z "$ALLCARDRULES" -a -f tch-gui-unhide-cards ]
-then
-  ./tch-gui-unhide-cards -s -a -q
+uci commit web
+case "$CHART_CARDS" in
+  n)  echo [$SCRIPT]: Hiding all chart cards
+      for CHART in Charts CPU RAM WANDown WANUp; do
+        uci -q set web.card_${CHART}.hide='1'
+      done
+      ;;
+  s)  echo [$SCRIPT]: Hiding individual chart cards
+      for CHART in CPU RAM WANDown WANUp; do
+        uci -q set web.card_${CHART}.hide='1'
+      done
+      echo [$SCRIPT]: Showing summary chart card
+      uci -q set web.card_Charts.hide='0'
+      ;;
+  i)  echo [$SCRIPT]: Showing individual chart cards
+      for CHART in CPU RAM WANDown WANUp; do
+        uci -q set web.card_${CHART}.hide='0'
+      done
+      echo [$SCRIPT]: Hiding summary chart card
+      uci -q set web.card_Charts.hide='1'
+      ;;
+esac
+uci commit web
+SRV_nginx=$(( $SRV_nginx + 1 ))
+
+if [ -z "$ALLCARDRULES" -a -f tch-gui-unhide-cards ]; then
+  echo [$SCRIPT]: Applying suggested card sequence
+  ./tch-gui-unhide-cards -s -q
+else
+  echo [$SCRIPT]: Applying configured card sequence
+  for CARD_RULE in $(uci show web | grep '=card' | cut -d= -f1); do
+    CARD=$(uci -q get ${CARD_RULE}.card)
+    CARD_FILE=$(ls /www/cards/???_${CARD#*_} 2>/dev/null)
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Card Rule $CARD_RULE: card=$CARD search=/www/cards/???_${CARD#*_} found=$CARD_FILE"
+    if [ -z "$CARD_FILE" ]; then
+      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Removing obsolete configuration $CARD_RULE"
+      uci delete $CARD_RULE
+      SRV_nginx=$(( $SRV_nginx + 1 ))
+    elif [ "$CARD" != "$(basename $CARD_FILE)" ]; then
+      echo "[$SCRIPT]: - Renaming $CARD_FILE to /www/cards/$CARD"
+      mv $CARD_FILE /www/cards/$CARD
+    fi
+  done
+  uci commit web
 fi
+
+echo [$SCRIPT]: Checking all configured cards exist
+for CARD_FILE in $(uci show web | grep '^web\.card_.*\.card=')
+do
+  CARD_PATH=/www/cards/$(echo "$CARD_FILE" | cut -d"'" -f2)
+  if [ ! -f "$CARD_PATH" ]; then
+    CARD_RULE=$(echo $CARD_FILE | cut -d. -f2)
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Deleting card configuration $CARD_RULE for missing card $CARD_PATH"
+    uci -q delete web.$CARD_RULE
+    SRV_nginx=$(( $SRV_nginx + 1 ))
+  fi
+done
+uci commit web
 
