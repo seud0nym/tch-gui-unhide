@@ -27,6 +27,7 @@ if [ $# -ne $OPTS ]
 then
   echo
   echo "Optional parameters:"
+  echo " -a       : Show all cards"
   echo " -s       : Apply the suggested card sequence and exit"
   echo " -d       : Apply the default card sequence and exit"
   echo
@@ -40,29 +41,24 @@ fi
 [ $QUIET = n ] && echo -n "Working"
 CHARTS=4
 CARDS=""
-for RULE in $(uci show web | grep '=card' | cut -d= -f1)
-do
+for RULE in $(uci show web | grep '=card' | cut -d= -f1); do
   [ $QUIET = n ] && echo -n "."
   CARD=$(uci -q get ${RULE}.card)
   MODAL=$(uci -q get ${RULE}.modal)
   HIDDEN=$(uci -q get ${RULE}.hide)
-  if [ "${CARD#*_}" = "lte.lp" ]
-  then
+  if [ "${CARD#*_}" = "lte.lp" ]; then
     TITLE="Mobile"
-  elif [ "${CARD#*_}" = "Charts.lp" ]
-  then
+  elif [ "${CARD#*_}" = "Charts.lp" ]; then
     TITLE="Charts"
     CHARTS=1
   else
     TITLE=$(grep createCardHeader /www/cards/$CARD | sed -e 's/\(.*createCardHeader[^"]*"\)\([^"]*\)\(".*\)/\2/')
   fi
-  if [ "$HIDDEN" != "0" -a "$HIDDEN" != "1" ]
-  then
+  if [ "$HIDDEN" != "0" -a "$HIDDEN" != "1" ]; then
     HIDDEN=0
   fi
   SEQ=${CARD%%_*}
-  if [ -z "$CARDS" ]
-  then
+  if [ -z "$CARDS" ]; then
     CARDS="$HIDDEN|$SEQ|$HIDDEN|$CARD|$MODAL|$TITLE|"
   else
     CARDS="$CARDS$IFS$HIDDEN|$SEQ|$HIDDEN|$CARD|$MODAL|$TITLE|"
@@ -70,24 +66,21 @@ do
 done
 [ $QUIET = n ] && echo
 
-if [ -z "$CARDS" ]
-then
+if [ -z "$CARDS" ]; then
   echo -e "${RED}ERROR: No card configurations found!${NC}"
   echo -e "Have you run tch-gui-unhide yet? You must execute tch-gui-unhide ${GREEN}BEFORE${NC} configuring card sequence and visibility."
   exit
 fi
 
 apply_changes() {
-    for CARD in $(echo "$CARDS" | tr ' ' ';' | sort)
-    do
+    for CARD in $(echo "$CARDS" | tr ' ' ';' | sort); do
       HIDDEN=$(echo "$CARD" | cut -d'|' -f1)
       SEQ=$(echo "$CARD" | cut -d'|' -f2)
       FILE="/www/cards/$(echo "$CARD" | cut -d'|' -f4)"
       MODAL=$(echo "$CARD" | cut -d'|' -f5)
       NEW_FILE="/www/cards/${SEQ}_${FILE#*_}"
       RULE="card_$(basename ${FILE#*_} .lp)"
-      if [ "$FILE" != "$NEW_FILE" ]
-      then
+      if [ "$FILE" != "$NEW_FILE" ]; then
         [ $QUIET = n ] && echo "Renaming $FILE to $NEW_FILE"
         mv "$FILE" "$NEW_FILE"
       fi
@@ -104,8 +97,7 @@ apply_changes() {
 
 apply_defaults() {
   TMP=""
-  for CARD in $(echo "$CARDS" | tr ' ' ';')
-  do
+  for CARD in $(echo "$CARDS" | tr ' ' ';'); do
     HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
     FILE=$(echo "$CARD" | cut -d'|' -f4)
     MODAL=$(echo "$CARD" | cut -d'|' -f5)
@@ -149,8 +141,7 @@ apply_defaults() {
       xdsl.lp)              SEQ="093";;
       *)                    SEQ=$(basename $FILE | cut -c1-3);;
     esac
-    if [ -z "$TMP" ]
-    then
+    if [ -z "$TMP" ]; then
       TMP="0|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
     else
       TMP="$TMP${IFS}0|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
@@ -162,8 +153,7 @@ apply_defaults() {
 
 apply_minimal() {
   TMP=""
-  for CARD in $(echo "$CARDS" | tr ' ' ';')
-  do
+  for CARD in $(echo "$CARDS" | tr ' ' ';'); do
     HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
     FILE=$(echo "$CARD" | cut -d'|' -f4)
     MODAL=$(echo "$CARD" | cut -d'|' -f5)
@@ -184,8 +174,7 @@ apply_minimal() {
       wireless_boosters.lp)   [ "$(uci -q get multiap.agent.enabled)" != "1" -a "$(uci -q get multiap.controller.enabled)" != "1" ] && HIDE=1;;
       *) SEQ=$(basename $FILE | cut -c1-3);;
     esac
-    if [ -z "$TMP" ]
-    then
+    if [ -z "$TMP" ]; then
       TMP="$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
     else
       TMP="$TMP$IFS$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
@@ -197,8 +186,7 @@ apply_minimal() {
 
 apply_suggested() {
   TMP=""
-  for CARD in $(echo "$CARDS" | tr ' ' ';')
-  do
+  for CARD in $(echo "$CARDS" | tr ' ' ';'); do
     HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
     FILE=$(echo "$CARD" | cut -d'|' -f4)
     MODAL=$(echo "$CARD" | cut -d'|' -f5)
@@ -206,45 +194,44 @@ apply_suggested() {
     HIDE=$HIDDEN
     case "${FILE#*_}" in
       Charts.lp)            SEQ="000";;
-      CPU.lp)               SEQ="010"; HIDE="$HIDE_EXTRA";;
-      RAM.lp)               SEQ="020"; HIDE="$HIDE_EXTRA";;
-      WANDown.lp)           SEQ="030"; HIDE="$HIDE_EXTRA";;
-      WANUp.lp)             SEQ="040"; HIDE="$HIDE_EXTRA";;
-      gateway.lp)           SEQ="050";;
-      broadband.lp)         SEQ="060";;
-      internet.lp)          SEQ="070";;
-      DNS.lp)               SEQ="080";;
-      WireGuard.lp)         SEQ="090";;
-      lte.lp)               SEQ="100";;
-      nfc.lp)               SEQ="110";;
-      fon.lp)               SEQ="120";;
-      wireless.lp)          SEQ="130";;
-      wireless_boosters.lp) SEQ="140";;
-      LAN.lp)               SEQ="150";;
-      Devices.lp)           SEQ="160";;
-      adblock.lp)           SEQ="170";;
-      firewall.lp)          SEQ="180";;
-      natalghelper.lp)      SEQ="190"; HIDE="$HIDE_EXTRA";;
-      system.lp)            SEQ="200";;
-      wanservices.lp)       SEQ="210";;
-      iproutes.lp)          SEQ="220";;
-      telephony.lp)         SEQ="230";;
-      qos.lp)               SEQ="240";;
-      usermgr.lp)           SEQ="250";;
-      opkg.lp)              SEQ="260";;
-      eco.lp)               SEQ="270";;
-      contentsharing.lp)    SEQ="280";;
-      printersharing.lp)    SEQ="290";;
-      parental.lp)          SEQ="300";;
-      tod.lp)               SEQ="310";;
-      diagnostics.lp)       SEQ="320";;
-      xdsl.lp)              SEQ="330";;
-      relaysetup.lp)        SEQ="340"; HIDE="$HIDE_EXTRA";;
-      cwmpconf.lp)          SEQ="350"; if [ ! -f /etc/init.d/cwmpd ]; then HIDE=1; fi;;
+      CPU.lp)               SEQ="000"; HIDE="$HIDE_EXTRA";;
+      RAM.lp)               SEQ="000"; HIDE="$HIDE_EXTRA";;
+      WANDown.lp)           SEQ="000"; HIDE="$HIDE_EXTRA";;
+      WANUp.lp)             SEQ="000"; HIDE="$HIDE_EXTRA";;
+      gateway.lp)           SEQ="001";;
+      broadband.lp)         SEQ="002";;
+      internet.lp)          SEQ="003";;
+      DNS.lp)               SEQ="004";;
+      WireGuard.lp)         SEQ="004";;
+      lte.lp)               SEQ="004";;
+      nfc.lp)               SEQ="004";;
+      fon.lp)               SEQ="005";;
+      wireless.lp)          SEQ="006";;
+      wireless_boosters.lp) SEQ="007";;
+      LAN.lp)               SEQ="008";;
+      Devices.lp)           SEQ="009";;
+      adblock.lp)           SEQ="010";;
+      firewall.lp)          SEQ="011";;
+      natalghelper.lp)      SEQ="012"; HIDE="$HIDE_EXTRA";;
+      system.lp)            SEQ="013";;
+      wanservices.lp)       SEQ="014";;
+      iproutes.lp)          SEQ="015";;
+      telephony.lp)         SEQ="016";;
+      qos.lp)               SEQ="017";;
+      usermgr.lp)           SEQ="018";;
+      opkg.lp)              SEQ="019";;
+      eco.lp)               SEQ="020";;
+      contentsharing.lp)    SEQ="021";;
+      printersharing.lp)    SEQ="022";;
+      parental.lp)          SEQ="023";;
+      tod.lp)               SEQ="024";;
+      diagnostics.lp)       SEQ="025";;
+      xdsl.lp)              SEQ="026";;
+      relaysetup.lp)        SEQ="027"; HIDE="$HIDE_EXTRA";;
+      cwmpconf.lp)          SEQ="028"; if [ ! -f /etc/init.d/cwmpd ]; then HIDE=1; fi;;
       *)                    SEQ=$(basename $FILE | cut -c1-3);;
     esac
-    if [ -z "$TMP" ]
-    then
+    if [ -z "$TMP" ]; then
       TMP="$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
     else
       TMP="$TMP$IFS$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
@@ -256,15 +243,13 @@ apply_suggested() {
 
 apply_visible() {
   TMP=""
-  for CARD in $(echo "$CARDS" | tr ' ' ';')
-  do
+  for CARD in $(echo "$CARDS" | tr ' ' ';'); do
     HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
     FILE=$(echo "$CARD" | cut -d'|' -f4)
     MODAL=$(echo "$CARD" | cut -d'|' -f5)
     TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
     HIDE=0
-    if [ -z "$TMP" ]
-    then
+    if [ -z "$TMP" ]; then
       TMP="$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
     else
       TMP="$TMP$IFS$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
@@ -276,15 +261,13 @@ apply_visible() {
 
 undo_changes() {
   TMP=""
-  for CARD in $(echo "$CARDS" | tr ' ' ';')
-  do
+  for CARD in $(echo "$CARDS" | tr ' ' ';'); do
     HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
     FILE=$(echo "$CARD" | cut -d'|' -f4)
     MODAL=$(echo "$CARD" | cut -d'|' -f5)
     TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
     SEQ=$(basename $FILE | cut -c1-3)
-    if [ -z "$TMP" ]
-    then
+    if [ -z "$TMP" ]; then
       TMP="$HIDDEN|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
     else
       TMP="$TMP$IFS$HIDDEN|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
@@ -294,18 +277,15 @@ undo_changes() {
   unset TMP
 }
 
-if [ "$BATCH" = "s" ]
-then
+if [ "$BATCH" = "s" ]; then
   apply_suggested
   apply_changes
   exit
-elif [ "$BATCH" = "d" ]
-then
+elif [ "$BATCH" = "d" ]; then
   apply_defaults
   apply_changes
   exit
-elif [ "$BATCH" = "M" ]
-then
+elif [ "$BATCH" = "M" ]; then
   apply_suggested
   apply_minimal
   apply_changes
@@ -319,8 +299,7 @@ else
 fi
 
 MESSAGE=""
-while [ true ]
-do
+while [ true ]; do
   clear
   echo "tch-gui-unhide-cards"
   echo
@@ -328,31 +307,19 @@ do
   echo
   MESSAGE=""
   I=0
-  for CARD in $(echo "$CARDS" | tr ' ' ';' | sort)
-  do
+  for CARD in $(echo "$CARDS" | tr ' ' ';' | sort); do
     I=$(( $I + 1 ))
     HIDDEN=$(echo "$CARD" | cut -d'|' -f1)
     TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
-    if [ $HIDDEN = "1" ]
-    then
-      TITLE="($TITLE)"
-    fi
+    [ $HIDDEN = "1" ] && TITLE="($TITLE)"
     printf "%2d %-20s" $I "$TITLE"
-    if [ $(( $I % $ACROSS )) -eq 0 ]
-    then
-      echo
-    fi
+    [ $(( $I % $ACROSS )) -eq 0 ] && echo
   done
-  if [ $(( $I % 4 )) -ne 0 ]
-  then
-    echo
-  fi
-  if [ $VERBOSE = y ]
-  then
+  [ $(( $I % 4 )) -ne 0 ] && echo
+  if [ $VERBOSE = y ]; then
     echo
     I=0
-    for CARD in $(echo "$CARDS" | tr ' ' ';' | sort)
-    do
+    for CARD in $(echo "$CARDS" | tr ' ' ';' | sort); do
       I=$(( $I + 1 ))
       printf "%2d " $I
       echo $CARD | tr ';' ' ' | tr '|' '\t'
@@ -393,14 +360,11 @@ do
     s)  apply_suggested;;
     u)  undo_changes;;
     v)  apply_visible;;
-    *)  if [ "$FROM" -ge 1 -a "$FROM" -le "$I" ]
-        then
+    *)  if [ "$FROM" -ge 1 -a "$FROM" -le "$I" ]; then
           echo -ne "For card #$FROM, enter ${GREEN}h${NC} to hide, ${GREEN}u${NC} to unhide, or new position ${GREEN}number between 1 and $I${NC}: "
           read TO
-          if [ "$TO" = "h" -o "$TO" = "u" ]
-          then
-            if [ "$TO" = "h" ]
-            then
+          if [ "$TO" = "h" -o "$TO" = "u" ]; then
+            if [ "$TO" = "h" ]; then
               TO=1
             else
               TO=0
@@ -408,22 +372,19 @@ do
 
             TMP=""
             I=0
-            for CARD in $(echo "$CARDS" | tr ' ' ';' | sort)
-            do
+            for CARD in $(echo "$CARDS" | tr ' ' ';' | sort); do
               I=$(( $I + 1 ))
               SEQ=$(echo "$CARD" | cut -d'|' -f2)
               HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
               FILE=$(echo "$CARD" | cut -d'|' -f4)
               MODAL=$(echo "$CARD" | cut -d'|' -f5)
               TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
-              if [ $I -eq $FROM ]
-              then
+              if [ $I -eq $FROM ]; then
                 HIDE=$TO
               else
                 HIDE=$(echo "$CARD" | cut -d'|' -f1)
               fi
-              if [ -z "$TMP" ]
-              then
+              if [ -z "$TMP" ]; then
                 TMP="$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
               else
                 TMP="$TMP$IFS$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
@@ -431,32 +392,26 @@ do
             done
             CARDS="$TMP"
             unset TMP
-          elif [ "$TO" -ge 1 -a "$TO" -le "$I" -a "$TO" -ne "$FROM" ]
-          then
+          elif [ "$TO" -ge 1 -a "$TO" -le "$I" -a "$TO" -ne "$FROM" ]; then
             TMP=""
             I=0
-            for CARD in $(echo "$CARDS" | tr ' ' ';' | sort)
-            do
+            for CARD in $(echo "$CARDS" | tr ' ' ';' | sort); do
               I=$(( $I + 1 ))
               HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
               FILE=$(echo "$CARD" | cut -d'|' -f4)
               MODAL=$(echo "$CARD" | cut -d'|' -f5)
               TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
               HIDE=$(echo "$CARD" | cut -d'|' -f1)
-              if [ $I -eq $FROM ]
-              then
+              if [ $I -eq $FROM ]; then
                 SEQ=$(printf "%03d" $(( $TO )))
-              elif [ $FROM -lt $TO -a $I -gt $FROM -a $I -le $TO ]
-              then
+              elif [ $FROM -lt $TO -a $I -gt $FROM -a $I -le $TO ]; then
                 SEQ=$(printf "%03d" $(( $I - 1 )))
-              elif [ $FROM -gt $TO -a $I -ge $TO -a $I -lt $FROM ]
-              then
+              elif [ $FROM -gt $TO -a $I -ge $TO -a $I -lt $FROM ]; then
                 SEQ=$(printf "%03d" $(( $I + 1 )))
               else
                 SEQ=$(printf "%03d" $I)
               fi
-              if [ -z "$TMP" ]
-              then
+              if [ -z "$TMP" ]; then
                 TMP="$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
               else
                 TMP="$TMP$IFS$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
