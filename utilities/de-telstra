@@ -1376,7 +1376,7 @@ if [ $__GUEST = y ]; then
   uci commit network
   uci commit firewall
 fi
-if [ $(uci show network | grep -E '\.Guest.*=interface' | wc -l) -eq 0 -a "$(uci get wireless.wl1_2)" = "wifi-iface" -a -z "$(uci -q get wireless.wl1_1)" ]; then
+if [ $(uci show network | grep -E '\.Guest.*=interface' | wc -l) -eq 0 -a "$(uci -q get wireless.wl1_2)" = "wifi-iface" -a -z "$(uci -q get wireless.wl1_1)" ]; then
   echo [$SCRIPT]: Renaming wireless interface wl1_2 to wl1_1...
   ap=$(uci show wireless | grep "iface='wl1_2'" | cut -d. -f1-2)
   uci -q rename wireless.wl1_2='wl1_1'
