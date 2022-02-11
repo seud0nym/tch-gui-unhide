@@ -9,6 +9,8 @@ minify() {
   grep -qe "$MARKER" "$f" && pretranslated=1
 
   sed \
+    -e '/^[ \t]*--\[\[/,/\]\]/d' \
+    -e '/^[ \t]*--/d' \
     -e '/^[ \t]*$/d' -e '/^[ \t]*\\$/d' \
     -e '/^[ \t]\/\//d' -e '/^\/\/.*$/d' -e 's|\([^:]\)\(//[^\\]*\)|\1|g' \
     -e 's/^[ \t]*//g' -e 's/[ \t]*$//g' \
@@ -27,7 +29,7 @@ minify() {
       html=0
     }
     1 {
-      if(html==0) print; else printf "%s",$0;
+      if(html==0){print;}else{printf "%s",$0;}
       prev=$0;
     }' | sed -ne ":a ; \$! { N ; ba }; s/ngx.print('');*//g; :r; s/\(ngx.print([^)]*\|ngx.print(ui_helper.create[^)]*)\)\()[; \n]*ngx.print(\)/\1,/g; t r; p" > "$m"
 
