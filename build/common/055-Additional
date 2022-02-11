@@ -6,6 +6,7 @@ diagnostics
 dns
 firewall
 gateway
+helpers
 internet
 iproutes
 lan
