@@ -1284,7 +1284,7 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
               echo 'src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/routing'>>/etc/opkg/customfeeds.conf
               echo 'src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony'>>/etc/opkg/customfeeds.conf
               ;;
-          18)
+            18)
               echo 'src/gz base https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/base'>/etc/opkg/customfeeds.conf
               echo 'src/gz packages https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages'>>/etc/opkg/customfeeds.conf
               echo 'src/gz luci https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/luci'>>/etc/opkg/customfeeds.conf
@@ -1293,7 +1293,7 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
               echo 'src/gz core https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages'>>/etc/opkg/customfeeds.conf
               [ "$(uci get version.@version[0].version | cut -d. -f1)" = "20" ] && echo 'src/gz wg_go https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/repository/arm_cortex-a9/base' >> /etc/opkg/customfeeds.conf
               ;;
-          19|20)
+            19|20)
               echo 'src/gz base https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/base'>/etc/opkg/customfeeds.conf
               echo 'src/gz freifunk https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/freifunk'>>/etc/opkg/customfeeds.conf
               echo 'src/gz packages https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/packages'>>/etc/opkg/customfeeds.conf
