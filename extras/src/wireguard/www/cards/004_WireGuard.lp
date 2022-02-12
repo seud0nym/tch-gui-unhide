@@ -3,17 +3,27 @@
 -- Enable localization
 gettext.textdomain('webui-core')
 
-local wireguard_helper = require("wireguard_helper")
-local ui_helper = require("web.ui_helper")
+local ngx = ngx
 local session = ngx.ctx.session
 local modalPath = "/modals/wireguard-modal.lp"
 
 if session:hasAccess(modalPath) then
+  local wireguard_helper = require("wireguard_helper")
+  local ui_helper = require("web.ui_helper")
+  local TGU_Config = ngx.shared.TGU_Config
+  local theme = TGU_Config:get("THEME") or ""
+  if string.find(theme,"^telstra") then
+    ngx.print('<style>\
+    :root {\
+      --RGB_SYM: #EAEAEA;\
+    }\
+    </style>')
+  end
   local html = wireguard_helper.getWireguardCardHTML()
   ngx.print('\
   <div class="span3">\
     <div class="smallcard">\
-      '); ngx.print(ui_helper.createCardHeader(T"WireGuard",modalPath)); ngx.print('\
+      ',ui_helper.createCardHeader(T"WireGuard",modalPath),'\
       <div class="content">\
         <div style="position:absolute;z-index:0;bottom:5px;right:5px;height:95px;width:95px;visibility:var(--ICONS);">\
           <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 65 65" fill="#fff" fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round">\
@@ -24,10 +34,7 @@ if session:hasAccess(modalPath) then
             </symbol>\
           </svg>\
         </div>\
-        <div class="wireguard-card-content">\
-        ');
-        ngx.print(html);
-        ngx.print('\
+        <div class="wireguard-card-content">',html,'\
         </div>\
       </div>\
     </div>\
