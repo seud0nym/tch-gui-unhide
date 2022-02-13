@@ -868,17 +868,27 @@ SH
 -- Enable localization
 gettext.textdomain('webui-core')
 
-local wireguard_helper = require("wireguard_helper")
-local ui_helper = require("web.ui_helper")
+local ngx = ngx
 local session = ngx.ctx.session
 local modalPath = "/modals/wireguard-modal.lp"
 
 if session:hasAccess(modalPath) then
+  local wireguard_helper = require("wireguard_helper")
+  local ui_helper = require("web.ui_helper")
+  local TGU_Config = ngx.shared.TGU_Config
+  local theme = TGU_Config:get("THEME") or ""
+  if string.find(theme,"^telstra") then
+    ngx.print('<style>\
+    :root {\
+      --RGB_SYM: #EAEAEA;\
+    }\
+    </style>')
+  end
   local html = wireguard_helper.getWireguardCardHTML()
   ngx.print('\
   <div class="span3">\
     <div class="smallcard">\
-      '); ngx.print(ui_helper.createCardHeader(T"WireGuard",modalPath)); ngx.print('\
+      ',ui_helper.createCardHeader(T"WireGuard",modalPath),'\
       <div class="content">\
         <div style="position:absolute;z-index:0;bottom:5px;right:5px;height:95px;width:95px;visibility:var(--ICONS);">\
           <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 65 65" fill="#fff" fill-rule="evenodd" stroke="#000" stroke-linecap="round" stroke-linejoin="round">\
@@ -889,10 +899,7 @@ if session:hasAccess(modalPath) then
             </symbol>\
           </svg>\
         </div>\
-        <div class="wireguard-card-content">\
-        ');
-        ngx.print(html);
-        ngx.print('\
+        <div class="wireguard-card-content">',html,'\
         </div>\
       </div>\
     </div>\
@@ -955,6 +962,7 @@ QR
 -- Enable localization
 gettext.textdomain('webui-code')
 
+local common = require("common_helper")
 local content_helper = require("web.content_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
@@ -1167,16 +1175,7 @@ for _,v in ipairs(all_intfs) do
   end
 end
 
-local config_template ="[Interface]\
-PrivateKey = %s\
-Address = %s\
-\
-[Peer]\
-PublicKey = %s\
-PresharedKey = %s\
-AllowedIPs = 0.0.0.0/0%s\
-Endpoint = %s\
-"
+local config_template ="[Interface]\nPrivateKey = %s\nAddress = %s\n\n[Peer]\nPublicKey = %s\nPresharedKey = %s\nAllowedIPs = 0.0.0.0/0%s\nEndpoint = %s\n"
 
 local function validateLogLevel(value,_,_)
   if value == "none" or value == "debug" then
@@ -1394,8 +1393,8 @@ local peer_filter = function(data)
       else
         data.latest_handshake = os.date("%Y-%m-%d %T",tonumber(untaint(peer.latest_handshake)))
       end
-      data.transfer_rx = wireguard_helper.bytes2string(peer.transfer_rx)
-      data.transfer_tx = wireguard_helper.bytes2string(peer.transfer_tx)
+      data.transfer_rx = common.bytes2string(peer.transfer_rx)
+      data.transfer_tx = common.bytes2string(peer.transfer_tx)
       if data.endpoint == "(none)" and peer.endpoint_host ~= "" then
         data.endpoint = format("%s:%s",peer.endpoint_host,peer.endpoint_port)
       end
@@ -1613,6 +1612,7 @@ $("#do-import").click(function(){\
 ');
 MOD
   cat <<"HLP" > /www/lua/wireguard_helper.lua
+local common = require("common_helper")
 local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
 local proxy = require("datamodel")
@@ -1623,26 +1623,6 @@ local find,format,gmatch,lower,match = string.find,string.format,string.gmatch,s
 
 
 local M = {}
-
-function M.bytes2string(s_bytes)
-  if s_bytes=="" then
-    return "0<small>B</small>"
-  else
-    local bytes = tonumber(untaint(s_bytes))
-    local kb = bytes/1024
-    local mb = kb/1024
-    local gb = mb/1024
-    if gb >= 1 then
-      return format("%.1f",gb).."<small>GB</small>"
-    elseif mb >= 1 then
-      return format("%.1f",mb).."<small>MB</small>"
-    elseif kb >= 1 then
-      return format("%.1f",kb).."<small>KB</small>"
-    else
-      return format("%d",s_bytes).."<small>B</small>"
-    end
-  end
-end
 
 function M.getWireguardCardHTML()
   local content = {
@@ -1693,7 +1673,7 @@ function M.getWireguardCardHTML()
   elseif content.server == "1" then
     html[#html+1] = '<p class="subinfos">'
     html[#html+1] = format("%s of %s server peers active<br>",content.server_active_peers,content.server_peers)
-    html[#html+1] = format(transfer_pattern,M.bytes2string(content.server_tx_bytes),M.bytes2string(content.server_rx_bytes))
+    html[#html+1] = format(transfer_pattern,common.bytes2string(content.server_tx_bytes),common.bytes2string(content.server_rx_bytes))
     html[#html+1] = '</p>'
   end
   if #interfaces > 1 then
@@ -1702,7 +1682,7 @@ function M.getWireguardCardHTML()
     else
       html[#html+1] = ui_helper.createSimpleLight("1",T(format("VPN Client %s active",content.client_interfaces)))
       html[#html+1] = '<p class="subinfos">'
-      html[#html+1] = format(transfer_pattern,M.bytes2string(content.client_tx_bytes),M.bytes2string(content.client_rx_bytes))
+      html[#html+1] = format(transfer_pattern,common.bytes2string(content.client_tx_bytes),common.bytes2string(content.client_rx_bytes))
       if content.external_ipv4_address or content.external_ipv6_address then
         html[#html+1] = format(T'External IP: <strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>',content.external_ipv4_address)
         html[#html+1] = format(T'<br><strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>',content.external_ipv6_address)
@@ -1714,7 +1694,7 @@ function M.getWireguardCardHTML()
   elseif tonumber(content.client_interface_count) > 1 then
     html[#html+1] = ui_helper.createSimpleLight("1",T(format('%s of %s VPN Clients active',content.client_active_peers,content.client_interface_count)))
     html[#html+1] = '<p class="subinfos">'
-    html[#html+1] = format(transfer_pattern,M.bytes2string(content.client_tx_bytes),M.bytes2string(content.client_rx_bytes))
+    html[#html+1] = format(transfer_pattern,common.bytes2string(content.client_tx_bytes),common.bytes2string(content.client_rx_bytes))
     html[#html+1] = '</p>'
   end
 

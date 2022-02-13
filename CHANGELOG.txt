@@ -1,3 +1,20 @@
+2022.02.13
+==========
+* tch-gui-unhide: Added per-client device bandwidth monitoring
+* tch-gui-unhide: Zel072 DoH Servers list no longer available and has been removed (#57)
+* tch-gui-unhide: Add CUPS and IPP links for found USB printers to Printer Sharing screen, and show found USB Printers on Printer Sharing card (#66)
+* tch-gui-unhide: Updated FW 17.2 Printer Sharing GUI functionality to match later firmware
+* tch-gui-unhide: Fixed hard-coded references to wl1_2 interface (#68)
+* tch-gui-unhide: Additional FXS2 device not removed from Telephony Codecs tab on DJA0231
+* tch-gui-unhide: Fixed bug that changed card visibility and sequence after tch-gui-unhide upgrade
+* tch-gui-unhide: Fixed bug that caused previously minified code to not be detected during tch-gui-unhide upgrade
+* tch-gui-unhide-xtra.wireguard: Fixed peer configuration display when experimental GUI code minification enabled
+* tch-gui-unhide-xtra.wireguard: Fixed WireGuard card icon not displaying in Telstra themes
+* tch-gui-unhide-cards: Show 5 cards across if that is how GUI is configured
+* de-telstra: Enabled the CUPS Web Interface and disable Deny-CUPS-lan firewall rules when Printer Sharing enabled (#66)
+* de-telstra: Help text did not display default values for the -hd and -hs options (#67)
+* de-telstra: When the Guest WiFi was removed on FW 18.1.c and later, the operating system would change the backhaul WiFi to wl1_1 but the wireless configuration stayed as wl1_2 (#68). Run de-telstra with no options to fix an existing installation that has had the Guest WiFi removed.
+
 2022.02.02
 ==========
 * tch-gui-unhide: Manual update recommended, as there are changes to de-telstra, mtd-backup, mtd-restore and reset-to-factory-defaults-with-root
