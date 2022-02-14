@@ -1,7 +1,6 @@
 local format,match = string.format,string.match
 local curl_cmd = "curl -qskL"
-local base_url = "https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master"
-local release_version_cmd = format("%s -r0-9 -m5 %s/VERSION.txt",curl_cmd,base_url)
+local release_version_cmd = format("%s -r0-9 -m5 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/VERSION.txt",curl_cmd)
 local current_version = "" -- Set by build script
 local current_version_date = match(current_version,"(%d%d%d%d%.%d%d%.%d%d)@.*")
 local ignored_release_version_file = "/etc/tch-gui-unhide.ignored_release"
@@ -41,16 +40,16 @@ local function getReleaseVersionDate()
   return release_version.date
 end
 
-local function download(rel_path,filename)
-  os.execute(format("logger -t tch-gui-unhide -p user.debug Downloading %s/%s%s",base_url,rel_path,filename))
-  local cmd = format("%s -m5 -o /dev/null -w '%%{http_code}' %s/%s%s",curl_cmd,base_url,rel_path,filename)
+local function download(path,filename)
+  os.execute(format("logger -t tch-gui-unhide -p user.debug Downloading %s",path))
+  local cmd = format("%s -m5 -o /dev/null -w '%%{http_code}' %s",curl_cmd,path)
   local response_code
   local curl,errmsg = io.popen(cmd,"r")
   if curl then
     response_code = curl:read("*n")
     curl:close()
     if response_code == 200 then
-      cmd = format("%s -o/tmp/%s -w '%%{http_code}' %s/%s%s",curl_cmd,filename,base_url,rel_path,filename)
+      cmd = format("%s -o/tmp/%s -w '%%{http_code}' %s",curl_cmd,filename,path)
       curl,errmsg = io.popen(cmd,"r")
       if curl then
         response_code = curl:read("*n")
@@ -133,22 +132,24 @@ GUI_.set = {
     end
   end,
   UpdateNow = function(_,_,value,_)
-    local pgrep = io.popen("grep '/tmp/tch-gui-unhide-' | grep -v grep | wc -l","r")
-    local procs = pgrep:read("*n")
+    local pgrep = io.popen(format("pgrep -fla 'tch-gui-unhide-%s -W -y'",value),"r")
+    local procs = pgrep:read("*a")
     pgrep:close()
-    if procs > 0 then
-      return nil,"Upgrade already running?"
+    if procs ~= "" then
+      return nil,"Upgrade already running?<br>"..procs
     end
-    local okay,response_code = download("",format("tch-gui-unhide-%s",value))
+    local okay,response_code = download(format("https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/%s.tar.gz",value),"tch-gui-unhide.tar.gz")
     if okay then
-      okay,response_code = download("extras/src/",".extras")
+      okay,response_code = download("https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/src/.extras",".extras")
       if okay then
         local extras = io.open("/tmp/.extras","r")
         if extras then
           for file in extras:lines() do
             if file ~= "" then
-              okay,response_code = download("extras/",file)
-              if not okay then
+              okay,response_code = download(format("https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/%s",file),file)
+              if okay then
+                os.execute(format("chmod +x /tmp/%s",file))
+              else
                 os.execute(format("logger -t tch-gui-unhide -p user.warn Download of %s FAILED (Response code=%s)",file,response_code))
               end
             end
@@ -158,11 +159,10 @@ GUI_.set = {
       else
         os.execute(format("logger -t tch-gui-unhide -p user.warn Download of extras list FAILED (Response code=%s)",response_code))
       end
-      os.execute(format("cd /tmp; sh ./tch-gui-unhide-%s -y 2>&1 | logger -t tch-gui-unhide -p user.info",value))
-      os.execute("rm /tmp/.extras /tmp/tch-gui-unhide-*")
+      os.execute(format("cd /tmp; tar -xzf tch-gui-unhide.tar.gz; rm .extras tch-gui-unhide.tar.gz; sh ./tch-gui-unhide -y 2>&1 | logger -t tch-gui-unhide -p user.info",value))
       return true
     end
-    return nil,format("Download of tch-gui-unhide-%s FAILED (Response code=%s)",value,response_code)
+    return nil,format("Download of https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/%s.tar.gz FAILED (Response code=%s)",value,response_code)
   end,
 }
 

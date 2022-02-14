@@ -74,7 +74,7 @@ ngx.print(ui_helper.createHeader(T"Update Available",false,false)); ngx.print('\
         ngx.print(ui_helper.createInputSelect(T"Choose an Action:","TGU_update_action",update_options,"nothing",monitor_attr))
         ngx.print(ui_helper.createAlertBlock(T("Choose an action."),nothing_attr))
         ngx.print(ui_helper.createAlertBlock(T("A new browser window will open for you to manually download the latest release and install it yourself."),manual_attr))
-        ngx.print(ui_helper.createAlertBlock(T("The upgrade will be automatically downloaded and applied. Utility scripts normally included in the release will <B>NOT</B> be updated."),now_attr))
+        ngx.print(ui_helper.createAlertBlock(T("The upgrade will be automatically downloaded and applied. The latest utility scripts will be extracted to the /tmp directory."),now_attr))
         ngx.print(ui_helper.createAlertBlock(T("The 'Update Available' button will be hidden until the next release."),ignore_attr))
         ngx.print('\
       </fieldset>\
@@ -113,7 +113,7 @@ ngx.print(ui_helper.createHeader(T"Update Available",false,false)); ngx.print('\
           busy_msg[0].scrollIntoView();\
           $(".modal-body").scrollLeft(0);\
           if (action=="now"){\
-            setTimeout(function(){alert("Upgrade in progress...\\n\\nPlease wait a minute or two and then refresh manually if it does not happen automatically.");},1000);\
+            setTimeout(function(){alert("Upgrade in progress...\\n\\n(Messages are being sent to the system log.)\\n\\nPlease wait a minute or two and then refresh manually if it does not happen automatically.");},1000);\
             setTimeout(function(){window.location.href="/gateway.lp?r="+Date.now();},120000);\
           }\
           return true;\
