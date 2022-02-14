@@ -1,6 +1,12 @@
+2022.02.15
+==========
+* tch-gui-unhide: Devices screen broken if device bandwidth monitoring not enabled (#70)
+* tch-gui-unhide: Restart log service after install if it does not appear to be working
+* tch-gui-unhide: GUI-based upgrade now uses release tar file
+* de-telstra: Remove DECT supported manufacturer codes when DECT enabled to fix issues registering Gigaset handsets (https://whrl.pl/RgonG3 and https://whrl.pl/Rgox1l)
+
 2022.02.13
 ==========
-* tch-gui-unhide: Added per-client device bandwidth monitoring
 * tch-gui-unhide: Zel072 DoH Servers list no longer available and has been removed (#57)
 * tch-gui-unhide: Add CUPS and IPP links for found USB printers to Printer Sharing screen, and show found USB Printers on Printer Sharing card (#66)
 * tch-gui-unhide: Updated FW 17.2 Printer Sharing GUI functionality to match later firmware
