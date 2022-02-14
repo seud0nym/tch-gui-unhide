@@ -979,6 +979,12 @@ else
   SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
   echo [$SCRIPT]: DECT Emission Mode $(status2text $__DECT)
 fi
+if [ "$DECT_NOW" = "1" -a -n "$(uci -q get mmpbxbrcmdectdev.dect_base.supported_manufacturer_codes)" ]; then
+  uci -q delete mmpbxbrcmdectdev.dect_base.supported_manufacturer_codes
+  uci commit mmpbxbrcmdectdev
+  SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
+  echo [$SCRIPT]: DECT Supported Manufacturer Codes removed to fix issues registering Gigaset handsets
+fi
 
 if [ $SRV_supervision -ge 0 ]; then
   SUPERVISION_NOW="$(uci -q get supervision.global.mode)"
