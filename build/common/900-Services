@@ -7,3 +7,10 @@ if [ -n "$ACME_PROCS" ]; then
   [ -e /var/lock/acme-ipsec.sh.pre ] && rm /var/lock/acme-ipsec.sh.pre
 fi
 
+echo [$SCRIPT]: Waiting for transformer service to finish loading...
+transformer-cli get rpc.gui.UnhideVersion > /dev/null
+
+echo [$SCRIPT]: Checking log service...
+logger "tch-gui-unhide Release $RELEASE installed"
+logread -l 10 | grep -qF "tch-gui-unhide Release $RELEASE installed" || /etc/init.d/log restart
+

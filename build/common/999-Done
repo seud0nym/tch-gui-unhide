@@ -2,7 +2,7 @@ echo [$SCRIPT]: Clearing page cache...
 sync
 echo 1 > /proc/sys/vm/drop_caches
 
-echo [$SCRIPT]: Done!!!
+echo [$SCRIPT]: Installation of tch-gui-unhide Release $RELEASE complete!!!
 if [ "$UPDATE_BTN" = n ]; then
   echo
   echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
