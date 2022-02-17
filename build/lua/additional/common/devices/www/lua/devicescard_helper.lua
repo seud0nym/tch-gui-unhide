@@ -56,7 +56,7 @@ function M.getDevicesCardHTML(all)
   end
   -- Do NOT remove this comment! Insert WireGuard peer count here
   if bwstats_enabled then
-    local bwstats_template = '<span class="modal-link" data-toggle="modal" data-remote="modals/device-bwstats-modal.lp" data-id="device-bwstats-modal">Device Bandwidth Monitor %s</span>'
+    local bwstats_template = '<span class="modal-link" data-toggle="modal" data-remote="modals/device-bwstats-modal.lp" data-id="device-bwstats-modal">Device Download Monitor %s</span>'
     if bwstats_enabled[1].value == "1" then
       html[#html+1] = ui_helper.createSimpleLight("1",T(format(bwstats_template,"enabled")))
     else

@@ -284,19 +284,19 @@ end
 local devices_data,devices_helpmsg = post_helper.handleTableQuery(devices_columns,devices_options,devices_filter,nil,device_valid)
 if bwstats then
   devices_columns[#devices_columns+1] = {--[9]
-    header = "<i class='icon-cloud-download'></i>",
+    header = "Downloaded",
     name = "Download",
     param = "Download",
     type = "text",
     readonly = true,
   }
-  devices_columns[#devices_columns+1] = {--[10]
-    header = "<i class='icon-cloud-upload'></i>",
-    name = "Upload",
-    param = "Upload",
-    type = "text",
-    readonly = true,
-  }
+  -- devices_columns[#devices_columns+1] = {--[10]
+  --   header = "<i class='icon-cloud-upload'></i>",
+  --   name = "Upload",
+  --   param = "Upload",
+  --   type = "text",
+  --   readonly = true,
+  -- }
 end
 
 for k,v in pairs (devices_data) do
@@ -316,10 +316,10 @@ for k,v in pairs (devices_data) do
     local mac = match(v[5],"^([%x:]+)")
     if mac and download[mac] then
       devices_data[k][9] = common.bytes2string(download[mac])
-      devices_data[k][10] = common.bytes2string(upload[mac])
+      -- devices_data[k][10] = common.bytes2string(upload[mac])
     else
       devices_data[k][9] = ""
-      devices_data[k][10] = ""
+      -- devices_data[k][10] = ""
     end
   end
 end

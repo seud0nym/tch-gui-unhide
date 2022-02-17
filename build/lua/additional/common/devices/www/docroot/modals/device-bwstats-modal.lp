@@ -76,13 +76,13 @@ ngx.print(ui_helper.createHeader(T"Devices",false,false),'\
                 backgroundColor: "rgb(',rgb["download"],',0.25)",\
                 data: [',join(download,","),'],\
                 label: "Download (MB)",\
-              },\
-              {\
-              borderColor: "rgb(',rgb["upload"],')",\
-              borderWidth: 1,\
-              backgroundColor: "rgb(',rgb["upload"],',0.25)",\
-              data: [',join(upload,","),'],\
-              label: "Upload (MB)",\
+//              },\
+//              {\
+//              borderColor: "rgb(',rgb["upload"],')",\
+//              borderWidth: 1,\
+//              backgroundColor: "rgb(',rgb["upload"],',0.25)",\
+//              data: [',join(upload,","),'],\
+//              label: "Upload (MB)",\
               }\
             ]\
           },\
@@ -94,7 +94,7 @@ ngx.print(ui_helper.createHeader(T"Devices",false,false),'\
           $.post("/ajax/devices-bandwidth.lua",[tch.elementCSRFtoken()],function(data){\
             bwstats_config.data.labels = data.labels;\
             bwstats_config.data.datasets[0].data = data.download;\
-            bwstats_config.data.datasets[1].data = data.upload;\
+//            bwstats_config.data.datasets[1].data = data.upload;\
             bwstats_chart.update();\
           },"json")\
           .fail(function(response){\

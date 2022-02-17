@@ -8,7 +8,7 @@ local format,length,substring = string.format,string.len,string.sub
 local items = {
   {"device-modal.lp",T"Device List"},
   {"device-map-modal.lp",T"Network Map"},
-  {"device-bwstats-modal.lp",T"Device Bandwidth Monitor"},
+  {"device-bwstats-modal.lp",T"Device Download Monitor"},
 }
 
 local uri = ngx.var.uri

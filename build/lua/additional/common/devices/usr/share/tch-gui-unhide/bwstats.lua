@@ -16,13 +16,13 @@ if conn then
     delete = { "&&", "D" },
   }
   local chains = {
-    BWSTATSRX = "s",
+    --BWSTATSRX = "s",
     BWSTATSTX = "d",
   }
 
   local function update_rules(family,action,mac,ip)
-    if run('iptables -t mangle -nL BWSTATSRX >/dev/null 2>&1') ~= 0 then
-      log:warning("IPv4 Chain BWSTATSRX not found - exiting")
+    if run('iptables -t mangle -nL BWSTATSTX >/dev/null 2>&1') ~= 0 then
+      log:warning("IPv4 Chain BWSTATSTX not found - exiting")
       os.exit()
     end
     if action and actions[action] and mac and mac ~= "" and ip and ip.address and ip.address ~= "" then
