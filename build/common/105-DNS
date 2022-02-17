@@ -1,7 +1,7 @@
-if [ -f ipv4-DNS-Servers ]
-then
-  echo [$SCRIPT]: Adding custom IPv4 DNS Servers
-  sed -e 's/\r//g' ipv4-DNS-Servers | sort | while read -r host ip; do
+ipv4DNSServers="$(find_file ipv4-DNS-Servers)"
+if [ -n "$ipv4DNSServers" ]; then
+  echo [$SCRIPT]: Adding custom IPv4 DNS Servers from $ipv4DNSServers
+  sed -e 's/\r//g' "$ipv4DNSServers" | sort | while read -r host ip; do
     if [ -n "$ip" ]; then
       [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $host ($ip) to /www/lua/dns_servers_helper.lua"
       sed -e "/ipv4-DNS-Servers/i\    {\"$ip\", T\"$host ($ip)\"}," -i /www/lua/dns_servers_helper.lua
@@ -9,10 +9,10 @@ then
   done
 fi
 
-if [ -f ipv6-DNS-Servers ]
-then
-  echo [$SCRIPT]: Adding custom IPv6 DNS Servers
-  sed -e 's/\r//g' ipv6-DNS-Servers | sort | while read -r host ip; do
+ipv6DNSServers="$(find_file ipv6-DNS-Servers)"
+if [ -n "$ipv6DNSServers" ]; then
+  echo [$SCRIPT]: Adding custom IPv6 DNS Servers from $ipv6DNSServers
+  sed -e 's/\r//g' "$ipv6DNSServers" | sort | while read -r host ip; do
     if [ -n "$ip" ]; then
       ipv6=$(echo $ip  | tr ':' '-')
       [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $host ($ip) to /www/lua/dns_servers_helper.lua"
