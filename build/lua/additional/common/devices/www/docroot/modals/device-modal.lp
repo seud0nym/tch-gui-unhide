@@ -21,8 +21,8 @@ local untaint = string.untaint
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
-local bwstats,download,upload = proxy.get("rpc.gui.bwstats.show_in_device_list"),{},{}
-if bwstats and bwstats[1] and bwstats[1].value == "1" then
+local bwstats,download,upload = proxy.get("rpc.gui.bwstats.enabled","rpc.gui.bwstats.show_in_device_list"),{},{}
+if bwstats and bwstats[1] and bwstats[1].value == "1" and bwstats[2] and bwstats[2].value == "1" then
   bwstats = true
   download,upload = require("devicesbandwidth_helper").getBandwithStatisticsByMAC()
 else
