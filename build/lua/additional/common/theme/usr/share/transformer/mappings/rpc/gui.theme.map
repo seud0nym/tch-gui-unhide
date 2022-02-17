@@ -91,7 +91,7 @@ end
 
 GUI_THEME_.set = {
   THEME = function(_,_,value,_)
-    if value == "light" or value == "night" or value == "telstra" or value == "telstramodern" then
+    if value == "light" or value == "night" or value == "telstra" or value == "telstramodern" or value == "classic" then
       return setPreference("THEME",value)
     else
       return nil,"Invalid theme '" .. value .. "'"

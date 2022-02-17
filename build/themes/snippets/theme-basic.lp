@@ -20,7 +20,11 @@ local html = {}
 html[#html+1] = format(stylesheet, "icons-" .. settings["ICONS"], ".css")
 html[#html+1] = format(stylesheet, "common-override", ".css")
 
-if find(settings["THEME"],"^telstra") then
+if settings["THEME"] == "classic" then
+  html[#html+1] = format(favicon,"")
+  html[#html+1] = format(stylesheet,"telstra","/colour-text.css")
+  html[#html+1] = format(stylesheet,"telstra","/tch-logo.css")
+elseif find(settings["THEME"],"^telstra") then
   html[#html+1] = format(favicon, "telstra/")
   html[#html+1] = format(stylesheet, "telstra", "/colour-text.css")
 else
@@ -43,7 +47,7 @@ if settings["KEEPLP"] == "y" then
     html[#html+1] = "</style>"
   end
 else
-  if settings["THEME"] == "light" then
+  if settings["THEME"] == "light"  then
     html[#html+1] = "<style>"
     html[#html+1] = "@media screen and (max-width: 979px) body.landingpage{background-color:#f8f8f8;background-image:unset;}"
     html[#html+1] = "body.landingpage{background-color:#f8f8f8;background-image:unset;}"
@@ -54,9 +58,13 @@ else
     html[#html+1] = "body.landingpage{background-color:#353c42;background-image:unset;}"
     html[#html+1] = "body.landingpage#detailed_info_mobile>div:nth-child(5)>form>center>div{background-color:#f8f8f8;}"
     html[#html+1] = "</style>"
-  else -- Telstra
+  elseif settings["THEME"] == "classic"  then
     html[#html+1] = "<style>"
     html[#html+1] = ".lp-logo{display:block;-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/logo.gif) no-repeat;width:240px;height:93px;padding-left:240px;background-size:240px;}"
+    html[#html+1] = "</style>"
+  else -- Telstra
+    html[#html+1] = "<style>"
+    html[#html+1] = ".lp-logo{display:block;-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/logo.gif) no-repeat;width:240px;height:93px;padding-left:240px;background-size:240px;}"
     html[#html+1] = "</style>"
   end
 end
