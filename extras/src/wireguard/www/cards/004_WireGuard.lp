@@ -12,12 +12,8 @@ if session:hasAccess(modalPath) then
   local ui_helper = require("web.ui_helper")
   local TGU_Config = ngx.shared.TGU_Config
   local theme = TGU_Config:get("THEME") or ""
-  if string.find(theme,"^telstra") then
-    ngx.print('<style>\
-    :root {\
-      --RGB_SYM: #EAEAEA;\
-    }\
-    </style>')
+  if string.find(theme,"^telstra") or theme == "classic" then
+    ngx.print('<style>:root{--RGB_SYM:#EAEAEA;}</style>')
   end
   local html = wireguard_helper.getWireguardCardHTML()
   ngx.print('\
