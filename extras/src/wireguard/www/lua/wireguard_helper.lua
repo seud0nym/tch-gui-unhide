@@ -5,7 +5,7 @@ local proxy = require("datamodel")
 
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
-local find,format,gmatch,lower,match = string.find,string.format,string.gmatch,string.lower,string.match
+local find,format,gmatch,gsub,lower,match = string.find,string.format,string.gmatch,string.gsub,string.lower,string.match
 
 
 local M = {}
@@ -182,30 +182,39 @@ end
 function M.getDNS(include_ipv6)
   local dns = ""
 
-  for _,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dhcp_option.",true)) do
-    local ipv4_dns = match(untaint(proxy.get(v.path.."value")[1].value),"6,(.+)")
-    if ipv4_dns then
-      if dns == "" then
-        dns = ipv4_dns
-      else
-        dns = format("%s,%s",dns,ipv4_dns)
+  local adguard = proxy.get("rpc.gui.init.files.@AdGuardHome.active")
+  if not adguard or adguard[1].value ~= "1" then
+    for _,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dhcp_option.",true)) do
+      local ipv4_dns = match(untaint(proxy.get(v.path.."value")[1].value),"6,(.+)")
+      if ipv4_dns then
+        if dns == "" then
+          dns = ipv4_dns
+        else
+          dns = format("%s,%s",dns,ipv4_dns)
+        end
       end
     end
-  end
-
-  if include_ipv6 == true then
-    for _,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dns.",true)) do
-      local ipv6_dns = untaint(proxy.get(v.path.."value")[1].value)
-      if dns == "" then
-        dns = ipv6_dns
-      else
-        dns = format("%s,%s",dns,ipv6_dns)
+    if include_ipv6 == true then
+      for _,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dns.",true)) do
+        local ipv6_dns = untaint(proxy.get(v.path.."value")[1].value)
+        if dns == "" then
+          dns = ipv6_dns
+        else
+          dns = format("%s,%s",dns,ipv6_dns)
+        end
       end
     end
   end
 
   if dns == "" then
-    dns = proxy.get("uci.network.interface.@lan.ipaddr")[1].value
+    local addresses = proxy.get("rpc.network.interface.@lan.ipaddr","rpc.network.interface.@lan.ip6addr")
+    if addresses and addresses[1] then
+      if include_ipv6 and addresses[2] and addresses[2].value ~= "" then
+        dns = format("%s,%s",addresses[1].value,gsub(untaint(addresses[2].value),"%s+",","))
+      else
+        dns = untaint(addresses[1].value)
+      end
+    end
   end
 
   return dns

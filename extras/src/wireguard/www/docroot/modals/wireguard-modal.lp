@@ -216,8 +216,6 @@ for _,v in ipairs(all_intfs) do
   end
 end
 
-local config_template ="[Interface]\nPrivateKey = %s\nAddress = %s\n\n[Peer]\nPublicKey = %s\nPresharedKey = %s\nAllowedIPs = 0.0.0.0/0%s\nEndpoint = %s\n"
-
 local function validateLogLevel(value,_,_)
   if value == "none" or value == "debug" then
     return true
@@ -310,6 +308,7 @@ if ngx.var.request_method == "POST" then
             helpmsg["new_peer_name"] = "Failed to add peer"
           else
             local private_key = wireguard_helper.genkey()
+            local include_ipv6 = (config.ipv6 ~= "0")
             new_peer = {
               name = peer_name,
               address = format("%s/%s",ipv4_next,ipv4_netmask),
@@ -318,9 +317,9 @@ if ngx.var.request_method == "POST" then
               private_key = private_key,
               public_key = wireguard_helper.pubkey(private_key),
               preshared_key = "",
-              dns = wireguard_helper.getDNS()
+              dns = wireguard_helper.getDNS(include_ipv6),
             }
-            if config.ipv6 ~= "0" and ipv6_next then
+            if include_ipv6 and ipv6_next then
               new_peer.address=format("%s,%s/%s",new_peer.address,ipv6_next,ipv6_netmask)
               new_peer.allowed_ips=format("%s,%s/128",new_peer.allowed_ips,ipv6_next)
               new_peer.ipv6_allowed_ip = ",::0/0"
@@ -339,7 +338,8 @@ if ngx.var.request_method == "POST" then
             and proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.route_allowed_ips",peer_name),"1")
             then
               proxy.apply()
-              new_peer.config = gsub(format(config_template,new_peer.private_key,new_peer.address,wireguard_helper.pubkey(config.private_key),new_peer.preshared_key,new_peer.ipv6_allowed_ip,config.server_address),"PresharedKey = \n","")
+              local config_template ="[Interface]\nPrivateKey = %s\nAddress = %s\nDNS = %s\n\n[Peer]\nPublicKey = %s\nPresharedKey = %s\nAllowedIPs = 0.0.0.0/0%s\nEndpoint = %s\n"
+              new_peer.config = gsub(format(config_template,new_peer.private_key,new_peer.address,new_peer.dns,wireguard_helper.pubkey(config.private_key),new_peer.preshared_key,new_peer.ipv6_allowed_ip,config.server_address),"PresharedKey = \n","")
             end
           end
         end
