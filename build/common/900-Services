@@ -12,5 +12,13 @@ transformer-cli get rpc.gui.UnhideVersion > /dev/null
 
 echo [$SCRIPT]: Checking log service...
 logger "tch-gui-unhide Release $RELEASE installed"
-logread -l 10 | grep -qF "tch-gui-unhide Release $RELEASE installed" || /etc/init.d/log restart
+LOG_FILE=$(uci -q get system.all.path)
+if [ $({ logread -l 10; tail -n 10 $LOG_FILE; } | grep -F "tch-gui-unhide Release $RELEASE installed" | wc -l) -ne 2 ]; then
+  /etc/init.d/lsyslogd stop
+  /etc/init.d/log stop
+  rm -f /var/run/luasyslog.pid
+  pgrep -f luasyslog | xargs -r kill -9
+  /etc/init.d/log start
+  /etc/init.d/lsyslogd start
+fi
 
