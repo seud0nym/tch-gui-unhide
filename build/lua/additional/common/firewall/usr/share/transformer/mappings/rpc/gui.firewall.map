@@ -27,12 +27,18 @@ local function getOutputFrom(cmd,table,results)
       k = k + 1
       local pkts,bytes,target,prot,opt,in_if,out_if,srce,dest,comment = line:match("^%s*(.-)%s*$"):match("([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+) +([opt -]+) +([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+) *(.*)")
       local extra = ""
+      if not pkts then
+        pkts,bytes,prot,opt,in_if,out_if,srce,dest,comment = line:match("^%s*(.-)%s*$"):match("([^ ]+) +([^ ]+) +([^ ]+) +([opt -]+) +([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+) *(.*)")
+        target = ""
+      end
       if target == "target" and prot == "prot" and opt == "opt" then
         results[format("%d",k)] = {
           html = head
         }
       else
-        if comment ~= "" and comment:sub(1,2) ~= "/*" then
+        if not comment then
+          comment = ""
+        elseif comment ~= "" and comment:sub(1,2) ~= "/*" then
           if comment:find(" %/%*") then
             extra,comment = comment:match("([^/]+)(/%*.+)")
           else
