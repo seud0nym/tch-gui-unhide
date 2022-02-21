@@ -1,3 +1,4 @@
+CUSTOM_LOGO=y
 DEBUG=""
 RESTORE=n
 WRAPPER=n
@@ -42,9 +43,12 @@ Optional parameters:
  -t l|n|c|t|m     Set a light (l), night (n), classic (c) or Telstra-branded Classic (t) or Modern (m) theme
                     (Default is current setting, or Telstra Classic if no theme has been applied)
  -C n|s|i         Keep or remove chart cards
-                   n=No Chart Cards will be available
-                   s=Only the Summary Chart Card will be available
-                   i=Only the Individual Chart Cards will be available (default)
+                    n=No Chart Cards will be available
+                    s=Only the Summary Chart Card will be available
+                    i=Only the Individual Chart Cards will be available (default)
+ -L               Do NOT apply a custom logo if found. Normally, if there is a logo.gif file in one of: 
+                    the current directory, /root, or the USB drive, or in a "logo" (case-insensitive) 
+                    directory in one of those places, it will overwrite the logo in all themes.
  -T               Apply theme ONLY - bypass all other processing
  Update Options:
  -u               Check for and download any changes to this script (may be newer than latest release version)
@@ -165,6 +169,7 @@ do
         n|s|i) CHART_CARDS="$OPTARG";;
         *) echo "ERROR: Unknown chart card option - $OPTARG"; exit 2;;
       esac;;
+   L) CUSTOM_LOGO=n;;
    T) THEME_ONLY=y;;
    V) LATEST_RELEASE=$(curl -m 1 -q -s -k -L -r0-9 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/VERSION.txt)
       echo "002@$(date +%H:%M:%S): This Release       $RELEASE"

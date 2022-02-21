@@ -4,11 +4,14 @@ chmod +x /www /www/docroot /www/docroot/css /www/docroot/css/telstra /www/docroo
 echo [$SCRIPT]: Persisting theme settings
 echo -n "THEME=$THEME COLOR=$COLOR ICONS=$ICONS KEEPLP=$KEEPLP" > /etc/tch-gui-unhide.theme
 
-LOGO="$(find_file logo.gif logo)"
-if [ -n "$LOGO" ]; then
-  echo [$SCRIPT]: Custom logo $LOGO found - replacing Telstra and theme logos
-  for f in /www/docroot/img/logo.gif /www/docroot/img/light/logo.gif /www/docroot/img/night/logo.gif; do
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Replacing $f"
-    cp "$LOGO" "$f"
-  done
+if [ $CUSTOM_LOGO = y ]; then
+  LOGO="$(find_file logo.gif logo)"
+  if [ -n "$LOGO" ]; then
+    echo [$SCRIPT]: Custom logo $LOGO found - replacing Telstra and theme logos
+    for f in /www/docroot/img/logo.gif /www/docroot/img/light/logo.gif /www/docroot/img/night/logo.gif; do
+      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Replacing $f"
+      cp "$LOGO" "$f"
+    done
+  fi
 fi
+
