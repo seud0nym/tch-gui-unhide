@@ -122,6 +122,7 @@ SRV_cron=0
 SRV_dnsmasq=0
 SRV_dropbear=0
 SRV_firewall=0
+SRV_iperf=0
 SRV_network=0
 SRV_nginx=0
 SRV_power=0
@@ -177,6 +178,7 @@ apply_service_changes() {
     [ $SRV_dnsmasq -gt 0 ] && /etc/init.d/dnsmasq restart
     [ $SRV_dropbear -gt 0 ] && /etc/init.d/dropbear restart
     [ $SRV_system -gt 0 ] && /etc/init.d/system reload
+    [ $SRV_iperf -gt 0 ] && /etc/init.d/iperf restart
     [ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
     [ $SRV_firewall -gt 0 ] && /etc/init.d/firewall reload 2> /dev/null
     [ $SRV_network -gt 0 ] && /etc/init.d/network reload > /dev/null 2>&1

@@ -9,7 +9,7 @@ local iperf_config = {
   section = "iperf",
   type = "iperf",
   options = {
-    "proto","dest_port","enable"
+    "proto","dest_port","enabled"
   }
 }
 

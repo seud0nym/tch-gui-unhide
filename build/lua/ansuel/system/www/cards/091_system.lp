@@ -17,7 +17,7 @@ local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
 local syslog = proxy.get("uci.system.system.@system[0].log_ip","uci.system.system.@system[0].log_filter_ip")
 local ssh_lan = proxy.get("uci.dropbear.dropbear.@lan.enable")
 local ssh_afg = proxy.get("uci.dropbear.dropbear.@afg.enable")
-local iperf = proxy.get("uci.iperf.iperf.enable")
+local iperf = proxy.get("uci.iperf.iperf.enabled")
 
 local state_map = {
   ["0"] = "disabled",

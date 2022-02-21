@@ -87,12 +87,12 @@ local proto_choices = {
   {"UDP",T"UDP"},
 }
 
-local iperf_available = proxy.get("uci.iperf.iperf.enable")
+local iperf_available = proxy.get("uci.iperf.iperf.enabled")
 local iperf_params
 local iperf_valid
 if iperf_available then
   iperf_params = {
-    iperf_enable = "uci.iperf.iperf.enable",
+    iperf_enable = "uci.iperf.iperf.enabled",
     iperf_port = "uci.iperf.iperf.dest_port",
     iperf_proto = "uci.iperf.iperf.proto",
   }

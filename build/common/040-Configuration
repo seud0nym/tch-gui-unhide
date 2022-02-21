@@ -78,12 +78,19 @@ if [ $? -eq 1 ]; then
 fi
 
 echo [$SCRIPT]: Preserving password files and SSH configuration to prevent root loss on RTFD
-for f in /etc/passwd /etc/shadow /etc/config/dropbear /etc/dropbear/* /etc/rc.d/*dropbear
-do
+for f in /etc/passwd /etc/shadow /etc/config/dropbear /etc/dropbear/* /etc/rc.d/*dropbear; do
   grep -q -E "^$f$" /etc/rtfd_persistent_filelist.conf
-  if [ $? -eq 1 ]
-  then
+  if [ $? -eq 1 ]; then
     echo "$f">>/etc/rtfd_persistent_filelist.conf
   fi
 done
+
+IPERF_ENABLED=$(uci -q get iperf.iperf.enable)
+if [ -n "$IPERF_ENABLED" ]; then
+  echo [$SCRIPT]: Fixing iperf enabled configuration
+  uci -q set iperf.iperf.enabled="$IPERF_ENABLED"
+  uci -q delete iperf.iperf.enable
+  uci -q commit iperf
+  SRV_iperf=$(( $SRV_iperf + 1 ))
+fi
 

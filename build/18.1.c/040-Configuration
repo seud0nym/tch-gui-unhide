@@ -4,3 +4,8 @@ if [ $(grep -c 'www.macoers.com/repository' /etc/opkg/customfeeds.conf) -gt 0 ];
   sed -e 's|www.macoers.com/repository|repository.macoers.com|' -i /etc/opkg/customfeeds.conf
 fi
 
+for f in /etc/config/iperf /etc/init.d/iperf; do
+  echo [$SCRIPT]: Fixing iperf enabled configuration in $f
+  sed -e 's/\benable\b/enabled/' -i "$f"
+done
+
