@@ -17,14 +17,14 @@ if content.agent_enabled and content.agent_enabled ~= "" and content.controller_
   local agentStatus,controllerStatus
   local boosters = 0
   if content.agent_enabled == "1" then
-    agentStatus = "Multi-AP Agent enabled"
+    agentStatus = "EasyMesh Agent enabled"
   else
-    agentStatus = "Multi-AP Agent disabled"
+    agentStatus = "EasyMesh Agent disabled"
   end
   if content.controller_enabled == "1" then
-    controllerStatus = "Multi-AP Controller enabled"
+    controllerStatus = "EasyMesh Controller enabled"
   else
-    controllerStatus = "Multi-AP Controller disabled"
+    controllerStatus = "EasyMesh Controller disabled"
   end
 
   ngx.print('\

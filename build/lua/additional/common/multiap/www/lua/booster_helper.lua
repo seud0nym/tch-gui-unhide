@@ -108,9 +108,9 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled)
   local boosters = 0
 
   if agent_enabled == "1" then
-    agentStatus = "Multi-AP Agent enabled"
+    agentStatus = "EasyMesh Agent enabled"
   else
-    agentStatus = "Multi-AP Agent disabled"
+    agentStatus = "EasyMesh Agent disabled"
   end
   if controller_enabled == "1" then
     local path = "Device.Services.X_TELSTRA_MultiAP.Agent."
@@ -120,9 +120,9 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled)
         boosters = boosters + 1
       end
     end
-    controllerStatus = "Multi-AP Controller enabled"
+    controllerStatus = "EasyMesh Controller enabled"
   else
-    controllerStatus = "Multi-AP Controller disabled"
+    controllerStatus = "EasyMesh Controller disabled"
   end
   if ap_path and content["ap_state"] and content["ap_iface"] == bh_iface and content["bh_ssid"] ~= "" then
     local pattern="Backhaul %s ".."%s %s"

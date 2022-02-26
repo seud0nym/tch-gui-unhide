@@ -123,7 +123,7 @@ ngx.print( ui_helper.createHeader(T"Wi-Fi Boosters",false,true,nil)); ngx.print(
     ngx.print(ui_helper.createMessages(message_helper.popMessages()));
 
     local html = {}
-    html[#html+1] = "<fieldset><legend>"..T"Multi-AP".."</legend>"
+    html[#html+1] = "<fieldset><legend>"..T"EasyMesh".."</legend>"
     html[#html+1] = "<legend><small>"..T"Agent".."</small></legend>"
     html[#html+1] = ui_helper.createSwitch(T"Enabled","agent_enabled",content["agent_enabled"],switch_class_enable)
     html[#html+1] = ui_helper.createInputText(T"Default Hysteresis Margin","agent_dhm",content["agent_dhm"],agent_enabled_monitor)
