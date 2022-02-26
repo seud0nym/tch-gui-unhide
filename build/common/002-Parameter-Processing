@@ -75,8 +75,7 @@ EOM
 exit
 }
 
-while getopts :a:c:d:f:h:i:l:m:p:rt:uv:x:yC:TVWX-: option
-do
+while getopts :a:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
  case "${option}" in
    -) case "${OPTARG}" in
         abort) exit;;
@@ -186,7 +185,7 @@ do
       exit;;
    W) WRAPPER=y;;
    X) UPDATE_XTRAS=y;;
-   ?) usage;;
+   ?) echo -e "[$SCRIPT]: \033[0;33mERROR: Unknown option '-$OPTARG' specified!\033[0m"; usage;;
  esac
 done
 
