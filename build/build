@@ -57,12 +57,12 @@ cleanup /tmp/tch-gui-unhide/*
 
 echo "${GREEN}Building changed extras..${NC}"
 cd ../extras/src
-./make
+sh make
 cd - >/dev/null
 
 echo "${GREEN}Recreating SHA256 check sums..${NC}"
 cd ../utilities/restore-config
-./update-sha256.sh
+sh update-sha256.sh
 cd - >/dev/null
 
 echo "${GREEN}Building /tmp/themes.b64...${NC}"
