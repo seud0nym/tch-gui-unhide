@@ -11,9 +11,10 @@ echo [$SCRIPT]: Waiting for transformer service to finish loading...
 transformer-cli get rpc.gui.UnhideVersion > /dev/null
 
 echo [$SCRIPT]: Checking log service...
-logger "tch-gui-unhide Release $RELEASE installed"
+LOG_MESG="tch-gui-unhide Release $RELEASE installed"
 LOG_FILE=$(uci -q get system.all.path)
-if [ $({ logread -l 10; tail -n 10 $LOG_FILE; } | grep -F "tch-gui-unhide Release $RELEASE installed" | wc -l) -ne 2 ]; then
+logger "$LOG_MESG"
+if [ $({ logread -l 10; tail -n 10 $LOG_FILE; } | grep -F "$LOG_MESG" | wc -l) -ne 2 ]; then
   /etc/init.d/lsyslogd stop
   /etc/init.d/log stop
   rm -f /var/run/luasyslog.pid
