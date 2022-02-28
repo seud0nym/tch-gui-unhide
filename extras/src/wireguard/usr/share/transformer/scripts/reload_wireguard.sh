@@ -8,17 +8,20 @@
 handle_interface() {
   local interface="$1"
 
-  config_get proto $interface proto
-  config_get enabled $interface enabled
+  config_get proto   $interface proto   unknown
+  config_get enabled $interface enabled 0
 
-  if [ "{$proto}" = "{wireguard}" ]; then
+  if [ "$proto" = "wireguard" ]; then
     if /bin/grep -qE "^${interface}$" /tmp/.wg_uci_modified_ifnames; then
-      [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: FOUND $interface in /tmp/.wg_uci_modified_ifnames [enabled=$enabled]"
+      [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: Interface '$interface' found in /tmp/.wg_uci_modified_ifnames [enabled=$enabled]"
       /bin/sed -e "/^${interface}$/d" -i /tmp/.wg_uci_modified_ifnames
       /sbin/ifdown $interface
-      [ "{$enabled}" != "{0}" ] && ifup $interface
+      [ "$enabled" = "1" ] && ifup $interface
+    elif [ "$enabled" = "1" -a "$(ifstatus $interface | jsonfilter -e '@.up')" = "false" -a "$(ifstatus $interface | jsonfilter -e '@.pending')" = "false" ]; then
+      [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: Interface '$interface' enabled but down! Bringing it back up..."
+      /sbin/ifup $interface
     else
-      [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: SKIPPED $interface [enabled=$enabled]"
+      [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: Interface '$interface' SKIPPED [enabled=$enabled]"
     fi
   fi
 }
@@ -31,7 +34,7 @@ handle_interface() {
 
   # Anything left must have been deleted
   for interface in $(/bin/cat /tmp/.wg_uci_modified_ifnames | sort -u); do
-    [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard: FOUND $interface in /tmp/.wg_uci_modified_ifnames but not in /etc/config/network"
+    [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard: Interface '$interface' found in /tmp/.wg_uci_modified_ifnames but not in /etc/config/network"
     /bin/sed -e "/^${interface}$/d" -i /tmp/.wg_uci_modified_ifnames
     /sbin/ifdown $interface
   done
