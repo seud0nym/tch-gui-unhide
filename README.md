@@ -233,8 +233,8 @@ The script accepts the following options:
 - -a 4|5
     - Set the number of cards across on screen width greater than 1200px
     - The default is the current setting, or 4 for first time installs.
-- -t l|n|t|m
-    - Set a light (*-tl*), night (*-tn*), or default Telstra Classic (*-tt*) or Telstra Modern (*-tm*) theme
+- -t l|n|c|t|m
+    - Set a light (*-tl*), night (*-tn*), classic(*-tc*) or default Telstra Classic (*-tt*) or Telstra Modern (*-tm*) theme
     - The default is the current setting, or Telstra Classic if no theme has been applied
 - -c b|o|g|p|r|m|M
     - Set the theme highlight colour: *-cb*=blue *-co*=orange *-cg*=green *-cp*=purple *-cr*=red *-cm*=monochrome *-cM*=monochrome (with monochrome charts)
@@ -266,6 +266,9 @@ The script accepts the following options:
 - -m y|n
     - Minify (y) GUI Lua code (*EXPERIMENTAL!!*)
     - The default is current setting or (n) for first time installs
+- -L
+    - Do NOT apply a custom logo if found. 
+    - Normally, if there is a logo.gif file found in one of: the current directory, /root, or the USB drive, or in a "logo" (case-insensitive) directory in one of those places, it will overwrite the logo in *all* themes.
 - -T
     - Apply the theme settings *ONLY*. All other processing is bypassed.
 - -x *feature*

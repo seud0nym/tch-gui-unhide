@@ -1,3 +1,17 @@
+2022.03.01
+==========
+* tch-gui-unhide: Added new "Classic" theme, which is the original Telstra theme but with Technicolor logo and favicon (The "Telstra Branding (Classic)" theme is now called "Classic (Telstra Branding)")
+* tch-gui-unhide: If there is a logo.gif file in one of: the current directory, /root, or the USB drive, or in a "logo" (case-insensitive) directory in one of those places, it will overwrite the logo in all themes (a custom logo will be ignored if you specify the new -L option)
+* tch-gui-unhide: Device list was incorrectly showing device bandwidth statistics when monitoring disabled if "Show in Device List" was enabled
+* tch-gui-unhide: Changed Device Bandwidth Monitor to show downloads only because of suspect numbers produced by upload monitoring
+* tch-gui-unhide: Fixed bug in Firewall IP Tables tab when rules contain no target
+* tch-gui-unhide: Fixed iperf enabled configuration (changed in 20.3.c)
+* tch-gui-unhide: Modified log service check (#71)
+* tch-gui-unhide: Fixed Basic Wi-Fi screen showing Guest1_5G tab after Guest Wi-Fi removed (#75)
+* tch-gui-unhide: Changed Multi-AP terminology on Wi-Fi Booster card to EasyMesh to match FW 2.4 on Smart Modem Gen 3 (https://whrl.pl/RgoNtZ)
+* tch-gui-unhide-xtra.wireguard: Added DNS Servers to generated peer config
+* tch-gui-unhide-xtra.wireguard: Added check for enabled but down interfaces on reload
+
 2022.02.15
 ==========
 * tch-gui-unhide: Devices screen broken if device bandwidth monitoring not enabled (#70)
@@ -707,7 +721,7 @@
 * tch-gui-unhide: Replaced Telephony Global modal with https://github.com/Ansuel/tch-nginx-gui/tree/master/decompressed/gui_file/www modified version to allow setting of second SIP provider and interface
 * tch-gui-unhide: Added switch to Telephony card to enable/disable, and display status of SIP profiles
 * tch-gui-unhide: Added switch to Wi-Fi card to disable/enable radios, and display status of Guest SSIDs
-* tch-gui-unhide: Added Wi-Fi Boosters card and screens to manage Multi-AP settings
+* tch-gui-unhide: Added Wi-Fi Boosters card and screens to manage EasyMesh settings
 * tch-gui-unhide: Added traffic monitor charts to Diagnostics
 * tch-gui-unhide: Added upload/download stats to Broadband card 
 * tch-gui-unhide: Fixed positioning of signal indicator on Mobile card
