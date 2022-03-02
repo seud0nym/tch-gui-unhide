@@ -137,7 +137,7 @@ do
         echo >> $TARGET
       fi
     else
-      if [ $FILENAME = "165-Themes" ]; then
+      if [ $FILENAME = "610-Themes" ]; then
         if [ $DIRECTORY = "common" ]; then
           [ -n "$DEBUG" ] && echo " - Appending /tmp/themes.b64"
           sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" /tmp/themes.b64 >> $TARGET
