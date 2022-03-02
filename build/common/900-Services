@@ -1,25 +1,27 @@
-apply_service_changes
+if [ "$THEME_ONLY" = n ]; then
+  apply_service_changes
 
-# acme-ipsec.sh was broken in release 2021.12.06, and leaves processes waiting on shared lock
-ACME_PROCS=$(ps | grep acme | grep -v grep | cut -c1-5)
-if [ -n "$ACME_PROCS" ]; then
-  kill $ACME_PROCS >/dev/null 2>&1
-  [ -e /var/lock/acme-ipsec.sh.pre ] && rm /var/lock/acme-ipsec.sh.pre
-fi
+  # acme-ipsec.sh was broken in release 2021.12.06, and leaves processes waiting on shared lock
+  ACME_PROCS=$(ps | grep acme | grep -v grep | cut -c1-5)
+  if [ -n "$ACME_PROCS" ]; then
+    kill $ACME_PROCS >/dev/null 2>&1
+    [ -e /var/lock/acme-ipsec.sh.pre ] && rm /var/lock/acme-ipsec.sh.pre
+  fi
 
-echo [$SCRIPT]: Waiting for transformer service to finish loading...
-transformer-cli get rpc.gui.UnhideVersion > /dev/null
+  echo [$SCRIPT]: Waiting for transformer service to finish loading...
+  transformer-cli get rpc.gui.UnhideVersion > /dev/null
 
-echo [$SCRIPT]: Checking log service...
-LOG_MESG="tch-gui-unhide Release $RELEASE installed"
-LOG_FILE=$(uci -q get system.all.path)
-logger "$LOG_MESG"
-if [ $({ logread -l 10; tail -n 10 $LOG_FILE; } | grep -F "$LOG_MESG" | wc -l) -ne 2 ]; then
-  /etc/init.d/lsyslogd stop
-  /etc/init.d/log stop
-  rm -f /var/run/luasyslog.pid
-  pgrep -f luasyslog | xargs -r kill -9
-  /etc/init.d/log start
-  /etc/init.d/lsyslogd start
+  echo [$SCRIPT]: Checking log service...
+  LOG_MESG="tch-gui-unhide Release $RELEASE installed"
+  LOG_FILE=$(uci -q get system.all.path)
+  logger "$LOG_MESG"
+  if [ $({ logread -l 10; tail -n 10 $LOG_FILE; } | grep -F "$LOG_MESG" | wc -l) -ne 2 ]; then
+    /etc/init.d/lsyslogd stop
+    /etc/init.d/log stop
+    rm -f /var/run/luasyslog.pid
+    pgrep -f luasyslog | xargs -r kill -9
+    /etc/init.d/log start
+    /etc/init.d/lsyslogd start
+  fi
 fi
 
