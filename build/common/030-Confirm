@@ -78,26 +78,8 @@ else
   read
 fi
 if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
-  exit
+  unlock normally
 fi
 
 echo [$SCRIPT]: IMPORTANT NOTE - You can restore changed GUI files to their original state by running: $0 -r
-
-LOCK="/var/run/${SCRIPT}.lck"
-unlock() { 
-  if [ "$1" != "normally" ]; then
-    echo
-    echo -e "[$SCRIPT]: Ctrl-C caught...performing clean up"
-  fi
-
-  echo -e "[$SCRIPT]: Releasing lock on $LOCK..."
-  lock -u $LOCK
-  [ -f $LOCK ] && rm $LOCK
-
-  [ "$1" = "normally" ] && exit || exit 2
-}
-trap "unlock" 2
-
-echo -e "[$SCRIPT]: Attempting to acquire lock on $LOCK..."
-lock $LOCK
 

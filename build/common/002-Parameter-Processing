@@ -197,4 +197,22 @@ if [ "$ICONS" = "" ]; then
   fi
 fi
 
+LOCK="/var/run/${SCRIPT}.lck"
+unlock() { 
+  if [ "$1" != "normally" ]; then
+    echo
+    echo -e "[$SCRIPT]: Ctrl-C caught...performing clean up"
+  fi
+
+  echo -e "[$SCRIPT]: Releasing lock on $LOCK..."
+  lock -u $LOCK
+  [ -f $LOCK ] && rm $LOCK
+
+  [ "$1" = "normally" ] && exit || exit 2
+}
+trap "unlock" 2
+
+echo -e "[$SCRIPT]: Attempting to acquire lock on $LOCK..."
+lock $LOCK
+
 if [ $THEME_ONLY = n ]; then
