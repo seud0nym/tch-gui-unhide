@@ -4,8 +4,8 @@ then
   sed -e 's/switchName, content.*,/nil, nil,/' -i /www/cards/090_cwmpconf.lp
 else
   echo [$SCRIPT]: CWMP not found - Removing from GUI
-  rm /www/cards/090_cwmpconf.lp
-  rm /www/docroot/modals/cwmpconf-modal.lp
+  [ -e /www/cards/090_cwmpconf.lp ] && rm /www/cards/090_cwmpconf.lp
+  [ -e /www/docroot/modals/cwmpconf-modal.lp ] && rm /www/docroot/modals/cwmpconf-modal.lp
   uci -q delete web.cwmpconfmodal
   uci -q del_list web.ruleset_main.rules=cwmpconfmodal
   uci -q delete web.card_cwmpconf
