@@ -45,7 +45,7 @@ minify() {
   [ $pretranslated = 1 ] && sed -e "1i$MARKER" -i "$f"
 }
 
-if [ "$MINIFY" = y ]; then
+if [ "$MINIFY" = y -a "$THEME_ONLY" = n ]; then
   echo [$SCRIPT]: Pre-minify fixes
   [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/snippets/networkmap.lp"
   sed -e 's/\("pointer"})\)\(\\\)/\1;\2/' -i /www/snippets/networkmap.lp
