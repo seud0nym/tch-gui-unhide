@@ -4,3 +4,5 @@ body{font-family:Roboto,Noto,sans-serif;background-image:none;}
 .navbar-fixed-top .navbar-inner{box-shadow:none;}
 .navbar-inner{box-shadow:none;}
 .navbar-inverse .navbar-inner{background-image:none;border-width:0px;}
+.menubar{margin-right:-20px;}
+.row{margin-left:unset;}
