@@ -72,6 +72,6 @@ if [ $RESTORE = y ]; then
   echo "* NOTE: No config changes have been restored, except to    *"
   echo "*       remove added entries to display hidden modals.     *"
   echo "************************************************************"
-  exit
+  unlock normally
 fi
 
