@@ -1,0 +1,9 @@
+echo [$SCRIPT]: Fix Basic view header
+sed \
+  -e '/inverse/'d \
+  -e '/pull-right/i\<img src="/img/logo.gif" style="max-height:67.5px" class="basic-view-logo">\\' \
+  -e 's|container|row|' \
+  -e 's|class="navbar-inner"|class="container" style="margin-top:10px"|' \
+  -e "s|</div>');|');|" \
+  -i /www/snippets/navbar.lp
+

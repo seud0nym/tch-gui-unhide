@@ -1,5 +1,6 @@
 body{background-color:#353c42;color:#fff;}
 legend{color:#fff;}
+.basic-view-logo{-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/night/logo.gif) no-repeat;width:180px;height:70px;padding-left:180px;background-size:180px;}
 .btn{background-color:#005c32;background-image:none;color:#fff;text-shadow:none;}
 .btn-primary:hover,.btn-primary:focus,.btn-primary:active,.btn-primary.active,.btn-primary.disabled,.btn-primary[disabled]{background-color:#005c32;color:#fff}
 .btn:hover .caret{border-top-color:#000;}
