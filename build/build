@@ -30,7 +30,9 @@ do
 done
 shift $((OPTIND-1))
 
-DIR=$(pwd)
+DIR=$(cd $(dirname $0); pwd)
+
+cd "$DIR"
 
 cleanup() {
   for f in $1 $2 $3 $4 $5 $6 $7 $8 $9
