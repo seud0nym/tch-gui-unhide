@@ -1,3 +1,10 @@
+2022.03.05 (Interim release)
+==========
+* tch-gui-unhide: Theme change option (-T) threw lots of errors if GUI code had been minified (#76)
+* tch-gui-unhide: Basic view rows were unbalanced on left/right side (#77)
+* tch-gui-unhide: Made Basic view header more consistent and prettier (#77)
+* tch-gui-unhide: DNS card now not hidden when AdGuard Home installed so that Intercept daemon and DNS Hijacking can still be configured
+
 2022.03.01
 ==========
 * tch-gui-unhide: Added new "Classic" theme, which is the original Telstra theme but with Technicolor logo and favicon (The "Telstra Branding (Classic)" theme is now called "Classic (Telstra Branding)")
