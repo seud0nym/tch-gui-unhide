@@ -75,6 +75,7 @@ Options:
                          (on non-Guest and non-Backhaul SSIDs)
  -F u|y|n              RTFD root protection:    u=unchanged y=Enable n=Disable
                          NOTE: tch-gui-unhide will ALWAYS enable RTFD protection
+ -I n.n.n.n            Set the LAN IPv4 address to n.n.n.n
  -A                    Equivalent to: -hd -dg -an -cn -fn -in -rn -sd -un -wn -Fy
  -S                    Equivalent to: -hs -dg -an -cn -fn -in -rn -sd -un -wn -Fy
  -M                    Minimum memory mode: Equivalent to:
@@ -141,6 +142,7 @@ set_defaults() {
   __GUEST='n'
   __HOST='u'
   __INTERCEPT='u'
+  __IPADDR=''
   __LITE='n'
   __MMPBX='u'
   __MULTIAP_AGT='u'
@@ -180,7 +182,7 @@ RESTART_SERVICES=y
 SAVE_DEFAULTS=n
 SHOW_DEFAULTS=n
 
-while getopts :a:b:c:d:e:f:g:h:i:k:m:n:op:q:r:s:t:u:w:yAF:GMO:RSU-: option; do
+while getopts :a:b:c:d:e:f:g:h:i:k:m:n:op:q:r:s:t:u:w:yAF:GI:MO:RSU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
         no-defaults) set_defaults;;
@@ -214,6 +216,12 @@ while getopts :a:b:c:d:e:f:g:h:i:k:m:n:op:q:r:s:t:u:w:yAF:GMO:RSU-: option; do
   A)  __HOST='d'; __DOMAIN='gateway'; __ALG='0'; __DLNAD='0'; __SAMBA='0'; __PRNTR='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1'; __SUPERVISION='DNS'; __INTERCEPT='0';;
   F)  case "${OPTARG}" in y) __ROOT_PROTECT='1';; n) __ROOT_PROTECT='0';; u) __ROOT_PROTECT='u';; *) echo 'ERROR: -F valid options are y, n, or u'; exit 1;; esac;;
   G)  __GUEST='y';;
+  I)  if  echo "${OPTARG}" | grep -q -E "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"; then
+        __IPADDR="${OPTARG}"
+      else
+        echo "ERROR! Invalid IP address: $OPTARG$"
+        exit 1
+      fi;;
   M)  __LITE='y'; __ALG='0'; __DECT='0'; __DLNAD='0'; __DUMAOS='0'; __INTERCEPT='0' __MMPBX='0'; __MULTIAP_AGT='0'; __MULTIAP_BKH='0'; __MULTIAP_CTL='0'; __NFC='0'; __PRNTR='0'; __SAMBA='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1';;
   O)  case "${OPTARG}" in 17|18|19) __REPO=$OPTARG;; *) echo 'ERROR: -O valid options are 17, 18 or 19'; exit 1;; esac;;
   R)  __LITE='R'; __HOST='mymodem'; __DOMAIN='modem'; __NS='a'; __ALG='1'; __DLNAD='1'; __DUMAOS='0'; __SAMBA='1'; __MULTIAP_AGT='1'; __MULTIAP_BKH='1'; __MULTIAP_CTL='1'; __POWER='d'; __PRNTR='1'; __MMPBX='1'; __DECT='1'; __UPNP='1'; __ROOT_PROTECT='0'; __NFC='y'; __SUPERVISION='BFD'; __INTERCEPT='1';;
@@ -304,6 +312,8 @@ show_default() {
           o) _DFLT="OpenDNS";;
           *) _DFLT="$3";;
         esac
+      elif [ "$1" = 'I' ]; then
+        [ -z "$3" ] && _DFLT=Unchanged || _DFLT="$3"
       elif [ "$1" = 'O' ]; then
         _DFLT="$HOMEWARE"
         [ -z "$3" ] && _OPT="O$HOMEWARE"
@@ -311,7 +321,7 @@ show_default() {
         _DFLT="$3"
       fi;;
   esac
-  _OPT="$(printf '-%-15s' "$_OPT\e[0m")"
+  _OPT="$(printf '-%-20s' "$_OPT\e[0m")"
   printf "  %-40s " "$2"
   if [ $_ESC = 9 ]; then
     echo -e "\e[9m$_OPT $_DFLT"
@@ -356,6 +366,7 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y -o $__YES = n ]; then
   show_default "F"  "RTFD root protection" $__ROOT_PROTECT
   show_default "M"  "Minimum memory mode" $__LITE
   show_default "G"  "Remove Guest Wi-Fi" $__GUEST
+  show_default "I"  "LAN IPv4 Address" $__IPADDR
   show_default "o"  "Configure opkg" $__OPKG
   show_default "O"  " - opkg repository" $__REPO
   [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y ] && exit
@@ -1505,7 +1516,20 @@ fi
 echo [$SCRIPT]: Cleaning up broken links in /etc/rc.d
 find /etc/rc.d -type l ! -exec test -e {} \; -exec rm {} \;
 
-unlock normally
+SRV_network=0
+if [ -n "$__IPADDR" -a "$__IPADDR" != "$(uci get network.lan.ipaddr)" ]; then
+  echo [$SCRIPT]: Setting LAN IPv4 address to ${__IPADDR}...
+  uci set network.lan.ipaddr="$__IPADDR"
+  uci commit network
+  SRV_network=$(( $SRV_network + 1 ))
+fi
 
 echo [$SCRIPT]: Done!
 [ $__ROOT_PWD_REMINDER = y ] && echo -e "[$SCRIPT]: \033[1;32mNOTE: If you haven't changed the root password, you should do it now...\033[0m"
+
+if [ $SRV_network -gt 0 ]; then
+  echo -e "[$SCRIPT]: \033[1;32mNOTE: You will need to reconnect via SSH to the new IP address!!!\033[0m";
+  /etc/init.d/network reload > /dev/null 2>&1
+fi
+
+unlock normally
