@@ -1,6 +1,6 @@
 else # THEME_ONLY = y
   echo [$SCRIPT]: Restoring CSS files to apply theme change
-  cp -p /rom/www/docroot/css/gw.css /rom/www/docroot/css/gw-telstra.css /rom/www/docroot/css/responsive.css /www/docroot/css/
+  cp -p $RESTORE_BASE/www/docroot/css/gw.css $RESTORE_BASE/www/docroot/css/gw-telstra.css $RESTORE_BASE/www/docroot/css/responsive.css /www/docroot/css/
 fi # End of if [ THEME_ONLY = n ]
 
 echo [$SCRIPT]: Adding or updating card background icons

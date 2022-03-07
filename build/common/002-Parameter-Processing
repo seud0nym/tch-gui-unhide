@@ -1,6 +1,7 @@
 CUSTOM_LOGO=y
 DEBUG=""
 RESTORE=n
+RESTORE_BASE='/rom'
 WRAPPER=n
 YES=n
 THEME_ONLY=n
@@ -81,6 +82,7 @@ while getopts :a:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
         abort) exit;;
         debug) DEBUG="V";;
         no-service-restart) RESTART_SERVICES=n;;
+        restore-base*) RESTORE_BASE="${OPTARG#restore-base=}"; [ -n "$RESTORE_BASE" -a -d "$RESTORE_BASE/www" ] || { echo "ERROR: Could not find www directory (--$OPTARG)"; exit 2; };;
         *) usage;;
       esac;;
    a) if [ "${OPTARG}" -eq 4 -o "${OPTARG}" -eq 5 ]; then ACROSS=$OPTARG; else echo "ERROR: Cards across must be either 4 or 5"; exit 2; fi;;

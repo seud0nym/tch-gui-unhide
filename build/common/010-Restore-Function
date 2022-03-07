@@ -16,10 +16,9 @@ restore_www() {
     SRV_cron=$(( $SRV_cron + 1 ))
   fi
   # Add individual files to be restored here
-  for t in /etc/init.d/power /usr/lib/lua/web/post_helper.lua
-  do
-    s=/rom$t
-    if [ -f $s ]; then
+  for t in /etc/init.d/power /usr/lib/lua/web/post_helper.lua; do
+    [ -f "${RESTORE_BASE}${t}" ] && s="${RESTORE_BASE}${t}" || s="/rom$t"
+    if [ -f "$s" ]; then
       cmp -s "$s" "$t"
       if [ $? -ne 0 ]; then
         echo [$SCRIPT]: Restoring file $t
@@ -28,8 +27,6 @@ restore_www() {
     fi
   done
   # Add directories to be restored here
-  for d in www/cards www/docroot www/lua www/snippets usr/share/transformer/commitapply usr/share/transformer/mappings/rpc usr/share/transformer/mappings/uci
-  do
+  for d in www/cards www/docroot www/lua www/snippets usr/share/transformer/commitapply usr/share/transformer/mappings/rpc usr/share/transformer/mappings/uci; do
     echo [$SCRIPT]: Restoring directory /$d
-    for s in $(find /rom/$d -type f | grep -v -E \(/rom/www/docroot/help\))
-    do
+    for s in $(find $RESTORE_BASE/$d -type f | grep -vE "^$RESTORE_BASE/www/docroot/help"); do

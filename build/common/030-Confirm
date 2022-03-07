@@ -59,7 +59,7 @@ fi
 if [ -n "$XTRAS" ]; then
   echo "[$SCRIPT]: These extra feature scripts will be downloaded and applied (if the pre-requisites are met):"
   for x in $XTRAS; do
-  echo "[$SCRIPT]:  - tch-gui-unhide-xtra.$x"
+    echo "[$SCRIPT]:  - tch-gui-unhide-xtra.$x"
   done
 fi
 if [ "$UPDATE_XTRAS" = y ]; then
@@ -70,6 +70,12 @@ fi
 if [ "$MINIFY" = y ]; then
   echo -e "[$SCRIPT]: \033[0;33mWARNING! Experimental Lua GUI code minification is enabled!\033[0m"
 fi
+if [ "$RESTORE_BASE" != "/rom" ]; then
+  echo -e "[$SCRIPT]: \033[0;33mWARNING! Stock GUI files will be restored from $RESTORE_BASE rather than /rom!\033[0m"
+fi
+if [ "$DEBUG" = "V" ]; then
+  echo -e "[$SCRIPT]: \033[0;33mDebug messages are ENABLED\033[0m"
+fi
 
 if [ $YES = y ]; then
   REPLY=y
@@ -77,7 +83,11 @@ else
   echo -n "[$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop: "
   read
 fi
-if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
+if [ "$REPLY" == "x" ]; then
+  REPLY=y
+  set -x
+  set
+elif [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
   unlock normally
 fi
 
