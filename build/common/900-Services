@@ -15,6 +15,7 @@ if [ "$THEME_ONLY" = n ]; then
   LOG_MESG="tch-gui-unhide Release $RELEASE installed"
   LOG_FILE=$(uci -q get system.all.path)
   logger "$LOG_MESG"
+  /etc/init.d/lsyslogd reload
   if [ $({ logread -l 10; tail -n 10 $LOG_FILE; } | grep -F "$LOG_MESG" | wc -l) -ne 2 ]; then
     /etc/init.d/lsyslogd stop
     /etc/init.d/log stop
