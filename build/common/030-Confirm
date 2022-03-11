@@ -76,6 +76,9 @@ fi
 if [ "$DEBUG" = "V" ]; then
   echo -e "[$SCRIPT]: \033[0;33mDebug messages are ENABLED\033[0m"
 fi
+if [ "$REBOOT" = "y" ]; then
+  echo -e "[$SCRIPT]: \033[0;31mWARNING! System will be REBOOTED after installation!!\033[0m"
+fi
 
 if [ $YES = y ]; then
   REPLY=y

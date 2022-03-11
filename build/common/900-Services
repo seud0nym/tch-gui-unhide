@@ -1,4 +1,4 @@
-if [ "$THEME_ONLY" = n ]; then
+if [ "$THEME_ONLY" = n -a "$REBOOT" = n ]; then
   apply_service_changes
 
   # acme-ipsec.sh was broken in release 2021.12.06, and leaves processes waiting on shared lock
