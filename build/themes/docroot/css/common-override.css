@@ -20,6 +20,8 @@
 .smallcard .content{font-size:14px;height:125px;}
 .smallcard .subinfos{font-size:14px;margin-top:1px;margin-bottom:0px;line-height:17px;}
 .span3{width:270px;}
+.ssid-status{margin-left:18px;margin-top:2px;padding-top:0px;line-height:12px;height:15px;}
+.ssid-status>.light{margin-top:1px;}
 .status-icon{color:var(--RGB_STATUS_ICON);}
 .table th,.table td {padding-left:4px;padding-right:4px;}
 .throughput{float:right;padding-left:10px;position:relative;text-align:right;font-size:10px;line-height:12px;margin-top:-3px;}
@@ -27,6 +29,9 @@
 .traffichistory tr th:nth-child(1),.traffichistory tr td:nth-child(1){width:15%;}
 .traffichistory tr th:nth-child(2),.traffichistory tr td:nth-child(2){width:10%;}
 .traffichistory tr th:nth-child(3),.traffichistory tr th:nth-child(4),.traffichistory tr th:nth-child(5),.traffichistory tr td:nth-child(3),.traffichistory tr td:nth-child(4),.traffichistory tr td:nth-child(5){text-align:right;width:25%;}
+.wifi-band{color:#bec5cb;height:20px;}
+.wifi-dBm{color:gray;font-size:xx-small;}
+.wifi-width{font-size:xx-small;}
 #broadband-card-content>span.simple-desc.modal-link{font-size:13px;}
 #classify .checkbox{width:60px;}
 #custom_dns>thead>tr>th:nth-child(-n+2){width:46%;}

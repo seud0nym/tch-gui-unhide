@@ -38,7 +38,7 @@ end
   <div class="smallcard">\
     ');  ngx.print(ui_helper.createCardHeader(T"Wi-Fi",modalPath,switchName,wifiState) ); ngx.print('\
     <div id="wifi-card-content" class="content card_bg" data-bg-text="&#xf09e;">\
-      ');  ngx.print(ui_helper.createSimpleLight("3","Getting SSID status...")); ngx.print('\
+      ');  ngx.print(ui_helper.createSimpleLight("3","Getting Wi-Fi status...")); ngx.print('\
     </div>\
   </div>\
 </div>\
