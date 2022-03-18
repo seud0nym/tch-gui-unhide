@@ -303,6 +303,22 @@ local WG_PEER_i_ = {
         access = "readWrite",
         type = "string",
       },
+      lan_access = {
+        access = "readWrite",
+        type = "boolean",
+      },
+      wan_access = {
+        access = "readWrite",
+        type = "boolean",
+      },
+      ssh_access = {
+        access = "readWrite",
+        type = "boolean",
+      },
+      gui_access = {
+        access = "readWrite",
+        type = "boolean",
+      },
     }
   }
 }

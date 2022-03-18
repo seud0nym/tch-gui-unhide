@@ -229,6 +229,11 @@ local log_level_attr = {
     off = "none"
   }
 }
+local private_ip_attr = {
+  span = {
+    style = "letter-spacing:-1px",
+  }
+}
 
 local mapParams = {
   enabled = "uci.wireguard.@"..curintf..".enabled",
@@ -364,7 +369,7 @@ local peer_columns = {
     readonly = true,
   },
   {
-    header = T"PSK&nbsp;<span class='icon-question-sign' title='Pre-Shared Key'></span>",
+    header = T"PSK",
     name = "preshared_key",
     param = "preshared_key",
     readonly = true,
@@ -388,7 +393,7 @@ local peer_columns = {
     readonly = true,
   },
   {
-    header = T"Received",
+    header = T"Rcvd",
     name = "transfer_rx",
     param = "transfer_rx",
     readonly = true,
@@ -400,6 +405,41 @@ local peer_columns = {
     readonly = true,
   },
 }
+
+if curintf == "wg0" then
+  peer_columns[#peer_columns+1] = {
+    header = "LAN",
+    name = "lan_access",
+    param = "lan_access",
+    type = "switch",
+    default = "1",
+    attr = { switch = { ["data-placement"] = "right" }},
+  }
+  peer_columns[#peer_columns+1] = {
+    header = "WAN",
+    name = "wan_access",
+    param = "wan_access",
+    type = "switch",
+    default = "1",
+    attr = { switch = { ["data-placement"] = "right" }},
+  }
+  peer_columns[#peer_columns+1] = {
+    header = "SSH",
+    name = "ssh_access",
+    param = "ssh_access",
+    type = "switch",
+    default = "1",
+    attr = { switch = { ["data-placement"] = "right" }},
+  }
+  peer_columns[#peer_columns+1] = {
+    header = "GUI",
+    name = "gui_access",
+    param = "gui_access",
+    type = "switch",
+    default = "1",
+    attr = { switch = { ["data-placement"] = "right" }},
+  }
+end
 
 local rpc_path = "rpc.gui.wireguard.interface.@"..curintf..".peer."
 local peers = content_helper.convertResultToObject(rpc_path,proxy.get(rpc_path)) or {}
@@ -416,7 +456,7 @@ local peer_options = {
   basepath = "uci.wireguard.@"..curintf..".peer.@.",
   canAdd = false,
   canDelete = (curintf == "wg0"),
-  canEdit = false,
+  canEdit = (curintf == "wg0"),
 }
 
 local peer_filter = function(data)
@@ -444,7 +484,7 @@ local peer_filter = function(data)
   end
   data.public_key = format("%s...%s",sub(pub,1,4),sub(pub,40,43))
   if psk ~= "" then
-    data.preshared_key = "Enabled"
+    data.preshared_key = "Yes"
   end
   data.allowed_ips = gsub(untaint(data.allowed_ips),",","<br>")
   return true
@@ -496,6 +536,10 @@ ngx.print('\
       </li>\
     </ul>\
   </div>\
+  <style>\
+  #server>tbody>tr>td:nth-child(n+4):nth-child(-n+5){letter-spacing:-1px;}\
+  #server>tbody>tr>td:nth-child(n+7):nth-child(-n+8){text-align:right;}\
+  </style>\
   <div class="span9">\
     <form class="form-horizontal" method="post" action="modals/wireguard-modal.lp?intf='); ngx.print(curintf); ngx.print('">\
       ');
@@ -520,7 +564,7 @@ ngx.print('\
         html[#html+1] = ui_helper.createLabel(T"Domain<span class='icon-question-sign' title='Configure the Domain name in WAN Services under IPv4 Dynamic DNS'></span>",config.domain)
       end
       html[#html+1] = ui_helper.createLabel(T"Private Key",config.private_key)
-      html[#html+1] = ui_helper.createLabel(T"VPN Private IP",T(gsub(untaint(config.addresses),",","<br>")))
+      html[#html+1] = ui_helper.createLabel(T"VPN Private IP",T(gsub(untaint(config.addresses),",","<br>")),private_ip_attr)
       html[#html+1] = ui_helper.createSwitch(T"Debugging","log_level",config["log_level"],log_level_attr,helpmsg["log_level"])
       html[#html+1] = "<legend><small>"..T"Peers".."</small></legend>"
       html[#html+1] = ui_helper.createTable(peer_columns,peer_data,peer_options,nil,peer_helpmsg)

@@ -9,14 +9,147 @@ elif [ "$(basename $0)" = "tch-gui-unhide-xtra.wireguard" -o -z "$FW_BASE" ]; th
   exit
 fi
 
+FW_LAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "network='lan'" | cut -d. -f1-2)
+
+for f in /etc/hotplug.d/net/10-w*-peer-firewall /usr/share/tch-gui-unhide/w*-peer-firewall.sh; do
+  [ -e "$f" ] && rm "$f"
+done
+
 # The tch-gui-unhide-xtra scripts should output a single line to indicate success or failure
 # as the calling script has left a hanging echo -n. Include a leading space for clarity.
 
-FW_LAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "network='lan'" | cut -d. -f1-2)
-
 if [ -f /usr/bin/wireguard-go -a -f /usr/bin/wg-go -a -f /lib/netifd/proto/wireguard.sh -a -z "$XTRAS_REMOVE" ]; then
-  echo " Adding wireguard support..."
+  echo " Adding WireGuard support..."
 
+  cat <<"HP" > /etc/hotplug.d/net/10-wireguard-peer-firewall
+#!/bin/sh
+. /lib/functions.sh
+
+config_load network
+config_get proto "$INTERFACE" "proto" "unknown"
+config_get listen_port "$INTERFACE" "listen_port"
+
+[ "$proto" = "wireguard" -a -n "$listen_port" ] && /usr/share/tch-gui-unhide/wireguard-peer-firewall.sh
+
+exit 0
+HP
+  cat <<"FW" > /usr/share/tch-gui-unhide/wireguard-peer-firewall.sh
+#!/bin/sh
+. /lib/functions.sh
+
+_ssh_ports=$(uci show dropbear | grep Port | cut -d= -f2 | tr -d "'" | sort -u)
+_gui_ports=$(grep listen /etc/nginx/nginx.conf | grep -v ':\|55555' | grep -o '[0-9]*' | sort -u)
+
+add_input_port_rule() {
+  local cmd="$1"
+  local chain="$2"
+  local allowed_ip="$3"
+  local protocols="$4"
+  local port protocol
+  shift 4
+
+  for port in $*; do
+    for protocol in $(echo $protocols | tr -s ',' ' '); do
+      $cmd -A "$chain" --protocol "$protocol" --dport "$port" -s "$allowed_ip" -j reject
+    done
+  done
+}
+
+delete_chain() {
+  local cmd="$1"
+  local interface="$2"
+  local chain="$3"
+
+  $cmd -D "${chain}_rule" -i "${interface}"  -j "${interface}_${chain}" 2>/dev/null
+  $cmd -F "${interface}_${chain}" 2>/dev/null
+  $cmd -X "${interface}_${chain}" 2>/dev/null
+}
+
+handle_peer() {
+  local peer_config="$1"
+  local interface="$2"
+  local ipv6="$3"
+  local allowed_ip allowed_ips lan_access wan_access port
+
+  config_get allowed_ips "$peer_config" "allowed_ips"
+  config_get lan_access "$peer_config" "lan_access" "1"
+  config_get wan_access "$peer_config" "wan_access" "1"
+  config_get ssh_access "$peer_config" "ssh_access" "1"
+  config_get gui_access "$peer_config" "gui_access" "1"
+
+  [ -z "${allowed_ips}" -o \( "$lan_access" = "1" -a "$wan_access" = "1" -a "$ssh_access" = "1" -a "$gui_access" = "1" \) ] && return
+
+  for allowed_ip in ${allowed_ips}; do
+    case "${allowed_ip}" in
+      *:*)
+        if [ "$ipv6" != "0" ]; then
+          [ "$lan_access" != "1" ] && ip6tables -A "${interface}_forwarding" -o br-lan -s "$allowed_ip" -j reject
+          [ "$wan_access" != "1" ] && ip6tables -A "${interface}_forwarding" ! -o br-lan -s "$allowed_ip" -j reject
+          [ "$ssh_access" != "1" ] && add_input_port_rule ip6tables "${interface}_input" "$allowed_ip" "tcp,udp" $_ssh_ports
+          [ "$gui_access" != "1" ] && add_input_port_rule ip6tables "${interface}_input" "$allowed_ip" "tcp" $_gui_ports
+        fi;;
+      *.*)
+        [ "$lan_access" != "1" ] && iptables -A "${interface}_forwarding" -o br-lan -s "$allowed_ip" -j reject
+        [ "$wan_access" != "1" ] && iptables -A "${interface}_forwarding" ! -o br-lan -s "$allowed_ip" -j reject
+        [ "$ssh_access" != "1" ] && add_input_port_rule iptables "${interface}_input" "$allowed_ip" "tcp,udp" $_ssh_ports
+        [ "$gui_access" != "1" ] && add_input_port_rule iptables "${interface}_input" "$allowed_ip" "tcp" $_gui_ports
+        ;;
+    esac
+  done
+}
+
+handle_interface() {
+  local interface="$1"
+  local enabled proto listen_port ipv6 cmd chain
+
+  config_get proto "$interface" "proto" "unknown"
+  config_get listen_port "$interface" "listen_port"
+  [ "$proto" = "wireguard" -a -n "$listen_port" ] || return
+
+  config_get ipv6 "$interface" "ipv6" "1"
+  if [ "$ipv6" = "1" ]; then
+    commands="iptables ip6tables"
+  else
+    commands="iptables"
+    for chain in input forwarding; do
+      delete_chain ip6tables "${interface}" "${chain}"
+    done
+  fi
+
+  for cmd in $commands; do
+    for chain in input forwarding; do
+      $cmd -N "${interface}_${chain}" 2>/dev/null
+      $cmd -C "${chain}_rule" -i "${interface}" -j "${interface}_${chain}" 2>/dev/null || $cmd -A "${chain}_rule" -i "${interface}" -j "${interface}_${chain}"
+      $cmd -F "${interface}_${chain}"
+    done
+  done
+
+  config_get enabled "$interface" "enabled" "1"
+  if [ "$enabled" = "1" -a "$(ifstatus $interface | jsonfilter -e '@.up')" = "true" ]; then
+    /usr/bin/logger -t "wireguard-peer-firewall.sh" -p daemon.notice "Applying peer firewall rules on interface '$interface'"
+    for cmd in $commands; do
+      for chain in input forwarding; do
+        for protocol in tcp udp; do
+          $cmd -I "${interface}_${chain}" --protocol "$protocol" --dport 53 -j ACCEPT
+        done
+      done
+    done
+    config_foreach handle_peer "wireguard_$interface" "$interface" "$ipv6"
+  else
+    /usr/bin/logger -t "wireguard-peer-firewall.sh" -p daemon.notice "Removing peer firewall rules on interface '$interface'"
+    for cmd in iptables ip6tables; do
+      for chain in input forwarding; do
+        delete_chain "$cmd" "${interface}" "${chain}"
+      done
+    done
+  fi
+}
+
+config_load network
+config_foreach handle_interface "interface"
+
+exit 0
+FW
   cat <<"CA" > /usr/share/transformer/commitapply/uci_wireguard.ca
 ^wireguard /usr/share/transformer/scripts/reload_wireguard.sh
 CA
@@ -707,6 +840,22 @@ local WG_PEER_i_ = {
         access = "readWrite",
         type = "string",
       },
+      lan_access = {
+        access = "readWrite",
+        type = "boolean",
+      },
+      wan_access = {
+        access = "readWrite",
+        type = "boolean",
+      },
+      ssh_access = {
+        access = "readWrite",
+        type = "boolean",
+      },
+      gui_access = {
+        access = "readWrite",
+        type = "boolean",
+      },
     }
   }
 }
@@ -1187,6 +1336,11 @@ local log_level_attr = {
     off = "none"
   }
 }
+local private_ip_attr = {
+  span = {
+    style = "letter-spacing:-1px",
+  }
+}
 
 local mapParams = {
   enabled = "uci.wireguard.@"..curintf..".enabled",
@@ -1322,7 +1476,7 @@ local peer_columns = {
     readonly = true,
   },
   {
-    header = T"PSK&nbsp;<span class='icon-question-sign' title='Pre-Shared Key'></span>",
+    header = T"PSK",
     name = "preshared_key",
     param = "preshared_key",
     readonly = true,
@@ -1346,7 +1500,7 @@ local peer_columns = {
     readonly = true,
   },
   {
-    header = T"Received",
+    header = T"Rcvd",
     name = "transfer_rx",
     param = "transfer_rx",
     readonly = true,
@@ -1358,6 +1512,41 @@ local peer_columns = {
     readonly = true,
   },
 }
+
+if curintf == "wg0" then
+  peer_columns[#peer_columns+1] = {
+    header = "LAN",
+    name = "lan_access",
+    param = "lan_access",
+    type = "switch",
+    default = "1",
+    attr = { switch = { ["data-placement"] = "right" }},
+  }
+  peer_columns[#peer_columns+1] = {
+    header = "WAN",
+    name = "wan_access",
+    param = "wan_access",
+    type = "switch",
+    default = "1",
+    attr = { switch = { ["data-placement"] = "right" }},
+  }
+  peer_columns[#peer_columns+1] = {
+    header = "SSH",
+    name = "ssh_access",
+    param = "ssh_access",
+    type = "switch",
+    default = "1",
+    attr = { switch = { ["data-placement"] = "right" }},
+  }
+  peer_columns[#peer_columns+1] = {
+    header = "GUI",
+    name = "gui_access",
+    param = "gui_access",
+    type = "switch",
+    default = "1",
+    attr = { switch = { ["data-placement"] = "right" }},
+  }
+end
 
 local rpc_path = "rpc.gui.wireguard.interface.@"..curintf..".peer."
 local peers = content_helper.convertResultToObject(rpc_path,proxy.get(rpc_path)) or {}
@@ -1374,7 +1563,7 @@ local peer_options = {
   basepath = "uci.wireguard.@"..curintf..".peer.@.",
   canAdd = false,
   canDelete = (curintf == "wg0"),
-  canEdit = false,
+  canEdit = (curintf == "wg0"),
 }
 
 local peer_filter = function(data)
@@ -1402,7 +1591,7 @@ local peer_filter = function(data)
   end
   data.public_key = format("%s...%s",sub(pub,1,4),sub(pub,40,43))
   if psk ~= "" then
-    data.preshared_key = "Enabled"
+    data.preshared_key = "Yes"
   end
   data.allowed_ips = gsub(untaint(data.allowed_ips),",","<br>")
   return true
@@ -1454,6 +1643,10 @@ ngx.print('\
       </li>\
     </ul>\
   </div>\
+  <style>\
+  #server>tbody>tr>td:nth-child(n+4):nth-child(-n+5){letter-spacing:-1px;}\
+  #server>tbody>tr>td:nth-child(n+7):nth-child(-n+8){text-align:right;}\
+  </style>\
   <div class="span9">\
     <form class="form-horizontal" method="post" action="modals/wireguard-modal.lp?intf='); ngx.print(curintf); ngx.print('">\
       ');
@@ -1478,7 +1671,7 @@ ngx.print('\
         html[#html+1] = ui_helper.createLabel(T"Domain<span class='icon-question-sign' title='Configure the Domain name in WAN Services under IPv4 Dynamic DNS'></span>",config.domain)
       end
       html[#html+1] = ui_helper.createLabel(T"Private Key",config.private_key)
-      html[#html+1] = ui_helper.createLabel(T"VPN Private IP",T(gsub(untaint(config.addresses),",","<br>")))
+      html[#html+1] = ui_helper.createLabel(T"VPN Private IP",T(gsub(untaint(config.addresses),",","<br>")),private_ip_attr)
       html[#html+1] = ui_helper.createSwitch(T"Debugging","log_level",config["log_level"],log_level_attr,helpmsg["log_level"])
       html[#html+1] = "<legend><small>"..T"Peers".."</small></legend>"
       html[#html+1] = ui_helper.createTable(peer_columns,peer_data,peer_options,nil,peer_helpmsg)
@@ -1990,6 +2183,8 @@ end
 return M
 HLP
 
+  chmod 755 /etc/hotplug.d/net/10-wireguard-peer-firewall
+  chmod 755 /usr/share/tch-gui-unhide/wireguard-peer-firewall.sh
   chmod 644 /usr/share/transformer/commitapply/uci_wireguard.ca
   chmod 644 /usr/share/transformer/mappings/rpc/gui.wireguard.map
   chmod 644 /usr/share/transformer/mappings/uci/wireguard.map
@@ -2006,10 +2201,10 @@ HLP
   if [ -z "$(uci -q get network.wg0)" ]; then
     LAN_IPv6="$(uci -q get network.lan.ipv6)"
     OCTET_3="$(printf '%d' 0x$(uci get env.var.local_eth_mac | cut -d: -f6))"
-    uci set network.wg0="interface"
-    uci set network.wg0.proto="wireguard"
+    uci set network.wg0='interface'
+    uci set network.wg0.proto='wireguard'
     uci set network.wg0.private_key="$(/usr/bin/wg-go genkey)"
-    uci set network.wg0.listen_port="51820"
+    uci set network.wg0.listen_port='51820'
     uci add_list network.wg0.addresses="172.23.${OCTET_3}.1/24"
     if [ -z "$LAN_IPv6" -o "$LAN_IPv6" = "1" ]; then
       ULA_PREFIX="$(uci -q get network.globals.ula_prefix)"
@@ -2027,56 +2222,99 @@ HLP
       uci add_list network.wg0.addresses="$(echo $ULA_PREFIX | cut -d: -f1-3):23$(uci get env.var.local_eth_mac | cut -d: -f6)::1/120"
     fi
     uci set network.wg0.ipv6="$LAN_IPv6"
-    uci set network.wg0.enabled="0"
+    uci set network.wg0.enabled='0'
     uci commit network
     SRV_network=$(( $SRV_network + 1 ))
   fi
 
+  for peer in $(uci show network | grep =wireguard_wg0 | cut -d= -f1); do
+    if [ -z "$(uci -q get $peer.wan_access)" ]; then
+      uci set $peer.wan_access='1'
+      uci commit network
+      SRV_network=$(( $SRV_network + 1 ))
+    fi
+    if [ -z "$(uci -q get $peer.lan_access)" ]; then
+      uci set $peer.lan_access='1'
+      uci commit network
+      SRV_network=$(( $SRV_network + 1 ))
+    fi
+    if [ -z "$(uci -q get $peer.ssh_access)" ]; then
+      uci set $peer.ssh_access='1'
+      uci commit network
+      SRV_network=$(( $SRV_network + 1 ))
+    fi
+    if [ -z "$(uci -q get $peer.gui_access)" ]; then
+      uci set $peer.gui_access='1'
+      uci commit network
+      SRV_network=$(( $SRV_network + 1 ))
+    fi
+  done
+
   if [ -z "$(uci -q get firewall.wg0)" ]; then
-    uci set firewall.wg0="rule"
-    uci set firewall.wg0.name="Allow-WireGuard"
-    uci set firewall.wg0.src="wan"
-    uci set firewall.wg0.dest_port="51820"
-    uci set firewall.wg0.proto="udp"
-    uci set firewall.wg0.target="ACCEPT"
+    uci set firewall.wg0='rule'
+    uci set firewall.wg0.name='Allow-WireGuard'
+    uci set firewall.wg0.src='wan'
+    uci set firewall.wg0.dest_port='51820'
+    uci set firewall.wg0.proto='udp'
+    uci set firewall.wg0.target='ACCEPT'
     uci commit firewall
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+
+  if [ -z "$(uci -q get firewall.wg0_peers)" ]; then
+    uci set firewall.wg0_peers='include'
+    uci set firewall.wg0_peers.type='script'
+    uci set firewall.wg0_peers.path='/usr/share/tch-gui-unhide/wg0-peer-firewall.sh'
+    uci set firewall.wg0_peers.reload='1'
+    uci set firewall.wg0_peers.enabled='1'
     SRV_firewall=$(( $SRV_firewall + 1 ))
   fi
 
   if ! uci -q get $FW_LAN_ZONE.network | grep -qE "\bwg0\b"; then
-    uci add_list $FW_LAN_ZONE.network="wg0"
+    uci add_list $FW_LAN_ZONE.network='wg0'
     uci commit firewall
     SRV_firewall=$(( $SRV_firewall + 1 ))
   fi
 
-  sed \
-    -e '/ActiveEthernetNumberOfEntries/a\    numVPNClient = "rpc.gui.wireguard.server_active_peers",' \
-    -e '/local nWiFi/a\  local nVPN = tonumber(devices_data["numVPNClient"]) or 0' \
-    -e "/WireGuard/a\  html[#html+1] = '<span class=\"simple-desc\">'\
-  html[#html+1] = '<i class=\"icon-cloud status-icon\"></i>'\
-  html[#html+1] = format(N('<strong %1\$s>%2\$d WireGuard peer</strong> connected','<strong %1\$s>%2\$d WireGuard peers</strong> connected',nVPN),'class=\"modal-link\" data-toggle=\"modal\" data-remote=\"modals/wireguard-modal.lp\" data-id=\"wireguard-modal\"',nVPN)\
-  html[#html+1] = '</span>'\
-  " -i /www/lua/devicescard_helper.lua
+  if ! grep -q 'numVPNClient' /www/lua/devicescard_helper.lua; then
+    sed \
+      -e '/ActiveEthernetNumberOfEntries/a\    numVPNClient = "rpc.gui.wireguard.server_active_peers",' \
+      -e '/local nWiFi/a\  local nVPN = tonumber(devices_data["numVPNClient"]) or 0' \
+      -e "/WireGuard/a\  html[#html+1] = '<span class=\"simple-desc\">'\
+    html[#html+1] = '<i class=\"icon-cloud status-icon\"></i>'\
+    html[#html+1] = format(N('<strong %1\$s>%2\$d WireGuard peer</strong> connected','<strong %1\$s>%2\$d WireGuard peers</strong> connected',nVPN),'class=\"modal-link\" data-toggle=\"modal\" data-remote=\"modals/wireguard-modal.lp\" data-id=\"wireguard-modal\"',nVPN)\
+    html[#html+1] = '</span>'\
+    " -i /www/lua/devicescard_helper.lua
+  fi
 
   for f in /www/docroot/landingpage.lp /www/docroot/loginbasic.lp; do
-    sed -e '/^local proxy/a\local function preLoadWG()\
+    if ! grep -q "preLoadWG" $f; then
+      sed -e '/^local proxy/a\local function preLoadWG()\
   proxy.get("rpc.gui.wireguard.client_active_peers")\
 end\
 ngx.timer.at(0, preLoadWG)' -i $f
+    fi
   done
 else
   WG_INSTALLED=0
 
   if uci -q get $FW_LAN_ZONE.network | grep -qE "\bwg0\b"; then
     WG_INSTALLED=1
-    uci -q del_list $FW_LAN_ZONE.network="wg0"
+    uci -q del_list $FW_LAN_ZONE.network='wg0'
     uci commit firewall
     SRV_firewall=$(( $SRV_firewall + 1 ))
   fi
 
   if [ "$(uci -q get firewall.wg0)" = "rule" ]; then
     WG_INSTALLED=1
-    uci -q delete firewall.wg0=
+    uci -q delete firewall.wg0
+    uci commit firewall
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+
+  if [ "$(uci -q get firewall.wg0_peers)" = "include" ]; then
+    WG_INSTALLED=1
+    uci -q delete firewall.wg0_peers
     uci commit firewall
     SRV_firewall=$(( $SRV_firewall + 1 ))
   fi
@@ -2084,7 +2322,7 @@ else
   if [ "$(uci -q get network.wg0)" = "interface " ]; then
     WG_INSTALLED=1
     for WG_PEER in $(uci show network | grep "=wireguard_wg0\$" | cut -d= -f1); do
-        uci -q delete $WG_PEER
+      uci -q delete $WG_PEER
     done
     uci -q delete network.wg0
     uci commit network
@@ -2092,8 +2330,8 @@ else
   fi
 
   if [ $WG_INSTALLED -eq 0 ]; then
-    echo " SKIPPED - openwrt-wireguard-go not found"
+    echo " SKIPPED - WireGuard not found"
   else
-    echo " Removed wireguard support"
+    echo " Removed WireGuard support"
   fi
 fi
