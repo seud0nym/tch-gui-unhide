@@ -30,7 +30,7 @@ if session:hasAccess(modalPath) then
             </symbol>\
           </svg>\
         </div>\
-        <div class="wireguard-card-content">',html,'\
+        <div class="wireguard-card-content" style="position:absolute;z-index:1">',html,'\
         </div>\
       </div>\
     </div>\
