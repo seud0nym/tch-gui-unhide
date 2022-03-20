@@ -1,0 +1,15 @@
+
+local config_vendorextensions = "vendorextensions"
+
+-- uci.vendorextensions
+mapper("uci_1to1").registerConfigMap(config_vendorextensions)
+
+-- uci.vendorextensions.multiap_vendorextensions
+local vendorextensions_multiap_vendorextensions = {
+  config = config_vendorextensions,
+  section = "multiap_vendorextensions",
+  type = "global",
+  options = { "enable" }
+}
+
+mapper("uci_1to1").registerSimpleMap(vendorextensions_multiap_vendorextensions)

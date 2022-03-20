@@ -23,6 +23,7 @@ local mapParams = {
   agent_enabled = "uci.multiap.agent.enabled",
   agent_dhm = "uci.multiap.agent.default_hysteresis_margin",
   controller_enabled = "uci.multiap.controller.enabled",
+  vendorextensions_enabled = "uci.vendorextensions.multiap_vendorextensions.enable",
   cpc_mri = "uci.multiap.controller_policy_config.metrics_report_interval",
   cpc_amcutd = "uci.multiap.controller_policy_config.ap_metrics_channel_utilization_threshold_dbm",
   cpc_smrhm = "uci.multiap.controller_policy_config.sta_metrics_rssi_hysteresis_margin",
@@ -35,6 +36,7 @@ local mapValid = {
   agent_enabled = vB,
   agent_dhm = vPN,
   controller_enabled = vB,
+  vendorextensions_enabled = vB,
   cpc_mri = vPN,
   cpc_amcutd = vPN,
   cpc_smrhm = vPN,
@@ -146,6 +148,8 @@ ngx.print( ui_helper.createHeader(T"Wi-Fi Boosters",false,true,nil)); ngx.print(
       html[#html+1] = "<legend><small>"..T"Band Lock".."</small></legend>"
       html[#html+1] = ui_helper.createSwitch(T"Active","bandlock",content["bandlock"])
     end
+    html[#html+1] = "<legend><small>"..T"Vendor Extensions".."</small></legend>"
+    html[#html+1] = ui_helper.createSwitch(T"Enabled","vendorextensions_enabled",content["vendorextensions_enabled"])
     html[#html+1] = "</fieldset>"
     if ap_path then
       html[#html+1] = "<fieldset><legend>"..T"Wireless Backhaul".."</legend>"

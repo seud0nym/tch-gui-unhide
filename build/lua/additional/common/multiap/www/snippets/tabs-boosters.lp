@@ -5,7 +5,7 @@ local ipairs,string = ipairs,string
 local proxy = require("datamodel")
 
 local items = {
-  {"wireless-boosters-modal.lp",T"MultiAP Status"},
+  {"wireless-boosters-modal.lp",T"EasyMesh Status"},
 }
 
 local controller_state = proxy.get("uci.multiap.controller.enabled")
