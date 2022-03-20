@@ -29,7 +29,7 @@
 .traffichistory tr th:nth-child(1),.traffichistory tr td:nth-child(1){width:15%;}
 .traffichistory tr th:nth-child(2),.traffichistory tr td:nth-child(2){width:10%;}
 .traffichistory tr th:nth-child(3),.traffichistory tr th:nth-child(4),.traffichistory tr th:nth-child(5),.traffichistory tr td:nth-child(3),.traffichistory tr td:nth-child(4),.traffichistory tr td:nth-child(5){text-align:right;width:25%;}
-.wifi-band{color:#bec5cb;height:20px;}
+.wifi-band{height:20px;}
 .wifi-dBm{color:gray;font-size:xx-small;}
 .wifi-width{font-size:xx-small;}
 #broadband-card-content>span.simple-desc.modal-link{font-size:13px;}
