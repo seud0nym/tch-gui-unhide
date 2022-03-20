@@ -1,9 +1,16 @@
-2022.03.05 (Interim release)
+2022.03.20
 ==========
 * tch-gui-unhide: Theme change option (-T) threw lots of errors if GUI code had been minified (#76)
 * tch-gui-unhide: Basic view rows were unbalanced on left/right side (#77)
 * tch-gui-unhide: Made Basic view header more consistent and prettier (#77)
 * tch-gui-unhide: DNS card now not hidden when AdGuard Home installed so that Intercept daemon and DNS Hijacking can still be configured
+* tch-gui-unhide: Wi-Fi QR Codes not working on FW before 20.3.c
+* tch-gui-unhide: Show Wi-Fi channels on Wi-Fi card (#78)
+* tch-gui-unhide: Reverted incorrect change that did not reapply Intrusion Protection rules when firewall reloaded
+* tch-gui-unhide: Added ability to enable/disable Multi-AP Vendor Extensions
+* tch-gui-unhide-xtra.wireguard: Added switches to peer config to allow enabling/disabling LAN, WAN, SSH and admin GUI access
+* tch-gui-unhide-xtra.wireguard: Fixed WireGuard card icon positioning (appeared in front of text rather than behind)
+* de-telstra: Added new -I option to set LAN IPv4 address
 
 2022.03.01
 ==========
