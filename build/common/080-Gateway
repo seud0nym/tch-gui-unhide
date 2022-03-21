@@ -149,6 +149,12 @@ if [ "$DEBUG" = "V" ]; then
     -i /www/docroot/gateway.lp
 fi
 
+echo [$SCRIPT]: Remove Sign in button when using default user and default user is admin
+sed \
+  -e "/\"signin\"/i\if session:getusername() ~= \"admin\" then" \
+  -e "/\"signin\"/,/<\/a>/ s/'<\/a>'/&\nend/" \
+  -i /www/docroot/gateway.lp
+
 echo [$SCRIPT]: Fix uptime on basic Broadband tab
 sed -e 's/days > 1/days > 0/' -i /www/docroot/broadband.lp
 
