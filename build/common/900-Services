@@ -16,13 +16,10 @@ if [ "$THEME_ONLY" = n -a "$REBOOT" = n ]; then
   LOG_FILE=$(uci -q get system.all.path)
   logger "$LOG_MESG"
   /etc/init.d/lsyslogd reload
-  if [ $({ logread -l 10; tail -n 10 $LOG_FILE; } | grep -F "$LOG_MESG" | wc -l) -ne 2 ]; then
-    /etc/init.d/lsyslogd stop
-    /etc/init.d/log stop
-    rm -f /var/run/luasyslog.pid
-    pgrep -f luasyslog | xargs -r kill -9
-    /etc/init.d/log start
-    /etc/init.d/lsyslogd start
-  fi
+  RAM_CHK=$(logread | tail -n 10 | grep -oF "$LOG_MESG")
+  DSK_CHK=$(tail -n 10 $LOG_FILE | grep -oF "$LOG_MESG")
+  [ -z "$DSK_CHK" ] && { /etc/init.d/lsyslogd stop; rm -f /var/run/luasyslog.pid; pgrep -f luasyslog | xargs -r kill -9; }
+  [ -z "$DSK_CHK" -o -z "$RAM_CHK" ] && /etc/init.d/log restart
+  [ -z "$DSK_CHK" ] && /etc/init.d/lsyslogd start
 fi
 
