@@ -1194,6 +1194,14 @@ ngx.print('\
                 class = "span2"
               }
             }
+            local hijacked_label = {
+              group = {
+                class = "advanced"
+              },
+              span = {
+                style = "white-space:nowrap;"
+              }
+            }
             local switch_class_enable = {
               input = {
                 class = "monitor-changes",
@@ -1285,9 +1293,9 @@ ngx.print('\
                     ngx.print(ui_helper.createSimpleInputHidden("ntpServer",""))
                   end
                   if dns_int_ipv4_ok and not helpmsg["dns_v4_pri"] and not helpmsg["dns_v4_sec"] then
-                    ngx.print(ui_helper.createLabel(T"IPv4 DNS Server","Hijacking enabled",advanced))
+                    ngx.print(ui_helper.createLabel(T"IPv4 DNS Server<span class='icon-question-sign' title='IPv4 DNS Hijacking enabled'></span>",content["dns_v4_pri"],hijacked_label))
                     ngx.print(ui_helper.createSimpleInputHidden("dns_v4_pri",content["dns_v4_pri"]))
-                    ngx.print(ui_helper.createSimpleInputHidden("ipv4_dns_sec",content["dns_v4_sec"]))
+                    ngx.print(ui_helper.createSimpleInputHidden("ipv4_dns_sec",""))
                   else
                     ngx.print(ui_helper.createInputSelect(T"IPv4 Primary DNS","dns_v4_pri",dns_list[1],content["dns_v4_pri"],stdattributes,helpmsg["dns_v4_pri"]))
                     ngx.print(ui_helper.createInputSelect(T"IPv4 Secondary DNS","ipv4_dns_sec",dns_list[1],content["dns_v4_sec"],stdattributes,helpmsg["dns_v4_sec"]))
@@ -1300,9 +1308,9 @@ ngx.print('\
                 )
                 if cur_dhcp_intf == "lan" and not adguard then
                   if dns_int_ipv6_ok and not helpmsg["dns_v6_pri"] and not helpmsg["dns_v6_sec"]  then
-                    ngx.print(ui_helper.createLabel(T"IPv6 DNS Server","Hijacking enabled",advanced))
+                    ngx.print(ui_helper.createLabel(T"IPv6 DNS Server<span class='icon-question-sign' title='IPv6 DNS Hijacking enabled'></span>",content["dns_v6_pri"],hijacked_label))
                     ngx.print(ui_helper.createSimpleInputHidden("dns_v6_pri",content["dns_v6_pri"]))
-                    ngx.print(ui_helper.createSimpleInputHidden("dns_v6_sec",content["dns_v6_sec"]))
+                    ngx.print(ui_helper.createSimpleInputHidden("dns_v6_sec",""))
                   else
                     ngx.print(ui_helper.createInputSelect(T"IPv6 Primary DNS","dns_v6_pri",dns_list[2],content["dns_v6_pri"],stdattributes,helpmsg["dns_v4_pri"]))
                     ngx.print(ui_helper.createInputSelect(T"IPv6 Secondary DNS","dns_v6_sec",dns_list[2],content["dns_v6_sec"],stdattributes,helpmsg["dns_v6_sec"]))
