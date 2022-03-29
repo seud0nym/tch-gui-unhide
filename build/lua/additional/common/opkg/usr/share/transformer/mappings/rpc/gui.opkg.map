@@ -423,7 +423,7 @@ GUI_OPKG_.set = {
       local m,h,d = math.random(0,59),math.random(5),math.random(7)
       local crontab = io.open("/etc/crontabs/root","a")
       if crontab then
-        crontab:write(format("%s %s * * %s sh -c 'opkg update 2>&1 | logger -t rpc.gui.opkg -p user.info'\n",m,h,d))
+        crontab:write(format("%s %s * * %s opkg update 2>&1 | logger -t rpc.gui.opkg -p user.info\n",m,h,d))
         crontab:close()
         os.execute("/etc/init.d/cron restart")
       else
