@@ -1,0 +1,51 @@
+#!/bin/sh
+
+SCRIPT="$(basename $0)"
+
+usage() {
+cat <<EOH
+Checks that the logging RAM buffer and disk-based messages log are both 
+being written correctly.
+
+Usage: $0 [options]
+
+Options:
+ -C   Adds or removes the scheduled hourly cron job
+
+EOH
+exit
+}
+
+while getopts :C option; do
+ case "${option}" in
+  C)  if grep -q "$SCRIPT" /etc/crontabs/root; then
+        sed -e "/$SCRIPT/d" -i /etc/crontabs/root
+        echo "$SCRIPT: Scheduled log check has been removed."
+      else
+        echo "59 * * * * $(cd $(dirname $0); pwd)/$SCRIPT" >> /etc/crontabs/root
+        echo "$SCRIPT: Scheduled log check for 1 minute before the hour."
+      fi
+      /etc/init.d/cron reload
+      exit;;
+  *)  usage;;
+ esac
+done
+
+LOG_MESG="$(cat /dev/urandom | tr -dc A-Za-z0-9 | head -c32)"
+LOG_FILE=$(uci -q get system.all.path)
+
+# Log test message
+logger "log-check $LOG_MESG"
+
+# Flush the log to disk
+/etc/init.d/lsyslogd reload
+
+# Check that message is found in both the RAM buffer and the disk log
+RAM_CHK=$(logread | tail -n 10 | grep -oF "$LOG_MESG")
+DSK_CHK=$(tail -n 10 $LOG_FILE | grep -oF "$LOG_MESG")
+
+[ -z "$DSK_CHK" ] && { /etc/init.d/lsyslogd stop; rm -f /var/run/luasyslog.pid; pgrep -f luasyslog | xargs -r kill -9; }
+[ -z "$DSK_CHK" -o -z "$RAM_CHK" ] && /etc/init.d/log restart
+[ -z "$DSK_CHK" ] && /etc/init.d/lsyslogd start
+
+exit 0

@@ -169,8 +169,16 @@ Options:
 _NOTE_: **tch-gui-unhide releases starting with 2021.08.18 allow you to enable and configure DNS hijacking through a tab on the Firewall, and releases starting with 2022.01.01 support DNS hijacking on IPv6 using a transparent proxy.** 
 
 ## intercept-dns
-
 *The intercept-dns script has been renamed to [hijack-dns](#hijack-dns) to avoid confusion with the intercept daemon.*
+
+## log-check
+Checks that the logging RAM buffer and disk-based messages log are both being written correctly.
+```
+Usage: ./log-check [options]
+
+Options:
+ -C    Adds or removes the scheduled hourly cron job
+```
 
 ## mtd-backup
 Backs up the MTD partitions to an attached USB device or SSHFS attached filesystem. Only unchanged partitions are backed up after the first execution.
