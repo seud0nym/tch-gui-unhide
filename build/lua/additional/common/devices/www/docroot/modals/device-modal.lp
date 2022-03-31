@@ -281,16 +281,28 @@ local devices_filter = function(data)
   return true
 end
 
+local dumaOS = proxy.get("uci.dumaos.tr69.dumaos_enabled")
+if dumaOS and dumaOS[1].value ~= "1" then
+ devices_columns[#devices_columns+1] = { --[9]
+    header = T"Priority<span class='icon-question-sign' title='Prioritize outgoing traffic'></span>",
+    name = "priority",
+    param = "Priority",
+    type = "switch",
+    readonly = false,
+    attr = { input = { class="span3" } },
+  }
+end
+
 local devices_data,devices_helpmsg = post_helper.handleTableQuery(devices_columns,devices_options,devices_filter,nil,device_valid)
 if bwstats then
-  devices_columns[#devices_columns+1] = {--[9]
+  devices_columns[#devices_columns+1] = {
     header = "Downloaded",
     name = "Download",
     param = "Download",
     type = "text",
     readonly = true,
   }
-  -- devices_columns[#devices_columns+1] = {--[10]
+  -- devices_columns[#devices_columns+1] = {
   --   header = "<i class='icon-cloud-upload'></i>",
   --   name = "Upload",
   --   param = "Upload",
@@ -313,12 +325,13 @@ for k,v in pairs (devices_data) do
     v[7] = "-"
   end
   if bwstats then
+    local d = #devices_columns
     local mac = match(v[5],"^([%x:]+)")
     if mac and download[mac] then
-      devices_data[k][9] = common.bytes2string(download[mac])
+      devices_data[k][d] = common.bytes2string(download[mac])
       -- devices_data[k][10] = common.bytes2string(upload[mac])
     else
-      devices_data[k][9] = ""
+      devices_data[k][d] = ""
       -- devices_data[k][10] = ""
     end
   end
