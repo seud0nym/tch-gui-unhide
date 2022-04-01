@@ -1,3 +1,13 @@
+2022.04.01 (Pre-release)
+==========
+* tch-gui-unhide: Remove Sign in button when using default user and default user is admin
+* tch-gui-unhide: The router was incorrectly added as secondary IPv6 DNS server when IPv6 DNS Hijacking enabled and any change saved on Local Network screen
+* tch-gui-unhide: Improved logging system check
+* tch-gui-unhide: Removed unnecessary 'sh -c' around opkg update cron task
+* tch-gui-unhide: MultiAP GUI files no longer included in FW 17.2 script
+* tch-gui-unhide: Added outgoing traffic priority switch to Devices screen (FW 18.1.c and 20.3.c)
+* log-check: New script that can be run hourly to check that the logging RAM buffer and disk-based messages log are both being written correctly (This is mainly useful on FW 20.3.c, where I have found that the logread command can stop working and then not show recent messages)
+
 2022.03.20
 ==========
 * tch-gui-unhide: Theme change option (-T) threw lots of errors if GUI code had been minified (#76)
