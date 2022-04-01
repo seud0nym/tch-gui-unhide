@@ -48,10 +48,14 @@ local dns_servers = {
     {"156.154.71.1",T"Neustar (156.154.71.1)"},
     {"45.77.165.194",T"Fourth Estate (45.77.165.194)"},
     {"45.32.36.36",T"Fourth Estate (45.32.36.36)"},
-    {"185.228.168.9",T"CleanBrowsing (185.228.168.9)"},
-    {"185.228.169.9",T"CleanBrowsing (185.228.169.9)"},
     {"54.252.183.4",T"GetFlix (54.252.183.4)"},
     {"54.252.183.5",T"GetFlix (54.252.183.5)"},
+    {"185.228.168.168", T"CleanBrowsing Family (185.228.168.168)"},
+    {"185.228.169.168", T"CleanBrowsing Family (185.228.169.168)"},
+    {"185.228.168.10", T"CleanBrowsing Adult (185.228.168.10)"},
+    {"185.228.168.11", T"CleanBrowsing Adult (185.228.168.11)"},
+    {"185.228.168.9", T"CleanBrowsing Security (185.228.168.9)"},
+    {"185.228.169.9", T"CleanBrowsing Security (185.228.169.9)"},
   },
   { -- IPv6 DNS servers
     {"",T""},
@@ -75,8 +79,12 @@ local dns_servers = {
     {"2a01-3a0-53-53--",T"UncensoredDNS (2a01:3a0:53:53::)"},
     {"2610-a1-1018--1",T"Neustar (2610:a1:1018::1)"},
     {"2610-a1-1019--1",T"Neustar (2610:a1:1019::1)"},
-    {"2a0d-2a00-1--2",T"CleanBrowsing (2a0d:2a00:1::2)"},
-    {"2a0d-2a00-2--2",T"CleanBrowsing (2a0d:2a00:2::2)"},
+    {"2a0d-2a00-1--", T"CleanBrowsing Family (2a0d:2a00:1::)"},
+    {"2a0d-2a00-2--", T"CleanBrowsing Family (2a0d:2a00:2::)"},
+    {"2a0d-2a00-1--1", T"CleanBrowsing Adult (2a0d:2a00:1::1)"},
+    {"2a0d-2a00-2--1", T"CleanBrowsing Adult (2a0d:2a00:2::1)"},
+    {"2a0d-2a00-1--2", T"CleanBrowsing Security (2a0d:2a00:1::2)"},
+    {"2a0d-2a00-2--2", T"CleanBrowsing Security (2a0d:2a00:2::2)"},
   }
 }
 
