@@ -1,0 +1,35 @@
+check_pwr_setting() {
+  local section="$1"
+  local option="$2"
+  local text="$3"
+  if [ -z "$(uci -q get power.$section.$option)" ]; then
+    pwrctl show | grep "$text" | grep -q DISABLED
+    value=$?
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - power.$section.$option=$value"
+    uci set power.$section.$option="$value"
+    SRV_power=$(( $SRV_power + 1 ))
+  fi
+}
+
+echo [$SCRIPT]: Checking power saving settings...
+if [ -z "$(uci -q get power.cpu)" ];then
+  uci set power.cpu='cpu'
+fi
+
+if [ -z "$(uci -q get power.cpu.cpuspeed)" ]; then
+  case "$(pwrctl show | grep "CPU Speed Divisor" | tr -s " " | cut -d" " -f4)" in
+    1) uci set power.cpu.cpuspeed="1";;
+    2) uci set power.cpu.cpuspeed="2";;
+    4) uci set power.cpu.cpuspeed="4";;
+    5) uci set power.cpu.cpuspeed="8";;
+    *) uci set power.cpu.cpuspeed="256";;
+  esac
+  SRV_power=$(( $SRV_power + 1 ))
+fi
+check_pwr_setting "cpu" "wait" "CPU Wait"
+check_pwr_setting "ethernet" "ethapd" "Auto Power"
+check_pwr_setting "ethernet" "eee" "Energy Efficient Ethernet"
+check_pwr_setting "ethernet" "autogreeen" "AutoGreeen"
+check_pwr_setting "ethernet" "dgm" "Deep Green Mode"
+
+[ $SRV_power -gt 0 ] && uci commit power
