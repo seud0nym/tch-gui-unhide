@@ -61,7 +61,8 @@ Options:
       - `./mtd-backup -co0lvy`
 4. Download the firmware .rbi file to the USB stick.
 5. Upgrade the firmware and restore the current configuration:
-      - `./reset-to-factory-defaults-with-root --restore-config`
+      - `./reset-to-factory-defaults-with-root -f firmware.rbi --restore-config`  
+(Replace `firmware.rbi` with the name of your firmware file)
 6. The device will reboot *twice* and then you should be on the new firmware with your restored configuration.
 
 If there are any issues with your updated firmware and configuration, you can revert to the previous version with `./mtd-restore -fsr`.
