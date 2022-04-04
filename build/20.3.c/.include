@@ -4,6 +4,7 @@
 040-Configuration/18.1.c
 065-MultiAP/18.1.c
 066-QoS/18.1.c
+070-QoS/17.2
 080-Gateway/18.1.c
 085-LED/18.1.c
 091-Titles/18.1.c
