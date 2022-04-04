@@ -1,8 +1,21 @@
 var bbFuncID;
 var tpFuncID;
+function broadbandCardIcon(status){
+  switch(status){
+    case "up":
+      return "&#xf00c"; // Okay (Tick)
+    case "disabled":
+      return "&#xf05e"; // Ban circle
+    case "connecting":
+      return "&#xf110"; // Spinner
+    default:
+      return "&#xf071"; // Warning Sign
+  }
+}
 function updateBroadbandCard(){
   $.post("/ajax/broadband-status.lua",[tch.elementCSRFtoken()],function(data){
     $("#broadband-card-content").html(data["html"]);
+    $("#broadband-card .content").removeClass("mirror").attr("data-bg-text",broadbandCardIcon(data["status"]));
   },"json")
   .fail(function(response){
     if(response.status==403||response.status==404){clearInterval(bbFuncID);}

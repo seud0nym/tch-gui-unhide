@@ -7,10 +7,11 @@ local wan_data = {
 }
 content_helper.getExactContent(wan_data)
 
-local html = bbch.getBroadbandCardHTML(wan_data.wans_enable)
+local html,status = bbch.getBroadbandCardHTML(wan_data.wans_enable)
 
 local data = {
   html = table.concat(html,"\n"),
+  status = status,
 }
 
 local buffer = {}

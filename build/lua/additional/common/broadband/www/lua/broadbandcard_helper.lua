@@ -26,6 +26,7 @@ end
 
 function M.getBroadbandCardHTML(wansensing)
   local html = {}
+  local status = "down"
   if bridged.isBridgedMode() then
     local ifnames = {
       iface = "uci.network.interface.@lan.ifname",
@@ -78,7 +79,7 @@ function M.getBroadbandCardHTML(wansensing)
       dsl_linerate_up   = "sys.class.xdsl.@line0.UpstreamCurrRate",
       dsl_linerate_down = "sys.class.xdsl.@line0.DownstreamCurrRate",
       ethwan_status     = "sys.eth.port.@eth4.status",
-      dsl0_enabled      = "uci.xdsl.xdsl.@dsl0.enabled",
+      dsl0_enabled      = "sys.class.xdsl.@line0.Enable",
     }
     content_helper.getExactContent(wan_data)
 
@@ -134,20 +135,26 @@ function M.getBroadbandCardHTML(wansensing)
             rate_down = floor(rate_down / 10) / 100
             html[#html+1] = format('<p class="bbstats"><i class="icon-upload icon-small gray"></i> %.2f<small>Mbps</small> <i class="icon-download icon-small gray"></i> %.2f<small>Mbps</small></p>',rate_up,rate_down)
           end
+          status = "up"
         elseif wan_data["dsl_status"] == "NoSignal" then
           html[#html+1] = ui_helper.createSimpleLight("4","DSL disconnected")
+          status = "down"
         elseif wan_data["dsl0_enabled"] == "0" then
           html[#html+1] = ui_helper.createSimpleLight("0","DSL disabled")
+          status = "disabled"
         else
           html[#html+1] = ui_helper.createSimpleLight("2","DSL connecting")
+          status = "connecting"
         end
       end
       if not wired or (wan_ifname and find(wan_ifname,"eth")) then
         if wan_data["ethwan_status"] == "up" then
           up = true
           html[#html+1] = ui_helper.createSimpleLight("1","Ethernet connected")
+          status = "up"
         else
           html[#html+1] = ui_helper.createSimpleLight("4","Ethernet disconnected")
+          status = "down"
         end
       end
     end
@@ -174,8 +181,10 @@ function M.getBroadbandCardHTML(wansensing)
     end
     if mobiled_state["mob_session_state"] == "connected" then
       html[#html+1] = ui_helper.createSimpleLight("1","Mobile Internet connected")
+      status = "up"
     elseif mobile then
       html[#html+1] = ui_helper.createSimpleLight("4","Mobile Internet disconnected")
+      status = "down"
     end
     if rpc_ifname then
       html[#html+1] = format('<span class="simple-desc modal-link" data-toggle="modal" data-remote="/modals/broadband-usage-modal.lp" data-id="bb-usage-modal" style="padding-top:5px"><span class="icon-small status-icon">&udarr;</span>%s&ensp;<i class="icon-cloud-upload status-icon"></i> %s&ensp;<i class="icon-cloud-download status-icon"></i> %s</span>',
@@ -183,7 +192,7 @@ function M.getBroadbandCardHTML(wansensing)
     end
   end
 
-  return html
+  return html,status
 end
 
 return M
