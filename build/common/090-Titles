@@ -16,11 +16,17 @@ fi
 echo "[$SCRIPT]: Change 'Gateway' to '$VARIANT'"
 for f in /www/cards/001_gateway.lp /www/cards/003_internet.lp /www/docroot/modals/qos-bqos-modal.lp
 do
-  sed -e "s/\bGateway\b/$VARIANT/g" -i $f
+  if [ -f "$f" ]; then
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]:  - $f"
+    sed -e "s/\bGateway\b/$VARIANT/g" -i $f
+  fi
 done
 echo "[$SCRIPT]: Change 'Device' to '$VARIANT'"
 for f in /www/docroot/modals/ethernet-modal.lp /www/docroot/modals/firewall-dns_int-modal.lp
 do
-  sed -e "s/\bDevice\b/$VARIANT/g" -i $f
+  if [ -f "$f" ]; then
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]:  - $f"
+    sed -e "s/\bDevice\b/$VARIANT/g" -i $f
+  fi
 done
 
