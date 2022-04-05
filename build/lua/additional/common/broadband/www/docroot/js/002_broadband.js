@@ -3,13 +3,13 @@ var tpFuncID;
 function broadbandCardIcon(status){
   switch(status){
     case "up":
-      return "&#xf00c"; // Okay (Tick)
+      return "\uf00c"; // Okay (Tick)
     case "disabled":
-      return "&#xf05e"; // Ban circle
+      return "\uf05e"; // Ban circle
     case "connecting":
-      return "&#xf110"; // Spinner
+      return "\uf110"; // Spinner
     default:
-      return "&#xf071"; // Warning Sign
+      return "\uf071"; // Warning Sign
   }
 }
 function updateBroadbandCard(){
