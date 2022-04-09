@@ -1,0 +1,9 @@
+echo [$SCRIPT]: Update gateway card and status ajax with CPU temperature monitor
+sed \
+  -e 's|\(^local temp1_input = {\)|\1"/sys/power/bpcm/cpu_temp"|' \
+  -e 's|readfile(f,"number",floor) / 1000|match(readfile(f),"cpu_temp: ([%d%.]*)")|' \
+  -i /www/docroot/ajax/gateway-status.lua
+sed \
+  -e 's/Sensor Temperatures/CPU Temperature/' \
+  -e 's/00° 00°/00°/' \
+  -i /www/cards/001_gateway.lp

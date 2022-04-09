@@ -3,6 +3,7 @@
 -- Enable localization
 gettext.textdomain('webui-core')
 
+local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
 local untaint_mt = require("web.taint").untaint_mt
@@ -17,20 +18,27 @@ local getap = format("%s",getargs.ap or "ap0")
 local ifacepath = "uci.wireless.wifi-iface.@"..getiface
 local appath = "uci.wireless.wifi-ap.@"..getap
 
+if not proxy.getPN(appath..".") then
+  appath = ifacepath
+end
+
 local content = {
   ssid = ifacepath..".ssid",
   device = ifacepath..".device",
   secmode = appath..".security_mode",
-  wepkey = appath..".wep_key",
   wpakey = appath..".wpa_psk_key",
   public = appath..".public",
 }
+if ifacepath ~= appath then
+  content["wepkey"] = appath..".wep_key"
+end
 content_helper.getExactContent(content)
 
 local secmodes = setmetatable({
   ["none"] =  "nopass" ,
   ["wpa2-psk"] = "WPA",
   ["wpa-wpa2-psk"] = "WPA",
+  ["wpa2-wpa3-psk"] = "WPA",
   ["wpa2"] = "WPA",
   ["wpa-wpa2"] =  "WPA",
   ["wep"] =  "WEP",
@@ -40,6 +48,7 @@ local keypassphrases = setmetatable({
   ["none"] = "",
   ["wpa2-psk"] = content.wpakey,
   ["wpa-wpa2-psk"] = content.wpakey,
+  ["wpa2-wpa3-psk"] = content.wpakey,
   ["wep"] = content.wepkey,
 },untaint_mt)
 

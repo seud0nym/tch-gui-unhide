@@ -1,0 +1,5 @@
+echo [$SCRIPT]: Restore gateway.lp to previous generation layout
+sed \
+  -e 's/max-height:105px;position:absolute;top:-5px;/max-height:67.5px/' \
+  -e "/gettext.textdomain('webui-telstra')/,/');/d" \
+  -i /www/docroot/gateway.lp

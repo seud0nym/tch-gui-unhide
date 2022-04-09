@@ -24,7 +24,7 @@ if [ -f /www/docroot/landingpage.lp -a "$KEEPLP" = "n" ];then
     -i /www/docroot/css/responsive.css
   sed \
     -e "s,<title>');  ngx.print( T\"Login\" ); ngx.print('</title>,<title>$TITLE Login</title>," \
-    -e 's,<img src="/img/TELSTRA_LOGO.png" style="width:57px;height:65px;">,<img class="lp-logo" style="width:240px;margin-bottom:60px;">,' \
+    -e 's,<img src="/img/TELSTRA_LOGO.png"[^>]*>,<img class="lp-logo" style="width:240px;margin-bottom:60px;">,' \
     -e 's/Firmware Number/Firmware Version/' \
     -e 's/Modem Make Model/Model/' \
     -e 's/height:60%;min-height:400px;/height:30%;min-height:350px;width:100%;/' \
