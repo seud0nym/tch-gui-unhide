@@ -8,18 +8,6 @@ sed \
   -e '/T"DECT"/a    \    {"mmpbx-contacts-modal.lp", T"Phone Book"},' \
   -i /www/snippets/tabs-voice.lp
 
-echo [$SCRIPT]: Handle the Telephony card switch
-sed \
-  -e '/^local format/a \if ngx.var.request_method == "POST" then' \
-  -e '/^local format/a \  local mmpbx_enable = ngx.req.get_post_args().mmpbx_enable' \
-  -e '/^local format/a \  if mmpbx_enable then' \
-  -e '/^local format/a \    proxy.set("uci.mmpbx.mmpbx.@global.enabled", mmpbx_enable:untaint())' \
-  -e '/^local format/a \    proxy.apply()' \
-  -e '/^local format/a \    ngx.exit(ngx.HTTP_NO_CONTENT)' \
-  -e '/^local format/a \  end' \
-  -e '/^local format/a \end' \
-  -i /www/docroot/modals/mmpbx-info-modal.lp
-
 echo [$SCRIPT]: Display Telephony tabs even when mmpbx disabled
 sed \
  -e '/if mmpbx_state == "1" then/d' \

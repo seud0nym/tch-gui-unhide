@@ -8,7 +8,6 @@ function updateWirelessCard(){
   });
 }
 setTimeout(updateWirelessCard,0);
-$(".header input#set_wifi_radio_state").on("change",function(){$("#waiting").removeClass("hide")});
 $().ready(function(){
   ssidFuncID=setInterval(updateWirelessCard,19000);
   window.intervalIDs.push(ssidFuncID);

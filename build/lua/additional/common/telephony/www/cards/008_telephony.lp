@@ -44,13 +44,11 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
     emission_info = T"DECT Emission Mode disabled"
   end
 
-  local switchName = "mmpbx_enable"
-
   local html,disabled = tch.getTelephonyCardHTML(mmpbx_state)
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    '); ngx.print(ui_helper.createCardHeader(T"Telephony",modalPath,switchName,mmpbx_state)); ngx.print('\
+    '); ngx.print(ui_helper.createCardHeader(T"Telephony",modalPath)); ngx.print('\
     <div class="content">\
       <div id="telephony-card-content">\
       '); ngx.print(html); ngx.print('\
@@ -69,7 +67,6 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
   </div>\
 </div>\
 <script>\
-$(".header input#mmpbx_enable").on("change",function(){$("#waiting").addClass("do-not-show").removeClass("hide")});\
 '); if mmpbx_state == "1" then ngx.print('\
   var tFuncID;\
   function updateTelephonyCard(){\

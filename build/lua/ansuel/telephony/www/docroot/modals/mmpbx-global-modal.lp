@@ -13,15 +13,6 @@ local format = string.format
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
-if ngx.var.request_method == "POST" then
-  local mmpbx_enable = ngx.req.get_post_args().mmpbx_enable
-  if mmpbx_enable then
-    proxy.set("uci.mmpbx.mmpbx.@global.enabled",mmpbx_enable:untaint())
-    proxy.apply()
-    ngx.exit(ngx.HTTP_NO_CONTENT)
-  end
-end
-
 local uniqueKey = post_helper.getRandomKey()
 local vB = post_helper.validateBoolean
 
