@@ -1,14 +1,3 @@
-echo [$SCRIPT]: Update gateway card and status ajax with hardware temperature monitors
-elements=""
-for m in $(find /sys/devices/ -name temp1_input)
-do
-  elements="$elements\"$m\","
-done
-for f in /www/cards/001_gateway.lp /www/docroot/ajax/gateway-status.lua
-do
-  sed -e "s|\(^local temp1_input = {\)|\1$elements|" -i $f
-done
-
 SERIAL=$(uci get env.var.serial)
 echo [$SCRIPT]: Change config export filename from config.bin to $VARIANT-$SERIAL-$VERSION@YYMMDD.bin
 sed \
@@ -142,12 +131,23 @@ sed \
 if [ "$DEBUG" = "V" ]; then
   echo [$SCRIPT]: Log card loading times
   sed \
-    -e '/local cards/i\        local gettime = require("socket").gettime' \
-    -e '/local cards/i\        local log = require("tch.logger").new("gateway.lp",7)' \
+    -e '/gettext.textdomain/a\local gettime = require("socket").gettime' \
+    -e '/gettext.textdomain/a\local log = require("tch.logger").new("gateway.lp",7)' \
+    -e '/gettext.textdomain/a\log:notice("Invoked!")' \
+    -e '/gettext.textdomain/a\local debug_started = gettime()' \
+    -e '/local cards/i\        log:notice("Elapsed time before loading cards: %.4f sec",gettime()-debug_started)' \
+    -e '/local cards/i\        debug_started = gettime()' \
+    -e '/local cards/a\        log:notice("Loading card info took %.4f sec",gettime()-debug_started)' \
     -e '/lp.include(v)/i\          local started = gettime()' \
     -e '/lp.include(v)/a\          log:notice("Card %s loaded in %.4f sec",v,gettime()-started)' \
     -i /www/docroot/gateway.lp
 fi
+
+echo [$SCRIPT]: Remove unnecessary variable retrievals
+sed \
+  -e '/uidefault\.nsplink/,/uidefault\.alwaysadvanced/d' \
+  -e "s/'); *ngx.print( *cui.advanced *); *ngx.print('/1/" \
+  -i /www/docroot/gateway.lp
 
 echo [$SCRIPT]: Remove Sign in button when using default user and default user is admin
 sed \
