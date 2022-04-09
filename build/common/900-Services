@@ -10,16 +10,5 @@ if [ "$THEME_ONLY" = n -a "$REBOOT" = n ]; then
 
   echo [$SCRIPT]: Waiting for transformer service to finish loading...
   transformer-cli get rpc.gui.UnhideVersion > /dev/null
-
-  echo [$SCRIPT]: Checking log service...
-  LOG_MESG="tch-gui-unhide Release $RELEASE installed"
-  LOG_FILE=$(uci -q get system.all.path)
-  logger "$LOG_MESG"
-  /etc/init.d/lsyslogd reload
-  RAM_CHK=$(logread | tail -n 10 | grep -oF "$LOG_MESG")
-  DSK_CHK=$(tail -n 10 $LOG_FILE | grep -oF "$LOG_MESG")
-  [ -z "$DSK_CHK" ] && { /etc/init.d/lsyslogd stop; rm -f /var/run/luasyslog.pid; pgrep -f luasyslog | xargs -r kill -9; }
-  [ -z "$DSK_CHK" -o -z "$RAM_CHK" ] && /etc/init.d/log restart
-  [ -z "$DSK_CHK" ] && /etc/init.d/lsyslogd start
 fi
 
