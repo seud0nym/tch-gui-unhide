@@ -1,6 +1,8 @@
-local format,match = string.format,string.match
+local find,format,match = string.find,string.format,string.match
+local popen = io.popen
+local ping_cmd = "ping -q -c 1 -w 1 8.8.8.8"
 local curl_cmd = "curl -qskL"
-local release_version_cmd = format("%s -r0-9 -m5 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/VERSION.txt",curl_cmd)
+local release_version_cmd = format("%s -r0-9 -m2 --connect-timeout 1 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/VERSION.txt",curl_cmd)
 local current_version = "" -- Set by build script
 local current_version_date = match(current_version,"(%d%d%d%d%.%d%d%.%d%d)@.*")
 local ignored_release_version_file = "/etc/tch-gui-unhide.ignored_release"
@@ -27,15 +29,22 @@ local function getReleaseVersionDate()
     return release_version.date
   end
 
-  local curl = io.popen(release_version_cmd,"r")
-  if curl then
-    local v = match(curl:read() or "","^%d%d%d%d%.%d%d%.%d%d$")
-    curl:close()
-    if v then
-      release_version.date = v
-      release_version.lastRetrieved = time
+  local ping = popen(ping_cmd,"r")
+  if ping then
+    if find(ping:read("*a") or "", "1 packets transmitted, 1 packets received") then
+      local curl = popen(release_version_cmd,"r")
+      if curl then
+        local v = match(curl:read() or "","^%d%d%d%d%.%d%d%.%d%d$")
+        curl:close()
+        if v then
+          release_version.date = v
+        end
+      end
     end
+    ping:close()
   end
+
+  release_version.lastRetrieved = time
 
   return release_version.date
 end
@@ -44,13 +53,13 @@ local function download(path,filename)
   os.execute(format("logger -t tch-gui-unhide -p user.debug Downloading %s",path))
   local cmd = format("%s -m5 -o /dev/null -w '%%{http_code}' %s",curl_cmd,path)
   local response_code
-  local curl,errmsg = io.popen(cmd,"r")
+  local curl,errmsg = popen(cmd,"r")
   if curl then
     response_code = curl:read("*n")
     curl:close()
     if response_code == 200 then
       cmd = format("%s -o/tmp/%s -w '%%{http_code}' %s",curl_cmd,filename,path)
-      curl,errmsg = io.popen(cmd,"r")
+      curl,errmsg = popen(cmd,"r")
       if curl then
         response_code = curl:read("*n")
         curl:close()
@@ -132,7 +141,7 @@ GUI_.set = {
     end
   end,
   UpdateNow = function(_,_,value,_)
-    local pgrep = io.popen(format("pgrep -fla 'tch-gui-unhide-%s -W -y'",value),"r")
+    local pgrep = popen(format("pgrep -fla 'tch-gui-unhide-%s -W -y'",value),"r")
     local procs = pgrep:read("*a")
     pgrep:close()
     if procs ~= "" then
