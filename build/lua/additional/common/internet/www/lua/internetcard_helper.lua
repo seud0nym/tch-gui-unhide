@@ -1,8 +1,19 @@
 local content_helper = require("web.content_helper")
-local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local untaint_mt = require("web.taint").untaint_mt
 local find,format,gsub = string.find,string.format,string.gsub
+
+
+local items = {
+  ["OK"] = {"1", T"Fixed Broadband Service online",},
+  ["OK_LTE"] = {"1", T"Mobile Broadband Service online"},
+  ["OFF"] = {"2", T"Broadband Service disabled",},
+  ["E_NO_PRE"] = {"4", T"Broadband Service down", "<ol><li>Check that your Telephone or Ethernet cable is firmly connected to the correct port, the Filter on the Telephone socket or the Ethernet socket on the wall.</li><li>Check that your username is correct and re-enter your password <a aria-label='Page redirection for Internet Access Modal' href=/gateway.lp?openmodal=internet-modal.lp>here</a>.</li><li>Restart.</li></ol>",},
+  ["E_PPP_DSL"] = {"4", T"Broadband Service down", "<ol><li>Check that your Telephone cable is firmly connected to the correct port or the Filter on the telephone socket on the wall.</li><li>Check that your username is correct and re-enter your password <a aria-label='Page redirection for Internet Access Modal' href=/gateway.lp?openmodal=internet-modal.lp>here</a>.</li><li>Restart.</li></ol>",},
+  ["E_PPP_ETH"] = {"4", T"Broadband Service down", "<ol><li>Check that your Ethernet cable is firmly connected to the correct port or the Ethernet socket on the wall.</li><li>Check that your username is correct and re-enter your password <a aria-label='Page redirection for Internet Access Modal' href=/gateway.lp?openmodal=internet-modal.lp>here</a>.</li><li>Restart.</li></ol>",},
+  ["E_DHCP_DSL"] = {"4", T"Broadband Service down", "<ol><li>Check that your Telephone cable is firmly connected to the correct port or the Filter on the telephone socket on the wall.</li><li>Restart.</li></ol>",},
+  ["E_DHCP_ETH"] = {"4", T"Broadband Service down", "<ol><li>Check that your Ethernet cable is firmly connected to the correct port or the Ethernet socket on the wall.</li><li>Restart.</li></ol>",},
+}
 
 local M = {}
 
@@ -15,6 +26,7 @@ function M.getInternetCardHTML(mode_active)
   local mobile_ip
   local mobile_dns
   if mobile_status.wwan_up == "1" then
+    msg_key = "OK_LTE"
     local content_mobile = {
       ipaddr = "rpc.network.interface.@wwan.ipaddr",
       ip6addr = "rpc.network.interface.@wwan.ip6addr",
@@ -38,16 +50,28 @@ function M.getInternetCardHTML(mode_active)
     end
   end
 
+  local ws_content = {
+    primarywanmode = "uci.wansensing.global.primarywanmode",
+    l2 = "uci.wansensing.global.l2type",
+  }
+  content_helper.getExactContent(ws_content)
+
+  local L2 = "PRE"
+  if ws_content.l2 == "ADSL" or ws_content.l2 == "VDSL" then
+    L2 = "DSL"
+  elseif ws_content.l2 == "ETH" then
+    L2 = "ETH"
+  end
+
   local mobile = false
-  local primarywanmode = proxy.get("uci.wansensing.global.primarywanmode")
-  if primarywanmode and primarywanmode[1].value == "MOBILE" then
+  if ws_content.primarywanmode == "MOBILE" then
     mobile = true
   end
 
-  local html = {}
+  local html = {""}
 
   local function addIPs(ipaddr,ip6addr,ipv6uniqueglobaladdr,ipv6uniquelocaladdr,ip6prefix)
-    html[#html+1] = '<p class="subinfos" style="margin-bottom:3px;">'
+    html[#html+1] = '<p class="subinfos" style="margin-bottom:1px;">'
     html[#html+1] = format(T'WAN IP: <strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>',ipaddr)
     if ip6addr and ip6addr ~= "" then
       local addr = ip6addr
@@ -62,7 +86,7 @@ function M.getInternetCardHTML(mode_active)
     end
     html[#html+1] = '</p>'
     if ip6prefix and ip6prefix ~= "" then
-      html[#html+1] = '<p class="subinfos" style="margin-bottom:3px;">'
+      html[#html+1] = '<p class="subinfos" style="margin-bottom:1px;">'
       html[#html+1] = format(T'Prefix: <strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>',ip6prefix)
       html[#html+1] = '</p>'
     end
@@ -114,12 +138,14 @@ function M.getInternetCardHTML(mode_active)
 
       html[#html+1] = ui_helper.createSimpleLight(nil,dhcp_state_map[dhcp_state],{ light = { class = dhcp_light_map[dhcp_state] } })
       if dhcp_state == "connected" then
+        msg_key = "OK"
         addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+      else
+        msg_key = "E_DHCP_"..L2
       end
     -- PPOE
     elseif mode_active == "pppoe" then
       local content_uci = {
-        wan_proto = "uci.network.interface.@wan.proto",
         wan_auto = "uci.network.interface.@wan.auto",
       }
       content_helper.getExactContent(content_uci)
@@ -161,6 +187,7 @@ function M.getInternetCardHTML(mode_active)
         ppp_status = format("%s",content_rpc.wan_ppp_state) -- untaint
         if ppp_status == "" or ppp_status == "authenticating" then
           ppp_status = "connecting"
+          msg_key = "E_PPP_"..L2
         end
         if not (content_rpc.wan_ppp_error == "" or content_rpc.wan_ppp_error == "USER_REQUEST") then
           if ppp_state_map[content_rpc.wan_ppp_error] then
@@ -168,13 +195,16 @@ function M.getInternetCardHTML(mode_active)
           else
             ppp_status = "error"
           end
+          msg_key = "E_PPP_"..L2
         end
       else
         ppp_status = "disabled"
+        msg_key = "OFF"
       end
       html[#html+1] = ui_helper.createSimpleLight(nil,ppp_state_map[ppp_status],{ light = { class = ppp_light_map[ppp_status] } })
       if ppp_status == "connected" then
         addIPs(content_rpc["ipaddr"],content_rpc["ip6addr"],content_rpc["ipv6uniqueglobaladdr"],content_rpc["ipv6uniquelocaladdr"],content_rpc["wan6_prefix"])
+        msg_key = "OK"
       end
     -- STATIC
     elseif mode_active == "static" then
@@ -199,29 +229,36 @@ function M.getInternetCardHTML(mode_active)
           if wan_data["dsl_status"] == "Up" then
             html[#html+1] = ui_helper.createSimpleLight("1","Static IP connected")
             addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+            msg_key = "OK"
           elseif wan_data["dsl_status"] == "NoSignal" then
             html[#html+1] = ui_helper.createSimpleLight("4","Static IP disconnected")
             addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+            msg_key = "E_NO_PRE"
           elseif wan_data["dsl0_enabled"] == "0" then
             html[#html+1] = ui_helper.createSimpleLight("0","Static IP disabled")
             addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+            msg_key = "OFF"
           else
             html[#html+1] = ui_helper.createSimpleLight("2","Trying to connect with Static IP...")
             addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+            msg_key = "E_NO_PRE"
           end
         end
         if wan_data["wan_ifname"] and find(wan_data["wan_ifname"],"eth") then
           if wan_data["ethwan_status"] == "up" then
             html[#html+1] = ui_helper.createSimpleLight("1","Static connected")
             addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+            msg_key = "OK"
           else
             html[#html+1] = ui_helper.createSimpleLight("4","Static IP disconnected")
             addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+            msg_key = "E_NO_PRE"
           end
         end
       else
         html[#html+1] = ui_helper.createSimpleLight("0","Static IP disabled")
         addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+        msg_key = "OFF"
       end
     end
   end
@@ -229,6 +266,15 @@ function M.getInternetCardHTML(mode_active)
   if mobile_ip then
     html[#html+1] = ui_helper.createSimpleLight(mobile_status["wwan_up"],mobile_status["state"])
     addIPs(mobile_ip,nil,mobile_dns,nil,nil)
+    if mobile_status["wwan_up"] == "1" or mobile_status["wwan_up"] == "2" then
+      msg_key = "OK_LTE"
+    end
+  end
+
+  local item = items[msg_key] or items["E_NO_PRE"]
+  html[1] = ui_helper.createSimpleLight(item[1],item[2])
+  if item[3] then
+    html[#html+1] = format('<div>%s</div>',item[3])
   end
 
   return html
