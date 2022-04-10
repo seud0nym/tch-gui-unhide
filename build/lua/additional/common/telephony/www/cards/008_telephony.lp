@@ -38,10 +38,12 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
   local emission_state = format("%s",emission_content.emission_state)
 
   local emission_info
-  if emission_state and emission_state == "1" then
-    emission_info = T"DECT Emission Mode enabled"
-  else
-    emission_info = T"DECT Emission Mode disabled"
+  if emission_state then
+    if emission_state == "1" then
+      emission_info = T"DECT Emission Mode enabled"
+    elseif emission_state == "0" then
+      emission_info = T"DECT Emission Mode disabled"
+    end
   end
 
   local html,disabled = tch.getTelephonyCardHTML(mmpbx_state)
@@ -59,9 +61,11 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
           ngx.print(ui_helper.createSimpleLight("0",format(N('%d disabled profile','%d disabled profiles',disabled),disabled)))
           ngx.print('</span>')
         end
-        ngx.print('<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-dect-modal.lp" data-id="mmpbx-dect-modal">')
-        ngx.print(ui_helper.createSimpleLight(emission_state,emission_info))
-        ngx.print('</span>')
+        if emission_info then
+          ngx.print('<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-dect-modal.lp" data-id="mmpbx-dect-modal">')
+          ngx.print(ui_helper.createSimpleLight(emission_state,emission_info))
+          ngx.print('</span>')
+        end
         ngx.print('\
     </div>\
   </div>\
