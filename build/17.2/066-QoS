@@ -11,10 +11,9 @@ sed \
   -e '/-- NOT 17\.2 START/,/-- NOT 17\.2 END/d' \
   -i /www/docroot/modals/qos-classify-modal.lp
 
-echo [$SCRIPT]: Remove QoS Upload Shapers tab \(Not supported on 17.2 FW\)
-if [ -f /www/docroot/modals/qos-swshaper-modal.lp ]; then
-  rm /www/docroot/modals/qos-swshaper-modal.lp
-fi
+echo [$SCRIPT]: Remove QoS Upload Shapers tab and AJAX endpoint \(Not supported on 17.2 FW\)
+[ -f /www/docroot/modals/qos-swshaper-modal.lp ] && rm /www/docroot/modals/qos-swshaper-modal.lp
+[ -f /www/docroot/ajax/qos-swshaper-status.lua ] && rm /www/docroot/ajax/qos-swshaper-status.lua
 sed \
   -e '/qos-swshaper-modal.lp/d' \
   -i /www/snippets/tabs-qos.lp
