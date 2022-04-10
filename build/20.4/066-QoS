@@ -1,0 +1,23 @@
+echo [$SCRIPT]: Fix QoS card for 20.4 FW
+sed \
+  -e '/-- NOT 17\.2 START/,/-- NOT 17\.2 END/d' \
+  -e '/-- NOT 17\.2[ \t]*$/d' \
+  -e 's/class="modal-link" data-toggle="modal" data-remote="modals\/qos-device-modal.lp" data-id="qos-modal"//' \
+  -i /www/cards/008_qos.lp
+
+echo [$SCRIPT]: Remove QoS modals and AJAX endpoint not supported on 20.4 FW
+[ -f /www/docroot/modals/qos-device-modal.lp ] && rm /www/docroot/modals/qos-device-modal.lp
+[ -f /www/docroot/modals/qos-label-modal.lp ] && rm /www/docroot/modals/qos-label-modal.lp
+[ -f /www/docroot/modals/qos-swshaper-modal.lp ] && rm /www/docroot/modals/qos-swshaper-modal.lp
+[ -f /www/docroot/ajax/qos-swshaper-status.lua ] && rm /www/docroot/ajax/qos-swshaper-status.lua
+
+echo [$SCRIPT]: Remove QoS tabs from previous versions
+sed \
+  -e '/qos-device-modal.lp/d' \
+  -e '/qos-label-modal.lp/d' \
+  -e '/qos-classify-modal.lp/d' \
+  -e '/qos-reclassify-modal.lp/d' \
+  -e '/qos-queue-modal.lp/d' \
+  -e '/qos-swshaper-modal.lp/d' \
+  -i /www/snippets/tabs-qos.lp
+
