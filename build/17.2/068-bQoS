@@ -1,0 +1,14 @@
+if [ ! -e /etc/config/bqos ]; then
+  echo [$SCRIPT]: Creating MAC bandwidth shaping config
+  # Based on https://github.com/skyformat99/eqos/blob/master/files/eqos.config
+  cat <<BQOS > /etc/config/bqos
+config bqos 'global'
+        option enabled '0'
+        option download '50'
+        option upload '20'
+        option r2q '35'
+BQOS
+  chmod 644 /etc/config/bqos
+  /etc/init.d/bqos enable
+fi
+
