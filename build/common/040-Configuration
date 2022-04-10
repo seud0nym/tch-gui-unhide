@@ -86,12 +86,3 @@ for f in /etc/passwd /etc/shadow /etc/config/dropbear /etc/dropbear/* /etc/rc.d/
   fi
 done
 
-IPERF_ENABLED=$(uci -q get iperf.iperf.enable)
-if [ -n "$IPERF_ENABLED" ]; then
-  echo [$SCRIPT]: Fixing iperf enabled configuration
-  [ -z "$(uci -q get iperf.iperf.enabled)" ] && uci -q set iperf.iperf.enabled="$IPERF_ENABLED"
-  uci -q delete iperf.iperf.enable
-  uci -q commit iperf
-  SRV_iperf=$(( $SRV_iperf + 1 ))
-fi
-
