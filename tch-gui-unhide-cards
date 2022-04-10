@@ -113,6 +113,7 @@ apply_defaults() {
       Devices.lp)           SEQ="006";;
       diagnostics.lp)       SEQ="009";;
       DNS.lp)               SEQ="004";;
+      Easymesh.lp)          SEQ="005";;
       eco.lp)               SEQ="020";;
       firewall.lp)          SEQ="008";;
       fon.lp)               SEQ="010";;
@@ -136,7 +137,7 @@ apply_defaults() {
       wanservices.lp)       SEQ="007";;
       WANUp.lp)             SEQ="000";;
       WireGuard.lp)         SEQ="004";;
-      wireless_boosters.lp) SEQ="004";;
+      wireless_boosters.lp) SEQ="005";;
       wireless.lp)          SEQ="004";;
       xdsl.lp)              SEQ="093";;
       *)                    SEQ=$(basename $FILE | cut -c1-3);;
@@ -205,9 +206,10 @@ apply_suggested() {
       WireGuard.lp)         SEQ="004";;
       lte.lp)               SEQ="004";;
       nfc.lp)               SEQ="004";;
-      fon.lp)               SEQ="005";;
-      wireless.lp)          SEQ="006";;
-      wireless_boosters.lp) SEQ="007";;
+      wireless.lp)          SEQ="004";;
+      Easymesh.lp)          SEQ="005";;
+      wireless_boosters.lp) SEQ="005";;
+      fon.lp)               SEQ="007";;
       LAN.lp)               SEQ="008";;
       Devices.lp)           SEQ="009";;
       adblock.lp)           SEQ="010";;
