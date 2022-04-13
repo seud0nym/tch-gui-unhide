@@ -18,7 +18,7 @@ local getap = format("%s",getargs.ap or "ap0")
 local ifacepath = "uci.wireless.wifi-iface.@"..getiface
 local appath = "uci.wireless.wifi-ap.@"..getap
 
-if not proxy.getPN(appath..".") then
+if not proxy.get(appath..".security_mode") then
   appath = ifacepath
 end
 
