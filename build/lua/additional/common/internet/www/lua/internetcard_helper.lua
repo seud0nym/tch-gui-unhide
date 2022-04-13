@@ -23,6 +23,7 @@ function M.getInternetCardHTML(mode_active)
   }
   content_helper.getExactContent(mobile_status)
 
+  local msg_key = "E_NO_PRE"
   local mobile_ip
   local mobile_dns
   if mobile_status.wwan_up == "1" then
