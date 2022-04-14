@@ -295,22 +295,25 @@ function M.getTodwifi()
 	local wifi_list = {}
 
 	for _,v in ipairs(proxy.getPN("rpc.wireless.ap.",true)) do
-		local radio = match(v.path,"rpc%.wireless%.ap%.@([^%.]+)%.")
+		local ap = match(v.path,"rpc%.wireless%.ap%.@([^%.]+)%.")
 
-		local ssid = proxy.get("rpc.wireless.ap.@"..radio..".ssid")
-		ssid = ssid and ssid[1].value or nil
+		local iface = proxy.get("rpc.wireless.ap.@"..ap..".ssid")
+		iface = iface and iface[1].value or ""
 
-		if ssid then
-			local freq = proxy.get("rpc.wireless.ssid.@"..ssid..".radio")
-			if freq and freq[1].value then
-				freq = match(freq[1].value,"radio_5G") and "5GHz" or "2.4GHz"
-			end
-			local name = proxy.get("rpc.wireless.ssid.@"..ssid..".ssid")
-			name = name and name[1].value
+		if iface then
+      local backhaul = proxy.get("uci.wireless.wifi-iface.@"..iface..".backhaul")
+      if backhaul and backhaul[1].value ~= "1" then
+        local freq = proxy.get("rpc.wireless.ssid.@"..iface..".radio")
+        if freq and freq[1].value then
+          freq = match(freq[1].value,"radio_5G") and "5GHz" or "2.4GHz"
+        end
+        local ssid = proxy.get("rpc.wireless.ssid.@"..iface..".ssid")
+        ssid = ssid and ssid[1].value
 
-			wifi_list[#wifi_list+1] = { radio ,name.." ("..freq..")" }
-		end
-	end
+        wifi_list[#wifi_list+1] = { ap ,ssid.." ("..freq..")" }
+      end
+    end
+  end
 
 	return wifi_list
   end
