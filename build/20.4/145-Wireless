@@ -1,4 +1,0 @@
-echo [$SCRIPT]: Wi-Fi Channel Width is now Bandwidth in 20.4
-sed \
-  -e 's/channel_width/bandwidth/' \
-  -i /www/lua/ssid_helper.lua
