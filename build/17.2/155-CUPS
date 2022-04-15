@@ -1,0 +1,14 @@
+echo [$SCRIPT]: Add CUPS urls to Printer Sharing
+sed \
+  -e '/uci.network.interface.@lan.ipaddr/a\  cups_printers = "rpc.gui.cups.printers",' \
+  -e '/createSwitch/a\ html[#html+1] = "<\/fieldset>"' \
+  -e 's/To connect: /Connect using SAMBA Share:<br>\&nbsp;\&nbsp;\&nbsp;\&nbsp;/' \
+  -e 's/Samba is disabled/Connect using SAMBA Share:<br>\&nbsp;\&nbsp;\&nbsp;\&nbsp;SAMBA Disabled/' \
+  -e 's/\\ or \\/\\<br>\&nbsp;\&nbsp;\&nbsp;\&nbsp;\\/' \
+  -e '/if content_samba.samba_enabled == /i\
+        local addrWithIP = format("://%s:631/printers/%s",content_samba.localdevIP,content_samba.cups_printers)\
+        local addrWithName = format("://%s:631/printers/%s",content_samba.samba_name,content_samba.cups_printers)\
+        html[#html+1] = format(T"<div class=\\"simple-desc\\">Connect using CUPS:<br>&nbsp;&nbsp;&nbsp;&nbsp;<a target=\\"_blank\\" href=\\"http%s\\">http%s</a><br>&nbsp;&nbsp;&nbsp;&nbsp;<a target=\\"_blank\\" href=\\"http%s\\">http%s</a></div>\",addrWithIP,addrWithIP,addrWithName,addrWithName)\
+        html[#html+1] = format(T"<div class=\\"simple-desc\\">Connect using IPP:<br>&nbsp;&nbsp;&nbsp;&nbsp;ipp%s<br>&nbsp;&nbsp;&nbsp;&nbsp;ipp%s</div>\",addrWithIP,addrWithName)'\
+  -i /www/docroot/modals/printersharing-modal.lp
+
