@@ -7,7 +7,6 @@ local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
-local qosdevice_helper = require("qosdevice_helper")
 
 local find,format,match,sub = string.find,string.format,string.match,string.sub
 ---@diagnostic disable-next-line: undefined-field
@@ -16,10 +15,20 @@ local untaint = string.untaint
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
-local gVIES = post_helper.getValidateInEnumSelect
 local vB = post_helper.validateBoolean
 
-local ifs,ssid = qosdevice_helper.getNetworkDevices()
+local mapParam = {
+  qos_enabled = "rpc.gui.qos.qos_enabled",
+}
+
+local mapValid = {
+  qos_enabled = vB,
+}
+
+local content,helpmsg = post_helper.handleQuery(mapParam,mapValid)
+
+-- NOT 20.4 START
+local ifs,ssid = require("qosdevice_helper").getNetworkDevices()
 table.sort(ifs)
 
 local options_if = {}
@@ -37,16 +46,6 @@ for k,v in pairs(ifs) do
     end
   end
 end
-
-local mapParam = {
-  qos_enabled = "rpc.gui.qos.qos_enabled",
-}
-
-local mapValid = {
-  qos_enabled = vB,
-}
-
-local content,helpmsg = post_helper.handleQuery(mapParam,mapValid)
 
 local options_group = {
   { "TO_LAN",T"LAN" },
@@ -131,7 +130,7 @@ end
 
 local device_valid = {
   device = validateDeviceName,
-  classgroup = gVIES(options_group),
+  classgroup = post_helper.getValidateInEnumSelect(options_group),
   enable = vB
 }
 
@@ -148,7 +147,6 @@ if ngx.req.get_method() == "POST" then
     end
   end
 end
-
 
 local device_data,device_helpMsg = post_helper.handleTableQuery(device_columns,device_options,nil,nil,device_valid)
 local script = {}
@@ -187,30 +185,36 @@ for _,v in pairs(device_data) do
   v[3] = v[3]..(ifs[device] or "")
   script[#script+1] = format("$(\"#device option[value='%s']\").remove();",device)
 end
+-- NOT 20.4 END
 
-ngx.print( ui_helper.createHeader(T"QoS",false) ); ngx.print('\
+ngx.print(ui_helper.createHeader(T"QoS",false),'\
 <div class="modal-body">\
 '); lp.include("tabs-qos.lp") ngx.print('\
   <form class="form-horizontal" method="post" action="modals/qos-device-modal.lp">\
-  ');  ngx.print(ui_helper.createMessages(message_helper.popMessages())); ngx.print('\
+  ',ui_helper.createMessages(message_helper.popMessages()),'\
     <fieldset>\
-      <legend>'); ngx.print(T"Egress QoS Control"); ngx.print('</legend>\
-      ')
-      ngx.print(ui_helper.createSwitch(T"Enabled","qos_enabled",content["qos_enabled"],nil,helpmsg["qos_enabled"]))
+      <legend>Egress QoS Control</legend>\
+      ',ui_helper.createSwitch(T"Enabled","qos_enabled",content["qos_enabled"],nil,helpmsg["qos_enabled"]))
+-- NOT 20.4 START
     if content["qos_enabled"] == "1" then
       ngx.print('\
     </fieldset>\
     <fieldset>\
-      <legend>'); ngx.print(T"QoS Interface Devices"); ngx.print('</legend>\
-      ')
-      ngx.print(ui_helper.createTable(device_columns,device_data,device_options,nil,device_helpMsg))
+      <legend>QoS Interface Devices</legend>\
+      ',ui_helper.createTable(device_columns,device_data,device_options,nil,device_helpMsg))
     end
-      ngx.print('\
+-- NOT 20.4 END
+    ngx.print('\
     </fieldset>\
   </form>\
 </div>\
+')
+-- NOT 20.4 START
+ngx.print('\
 <script>\
-');  ngx.print(script); ngx.print('\
+',script,'\
 $("#device option[value=\'lo\']").remove();\
 </script>\
-');  ngx.print( ui_helper.createFooter() );
+');
+-- NOT 20.4 END
+ngx.print(ui_helper.createFooter());

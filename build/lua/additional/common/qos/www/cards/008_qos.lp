@@ -57,9 +57,7 @@ ngx.print('\
       if dataQoS.qos_enabled == "1" then
         ngx.print('\
           <p id="shaper_info_content" class="subinfos">\
-          ')
-          ngx.print(format("<strong %1$s>0 Shapers</strong>",shape_link).." enabled on "..format("<strong %1$s>0 interfaces</strong>",shape_link))
-          ngx.print('\
+          ',format("<strong %1$s>0 Shapers</strong> enabled",shape_link),'\
           </p>\
           <script>\
           $().ready(function(){\
