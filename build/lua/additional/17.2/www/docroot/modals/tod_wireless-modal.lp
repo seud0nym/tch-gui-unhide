@@ -338,6 +338,24 @@ local function getApSelected(index)
 end
 
 local tod_data,tod_index = content_helper.loadTableData(tod_options.basepath,tod_columns)
+local newlist_index = {}
+local dnd_val = 0
+for  i , v in ipairs(action_list) do
+  local param_index = v["paramindex"]:match("action(.+)")
+  dnd_val = v["paramindex"]:match("dnd(.+)") and dnd_val+1 or dnd_val
+  if param_index then
+    if v["timers.@1.value"] == "" then
+      newlist_index[#newlist_index + 1] = i-dnd_val
+    end
+  end
+end
+
+--Section to remove the TOD rule displaying in GUI which doesn't have timer section in config.
+
+for i = #newlist_index , 1 , -1 do
+  table.remove(tod_index, newlist_index[i])
+  table.remove(tod_data, newlist_index[i])
+end
 
 local tablesessionindexes = tod_options.tableid..".allowedindexes"
 session:store(tablesessionindexes,tod_index)
