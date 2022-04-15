@@ -1,0 +1,6 @@
+echo [$SCRIPT]: Fix Telephony Services tab
+sed \
+  -e 's/post_helper.variantHasAccess(variantHelper, *"showAdvanced", *role)/true/' \
+  -e '/if not table_created then/a\if not serviceNames[k] then serviceNames[k] = T(k) end' \
+  -i /www/docroot/modals/mmpbx-service-modal.lp
+
