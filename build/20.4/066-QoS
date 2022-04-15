@@ -8,10 +8,8 @@ sed \
 echo [$SCRIPT]: Remove QoS modals and AJAX endpoint not supported on 20.4 FW
 [ -f /www/docroot/modals/qos-device-modal.lp ] && rm /www/docroot/modals/qos-device-modal.lp
 [ -f /www/docroot/modals/qos-label-modal.lp ] && rm /www/docroot/modals/qos-label-modal.lp
-[ -f /www/docroot/modals/qos-swshaper-modal.lp ] && rm /www/docroot/modals/qos-swshaper-modal.lp
-[ -f /www/docroot/ajax/qos-swshaper-status.lua ] && rm /www/docroot/ajax/qos-swshaper-status.lua
 
-echo [$SCRIPT]: Remove QoS tabs from previous versions
+echo [$SCRIPT]: Remove QoS tabs not supported on 20.4 FW
 sed \
   -e '/qos-device-modal.lp/d' \
   -e '/qos-label-modal.lp/d' \

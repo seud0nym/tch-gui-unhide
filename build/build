@@ -10,8 +10,7 @@ ORANGE='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-while getopts :v:D option
-do
+while getopts :v:D option; do
   case $option in
     v)  echo $OPTARG | grep -q -E '^[0-9][0-9][0-9][0-9]\.[0-1][0-9]\.[0-3][0-9]$'
         if [ $? -eq 1 ]; then
@@ -35,8 +34,7 @@ DIR=$(cd $(dirname $0); pwd)
 cd "$DIR"
 
 cleanup() {
-  for f in $1 $2 $3 $4 $5 $6 $7 $8 $9
-  do
+  for f in $1 $2 $3 $4 $5 $6 $7 $8 $9; do
     [ -n "$DEBUG" ] && echo " - Deleting $f"
     rm -rf $f
   done
@@ -44,10 +42,8 @@ cleanup() {
 
 echo "${GREEN}Fixing line endings...${NC}"
 DOS=$(find . ../extras -type f | xargs file | grep CRLF | cut -d: -f1 | xargs)
-if [ -n "$DOS" ]
-then
-  for f in $DOS
-  do
+if [ -n "$DOS" ]; then
+  for f in $DOS; do
     [ -n "$DEBUG" ] && echo $f
     dos2unix $f
   done
@@ -72,12 +68,8 @@ echo "echo [\$SCRIPT]: Deploy theme files" > /tmp/themes.b64
 echo "echo '$(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -cf - -C themes . | bzip2 --best | base64)' | base64 -d | bzcat | tar -xf - -C /" >> /tmp/themes.b64
 echo "" >> /tmp/themes.b64
 
-for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1)
-do
-  if [ -n "$1" -a "$1" != "$MAJOR" ]
-  then
-    continue
-  fi
+for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
+  [ -n "$1" -a "$1" != "$MAJOR" ] && continue
 
   [ -n "$DEBUG" ] && echo Cleaning up..
   cleanup /tmp/tch-gui-unhide/$MAJOR/*
@@ -85,8 +77,7 @@ do
   echo "${GREEN}Combining source files into single tree for $MAJOR...${NC}"
   mkdir -p /tmp/tch-gui-unhide/$MAJOR
   SOURCE=055-Additional
-  for d in $(echo | cat common/$SOURCE - $MAJOR/$SOURCE 2>/dev/null | sort -u)
-  do
+  for d in $(echo | cat common/$SOURCE - $MAJOR/$SOURCE 2>/dev/null | sort -u); do
     if [ -d lua/ansuel/$d ]; then
       [ -n "$DEBUG" ] && echo Copying lua/ansuel/$d to /tmp/tch-gui-unhide/$MAJOR/
       tar --exclude README.md -cf - -C lua/ansuel/$d/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
@@ -101,11 +92,18 @@ do
     tar --exclude README.md --exclude .include -cf - -C lua/additional/$MAJOR/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
   fi
   if [ -e lua/additional/$MAJOR/.include ]; then
-    for f in $(cat lua/additional/$MAJOR/.include | grep -v '^#')
-    do
+    for f in $(cat lua/additional/$MAJOR/.include | grep -v '^#'); do
       p="$(echo $f | tr : ' ')"
       [ -n "$DEBUG" ] && echo Copying $p to /tmp/tch-gui-unhide/$MAJOR/
       tar --exclude README.md --transform='s/^\.\.\/[^\/]*//' -cf - -C $p | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
+    done
+  fi
+  if [ -e lua/additional/$MAJOR/.exclude ]; then
+    for f in $(cat lua/additional/$MAJOR/.exclude | grep -v '^#'); do
+      if [ -e "/tmp/tch-gui-unhide/$MAJOR/$f" ]; then
+        [ -n "$DEBUG" ] && echo Deleting $f from /tmp/tch-gui-unhide/$MAJOR/
+        rm "/tmp/tch-gui-unhide/$MAJOR/$f"
+      fi
     done
   fi
   tar --exclude COPYRIGHT --exclude COPYRIGHT_Lua51 -cf - -C lua/minifier/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
