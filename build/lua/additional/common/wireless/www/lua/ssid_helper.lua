@@ -8,6 +8,15 @@ local untaint = string.untaint
 
 local M = {}
 
+function M.isMultiAPEnabled()
+  local multiap_state = {
+    agent = "uci.multiap.agent.enabled",
+    controller = "uci.multiap.controller.enabled",
+  }
+  content_helper.getExactContent(multiap_state)
+  return multiap_state.controller == "1" and multiap_state.agent == "1"
+end
+
 function M.getWiFiCardHTML()
   local radios = {}
   local bs_lan = "disabled"
@@ -137,10 +146,7 @@ function M.getWiFiCardHTML()
   end
 
   if bs_lan == "disabled" then
-    local multiap_agent = proxy.get("uci.multiap.agent.enabled")
-    local multiap_controller = proxy.get("uci.multiap.controller.enabled")
-    local multiap_enabled = multiap_agent and multiap_controller and multiap_agent[1].value == "1" and multiap_controller[1].value == "1"
-    if multiap_enabled then
+    if M.isMultiAPEnabled() then
       local multiap_cred_path = "uci.multiap.controller_credentials."
       local multiap_cred_data = content_helper.convertResultToObject(multiap_cred_path.."@.",proxy.get(multiap_cred_path))
       local multiap_cred = {}

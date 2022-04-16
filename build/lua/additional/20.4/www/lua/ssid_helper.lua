@@ -8,16 +8,22 @@ local untaint = string.untaint
 
 local M = {}
 
-function M.getWiFiCardHTML()
-  local multiap_enabled = false
+function M.isMultiAPEnabled()
   local multiap_state = {
-    agent = "uci.wireless.map-agent.@agent.state",
+--    agent = "uci.wireless.map-agent.@agent.state",
     controller = "uci.mesh_broker.meshapp.@mesh_common.controller_enabled",
     meshbrokerState = "uci.mesh_broker.global.@mesh_broker.enable"
   }
   content_helper.getExactContent(multiap_state)
-  multiap_enabled = multiap_state.controller == "1" and multiap_state.meshbrokerState == "1"
+--  local multiap_enabled = multiap_state.agent == "1" and multiap_state.controller == "1" and multiap_state.meshbrokerState == "1"
+--  if multiap_state.agent == "0" and multiap_state.meshbrokerState == "1" and multiap_state.controller == "1" then
+--    multiap_enabled = true
+--  end
+  return multiap_state.controller == "1" and multiap_state.meshbrokerState == "1"
+end
 
+function M.getWiFiCardHTML()
+  local multiap_enabled = M.isMultiAPEnabled()
   local radios = {}
   for _,v in ipairs(proxy.getPN("rpc.wireless.radio.", true)) do
     local radio = match(v.path, "rpc%.wireless%.radio%.@([^%.]+)%.")
@@ -100,6 +106,7 @@ function M.getWiFiCardHTML()
       local radio,ssid,ishidden,isguest,state,sortby,wps_state,iface
       if multiap_enabled then
         radio,ssid,ishidden,isguest,state,sortby,wps_state = fetch_by_cred(paramindex.value)
+        iface = proxy.get(paramindex.path:gsub("%.cred%.",".intf.").."value")[1].value
       else
         radio,ssid,ishidden,isguest,state,sortby,wps_state,iface = fetch_by_intf(paramindex.value)
       end

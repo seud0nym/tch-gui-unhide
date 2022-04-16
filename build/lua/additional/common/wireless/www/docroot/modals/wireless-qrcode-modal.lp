@@ -17,20 +17,36 @@ local getiface = format("%s",getargs.iface or "wl0")
 local getap = format("%s",getargs.ap or "ap0")
 local ifacepath = "uci.wireless.wifi-iface.@"..getiface
 local appath = "uci.wireless.wifi-ap.@"..getap
+local multiap_enabled = false
 
 if not proxy.get(appath..".security_mode") then
   appath = ifacepath
+  multiap_enabled = require("ssid_helper").isMultiAPEnabled()
 end
 
 local content = {
   ssid = ifacepath..".ssid",
-  device = ifacepath..".device",
   secmode = appath..".security_mode",
   wpakey = appath..".wpa_psk_key",
   public = appath..".public",
 }
 if ifacepath ~= appath then
   content["wepkey"] = appath..".wep_key"
+elseif multiap_enabled then
+  for _,network in ipairs(proxy.getPN("uci.web.network.",true)) do
+    for _,intf in ipairs(proxy.get(network.path.."intf.")) do
+      if intf.value == getiface then
+        local cred = untaint(proxy.get(intf.path:gsub("%.intf%.",".cred.").."value")[1].value)
+        local path = "uci.mesh_broker.controller_credentials.@"..cred
+        content = {
+          ssid = path..".ssid",
+          secmode = path..".security_mode",
+          wpakey = path..".wpa_psk_key",
+          public = appath..".public",
+        }
+      end
+    end
+  end
 end
 content_helper.getExactContent(content)
 
@@ -121,7 +137,7 @@ $(function(){\
       busy_msg.removeClass("hide");\
       busy_msg[0].scrollIntoView();\
       $(".modal-body").scrollLeft(0);\
-      tch.loadModal(\'modals/wireless-modal.lp?radio='); ngx.print(content.device); ngx.print('&iface='); ngx.print(getiface); ngx.print('\',\'\',function() {\
+      tch.loadModal(\'modals/wireless-modal.lp?iface='); ngx.print(getiface); ngx.print('\',\'\',function() {\
         $(".modal").modal();\
       });\
     });\
