@@ -1,0 +1,26 @@
+if [ -f /etc/init.d/cwmpd ]
+then
+  echo [$SCRIPT]: Improving CWMP card
+  sed \
+    -e 's/switchName, content[^)]*)/nil, nil)/' \
+    -e 's/ id *=[^"]*"[^"]*"//g' \
+    -e '/local switchName/d' \
+    -e '/acs_url/d' \
+    -e '/local url/,/end/d' \
+    -e '/periodicinform_interval/a\    cwmp_user = "uci.cwmpd.cwmpd_config.acs_user",\
+    cwmp_last_inform = "uci.cwmpd.cwmpd_config.last_periodic_inform",\
+    cwmp_next_inform = "uci.cwmpd.cwmpd_config.periodicinform_time",' \
+    -e '/local state/i\  local last = (content.cwmp_last_inform == "" or content.cwmp_last_inform == "0") and "Never" or os.date("%F %T",tonumber(content.cwmp_last_inform:untaint()))\
+  local next = (content.cwmp_next_inform == "" or content.cwmp_next_inform == "0") and "Not Scheduled" or os.date("%F %T",tonumber(content.cwmp_next_inform:untaint()))' \
+    -e 's|Periodic:|Last Inform: <strong>%s</strong><br>Next Inform: <strong>%s</strong><br>Periodic Inform Interval:|' \
+    -e 's|</strong>", *content|</strong>",last,next,content|' \
+    -e 's/\(ACS URL\)\(:[^,]*,\)\( *url\)/ACS User\2 content.cwmp_user/' \
+    -i /www/cards/090_cwmpconf.lp
+else
+  echo [$SCRIPT]: CWMP not found - Removing from GUI
+  [ -e /www/cards/090_cwmpconf.lp ] && rm /www/cards/090_cwmpconf.lp
+  [ -e /www/docroot/modals/cwmpconf-modal.lp ] && rm /www/docroot/modals/cwmpconf-modal.lp
+  uci -q delete web.cwmpconfmodal
+  uci -q del_list web.ruleset_main.rules=cwmpconfmodal
+  uci -q delete web.card_cwmpconf
+fi

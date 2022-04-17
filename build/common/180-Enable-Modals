@@ -1,16 +1,3 @@
-if [ -f /etc/init.d/cwmpd ]
-then
-  echo [$SCRIPT]: CWMP found - Leaving in GUI and removing switch from card
-  sed -e 's/switchName, content.*,/nil, nil,/' -i /www/cards/090_cwmpconf.lp
-else
-  echo [$SCRIPT]: CWMP not found - Removing from GUI
-  [ -e /www/cards/090_cwmpconf.lp ] && rm /www/cards/090_cwmpconf.lp
-  [ -e /www/docroot/modals/cwmpconf-modal.lp ] && rm /www/docroot/modals/cwmpconf-modal.lp
-  uci -q delete web.cwmpconfmodal
-  uci -q del_list web.ruleset_main.rules=cwmpconfmodal
-  uci -q delete web.card_cwmpconf
-fi
-
 if [ $(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | wc -l) -eq 0 ]
 then
   echo [$SCRIPT]: Telstra Air and Fon SSIDs not found - Removing from GUI
