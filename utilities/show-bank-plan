@@ -15,63 +15,86 @@ exit
 
 QUIET=N
 
-while getopts :q option
-do
+while getopts :q option; do
   case "${option}" in
     q) QUIET=Y;;
     *) usage;;
   esac
 done
 
+GREEN='\033[1;32m'
+ORANGE='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
 OPTIMAL=0
-for f in $(find /proc/banktable -type f | sort)
-do
-  CONTENT=$(cat $f)
-  [ $QUIET = N ] && printf "%-30s : %s " "$f" "$CONTENT"
-  if [ "$f" = "/proc/banktable/active" ]
-  then
-    if [ "$CONTENT" = "bank_1" ]
-    then
-      OPTIMAL=$(( $OPTIMAL + 1 ))
-      [ $QUIET = N ] && echo " OK"
-    else
-      [ $QUIET = N ] && echo " !! [Should be bank_1]"
-    fi
-  elif [ "$f" = "/proc/banktable/booted" ]
-  then
-    if [ "$CONTENT" = "bank_2" ]
-    then
-      OPTIMAL=$(( $OPTIMAL + 1 ))
-      [ $QUIET = N ] && echo " OK"
-    else
-      [ $QUIET = N ] && echo " !! [Should be bank_2]"
-    fi
+
+test_optimal() {
+  local actual="$1"
+  local expected="$2"
+  if [ "$actual" = "$expected" ]; then
+    OPTIMAL=$(( $OPTIMAL + 1 ))
+    [ $QUIET = N ] && echo -e "${GREEN} OK${NC}"
+  else
+    [ $QUIET = N ] && echo -e "${RED} !! [Should be ${expected}]${NC}"
+  fi
+}
+
+handle_content() {
+  local config="$1"
+  local content="$2"
+  [ $QUIET = N ] && printf " -> ${ORANGE}%-16s${NC} : %s " "$config" "$content"
+  if [ "$config" = "active" ]; then
+    test_optimal "$content" bank_1
+  elif [ "$config" = "booted" ]; then
+    test_optimal "$content" bank_2
   else
     [ $QUIET = N ] && echo
   fi
-done
+}
+
+if [ -d /proc/banktable ]; then
+  BANKTABLE=Y
+  for f in $(find /proc/banktable -type f | sort); do
+    handle_content "$(basename $f)" "$(cat $f)"
+  done
+else
+  BANKTABLE=N
+  for f in active:partition:active activeversion:tchversion:active booted:partition:booted bootedversion:version:booted inactive:partition:passive notbooted:partition:notbooted notbootedversion:version:notbooted passiveversion:tchversion:passive; do
+    set -- $(echo $f | tr ':' ' ')
+    CONTENT=$(bootmgr $2 $3 2>/dev/null | grep -v rd_metadata)
+    [ "$CONTENT" = "1" -o "$CONTENT" = "2" ] && CONTENT="bank_$CONTENT"
+    [ "$1" = activeversion -a -z "$CONTENT" ] && CONTENT=$(uci get env.var.friendly_sw_version_activebank)
+    [ "$1" = passiveversion -a -z "$CONTENT" ] && CONTENT=$(uci get env.var.friendly_sw_version_passivebank)
+    handle_content "$1" "$CONTENT"
+  done
+fi
+
 [ $QUIET = N ] && echo
-if [ $OPTIMAL -eq 2 ]
-then
-  [ $QUIET = N ] && echo "Bank Plan is OPTIMAL"
+if [ $OPTIMAL -eq 2 ]; then
+  [ $QUIET = N ] && echo -e " == Bank Plan is ${GREEN}OPTIMAL${NC} ==\n"
   exit 0
 else
   if [ $QUIET = N ]; then
-    echo "Bank Plan is NOT optimal!! Run the following command:"
-    echo
-    echo "  ./set-optimal-bank-plan"
-    echo
-    echo "or manually follow the instructions at:"
-    echo "https://hack-technicolor.readthedocs.io/en/stable/Hacking/PostRoot/#bank-planning"
-    echo
-    echo "NOTE: If you are unable to set an optimal bank plan, you may need to do a complete"
-    echo "      reset of the device using the following command:"
-    echo
-    echo "       mtd -r erase rootfs_data"
-    echo
-    echo "      The device will reboot, and you WILL lose root, but you will be able to set"
-    echo "      the optimal bank plan after re-acquiring root."
-    echo
+    echo -e " == Bank Plan is ${RED}NOT OPTIMAL${NC} ==\n"
+    if [ $BANKTABLE = Y ]; then
+      echo
+      echo "Run the following command:"
+      echo
+      echo -e "${ORANGE}  ./set-optimal-bank-plan${NC}"
+      echo
+      echo "or manually follow the instructions at:"
+      echo "https://hack-technicolor.readthedocs.io/en/stable/Hacking/PostRoot/#bank-planning"
+      echo
+      echo "NOTE: If you are unable to set an optimal bank plan, you may need to do a complete"
+      echo "      reset of the device using the following command:"
+      echo
+      echo "       mtd -r erase rootfs_data"
+      echo
+      echo "      The device will reboot, and you WILL lose root, but you will be able to set"
+      echo "      the optimal bank plan after re-acquiring root."
+      echo
+    fi
   fi
   exit 1
 fi

@@ -301,22 +301,22 @@ Parameters:
 ```
 
 ## show-bank-plan
-A pretty version of `find /proc/banktable -type f -print -exec cat {} ';'`, with a final analysis to show whether the bank plan is optimal, or not.
+A pretty version of `find /proc/banktable -type f -print -exec cat {} ';'` (on firmware up to 20.3.c) or the output from `bootmgr` on firmware 20.4, with a final analysis to show whether the bank plan is optimal, or not.
 ```
 Usage: ./show-bank-plan [-q]
 ```
 Example output:
 ```
-/proc/banktable/active         : bank_1  OK
-/proc/banktable/activeversion  : Unknown
-/proc/banktable/booted         : bank_2  OK
-/proc/banktable/bootedoid      : 5ed62a9e7b9c275f18e900f4
-/proc/banktable/inactive       : bank_2
-/proc/banktable/notbooted      : bank_1
-/proc/banktable/notbootedoid   : Unknown
-/proc/banktable/passiveversion : 18.1.c.0514-2881009-20200602123158-44c5de58631202876d970bdcc184a6c2dc8ef375
+ -> active           : bank_1  OK
+ -> activeversion    : Unknown
+ -> booted           : bank_2  OK
+ -> bootedoid        : 62306870a05c1444ac3737f6
+ -> inactive         : bank_2
+ -> notbooted        : bank_1
+ -> notbootedoid     : Unknown
+ -> passiveversion   : 20.3.c.0432-3241006-20220315112032-f4cc8d43fdb9e1fe7bf3bba5aa8caddbc8cb4014
 
-Bank Plan is OPTIMAL
+ == Bank Plan is OPTIMAL ==
 ```
 
 The script returns 0 if the bank plan is optimal, and 1 if it is not.
