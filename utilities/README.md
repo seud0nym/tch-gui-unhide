@@ -288,12 +288,16 @@ Usage: ./set-optimal-bank-plan
 ```
 
 ## set-web-admin-password
-Allows you to set or reset the web admin password. Specify the new password as the first parameter.
+Allows you to set or remove the web admin password.
 ```
-Usage: ./set-web-admin-password newpassword
+Usage: ./set-web-admin-password [-d|<newpassword>]
 
 Parameters:
- newpassword   the new admin password for the GUI. (Required)
+ -d              Enables the default user so that no
+                  password is required for the GUI.
+ <newpassword>   the new admin password for the GUI. 
+                  (Required if -d is not specified, 
+                  ignored when -d is specified.)
 ```
 
 ## show-bank-plan
