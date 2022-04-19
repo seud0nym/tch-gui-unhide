@@ -68,14 +68,24 @@ cat <<EOM
                     When specifying the -r option, it must be the ONLY parameter specifed.
  -y               Bypass confirmation prompt (answers 'y')
  -V               Show the release number of this script, the current installed release, and the latest available release on GitHub
-  echo
+
 NOTE #1: Theme (-t) does not need to be re-specified when re-running the script: current state will be 'remembered'
          between executions (unless you execute with the -r option, which will remove all state information)
 NOTE #2: Use tch-gui-unhide-cards to set card order and visibility
 
 EOM
+
+if [ -n "$1" ]; then
+  local index=$(( $1 - 1 ))
+  [ "$WRAPPER" = "y" ] && index=$(( $index - 1 ))
+  echo -e "\033[0;33mERROR! Parameter $index is an unknown option!\033[0m"; 
+  echo
+fi
+
 exit
 }
+
+[ "/$1/" = "/-?/" -o "/$1/" = "/--help/" -o \( "/$1/" = "/-W/" -a \( "/$2/" = "/-?/" -o "/$2/" = "/--help/" \) \) ] && usage
 
 while getopts :a:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
  case "${option}" in
@@ -85,9 +95,9 @@ while getopts :a:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
         no-service-restart) RESTART_SERVICES=n;;
         reboot) REBOOT=y;;
         restore-base*) RESTORE_BASE="${OPTARG#restore-base=}"; [ -n "$RESTORE_BASE" -a -d "$RESTORE_BASE/www" ] || { echo "ERROR: Could not find www directory (--$OPTARG)"; exit 2; };;
-        *) usage;;
+        *) usage $OPTIND;;
       esac;;
-   a) if [ "${OPTARG}" -eq 4 -o "${OPTARG}" -eq 5 ]; then ACROSS=$OPTARG; else echo "ERROR: Cards across must be either 4 or 5"; exit 2; fi;;
+   a) if [ "${OPTARG}" = "4" -o "${OPTARG}" = "5" ]; then ACROSS=$OPTARG; else echo "ERROR: Cards across must be either 4 or 5"; exit 2; fi;;
    c) case "$(echo ${OPTARG} | sed 's/\(.\)\(.*\)/\1/')" in
         b) COLOR=blue;;
         g) COLOR=green;;
@@ -189,7 +199,7 @@ while getopts :a:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
       exit;;
    W) WRAPPER=y;;
    X) UPDATE_XTRAS=y;;
-   ?) echo -e "[$SCRIPT]: \033[0;33mERROR: Unknown option '-$OPTARG' specified!\033[0m"; usage;;
+   *) usage $OPTIND;;
  esac
 done
 
