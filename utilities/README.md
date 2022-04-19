@@ -79,13 +79,14 @@ Options:
  -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
  -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
  -i u|y|n              Intercept Daemon:        u=unchanged y=Enable n=Disable
+ -l u|y|n            * LED logging:             u=unchanged y=Enable n=Disable 
  -m u|a|b|c|v|y|n    * MultiAP (EasyMesh):      u=unchanged a=Enable Agent
                                                             b=Enable BackHaul SSID
                                                             c=Enable Controller 
                                                             v=Enable Vendor Extensions
                                                             y=same as -ma -mb -mc -mv
                                                             n=Disable
- -p u|y|n|d          ! Power Saving:            u=unchanged y=Enable n=Disable d=Default
+ -p u|y|n|d            Power Saving:            u=unchanged y=Enable n=Disable d=Default
  -q u|y|n            * NFC:                     u=unchanged y=Enable n=Disable
  -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
  -s u|b|d|n            WAN Supervision:         u=unchanged b=BFD d=DNS n=Disable
@@ -95,8 +96,9 @@ Options:
                          (on non-Guest and non-Backhaul SSIDs)
  -F u|y|n              RTFD root protection:    u=unchanged y=Enable n=Disable
                          NOTE: tch-gui-unhide will ALWAYS enable RTFD protection
- -A                    Equivalent to: -hd -dg -an -cn -fn -in -rn -sd -un -wn -Fy
- -S                    Equivalent to: -hs -dg -an -cn -fn -in -rn -sd -un -wn -Fy
+ -I n.n.n.n            Set the LAN IPv4 address to n.n.n.n
+ -A                    Equivalent to: -hd -dg -an -cn -fn -ln -in -rn -sd -un -wn -Fy
+ -S                    Equivalent to: -hs -dg -an -cn -fn -ln -in -rn -sd -un -wn -Fy
  -M                    Minimum memory mode: Equivalent to:
                            -an -cn -fn -in -rn -tn -en -un -mn -gn -qn -Fy
                          PLUS stops and disables the associated services
@@ -104,6 +106,7 @@ Options:
  -R                    Reset to device defaults: Equivalent to:
                          -hmymodem -dmodem -na -ay -cy -fy -iy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn -sb
  -o                    Configures opkg
+ -O 17|18|19           Overrides the default opkg repository with the specified version
  -U                    Download the latest version of de-telstra from GitHub
  -y                    Bypass the confirmation prompt (answers 'y')
  --save-defaults       Saves the command line options as defaults for future executions
