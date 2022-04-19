@@ -138,10 +138,15 @@ if [ $SAVE_DEFAULTS = y ]; then
   exit
 fi
 
-ACTIVE="$(cat /proc/banktable/active)"
-BOOTED="$(cat /proc/banktable/booted)"
+ACTIVE="$(cat /proc/banktable/active 2>/dev/null)"
+BOOTED="$(cat /proc/banktable/booted 2>/dev/null)"
 MOUNT_PATH=$(uci get mountd.mountd.path)
 USB="$(ls $MOUNT_PATH | head -n1)"
+
+if [ -z "$ACTIVE" -o -z "$BOOTED" ]; then
+  echo -e "${RED}ABORTING: Cannot determine active or booted partition!!${NC}"
+  exit
+fi
 
 if [ $RESTORE_CONFIG = y ]; then
   if [ -n "$USB" -a ! -e ${MOUNT_PATH}${USB}/backups/restore-config.sh ]; then
@@ -193,8 +198,6 @@ if [ -n "$__BKUP" ]; then
     TARGET="${MOUNT_PATH}${USB}/${SOURCE}_Backup-$(date +%Y-%m-%d@%H%M).tar.gz"
     echo "NOTE:    $SOURCE will be backed up to $TARGET"
   fi
-else
-  echo -e "NOTE:    ${ORANGE}NO backup requested${NC}"
 fi
 
 RBI=n
