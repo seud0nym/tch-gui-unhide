@@ -48,11 +48,20 @@ if multiap then
   end
 end
 
+local radios = {}
+for _,v in ipairs(proxy.getPN("rpc.wireless.radio.", true)) do
+  local radio = match(v.path, "rpc%.wireless%.radio%.@([^%.]+)%.")
+  if radio then
+    local band = proxy.get(v.path.."band")
+    if band then
+      radios[radio] = untaint(band[1].value)
+    end
+  end
+end
+
 local function getInterfaceType(data)
-  if match(data["L2Interface"],"^wl0") then
-    return "Wireless - 2.4GHz"
-  elseif match(data["L2Interface"],"^wl1") then
-    return "Wireless - 5GHz"
+  if data["Radio"] ~= "" then
+    return "Wireless - "..radios[untaint(data["Radio"])]
   elseif match(data["L2Interface"],"eth*") then
     local agentWiFiBand = agentSTA[data["MACAddress"]]
     if agentWiFiBand then
