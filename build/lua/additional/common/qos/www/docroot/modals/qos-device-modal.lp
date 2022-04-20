@@ -27,7 +27,6 @@ local mapValid = {
 
 local content,helpmsg = post_helper.handleQuery(mapParam,mapValid)
 
--- NOT 20.4 START
 local ifs,ssid = require("qosdevice_helper").getNetworkDevices()
 table.sort(ifs)
 
@@ -185,7 +184,6 @@ for _,v in pairs(device_data) do
   v[3] = v[3]..(ifs[device] or "")
   script[#script+1] = format("$(\"#device option[value='%s']\").remove();",device)
 end
--- NOT 20.4 END
 
 ngx.print(ui_helper.createHeader(T"QoS",false),'\
 <div class="modal-body">\
@@ -195,7 +193,6 @@ ngx.print(ui_helper.createHeader(T"QoS",false),'\
     <fieldset>\
       <legend>Egress QoS Control</legend>\
       ',ui_helper.createSwitch(T"Enabled","qos_enabled",content["qos_enabled"],nil,helpmsg["qos_enabled"]))
--- NOT 20.4 START
     if content["qos_enabled"] == "1" then
       ngx.print('\
     </fieldset>\
@@ -203,18 +200,15 @@ ngx.print(ui_helper.createHeader(T"QoS",false),'\
       <legend>QoS Interface Devices</legend>\
       ',ui_helper.createTable(device_columns,device_data,device_options,nil,device_helpMsg))
     end
--- NOT 20.4 END
     ngx.print('\
     </fieldset>\
   </form>\
 </div>\
 ')
--- NOT 20.4 START
 ngx.print('\
 <script>\
 ',script,'\
 $("#device option[value=\'lo\']").remove();\
 </script>\
 ');
--- NOT 20.4 END
 ngx.print(ui_helper.createFooter());

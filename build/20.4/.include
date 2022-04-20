@@ -1,7 +1,7 @@
 # Lines in this file must be specified in the format <filename>/<dirname relative to build dir>
 012-Restore-Select-File/18.1.c
 016-Restore-Cleanup-File-Select/18.1.c
-068-bQoS/17.2
+066-QoS/18.1.c
 080-Gateway/18.1.c
 080-Gateway/20.3.c
 091-Titles/18.1.c

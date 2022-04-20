@@ -1,6 +1,4 @@
 # Lines in this file must be specified in the format <filename>/<dirname relative to build dir>
-068-bQoS/17.2
-070-QoS/17.2
 080-Temperatures/17.2
 102-NAT-ALG/17.2
 140-Devices/17.2

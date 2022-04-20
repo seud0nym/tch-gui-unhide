@@ -50,6 +50,19 @@ local data = {
   html = format(N("<strong %1$s>%2$d Shaper</strong>","<strong %1$s>%2$d Shapers</strong>",shapers.enabled),shape_link,shapers.enabled).." enabled on "..format(N("<strong %1$s>%2$d interface</strong>","<strong %1$s>%2$d interfaces</strong>",shapers.active),shape_link,shapers.active),
 }
 
+local swshapers = proxy.getPN("Device.QoS.Shaper.",true)
+if swshapers then
+  local count = 0
+  for _,v in ipairs(swshapers) do
+    local enabled = proxy.get(v.path.."Enable")
+    if enabled and enabled[1].value == "true" then
+      count = count + 1
+    end
+  end
+
+  data.html = data.html.."<br>"..format(N("<strong %1$s>%2$d System Shaper</strong>","<strong %1$s>%2$d System Shapers</strong> enabled",count),shape_link,count)
+end
+
 local buffer = {}
 if json.encode (data,{ indent = false,buffer = buffer }) then
   ngx.say(buffer)

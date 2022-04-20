@@ -158,6 +158,18 @@ local usageParams = {}
 local usageValid = {}
 local devices = {}
 
+local radios = {}
+for _,v in ipairs(proxy.getPN("rpc.wireless.radio.", true)) do
+  local radio = match(v.path, "rpc%.wireless%.radio%.@([^%.]+)%.")
+  if radio then
+    local band = proxy.get(v.path.."band")
+    if band then
+      radios[radio] = untaint(band[1].value)
+    end
+  end
+end
+
+
 local ssid = {}
 local wifi = proxy.getPN("uci.wireless.wifi-iface.",true)
 for _,v in ipairs(wifi) do
@@ -173,11 +185,9 @@ for _,v in ipairs(wifi) do
     radio_name = proxy.get("rpc.wireless.ssid.@"..wlname..".radio")
   end
   if radio_name then
-    radio_name = radio_name[1].value
-    if radio_name == "radio_2G" then
-      ssid[ifname] = wlname.." (2.4G)"
-    else
-      ssid[ifname] = wlname.." (5G)"
+    radio_name = untaint(radio_name[1].value)
+    if radios[radio_name] then
+      ssid[ifname] = wlname.." ("..radios[radio_name]..")"
     end
   end
 end
