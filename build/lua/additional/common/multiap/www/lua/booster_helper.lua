@@ -107,6 +107,19 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled)
   local bandlockStatus = nil
   local boosters = 0
 
+  local easymesh_role
+  local easymesh_state = "1"
+  if agent_enabled == "1" and controller_enabled == "0" then
+    easymesh_role = "Agent"
+  elseif agent_enabled == "1" and controller_enabled == "1" then
+    easymesh_role = "Controller"
+  elseif agent_enabled == "0" and controller_enabled == "1" then
+    easymesh_role = "Controller-only"
+  else
+    easymesh_role = "Disabled"
+    easymesh_state = "0"
+  end
+
   if agent_enabled == "1" then
     agentStatus = "EasyMesh Agent enabled"
   else
@@ -146,6 +159,7 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled)
   local ssids,synced = M.getSSIDList()
   local html = {}
 
+  html[#html+1] = ui_helper.createSimpleLight(easymesh_state,T(format("EasyMesh Role: %s",easymesh_role)))
   html[#html+1] = ui_helper.createSimpleLight(controller_enabled,controllerStatus)
   if controller_enabled == "1" then
     local modalLink = 'class="modal-link" data-toggle="modal" data-remote="/modals/wireless-boosters-boosters-modal.lp" data-id="boosters-boosters-modal"'
