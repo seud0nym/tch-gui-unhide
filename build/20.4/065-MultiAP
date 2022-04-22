@@ -1,0 +1,19 @@
+echo [$SCRIPT]: Fixing EasyMesh Configuration screen
+sed \
+  -e '/^local getValidationIfPropInList/,/^local getValidateInEnumSelect/d' \
+  -e 's/meshBrokerState == "1" and meshBrokerController == "1" and meshBrokerAgent == "1"/false/' \
+  -e 's/^\(local \)\(meshBrokerEnabled = params.meshBrokerController == "1" and params.meshBrokerAgent == "1" and params.meshBrokerState == "1"\)/\2/' \
+  -e 's/refresh/nil/' \
+  -e '/"Easymesh role"/a\      html[#html + 1] = ui_helper.createLabel(T"EasyMesh Broker", params.meshBrokerController == "1" and "Enabled" or "Disabled")' \
+  -e 's/"Easymesh role"/"EasyMesh Role"/' \
+  -e 's|/Agent Services", "easymeshState",(params.meshBrokerController == "1" and params.meshBrokerAgent == "1" and params.meshBrokerState == "1") and "1"|","meshBrokerController",params.meshBrokerController|' \
+  -e '/ui_helper.createSwitch(T"EasyMesh Controller/a\      html[#html + 1] = ui_helper.createSwitch(T"EasyMesh Agent", "meshBrokerAgent",params.meshBrokerAgent or "0")' \
+  -e '/local agent_enable_class/,/createInputText(T"", "meshBrokerController"/d' \
+  -e 's/if not (params.meshBrokerController/if true or (params.meshBrokerController/' \
+  -e '/var easymeshState =/d' \
+  -e '/function easyMeshEnable/,/}/d' \
+  -e '/function easyMeshDisable/,/}/d' \
+  -e '/("#easymeshState").change/,/});/d' \
+  -e '/var meshBrokerEnabled/a\  $("#meshBrokerController,#meshBrokerAgent").change(function(){var ctlr=$("#meshBrokerController").val();var agnt=$("#meshBrokerAgent").val();if(ctlr==agnt){$("#meshBrokerState").val(ctlr);}else{$("#meshBrokerState").val("1");}});\\' \
+  -i /www/docroot/modals/easymesh-modal.lp
+
