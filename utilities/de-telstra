@@ -243,7 +243,7 @@ while getopts :a:b:c:d:e:f:g:h:i:k:l:m:n:op:q:r:s:t:u:w:yAF:GI:MO:RSU-: option; 
   i)  case "${OPTARG}" in y) __INTERCEPT='1';; n) __INTERCEPT='0';; u) __INTERCEPT='u';; *) echo 'ERROR: -i valid options are y, n, or u'; exit 1;; esac;;
   k)  case "${OPTARG}" in a) __AIR='y';; c) __CWMP='y';; k) __KEYS='y';; l) __LTE='y';; m) __MONITORING='y';; n) __NTP='y';; q) __QoS='y';; s) __SUPERVISION='BFD';; x) __NOEXEC='y';; T) __LTE='y'; __KEYS='y'; __CWMP='y'; __MONITORING='y'; __AIR='y'; __NTP='y'; __QoS='y'; __SUPERVISION='BFD'; __NOEXEC='y';; *) echo "ERROR: Unknown override option $OPTARG"; exit 1;; esac;;
   l)  case "${OPTARG}" in y) __LED_LOG='1';; n) __LED_LOG='0';; u) __LED_LOG='u';; *) echo 'ERROR: -l valid options are y, n, or u'; exit 1;; esac;;
-  m)  case "${OPTARG}" in a) __MULTIAP_AGT='1';; b) __MULTIAP_BKH='1';; c) __MULTIAP_CTL='1';; v) __MULTIAP_VND='1';; y) [ $SRV_multiap -ge 0 ] && __MULTIAP_AGT='1' || __MULTIAP_AGT='0'; __MULTIAP_BKH='1'; __MULTIAP_CTL='1'; __MULTIAP_VND='1';; n) __MULTIAP_AGT='0'; __MULTIAP_BKH='0'; __MULTIAP_CTL='0'; __MULTIAP_VND='0';; u) __MULTIAP_AGT='u'; __MULTIAP_BKH='u'; __MULTIAP_CTL='u'; __MULTIAP_VND='u';; *) echo 'ERROR: -m valid options are a, b, c, v, y, n, or u'; exit 1;; esac;;
+  m)  case "${OPTARG}" in a) __MULTIAP_AGT='1';; b) __MULTIAP_BKH='1';; c) __MULTIAP_CTL='1';; v) __MULTIAP_VND='1';; y) __MULTIAP_AGT='1'; __MULTIAP_BKH='1'; __MULTIAP_CTL='1'; __MULTIAP_VND='1';; n) __MULTIAP_AGT='0'; __MULTIAP_BKH='0'; __MULTIAP_CTL='0'; __MULTIAP_VND='0';; u) __MULTIAP_AGT='u'; __MULTIAP_BKH='u'; __MULTIAP_CTL='u'; __MULTIAP_VND='u';; *) echo 'ERROR: -m valid options are a, b, c, v, y, n, or u'; exit 1;; esac;;
   n)  __NS=${OPTARG};;
   o)  __OPKG='y';;
   p)  case "${OPTARG}" in y) __POWER='y';; n) __POWER='n';; u) __POWER='u';; d) __POWER='d';; *) echo 'ERROR: -p valid options are y, n, u or d'; exit 1;; esac;;
@@ -265,7 +265,7 @@ while getopts :a:b:c:d:e:f:g:h:i:k:l:m:n:op:q:r:s:t:u:w:yAF:GI:MO:RSU-: option; 
       fi;;
   M)  __LITE='y'; __ALG='0'; __DECT='0'; __DLNAD='0'; __DUMAOS='0'; __INTERCEPT='0' __MMPBX='0'; __MULTIAP_AGT='0'; __MULTIAP_BKH='0'; __MULTIAP_CTL='0'; __NFC='0'; __PRNTR='0'; __SAMBA='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1';;
   O)  case "${OPTARG}" in 17|18|19) __REPO=$OPTARG;; *) echo 'ERROR: -O valid options are 17, 18 or 19'; exit 1;; esac;;
-  R)  __LITE='R'; __HOST='mymodem'; __DOMAIN='modem'; __NS='a'; __ALG='1'; __DLNAD='1'; __DUMAOS='0'; __SAMBA='1'; [ $SRV_multiap -ge 0 ] && __MULTIAP_AGT='1' || __MULTIAP_AGT='0'; __MULTIAP_BKH='1'; __MULTIAP_CTL='1'; __POWER='d'; __PRNTR='1'; __MMPBX='1'; __DECT='1'; __UPNP='1'; __ROOT_PROTECT='0'; __NFC='y'; __SUPERVISION='BFD'; __INTERCEPT='1';;
+  R)  __LITE='R'; __HOST='mymodem'; __DOMAIN='modem'; __NS='a'; __ALG='1'; __DLNAD='1'; __DUMAOS='0'; __SAMBA='1'; __MULTIAP_AGT='1'; __MULTIAP_BKH='1'; __MULTIAP_CTL='1'; __POWER='d'; __PRNTR='1'; __MMPBX='1'; __DECT='1'; __UPNP='1'; __ROOT_PROTECT='0'; __NFC='y'; __SUPERVISION='BFD'; __INTERCEPT='1';;
   S)  __HOST='s'; __DOMAIN='gateway'; __ALG='0'; __DLNAD='0'; __SAMBA='0'; __PRNTR='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1'; __SUPERVISION='DNS'; __INTERCEPT='0'; __LED_LOG='0';;
   U)  upgrade;;
   *)  usage $OPTIND;;
@@ -1259,17 +1259,17 @@ if [ $SRV_multiap -ge 0 ]; then
   fi
 fi
 if [ $SRV_mesh_broker -ge 0 ]; then
-  AGENT_NOW="$(uci -q get mesh_broker.mesh_common.agent_enabled)"
+  AGENT_NOW="$(uci -q get wireless.agent.state)"
   CTRLR_NOW="$(uci -q get mesh_broker.mesh_common.controller_enabled)"
   BHAUL_CRED=$(uci show mesh_broker | grep "backhaul='1'" | cut -d. -f2)
   BHAUL_NOW=$(uci -q get mesh_broker.$BHAUL_CRED.state)
   if [ \( "$__MULTIAP_AGT" = "u" -a "$__MULTIAP_BKH" = "u" -a "$__MULTIAP_CTL" = "u" \) -o \( "$AGENT_NOW" = "$__MULTIAP_AGT" -a "$CTRLR_NOW" = "$__MULTIAP_CTL" -a "$BHAUL_AP_NOW" = "$__MULTIAP_BKH" -a "$BHAUL_IF_NOW" = "$__MULTIAP_BKH" \) ]; then
     echo [$SCRIPT]: EasyMesh unchanged \[Controller: $(status2text $CTRLR_NOW) Agent: $(status2text $AGENT_NOW) BackHaul SSID: $(status2text $BHAUL_IF_NOW)\]
   else
-    [ "$__MULTIAP_AGT" != "u" ] && { uci set mesh_broker.mesh_common.agent_enabled="$__MULTIAP_AGT"; SRV_mesh_broker=$(( $SRV_mesh_broker + 1 )); }
+    [ "$__MULTIAP_AGT" != "u" ] && { uci set wireless.agent.state="$__MULTIAP_AGT"; SRV_mesh_broker=$(( $SRV_mesh_broker + 1 )); }
     [ "$__MULTIAP_CTL" != "u" ] && { uci set mesh_broker.mesh_common.controller_enabled="$__MULTIAP_CTL"; SRV_mesh_broker=$(( $SRV_mesh_broker + 1 )); }
     [ "$__MULTIAP_BKH" != "u" ] && { uci set mesh_broker.$BHAUL_CRED.state="$__MULTIAP_BKH"; SRV_mesh_broker=$(( $SRV_mesh_broker + 1 )); }
-    [ "$__MULTIAP_AGT" = "0" -a "$__MULTIAP_CTL" = "0" -a "$__MULTIAP_BKH" = "0" ] && MESH_BROKER="0" || MESH_BROKER="1"
+    [ "$__MULTIAP_AGT" = "0" -a "$__MULTIAP_CTL" = "0" ] && MESH_BROKER="0" || MESH_BROKER="1"
     [ "$(uci -q get mesh_broker.mesh_broker.enable)" != $MESH_BROKER ] && { uci set mesh_broker.mesh_broker.enable="$MESH_BROKER"; SRV_mesh_broker=$(( $SRV_mesh_broker + 1 )); }
     [ $SRV_mesh_broker -gt 0 ] && uci commit mesh_broker
     echo [$SCRIPT]: EasyMesh Agent $(status2text $__MULTIAP_AGT)
