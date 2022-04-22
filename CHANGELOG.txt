@@ -1,4 +1,4 @@
-2022.04.20
+2022.04.22
 ==========
 * tch-gui-unhide: Removed Sign in button when using default user and default user is admin
 * tch-gui-unhide: Removed switches from Wireless and Telephony cards
@@ -16,6 +16,7 @@
 * tch-gui-unhide: Improved CWMP card
 * tch-gui-unhide: MultiAP GUI files no longer included in FW 17.2 script
 * tch-gui-unhide: Initial support for 20.4 firmware
+* tch-gui-unhide: Added EasyMesh Role to Wi-Fi Boosters card
 * de-telstra: Initial support for 20.4 firmware
 * log-check: New script that can be run hourly to check that the logging RAM buffer and disk-based messages log are both being written correctly (This is mainly useful on FW 20.3.c, where I have found that the logread command can stop working and then not show recent messages)
 * mtd-backup: Fixed error during config backup if tch-gui-unhide not installed
