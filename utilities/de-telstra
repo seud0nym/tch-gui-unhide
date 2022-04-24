@@ -9,7 +9,7 @@ fi
 
 SCRIPT="$(basename $0)"
 
-VERSION=$(uci get version.@version[0].marketing_version)
+VERSION=$(uci -q get version.@version[0].marketing_version)
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
 
@@ -272,7 +272,7 @@ while getopts :a:b:c:d:e:f:g:h:i:k:l:m:n:op:q:r:s:t:u:w:yAF:GI:MO:RSU-: option; 
  esac
 done
 
-HOMEWARE=$(uci get version.@version[0].version | cut -d. -f1)
+HOMEWARE=$(uci -q get version.@version[0].version | cut -d. -f1)
 if [ "$HOMEWARE" -eq 20 ]; then
   # macoers now has a FW 19 repository, but it is only in testing
   # if [ $(grep -c 'homeware/18/' /etc/opkg/customfeeds.conf) -gt 0 ]; then
@@ -418,26 +418,26 @@ PACKAGES_TO_REMOVE=""
 echo [$SCRIPT]: Applying default hardening rules...
 
 # CWMP
-CWMPD_LOG=$(uci show system | grep -i cwmp | cut -d. -f1-2 | sort -u)
+CWMPD_LOG=$(uci -q show system | grep -i cwmp | cut -d. -f1-2 | sort -u)
 CWMPD_WANS=$(grep "^ *set_cwmpd" /usr/lib/lua/wansensingfw/failoverhelper.lua | wc -l)
 CWMPD_IQOS=$(uci -q show iqos | grep "target='cwmpd'" | cut -d. -f1-2)
 if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" -o -e /etc/init.d/cwmpd -o -n "$CWMPD_IQOS" -o $CWMPD_WANS -gt 0 -o -n "$CWMPD_LOG" ]; then
   if [ "$__CWMP" = 'n' ]; then
     echo [$SCRIPT]: - Disabling CWMP
-    uci set cwmpd.cwmpd_config.state='0'
-    uci commit cwmpd
+    uci -q set cwmpd.cwmpd_config.state='0'
+    uci -q commit cwmpd
     SRV_cwmp=$(( $SRV_cwmp + 1 ))
     uci -q delete firewall.cwmpd
-    uci commit firewall
+    uci -q commit firewall
     SRV_fw=$(( $SRV_fw + 1 ))
     uci -q del_list watchdog.@watchdog[0].pidfile='/var/run/cwmpd.pid'
     uci -q del_list watchdog.@watchdog[0].pidfile='/var/run/cwmpevents.pid'
-    uci commit watchdog
+    uci -q commit watchdog
     SRV_watchdog=$(( $SRV_watchdog + 2 ))
     if [ -n "$CWMPD_IQOS" ]; then
       echo [$SCRIPT]: - Removing CWMPD Ingress QoS settings
       uci -q delete $CWMPD_IQOS
-      uci commit iqos
+      uci -q commit iqos
       SRV_iqos=$(( $SRV_iqos + 1 ))
     fi
     if [ $CWMPD_WANS -gt 0 ]; then
@@ -451,7 +451,7 @@ if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" -o -e /etc/init.d/cwmpd -o
         uci -q delete $p
         SRV_system=$(( $SRV_system + 1 ))
       done
-      uci commit system
+      uci -q commit system
     fi
     PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE conf-cwmpd cwmpd"
   else
@@ -463,7 +463,7 @@ fi
 
 # Telstra Monitoring
 WIFI_WANS=$(grep "^ *set_wifi_doctor" /usr/lib/lua/wansensingfw/failoverhelper.lua | wc -l)
-WRKR_WANS=$(uci show wansensing | grep "@worker\[[0-9]*\]\.enable='1'" | wc -l)
+WRKR_WANS=$(uci -q show wansensing | grep "@worker\[[0-9]*\]\.enable='1'" | wc -l)
 if [ -z "$(uci -q get autoreset.vsparc_enabled)" -a -z "$(uci -q get autoreset.thor_enabled)" -a -z "$(uci -q get wifi_doctor_agent.acs)" -a -z "$(uci -q get wifi_doctor_agent.config)" -a -z "$(uci -q get wifi_doctor_agent.as_config)" -a $WRKR_WANS -eq 0 -a $WIFI_WANS -eq 0 ]; then
   echo [$SCRIPT]: - Telstra monitoring already Disabled
 else
@@ -473,7 +473,7 @@ else
       echo [$SCRIPT]: - Removing autoreset config
       uci -q delete autoreset.vsparc_enabled
       uci -q delete autoreset.thor_enabled
-      uci commit autoreset
+      uci -q commit autoreset
       SRV_monitor=$(( $SRV_monitor + 2 ))
     fi
     if [ -e /etc/config/wifi_doctor_agent ]; then
@@ -481,7 +481,7 @@ else
       uci -q delete wifi_doctor_agent.acs
       uci -q delete wifi_doctor_agent.config
       uci -q delete wifi_doctor_agent.as_config
-      uci commit wifi_doctor_agent
+      uci -q commit wifi_doctor_agent
     fi
     SRV_monitor=$(( $SRV_monitor + 3 ))
     if [ $WIFI_WANS -gt 0 ]; then
@@ -490,10 +490,10 @@ else
     fi
     if [ $WRKR_WANS -gt 0 ]; then
       echo [$SCRIPT]: - Disabling WAN Sensing workers
-      for worker in $(uci show wansensing | grep "@worker\[[0-9]*\]\.enable='1'" | cut -d= -f1); do
-        uci set $worker='0'
+      for worker in $(uci -q show wansensing | grep "@worker\[[0-9]*\]\.enable='1'" | cut -d= -f1); do
+        uci -q set $worker='0'
       done
-      uci commit wansensing
+      uci -q commit wansensing
       SRV_wansensing=$(( $SRV_wansensing + 1 ))
     fi
     PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE libbcmairiq conf-airiq autoreset-tch tls-thor-map wifi-doctor-agent conf-wifi-doctor-agent tr143"
@@ -514,9 +514,9 @@ if [ "$__MONITORING" = 'n' ]; then
 
   if [ "$(uci -q get bulkdata.global.enabled)" = "1" ]; then
     echo [$SCRIPT]: - Disabling bulkdata collection \(More logging?\)
-    uci set bulkdata.global.enabled='0'
-    uci set bulkdata.profile_1.enabled='0'
-    uci commit bulkdata
+    uci -q set bulkdata.global.enabled='0'
+    uci -q set bulkdata.profile_1.enabled='0'
+    uci -q commit bulkdata
     SRV_bulkdata=$(( $SRV_bulkdata + 1 ))
   else
     echo [$SCRIPT]: - bulkdata collection already disabled
@@ -536,14 +536,14 @@ fi
 if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
   if [ "$__ALG" = "u" ]; then
     ALG_ENABLED=0
-    for g in $(uci show firewall | grep '\.helper' | cut -d\' -f2); do
-      key=$(uci show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
+    for g in $(uci -q show firewall | grep '\.helper' | cut -d\' -f2); do
+      key=$(uci -q show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
       ALG_ENABLED=$(( $ALG_ENABLED + $(uci -q get $key.enable || echo 1) ))
     done
     echo [$SCRIPT]: ALGs unchanged \[$ALG_ENABLED Enabled\]
   else
-    for g in $(uci show firewall | grep '\.helper' | cut -d\' -f2); do
-      key=$(uci show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
+    for g in $(uci -q show firewall | grep '\.helper' | cut -d\' -f2); do
+      key=$(uci -q show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
       G=$(echo $g | tr "[a-z]" "[A-Z]")
       G_NOW="$(uci -q get $key.enable || echo 1)"
       if [ "$G_NOW" != "$__ALG" ]; then
@@ -552,8 +552,8 @@ if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
         else
           echo [$SCRIPT]: $G ALG Enabled
         fi
-        uci set $key.enable="$__ALG"
-        uci commit firewall
+        uci -q set $key.enable="$__ALG"
+        uci -q commit firewall
         SRV_fw=$(( $SRV_fw + 1 ))
       else
         echo [$SCRIPT]: $G ALG unchanged \[$(status2text $G_NOW)\]
@@ -561,7 +561,7 @@ if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
     done
   fi
 
-  if [ -z "$(uci -q get dhcp.hotspot)" -a -z "$(uci -q get dhcp.fonopen)" -a -z "$(uci -q get network.fonopen)" -a -z "$(uci -q get web.fon)" -a -z "$(uci -q show web.ruleset_main.rules | grep '\bfon\b')" -a -z "$(uci -q show qos.reclassify_1.srcif | grep '\bfonopen\b')" -a -z "$(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\))" -a -z "$(uci -q get wireless.bs2)" -a -z "$(uci -q get wireless.bs3)" ]; then
+  if [ -z "$(uci -q get dhcp.hotspot)" -a -z "$(uci -q get dhcp.fonopen)" -a -z "$(uci -q get network.fonopen)" -a -z "$(uci -q get web.fon)" -a -z "$(uci -q show web.ruleset_main.rules | grep '\bfon\b')" -a -z "$(uci -q show qos.reclassify_1.srcif | grep '\bfonopen\b')" -a -z "$(uci -q show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\))" -a -z "$(uci -q get wireless.bs2)" -a -z "$(uci -q get wireless.bs3)" ]; then
     echo [$SCRIPT]: - Telstra AIR already removed
   else
     if [ "$__AIR" = 'n' ]; then
@@ -569,28 +569,28 @@ if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
       SRV_hotspot=$(( $SRV_hotspot + 1 ))
       uci -q delete dhcp.hotspot
       uci -q delete dhcp.fonopen
-      uci commit dhcp
+      uci -q commit dhcp
       SRV_dhcp=$(( $SRV_dhcp + 2 ))
       uci -q delete network.fonopen
-      uci commit network
+      uci -q commit network
       SRV_network=$(( $SRV_network + 2 ))
       uci -q delete web.fon
       uci -q del_list web.ruleset_main.rules='fon'
-      uci commit web
+      uci -q commit web
       SRV_nginx=$(( $SRV_nginx + 2 ))
-      for wl in $(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | cut -d. -f2)
+      for wl in $(uci -q show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | cut -d. -f2)
       do
-        ap=$(uci show wireless | grep iface=\'$wl\' | cut -d. -f2)
+        ap=$(uci -q show wireless | grep iface=\'$wl\' | cut -d. -f2)
         echo [$SCRIPT]: - Removing SSID $wl \(AP=$ap\)
-        uci delete wireless.$wl
-        uci delete wireless.$ap
+        uci -q delete wireless.$wl
+        uci -q delete wireless.$ap
         SRV_network=$(( $SRV_network + 2 ))
       done
       echo [$SCRIPT]: - Removing Telstra AIR Band Steering configuration
       uci -q delete wireless.bs2
       uci -q delete wireless.bs3
       SRV_network=$(( $SRV_network + 2 ))
-      uci commit wireless
+      uci -q commit wireless
       PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE hotspotd webui-fon"
     else
       echo [$SCRIPT]: - OVERRIDE! Telstra AIR NOT Removed
@@ -598,26 +598,26 @@ if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
   fi
 
   if [ "$__AIR" = 'n' ]; then
-    if [ $(uci show firewall | grep 192.168.20.1 | wc -l) -eq 0 ]; then
+    if [ $(uci -q show firewall | grep 192.168.20.1 | wc -l) -eq 0 ]; then
       echo [$SCRIPT]: - Telstra AIR firewall entries already removed
     else
       echo [$SCRIPT]: - Deleting Telstra AIR firewall entries
-      while [ $(uci show firewall | grep 192.168.20.1 | wc -l) -gt 0 ]
+      while [ $(uci -q show firewall | grep 192.168.20.1 | wc -l) -gt 0 ]
       do
-        uci delete $(uci show firewall | grep -m 1 192.168.20.1 | cut -d. -f1-2)
+        uci -q delete $(uci -q show firewall | grep -m 1 192.168.20.1 | cut -d. -f1-2)
         SRV_fw=$(( $SRV_fw + 1 ))
       done
-      uci commit firewall
+      uci -q commit firewall
     fi
-    if [ $(uci show qos | grep "classify.*target='FON'" | wc -l) -eq 0 -a $(uci -q show qos.FON | wc -l) -eq 0 ]; then
+    if [ $(uci -q show qos | grep "classify.*target='FON'" | wc -l) -eq 0 -a $(uci -q show qos.FON | wc -l) -eq 0 ]; then
       echo [$SCRIPT]: - Telstra AIR QoS entries already removed
     else
       echo [$SCRIPT]: - Deleting Telstra AIR QoS entries
       uci -q del_list qos.@reclassify[0].srcif='fonopen'
       uci -q del_list qos.reclassify_1.srcif='fonopen'
-      uci -q delete $(uci show qos | grep "classify.*target='FON'" | cut -d. -f1-2)
+      uci -q delete $(uci -q show qos | grep "classify.*target='FON'" | cut -d. -f1-2)
       uci -q delete qos.FON
-      uci commit qos
+      uci -q commit qos
       SRV_qos=$(( $SRV_qos + 3 ))
     fi
   fi
@@ -629,34 +629,34 @@ if [ "$__NTP" = 'n' ]; then
   do
     if echo $s | grep -q -i telstra; then
       echo [$SCRIPT]: - Removing Telstra NTP server $s
-      uci del_list system.ntp.server="$s"
+      uci -q del_list system.ntp.server="$s"
       SRV_ntp=$(( $SRV_ntp + 1 ))
     fi
   done
   if [ $SRV_ntp -eq 0 ]; then
     echo [$SCRIPT]: - Telstra NTP servers already removed
   else
-    uci commit system
+    uci -q commit system
   fi
 else
   echo [$SCRIPT]: - OVERRIDE! Telstra NTP servers NOT Removed
 fi
 
 # USB noexec
-if [ $(uci show mountd | grep -E 'mountd\.(ext[2-4]|fat|hfsplus(journal)*|ntfs)\.options=.*noexec.*' | wc -l) -gt 0 ]; then
+if [ $(uci -q show mountd | grep -E 'mountd\.(ext[2-4]|fat|hfsplus(journal)*|ntfs)\.options=.*noexec.*' | wc -l) -gt 0 ]; then
   if [ "$__NOEXEC" = 'n' ]; then
     for fs in ext2 ext3 ext4 fat hfsplus hfsplusjournal ntfs
     do
       FS_OPT=$(uci -q get mountd.$fs.options)
       echo $FS_OPT | grep -q noexec
       if [ $? -eq 0 ]; then
-        uci set mountd.$fs.options="$(echo $FS_OPT | sed -e 's/noexec,//' -e 's/,noexec//')"
+        uci -q set mountd.$fs.options="$(echo $FS_OPT | sed -e 's/noexec,//' -e 's/,noexec//')"
         SRV_mountd=$(( $SRV_mountd + 1 ))
         echo [$SCRIPT]: - noexec on $fs mounts Disabled
       fi
     done
     if [ $SRV_mountd -gt 0 ]; then
-      uci commit mountd
+      uci -q commit mountd
     fi
   else
     echo [$SCRIPT]: - OVERRIDE! noexec on ext2/3/4, fat, hfsplus, hfsplusjournal and ntfs mounts NOT Disabled
@@ -721,20 +721,20 @@ if [ "$(uci -q get dropbear.lan.enable)" = '1'  -a "$(uci -q get dropbear.lan.en
 else
   # We need to enable dropbear LAN access properly as you can enable/disable via the GUI, and if
   # done without allowing password auth and root login, it can accidently prevent SSH access
-  uci set dropbear.lan.enable='1'
-  uci set dropbear.lan.PasswordAuth='on'
-  uci set dropbear.lan.RootPasswordAuth='on'
-  uci set dropbear.lan.RootLogin='1'
+  uci -q set dropbear.lan.enable='1'
+  uci -q set dropbear.lan.PasswordAuth='on'
+  uci -q set dropbear.lan.RootPasswordAuth='on'
+  uci -q set dropbear.lan.RootLogin='1'
   # Not configurable via transformer/GUI, so need to set it on here
-  uci set dropbear.wan.RootLogin='1'
-  uci commit dropbear
+  uci -q set dropbear.wan.RootLogin='1'
+  uci -q commit dropbear
   SRV_dropbear=$(( $SRV_dropbear + 4 ))
   echo [$SCRIPT]: SSH access correctly configured
 fi
 if [ "$(uci -q get dropbear.afg)" = "dropbear" ]; then
   echo "[$SCRIPT]: Removing SSH AFG/tch-exploit configuration (not needed - SSH LAN correctly configured)"
-  uci delete dropbear.afg
-  uci commit dropbear
+  uci -q delete dropbear.afg
+  uci -q commit dropbear
   SRV_dropbear=$(( $SRV_dropbear + 1 ))
 fi
 
@@ -770,16 +770,16 @@ fi
 
 # Telstra QoS VoWiFi reclassify rules
 [ $SRV_qos_tch -ge 0 ] && qos_cfg="qos_tch" || qos_cfg="qos"
-VoWiFi="$(uci show $qos_cfg | grep -E "$(uci show $qos_cfg | grep =reclassify | cut -d= -f1 | xargs | tr " " "|")" | grep VoWiFi | cut -d. -f1-2)"
+VoWiFi="$(uci -q show $qos_cfg | grep -E "$(uci -q show $qos_cfg | grep =reclassify | cut -d= -f1 | xargs | tr " " "|")" | grep VoWiFi | cut -d. -f1-2)"
 if [ -z "$VoWiFi" ]; then
   echo [$SCRIPT]: All Telstra QoS VoWiFi reclassify rules already removed
 else
   if [ "$__QoS" = "n" ]; then
     echo [$SCRIPT]: Removing all Telstra QoS VoWiFi reclassify rules
     for r in $VoWiFi; do
-      uci delete $r
+      uci -q delete $r
     done
-    uci commit qos
+    uci -q commit qos
     SRV_qos=$(( $SRV_qos + 3 ))
   else
     echo [$SCRIPT]: OVERRIDE! Telstra QoS VoWiFi reclassify rules not removed
@@ -808,50 +808,50 @@ else
       easymesh=false
     fi
     uci -q delete dhcp.main.hostname
-    uci add_list dhcp.main.hostname="$HOSTNAME"
+    uci -q add_list dhcp.main.hostname="$HOSTNAME"
     SRV_dnsmasq=$(( $SRV_dnsmasq + 2 ))
     if [ $easymesh = true ]; then
       echo [$SCRIPT]: Re-adding telstra.wifi hostname for MultiAP
-      uci add_list dhcp.main.hostname='telstra.wifi'
+      uci -q add_list dhcp.main.hostname='telstra.wifi'
       SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
     fi
-    uci commit dhcp
-    uci set system.@system[0].hostname="$HOSTNAME"
-    uci commit system
+    uci -q commit dhcp
+    uci -q set system.@system[0].hostname="$HOSTNAME"
+    uci -q commit system
     SRV_system=$(( $SRV_system + 1 ))
     export HOSTNAME=$HOSTNAME
   fi
 fi
 HOSTNAME="$(uci -q get system.@system[0].hostname)"
-SERIAL="$(uci get env.var.serial)"
+SERIAL="$(uci -q get env.var.serial)"
 DLNA_NAME="$(uci -q get dlnad.config.friendly_name)"
 SAMBA_NAME="$(uci -q get samba.samba.name)"
 if [ "$HOSTNAME" = "mymodem" -o "$HOSTNAME" = "mygateway" ]; then
   if [ "$DLNA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "$HOSTNAME" ]; then
     echo [$SCRIPT]: Changing DLNAD friendly name from $DLNA_NAME to Telstra Gateway
-    uci set dlnad.config.friendly_name="Telstra Gateway"
-    uci commit dlnad
+    uci -q set dlnad.config.friendly_name="Telstra Gateway"
+    uci -q commit dlnad
     SRV_dlna=$(( $SRV_dlna + 1 ))
   fi
   if [ "$SAMBA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "$HOSTNAME" ]; then
     echo [$SCRIPT]: Changing SAMBA host name from $SAMBA_NAME to Telstra-Gateway
-    uci set samba.samba.name="Telstra-Gateway"
-    uci set samba.samba.description="Technicolor $VARIANT - $SERIAL"
-    uci commit samba
+    uci -q set samba.samba.name="Telstra-Gateway"
+    uci -q set samba.samba.description="Technicolor $VARIANT - $SERIAL"
+    uci -q commit samba
     SRV_samba=$(( $SRV_samba + 1 ))
   fi
 else
   if [ "$DLNA_NAME" = 'Telstra Modem' -o "$DLNA_NAME" = 'Telstra Gateway' -o \( "$DLNA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "$HOSTNAME" \) ]; then
     echo [$SCRIPT]: Changing DLNAD friendly name from $DLNA_NAME to $HOSTNAME
-    uci set dlnad.config.friendly_name="$HOSTNAME"
-    uci commit dlnad
+    uci -q set dlnad.config.friendly_name="$HOSTNAME"
+    uci -q commit dlnad
     SRV_dlna=$(( $SRV_dlna + 1 ))
   fi
   if [ "$SAMBA_NAME" = 'Telstra-Modem' -o "$SAMBA_NAME" = 'Telstra-Gateway' -o \( "$SAMBA_NAME" = "$CURRENT_HOSTNAME" -a "$CURRENT_HOSTNAME" != "$HOSTNAME" \) ]; then
     echo [$SCRIPT]: Changing SAMBA host name from $SAMBA_NAME to $HOSTNAME
-    uci set samba.samba.name="$HOSTNAME"
-    uci set samba.samba.description="Technicolor $VARIANT - $SERIAL"
-    uci commit samba
+    uci -q set samba.samba.name="$HOSTNAME"
+    uci -q set samba.samba.description="Technicolor $VARIANT - $SERIAL"
+    uci -q commit samba
     SRV_samba=$(( $SRV_samba + 1 ))
   fi
 fi
@@ -866,9 +866,9 @@ else
     $__DOMAIN="$DOMAIN_NOW"
   fi
   echo [$SCRIPT]: Setting the domain to $__DOMAIN
-  uci set dhcp.main.domain="$__DOMAIN"
-  uci set dhcp.main.local="/$__DOMAIN/"
-  uci commit dhcp
+  uci -q set dhcp.main.domain="$__DOMAIN"
+  uci -q set dhcp.main.local="/$__DOMAIN/"
+  uci -q commit dhcp
   SRV_dnsmasq=$(( $SRV_dnsmasq + 2 ))
 fi
 
@@ -885,11 +885,11 @@ if [ $? -eq 0 ]; then
   else
     case $__NS in
     a) echo [$SCRIPT]: Automatically use the DNS servers from the ISP
-       uci set network.wan.peerdns='1'
-       uci set network.wan6.peerdns='1'
+       uci -q set network.wan.peerdns='1'
+       uci -q set network.wan6.peerdns='1'
        uci -q delete network.wan.dns
        uci -q delete network.wan6.dns
-       uci commit network
+       uci -q commit network
        SRV_network=$(( $SRV_network + 4 ))
        WANDNS1=""; WANDNS2="";;
     c) WANDNS1="1.1.1.1"; WANDNS2="1.0.0.1";;
@@ -925,17 +925,17 @@ if [ $? -eq 0 ]; then
           uci -q delete dhcp.main.server
           SRV_dhcp=$(( $SRV_dhcp + 1 ))
           if [ -n "$WANDNS1" ]; then
-            uci add_list dhcp.main.server="$WANDNS1"
+            uci -q add_list dhcp.main.server="$WANDNS1"
             SRV_dhcp=$(( $SRV_dhcp + 1 ))
           fi
           if [ -n "$WANDNS2" ]; then
-            uci add_list dhcp.main.server="$WANDNS2"
+            uci -q add_list dhcp.main.server="$WANDNS2"
             SRV_dhcp=$(( $SRV_dhcp + 1 ))
           fi
           echo [$SCRIPT]: DNS Servers changed \[ $WANDNS1 $WANDNS2 \]
         fi
       fi
-      uci commit dhcp
+      uci -q commit dhcp
     fi
   fi
 else
@@ -947,8 +947,8 @@ DLNA_NOW="$(uci -q get dlnad.config.enabled)"
 if [ "$__DLNAD" = "u" -o "$DLNA_NOW" = "$__DLNAD" ]; then
   echo [$SCRIPT]: Content sharing unchanged \[$(status2text $DLNA_NOW)\]
 else
-  uci set dlnad.config.enabled="$__DLNAD"
-  uci commit dlnad
+  uci -q set dlnad.config.enabled="$__DLNAD"
+  uci -q commit dlnad
   SRV_dlna=$(( $SRV_dlna + 1 ))
   echo [$SCRIPT]: Content sharing $(status2text $__DLNAD)
 fi
@@ -960,16 +960,16 @@ if [ \( "$__PRNTR" = "u" -o "$PS_NOW" = "$__PRNTR" \) -a "$(iptables -S | grep -
   SAMBA_PS="$PS_NOW"
 else
   [ "$__PRNTR" = "1" ] && { CUPS_FW="0"; CUPS_WI="yes"; } || { CUPS_FW="1"; CUPS_WI="no"; }
-  uci set printersharing.config.enabled="$__PRNTR"
-  uci commit printersharing
-  for rule in $(uci show firewall | grep -i Deny-CUPS-lan | cut -d. -f1-2); do
+  uci -q set printersharing.config.enabled="$__PRNTR"
+  uci -q commit printersharing
+  for rule in $(uci -q show firewall | grep -i Deny-CUPS-lan | cut -d. -f1-2); do
     if [ "$(uci -q get ${rule}.src)" = "lan" -a "$(uci -q get ${rule}.enabled)" != "$CUPS_FW" ]; then
-      uci set ${rule}.enabled="$CUPS_FW"
+      uci -q set ${rule}.enabled="$CUPS_FW"
       SRV_fw=$(( $SRV_fw + 1 ))
       echo [$SCRIPT]: Printer sharing firewall rule $(uci -q get ${rule}.name) $(status2text $CUPS_FW)
     fi
   done
-  uci commit firewall
+  uci -q commit firewall
   for f in $(grep -li WebInterface $(find /etc/ -type f -name '*cups*')); do
     sed -e "s/\(WebInterface[ =]*\)\(no\|yes\)/\1${CUPS_WI}/" -i "$f"
   done
@@ -986,8 +986,8 @@ if [ "$__SAMBA" = "u" -o "$FS_NOW" = "$__SAMBA" ]; then
   echo [$SCRIPT]: File sharing unchanged \[$(status2text $FS_NOW)\]
   SAMBA_FS="$FS_NOW"
 else
-  uci set samba.samba.filesharing="$__SAMBA"
-  uci commit samba
+  uci -q set samba.samba.filesharing="$__SAMBA"
+  uci -q commit samba
   SRV_samba=$(( $SRV_samba + 1 ))
   SAMBA_FS="$__SAMBA"
   echo [$SCRIPT]: File sharing $(status2text $__SAMBA)
@@ -996,13 +996,13 @@ fi
 # SAMBA
 SAMBA_NOW="$(uci -q get samba.samba.enabled)"
 if [ "$SAMBA_NOW" = "1" -a "$SAMBA_PS" = "0" -a "$SAMBA_FS" = "0" ]; then
-  uci set samba.samba.enabled="0"
-  uci commit samba
+  uci -q set samba.samba.enabled="0"
+  uci -q commit samba
   SRV_samba=$(( $SRV_samba + 1 ))
   echo [$SCRIPT]: SAMBA Disabled
 elif [ "$SAMBA_NOW" = "0" -a \( "$SAMBA_PS" = "1" -o "$SAMBA_FS" = "1" \) ]; then
-  uci set samba.samba.enabled="1"
-  uci commit samba
+  uci -q set samba.samba.enabled="1"
+  uci -q commit samba
   SRV_samba=$(( $SRV_samba + 1 ))
   echo [$SCRIPT]: SAMBA Enabled
 fi
@@ -1012,8 +1012,8 @@ MMPBX_NOW="$(uci -q get mmpbx.global.enabled)"
 if [ "$__MMPBX" = "u" -o "$MMPBX_NOW" = "$__MMPBX" ]; then
   echo [$SCRIPT]: Telephony unchanged \[$(status2text $MMPBX_NOW)\]
 else
-  uci set mmpbx.global.enabled="$__MMPBX"
-  uci commit mmpbx
+  uci -q set mmpbx.global.enabled="$__MMPBX"
+  uci -q commit mmpbx
   SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
   MMPBX_NOW="$__MMPBX"
   if [ "$__MMPBX" = "1" ]; then
@@ -1027,15 +1027,15 @@ if [ "$(uci -q get mmpbxmobilenet.VoLTE)" = "profile" ]; then
     echo [$SCRIPT]: VoLTE already Enabled
   else
     echo [$SCRIPT]: Enabling VoLTE backup voice service and SMS reception
-    uci set mmpbxmobilenet.VoLTE.enabled='1'
-    uci commit mmpbxmobilenet
+    uci -q set mmpbxmobilenet.VoLTE.enabled='1'
+    uci -q commit mmpbxmobilenet
     SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
-    uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
-    uci set mobiled_sessions.@session[0].activated='1'
-    uci set mobiled_sessions.@session[0].autoconnect='1'
-    uci set mobiled_sessions.@session[0].optional='1'
-    uci commit mobiled_device_specific
-    uci commit mobiled_sessions
+    uci -q set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
+    uci -q set mobiled_sessions.@session[0].activated='1'
+    uci -q set mobiled_sessions.@session[0].autoconnect='1'
+    uci -q set mobiled_sessions.@session[0].optional='1'
+    uci -q commit mobiled_device_specific
+    uci -q commit mobiled_sessions
     SRV_mobiled=$(( $SRV_mobiled + 1 ))
   fi
 fi
@@ -1046,14 +1046,14 @@ if [ -n "$DECT_NOW" ]; then
   if [ "$__DECT" = "u" -o "$DECT_NOW" = "$__DECT" ]; then
     echo [$SCRIPT]: DECT Emission Mode unchanged \[$(status2text $DECT_NOW)\]
   else
-    uci set mmpbx.dectemission.state="$__DECT"
-    uci commit mmpbx
+    uci -q set mmpbx.dectemission.state="$__DECT"
+    uci -q commit mmpbx
     SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
     echo [$SCRIPT]: DECT Emission Mode $(status2text $__DECT)
   fi
   if [ "$DECT_NOW" = "1" -a -n "$(uci -q get mmpbxbrcmdectdev.dect_base.supported_manufacturer_codes)" ]; then
     uci -q delete mmpbxbrcmdectdev.dect_base.supported_manufacturer_codes
-    uci commit mmpbxbrcmdectdev
+    uci -q commit mmpbxbrcmdectdev
     SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
     echo [$SCRIPT]: DECT Supported Manufacturer Codes removed to fix issues registering Gigaset handsets
   fi
@@ -1065,12 +1065,12 @@ if [ $SRV_supervision -ge 0 ]; then
   if [ "$__SUPERVISION" = "u" -o "$SUPERVISION_NOW" = "$__SUPERVISION" ]; then
     echo [$SCRIPT]: WAN Supervision unchanged \[$SUPERVISION_NOW\]
   else
-    uci set supervision.global.mode="$__SUPERVISION"
+    uci -q set supervision.global.mode="$__SUPERVISION"
     if [ $__SUPERVISION = "Disabled" ]
-      then uci set supervision.global.enabled="0"
-      else uci set supervision.global.enabled="1"
+      then uci -q set supervision.global.enabled="0"
+      else uci -q set supervision.global.enabled="1"
     fi
-    uci commit supervision
+    uci -q commit supervision
     SRV_supervision=$(( $SRV_supervision + 1 ))
     echo [$SCRIPT]: WAN Supervision Mode = $__SUPERVISION
   fi
@@ -1081,8 +1081,8 @@ INTERCEPT_NOW="$(uci -q get intercept.config.enabled)"
 if [ "$__INTERCEPT" = "u" -o "$INTERCEPT_NOW" = "$__INTERCEPT" ]; then
   echo [$SCRIPT]: Intercept Daemon unchanged \[$(status2text $INTERCEPT_NOW)\]
 else
-  uci set intercept.config.enabled="$__INTERCEPT"
-  uci commit intercept
+  uci -q set intercept.config.enabled="$__INTERCEPT"
+  uci -q commit intercept
   SRV_intercept=$(( $SRV_intercept + 1 ))
   echo [$SCRIPT]: Intercept Daemon $(status2text $__INTERCEPT)
 fi
@@ -1093,8 +1093,8 @@ if [ -n "$LED_LOG_NOW" ]; then
   if [ "$__LED_LOG" = "u" -o "$LED_LOG_NOW" = "$__LED_LOG" ]; then
     echo [$SCRIPT]: LED Logging unchanged \[$(status2text $LED_LOG_NOW)\]
   else
-    uci set ledfw.syslog.trace="$__LED_LOG"
-    uci commit ledfw
+    uci -q set ledfw.syslog.trace="$__LED_LOG"
+    uci -q commit ledfw
     SRV_ledfw=$(( $SRV_ledfw + 1 ))
     echo [$SCRIPT]: LED Logging $(status2text $__LED_LOG)
   fi
@@ -1102,17 +1102,17 @@ fi
 
 # Wi-Fi WPS
 if [ "$__WPS" = "u" ]; then
-  WPS_NOW="$(uci show wireless | grep wps_state=\'1\' | wc -l)"
+  WPS_NOW="$(uci -q show wireless | grep wps_state=\'1\' | wc -l)"
   if [ "$WPS_NOW" -eq 1 ]; then
     echo [$SCRIPT]: WPS unchanged \[Enabled on 1 Access Point\]
   else
     echo [$SCRIPT]: WPS unchanged \[Enabled on $WPS_NOW Access Points\]
   fi
 else
-  if [ $(uci show wireless | grep '=wifi-ap' | wc -l) -eq 0 ]; then
-    aps=$(uci show wireless | grep -E "^wireless\.($(uci show wireless | grep ssid= | grep -v -E '(Guest|BH-)' | cut -d. -f2 | xargs | tr ' ' '|'))\.wps_state=" | cut -d. -f2)
+  if [ $(uci -q show wireless | grep '=wifi-ap' | wc -l) -eq 0 ]; then
+    aps=$(uci -q show wireless | grep -E "^wireless\.($(uci -q show wireless | grep ssid= | grep -v -E '(Guest|BH-)' | cut -d. -f2 | xargs | tr ' ' '|'))\.wps_state=" | cut -d. -f2)
   else
-    aps=$(uci show wireless | grep -E "='($(uci show wireless | grep ssid= | grep -v -E '(Guest|BH-)' | cut -d. -f2 | xargs | tr ' ' '|'))'$" | cut -d. -f2)
+    aps=$(uci -q show wireless | grep -E "='($(uci -q show wireless | grep ssid= | grep -v -E '(Guest|BH-)' | cut -d. -f2 | xargs | tr ' ' '|'))'$" | cut -d. -f2)
   fi
   for ap in $aps; do
     ssid="$(uci -q get wireless.$ap.ssid)"
@@ -1121,13 +1121,13 @@ else
     if [ "$wps_state" = "$__WPS" ]; then
       echo [$SCRIPT]: WPS State unchanged on SSID $ssid \[$(status2text $__WPS)\]
     else
-      uci set wireless.$ap.wps_state="$__WPS"
+      uci -q set wireless.$ap.wps_state="$__WPS"
       SRV_hostapd=$(( $SRV_hostapd + 1 ))
       echo [$SCRIPT]: WPS State on SSID $ssid $(status2text $__WPS)
     fi
   done
   if [ $SRV_hostapd -gt 0 ]; then
-    uci commit wireless
+    uci -q commit wireless
   fi
 fi
 
@@ -1135,14 +1135,14 @@ fi
 if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
   if [ "$__ALG" = "u" ]; then
     ALG_ENABLED=0
-    for g in $(uci show firewall | grep '\.helper' | cut -d\' -f2); do
-      key=$(uci show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
+    for g in $(uci -q show firewall | grep '\.helper' | cut -d\' -f2); do
+      key=$(uci -q show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
       ALG_ENABLED=$(( $ALG_ENABLED + $(uci -q get $key.enable || echo 1) ))
     done
     echo [$SCRIPT]: ALGs unchanged \[$ALG_ENABLED Enabled\]
   else
-    for g in $(uci show firewall | grep '\.helper' | cut -d\' -f2); do
-      key=$(uci show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
+    for g in $(uci -q show firewall | grep '\.helper' | cut -d\' -f2); do
+      key=$(uci -q show firewall | grep '\.helper' | grep -i "\b$g" | sed 's/\(.*\)\.helper=.*/\1/')
       G=$(echo $g | tr "[a-z]" "[A-Z]")
       G_NOW="$(uci -q get $key.enable || echo 1)"
       if [ "$G_NOW" != "$__ALG" ]; then
@@ -1151,8 +1151,8 @@ if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
         else
           echo [$SCRIPT]: $G ALG Enabled
         fi
-        uci set $key.enable="$__ALG"
-        uci commit firewall
+        uci -q set $key.enable="$__ALG"
+        uci -q commit firewall
         SRV_fw=$(( $SRV_fw + 1 ))
       else
         echo [$SCRIPT]: $G ALG unchanged \[$(status2text $G_NOW)\]
@@ -1160,13 +1160,13 @@ if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
     done
   fi
 else # 20.3.c and later
-  LAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "name='lan'" | cut -d. -f1-2)
-  WAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "wan='1'" | cut -d. -f1-2)
+  LAN_ZONE=$(uci -q show firewall | grep @zone | grep -m 1 "name='lan'" | cut -d. -f1-2)
+  WAN_ZONE=$(uci -q show firewall | grep @zone | grep -m 1 "wan='1'" | cut -d. -f1-2)
   if [ "$__ALG" = "u" ]; then
     LAN_HELP=$(uci -qd"$IFS" get $LAN_ZONE.helper | sort | xargs)
     WAN_HELP=$(uci -qd"$IFS" get $WAN_ZONE.helper | sort | xargs)
     if [ "$LAN_HELP" = "$WAN_HELP" ]; then
-      echo [$SCRIPT]: ALGs unchanged \[$(uci -q get $(uci show firewall | grep @zone | grep "wan='1'" | cut -d. -f1-2).helper | wc -w) Enabled\]
+      echo [$SCRIPT]: ALGs unchanged \[$(uci -q get $(uci -q show firewall | grep @zone | grep "wan='1'" | cut -d. -f1-2).helper | wc -w) Enabled\]
     else
       if [ -z "$WAN_HELP" ]; then
         if [ -n "$LAN_HELP" ]; then
@@ -1177,10 +1177,10 @@ else # 20.3.c and later
         uci -q delete $LAN_ZONE.helper
         for h in $WAN_HELP
         do
-          uci add_list $LAN_ZONE.helper="$h"
+          uci -q add_list $LAN_ZONE.helper="$h"
         done
       fi
-      uci commit firewall
+      uci -q commit firewall
       SRV_fw=$(( $SRV_fw + 1 ))
       echo [$SCRIPT]: ALGs fixed \[$(echo $WAN_HELP | wc -w) Enabled\]
     fi
@@ -1193,12 +1193,12 @@ else # 20.3.c and later
       for g in ftp tftp snmp pptp sip irc amanda rtsp
       do
         G=$(echo $g | tr "[a-z]" "[A-Z]")
-        uci add_list $LAN_ZONE.helper="$g"
-        uci add_list $WAN_ZONE.helper="$g"
+        uci -q add_list $LAN_ZONE.helper="$g"
+        uci -q add_list $WAN_ZONE.helper="$g"
         echo [$SCRIPT]: $G ALG Enabled
       done
     fi
-    uci commit firewall
+    uci -q commit firewall
     SRV_fw=$(( $SRV_fw + 1 ))
   fi
 fi
@@ -1209,9 +1209,9 @@ NATPMP_NOW="$(uci -q get upnpd.config.enable_natpmp)"
 if [ "$__UPNP" = "u" -o \( "$NATPMP_NOW" = "$__UPNP" -a "$UPNP_NOW" = "$__UPNP" \) ]; then
   echo [$SCRIPT]: UPnP unchanged \[UPnP: $(status2text $UPNP_NOW) NAT-PMP: $(status2text $NATPMP_NOW)\]
 else
-  uci set upnpd.config.enable_natpmp="$__UPNP"
-  uci set upnpd.config.enable_upnp="$__UPNP"
-  uci commit upnpd
+  uci -q set upnpd.config.enable_natpmp="$__UPNP"
+  uci -q set upnpd.config.enable_upnp="$__UPNP"
+  uci -q commit upnpd
   SRV_upnp=$(( $SRV_upnp + 2 ))
   echo [$SCRIPT]: UPnP $(status2text $__UPNP)
 fi
@@ -1222,8 +1222,8 @@ if [ $SRV_dumaos -ge 0 ]; then
   if [ "$__DUMAOS" = "u" -o "$DUMAOS_NOW" = "$__DUMAOS" ]; then
     echo [$SCRIPT]: DumaOS unchanged \[$(status2text $DUMAOS_NOW)\]
   else
-    uci set dumaos.tr69.dumaos_enabled="$__DUMAOS"
-    uci commit dumaos
+    uci -q set dumaos.tr69.dumaos_enabled="$__DUMAOS"
+    uci -q commit dumaos
     SRV_dumaos=$(( $SRV_dumaos + 1 ))
     echo [$SCRIPT]: DumaOS $(status2text $__DUMAOS)
   fi
@@ -1231,8 +1231,8 @@ fi
 
 # EasyMesh
 if [ $SRV_multiap -ge 0 ]; then
-  BHAUL_IF="$(uci show wireless | grep "backhaul='1'" | cut -d. -f2)"
-  BHAUL_AP="$(uci show wireless | grep -E "wireless\.ap.*\.iface='$BHAUL_IF'" | cut -d. -f2)"
+  BHAUL_IF="$(uci -q show wireless | grep "backhaul='1'" | cut -d. -f2)"
+  BHAUL_AP="$(uci -q show wireless | grep -E "wireless\.ap.*\.iface='$BHAUL_IF'" | cut -d. -f2)"
   AGENT_NOW="$(uci -q get multiap.agent.enabled)"
   CTRLR_NOW="$(uci -q get multiap.controller.enabled)"
   VNDRX_NOW="$(uci -q get vendorextensions.multiap_vendorextensions.enable)"
@@ -1241,16 +1241,16 @@ if [ $SRV_multiap -ge 0 ]; then
   if [ \( "$__MULTIAP_AGT" = "u" -a "$__MULTIAP_BKH" = "u" -a "$__MULTIAP_CTL" = "u" -a "$__MULTIAP_VND" = "u" \) -o \( "$AGENT_NOW" = "$__MULTIAP_AGT" -a "$CTRLR_NOW" = "$__MULTIAP_CTL" -a "$VNDRX_NOW" = "$__MULTIAP_VND" -a "$BHAUL_AP_NOW" = "$__MULTIAP_BKH" -a "$BHAUL_IF_NOW" = "$__MULTIAP_BKH" \) ]; then
     echo [$SCRIPT]: MultiAP unchanged \[Controller: $(status2text $CTRLR_NOW) Agent: $(status2text $AGENT_NOW) Vendor Extensions: $(status2text $VNDRX_NOW) BackHaul SSID: $(status2text $BHAUL_IF_NOW)\]
   else
-    [ "$__MULTIAP_AGT" != "u" ] && { uci set multiap.agent.enabled="$__MULTIAP_AGT"; SRV_multiap=$(( $SRV_multiap + 1 )); }
-    [ "$__MULTIAP_CTL" != "u" ] && { uci set multiap.controller.enabled="$__MULTIAP_CTL"; SRV_multiap=$(( $SRV_multiap + 1 )); }
-    [ $SRV_multiap -gt 0 ] && uci commit multiap
-    [ "$__MULTIAP_VND" != "u" ] && { uci set vendorextensions.multiap_vendorextensions.enable="$__MULTIAP_VND"; SRV_multiap=$(( $SRV_multiap + 1 )); }
+    [ "$__MULTIAP_AGT" != "u" ] && { uci -q set multiap.agent.enabled="$__MULTIAP_AGT"; SRV_multiap=$(( $SRV_multiap + 1 )); }
+    [ "$__MULTIAP_CTL" != "u" ] && { uci -q set multiap.controller.enabled="$__MULTIAP_CTL"; SRV_multiap=$(( $SRV_multiap + 1 )); }
+    [ $SRV_multiap -gt 0 ] && uci -q commit multiap
+    [ "$__MULTIAP_VND" != "u" ] && { uci -q set vendorextensions.multiap_vendorextensions.enable="$__MULTIAP_VND"; SRV_multiap=$(( $SRV_multiap + 1 )); }
     if [ "$__MULTIAP_BKH" != "u" ]; then
-      uci set wireless.$BHAUL_AP.state="$__MULTIAP_BKH"
-      uci set wireless.$BHAUL_IF.state="$__MULTIAP_BKH"
+      uci -q set wireless.$BHAUL_AP.state="$__MULTIAP_BKH"
+      uci -q set wireless.$BHAUL_IF.state="$__MULTIAP_BKH"
       SRV_hostapd=$(( $SRV_hostapd + 2 ))
       SRV_network=$(( $SRV_network + 1 ))
-      uci commit wireless
+      uci -q commit wireless
     fi
     echo [$SCRIPT]: MultiAP Agent $(status2text $__MULTIAP_AGT)
     echo [$SCRIPT]: MultiAP Controller $(status2text $__MULTIAP_CTL)
@@ -1261,17 +1261,17 @@ fi
 if [ $SRV_mesh_broker -ge 0 ]; then
   AGENT_NOW="$(uci -q get wireless.agent.state)"
   CTRLR_NOW="$(uci -q get mesh_broker.mesh_common.controller_enabled)"
-  BHAUL_CRED=$(uci show mesh_broker | grep "backhaul='1'" | cut -d. -f2)
+  BHAUL_CRED=$(uci -q show mesh_broker | grep "backhaul='1'" | cut -d. -f2)
   BHAUL_NOW=$(uci -q get mesh_broker.$BHAUL_CRED.state)
   if [ \( "$__MULTIAP_AGT" = "u" -a "$__MULTIAP_BKH" = "u" -a "$__MULTIAP_CTL" = "u" \) -o \( "$AGENT_NOW" = "$__MULTIAP_AGT" -a "$CTRLR_NOW" = "$__MULTIAP_CTL" -a "$BHAUL_AP_NOW" = "$__MULTIAP_BKH" -a "$BHAUL_IF_NOW" = "$__MULTIAP_BKH" \) ]; then
     echo [$SCRIPT]: EasyMesh unchanged \[Controller: $(status2text $CTRLR_NOW) Agent: $(status2text $AGENT_NOW) BackHaul SSID: $(status2text $BHAUL_IF_NOW)\]
   else
-    [ "$__MULTIAP_AGT" != "u" ] && { uci set wireless.agent.state="$__MULTIAP_AGT"; SRV_mesh_broker=$(( $SRV_mesh_broker + 1 )); }
-    [ "$__MULTIAP_CTL" != "u" ] && { uci set mesh_broker.mesh_common.controller_enabled="$__MULTIAP_CTL"; SRV_mesh_broker=$(( $SRV_mesh_broker + 1 )); }
-    [ "$__MULTIAP_BKH" != "u" ] && { uci set mesh_broker.$BHAUL_CRED.state="$__MULTIAP_BKH"; SRV_mesh_broker=$(( $SRV_mesh_broker + 1 )); }
+    [ "$__MULTIAP_AGT" != "u" ] && { uci -q set wireless.agent.state="$__MULTIAP_AGT"; SRV_mesh_broker=$(( $SRV_mesh_broker + 1 )); }
+    [ "$__MULTIAP_CTL" != "u" ] && { uci -q set mesh_broker.mesh_common.controller_enabled="$__MULTIAP_CTL"; SRV_mesh_broker=$(( $SRV_mesh_broker + 1 )); }
+    [ "$__MULTIAP_BKH" != "u" ] && { uci -q set mesh_broker.$BHAUL_CRED.state="$__MULTIAP_BKH"; SRV_mesh_broker=$(( $SRV_mesh_broker + 1 )); }
     [ "$__MULTIAP_AGT" = "0" -a "$__MULTIAP_CTL" = "0" ] && MESH_BROKER="0" || MESH_BROKER="1"
-    [ "$(uci -q get mesh_broker.mesh_broker.enable)" != $MESH_BROKER ] && { uci set mesh_broker.mesh_broker.enable="$MESH_BROKER"; SRV_mesh_broker=$(( $SRV_mesh_broker + 1 )); }
-    [ $SRV_mesh_broker -gt 0 ] && uci commit mesh_broker
+    [ "$(uci -q get mesh_broker.mesh_broker.enable)" != $MESH_BROKER ] && { uci -q set mesh_broker.mesh_broker.enable="$MESH_BROKER"; SRV_mesh_broker=$(( $SRV_mesh_broker + 1 )); }
+    [ $SRV_mesh_broker -gt 0 ] && uci -q commit mesh_broker
     echo [$SCRIPT]: EasyMesh Agent $(status2text $__MULTIAP_AGT)
     echo [$SCRIPT]: EasyMesh Controller $(status2text $__MULTIAP_CTL)
     echo [$SCRIPT]: EasyMesh BackHaul SSID $(status2text $__MULTIAP_BKH)
@@ -1284,8 +1284,8 @@ if [ $SRV_nfc -ge 0 ]; then
   if [ "$__NFC" = "u" -o "$NFC_NOW" = "$__NFC" ]; then
     echo [$SCRIPT]: NFC unchanged \[$(status2text $NFC_NOW)\]
   else
-    uci set nfc.@nfc[0].enabled="$__NFC"
-    uci commit nfc
+    uci -q set nfc.@nfc[0].enabled="$__NFC"
+    uci -q commit nfc
     SRV_nfc=$(( $SRV_nfc + 1 ))
     echo [$SCRIPT]: NFC $(status2text $__NFC)
   fi
@@ -1306,19 +1306,19 @@ case "$__POWER" in
         pwrctl config --eee        off # PHY EEE: Energy Efficient Ethernet
         pwrctl config --autogreeen off # Ethernet AutoGrEEEn
         pwrctl config --dgm        off # SF2 DGM: Deep Green Mode
-        uci set power.ethernet.autogreeen='0'
-        uci set power.ethernet.eee='0'
+        uci -q set power.ethernet.autogreeen='0'
+        uci -q set power.ethernet.eee='0'
       elif [ "$VERSION" = "20.3.c" ]; then
         pwrctl config --net        off # Network device down
         pwrctl config --phy        off # PHY Power Down
         pwrctl config --eee        off # PHY EEE: Energy Efficient Ethernet
         pwrctl config --apd        off # PHY APD: Auto Power Down
         pwrctl config --dgm        off # SF2 DGM: Deep Green Mode
-        uci set power.ethernet.net='0'
-        uci set power.ethernet.phy='0'
-        uci set power.ethernet.eee='0'
-        uci set power.ethernet.apd='0'
-        uci set power.ethernet.dgm='0'
+        uci -q set power.ethernet.net='0'
+        uci -q set power.ethernet.phy='0'
+        uci -q set power.ethernet.eee='0'
+        uci -q set power.ethernet.apd='0'
+        uci -q set power.ethernet.dgm='0'
       elif [ "$VERSION" = "20.4" ]; then
         pwrctl config --disk       off # Disk Suspend: USB, SATA etc.
         pwrctl config --wifi       off # WIFI suspend
@@ -1331,9 +1331,9 @@ case "$__POWER" in
         pwrctl config --apd        off # PHY APD: Auto Power Down
         pwrctl config --sr         off # DRAM SR: Self Refresh
         pwrctl config --avs        off # AVS: Adaptive Voltage Scaling
-        uci set power.eee.enabled='1'
+        uci -q set power.eee.enabled='1'
       fi
-      uci commit power;;
+      uci -q commit power;;
   y)  echo [$SCRIPT]: Enabling power saving...
       if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
         pwrctl config --cpuspeed   1   # CPU Speed
@@ -1342,19 +1342,19 @@ case "$__POWER" in
         pwrctl config --eee        on  # PHY EEE: Energy Efficient Ethernet
         pwrctl config --autogreeen on  # Ethernet AutoGrEEEn
         pwrctl config --dgm        on  # SF2 DGM: Deep Green Mode
-        uci set power.ethernet.autogreeen='1'
-        uci set power.ethernet.eee='1'
+        uci -q set power.ethernet.autogreeen='1'
+        uci -q set power.ethernet.eee='1'
       elif [ "$VERSION" = "20.3.c" ]; then
         #pwrctl config --net       on  # Network device down
         #pwrctl config --phy       on  # PHY Power Down
         pwrctl config --eee        on  # PHY EEE: Energy Efficient Ethernet
         pwrctl config --apd        on  # PHY APD: Auto Power Down
         pwrctl config --dgm        on  # SF2 DGM: Deep Green Mode
-        uci set power.ethernet.net='1'
-        uci set power.ethernet.phy='1'
-        uci set power.ethernet.eee='1'
-        uci set power.ethernet.apd='1'
-        uci set power.ethernet.dgm='1'
+        uci -q set power.ethernet.net='1'
+        uci -q set power.ethernet.phy='1'
+        uci -q set power.ethernet.eee='1'
+        uci -q set power.ethernet.apd='1'
+        uci -q set power.ethernet.dgm='1'
       elif [ "$VERSION" = "20.4" ]; then
         pwrctl config --disk       on  # Disk Suspend: USB, SATA etc.
         pwrctl config --wifi       on  # WIFI suspend
@@ -1367,9 +1367,9 @@ case "$__POWER" in
         pwrctl config --apd        on  # PHY APD: Auto Power Down
         pwrctl config --sr         on  # DRAM SR: Self Refresh
         pwrctl config --avs        on  # AVS: Adaptive Voltage Scaling
-        uci set power.eee.enabled='1'
+        uci -q set power.eee.enabled='1'
       fi
-      uci commit power;;
+      uci -q commit power;;
   d)  echo [$SCRIPT]: Resetting power saving to defaults...
       if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
         pwrctl config --cpuspeed   1   # CPU Speed
@@ -1378,19 +1378,19 @@ case "$__POWER" in
         pwrctl config --eee        on  # PHY EEE: Energy Efficient Ethernet
         pwrctl config --autogreeen on  # Ethernet AutoGrEEEn
         pwrctl config --dgm        on  # SF2 DGM: Deep Green Mode
-        uci set power.ethernet.autogreeen='1'
-        uci set power.ethernet.eee='1'
+        uci -q set power.ethernet.autogreeen='1'
+        uci -q set power.ethernet.eee='1'
       elif [ "$VERSION" = "20.3.c" ]; then
         pwrctl config --net        off # Network device down
         pwrctl config --phy        off # PHY Power Down
         pwrctl config --eee        on  # PHY EEE: Energy Efficient Ethernet
         pwrctl config --apd        on  # PHY APD: Auto Power Dow
         pwrctl config --dgm        on  # SF2 DGM: Deep Green Mode
-        uci set power.ethernet.net='0'
-        uci set power.ethernet.phy='0'
-        uci set power.ethernet.eee='1'
-        uci set power.ethernet.apd='1'
-        uci set power.ethernet.dgm='1'
+        uci -q set power.ethernet.net='0'
+        uci -q set power.ethernet.phy='0'
+        uci -q set power.ethernet.eee='1'
+        uci -q set power.ethernet.apd='1'
+        uci -q set power.ethernet.dgm='1'
       elif [ "$VERSION" = "20.4" ]; then
         pwrctl config --disk       off # Disk Suspend: USB, SATA etc.
         pwrctl config --wifi       off # WIFI suspend
@@ -1403,9 +1403,9 @@ case "$__POWER" in
         pwrctl config --apd        on  # PHY APD: Auto Power Down
         pwrctl config --sr         off # DRAM SR: Self Refresh
         pwrctl config --avs        on  # AVS: Adaptive Voltage Scaling
-        uci set power.eee.enabled='1'
+        uci -q set power.eee.enabled='1'
       fi
-      uci commit power;;
+      uci -q commit power;;
 esac
 
 # Package Repository
@@ -1453,7 +1453,7 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
               echo 'src/gz routing https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing'>>/etc/opkg/customfeeds.conf
               echo 'src/gz telephony https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony'>>/etc/opkg/customfeeds.conf
               echo 'src/gz core https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages'>>/etc/opkg/customfeeds.conf
-              [ "$(uci get version.@version[0].version | cut -d. -f1)" = "20" ] && echo 'src/gz wg_go https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/repository/arm_cortex-a9/base' >> /etc/opkg/customfeeds.conf
+              [ "$(uci -q get version.@version[0].version | cut -d. -f1)" = "20" ] && echo 'src/gz wg_go https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/repository/arm_cortex-a9/base' >> /etc/opkg/customfeeds.conf
               ;;
             19|20)
               echo 'src/gz base https://repository.macoers.com/homeware/19/brcm6xxx-tch/VANTW/base'>/etc/opkg/customfeeds.conf
@@ -1498,9 +1498,9 @@ fi
 if [ $__GUEST = y ]; then
   uci -q delete dhcp.guest
   SRV_dhcp=$(( $SRV_dhcp + 1 ))
-  for nw in $(uci show network | grep -E '\.Guest.*=interface'  | cut -d= -f1); do
+  for nw in $(uci -q show network | grep -E '\.Guest.*=interface'  | cut -d= -f1); do
     nwname=$(echo $nw | cut -d. -f2)
-    ipaddr=$(uci get $nw.ipaddr)
+    ipaddr=$(uci -q get $nw.ipaddr)
 
     echo [$SCRIPT]: Removing $nwname network...
 
@@ -1508,15 +1508,15 @@ if [ $__GUEST = y ]; then
     uci -q delete dhcp.${nwname}_private
     SRV_dhcp=$(( $SRV_dhcp + 2 ))
 
-    fw=$(uci show firewall | grep -m1 -E "'$nwname'|'$ipaddr'" | cut -d. -f1-2)
+    fw=$(uci -q show firewall | grep -m1 -E "'$nwname'|'$ipaddr'" | cut -d. -f1-2)
     while [ -n "$fw" ]; do
       uci -q delete $fw
       SRV_fw=$(( $SRV_fw + 1 ))
-      fw=$(uci show firewall | grep -m1 -E "'$nwname'|'$ipaddr'" | cut -d. -f1-2)
+      fw=$(uci -q show firewall | grep -m1 -E "'$nwname'|'$ipaddr'" | cut -d. -f1-2)
     done
 
     if [ $SRV_mesh_broker -lt 0 ]; then
-      for q in $(uci show qos | grep "'$nwname'" | cut -d= -f1); do
+      for q in $(uci -q show qos | grep "'$nwname'" | cut -d= -f1); do
         uci -q del_list $q="$nwname"
         SRV_qos=$(( $SRV_qos + 1 ))
       done
@@ -1524,8 +1524,8 @@ if [ $__GUEST = y ]; then
       uci -q del_list parental.general.lan_intf="$nwname"
       SRV_fw=$(( $SRV_fw + 1 ))
 
-      ifname=$(uci get $nw.ifname)
-      ap=$(uci show wireless | grep "iface='$ifname'" | cut -d. -f1-2)
+      ifname=$(uci -q get $nw.ifname)
+      ap=$(uci -q show wireless | grep "iface='$ifname'" | cut -d. -f1-2)
       uci -q delete $ap
       uci -q delete wireless.$ifname
       SRV_hostapd=$(( $SRV_hostapd + 1 ))
@@ -1539,7 +1539,7 @@ if [ $__GUEST = y ]; then
       uci -q del_list parental.general.lan_intf="$ifname"
       SRV_fw=$(( $SRV_fw + 1 ))
 
-      for q in $(uci show qos_tch | grep "'$ifname'" | cut -d= -f1); do
+      for q in $(uci -q show qos_tch | grep "'$ifname'" | cut -d= -f1); do
         uci -q del_list $q="$ifname"
         SRV_qos_tch=$(( $SRV_qos_tch + 1 ))
       done
@@ -1554,18 +1554,18 @@ if [ $__GUEST = y ]; then
       SRV_mesh_broker=$(( $SRV_mesh_broker + 1 ))
     done
     uci -q delete web.guest
-    uci commit web
+    uci -q commit web
   fi
-  uci commit dhcp
-  uci commit parental
-  uci commit qos
-  uci commit wireless
-  uci commit network
-  uci commit firewall
+  uci -q commit dhcp
+  uci -q commit parental
+  uci -q commit qos
+  uci -q commit wireless
+  uci -q commit network
+  uci -q commit firewall
 fi
-if [ $SRV_mesh_broker -lt 0 -a $(uci show network | grep -E '\.Guest.*=interface' | wc -l) -eq 0 -a "$(uci -q get wireless.wl1_2)" = "wifi-iface" -a -z "$(uci -q get wireless.wl1_1)" ]; then
+if [ $SRV_mesh_broker -lt 0 -a $(uci -q show network | grep -E '\.Guest.*=interface' | wc -l) -eq 0 -a "$(uci -q get wireless.wl1_2)" = "wifi-iface" -a -z "$(uci -q get wireless.wl1_1)" ]; then
   echo [$SCRIPT]: Renaming wireless interface wl1_2 to wl1_1...
-  ap=$(uci show wireless | grep "iface='wl1_2'" | cut -d. -f1-2)
+  ap=$(uci -q show wireless | grep "iface='wl1_2'" | cut -d. -f1-2)
   uci -q rename wireless.wl1_2='wl1_1'
   uci -q set $ap.iface='wl1_1'
   uci -q commit wireless
@@ -1640,7 +1640,7 @@ else
   [ $SRV_wansensing -gt 0 ] && /etc/init.d/wansensing restart > /dev/null 2>&1
 fi
 if [ $SRV_mountd -gt 0 ]; then
-  mnt_path=$(uci get mountd.mountd.path);
+  mnt_path=$(uci -q get mountd.mountd.path);
   for f in $(find ${mnt_path} -type l);do
     pwd | grep -q -v "$f" && echo "[$SCRIPT]: Attempting to unmount $f..." && umount $f;
   done;
@@ -1688,10 +1688,10 @@ echo [$SCRIPT]: Cleaning up broken links in /etc/rc.d
 find /etc/rc.d -type l ! -exec test -e {} \; -exec rm {} \;
 
 SRV_network=0
-if [ -n "$__IPADDR" -a "$__IPADDR" != "$(uci get network.lan.ipaddr)" ]; then
+if [ -n "$__IPADDR" -a "$__IPADDR" != "$(uci -q get network.lan.ipaddr)" ]; then
   echo [$SCRIPT]: Setting LAN IPv4 address to ${__IPADDR}...
-  uci set network.lan.ipaddr="$__IPADDR"
-  uci commit network
+  uci -q set network.lan.ipaddr="$__IPADDR"
+  uci -q commit network
   SRV_network=$(( $SRV_network + 1 ))
 fi
 
