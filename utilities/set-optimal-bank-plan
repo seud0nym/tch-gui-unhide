@@ -27,13 +27,13 @@ then
     BANK2_SIZE="$(grep bank_2 /proc/mtd | cut -d' ' -f2)"
     if [ "$BANK1_SIZE" = "$BANK2_SIZE" ]
     then
-      echo Copy firmware into bank_2 if applicable
       if [ "$(cat /proc/banktable/booted)" = "bank_1" ]; then
-        mtd -e bank_2 write /dev/$(grep bank_1 /proc/mtd | cut -d: -f1) bank_2 && \
-        mtd verify /dev/$(grep bank_1 /proc/mtd | cut -d: -f1) bank_2 || \
-        { echo "ERROR: Clone verification failed! Retry"; exit; }
+        echo Copy firmware into bank_2...
+        mtd -e bank_2 write /dev/$(grep bank_1 /proc/mtd | cut -d: -f1) bank_2
+      else
+        echo Already booted from bank_2 - Firmware copy not required
       fi
-      echo Make a temp copy of overlay for booted firmware
+      echo Make a temp copy of the overlay for the booted firmware
       cp -rf /overlay/$(cat /proc/banktable/booted) /tmp/bank_overlay_backup
       echo Clean up jffs2 space by removing existing old overlays
       rm -rf /overlay/*
