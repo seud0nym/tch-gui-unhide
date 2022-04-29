@@ -227,9 +227,12 @@ if [ $DUMP_CFG = Y ]; then
   SECONDS=$(date +%s)
   ACTIVE="$TARGET/$VARIANT-$SERIAL-$VERSION-config.gz"
   uci show 2>/dev/null | awk -e "$(lua -e 'proxy=require("datamodel");
-  for _,v in ipairs(proxy.get("rpc.gui.pwd.")) do
-    profile=string.match(v.path,"rpc%.gui%.pwd%.@([^%.]*)%.")
-    print(string.format("/^mmpbxrvsipnet.%s.password=/{print \"mmpbxrvsipnet.%s.password=\\\"%s\\\"\";next;}",profile,profile,v.value))
+  passwords=proxy.get("rpc.gui.pwd.")
+  if passwords then
+    for _,v in ipairs(passwords) do
+      profile=string.match(v.path,"rpc%.gui%.pwd%.@([^%.]*)%.")
+      print(string.format("/^mmpbxrvsipnet.%s.password=/{print \"mmpbxrvsipnet.%s.password=\\\"%s\\\"\";next;}",profile,profile,v.value))
+    end
   end
   print("1")')" | gzip > $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz
   ACTIVE=""
@@ -358,7 +361,7 @@ sh "${DIR}/000-core.sh" $*
 EoSH
 [ -e $TARGET/restore-config.sh ] && chmod +x $TARGET/restore-config.sh
 
-sed -e '/dev:/d' -e 's/\(mtd.\)[^"]*"\([^"]*\)"/\1 \2/' /proc/mtd | while read -r dev name
+sed -e '/dev:/d' -e 's/\(mtd[^:]*\)[^"]*"\([^"]*\)"/\1 \2/' /proc/mtd | while read -r dev name
 do
   if [ "$name" = "rootfs_data" -o "$name" = "$BOOTED" ]; then
     name="$name-$VERSION"
@@ -381,49 +384,61 @@ do
 
   [ $DEBUG = Y ] && $LOGGER user.debug "CALCULATING SHA256 for $dev..."
   SECONDS=$(date +%s)
-  SHA256=$(sha256sum "/dev/${dev}ro" | cut -d' ' -f1)
-  [ $DEBUG = Y ] && $LOGGER user.debug "CALCULATING SHA256 for $dev took $(( $(date +%s) - $SECONDS )) seconds"
-  if [ "$SHA256" = "$SHA256OLD" -a -f $TARGET/$VARIANT-$dev-$name.img.gz ]; then
-    $LOGGER user.info "SKIPPED backup of $dev - Checksums match"
-    if [ $RECALC_SHA = Y -a "$SHA256SRC" = "$TARGET/$VARIANT-$dev-$name.img.sha256" ]; then
-      $LOGGER user.info "RECALCULATING SHA256 for $VARIANT-$dev-$name.img..."
-      SECONDS=$(date +%s)
-      SHA256=$(cat $TARGET/$VARIANT-$dev-$name.img.gz | gunzip | sha256sum | cut -d' ' -f1)
-      [ $DEBUG = Y ] && $LOGGER user.debug "CALCULATING SHA256 for $VARIANT-$dev-$name.img took $(( $(date +%s) - $SECONDS )) seconds"
-      if [ "$SHA256" != "$SHA256OLD" ]; then
-        $LOGGER user.info "WARNING: $VARIANT-$dev-$name.img calculated checksum does not match stored checksum!!!"
+  SHA256_ERROR=$(mktemp)
+  SHA256=$(cat "/dev/${dev}ro" 2>$SHA256_ERROR | sha256sum | cut -d' ' -f1)
+  if [ -s $SHA256_ERROR ]; then
+    $LOGGER user.err "FAILURE calculating SHA256 for $dev: $(cat $SHA256_ERROR)"
+  else 
+    [ $DEBUG = Y ] && $LOGGER user.debug "CALCULATING SHA256 for $dev took $(( $(date +%s) - $SECONDS )) seconds"
+    if [ "$SHA256" = "$SHA256OLD" -a -f $TARGET/$VARIANT-$dev-$name.img.gz ]; then
+      $LOGGER user.info "SKIPPED backup of $dev - Checksums match"
+      if [ $RECALC_SHA = Y -a "$SHA256SRC" = "$TARGET/$VARIANT-$dev-$name.img.sha256" ]; then
+        $LOGGER user.info "RECALCULATING SHA256 for $VARIANT-$dev-$name.img..."
+        SECONDS=$(date +%s)
+        SHA256=$(cat $TARGET/$VARIANT-$dev-$name.img.gz | gunzip | sha256sum | cut -d' ' -f1)
+        [ $DEBUG = Y ] && $LOGGER user.debug "CALCULATING SHA256 for $VARIANT-$dev-$name.img took $(( $(date +%s) - $SECONDS )) seconds"
+        if [ "$SHA256" != "$SHA256OLD" ]; then
+          $LOGGER user.info "WARNING: $VARIANT-$dev-$name.img calculated checksum does not match stored checksum!!!"
+        fi
+        $LOGGER user.info "WRITING $VARIANT-$dev-$name.img checksum to $TARGET/$VARIANT-$dev-$name.img.sha256="
+        echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256=
+        [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256
+      else
+        [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256
       fi
-      $LOGGER user.info "WRITING $VARIANT-$dev-$name.img checksum to $TARGET/$VARIANT-$dev-$name.img.sha256="
-      echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256=
-      [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256
     else
-      [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256
-    fi
-  else
-    if [ -n "$SHA256SRC" ]; then
-      [ $DEBUG = Y ] && $LOGGER user.debug "DELETING obsolete $SHA256SRC"
-      rm $SHA256SRC
-    fi
-    $LOGGER user.info "WRITING $dev to $TARGET/$VARIANT-$dev-$name.img.gz"
-    SECONDS=$(date +%s)
-    ACTIVE="$TARGET/$VARIANT-$dev-$name.img.*"
-    dd if="/dev/${dev}ro" bs=1M | gzip > $TARGET/$VARIANT-$dev-$name.img.gz
-    [ $DEBUG = Y ] && $LOGGER user.debug "WRITING $dev to $TARGET/$VARIANT-$dev-$name.img.gz took $(( $(date +%s) - $SECONDS )) seconds"
-    if [ $RECALC_SHA = N ]; then
-      $LOGGER user.info "WRITING $dev checksum to $TARGET/$VARIANT-$dev-$name.img.sha256"
-      echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256
-      [ -f $TARGET/$VARIANT-$dev-$name.img.sha256= ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256=
-    else
-      $LOGGER user.info "CALCULATING SHA256 for $VARIANT-$dev-$name.img..."
+      if [ -n "$SHA256SRC" ]; then
+        [ $DEBUG = Y ] && $LOGGER user.debug "DELETING obsolete $SHA256SRC"
+        rm $SHA256SRC
+      fi
+      $LOGGER user.info "WRITING $dev to $TARGET/$VARIANT-$dev-$name.img.gz"
       SECONDS=$(date +%s)
-      SHA256=$(cat $TARGET/$VARIANT-$dev-$name.img.gz | gunzip | sha256sum | cut -d' ' -f1)
-      [ $DEBUG = Y ] && $LOGGER user.debug "CALCULATING SHA256 for $VARIANT-$dev-$name.img took $(( $(date +%s) - $SECONDS )) seconds"
-      $LOGGER user.info "WRITING $VARIANT-$dev-$name.img checksum to $TARGET/$VARIANT-$dev-$name.img.sha256="
-      echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256=
-      [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256
+      ACTIVE="$TARGET/$VARIANT-$dev-$name.img.*"
+      DD_ERROR=$(mktemp)
+      if dd if="/dev/${dev}ro" bs=1M 2>$DD_ERROR | gzip > $TARGET/$VARIANT-$dev-$name.img.gz; then
+        [ $DEBUG = Y ] && $LOGGER user.debug "WRITING $dev to $TARGET/$VARIANT-$dev-$name.img.gz took $(( $(date +%s) - $SECONDS )) seconds"
+        if [ $RECALC_SHA = N ]; then
+          $LOGGER user.info "WRITING $dev checksum to $TARGET/$VARIANT-$dev-$name.img.sha256"
+          echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256
+          [ -f $TARGET/$VARIANT-$dev-$name.img.sha256= ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256=
+        else
+          $LOGGER user.info "CALCULATING SHA256 for $VARIANT-$dev-$name.img..."
+          SECONDS=$(date +%s)
+          SHA256=$(cat $TARGET/$VARIANT-$dev-$name.img.gz | gunzip | sha256sum | cut -d' ' -f1)
+          [ $DEBUG = Y ] && $LOGGER user.debug "CALCULATING SHA256 for $VARIANT-$dev-$name.img took $(( $(date +%s) - $SECONDS )) seconds"
+          $LOGGER user.info "WRITING $VARIANT-$dev-$name.img checksum to $TARGET/$VARIANT-$dev-$name.img.sha256="
+          echo "$SHA256" > $TARGET/$VARIANT-$dev-$name.img.sha256=
+          [ -f $TARGET/$VARIANT-$dev-$name.img.sha256 ] && rm $TARGET/$VARIANT-$dev-$name.img.sha256
+        fi
+      else
+        $LOGGER user.err "FAILURE writing $dev to $TARGET/$VARIANT-$dev-$name.img.gz: $(cat $DD_ERROR)"
+        [ -e $TARGET/$VARIANT-$dev-$name.img.gz ] && rm $TARGET/$VARIANT-$dev-$name.img.gz
+      fi
+      ACTIVE=""
+      [ -e $DD_ERROR ] && rm $DD_ERROR
     fi
-    ACTIVE=""
   fi
+  [ -e $SHA256_ERROR ] && rm $SHA256_ERROR
 done
 
 if [ $FLUSH = Y ]; then
