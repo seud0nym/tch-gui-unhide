@@ -223,7 +223,7 @@ if [ -n "$FIRMWARE" ]; then
       fi
     else
       echo -e "${RED}WARNING: Bank plan is NOT optimal! Active bank is $ACTIVE and booted bank is $BOOTED!${NC}"
-      echo "         Are you REALLY sure you wish to proceed?"
+      echo "         Are you REALLY, REALLY sure you wish to proceed?"
     fi
   else
     echo "ABORTING: $FIRMWARE does not exist!"
@@ -292,13 +292,13 @@ then
   else
     target="${MOUNT_PATH}${USB}/$(basename $FIRMWARE .rbi).bin"
   fi
-  echo "About to unpack $FIRMWARE to $target"
+  echo -e "${ORANGE}About to unpack $FIRMWARE to $target${NC}"
   echo -n -e "${GREEN}ACTION:  Enter y to continue, or anything else to abort: ${NC}"
   read CONFIRM
 
   if [ "$CONFIRM" = "y" ]; then
     if [ -f "$target" ]; then
-      echo "Removing existing $target before extracting $FIRMWARE"
+      echo -e "${ORANGE}Removing existing $target before extracting $FIRMWARE${NC}"
       rm $target
     fi
     cat "$FIRMWARE" | (bli_parser && echo "Unpacking $FIRMWARE. Please wait... (This will take a while)" && (bli_unseal | dd bs=4 skip=1 seek=1 of="$target"))
@@ -317,11 +317,11 @@ fi
 
 if [ -n "$USB" -a -n "$SOURCE" -a -n "$TARGET" ]
 then
-  echo "Backing up $SOURCE to $TARGET ..."
+  echo -e "${ORANGE}Backing up $SOURCE to $TARGET ...${NC}"
   tar -C /overlay -czf $TARGET $SOURCE
 fi
 
-echo -e "${GREEN}Resetting...${NC}"
+echo -e "${ORANGE}Resetting...${NC}"
 # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#clean-up
 rm -rf /overlay/$(cat /proc/banktable/booted)
 # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
@@ -366,9 +366,19 @@ if [ $__VERBOSE = Y ]; then
   echo -e "${NC}"
 fi
 
+echo -e "${GREEN}Device has been reset to factory defaults and root access retained${NC}"
+
 if [ -n "$FIRMWARE" ]; then
-  echo -e "${GREEN}Erasing and writing $FIRMWARE into $(cat /proc/banktable/booted)...${NC}"
+  echo -e "${ORANGE}Erasing and writing $FIRMWARE into $(cat /proc/banktable/booted)...${NC}"
   mtd -e $(cat /proc/banktable/booted) write "$FIRMWARE" $(cat /proc/banktable/booted)
+  TMP_OUT=$(mktemp)
+  mtd verify "$FIRMWARE" $(cat /proc/banktable/booted) | tee $TMP_OUT
+  if grep -q 'Failed' $TMP_OUT; then
+    rm $TMP_OUT
+    echo -e "${RED}Verification FAILED!!${NC}"
+    exit 2
+  fi
+  rm $TMP_OUT
 fi
 
 if [ "$__REBOOT" = "Y" ]; then
