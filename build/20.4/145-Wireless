@@ -1,0 +1,5 @@
+echo [$SCRIPT]: Fix errant apostrophe
+sed \
+  -e "s/RADIO'S/RADIOS/" \
+  -i /www/docroot/modals/wireless-radio.lp
+
