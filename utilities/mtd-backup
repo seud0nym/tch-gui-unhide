@@ -265,7 +265,7 @@ fi
 
 if [ $DUMP_OVL = Y ]; then
   if [ -f $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz ]; then
-    FIX_VER=$(cat $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz | tar  -xzOf - ./bank_2/etc/config/version | grep 'marketing_version' | cut -d"'" -f2 )
+    FIX_VER=$(cat $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz | tar  -xzOf - ./$BOOTED/etc/config/version | grep 'marketing_version' | cut -d"'" -f2 )
     if [ -n "$FIX_VER" ]; then
       $LOGGER user.info "RENAMING existing overlay contents backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-overlay-files-backup.tgz"
       mv $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz $TARGET/$VARIANT-$SERIAL-$FIX_VER-overlay-files-backup.tgz
