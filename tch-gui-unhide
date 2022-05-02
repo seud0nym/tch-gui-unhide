@@ -3,7 +3,7 @@ VERSION="$(uci get version.@version[0].marketing_version)"
 SCRIPT="tch-gui-unhide-$VERSION"
 
 if [ -f "$SCRIPT" -a "$(echo $* | grep -o -e '-U')" != '-U' ]; then
-  ./$SCRIPT -W $*
+  sh $SCRIPT -W $*
 else
   if [ ! -f "$SCRIPT" ]; then
     echo "$(date +%H:%M:%S): Platform script $SCRIPT not found in $(pwd)!"
@@ -14,7 +14,7 @@ else
   then
     curl -gkL https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$VERSION.tar.gz | tar -xzvf -
     if [ -f "$SCRIPT" ]; then
-      ./$SCRIPT -W $(echo "$*" | sed -e 's/-U$//' -e 's/-U //g' -e 's/U//g')
+      sh $SCRIPT -W $(echo "$*" | sed -e 's/-U$//' -e 's/-U //g' -e 's/U//g')
     fi
   elif [ "$RESPONSE_CODE" = 404 ]
   then

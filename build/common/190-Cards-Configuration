@@ -86,7 +86,7 @@ apply_chart_card_visibiity() {
 
 if [ -z "$ALLCARDRULES" -a -f tch-gui-unhide-cards ]; then
   echo [$SCRIPT]: Applying suggested card sequence
-  ./tch-gui-unhide-cards -s -q
+  sh ./tch-gui-unhide-cards -s -q
   apply_chart_card_visibiity
 else
   apply_chart_card_visibiity
