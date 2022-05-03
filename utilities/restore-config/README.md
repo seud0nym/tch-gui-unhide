@@ -67,6 +67,17 @@ Options:
 
 If there are any issues with your updated firmware and configuration, you can revert to the previous version with `./mtd-restore -fsr`.
 
+### Alternate Firmware Upgrade (without mtd backup protection)
+
+1. Download the up-to-date version of [`reset-to-factory-defaults-with-root`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#reset-to-factory-defaults-with-root):
+      - `./reset-to-factory-defaults-with-root -U`
+2. Insert a USB stick into the device.
+3. Download the firmware .rbi file to the USB stick.
+4. Upgrade the firmware and backup/restore the current configuration:
+      - `./reset-to-factory-defaults-with-root -b -f firmware.rbi --restore-config`  
+(Replace `firmware.rbi` with the name of your firmware file)
+5. The device will reboot *twice* and then you should be on the new firmware with your restored configuration.
+
 ### Restore Configuration to New Device After Failure
 
 (*This assumes you have scheduled daily backups of your device to USB by running* `./mtd-backup -C` *to create the cron task, and that the new device has been factory reset and root access acquired.*)
