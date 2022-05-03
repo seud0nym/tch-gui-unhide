@@ -245,15 +245,22 @@ Parameters:
 
 ## reset-to-factory-defaults-with-root
 This script implements the commands from https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access to reset the device to factory defaults whilst preserving root access.
-It also provides many additional options.
 ```
 Usage: ./reset-to-factory-defaults-with-root [options]
 
 Options:
- -b               Make a full backup of your booted bank configuration 
-                    (requires attached USB device).
- -c               Disable CWMP configuration during first boot after reset
- -e               Disable any 'noexec' flags on USB mounted filesystems
+ -b               Make a full backup of your configuration from /overlay
+                    (Requires attached USB device).
+ -y               Bypass confirmation prompt (answers 'y')
+ -U               Download the latest version of the script from GitHub.
+ --save-defaults  Saves the command line options (except -f and -y) as defaults.
+                    When specified, NO changes are applied to the device.
+ --no-defaults    Ignores any saved defaults for this execution.
+ ```
+ The following options are only applicable to firmware versions 17.2, 18.1.c and 20.3.c:
+ ```
+ -c               Disable CWMP configuration during first boot after reset.
+ -e               Disable any 'noexec' flags on USB mounted filesystems.
  -f filename      Flash 'filename' into the mounted bank ($BOOTED) after reset 
                     and before reboot. If 'filename' ends with .rbi, it will be 
                     unpacked first, either to an attached USB device, or /tmp if
@@ -265,12 +272,7 @@ Options:
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
  -v               Show the reset script after it has been written.
- -y               Bypass confirmation prompt (answers 'y').
  -n               Do NOT reboot.
- -U               Download the latest version of $SCRIPT from GitHub.
- --save-defaults  Saves the command line options (except -f and -y) as defaults
-                    When specified, NO changes are applied to the device
- --no-defaults    Ignores any saved defaults for this execution
  --restore-config Runs the restore-config.sh script after reboot if it is found
                     in the USB backups directory. Output will be written to the 
                     system log. --restore-config should be the LAST option
