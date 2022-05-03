@@ -10,10 +10,12 @@ local prev_total = TGU_CPU:get("total") or 0
 local prev_idle = TGU_CPU:get("idle") or 0
 local user,sys,nice,idle,wait,irq,srq,zero
 local stat = io.open("/proc/stat")
-while (not user) do
-  user,sys,nice,idle,wait,irq,srq,zero = match(stat:read("*line"),"cpu%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+).*")
+if stat then
+  while (not user) do
+    user,sys,nice,idle,wait,irq,srq,zero = match(stat:read("*line"),"cpu%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+).*")
+  end
+  stat:close()
 end
-stat:close()
 if user then
   local ok,err
   local total = user + sys + nice + idle + wait + irq + srq + zero
@@ -32,9 +34,12 @@ else
   ngx.log(ngx.ERR,"Failed to read CPU line from /proc/stat")
 end
 
+local overlay = ""
 local df = io.popen("df -hP / | grep /$")
-local overlay = df:read()
-df:close()
+if df then
+  overlay = df:read()
+  df:close()
+end
 
 local disk_total,disk_free = string.match(overlay,"%S+%s+(%S+)%s+%S+%s+(%S+).*")
 local ram_total = tonumber(proxy.get("sys.mem.RAMTotal")[1].value or 0) or 0
@@ -49,8 +54,8 @@ local data = {
   cpu = cpu_usage,
   ram_free = ram_free,
   ram_total = ram_total,
-  disk_free = disk_free,
-  disk_total = disk_total,
+  disk_free = disk_free or 0,
+  disk_total = disk_total or 0,
   uptime = readfile("/proc/uptime","number",floor),
   time = os.date("%d/%m/%Y %H:%M:%S",os.time()),
   load = readfile("/proc/loadavg","string"):sub(1,14),
