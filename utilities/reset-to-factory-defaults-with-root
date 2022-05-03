@@ -15,7 +15,7 @@ ROM_FS="$(mount | grep '/rom type' | cut -d' ' -f5)"
 MOUNT_PATH="$(uci get mountd.mountd.path)"
 USB="$(ls $MOUNT_PATH | head -n1)"
 
-[ "$ROM_FS" = "squashfs" ] && ACTIVE="$(cat /proc/banktable/active 2>/dev/null)" || ACTIVE="bank_$(bootmgr partition active)"
+[ "$ROM_FS" = "squashfs" ] && ACTIVE="$(cat /proc/banktable/active 2>/dev/null)" || ACTIVE="bank_$(bootmgr partition active | grep -v rd_metadata)"
 [ "$ROM_FS" = "squashfs" ] && BOOTED="$(cat /proc/banktable/booted 2>/dev/null)" || BOOTED="bank_$(bootmgr partition booted)"
 
 usage() {
@@ -475,7 +475,7 @@ then
   fi
 fi
 
-echo "$INFO:     Resetting..."
+echo -e "${ORANGE}INFO:     Resetting...${NC}"
 case "$OVERLAY_FS" in 
   jffs2)
     # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#clean-up
