@@ -2,15 +2,13 @@
 
 cd $(dirname $0)
 
-if [ "x$1" = "x-f" ]
-then
+if [ "x$1" = "x-f" ]; then
   version=$(date +%Y.%m.%d)
 else
   version="$(head -n 1 ../VERSION.txt)"
 fi
 
-if [ "$(date +%Y.%m.%d)" != "$version" ]
-then
+if [ "$(date +%Y.%m.%d)" != "$version" ]; then
   echo "ERROR: First line of VERSION.txt does not match expected version number!!!"
   exit 1
 else
@@ -21,10 +19,8 @@ fi
 
 echo Fixing utilities line endings...
 DOS=$(find ../utilities/ -type f | xargs file | grep CRLF | cut -d: -f1 | xargs)
-if [ -n "$DOS" ]
-then
-  for f in $DOS
-  do
+if [ -n "$DOS" ]; then
+  for f in $DOS; do
     dos2unix $f
   done
   find ../utilities/ -name 'd2utmp*' -exec rm -f {} \;
@@ -33,24 +29,16 @@ fi
 echo Cleaning up..
 rm ../*.tar.gz *.tar.gz 2>/dev/null
 
-common=$(find ../utilities/ -type f | grep -v -E '(README|dumaos|transformer)' | sed -e 's,^\.\./,,' | tr "$IFS" " ")
-
-for major in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1)
-do
-  new="../tch-gui-unhide-$major"
-  transformer=""
-  if [ "$major" = "17.2" ]
-  then
-    transformer="utilities/transformer-cli"
-  fi
-  dumaos=""
-  if [ "$major" != "17.2" ]
-  then
-    dumaos="utilities/dumaos"
-  fi
-
-  echo Writing "../${major}.tar.gz"...
-  tar --xform='s,utilities/,,' --owner=root --group=root --mode=755 -czf "../${major}.tar.gz" -C .. tch-gui-unhide tch-gui-unhide-$major tch-gui-unhide-cards $common $dumaos $transformer
+for major in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
+  case "$major" in
+    17.2)   utilities=$(find ../utilities/ -maxdepth 1 -type f | grep -vE '(README|dumaos|log-check)' | sort | sed -e 's,^\.\./,,');;
+    18.1.c) utilities=$(find ../utilities/ -maxdepth 1 -type f | grep -vE '(README|log-check|transformer)' | sort | sed -e 's,^\.\./,,');;
+    20.3.c) utilities=$(find ../utilities/ -maxdepth 1 -type f | grep -vE '(README|transformer)' | sort | sed -e 's,^\.\./,,');;
+    20.4)   utilities=$(find ../utilities/ -maxdepth 1 -type f | grep -vE '(README|log-check|mtd-|set-optimal-bank-plan|transformer|unpack-rbi)' | sort | sed -e 's,^\.\./,,');;
+    *)      utilities=$(find ../utilities/ -maxdepth 1 -type f | grep -vE '(README)' | sort | sed -e 's,^\.\./,,');;
+  esac
+  echo "Writing ${major}.tar.gz ..."
+  tar --xform='s,utilities/,,' --owner=root --group=root --mode=755 -czf "../${major}.tar.gz" -C .. tch-gui-unhide tch-gui-unhide-$major tch-gui-unhide-cards $utilities
 done
 
 echo Done.
