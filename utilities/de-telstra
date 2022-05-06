@@ -1292,6 +1292,8 @@ if [ $SRV_nfc -ge 0 ]; then
 fi
 
 # Power Saving
+PWR_OPTIONS="$(pwrctl 2>&1 | grep -oe '--[^[:blank:]]*' | sort -u)"
+PWR_CFG_SET() { echo $PWR_OPTIONS | grep -qe "--$1\b" && pwrctl config --$1 $2; }
 PWR_STATUS=$(pwrctl show | grep -i ENABLED | wc -l)
 if [ \( $PWR_STATUS -eq 0 -a "$__POWER" = "n" \) -o \( $PWR_STATUS -gt 0 -a "$__POWER" = "y" \) ]; then
   __POWER='u'
@@ -1299,110 +1301,137 @@ fi
 case "$__POWER" in
   u)  echo [$SCRIPT]: Power saving settings unchanged \[$(status2text $PWR_STATUS)\];;
   n)  echo [$SCRIPT]: Disabling power saving...
-      if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
-        pwrctl config --cpuspeed   0   # CPU Speed
-        pwrctl config --wait       off # CPU Wait
-        pwrctl config --ethapd     off # PHY APD: Auto Power Down
-        pwrctl config --eee        off # PHY EEE: Energy Efficient Ethernet
-        pwrctl config --autogreeen off # Ethernet AutoGrEEEn
-        pwrctl config --dgm        off # SF2 DGM: Deep Green Mode
+      if [ "$VERSION" = "17.2" ]; then
+        PWR_CFG_SET cpuspeed   0   # CPU Speed
+        PWR_CFG_SET wait       off # CPU Wait
+        PWR_CFG_SET ethapd     off # PHY APD: Auto Power Down
+        PWR_CFG_SET eee        off # PHY EEE: Energy Efficient Ethernet
+        PWR_CFG_SET autogreeen off # Ethernet AutoGrEEEn
+        PWR_CFG_SET dgm        off # SF2 DGM: Deep Green Mode
+        uci -q set power.ethernet.autogreeen='0'
+        uci -q set power.ethernet.eee='0'
+      elif [ "$VERSION" = "18.1.c" ]; then
+        PWR_CFG_SET cpuspeed   0   # CPU Speed
+        PWR_CFG_SET wait       off # CPU Wait
+        PWR_CFG_SET ethapd     off # PHY APD: Auto Power Down
+        PWR_CFG_SET eee        off # PHY EEE: Energy Efficient Ethernet
+        PWR_CFG_SET autogreeen off # Ethernet AutoGrEEEn
+        PWR_CFG_SET dgm        off # SF2 DGM: Deep Green Mode
         uci -q set power.ethernet.autogreeen='0'
         uci -q set power.ethernet.eee='0'
       elif [ "$VERSION" = "20.3.c" ]; then
-        pwrctl config --net        off # Network device down
-        pwrctl config --phy        off # PHY Power Down
-        pwrctl config --eee        off # PHY EEE: Energy Efficient Ethernet
-        pwrctl config --apd        off # PHY APD: Auto Power Down
-        pwrctl config --dgm        off # SF2 DGM: Deep Green Mode
+        PWR_CFG_SET net        off # Network device down
+        PWR_CFG_SET phy        off # PHY Power Down
+        PWR_CFG_SET eee        off # PHY EEE: Energy Efficient Ethernet
+        PWR_CFG_SET apd        off # PHY APD: Auto Power Down
+        PWR_CFG_SET dgm        off # SF2 DGM: Deep Green Mode
         uci -q set power.ethernet.net='0'
         uci -q set power.ethernet.phy='0'
         uci -q set power.ethernet.eee='0'
         uci -q set power.ethernet.apd='0'
         uci -q set power.ethernet.dgm='0'
       elif [ "$VERSION" = "20.4" ]; then
-        pwrctl config --disk       off # Disk Suspend: USB, SATA etc.
-        pwrctl config --wifi       off # WIFI suspend
-        pwrctl config --ubus       off # UBUS DCM
-        pwrctl config --cpuwait    off # CPU Wait
-        pwrctl config --xrdp       off # XRDP Clock Gating
-        pwrctl config --net        off # Network device down
-        pwrctl config --phy        off # PHY Power Down
-        pwrctl config --eee        off # PHY EEE: Energy Efficient Ethernet
-        pwrctl config --apd        off # PHY APD: Auto Power Down
-        pwrctl config --sr         off # DRAM SR: Self Refresh
-        pwrctl config --avs        off # AVS: Adaptive Voltage Scaling
+        PWR_CFG_SET disk       off # Disk Suspend: USB, SATA etc.
+        PWR_CFG_SET wifi       off # WIFI suspend
+        PWR_CFG_SET ubus       off # UBUS DCM
+        PWR_CFG_SET cpuwait    off # CPU Wait
+        PWR_CFG_SET xrdp       off # XRDP Clock Gating
+        PWR_CFG_SET net        off # Network device down
+        PWR_CFG_SET phy        off # PHY Power Down
+        PWR_CFG_SET eee        off # PHY EEE: Energy Efficient Ethernet
+        PWR_CFG_SET apd        off # PHY APD: Auto Power Down
+        PWR_CFG_SET sr         off # DRAM SR: Self Refresh
+        PWR_CFG_SET avs        off # AVS: Adaptive Voltage Scaling
         uci -q set power.eee.enabled='1'
       fi
       uci -q commit power;;
   y)  echo [$SCRIPT]: Enabling power saving...
-      if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
-        pwrctl config --cpuspeed   1   # CPU Speed
-        pwrctl config --wait       on  # CPU Wait
-        pwrctl config --ethapd     on  # PHY APD: Auto Power Down
-        pwrctl config --eee        on  # PHY EEE: Energy Efficient Ethernet
-        pwrctl config --autogreeen on  # Ethernet AutoGrEEEn
-        pwrctl config --dgm        on  # SF2 DGM: Deep Green Mode
+      if [ "$VERSION" = "17.2" ]; then
+        PWR_CFG_SET cpuspeed   1   # CPU Speed
+        PWR_CFG_SET wait       on  # CPU Wait
+        PWR_CFG_SET ethapd     on  # PHY APD: Auto Power Down
+        PWR_CFG_SET eee        on  # PHY EEE: Energy Efficient Ethernet
+        PWR_CFG_SET autogreeen on  # Ethernet AutoGrEEEn
+        PWR_CFG_SET dgm        on  # SF2 DGM: Deep Green Mode
+        uci -q set power.ethernet.autogreeen='1'
+        uci -q set power.ethernet.eee='1'
+      elif [ "$VERSION" = "18.1.c" ]; then
+        PWR_CFG_SET cpuspeed   1   # CPU Speed
+        PWR_CFG_SET wait       on  # CPU Wait
+        PWR_CFG_SET ethapd     on  # PHY APD: Auto Power Down
+        PWR_CFG_SET eee        on  # PHY EEE: Energy Efficient Ethernet
+        PWR_CFG_SET autogreeen on  # Ethernet AutoGrEEEn
+        PWR_CFG_SET dgm        on  # SF2 DGM: Deep Green Mode
         uci -q set power.ethernet.autogreeen='1'
         uci -q set power.ethernet.eee='1'
       elif [ "$VERSION" = "20.3.c" ]; then
-        #pwrctl config --net       on  # Network device down
-        #pwrctl config --phy       on  # PHY Power Down
-        pwrctl config --eee        on  # PHY EEE: Energy Efficient Ethernet
-        pwrctl config --apd        on  # PHY APD: Auto Power Down
-        pwrctl config --dgm        on  # SF2 DGM: Deep Green Mode
+        #PWR_CFG_SET net       on  # Network device down
+        #PWR_CFG_SET phy       on  # PHY Power Down
+        PWR_CFG_SET eee        on  # PHY EEE: Energy Efficient Ethernet
+        PWR_CFG_SET apd        on  # PHY APD: Auto Power Down
+        PWR_CFG_SET dgm        on  # SF2 DGM: Deep Green Mode
         uci -q set power.ethernet.net='1'
         uci -q set power.ethernet.phy='1'
         uci -q set power.ethernet.eee='1'
         uci -q set power.ethernet.apd='1'
         uci -q set power.ethernet.dgm='1'
       elif [ "$VERSION" = "20.4" ]; then
-        pwrctl config --disk       on  # Disk Suspend: USB, SATA etc.
-        pwrctl config --wifi       on  # WIFI suspend
-        pwrctl config --ubus       on  # UBUS DCM
-        pwrctl config --cpuwait    on  # CPU Wait
-        pwrctl config --xrdp       on  # XRDP Clock Gating
-        #pwrctl config --net       on  # Network device down
-        #pwrctl config --phy       on  # PHY Power Down
-        pwrctl config --eee        on  # PHY EEE: Energy Efficient Ethernet
-        pwrctl config --apd        on  # PHY APD: Auto Power Down
-        pwrctl config --sr         on  # DRAM SR: Self Refresh
-        pwrctl config --avs        on  # AVS: Adaptive Voltage Scaling
+        PWR_CFG_SET disk       on  # Disk Suspend: USB, SATA etc.
+        PWR_CFG_SET wifi       on  # WIFI suspend
+        PWR_CFG_SET ubus       on  # UBUS DCM
+        PWR_CFG_SET cpuwait    on  # CPU Wait
+        PWR_CFG_SET xrdp       on  # XRDP Clock Gating
+        #PWR_CFG_SET net       on  # Network device down
+        #PWR_CFG_SET phy       on  # PHY Power Down
+        PWR_CFG_SET eee        on  # PHY EEE: Energy Efficient Ethernet
+        PWR_CFG_SET apd        on  # PHY APD: Auto Power Down
+        PWR_CFG_SET sr         on  # DRAM SR: Self Refresh
+        PWR_CFG_SET avs        on  # AVS: Adaptive Voltage Scaling
         uci -q set power.eee.enabled='1'
       fi
       uci -q commit power;;
   d)  echo [$SCRIPT]: Resetting power saving to defaults...
-      if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
-        pwrctl config --cpuspeed   1   # CPU Speed
-        pwrctl config --wait       on  # CPU Wait
-        pwrctl config --ethapd     on  # PHY APD: Auto Power Down
-        pwrctl config --eee        on  # PHY EEE: Energy Efficient Ethernet
-        pwrctl config --autogreeen on  # Ethernet AutoGrEEEn
-        pwrctl config --dgm        on  # SF2 DGM: Deep Green Mode
+      if [ "$VERSION" = "17.2" ]; then
+        PWR_CFG_SET cpuspeed   1   # CPU Speed
+        PWR_CFG_SET wait       on  # CPU Wait
+        PWR_CFG_SET ethapd     on  # PHY APD: Auto Power Down
+        PWR_CFG_SET eee        on  # PHY EEE: Energy Efficient Ethernet
+        PWR_CFG_SET autogreeen on  # Ethernet AutoGrEEEn
+        PWR_CFG_SET dgm        on  # SF2 DGM: Deep Green Mode
+        uci -q set power.ethernet.autogreeen='1'
+        uci -q set power.ethernet.eee='1'
+      elif [ "$VERSION" = "18.1.c" ]; then
+        PWR_CFG_SET cpuspeed   1   # CPU Speed
+        PWR_CFG_SET wait       on  # CPU Wait
+        PWR_CFG_SET ethapd     on  # PHY APD: Auto Power Down
+        PWR_CFG_SET eee        on  # PHY EEE: Energy Efficient Ethernet
+        PWR_CFG_SET autogreeen on  # Ethernet AutoGrEEEn
+        PWR_CFG_SET dgm        on  # SF2 DGM: Deep Green Mode
         uci -q set power.ethernet.autogreeen='1'
         uci -q set power.ethernet.eee='1'
       elif [ "$VERSION" = "20.3.c" ]; then
-        pwrctl config --net        off # Network device down
-        pwrctl config --phy        off # PHY Power Down
-        pwrctl config --eee        on  # PHY EEE: Energy Efficient Ethernet
-        pwrctl config --apd        on  # PHY APD: Auto Power Dow
-        pwrctl config --dgm        on  # SF2 DGM: Deep Green Mode
+        PWR_CFG_SET net        off # Network device down
+        PWR_CFG_SET phy        off # PHY Power Down
+        PWR_CFG_SET eee        on  # PHY EEE: Energy Efficient Ethernet
+        PWR_CFG_SET apd        on  # PHY APD: Auto Power Dow
+        PWR_CFG_SET dgm        on  # SF2 DGM: Deep Green Mode
         uci -q set power.ethernet.net='0'
         uci -q set power.ethernet.phy='0'
         uci -q set power.ethernet.eee='1'
         uci -q set power.ethernet.apd='1'
         uci -q set power.ethernet.dgm='1'
       elif [ "$VERSION" = "20.4" ]; then
-        pwrctl config --disk       off # Disk Suspend: USB, SATA etc.
-        pwrctl config --wifi       off # WIFI suspend
-        pwrctl config --ubus       on  # UBUS DCM
-        pwrctl config --cpuwait    on  # CPU Wait
-        pwrctl config --xrdp       on  # XRDP Clock Gating
-        pwrctl config --net        off # Network device down
-        pwrctl config --phy        off # PHY Power Down
-        pwrctl config --eee        on  # PHY EEE: Energy Efficient Ethernet
-        pwrctl config --apd        on  # PHY APD: Auto Power Down
-        pwrctl config --sr         off # DRAM SR: Self Refresh
-        pwrctl config --avs        on  # AVS: Adaptive Voltage Scaling
+        PWR_CFG_SET disk       off # Disk Suspend: USB, SATA etc.
+        PWR_CFG_SET wifi       off # WIFI suspend
+        PWR_CFG_SET ubus       on  # UBUS DCM
+        PWR_CFG_SET cpuwait    on  # CPU Wait
+        PWR_CFG_SET xrdp       on  # XRDP Clock Gating
+        PWR_CFG_SET net        off # Network device down
+        PWR_CFG_SET phy        off # PHY Power Down
+        PWR_CFG_SET eee        on  # PHY EEE: Energy Efficient Ethernet
+        PWR_CFG_SET apd        on  # PHY APD: Auto Power Down
+        PWR_CFG_SET sr         off # DRAM SR: Self Refresh
+        PWR_CFG_SET avs        on  # AVS: Adaptive Voltage Scaling
         uci -q set power.eee.enabled='1'
       fi
       uci -q commit power;;
