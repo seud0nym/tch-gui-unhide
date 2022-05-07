@@ -1,13 +1,23 @@
+PWR_OPTIONS="$(pwrctl 2>&1 | grep -oe '--[^[:blank:]]*' | sort -u)"
 check_pwr_setting() {
   local section="$1"
   local option="$2"
   local text="$3"
-  if [ -z "$(uci -q get power.$section.$option)" ]; then
-    pwrctl show | grep "$text" | grep -q DISABLED
-    value=$?
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - power.$section.$option=$value"
-    uci set power.$section.$option="$value"
-    SRV_power=$(( $SRV_power + 1 ))
+  if echo $PWR_OPTIONS | grep -qe "--$option\b"; then
+    if [ -z "$(uci -q get power.$section.$option)" ]; then
+      pwrctl show | grep "$text" | grep -q DISABLED
+      value=$?
+      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - power.$section.$option=$value"
+      uci set power.$section.$option="$value"
+      SRV_power=$(( $SRV_power + 1 ))
+    fi
+  else
+    local field="$option"
+    [ "$section" = "cpu" -a "$option" = "wait" ] && field="cpuwait"
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - pwrctl config --$option is not valid: removing from GUI"
+    sed -e "/uci\.power\.$section\.$option/d" -e "/^if content\.$field ==/,/^end/d" -e "/createSimpleLight(content\.$field/d" -i /www/cards/020_eco.lp
+    sed -e "/$option/d" -i /www/docroot/modals/eco-modal.lp
+    sed -e "s/,\"$option\"//" -e "s/\"$option\",//" -i /usr/share/transformer/mappings/uci/power.map
   fi
 }
 
