@@ -8,7 +8,10 @@ if [ "$THEME_ONLY" = n -a "$REBOOT" = n ]; then
     [ -e /var/lock/acme-ipsec.sh.pre ] && rm /var/lock/acme-ipsec.sh.pre
   fi
 
-  echo [$SCRIPT]: Waiting for transformer service to finish loading...
-  transformer-cli get rpc.gui.UnhideVersion > /dev/null
+  if [ -e /usr/bin/transformer-cli ]; then
+    echo [$SCRIPT]: Waiting for transformer service to finish loading...
+    [ -x /usr/bin/transformer-cli ] || chmod +x /usr/bin/transformer-cli
+    /usr/bin/transformer-cli get rpc.gui.UnhideVersion > /dev/null
+  fi
 fi
 
