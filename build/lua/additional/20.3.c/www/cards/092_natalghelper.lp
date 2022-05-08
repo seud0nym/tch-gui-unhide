@@ -56,7 +56,7 @@ if session:hasAccess(modalPath) then
   <div class="span3">\
     <div class="smallcard">\
       '); ngx.print(ui_helper.createCardHeader(T"NAT Helpers",modalPath)); ngx.print('\
-      <div class="content card_bg" data-bg-text="&#xf0ad;">\
+      <div class="content card_bg" data-bg-text="&#xf0ec;">\
         <div style="display:flex;flex-direction:row;">\
           <div style="padding-right:3px">\
             ');
