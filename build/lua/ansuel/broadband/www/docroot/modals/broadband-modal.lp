@@ -7,7 +7,6 @@ local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 local dyntab_helper = require("web.dyntab_helper")
 local post_helper = require("web.post_helper")
-local proxy = require("datamodel")
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
@@ -32,28 +31,20 @@ local mapValid = {
 }
 local content = post_helper.handleQuery(mapParam,mapValid)
 
-local function resetreboot(path,value)
-  proxy.set(path,value)
-  ngx.header.content_type = "application/json"
-  ngx.print('{ "success":"true" }')
-  ngx.timer.at(0,function()
-    proxy.apply()
-  end)
-  ngx.exit(ngx.HTTP_OK)
-end
-
 if ngx.var.request_method == "POST" then
-  local content1 = ngx.req.get_post_args()
+  local content1 = ngx.req.get_post_args(0)
   local action = content1["action"]
   if action == "BRIDGED" then
     if not bridged.isBridgedMode() then
-      bridged.configBridgedMode()
-      return resetreboot("rpc.system.reboot","GUI")
+      if bridged.configBridgedMode() then
+        return bridged.resetreboot("rpc.system.reboot","GUI")
+      end
     end
   elseif action == "ROUTED" then
     if bridged.isBridgedMode() then
-      bridged.configRoutedMode()
-      return resetreboot("rpc.system.reboot","GUI")
+      if bridged.configRoutedMode() then
+        return bridged.resetreboot("rpc.system.reboot","GUI")
+      end
     end
   end
 end
@@ -133,65 +124,11 @@ if not tabdata.current.ajax then
       ');
       if not bridged.isBridgedMode() then
         local html = {}
-        local bridged_rebooting = {
-          alert = {
-            class = "alert hide",
-            id = "bridged-rebooting-msg"
-          }
-        }
-        local bridged_confirming = {
-          alert = {
-            class = "alert hide",
-            id = "bridged-confirming-msg"
-          }
-        }
-        local bridged_button = {
-          button = {
-            id = "btn-bridged"
-          }
-        }
-        html[#html + 1] = ui_helper.createButton("Change Mode","Bridged","icon-cog",bridged_button)
-        html[#html + 1] = '<div class="control-group controls">'
-        html[#html + 1] = ui_helper.createAlertBlock(T"Switching to <strong>Bridged Mode</strong> and restarting. Please wait...",bridged_rebooting)
-        html[#html + 1] = ui_helper.createAlertBlock(T"Are you sure you want to switch to <strong>Bridged Mode</strong>?",bridged_confirming)
-        html[#html + 1] = string.format([[
-          <div id="bridged-changes" class="hide">
-            <div id="bridged-confirm" class="btn btn-primary" data-dismiss="modal">%s</div>
-            <div id="bridged-cancel" class="btn">%s</div>
-          </div>
-        </div>
-        ]],T"Confirm",T"Cancel")
+        bridged.addBridgedModeButtons(html)
         ngx.print(html)
       else
         local html = {}
-        local routed_rebooting = {
-          alert = {
-            class = "alert hide",
-            id = "routed-rebooting-msg"
-          }
-        }
-        local routed_confirming = {
-          alert = {
-            class = "alert hide",
-            id = "routed-confirming-msg"
-          }
-        }
-        local routed_button = {
-          button = {
-            id = "btn-routed"
-          }
-        }
-        html[#html + 1] = ui_helper.createButton("Change Mode","Routed","icon-cog",routed_button)
-        html[#html + 1] = '<div class="control-group controls">'
-        html[#html + 1] = ui_helper.createAlertBlock(T"Switching to <strong>Routed Mode</strong> and restarting. Please wait...",routed_rebooting)
-        html[#html + 1] = ui_helper.createAlertBlock(T"Are you sure you want to switch back to <strong>Routed Mode</strong>?",routed_confirming)
-        html[#html + 1] = string.format([[
-          <div id="routed-changes" class="hide">
-            <div id="routed-confirm" class="btn btn-primary" data-dismiss="modal">%s</div>
-            <div id="routed-cancel" class="btn">%s</div>
-          </div>
-        </div>
-        ]],T"Confirm",T"Cancel")
+        bridged.addRoutedModeButtons(html)
         ngx.print(html)
       end
       ngx.print('\
@@ -201,54 +138,6 @@ if not tabdata.current.ajax then
   ')
 	ngx.print(ui_helper.createFooter())
   ngx.print('\
-  <script>\
-  (function() {\
-    var target = $(".modal form").attr("action");\
-    function resetreboot(msg,msg_dst,action) {\
-      msg_dst.after(msg);\
-      msg.removeClass("hide");\
-      msg[0].scrollIntoView();\
-      $.post(\
-        target,\
-        { action: action,CSRFtoken: $("meta[name=CSRFtoken]").attr("content") },\
-        wait_for_webserver_down,\
-        "json"\
-      );\
-      return false;\
-    }\
-    $("#btn-bridged").click(function() {\
-      $("#bridged-confirming-msg").removeClass("hide");\
-      $("#bridged-changes").removeClass("hide");\
-      $(".modal-body").animate({\'scrollTop\':"+=100px"},"fast")\
-    });\
-    $("#bridged-confirm").click(function() {\
-      $("#bridged-confirming-msg").addClass("hide");\
-      $("#bridged-changes").addClass("hide");\
-      $("#btn-bridged").addClass("hide");\
-      return resetreboot($("#bridged-rebooting-msg"),$("#btn-bridged"),"BRIDGED");\
-    });\
-    $("#bridged-cancel").click(function() {\
-      $("#bridged-confirming-msg").addClass("hide");\
-      $("#bridged-changes").addClass("hide");\
-      $("#bridged-rebooting-msg").addClass("hide");\
-    });\
-    $("#btn-routed").click(function() {\
-      $("#routed-confirming-msg").removeClass("hide");\
-      $("#routed-changes").removeClass("hide");\
-      $(".modal-body").animate({\'scrollTop\':"+=100px"},"fast")\
-    });\
-    $("#routed-confirm").click(function() {\
-      $("#routed-confirming-msg").addClass("hide");\
-      $("#routed-changes").addClass("hide");\
-      $("#btn-routed").addClass("hide");\
-      return resetreboot($("#routed-rebooting-msg"),$("#btn-routed"),"ROUTED");\
-    });\
-    $("#routed-cancel").click(function() {\
-      $("#routed-confirming-msg").addClass("hide");\
-      $("#routed-changes").addClass("hide");\
-      $("#routed-rebooting-msg").addClass("hide");\
-    });\
-  }());\
-  </script>\
+  <script src="/js/bridgedmode.js"></script>\
   ');
 end

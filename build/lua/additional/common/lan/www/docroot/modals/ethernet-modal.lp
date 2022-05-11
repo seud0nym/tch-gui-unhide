@@ -150,7 +150,7 @@ local function validateIPv6(value,_,_)
   return valid,msg
 end
 --We need to update IPv6 state only when user want to update the IPv6 state alone.
-if ngx.var.request_method == "POST" and ngx.req.get_post_args().iPv6StateOnlyChanged == "yes" then
+if ngx.var.request_method == "POST" and ngx.req.get_post_args(0).iPv6StateOnlyChanged == "yes" then
   local validation = {
     localIPv6 = validateIPv6,
   }
@@ -407,7 +407,7 @@ end
 
 local inUseFlag = false
 if ngx.var.request_method == "POST" then
-  local post_data = ngx.req.get_post_args()
+  local post_data = ngx.req.get_post_args(0)
   if post_data.tableid == "sleases" then
     if (post_data.action == "TABLE-MODIFY" or post_data.action == "TABLE-EDIT" or post_data.action == "TABLE-ADD") then
       local text_mac_index = tonumber(post_data.index)
@@ -601,7 +601,7 @@ local function validateDNS(value,object,key)
     return true
   end
 
-  local post_data = ngx.req.get_post_args()
+  local post_data = ngx.req.get_post_args(0)
   local dns_str = ""
   local old_lan_ip = proxy.get("uci.network.interface.@lan.ipaddr")[1].value
 
@@ -730,7 +730,7 @@ end
 -- DHCP Range limit has to be calculated from the new subnet and the validation
 -- has to be done for the new limit.
 local function DHCPValidationNotRequired()
-  local post_data = ngx.req.get_post_args()
+  local post_data = ngx.req.get_post_args(0)
   local localdevIP = proxy.get("uci.network.interface.@"..curintf..".ipaddr")
   local dhcpIgnore = proxy.get(mapParams["dhcpIgnore"])
   if (localdevIP and localdevIP[1].value ~= post_data["localdevIP"]) or (dhcpIgnore and dhcpIgnore[1].value == "1") then
@@ -1052,22 +1052,12 @@ if start and numips and not helpmsg["localdevIP"] and not helpmsg["localdevmask"
     session:store("networkAddr",network)
   end
 else
-  ipstart = ngx.req.get_post_args().dhcpStartAddress
-  ipend = ngx.req.get_post_args().dhcpEndAddress
+  ipstart = ngx.req.get_post_args(0).dhcpStartAddress
+  ipend = ngx.req.get_post_args(0).dhcpEndAddress
   network = session:retrieve("networkAddr")
  end
 if helpmsg["leaseTime"] then
-  content["leaseTime"] = ngx.req.get_post_args().leaseTime
-end
-
-local function resetreboot(path,value)
-  proxy.set(path,value)
-  ngx.header.content_type = "application/json"
-  ngx.print('{ "success":"true" }')
-  ngx.timer.at(0,function()
-    proxy.apply()
-  end)
-  ngx.exit(ngx.HTTP_OK)
+  content["leaseTime"] = ngx.req.get_post_args(0).leaseTime
 end
 
 if ngx.var.request_method == "POST" then
@@ -1081,12 +1071,19 @@ if ngx.var.request_method == "POST" then
     '); session:logout()
   end
 
-  local content1 = ngx.req.get_post_args()
+  local content1 = ngx.req.get_post_args(0)
   local action = content1["action"]
   if action == "BRIDGED" then
     if not isBridgedMode then
-      bridged.configBridgedMode()
-      return resetreboot("rpc.system.reboot","GUI")
+      if bridged.configBridgedMode() then
+        return bridged.resetreboot("rpc.system.reboot","GUI")
+      end
+    end
+  elseif action == "ROUTED" then
+    if isBridgedMode then
+      if bridged.configRoutedMode() then
+        return bridged.resetreboot("rpc.system.reboot","GUI")
+      end
     end
   end
 
@@ -1355,45 +1352,14 @@ ngx.print('\
                 <legend>'); ngx.print(T"Network Mode"); ngx.print('</legend>\
                 ');
                 local html = {}
-                local rebooting = {
-                  alert = {
-                    class = "alert hide",
-                    id = "rebooting-msg"
-                  }
-                }
-                local confirming = {
-                  alert = {
-                    class = "alert hide",
-                    id = "confirming-msg"
-                  }
-                }
-                local bridged_button = {
-                    button = {
-                        id = "btn-bridged"
-                    }
-                }
-                html[#html+1] = ui_helper.createButton("Bridged Mode","Bridged Mode","icon-cog",bridged_button)
-                html[#html+1] = string.format('<div class="control-group controls">')
-                html[#html+1] = ui_helper.createAlertBlock(T"Switching to <strong>Bridged Mode</strong> and restarting. Please wait...",rebooting)
-                html[#html+1] = ui_helper.createAlertBlock(T"Are you sure you want to switch to <strong>Bridged Mode</strong>?",confirming)
-                html[#html+1] = string.format([[
-                  <div id="bridged-changes" class="hide">
-                    <div id="bridged-confirm" class="btn btn-primary" data-dismiss="modal">%s</div>
-                    <div id="bridged-cancel" class="btn">%s</div>
-                  </div>
-                </div>
-                ]],T"Confirm",T"Cancel")
+                bridged.addBridgedModeButtons(html)
                 ngx.print(html)
               end
             else
               local html = {}
-              local infomessage = {
-                alert = {
-                  class = "alert",
-                }
-              }
-              html[#html+1] = "<legend>Network Mode</legend>"
-              html[#html+1] = ui_helper.createAlertBlock(T[[Note: your Device is in Bridged Mode. If you want the Device to run in Routed Mode again,you can revert without factory reset <a href="javascript:tch.loadModal('/modals/broadband-modal.lp')">here</a>]],infomessage)
+              html[#html + 1] = "<fieldset>"
+              html[#html + 1] = "<legend>Network Mode</legend>"
+              bridged.addRoutedModeButtons(html)
               ngx.print(html)
             end
             ngx.print('\
@@ -1476,6 +1442,7 @@ $("#btn-dhcp-reset").click(function(){\
 </script>\
 ');  ngx.print(ui_helper.createFooter())   ngx.print('\
 <script src="/js/srp-min.js"></script>\
+<script src="/js/bridgedmode.js"></script>\
 <script>\
 (function() {\
   $(\'input[name="localdevIP"]\').keydown(function(){\
@@ -1483,57 +1450,6 @@ $("#btn-dhcp-reset").click(function(){\
     var msg_dst = $(this);\
     msg_dst.after(msg);\
     msg.removeClass("hide");\
-  });\
-  var refreshTimeOut = 5000;\
-  var refreshDelay = 3000;\
-  var target = $(".modal form").attr("action");\
-  function wait_for_webserver_running() {\
-    $.ajax({ url: "/",timeout: refreshTimeOut })\
-    .done(function(data) {\
-      document.open("text/html");\
-      document.write(data);\
-      document.close();\
-    })\
-    .fail(function() {\
-      window.setTimeout(wait_for_webserver_running,refreshDelay);\
-    });\
-  }\
-  function wait_for_webserver_down() {\
-    $.ajax({ url: target,timeout: refreshTimeOut })\
-    .done(function() {\
-      window.setTimeout(wait_for_webserver_down,refreshDelay);\
-    })\
-    .fail(function() {\
-      window.setTimeout(wait_for_webserver_running,refreshDelay);\
-    });\
-  }\
-  function resetreboot(msg,msg_dst,action) {\
-    msg_dst.after(msg);\
-    msg.removeClass("hide");\
-    msg[0].scrollIntoView();\
-    $.post(\
-      target,\
-      { action: action,CSRFtoken: $("meta[name=CSRFtoken]").attr("content") },\
-      wait_for_webserver_down,\
-      "json"\
-    );\
-    return false;\
-  }\
-  $("#btn-bridged").click(function() {\
-    $("#confirming-msg").removeClass("hide");\
-    $("#bridged-changes").removeClass("hide");\
-    $(".modal-body").animate({"scrollTop":"+=100px"},"fast")\
-  });\
-  $("#bridged-confirm").click(function() {\
-    $("#confirming-msg").addClass("hide");\
-    $("#bridged-changes").addClass("hide");\
-    $("#btn-bridged").addClass("hide");\
-    return resetreboot($("#rebooting-msg"),$("#btn-bridged"),"BRIDGED");\
-  });\
-  $("#bridged-cancel").click(function() {\
-    $("#confirming-msg").addClass("hide");\
-    $("#bridged-changes").addClass("hide");\
-    $("#rebooting-msg").addClass("hide");\
   });\
 }());\
 </script>\

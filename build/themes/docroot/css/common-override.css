@@ -47,7 +47,7 @@
 #fw_userrules>thead>tr>th:nth-child(3),#fw_userrules>tbody>tr>td:nth-child(3),#fw_userrules_v6>thead>tr>th:nth-child(3),#fw_userrules_v6>tbody>tr>td:nth-child(3){display:none;}
 #helper_list>tbody>tr>td:not(:nth-child(2)){text-transform:uppercase;}
 #hide-unhide-non-connected-device{display:none;}
-#internet-card-content>div>ol>li{line-height:14px;font-size:11px;}
+#internet-card-content>div>ol>li{line-height:14px;font-size:9px;}
 #mobiletab .content .card-label{font-size:14px;}
 #mobiletab .subinfos div{line-height: 20px;}
 #opkgs>tbody>tr>td:nth-child(1){white-space:nowrap;}
