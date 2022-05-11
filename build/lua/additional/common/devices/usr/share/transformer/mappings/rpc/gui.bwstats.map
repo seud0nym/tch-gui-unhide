@@ -99,12 +99,16 @@ GUI_BWSTATS_.set = {
       return true
     elseif value == "1" then
       for command in pairs(commands) do
-        local output = io.popen(command.." -t mangle -nL FORWARD --line-numbers | grep -E 'BWSTATS[RT]X' | tr -s ' ' | cut -d' ' -f1-2",'r')
-        for line in output:lines() do
-          local rulenum,chain = match(line,"^(%d+)%s+(%S+)$")
-          run(command.." -t mangle -Z FORWARD "..rulenum..";"..command.." -t mangle -Z "..chain)
+        local output,errmsg = io.popen(command.." -t mangle -nL FORWARD --line-numbers | grep -E 'BWSTATS[RT]X' | tr -s ' ' | cut -d' ' -f1-2",'r')
+        if output then
+          for line in output:lines() do
+            local rulenum,chain = match(line,"^(%d+)%s+(%S+)$")
+            run(command.." -t mangle -Z FORWARD "..rulenum..";"..command.." -t mangle -Z "..chain)
+          end
+          output:close()
+        else
+          return nil,errmsg
         end
-        output:close()
       end
       return true
     end
@@ -156,29 +160,31 @@ GUI_BWSTATS_DEVICE_i_.entries = function(_)
 
   for command,prefix in pairs(commands) do
     local output = io.popen(command.." -t mangle -nvxL | grep -E 'BWSTATS[RT]X MAC'",'r')
-    for rule in output:lines() do
-      local b,direction,mac = match(rule,"^%s*%d+%s+(%d+)%s+RETURN.*BWSTATS([RT]X) MAC: ([%x:]+) .*$")
-      local bytes = tonumber(b)
-      if bytes and direction and (direction == "RX" or direction == "TX") and mac and mac ~= "" then
-        local counter = prefix.."_"..tolower(direction)
-        local index = mac_index[mac]
-        if not index then
-          key = key + 1
-          keys[#keys+1] = tostring(key)
-          mac_index[mac] = key
-          iptables[key] = {
-            mac = mac,
-            ipv4_rx = 0,
-            ipv4_tx = 0,
-            ipv6_rx = 0,
-            ipv6_tx = 0,
-          }
-          index = key
+    if output then
+      for rule in output:lines() do
+        local b,direction,mac = match(rule,"^%s*%d+%s+(%d+)%s+RETURN.*BWSTATS([RT]X) MAC: ([%x:]+) .*$")
+        local bytes = tonumber(b)
+        if bytes and direction and (direction == "RX" or direction == "TX") and mac and mac ~= "" then
+          local counter = prefix.."_"..tolower(direction)
+          local index = mac_index[mac]
+          if not index then
+            key = key + 1
+            keys[#keys+1] = tostring(key)
+            mac_index[mac] = key
+            iptables[key] = {
+              mac = mac,
+              ipv4_rx = 0,
+              ipv4_tx = 0,
+              ipv6_rx = 0,
+              ipv6_tx = 0,
+            }
+            index = key
+          end
+          iptables[index][counter] = iptables[index][counter] + bytes
         end
-        iptables[index][counter] = iptables[index][counter] + bytes
       end
+      output:close()
     end
-    output:close()
   end
 
   if size > #iptables then
