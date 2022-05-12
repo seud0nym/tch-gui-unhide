@@ -8,6 +8,11 @@ local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 
+local getargs = ngx.req.get_uri_args()
+if getargs.clear_leases and getargs.clear_leases == "1" then
+  require("datamodel").set("rpc.gui.upnpd.clear_leases","1")
+end
+
 local gVIES = post_helper.getValidateInEnumSelect
 local vB = post_helper.validateBoolean
 
@@ -89,26 +94,23 @@ local upnp_options = {
 
 local upnp_data,upnp_helpmsg = post_helper.handleTableQuery(upnp_columns,upnp_options,nil,nil,nil)
 
+local button_attr = { button = { id = "btn-clear-leases" }, group = { class = #upnp_data > 0 and nil or "hide", } }
+
 ngx.print(ui_helper.createHeader(T"WAN Services",false,true)); ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-wanservices.lp");ngx.print('\
-  <form class="form-horizontal" method="post" action="modals/wanservices-upnp-modal.lp">\
-  ');
-  ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-  ngx.print('\
+  <form class="form-horizontal" method="post" action="modals/wanservices-upnp-modal.lp">',
+  ui_helper.createMessages(message_helper.popMessages()),'\
   <fieldset>\
-    <legend>'); ngx.print(T"UPnP"); ngx.print('</legend>\
-    ');
-    local advanced = { group = { class = "advanced hide" }}
-    ngx.print(
-      ui_helper.createSwitch(T"UPnP Enabled","upnp_status",qry_data["upnp_status"],advanced,qry_helpmsg["upnp_status"]),
-      ui_helper.createSwitch(T"NAT-PMP Enabled","upnp_natpmp",qry_data["upnp_natpmp"],advanced,qry_helpmsg["upnp_natpmp"]),
-      ui_helper.createSwitch(T"Secure Mode Enabled","upnp_secure_mode",qry_data["upnp_secure_mode"],advanced,qry_helpmsg["upnp_secure_mode"]),
-      ui_helper.createInputSelect(T"Datamodel Version","upnp_igd_version",igd_select,qry_data.upnp_igd_version,advanced),
+    <legend>',T"UPnP",'</legend>',
+      ui_helper.createSwitch(T"UPnP Enabled","upnp_status",qry_data["upnp_status"],nil,qry_helpmsg["upnp_status"]),
+      ui_helper.createSwitch(T"NAT-PMP Enabled","upnp_natpmp",qry_data["upnp_natpmp"],nil,qry_helpmsg["upnp_natpmp"]),
+      ui_helper.createSwitch(T"Secure Mode Enabled","upnp_secure_mode",qry_data["upnp_secure_mode"],nil,qry_helpmsg["upnp_secure_mode"]),
+      ui_helper.createInputSelect(T"Datamodel Version","upnp_igd_version",igd_select,qry_data.upnp_igd_version,nil),
       ui_helper.createLabel(T"",T"Note: Datamodel version <b>1</b> may be required for older applications.",{span = {class = "span12 advanced hide"},}),
-      ui_helper.createTable(upnp_columns,upnp_data,upnp_options,nil,upnp_helpmsg)
-    )
-    ngx.print('\
+      ui_helper.createTable(upnp_columns,upnp_data,upnp_options,nil,upnp_helpmsg),
+      ui_helper.createButton("Clear Leases","Restart Service","icon-refresh",button_attr),'\
+      <script>$("#btn-clear-leases").click(function(){tch.loadModal($(".modal form").attr("action")+"?clear_leases=1");})</script>\
   </fieldset>\
   </form>\
 </div>\

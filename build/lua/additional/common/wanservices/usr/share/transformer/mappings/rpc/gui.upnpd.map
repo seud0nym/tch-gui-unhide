@@ -1,0 +1,40 @@
+local uci_helper = mapper("ucihelper")
+local uci_lease_file = {config="upnpd",sectionname="config",option="upnp_lease_file"}
+
+local run = os.execute
+
+local GUI_UPNP_ = {
+  objectType = {
+    name = "rpc.gui.upnpd.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      clear_leases = {
+        access = "readWrite",
+        type = "boolean"
+      },
+    }
+  }
+}
+
+GUI_UPNP_.get = {
+  clear_leases = function()
+    return "0"
+  end
+}
+
+GUI_UPNP_.set = {
+  clear_leases = function(_,_,value,_)
+    if value == "0" then
+      return true
+    elseif value == "1" then
+      local lease_file = uci_helper.get_from_uci(uci_lease_file)
+      run("/etc/init.d/miniupnpd-tch stop; rm "..lease_file.."; /etc/init.d/miniupnpd-tch start")
+      return true
+    end
+    return nil,"clear_leases value must be 1 or 0"
+  end,
+}
+
+register(GUI_UPNP_)
