@@ -1,4 +1,4 @@
-2022.04.22
+2022.05.12
 ==========
 * tch-gui-unhide: Removed Sign in button when using default user and default user is admin
 * tch-gui-unhide: Removed switches from Wireless and Telephony cards
@@ -8,20 +8,33 @@
 * tch-gui-unhide: Added outgoing traffic priority switch to Devices screen (FW 18.1.c and later)
 * tch-gui-unhide: Added new CleanBrowsing DNS Servers
 * tch-gui-unhide: Added service status to Internet Access card and troubleshooting steps if connection down 
+* tch-gui-unhide: Added line and xDSL status to xDSL card
+* tch-gui-unhide: Allowed UPnP leases to be cleared (#81)
+* tch-gui-unhide: xDSL card is now visible in bridge mode (#87)
 * tch-gui-unhide: Broadband card background icon automatically changes to reflect current connection status: Down=Warning-Sign Connecting=Spinner(Static) Up=Tick Disabled=Ban-Circle
 * tch-gui-unhide: Fixed power saving options check on FW 20.3.c
 * tch-gui-unhide: Fixed bug where the router was incorrectly added as secondary IPv6 DNS server when IPv6 DNS Hijacking enabled and any change saved on Local Network screen
 * tch-gui-unhide: Fixed bug where the show Chart card options (-Ci/-Cs) were ignored on a clean install
+* tch-gui-unhide: Fixed bugs in switching between bridged and routed modes (#87)
 * tch-gui-unhide: Improved logging system check (FW 20.3.c only)
 * tch-gui-unhide: Improved CWMP card
 * tch-gui-unhide: MultiAP GUI files no longer included in FW 17.2 script
-* tch-gui-unhide: Initial support for 20.4 firmware
+* tch-gui-unhide: Initial support for 20.4 firmware (#74)
 * tch-gui-unhide: Added EasyMesh Role to Wi-Fi Boosters card
+* tch-gui-unhide: Check that pwrctl settings on FW 17.2 actually exist and remove options from GUI if they don't (#83)
+* tch-gui-unhide: Check that /usr/bin/transformer-cli is executable (#84)
 * de-telstra: Initial support for 20.4 firmware
-* log-check: New script that can be run hourly to check that the logging RAM buffer and disk-based messages log are both being written correctly (This is mainly useful on FW 20.3.c, where I have found that the logread command can stop working and then not show recent messages)
+* de-telstra: Deep Green Mode not supported on TG799vac (#83)
+* log-check: New script that can be run hourly to check that the logging RAM buffer and disk-based messages log are both being written correctly (This is mainly useful on FW 20.3.c.03xx, where I have found that the logread command can stop working and then not show recent messages)
 * mtd-backup: Fixed error during config backup if tch-gui-unhide not installed
 * mtd-backup: Fixed bug that prevented handling more than 10 mtd devices
 * mtd-backup: Added handling to try and detect busy devices
+* reset-to-factory-defaults-with-root: Added verification to ensure firmware update was written correctly to mtd
+* reset-to-factory-defaults-with-root: Added support for FW 20.4
+* reset-to-factory-defaults-with-root: Backup is now consistent with --restore-config option
+* set-optimal-bank-plan: Replaced confusing mtd verify that always failed with sha256sum manual verification
+* set-optimal-bank-plan: Added check to ensure optimal bank plan not already set
+* set-optimal-bank-plan: Added some processing status messages
 * set-web-admin-password: Disable the default user when changing password
 * set-web-admin-password: Added new -d option to enable the default user so that no password is required to login to the web GUI (same as -dy option for tch-gui-unhide)
 * show-bank-plan: Added support for FW 20.4, and made output prettier
