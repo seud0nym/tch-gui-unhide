@@ -2,11 +2,11 @@
 
 -- Localization
 gettext.textdomain('webui-core')
-local format = string.format
 local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
+local match = string.match
 
 local dyn_route_columns = {
   {
@@ -75,16 +75,14 @@ local dyn_route_attributes = {
 
 local dyn_route_data,dyn_route_helpmsg = content_helper.loadTableData("sys.class.iproutes.",dyn_route_columns)
 
-local split = require("split").split
-
 local network_rpc_content = content_helper.getMatchedContent ("rpc.network.interface.")
 local wan_intfs = {}
 for _,v in ipairs (network_rpc_content) do
-   local path = split(split(format("%s",v.path),"@")[2],".")
-   if v.type == "wan" or v.type == "lan" then
-     if v.proto ~= "dhcpv6" and v.proto ~= "6rd" then
-       wan_intfs[#wan_intfs+1] = { path[1],T(path[1]) }
-     end
+  local path = match(v.path,"rpc%.network%.interface%.@([^%.]+)%.")
+  if v.type == "wan" or v.type == "lan" then
+    if v.proto ~= "dhcpv6" and v.proto ~= "6rd" then
+      wan_intfs[#wan_intfs+1] = { path,T(path) }
+    end
   end
 end
 
