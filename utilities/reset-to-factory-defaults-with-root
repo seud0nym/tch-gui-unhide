@@ -535,16 +535,17 @@ esac
 sync
 
 if [ -n "$FIRMWARE" ]; then
-  echo -e "INFO:     Erasing and writing ${ORANGE}$FIRMWARE${NC} into ${ORANGE}${BOOTED}${NC}..."
+  echo -e "INFO:     Writing ${ORANGE}$FIRMWARE${NC} into ${ORANGE}${BOOTED}${NC}..."
+  echo -e "${GREY}"
   mtd -e ${BOOTED} write "$FIRMWARE" ${BOOTED}
-  TMP_OUT=$(mktemp)
-  mtd verify "$FIRMWARE" ${BOOTED} | tee $TMP_OUT
-  if grep -q 'Failed' $TMP_OUT; then
-    rm $TMP_OUT
+  echo -e "${NC}"
+  echo -e "INFO:     Verifying ${ORANGE}${BOOTED}${NC} against ${ORANGE}$FIRMWARE${NC}..."
+  VERIFY_RESULT=$(mtd verify "$FIRMWARE" ${BOOTED} 2>&1)
+  echo -e "${GREY}$VERIFY_RESULT${NC}"
+  if echo "$VERIFY_RESULT" | grep -q 'Failed'; then
     echo -e "${RED}ERROR:    Verification FAILED!!${NC}"
     exit 2
   fi
-  rm $TMP_OUT
 fi
 
 if [ "$__REBOOT" = "Y" ]; then
