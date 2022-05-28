@@ -1,10 +1,8 @@
-if [ -z "$TITLE" ]
-then
+if [ -z "$TITLE" ]; then
   echo [$SCRIPT]: Leaving browser tabs title unchanged
 else
   echo [$SCRIPT]: Change the title in browser tabs to $TITLE
-  for f in /www/docroot/gateway.lp /www/lua/hni_helper.lua /www/snippets/header.lp
-  do
+  for f in /www/docroot/gateway.lp /www/lua/hni_helper.lua /www/snippets/header.lp; do
     if [ -f "$f" ]; then
       [ "$DEBUG" = "V" ] && echo "[$SCRIPT]:  - $f"
       sed -e "s,title>.*</title,title>$TITLE</title," -i $f
@@ -14,16 +12,14 @@ else
 fi
 
 echo "[$SCRIPT]: Change 'Gateway' to '$VARIANT'"
-for f in /www/cards/001_gateway.lp /www/cards/003_internet.lp /www/docroot/modals/qos-bqos-modal.lp
-do
+for f in /www/cards/001_gateway.lp /www/cards/003_internet.lp /www/docroot/modals/qos-bqos-modal.lp; do
   if [ -f "$f" ]; then
     [ "$DEBUG" = "V" ] && echo "[$SCRIPT]:  - $f"
-    sed -e "s/\bGateway\b/$VARIANT/g" -i $f
+    sed -e "s/\bGateway\b/$VARIANT/g" -e "s/=SERIAL=/$SERIAL/" -i $f
   fi
 done
 echo "[$SCRIPT]: Change 'Device' to '$VARIANT'"
-for f in /www/docroot/modals/ethernet-modal.lp /www/docroot/modals/firewall-dns_int-modal.lp
-do
+for f in /www/docroot/modals/ethernet-modal.lp /www/docroot/modals/firewall-dns_int-modal.lp; do
   if [ -f "$f" ]; then
     [ "$DEBUG" = "V" ] && echo "[$SCRIPT]:  - $f"
     sed -e "s/\bDevice\b/$VARIANT/g" -i $f

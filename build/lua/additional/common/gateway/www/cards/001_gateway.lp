@@ -7,6 +7,9 @@ local session = ngx.ctx.session
 if session:hasAccess("/modals/gateway-modal.lp") then
   local ui_helper = require("web.ui_helper")
   local headerAttr = {
+    p = {
+      id = "Gateway_tab"
+    },
     icon = {
       class = "icon-info-sign"
     }
@@ -14,7 +17,7 @@ if session:hasAccess("/modals/gateway-modal.lp") then
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    '); ngx.print(ui_helper.createCardHeader(T"Gateway","modals/gateway-modal.lp",nil,nil,headerAttr)); ngx.print('\
+    '); ngx.print(ui_helper.createCardHeader("Gateway","modals/gateway-modal.lp",nil,nil,headerAttr)); ngx.print('\
     <div class="content card_bg" data-bg-text="&#xf129;">\
       <span class="simple-desc"><i class="icon-time status-icon"></i> System Time: <strong id="gateway-card-time">'); ngx.print(os.date("%d/%m/%Y %H:%M:%S",os.time())); ngx.print('</strong></span>\
       <span class="simple-desc"><i class="icon-circle-arrow-up status-icon"></i> Up: <strong id="gateway-card-uptime">0 hr 0 min 0 sec</strong></span>\
@@ -25,6 +28,7 @@ if session:hasAccess("/modals/gateway-modal.lp") then
     </div>\
   </div>\
 </div>\
+<script>$("#"+"Gateway"+"_tab").append("<span style=\'font-size:x-small\'> =SERIAL=</span>")</script>\
 <script src="/js/001_gateway.js"></script>\
 ');
 end
