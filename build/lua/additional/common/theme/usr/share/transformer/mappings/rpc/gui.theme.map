@@ -29,9 +29,11 @@ local function getPreferences()
   if not theme or theme == "" then
     theme = theme_default
     local file = io.open(theme_prefs_file,"w")
-    file:write(theme_default)
-    file:close()
-    time = lfs.attributes(theme_prefs_file,"modification")
+    if file then
+      file:write(theme_default)
+      file:close()
+      time = lfs.attributes(theme_prefs_file,"modification")
+    end
   end
 
   for k,v in string.gmatch(theme,"(%w+)=(%w+)") do
@@ -86,7 +88,7 @@ local GUI_THEME_ = {
 }
 
 GUI_THEME_.get = function(_,param,_)
-  return getPreferences()[param]
+  return getPreferences()[param] or ""
 end
 
 GUI_THEME_.set = {
