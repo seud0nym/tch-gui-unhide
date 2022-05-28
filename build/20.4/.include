@@ -2,6 +2,7 @@
 012-Restore-Select-File/18.1.c
 016-Restore-Cleanup-File-Select/18.1.c
 066-QoS/18.1.c
+072-QoS/20.3.c
 080-Gateway/18.1.c
 080-Gateway/20.3.c
 091-Titles/18.1.c
