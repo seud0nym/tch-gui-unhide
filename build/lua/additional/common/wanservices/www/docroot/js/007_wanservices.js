@@ -10,5 +10,5 @@ function updateWANServicesCard(){
 setTimeout(updateWANServicesCard,0);
 $().ready(function(){
   wanservicesFuncID=setInterval(updateWANServicesCard,21000);
-  window.intervalIDs.push(wanservicesFuncID);
+  addRegisteredInterval(wanservicesFuncID);
 });

@@ -10,5 +10,5 @@ function updateBoosterCard(){
 setTimeout(updateBoosterCard,0);
 $().ready(function(){
   multiapFuncID=setInterval(updateBoosterCard,20000);
-  window.intervalIDs.push(multiapFuncID);
+  addRegisteredInterval(multiapFuncID);
 });

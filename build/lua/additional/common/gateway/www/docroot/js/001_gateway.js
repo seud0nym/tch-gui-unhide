@@ -42,4 +42,4 @@ function updateGatewayCard(){
     if(response.status==403||response.status==404){clearInterval(funcID);window.location.href="/gateway.lp?r="+Date.now();}
   });
 }
-$().ready(function(){funcID=setInterval(updateGatewayCard,1000);});
+$().ready(function(){updateGatewayCard();funcID=setInterval(updateGatewayCard,1000);addRegisteredInterval(funcID);});

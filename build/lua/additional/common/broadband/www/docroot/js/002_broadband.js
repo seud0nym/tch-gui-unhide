@@ -47,6 +47,7 @@ function updateThroughput(){
 setTimeout(updateBroadbandCard,0);
 $().ready(function(){
   bbFuncID=setInterval(updateBroadbandCard,15000);
+  addRegisteredInterval(bbFuncID);
   var bbdiv = document.querySelector("#broadband-card-throughput");
   var bbhdr = document.querySelector("#broadband-card .header-title");
   bbhdr.parentNode.insertBefore(bbdiv,bbhdr.nextSibling);
@@ -56,4 +57,5 @@ $().ready(function(){
   lanhdr.parentNode.insertBefore(landiv,lanhdr.nextSibling);
   updateThroughput();
   tpFuncID=setInterval(updateThroughput,2000);
+  addRegisteredInterval(tpFuncID);
 });

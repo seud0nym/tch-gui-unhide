@@ -108,6 +108,7 @@ fi
 
 echo [$SCRIPT]: Add auto-refresh management, chart library, and wait indicator when opening modals
 sed \
+  -e "/<title>/i\    <script>window.autoRefreshEnabled=$BG_RFRSH;</script>\\\\" \
   -e '/<title>/i\    <script src="/js/tch-gui-unhide.js"></script>\\' \
   -e '/<title>/i\    <script src="/js/chart-min.js"></script>\\' \
   -i /www/docroot/gateway.lp

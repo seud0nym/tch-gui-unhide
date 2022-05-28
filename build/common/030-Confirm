@@ -34,6 +34,11 @@ echo "[$SCRIPT]:  - Add new cards and screens, and modified cards and screens fr
 echo "[$SCRIPT]:  - Pretty up the GUI screens a bit"
 echo "[$SCRIPT]:  - Apply the $THEME theme with $COLOR highlights and $ICONS card icons"
 echo "[$SCRIPT]:  - Allow $ACROSS cards across the page on wide screens"
+if [ "$BG_RFRSH" = "true" ]; then
+echo "[$SCRIPT]:  - Dashboard cards will auto-refresh"
+else
+echo "[$SCRIPT]:  - Dashboard cards will NOT auto-refresh"
+fi
 case "$CHART_CARDS" in
   n)  echo "[$SCRIPT]:  - All chart cards will be hidden";;
   s)  echo "[$SCRIPT]:  - Only the Summary Chart Card will be visible";;

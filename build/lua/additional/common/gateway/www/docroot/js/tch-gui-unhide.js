@@ -6,6 +6,13 @@ function abortActiveAjaxRequests(){
   }
   window.activeXHR=new Array();
 }
+function addRegisteredInterval(id){
+  if(window.autoRefreshEnabled){
+    window.intervalIDs.push(id);
+  } else{
+    clearInterval(id);
+  }
+}
 function clearRegisteredIntervals(){
   for(let i=0;i<window.intervalIDs.length;i++){
     clearInterval(window.intervalIDs[i]);

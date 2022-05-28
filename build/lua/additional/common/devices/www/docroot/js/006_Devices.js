@@ -9,5 +9,5 @@ function updateDevicesCard(){
 }
 $().ready(function(){
   dFuncID=setInterval(updateDevicesCard,3000);
-  window.intervalIDs.push(dFuncID);
+  addRegisteredInterval(dFuncID);
 });

@@ -81,7 +81,7 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
       if(response.status==403||response.status==404){clearInterval(tFuncID);}\
     });\
   }\
-  $().ready(function(){tFuncID=setInterval(updateTelephonyCard,3000);window.intervalIDs.push(tFuncID);});\
+  $().ready(function(){tFuncID=setInterval(updateTelephonyCard,3000);addRegisteredInterval(tFuncID);});\
 '); end; ngx.print('\
 </script>\
 ');

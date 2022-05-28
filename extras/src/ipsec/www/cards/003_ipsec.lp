@@ -31,7 +31,7 @@ if session:hasAccess(modalPath) then
       if(response.status==403||response.status==404){clearInterval(ipsecFuncID);}\
     });\
   }\
-  $().ready(function(){ipsecFuncID=setInterval(updateIPsecCard,31000);});\
+  $().ready(function(){ipsecFuncID=setInterval(updateIPsecCard,31000);addRegisteredInterval(ipsecFuncID);});\
   </script>\
 ');
 end

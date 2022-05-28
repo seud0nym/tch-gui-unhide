@@ -10,5 +10,5 @@ function updateInternetCard(){
 setTimeout(updateInternetCard,0);
 $().ready(function(){
   iFuncID=setInterval(updateInternetCard,20000);
-  window.intervalIDs.push(iFuncID);
+  addRegisteredInterval(iFuncID);
 });

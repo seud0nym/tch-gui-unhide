@@ -102,6 +102,7 @@ ngx.print(ui_helper.createHeader(T"Devices",false,false),'\
           });\
         }\
         bwstats_interval_id = setInterval(updateDeviceBandwidthStats,10000);\
+        addRegisteredInterval(bwstats_interval_id);\
       </script>')
     end
     ngx.print('\

@@ -1,8 +1,12 @@
 LTE_CARD="$(find /www/cards -type f -name '*lte.lp')"
+echo [$SCRIPT]: Fix missing refreshInterval variable on Mobile card
+sed \
+  -e 's/\(^[[:blank:]]*\)\(setInterval\)/\1var refreshInterval = \2/' \
+  -i $LTE_CARD
 echo [$SCRIPT]: Fix display bug on Mobile card, hide if no devices found and stop refresh when any modal displayed
 sed \
   -e '/<script>/a var divs = $("#mobiletab .content").children("div");if(divs.length>0){var p=$("#mobiletab .content .subinfos");divs.appendTo(p);}\\' \
-  -e '/var refreshInterval/a window.intervalIDs.push(refreshInterval);\\' \
+  -e '/var refreshInterval/a addRegisteredInterval(refreshInterval);\\' \
   -e '/require("web.lte-utils")/a local result = utils.getContent("rpc.mobiled.DeviceNumberOfEntries")' \
   -e '/require("web.lte-utils")/a local devices = tonumber(result.DeviceNumberOfEntries)' \
   -e '/require("web.lte-utils")/a if devices and devices > 0 then' \

@@ -15,6 +15,8 @@ usage() {
 cat <<EOH
 Optional parameters:
  Control Options:
+ -b y|n           Enable (y) or Disable (n) background updating of dashboard cards 
+                   (Default is current setting or (y) for first time installs)
  -d y|n           Enable (y) or Disable (n) Default user (i.e. GUI access without password)
                    (Default is current setting)
  -f y|n           Enable (y) or Disable (n) firmware upgrade in the web GUI
@@ -29,7 +31,7 @@ Optional parameters:
                          You must do that BEFORE running this script!
  -X               Download the latest version of any existing extra feature scripts.
  -m y|n           Minify (y) GUI Lua code (EXPERIMENTAL!!)
-                   (Default is current setting)
+                   (Default is current setting or (n) for first time installs)
  Theme Options:
  -a 4|5           Set the number of cards across on screen width greater than 1200px
                    (Default is current setting, or 4 for first time installs)
@@ -87,7 +89,7 @@ exit
 
 [ "/$1/" = "/-?/" -o "/$1/" = "/--help/" -o \( "/$1/" = "/-W/" -a \( "/$2/" = "/-?/" -o "/$2/" = "/--help/" \) \) ] && usage
 
-while getopts :a:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
+while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
  case "${option}" in
    -) case "${OPTARG}" in
         abort) exit;;
@@ -98,6 +100,7 @@ while getopts :a:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
         *) usage $OPTIND;;
       esac;;
    a) if [ "${OPTARG}" = "4" -o "${OPTARG}" = "5" ]; then ACROSS=$OPTARG; else echo "ERROR: Cards across must be either 4 or 5"; exit 2; fi;;
+   b) case "${OPTARG}" in y|Y) BG_RFRSH='true';; n|N) BG_RFRSH='false';;  *) echo 'WARNING: -b valid options are y or n'; exit 2;; esac;;
    c) case "$(echo ${OPTARG} | sed 's/\(.\)\(.*\)/\1/')" in
         b) COLOR=blue;;
         g) COLOR=green;;
@@ -210,6 +213,8 @@ if [ "$ICONS" = "" ]; then
     ICONS=visible
   fi
 fi
+
+[ "$BG_RFRSH" = "false" ] && CHART_CARDS="n"
 
 LOCK="/var/run/${SCRIPT}.lck"
 unlock() { 
