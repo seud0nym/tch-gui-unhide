@@ -301,6 +301,7 @@ unlock() {
   [ -f $LOCK ] && rm $LOCK
 
   if [ "$1" = "normally" ]; then
+    [ -e /etc/rc.local ] && grep -q '/backups/restore-config.sh' /etc/rc.local && rm /etc/rc.local
     log I "Restore completed at $(date +%H:%M:%S) and took $(( $(date +%s) - $STARTED )) seconds"
     if [ "$REBOOT" = "y" ]; then
       log W "Rebooting..."
