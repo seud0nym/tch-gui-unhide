@@ -46,16 +46,18 @@ function updateThroughput(){
 }
 setTimeout(updateBroadbandCard,0);
 $().ready(function(){
-  bbFuncID=setInterval(updateBroadbandCard,15000);
-  addRegisteredInterval(bbFuncID);
-  var bbdiv = document.querySelector("#broadband-card-throughput");
-  var bbhdr = document.querySelector("#broadband-card .header-title");
-  bbhdr.parentNode.insertBefore(bbdiv,bbhdr.nextSibling);
-  var landiv = bbdiv.cloneNode(true);
-  var lanhdr = document.querySelector("#Local,#Local_Network_tab").closest(".header-title");
-  landiv.setAttribute("id","lan-card-throughput");
-  lanhdr.parentNode.insertBefore(landiv,lanhdr.nextSibling);
-  updateThroughput();
-  tpFuncID=setInterval(updateThroughput,2000);
-  addRegisteredInterval(tpFuncID);
+  if (window.autoRefreshEnabled) {
+    bbFuncID=setInterval(updateBroadbandCard,15000);
+    addRegisteredInterval(bbFuncID);
+    var bbdiv = document.querySelector("#broadband-card-throughput");
+    var bbhdr = document.querySelector("#broadband-card .header-title");
+    bbhdr.parentNode.insertBefore(bbdiv,bbhdr.nextSibling);
+    var landiv = bbdiv.cloneNode(true);
+    var lanhdr = document.querySelector("#Local,#Local_Network_tab").closest(".header-title");
+    landiv.setAttribute("id","lan-card-throughput");
+    lanhdr.parentNode.insertBefore(landiv,lanhdr.nextSibling);
+    updateThroughput();
+    tpFuncID=setInterval(updateThroughput,2000);
+    addRegisteredInterval(tpFuncID);
+  }
 });
