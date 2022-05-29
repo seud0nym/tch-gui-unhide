@@ -1,0 +1,161 @@
+#!/bin/sh
+# Make sure that we are running on Telstra firmware
+if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]; then
+  echo "ERROR! This script is intended for devices with Telstra firmware. Exiting"
+  exit 1
+fi
+
+SCRIPT="OpenSpeedTest-Setup"
+GREEN='\033[1;32m'
+ORANGE='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+usage() {
+cat <<EOH
+Installs OpenSpeedTest Server.
+
+Usage: ost-setup [options]
+
+options:
+ -r            Removes OpenSpeedTest Server.
+
+EOH
+exit
+}
+
+remove() {
+  echo -e "${ORANGE}[$SCRIPT] Uninstalling OpenSpeedTest Server...${NC}"
+  /etc/init.d/nginx stop
+  echo -e "${ORANGE}[$SCRIPT] Deconfiguring OpenSpeedTest Server from nginx...${NC}"
+  sed -e '/OpenSpeedTest-Server.conf/d' -i /etc/nginx/nginx.conf
+  if [ -e /etc/nginx/OpenSpeedTest-Server.conf ]; then
+    rm -rf "/$(grep root /etc/nginx/OpenSpeedTest-Server.conf | cut -d/ -f2- | tr -d ';')"
+    rm -f /etc/nginx/OpenSpeedTest-Server.conf
+  fi
+  echo -e "${ORANGE}[$SCRIPT] Restarting nginx...${NC}"
+  /etc/init.d/nginx start
+  echo -e "${GREEN}[$SCRIPT] Done!${NC}"
+  exit
+}
+
+while getopts :r option; do
+ case "${option}" in
+  r)  remove;;
+  *)  usage;;
+ esac
+done
+
+echo -e "${ORANGE}[$SCRIPT] Checking free space...${NC}"
+[ -e /tmp/ost.tgz ] && rm -f /tmp/ost.tgz
+TMP_FREE=$(df -Pm /tmp | tail -n +2 | tr -s ' ' | cut -d' ' -f2)
+if [ -z "$TMP_FREE" ]; then
+  echo -e "${RED}[$SCRIPT] Unable to determine free space on /tmp filesystem! Aborting...${NC}"
+  exit 2
+elif [ $TMP_FREE -ge 40 ]; then
+  echo -e "${GREEN}[$SCRIPT] /tmp filesystem has sufficient space (${TMP_FREE}Mb) to download OpenSpeedTest Server${NC}"
+else
+  echo -e "${RED}[$SCRIPT] /tmp filesystem has insufficient space (${TMP_FREE}Mb) to download OpenSpeedTest Server${NC}"
+  exit 2
+fi
+ROOT_FREE=$(df -Pm / | tail -n +2 | tr -s ' ' | cut -d' ' -f2)
+if [ -z "$ROOT_FREE" ]; then
+  echo -e "${RED}[$SCRIPT] Unable to determine free space on / filesystem! Aborting...${NC}"
+  exit 2
+elif [ $ROOT_FREE -ge 40 ]; then
+  echo -e "${GREEN}[$SCRIPT] root filesystem has sufficient space (${ROOT_FREE}Mb) to install OpenSpeedTest Server${NC}"
+  INSTALL_ROOT="/usr/share/nginx"
+else
+  echo -e "${ORANGE}[$SCRIPT] root filesystem has insufficient space (${ROOT_FREE}Mb) to install OpenSpeedTest Server. Checking USB...${NC}"
+  MOUNT_PATH="$(uci get mountd.mountd.path)"
+  USB="$(ls $MOUNT_PATH | head -n1)"
+  if [ -z "$USB" ]; then
+    echo -e "${RED}[$SCRIPT] No USB device found! Aborting...${NC}"
+    exit 2
+  fi
+  INSTALL_ROOT="${MOUNT_PATH}${USB}"
+fi
+
+echo -e "${ORANGE}[$SCRIPT] Downloading OpenSpeedTest Server...${NC}"
+curl -kLo /tmp/ost.tgz https://github.com/openspeedtest/Speed-Test/tarball/master
+TAR_ROOT=$(tar -tzf /tmp/ost.tgz 2>/dev/null | head -n 1)
+if [ -z "$TAR_ROOT" ]; then
+  echo -e "${RED}[$SCRIPT] Failed to read OpenSpeedTest Server tarball! Aborting...${NC}"
+  exit 2
+fi
+
+echo -e "${ORANGE}[$SCRIPT] Extracting OpenSpeedTest Server...${NC}"
+mkdir -p $INSTALL_ROOT
+rm -rf $INSTALL_ROOT/$TAR_ROOT
+if ! tar -xzf /tmp/ost.tgz -C $INSTALL_ROOT; then
+  echo -e "${RED}[$SCRIPT] Failed to extract OpenSpeedTest Server! Aborting...${NC}"
+  exit 2
+fi
+rm -rf /tmp/ost.tgz $INSTALL_ROOT/OpenSpeedTest
+mv $INSTALL_ROOT/$TAR_ROOT $INSTALL_ROOT/OpenSpeedTest/
+
+echo -e "${ORANGE}[$SCRIPT] Configuring nginx...${NC}"
+cat <<CONF_END >/etc/nginx/OpenSpeedTest-Server.conf
+    # ©CopyRight 2013-2022 by OpenSpeedTest.COM. All Rights Reserved.
+    # Official Website : https://OpenSpeedTest.COM | Email: support@openspeedtest.com
+    # Developed by : Vishnu | https://Vishnu.Pro | Email : me@vishnu.pro
+
+    # HTML5 Network Performance Estimation Tool -> [JS,XHR,SVG,HTML,CSS]
+    # Started in 2011 and Moved to OpenSpeedTest.COM Dedicated Project/Domain Name in 2013.
+    # SpeedTest Script -> 2013 -> Beta | 2015 -> V1 | 2019 ->V2 | 2020 V2.1 | 2021 V2.12.
+
+    # Self-Hosted OpenSpeedTest-Server (iFrame/Nginx) -> 2014.
+    # OpenSpeedTest-Server (On-premises)
+    # [Docker] -> V1 2019 | V2 2020 | V2.1 2021
+    # [Node.js/Electron JS] -> 2020 V1 | 2021 V2 & V2.1
+    # Download -> https://go.openspeedtest.com/Server
+
+    # Like this Project? Please Donate NOW & Keep us Alive -> https://go.openspeedtest.com/Donate
+
+    # Share — copy and redistribute the material in any medium or format for any purpose, even commercially.
+    # Read full license terms @ http://go.openspeedtest.com/License
+    # If you have any Questions, ideas or Comments Please Send it via -> https://go.openspeedtest.com/SendMessage
+
+server {
+  server_name _ localhost;
+  listen 3000;
+  root $INSTALL_ROOT/OpenSpeedTest/;
+  index index.html;
+  client_max_body_size 10000M;
+  error_page  405     =200 \$uri;
+  access_log off;
+  log_not_found  off;
+  server_tokens off;
+  error_log /dev/null;
+  tcp_nodelay on;
+  tcp_nopush on;
+  sendfile on;
+  open_file_cache max=200000 inactive=20s;
+  open_file_cache_valid 30s;
+  open_file_cache_min_uses 2;
+  open_file_cache_errors off;
+  location / {
+    add_header 'Access-Control-Allow-Origin' "*" always;
+    add_header 'Access-Control-Allow-Headers' 'Accept,Authorization,Cache-Control,Content-Type,DNT,If-Modified-Since,Keep-Alive,Origin,User-Agent,X-Mx-ReqToken,X-Requested-With' always;
+    add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+    #Very Very Important! You SHOULD send no-store from server for Google Chrome.
+    add_header Cache-Control 'no-store, no-cache, max-age=0, no-transform';
+    if_modified_since off;
+    expires off;
+    etag off;
+  }
+}
+CONF_END
+grep -q OpenSpeedTest-Server.conf /etc/nginx/nginx.conf || sed -e '/include[[:blank:]]*mime.types;/a\    include\t/etc/nginx/OpenSpeedTest-Server.conf;' -i /etc/nginx/nginx.conf
+
+echo -e "${ORANGE}[$SCRIPT] Checking nginx configuration...${NC}"
+nginx -t
+if [ $? -ne 0 ]; then
+  echo -e "${RED}[$SCRIPT] Configuration error? Reverting...${NC}"
+  remove
+fi
+
+echo -e "${ORANGE}[$SCRIPT] Restarting nginx...${NC}"
+/etc/init.d/nginx restart
+
+echo -e "${GREEN}[$SCRIPT] Done. You can now access OpenSpeedTest Server on http://$(uci get network.lan.ipaddr):3000${NC}"
