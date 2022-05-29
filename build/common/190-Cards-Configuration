@@ -1,3 +1,12 @@
+if [ "$BG_RFRSH" = "false" ]; then
+  echo [$SCRIPT]: Removing Chart cards because background refresh disabled
+  for CHART in Charts CPU RAM WANDown WANUp; do
+    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Removing /www/cards/000_${CHART}.lp"
+    rm -f /www/cards/000_${CHART}.lp
+  done
+  sed -e '/CPU and RAM charts depend/d' -i /www/docroot/modals/theme-modal.lp
+fi
+
 echo [$SCRIPT]: Checking card visibility
 ALLCARDRULES="$(uci show web | grep =card)"
 for CARD_PATH in $(find /www/cards/ -maxdepth 1 -type f -name '*.lp' | sort); do
@@ -59,29 +68,31 @@ done
 uci commit web
 
 apply_chart_card_visibiity() {
-  case "$CHART_CARDS" in
-    n)  echo [$SCRIPT]: Hiding all chart cards
-        for CHART in Charts CPU RAM WANDown WANUp; do
-          uci -q set web.card_${CHART}.hide='1'
-        done
-        ;;
-    s)  echo [$SCRIPT]: Hiding individual chart cards
-        for CHART in CPU RAM WANDown WANUp; do
-          uci -q set web.card_${CHART}.hide='1'
-        done
-        echo [$SCRIPT]: Showing summary chart card
-        uci -q set web.card_Charts.hide='0'
-        ;;
-    i)  echo [$SCRIPT]: Showing individual chart cards
-        for CHART in CPU RAM WANDown WANUp; do
-          uci -q set web.card_${CHART}.hide='0'
-        done
-        echo [$SCRIPT]: Hiding summary chart card
-        uci -q set web.card_Charts.hide='1'
-        ;;
-  esac
-  uci commit web
-  SRV_nginx=$(( $SRV_nginx + 1 ))
+  if [ "$BG_RFRSH" = "true" ]; then
+    case "$CHART_CARDS" in
+      n)  echo [$SCRIPT]: Hiding all chart cards
+          for CHART in Charts CPU RAM WANDown WANUp; do
+            uci -q set web.card_${CHART}.hide='1'
+          done
+          ;;
+      s)  echo [$SCRIPT]: Hiding individual chart cards
+          for CHART in CPU RAM WANDown WANUp; do
+            uci -q set web.card_${CHART}.hide='1'
+          done
+          echo [$SCRIPT]: Showing summary chart card
+          uci -q set web.card_Charts.hide='0'
+          ;;
+      i)  echo [$SCRIPT]: Showing individual chart cards
+          for CHART in CPU RAM WANDown WANUp; do
+            uci -q set web.card_${CHART}.hide='0'
+          done
+          echo [$SCRIPT]: Hiding summary chart card
+          uci -q set web.card_Charts.hide='1'
+          ;;
+    esac
+    uci commit web
+    SRV_nginx=$(( $SRV_nginx + 1 ))
+  fi
 }
 
 if [ -z "$ALLCARDRULES" -a -f tch-gui-unhide-cards ]; then
