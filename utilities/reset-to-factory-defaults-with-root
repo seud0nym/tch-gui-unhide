@@ -415,6 +415,7 @@ if [ -n "$__KEYS" ]; then
 fi
 if [ $RESTORE_CONFIG = y ]; then
   echo -e "NOTE:     Configuration backup ${GREEN}${OVERLAY_BACKUP}${NC} will be restored to the device!"
+  echo -e "${ORANGE}WARNING:  Configuration restore can take 5-10 minutes. Be patient!${NC}"
   echo -e "${ORANGE}WARNING:  The device MUST have internet access after factory reset or the configuration restore will ${RED}FAIL!${NC}"
   echo "COMMAND:  ${MOUNT_PATH}${USB}/backups/restore-config ${RESTORE_OPTIONS}"
   RESTORE_CFG="(while [ -e /etc/rc.local -a ! -e ${MOUNT_PATH}${USB}/backups/restore-config.sh ]; do sleep 2; done; sh ${MOUNT_PATH}${USB}/backups/restore-config.sh -vvy $RESTORE_OPTIONS 2>&1 | logger -t restore-config) &"
@@ -452,7 +453,7 @@ then
   else
     target="${MOUNT_PATH}${USB}/$(basename $FIRMWARE .rbi).bin"
   fi
-  echo -e "$INFO:     About to unpack ${ORANGE}$FIRMWARE${NC} to ${ORANGE}$target${NC}"
+  echo -e "INFO:     About to unpack ${ORANGE}$FIRMWARE${NC} to ${ORANGE}$target${NC}"
   echo -n -e "${GREEN}ACTION:   Enter y to continue, or anything else to abort: ${NC}"
   read CONFIRM
 
