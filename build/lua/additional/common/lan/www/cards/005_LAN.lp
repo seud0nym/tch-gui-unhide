@@ -93,9 +93,12 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ');  ngx.print( ui_helper.createCardHeader(T"Local Network","modals/ethernet-modal.lp") ); ngx.print('\
+    ',ui_helper.createCardHeader(T"Local Network","modals/ethernet-modal.lp"),'\
     <div class="content card_bg" data-bg-text="&#xf015;">\
       ');
+      if require("bridgedmode_helper").isBridgedMode() then
+        ngx.print(ui_helper.createSimpleLight("1","Bridged Mode"))
+      end
       ngx.print(
         ui_helper.createSimpleLight(dhcp4State,dhcp4State_text),
         ui_helper.createSimpleLight(dhcp6State,dhcp6State_text)
@@ -107,13 +110,10 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
         '<p class="subinfos">',
         format(T'LAN IP: <strong style="letter-spacing:-1px;font-size:12px;">%s</strong> <br>Subnet Mask: <strong style="letter-spacing:-1px;font-size:12px;">%s</strong>',mapParams["localdevIP"],mapParams["localdevmask"]),
         '<br>',
-        format(T'%s <nobr><strong style="letter-spacing:-1px;font-size:12px;">%s</strong></nobr>',ipv6State_text,mapParams["ipv6prefix"])
-      )
-      ngx.print('</p>\
+        format(T'%s <nobr><strong style="letter-spacing:-1px;font-size:12px;">%s</strong></nobr>',ipv6State_text,mapParams["ipv6prefix"]),
+        '</p>\
     </div>\
   </div>\
 </div>\
 ');
 end
-  ngx.print('\
-');
