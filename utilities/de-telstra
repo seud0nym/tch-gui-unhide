@@ -1497,7 +1497,7 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
           esac
           sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf
           echo [$SCRIPT]: Downloading and installing packages required for repository access...
-          SRC='https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/'
+          SRC='https://downloads.openwrt.org/releases/packages-22.03/arm_cortex-a9/base'
           for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2); do
             curl -skL $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
           done

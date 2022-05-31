@@ -21,21 +21,25 @@ local function telstraIPK(path)
   end
 end
 
-local cmd
-cmd = popen("uci get version.@version[0].marketing_version")
-local fw_version = cmd:read()
-cmd:close()
+local fw_version = "Unknown"
+local command = popen("uci get version.@version[0].marketing_version")
+if command then
+  fw_version = command:read()
+  command:close()
+end
 log.info("Firmware version = %s",fw_version)
 
-cmd = popen("grep '^Version:' /rom/usr/lib/opkg/info/*.control")
-for file in cmd:lines() do
-  local name,version = match(file,"/rom/usr/lib/opkg/info/(.+).control:Version: (.*)")
-  system_pkg[name] = {
-    version = version,
-    telstra = false
-  }
+command = popen("grep '^Version:' /rom/usr/lib/opkg/info/*.control")
+if command then
+  for file in command:lines() do
+    local name,version = match(file,"/rom/usr/lib/opkg/info/(.+).control:Version: (.*)")
+    system_pkg[name] = {
+      version = version,
+      telstra = false
+    }
+  end
+  command:close()
 end
-cmd:close()
 telstraIPK("/usr/lib/ipk/Dependencies")
 telstraIPK("/usr/lib/ipk/THOR")
 
@@ -285,9 +289,12 @@ local GUI_OPKG_ = {
 }
 
 local function feeds_configured()
+  local status = "0"
   local cmd = popen("sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep -E 'BoLaMN|macoers' | wc -l","r")
-  local status = cmd:read("*n")
-  cmd:close()
+  if cmd then
+    status = cmd:read("*n")
+    cmd:close()
+  end
   if status > 0 then
     return "1"
   end
@@ -295,9 +302,12 @@ local function feeds_configured()
 end
 
 local function update_scheduled()
+  local status = "0"
   local cmd = popen("sed -e '/^#/d' /etc/crontabs/root | grep 'opkg update' | wc -l","r")
-  local status = cmd:read("*n")
-  cmd:close()
+  if cmd then
+    status = cmd:read("*n")
+    cmd:close()
+  end
   if status > 0 then
     return "1"
   end
@@ -344,9 +354,12 @@ GUI_OPKG_.get = {
       source = '/sbin/logread'
     end
     local today = sub(os.date(),1,10)
+    local status = ""
     local cmd = popen(source.." | grep -E '^"..today..".* user\\..* rpc\\.gui\\.opkg' | tail -n 50","r")
-    local status = cmd:read("*a")
-    cmd:close()
+    if cmd then
+      status = cmd:read("*a")
+      cmd:close()
+    end
     if status == "" then
       return "<i>No recent log messages found</i>"
     end
@@ -397,7 +410,7 @@ GUI_OPKG_.set = {
         end
       end
       os.execute("sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf;\
-        SRC='https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/';\
+        SRC='https://downloads.openwrt.org/releases/packages-22.03/arm_cortex-a9/base';\
         for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2); do\
           curl -skL $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/$IPK\
         done")
