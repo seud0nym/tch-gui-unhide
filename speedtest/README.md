@@ -22,7 +22,7 @@ chmod +x ost-setup
 Then execute `./ost-setup` to run the installation.
 
 ## Post-Installation
-When the script completes, you will be able to access OpenSpeedTest in your browser at http://[router ip address]:3000
+When the script completes, you will be able to access OpenSpeedTest in your browser at http://[router ip address]:5678
 
 ## Uninstalling
 Run the following command on your device:

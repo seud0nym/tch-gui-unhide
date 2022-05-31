@@ -18,7 +18,9 @@ Installs OpenSpeedTest Server.
 Usage: ost-setup [options]
 
 options:
- -r            Removes OpenSpeedTest Server.
+ -p <port>  Port number between 1024 and 65535. 
+              Defaults to 5678.
+ -r         Removes OpenSpeedTest Server.
 
 EOH
 exit
@@ -39,8 +41,16 @@ remove() {
   exit
 }
 
-while getopts :r option; do
+PORT="5678"
+
+while getopts :p:r option; do
  case "${option}" in
+  p)  if echo "$OPTARG" | grep -q '^[0-9][0-9]*$' && [ "$OPTARG" -ge 1024 -a "$OPTARG" -le 65535 ]; then
+        PORT="$OPTARG"
+      else
+        echo -e "${RED}[$SCRIPT] Port must be a number between 1024 and 65535! Aborting...${NC}"
+        exit 2
+      fi;;
   r)  remove;;
   *)  usage;;
  esac
@@ -118,7 +128,7 @@ cat <<CONF_END >/etc/nginx/OpenSpeedTest-Server.conf
 
 server {
   server_name _ localhost;
-  listen 3000;
+  listen $PORT;
   root $INSTALL_ROOT/OpenSpeedTest/;
   index index.html;
   client_max_body_size 10000M;
@@ -158,4 +168,4 @@ fi
 echo -e "${ORANGE}[$SCRIPT] Restarting nginx...${NC}"
 /etc/init.d/nginx restart
 
-echo -e "${GREEN}[$SCRIPT] Done. You can now access OpenSpeedTest Server on http://$(uci get network.lan.ipaddr):3000${NC}"
+echo -e "${GREEN}[$SCRIPT] Done. You can now access OpenSpeedTest Server on http://$(uci get network.lan.ipaddr):${PORT}${NC}"
