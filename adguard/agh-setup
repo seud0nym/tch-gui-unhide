@@ -12,9 +12,6 @@ usage() {
 cat <<EOH
 Installs AdGuard Home and replaces dnsmasq for DNS and DHCP.
 
-By default, it will be installed on a permanently mounted USB device, unless
-the -i option is specified.
-
 Usage: agh-setup [options]
 
 options:
@@ -37,12 +34,16 @@ options:
  -d            Do NOT enable the AdGuard Home DHCP server.
                   This will continue to use dnsmasq for DHCP, at the expense
                   of some additional RAM.
+ -e            Install AdGuard Home on USB rather than INTERNAL storage.
+                  This is the default if the local filesystem is jffs2, because 
+                  AdGuard Home is INCOMPATIBLE with jffs2.
  -i            Install AdGuard Home on INTERNAL storage rather than USB.
-                  WARNING! This option requires the working directory to be
-                  created on tmpfs, which is cleared on reboot. However, this
-                  script will set up a cron sync job, so that the most you
-                  should lose will be the events and changes in the last
-                  minute before an unexpected system reboot.
+                  This is the default if the local filesystem is NOT jffs2. If
+                  the local filesystem is jffs, then this option will create 
+                  the working directory on tmpfs, which is cleared on reboot. 
+                  However, this script will set up a cron sync job, so that the 
+                  most you should lose will be the events and changes in the 
+                  last minute before an unexpected system reboot.
  -x c|g|i|u|y|x Exclude features:
                   -xc   Do not update System CA certificates
                           NOTE: If certificates are not up to date, AdGuard Home
@@ -85,18 +86,28 @@ AGH_DHCP=true
 DOWNLOAD=Y
 HIJACKING=Y
 UTILITIES=Y
-EXTERNAL=Y
 REMOVE=N
 OVERWRITE=Y
-QUERYLOG_INTERVAL=90
 SKIP_MEM_CHK=N
 INSTALL_ROOT="/root"
+OVERLAY_FS="$(mount | grep '/overlay type' | cut -d' ' -f5)"
+if [ -z "$OVERLAY_FS" ]; then
+  echo -e "${RED}[$SCRIPT] Failed to determine /overlay filesystem type! Aborting...${NC}"
+  exit 2
+elif [ $OVERLAY_FS = jffs2 ]; then
+  EXTERNAL=Y
+  QUERYLOG_INTERVAL=90d
+else
+  EXTERNAL=N
+  QUERYLOG_INTERVAL=24h
+fi
 
-while getopts :dih:n:p:rsux: option
+while getopts :deih:n:p:rsux: option
 do
  case "${option}" in
   d)  AGH_DHCP=false;;
-  i)  EXTERNAL=N;QUERYLOG_INTERVAL=1;;
+  e)  EXTERNAL=Y;QUERYLOG_INTERVAL=90d;;
+  i)  EXTERNAL=N;QUERYLOG_INTERVAL=24h;;
   h)  PWD_HASH="$OPTARG";;
   n)  USERNAME="$OPTARG";;
   p)  PASSWORD="$OPTARG";;
@@ -198,45 +209,54 @@ configure_dnmasq() {
   /etc/init.d/nginx restart
 }
 
+MOUNT_PATH=$(uci get mountd.mountd.path)
+USB="$(ls $MOUNT_PATH | head -n1)"
+
 if [ $REMOVE = Y ]; then
   AGH_CMD=$(grep -o -m 1 -E '/.*/AdGuardHome/AdGuardHome ' /etc/init.d/AdGuardHome 2>/dev/null)
-  if [ $? -eq 0 ]; then
-    echo -e "${GREEN}[$SCRIPT] Uninstalling AdGuard Home...${NC}"
-    $AGH_CMD -s stop
-    $AGH_CMD -s uninstall
-
-    configure_dnmasq enable
-
-    if [ $DEL_AGH = Y ]; then
-      echo -e "${GREEN}[$SCRIPT] Deleting AdGuard Home installation...${NC}"
-      rm -rf $(dirname $AGH_CMD)
-      [ -n "$(echo $AGH_CMD | grep -E '^/root')" ] && rm -rf /tmp/data /tmp/AdGuardHome.yaml leases.db 2>/dev/null
+  if [ $? -ne 0 ]; then
+    if [ -e /root/AdGuardHome/AdGuardHome ]; then
+      AGH_CMD="/root/AdGuardHome/AdGuardHome"
+    elif [ -e ${MOUNT_PATH}${USB}/AdGuardHome/AdGuardHome ]; then
+      AGH_CMD="${MOUNT_PATH}${USB}/AdGuardHome/AdGuardHome"
+    else
+      echo -e "${RED}[$SCRIPT] AdGuard Home installation not found! Aborting...${NC}"
+      exit 1
     fi
-
-    if [ -e /etc/init.d/sync-adguard-home-data ]; then
-      echo -e "${GREEN}[$SCRIPT] Removing data directory sync hack...${NC}"
-      /etc/init.d/sync-adguard-home-data uninstall
-      rm /etc/init.d/sync-adguard-home-data
-    fi
-
-    if [ -e /etc/hotplug.d/mount/00-adguardhome ]; then
-      echo -e "${GREEN}[$SCRIPT] Removing USB mount hotplug...${NC}"
-      rm /etc/hotplug.d/mount/00-adguardhome
-    fi
-
-    grep -q "agh-lists-update" /etc/crontabs/root
-    if [ $? -eq 0 ]
-    then
-      echo -e "${GREEN}[$SCRIPT] Removing scheduled block list update...${NC}"
-      sed -e "/agh-lists-update/d" -i /etc/crontabs/root
-    fi
-
-    echo -e "${GREEN}[$SCRIPT] Done${NC}"
-    exit
-  else
-    echo -e "${RED}[$SCRIPT] AdGuard Home installation not found! Aborting...${NC}"
-    exit 1
   fi
+
+  echo -e "${GREEN}[$SCRIPT] Uninstalling AdGuard Home...${NC}"
+  $AGH_CMD -s stop
+  $AGH_CMD -s uninstall
+
+  configure_dnmasq enable
+
+  if [ $DEL_AGH = Y ]; then
+    echo -e "${GREEN}[$SCRIPT] Deleting AdGuard Home installation...${NC}"
+    rm -rf $(dirname $AGH_CMD)
+    [ -n "$(echo $AGH_CMD | grep -E '^/root')" ] && rm -rf /tmp/data /tmp/AdGuardHome.yaml leases.db 2>/dev/null
+  fi
+
+  if [ -e /etc/init.d/sync-adguard-home-data ]; then
+    echo -e "${GREEN}[$SCRIPT] Removing data directory sync hack...${NC}"
+    /etc/init.d/sync-adguard-home-data uninstall
+    rm /etc/init.d/sync-adguard-home-data
+  fi
+
+  if [ -e /etc/hotplug.d/mount/00-adguardhome ]; then
+    echo -e "${GREEN}[$SCRIPT] Removing USB mount hotplug...${NC}"
+    rm /etc/hotplug.d/mount/00-adguardhome
+  fi
+
+  grep -q "agh-lists-update" /etc/crontabs/root
+  if [ $? -eq 0 ]
+  then
+    echo -e "${GREEN}[$SCRIPT] Removing scheduled block list update...${NC}"
+    sed -e "/agh-lists-update/d" -i /etc/crontabs/root
+  fi
+
+  echo -e "${GREEN}[$SCRIPT] Done${NC}"
+  exit
 fi
 
 if [ -e /etc/init.d/AdGuardHome ]; then
@@ -264,9 +284,6 @@ else
   fi
 fi
 
-MOUNT_PATH=$(uci get mountd.mountd.path)
-USB="$(ls $MOUNT_PATH | head -n1)"
-
 if [ $EXTERNAL = Y ]; then
   if [ -z "$USB" ]; then
     echo -e "${RED}[$SCRIPT] No USB device found! Aborting...${NC}"
@@ -281,9 +298,12 @@ if [ $EXTERNAL = Y ]; then
   fi
   INSTALL_ROOT="${MOUNT_PATH}${USB}"
   WORKING_DIR="${MOUNT_PATH}${USB}/AdGuardHome/data"
-else
+elif [ $OVERLAY_FS = jffs2 ]; then
   INSTALL_ROOT="/root"
   WORKING_DIR="/tmp/AdGuardHomeWork"
+else 
+  INSTALL_ROOT="/root"
+  WORKING_DIR="/root/AdGuardHome/data"
 fi
 cd $INSTALL_ROOT
 
@@ -309,10 +329,10 @@ if [ $CA_CERT = Y ]; then
   rm /tmp/update-ca-certificates
 fi
 
-if [ $EXTERNAL = N ]; then
+if [ $EXTERNAL = N -a $OVERLAY_FS = jffs2 ]; then
   opkg list-installed | grep -q -E '^rsync '
   if [ $? -ne 0 ]; then
-    echo -e "${GREEN}[$SCRIPT] Installing on internal storage requires the rsync backup hack...${NC}"
+    echo -e "${GREEN}[$SCRIPT] Installing on jffs2 internal storage requires the rsync backup hack...${NC}"
     OPKG_FEEDS=$(lua -e '
       require("web.taint")
       proxy = require("datamodel")
@@ -387,8 +407,7 @@ fi
 if [ $HIJACKING = Y ]; then
   echo -e "${GREEN}[$SCRIPT] Downlading latest version of hijack-dns...${NC}"
   curl -kL -o /tmp/hijack-dns https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/hijack-dns
-  if [ $? -eq 0 ]
-  then
+  if [ $? -eq 0 ]; then
     chmod +x /tmp/hijack-dns
     echo "[$SCRIPT] Successfully downloaded hijack-dns."
   else
@@ -399,7 +418,12 @@ fi
 
 if [ $DOWNLOAD = Y -o ! -d AdGuardHome ]; then
   echo -e "${GREEN}[$SCRIPT] Downloading latest release of AdGuard Home...${NC}"
-  curl -kL https://static.adguard.com/adguardhome/release/AdGuardHome_linux_armv5.tar.gz | tar -xzf -
+  case "$(uname -m)" in
+    aarch64)  ARCH="64";;
+    armv7l)   ARCH="v5";;
+    *)        echo -e "${RED}[$SCRIPT] Unable to handle $(uname -m) archictecture! Aborting...${NC}"; exit 2;;
+  esac
+  curl -kL https://static.adguard.com/adguardhome/release/AdGuardHome_linux_arm${ARCH}.tar.gz | tar -xzf -
   if [ $? -ne 0 ]; then
     echo -e "${RED}[$SCRIPT] Failed to download AdGuard Home! Aborting...${NC}"
     exit 2
@@ -507,133 +531,139 @@ fi
 if [  $OVERWRITE = y -o ! -e $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring AdGuard Home...${NC}"
   cat <<YAML_END >$INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml
+auth_attempts: 5
+beta_bind_port: 0
 bind_host: $GATEWAY
 bind_port: 8008
-beta_bind_port: 0
-users:
-- name: $USERNAME
-  password: $PWD_HASH
-auth_attempts: 5
 block_auth_min: 15
-http_proxy: ""
-language: ""
-rlimit_nofile: 0
+clients: []
 debug_pprof: false
-web_session_ttl: 720
+dhcp:
+  dhcpv4:
+    gateway_ip: $GATEWAY
+    icmp_timeout_msec: 1000
+    lease_duration: $LEASE_TIME
+    options: []
+    range_end: $DHCPv4_END
+    range_start: $DHCPv4_START
+    subnet_mask: $NETMASK
+  dhcpv6:
+    lease_duration: $LEASE_TIME
+    ra_allow_slaac: $SLAAC
+    ra_slaac_only: false
+    range_start: $DHCPv6_START
+  enabled: $AGH_DHCP
+  interface_name: br-lan
 dns:
+  aaaa_disabled: false
+  all_servers: false
+  allowed_clients: []
+  anonymize_client_ip: false
   bind_hosts:
   - 0.0.0.0
-  port: 53
-  statistics_interval: 1
-  querylog_enabled: false
-  querylog_file_enabled: true
-  querylog_interval: $QUERYLOG_INTERVAL
-  querylog_size_memory: 1000
-  anonymize_client_ip: false
-  protection_enabled: true
-  blocking_mode: default
+  blocked_hosts:
+  - version.bind
+  - id.server
+  - hostname.bind
+  blocked_response_ttl: 10
+  blocked_services: []
   blocking_ipv4: ""
   blocking_ipv6: ""
-  blocked_response_ttl: 10
-  parental_block_host: family-block.dns.adguard.com
-  safebrowsing_block_host: standard-block.dns.adguard.com
-  ratelimit: 20
-  ratelimit_whitelist: []
-  refuse_any: true
-  upstream_dns:
-  - https://dns10.quad9.net/dns-query
-  upstream_dns_file: ""
+  blocking_mode: default
+  bogus_nxdomain: []
   bootstrap_dns:
   - 9.9.9.10
   - 149.112.112.10
   - 2620:fe::10
   - 2620:fe::fe:10
-  all_servers: false
-  fastest_addr: false
-  allowed_clients: []
-  disallowed_clients: []
-  blocked_hosts:
-  - version.bind
-  - id.server
-  - hostname.bind
+  cache_optimistic: false
   cache_size: 4194304
-  cache_ttl_min: 0
+  cache_time: 30
   cache_ttl_max: 0
-  bogus_nxdomain: []
-  aaaa_disabled: false
-  enable_dnssec: false
+  cache_ttl_min: 0
+  disallowed_clients: []
   edns_client_subnet: false
-  max_goroutines: 300
-  ipset: []
+  enable_dnssec: false
+  fastest_addr: false
+  fastest_timeout: 1s
   filtering_enabled: true
   filters_update_interval: 24
-  parental_enabled: false
-  safesearch_enabled: false
-  safebrowsing_enabled: false
-  safebrowsing_cache_size: 1048576
-  safesearch_cache_size: 1048576
-  parental_cache_size: 1048576
-  cache_time: 30
-  rewrites: []
-  blocked_services: []
+  ipset: []
   local_domain_name: $DOMAIN
-  resolve_clients: true
   local_ptr_upstreams: []
-tls:
-  enabled: false
-  server_name: ""
-  force_https: false
-  port_https: 443
-  port_dns_over_tls: 853
-  port_dns_over_quic: 784
-  port_dnscrypt: 0
-  dnscrypt_config_file: ""
-  allow_unencrypted_doh: false
-  strict_sni_check: false
-  certificate_chain: ""
-  private_key: ""
-  certificate_path: ""
-  private_key_path: ""
+  max_goroutines: 300
+  parental_block_host: family-block.dns.adguard.com
+  parental_cache_size: 1048576
+  parental_enabled: false
+  port: 53
+  protection_enabled: true
+  querylog_enabled: false
+  querylog_file_enabled: true
+  querylog_interval: $QUERYLOG_INTERVAL
+  querylog_size_memory: 1000
+  ratelimit: 20
+  ratelimit_whitelist: []
+  refuse_any: true
+  resolve_clients: true
+  rewrites: []
+  safebrowsing_block_host: standard-block.dns.adguard.com
+  safebrowsing_cache_size: 1048576
+  safebrowsing_enabled: false
+  safesearch_cache_size: 1048576
+  safesearch_enabled: false
+  statistics_interval: 1
+  trusted_proxies:
+  - 127.0.0.0/8
+  - ::1/128
+  upstream_dns:
+  - https://dns10.quad9.net/dns-query
+  upstream_dns_file: ""
+  upstream_timeout: 10s
+  use_private_ptr_resolvers: true
 filters:
 - enabled: true
-  url: https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt
-  name: AdGuard DNS filter
   id: 1
+  name: AdGuard DNS filter
+  url: https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt
 - enabled: true
-  url: https://adaway.org/hosts.txt
-  name: AdAway Default Blocklist
   id: 2
-- enabled: false
-  url: https://www.malwaredomainlist.com/hostslist/hosts.txt
-  name: MalwareDomainList.com Hosts List
-  id: 4
-whitelist_filters: []
-user_rules: []
-dhcp:
-  enabled: $AGH_DHCP
-  interface_name: br-lan
-  dhcpv4:
-    gateway_ip: $GATEWAY
-    subnet_mask: $NETMASK
-    range_start: $DHCPv4_START
-    range_end: $DHCPv4_END
-    lease_duration: $LEASE_TIME
-    icmp_timeout_msec: 1000
-    options: []
-  dhcpv6:
-    range_start: $DHCPv6_START
-    lease_duration: $LEASE_TIME
-    ra_slaac_only: false
-    ra_allow_slaac: $SLAAC
-clients: []
+  name: AdAway Default Blocklist
+  url: https://adaway.org/hosts.txt
+http_proxy: ""
+language: ""
 log_compress: false
+log_file: ""
 log_localtime: false
+log_max_age: 3
 log_max_backups: 0
 log_max_size: 100
-log_max_age: 3
-log_file: ""
+os:
+  group: ""
+  rlimit_nofile: 0
+  user: ""
+schema_version: 12
+tls:
+  allow_unencrypted_doh: false
+  certificate_chain: ""
+  certificate_path: ""
+  dnscrypt_config_file: ""
+  enabled: false
+  force_https: false
+  port_dns_over_quic: 784
+  port_dns_over_tls: 853
+  port_dnscrypt: 0
+  port_https: 443
+  private_key: ""
+  private_key_path: ""
+  server_name: ""
+  strict_sni_check: false
+user_rules: []
+users:
+- name: $USERNAME
+  password: $PWD_HASH
 verbose: false
-schema_version: 10
+web_session_ttl: 720
+whitelist_filters: []
 YAML_END
 else
   echo -e "${ORANGE}[$SCRIPT] Existing AdGuard Home configuration NOT overwritten${NC}"
@@ -750,7 +780,7 @@ fi
 PLUG_EOF
   sed -e "1a\\\nDHCP_AGH=$AGH_DHCP" -i /etc/hotplug.d/mount/00-adguardhome
   chmod 755 /etc/hotplug.d/mount/00-adguardhome
-else
+elif [ $OVERLAY_FS = jffs2 ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring rsync backup of AdGuard Home data...${NC}"
   cat <<INIT_EOF >/etc/init.d/sync-adguard-home-data
 #!/bin/sh /etc/rc.common
@@ -812,8 +842,7 @@ done
 
 if [ $AGH_RUNNING = 'true' ]; then
   echo -e "${GREEN}[$SCRIPT] Loading static leases...${NC}"
-  for host in $(uci show dhcp | grep '@host.*=host$' | cut -d= -f1)
-  do
+  for host in $(uci show dhcp | grep '@host.*=host$' | cut -d= -f1); do
     SLEASE_MAC="$(uci -q get $host.mac)"
     SLEASE_IP="$(uci -q get $host.ip)"
     SLEASE_NAME="$(uci -q get $host.name)"
@@ -826,8 +855,7 @@ if [ $AGH_RUNNING = 'true' ]; then
   done
 
   if [ $UTILITIES = Y ]; then
-    for s in agh-change-password agh-lists-update
-    do
+    for s in agh-change-password agh-lists-update; do
       echo -e "${GREEN}[$SCRIPT] Downloading utility script: $s to $INSTALL_ROOT/AdGuardHome ${NC}"
       curl -kL -o AdGuardHome/$s https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/$s
       chmod +x AdGuardHome/$s

@@ -8,20 +8,23 @@ The instructions have been adapted for use on the Telstra branded Technicolor de
 ## What It Does
 By default, the setup script will install and configure AdGuard Home on your device, and _disable_ dnsmasq. AdGuard Home will then handle DNS resolution and DHCP for your local network.
 
-It will also download and run the [`intercept-dns`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#intercept-dns) script, to configure DNS interception and hijacking.
+It will also download and run the [`hijack-dns`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#hijack-dns) script, to configure DNS interception and hijacking.
 
 # Important Considerations
 The things you need to be aware of:
 
-## AdGuard Home is incompatible with the overlay file system
-AdGuard Home (or rather the database system that it uses) is _incompatible_ with the overlay file system used on these devices (https://github.com/AdguardTeam/AdGuardHome/issues/1188).
+## AdGuard Home is incompatible with the jffs2 file system
+AdGuard Home (or rather the database system that it uses) is _incompatible_ with the jffs2 file system used on devices prior to the Telstra Smart Modem Gen 3 (https://github.com/AdguardTeam/AdGuardHome/issues/1188).
 
-The setup script implements 2 different solutions to this issue:
+If your device uses the jffs2 file system, then the setup script implements 2 different solutions to this issue:
+
 1. The default installation target is a mounted USB device.
    - Obviously, it must be permanently mounted, or you will not have DNS resolution on your network.
 2. You can optionally specify the `-i` option to install AdGuard Home on internal storage.
    - The working directory will be set to tmpfs, but by default this means that *ALL* statistics, downloaded block lists and DHCP static and dynamic leases will be **lost** on reboot.
    - To work around this limitation, the script will install rsync to synchronize the AdGuard Home working directory back to permanent storage every minute and on shutdown. On boot, the permanent copy will be synced back to tmpfs before starting AdGuard Home. The worst case scenario should be that you could lose up to 1 minute of logs, leases and statistics.
+
+Note that if your device does _NOT_ use the jffs2 file system (e.g. Telstra Smart Modem Gen 3), then the default installation target is internal storage, and the tmpfs/rsync hack will _not_ be implemented, as it is unnecessary.
 
 #### Other Internal Storage Considerations
 - By default, this installation option will reduce log retention to 24 hours, to try and reduce the likelihood of running out of space.
@@ -46,7 +49,7 @@ I haven't run it long enough to know if this is indicative over time, so you sho
 # Installation Pre-requisites
 - A working internet connection on your device
 - Your device should be configured correctly. The setup script will copy your current DHCP settings into AdGuard Home, and configure DNS to use AdGuard Home.
-- A USB stick (unless you specify installation on internal storage)
+- A USB stick (unless it is to be installed on internal storage)
 
 # Installation
 Read the section on "Optional Installation Parameters" before running one of the following commands.
@@ -54,7 +57,7 @@ Read the section on "Optional Installation Parameters" before running one of the
 ## Default Installation on USB Device
 Insert a USB device and then run the following command on your device:
 ```
-curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/agh-setup | sh -s --
+curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/agh-setup | sh -s -- -e
 ```
 When this command successfully completes, AdGuard Home will be installed and running from the USB Device. The web interface will be accessible at http://[router ip address]:8008. The default username is root and the default password is agh-admin.
 
@@ -75,6 +78,12 @@ You can execute `./agh-setup -?` to see all available installation options (some
 
 # Optional Installation Parameters
 The following optional configuration parameters may be specified **after** the doubles dashes (**--**) in the above commands:
+- -e
+  - Install AdGuard Home on USB rather than INTERNAL storage.
+  - This is the default if the internal storage filesystem is jffs2, because AdGuard Home is INCOMPATIBLE with jffs2.
+- -i
+  - Install AdGuard Home on INTERNAL storage rather than USB.
+  - This is the default if the internal storage filesystem is _NOT_ jffs2.
 - -u username
   - The AdGuard Home web user name.
   - If not specified, the user name defaults to: root
