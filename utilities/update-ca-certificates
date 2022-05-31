@@ -77,7 +77,7 @@ if [ $CRON = Y ]; then
   exit
 fi
 
-SRC="https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base/"
+SRC="https://downloads.openwrt.org/releases/packages-21.02/arm_cortex-a9/base"
 for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2)
 do
   logger $LGGR_OPT -t rpc.gui.opkg -p user.info Downloading $SRC/$IPK...
