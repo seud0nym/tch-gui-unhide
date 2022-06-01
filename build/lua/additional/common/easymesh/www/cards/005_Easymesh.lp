@@ -6,7 +6,9 @@ gettext.textdomain('webui-core')
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
-local format = string.format
+local format,match = string.format,string.match
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 local function state_map(state)
   if state == "0" then
@@ -45,12 +47,68 @@ else
   easymesh_state = "0"
 end
 
-local deviceCount = proxy.get("Device.WiFi.MultiAP.APDeviceNumberOfEntries")
-deviceCount = tonumber(deviceCount and deviceCount[1] and deviceCount[1].value or "0")
-local nExt = deviceCount and deviceCount > 1 and deviceCount-1 or 0
 local modal_link = ""
-if nExt > 0 then
-  modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/easymesh-topology.lp" data-id="device-modal"'
+
+local nExt = 0
+local synced = 0
+
+if easymesh_role == "Controller" or easymesh_role == "Controller-only" then
+  local deviceCount = proxy.get("Device.WiFi.MultiAP.APDeviceNumberOfEntries")
+  deviceCount = tonumber(deviceCount and deviceCount[1] and deviceCount[1].value or "0")
+  nExt = deviceCount and deviceCount > 1 and deviceCount-1 or 0
+  if nExt > 0 then
+    modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/easymesh-topology.lp" data-id="device-modal"'
+  end
+end
+
+if easymesh_role == "Agent" then
+  local credentials = {}
+  local radios = {}
+
+  for _,v in ipairs(proxy.getPN("uci.wireless.wifi-device.",true)) do
+    local path = v.path
+    local index = match(path,"@([^%.]*)")
+    local values = proxy.get(path.."standard")
+    if values then
+      local standard = values[1].value
+      if standard == "bgn" or standard == "bgnax" then
+        radios["2"] = index
+      else
+        radios["5H"] = index
+        radios["5L"] = index
+      end
+    end
+  end
+
+  for _,v in ipairs(proxy.getPN("uci.mesh_broker.controller_credentials.",true)) do
+    local path = v.path
+    local values = proxy.get(path.."ssid",path.."frequency_bands",path.."wpa_psk_key",path.."type")
+    if values then
+      if values[4].value == "home" then
+        credentials[#credentials+1] = {
+          ssid = untaint(values[1].value),
+          radio = radios[untaint(values[2].value)],
+          password = untaint(values[3].value),
+        }
+      end
+    end
+  end
+
+  for _,v in ipairs(proxy.getPN("uci.wireless.wifi-iface.",true)) do
+    local path = v.path
+    local values = proxy.get(path.."ssid",path.."device",path.."network",path.."backhaul")
+    if values then
+      if values[3].value == "lan" then
+        local ssid = untaint(values[1].value)
+        local radio = untaint(values[2].value)
+        for _,credential in pairs(credentials) do
+          if credential.radio == radio and credential.ssid ~= ssid then
+            synced = synced + 1
+          end
+        end
+      end
+    end
+  end
 end
 
 ngx.print('\
@@ -68,9 +126,15 @@ ngx.print('\
         '</p>'
         )
       end
-      ngx.print(
-      ui_helper.createSimpleLight(content.controller,T(format("EasyMesh Agent %s",state_map(content.agent)))),
-      ui_helper.createSimpleLight(content.backhaul_state,T(format("Backhaul %s (5G) %s",content.backhaul_ssid,state_map(content.backhaul_state)))),'\
+      ngx.print(ui_helper.createSimpleLight(content.agent,T(format("EasyMesh Agent %s",state_map(content.agent)))))
+      if content.agent == "1" and content.controller == "0" then
+        ngx.print(
+        '<p class="subinfos">',
+          format(N('<strong id="synced_count" %1$s>%2$d SSID</strong> connected','<strong id="synced_count" %1$s>%2$d SSIDs</strong> synced',synced),modal_link,synced),
+        '</p>'
+        )
+      end
+      ngx.print(ui_helper.createSimpleLight(content.backhaul_state,T(format("Backhaul %s (5G) %s",content.backhaul_ssid,state_map(content.backhaul_state)))),'\
     </div>\
   </div>\
 </div>\
