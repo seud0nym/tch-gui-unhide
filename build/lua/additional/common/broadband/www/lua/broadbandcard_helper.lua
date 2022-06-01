@@ -71,6 +71,8 @@ function M.getBroadbandCardHTML(wansensing)
     html[#html+1] = '<p class="subinfos">'
     html[#html+1] = format(T'Connected Interfaces: <strong>%s</strong>',connected_iface)
     html[#html+1] = '</p>'
+
+    status = "bridged"
   else -- not bridge mode
     -- wan status data
     local wan_data = {

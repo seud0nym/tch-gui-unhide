@@ -8,6 +8,8 @@ function broadbandCardIcon(status){
       return "\uf05e"; // Ban circle
     case "connecting":
       return "\uf110"; // Spinner
+    case "bridged":
+      return "\uf0ec"; // Exchange
     default:
       return "\uf071"; // Warning Sign
   }
