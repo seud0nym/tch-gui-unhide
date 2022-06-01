@@ -1,3 +1,16 @@
+2022.06.01
+==========
+* tch-gui-unhide: Fixed interface names not correctly populated when adding/editing static route (#92)
+* tch-gui-unhide: Fixed potential nil argument error on EasyMesh Boosters screen (FW 20.4 only)
+* tch-gui-unhide: Added serial number to Gateway (device) card header
+* tch-gui-unhide: Added QoS System Shapers (FW 20.3.c)
+* tch-gui-unhide: Added new -b option to enable (the default) or disable background refresh of the dashboard screen cards
+* tch-gui-unhide: Added mode indicator to LAN card when bridged
+* tch-gui-unhide: Updated URL for ca-bundle and ca-certificates packages from 21.02 to 22.03
+* tch-gui-unhide: Set Broadband card icon to Exchange when device is in bridged mode
+* de-telstra: Updated URL for ca-bundle and ca-certificates packages from 21.02 to 22.03
+* update-ca-certificates: Updated URL for ca-bundle and ca-certificates packages from 21.02 to 22.03
+
 2022.05.12
 ==========
 * tch-gui-unhide: Removed Sign in button when using default user and default user is admin

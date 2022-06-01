@@ -1062,7 +1062,7 @@ if session:hasAccess(modalPath) then
       if(response.status==403||response.status==404){clearInterval(wireguardFuncID);}\
     });\
   }\
-  $().ready(function(){wireguardFuncID=setInterval(updateWireguardCard,15000);});\
+  $().ready(function(){wireguardFuncID=setInterval(updateWireguardCard,15000);addRegisteredInterval(wireguardFuncID);});\
   </script>\
 ');
 end

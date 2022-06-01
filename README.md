@@ -233,6 +233,9 @@ The script accepts the following options:
 - -a 4|5
     - Set the number of cards across on screen width greater than 1200px
     - The default is the current setting, or 4 for first time installs.
+- -b y|n
+    - Enable (y) or Disable (n) background updating of dashboard cards.
+    - The default is the current setting, or (y) for first time installs.
 - -t l|n|c|t|m
     - Set a light (*-tl*), night (*-tn*), classic(*-tc*) or default Telstra Classic (*-tt*) or Telstra Modern (*-tm*) theme
     - The default is the current setting, or Telstra Classic if no theme has been applied
@@ -290,7 +293,7 @@ The script accepts the following options:
 - -?
     - Displays usage information
 
-NOTE: The theme options (-t, -c and -i) do not need to be re-specified when re-running the script: state will be 'remembered' between executions (unless you execute with the -r option, which will remove all state information).
+NOTE: Options do not need to be re-specified when re-running the script: state will be 'remembered' between executions (unless you execute with the -r option, which will remove all state information).
 
 The `tch-gui-unhide` script is a short-cut to the actual script for your firmware, which is named `tch-gui-unhide-<version>` (e.g. `tch-gui-unhide-18.1.c`). If you get a "Platform script not found" error running this script, download the correct release for your firmware configuration.
 

@@ -725,7 +725,7 @@ if session:hasAccess(modalPath) then
       if(response.status==403||response.status==404){clearInterval(adbFuncID);}\
     });\
   }\
-  $().ready(function(){adbFuncID=setInterval(updateAdblockCard,28000);});\
+  $().ready(function(){adbFuncID=setInterval(updateAdblockCard,28000);addRegisteredInterval(adbFuncID);});\
   </script>\
 ');
 end
