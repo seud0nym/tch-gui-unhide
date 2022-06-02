@@ -89,14 +89,15 @@ fi
 
 if [ "$UPDATE_BTN" = y ]; then
   echo [$SCRIPT]: Add update available button
+  grep -q isBridgedMode /www/docroot/gateway.lp && INSERT_BEFORE="isBridgedMode" || INSERT_BEFORE="session:isdefaultuser"
   sed \
     -e '/uci.version.version.@version\[0\].timestamp/a\    updatable = "rpc.gui.UpdateAvailable",' \
-    -e '/isBridgedMode/i\        if cui.updatable == "1" then' \
-    -e "/isBridgedMode/i\          html[#html + 1] = '<div data-toggle=\"modal\" class=\"btn\" data-remote=\"/modals/tch-gui-unhide-update-modal.lp\" data-id=\"tch-gui-unhide-update-modal\">'" \
-    -e "/isBridgedMode/i\          html[#html + 1] = '<i class=\"icon-info-sign orange\"></i>&nbsp;'" \
-    -e "/isBridgedMode/i\          html[#html + 1] = T\"Update Available\"" \
-    -e "/isBridgedMode/i\          html[#html + 1] = '</div>'" \
-    -e '/isBridgedMode/i\        end' \
+    -e "/$INSERT_BEFORE/i\        if cui.updatable == \"1\" then" \
+    -e "/$INSERT_BEFORE/i\          html[#html + 1] = '<div data-toggle=\"modal\" class=\"btn\" data-remote=\"/modals/tch-gui-unhide-update-modal.lp\" data-id=\"tch-gui-unhide-update-modal\">'" \
+    -e "/$INSERT_BEFORE/i\          html[#html + 1] = '<i class=\"icon-info-sign orange\"></i>&nbsp;'" \
+    -e "/$INSERT_BEFORE/i\          html[#html + 1] = T\"Update Available\"" \
+    -e "/$INSERT_BEFORE/i\          html[#html + 1] = '</div>'" \
+    -e "/$INSERT_BEFORE/i\        end" \
     -e '/local getargs/a\if getargs and getargs.ignore_update then' \
     -e '/local getargs/a\  local proxy = require("datamodel")' \
     -e '/local getargs/a\  proxy.set("rpc.gui.IgnoreCurrentRelease", getargs.ignore_update)' \
