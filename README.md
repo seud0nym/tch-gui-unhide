@@ -373,9 +373,6 @@ When this screen is displayed, you have the following options available:
 - *q*
     - Quits the scripts without making any changes.
 
-## Other Important Things To Note
-- Script changes will not persist a reset or restore. If you factory reset your device, or restore to it a state before you applied a script, or upgrade/install firmware, you will need to run the script again!
-
 # Themes
 By default, the script will keep a "Telstra" theme, very similar to the default Telstra theme.
 
@@ -390,6 +387,19 @@ You can switch to a "dark" (or "night") theme by re-running the script with the 
 When you re-run the script without specifying a theme, it will default to the previously select theme, or the "Telstra" theme when run the first time or immediately after running the script with the `-r` option to revert all GUI changes.
 
 You can also change the theme, colour variation and icon visibility from within the GUI (in the *Management* screen).
+
+## Custom Logo
+
+If a file named logo.gif file exists in one of:
+
+- the current directory,
+- /root, or
+- the USB drive, or
+- in a "logo" (case-insensitive) directory in one of those places,
+
+when you run tch-gui-unhide, the default logo will be replaced with that custom logo in _all_ themes. 
+
+A custom logo will be ignored if you specify the -L option when you run tch-gui-unhide.
 
 # Thanks
 This would not have been possible without the following resources:
