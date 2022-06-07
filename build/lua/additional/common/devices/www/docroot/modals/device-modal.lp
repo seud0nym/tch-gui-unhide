@@ -60,7 +60,7 @@ for _,v in ipairs(proxy.getPN("rpc.wireless.radio.", true)) do
 end
 
 local function getInterfaceType(data)
-  if data["Radio"] ~= "" then
+  if data["Radio"] and data["Radio"] ~= "" then
     return "Wireless - "..radios[untaint(data["Radio"])]
   elseif match(data["L2Interface"],"eth*") then
     local agentWiFiBand = agentSTA[data["MACAddress"]]
