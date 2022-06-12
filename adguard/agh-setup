@@ -96,7 +96,7 @@ if [ -z "$OVERLAY_FS" ]; then
   exit 2
 elif [ $OVERLAY_FS = jffs2 ]; then
   EXTERNAL=Y
-  QUERYLOG_INTERVAL=90d
+  QUERYLOG_INTERVAL=2160h
 else
   EXTERNAL=N
   QUERYLOG_INTERVAL=24h
@@ -106,7 +106,7 @@ while getopts :deih:n:p:rsux: option
 do
  case "${option}" in
   d)  AGH_DHCP=false;;
-  e)  EXTERNAL=Y;QUERYLOG_INTERVAL=90d;;
+  e)  EXTERNAL=Y;QUERYLOG_INTERVAL=2160h;;
   i)  EXTERNAL=N;QUERYLOG_INTERVAL=24h;;
   h)  PWD_HASH="$OPTARG";;
   n)  USERNAME="$OPTARG";;
