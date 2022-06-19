@@ -376,12 +376,13 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y -o $__YES = n ]; then
   show_default "I"  "LAN IPv4 Address" $__IPADDR
   [ $ARMv7 -eq 1 ] && show_default "o"  "Configure opkg" $__OPKG
   [ $ARMv7 -eq 1 ] && show_default "O"  " - opkg repository" $__REPO
-  [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y ] && exit
-  [ $RESTART_SERVICES = n ] && echo -e "[$SCRIPT]: \e[0;33mServices will NOT be restarted after configuration applied!\e[0m"
+  [ $SHOW_DEFAULTS = y ] && exit
   if [ $SAVE_DEFAULTS = y ]; then
     set | grep '^__' > .defaults.de-telstra
     echo -e "[$SCRIPT]: \e[1;32mDefaults saved\e[0m"
+    exit
   fi
+  [ $RESTART_SERVICES = n ] && echo -e "[$SCRIPT]: \e[0;33mServices will NOT be restarted after configuration applied!\e[0m"
   echo -en "[$SCRIPT]: \e[1;32mApply changes? Enter y to confirm otherwise just [Enter] to exit: \e[0m"
   read
   [ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
