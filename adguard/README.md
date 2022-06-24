@@ -128,6 +128,21 @@ The following optional configuration parameters may be specified **after** the d
 # Post-Installation
 When the script completes, you will be able to access AdGuard Home in your browser at http://[router ip address]:8008
 
+# Upgrading
+When a new release of AdGuard Home becomes available, you can upgrade using the following commands:
+```
+cd /tmp
+curl -kLSO https://static.adguard.com/adguardhome/release/AdGuardHome_linux_armv5.tar.gz
+tar -zxvf AdGuardHome_linux_armv5.tar.gz
+cd $(dirname $(grep -o -m 1 -E '/.*/AdGuardHome/AdGuardHome ' /etc/init.d/AdGuardHome))
+./AdGuardHome -s stop
+cp /tmp/AdGuardHome/AdGuardHome .
+./AdGuardHome -s start
+rm -rf /tmp/AdGuardHome
+```
+
+If you are upgrading AdGuard Home on a Telstra Smart Modem Gen 3, then change the filename in the second and third commands to AdGuardHome_linux_arm**64**.tar.gz instead of AdGuardHome_linux_arm**v5**.tar.gz.
+
 # Uninstalling
 Run the following command on your device:
 ```
