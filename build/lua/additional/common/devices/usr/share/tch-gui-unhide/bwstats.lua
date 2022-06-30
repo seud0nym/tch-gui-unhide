@@ -2,6 +2,7 @@
 
 local logger,ubus,uloop = require("tch.logger"),require('ubus'),require('uloop')
 local log = logger.new("bwstats",tonumber(arg[1]))
+local table = "mangle"
 
 local conn = ubus.connect()
 if conn then
@@ -12,26 +13,26 @@ if conn then
 
   local events = {}
   local actions = {
-    add = { "||", "A" },
+    add = { "||", "I" },
     delete = { "&&", "D" },
   }
   local chains = {
-    --BWSTATSRX = "s",
+    BWSTATSRX = "s",
     BWSTATSTX = "d",
   }
 
   local function update_rules(family,action,mac,ip)
-    if run('iptables -t mangle -nL BWSTATSTX >/dev/null 2>&1') ~= 0 then
+    if run("iptables -t "..table.." -nL BWSTATSTX >/dev/null 2>&1") ~= 0 then
       log:warning("IPv4 Chain BWSTATSTX not found - exiting")
       os.exit()
     end
     if action and actions[action] and mac and mac ~= "" and ip and ip.address and ip.address ~= "" then
       local cmd
       if family == "4" then
-        cmd = "iptables -t mangle"
+        cmd = "iptables"
       elseif family == "6" then
         if not (substr(ip.address,1,4) == "fe80" or substr(ip.address,1,2) == "fd") then
-          cmd = "ip6tables -t mangle"
+          cmd = "ip6tables"
         else
           log:notice("%s %s (%s) IGNORED: Local IPv6 address",action,ip.address,mac)
         end
@@ -42,7 +43,7 @@ if conn then
         log:notice("%s %s (%s)",action,ip.address,mac)
         for chain,option in pairs(chains) do
           local options = format('%s -%s %s -j RETURN -m comment --comment "%s MAC: %s"',chain,option,ip.address,chain,mac)
-          local command = format('%s -C %s 2>/dev/null %s %s -%s %s',cmd,options,actions[action][1],cmd,actions[action][2],options)
+          local command = format('%s -t %s -C %s 2>/dev/null %s %s -t %s -%s %s',cmd,table,options,actions[action][1],cmd,table,actions[action][2],options)
           log:debug(options)
           run(command)
         end
