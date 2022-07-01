@@ -49,9 +49,5 @@ log D " ++ Intrusion Protection"
 uci -q revert intrusion_protect
 restore_file /etc/config/intrusion_protect
 uci_set firewall.intrusion_protect.enabled
-log D " ++ Device Bandwidth Monitoring"
-uci -q revert bwstats
-restore_file /etc/config/bwstats
-uci_set firewall.bwstats.enabled
 
 unset cfg

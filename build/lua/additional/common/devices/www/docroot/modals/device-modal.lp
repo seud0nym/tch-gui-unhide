@@ -21,14 +21,6 @@ local untaint = string.untaint
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
-local bwstats,download,upload = proxy.get("rpc.gui.bwstats.enabled","rpc.gui.bwstats.show_in_device_list"),{},{}
-if bwstats and bwstats[1] and bwstats[1].value == "1" and bwstats[2] and bwstats[2].value == "1" then
-  bwstats = true
-  download,upload = require("devicesbandwidth_helper").getBandwithStatisticsByMAC()
-else
-  bwstats = nil
-end
-
 local agentSTA = {}
 local multiap = proxy.getPN("Device.Services.X_TELSTRA_MultiAP.Agent.",true)
 if multiap then
@@ -303,22 +295,6 @@ if dumaOS and dumaOS[1].value ~= "1" then
 end
 
 local devices_data,devices_helpmsg = post_helper.handleTableQuery(devices_columns,devices_options,devices_filter,nil,device_valid)
-if bwstats then
-  devices_columns[#devices_columns+1] = {
-    header = "Downloaded",
-    name = "Download",
-    param = "Download",
-    type = "text",
-    readonly = true,
-  }
-  -- devices_columns[#devices_columns+1] = {
-  --   header = "<i class='icon-cloud-upload'></i>",
-  --   name = "Upload",
-  --   param = "Upload",
-  --   type = "text",
-  --   readonly = true,
-  -- }
-end
 
 for k,v in pairs (devices_data) do
   devices_data[k][1] = format("%s",v[1])
@@ -332,17 +308,6 @@ for k,v in pairs (devices_data) do
     v[7] = common.secondsToTime(os.time()- tonumber(v[7]))
   else
     v[7] = "-"
-  end
-  if bwstats then
-    local d = #devices_columns
-    local mac = match(v[5],"^([%x:]+)")
-    if mac and download[mac] then
-      devices_data[k][d] = common.bytes2string(download[mac])
-      -- devices_data[k][10] = common.bytes2string(upload[mac])
-    else
-      devices_data[k][d] = ""
-      -- devices_data[k][10] = ""
-    end
   end
 end
 

@@ -1,6 +1,5 @@
 local proxy = require("datamodel")
 local content_helper = require("web.content_helper")
-local ui_helper = require("web.ui_helper")
 local format = string.format
 local tonumber = tonumber
 
@@ -36,8 +35,6 @@ function M.getDevicesCardHTML(all)
     nEth = nEth - nAgtDevices
   end
 
-  local bwstats_enabled = proxy.get("rpc.gui.bwstats.enabled")
-
   local html = {}
 
   html[#html+1] = '<span class="simple-desc">'
@@ -55,14 +52,6 @@ function M.getDevicesCardHTML(all)
     html[#html+1] = '</span>'
   end
   -- Do NOT remove this comment! Insert WireGuard peer count here
-  if bwstats_enabled then
-    local bwstats_template = '<span class="modal-link" data-toggle="modal" data-remote="modals/device-bwstats-modal.lp" data-id="device-bwstats-modal">Device Download Monitor %s</span>'
-    if bwstats_enabled[1].value == "1" then
-      html[#html+1] = ui_helper.createSimpleLight("1",T(format(bwstats_template,"enabled")))
-    else
-      html[#html+1] = ui_helper.createSimpleLight("0",T(format(bwstats_template,"disabled")))
-    end
-  end
 
   return html
 end

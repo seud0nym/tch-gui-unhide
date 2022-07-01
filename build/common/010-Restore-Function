@@ -15,6 +15,9 @@ restore_www() {
     sed -e '/traffichistory.lua/d' -i /etc/crontabs/root
     SRV_cron=$(( $SRV_cron + 1 ))
   fi
+  # Remove stuff that will be replaced with latest versions
+  [ -d /usr/share/tch-gui-unhide ] && rm -rf /usr/share/tch-gui-unhide
+  mkdir -p /usr/share/tch-gui-unhide
   # Add individual files to be restored here
   for t in /etc/init.d/power /usr/lib/lua/web/post_helper.lua; do
     [ -f "${RESTORE_BASE}${t}" ] && s="${RESTORE_BASE}${t}" || s="/rom$t"
