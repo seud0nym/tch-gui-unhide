@@ -16,7 +16,7 @@ else
   [ -n "$PID" ] && kill -9 $PID
 
   if [ "/$1/" = "/disable/" -o "/$(uci -q get bwstats.config.enabled)/" != "/1/" ]; then
-    PARAMETER_COUNT="iptables -t $TABLE -S $PARENT_CHAIN | grep -m 1 BWSTATS | wc -w"
+    PARAMETER_COUNT=$(iptables -t $TABLE -S $PARENT_CHAIN | grep -m 1 BWSTATS | wc -w)
     for CMD in iptables ip6tables; do
       $CMD -t $TABLE -S $PARENT_CHAIN | sed -e '/BWSTATS/!d' -e 's/-A/-D/' | xargs -rn $PARAMETER_COUNT $CMD -t $TABLE
       $CMD -t $TABLE -nL BWSTATSRX >/dev/null 2>&1 && { $CMD -t $TABLE -F BWSTATSRX; $CMD -t $TABLE -X BWSTATSRX; }
