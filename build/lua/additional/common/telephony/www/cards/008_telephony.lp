@@ -31,17 +31,16 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
     modalPath = "/modals/mmpbx-info-modal.lp"
   end
 
-  local emission_content = {
-    emission_state = "rpc.mmpbx.dectemission.state",
+  local dect = {
+    state = "rpc.mmpbx.dectemission.state",
   }
-  content_helper.getExactContent(emission_content)
-  local emission_state = format("%s",emission_content.emission_state)
+  content_helper.getExactContent(dect)
 
   local emission_info
-  if emission_state then
-    if emission_state == "1" then
+  if dect.state then
+    if dect.state == "1" then
       emission_info = T"DECT Emission Mode enabled"
-    elseif emission_state == "0" then
+    elseif dect.state == "0" then
       emission_info = T"DECT Emission Mode disabled"
     end
   end
@@ -63,7 +62,7 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
         end
         if emission_info then
           ngx.print('<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-dect-modal.lp" data-id="mmpbx-dect-modal">')
-          ngx.print(ui_helper.createSimpleLight(emission_state,emission_info))
+          ngx.print(ui_helper.createSimpleLight(dect.state,emission_info))
           ngx.print('</span>')
         end
         ngx.print('\
