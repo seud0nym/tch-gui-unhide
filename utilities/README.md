@@ -184,7 +184,7 @@ Options:
 ```
 
 ## mtd-backup
-Backs up the MTD partitions to an attached USB device or SSHFS attached filesystem. Only unchanged partitions are backed up after the first execution.
+Backs up the device partitions to an attached USB device or SSHFS attached filesystem. Only unchanged partitions are backed up after the first execution.
 
 USB devices have priority over SSHFS filesystems. 
 ```
@@ -197,19 +197,21 @@ Options:
  -e              Save the current environment into the VARIANT-SERIAL-VERSION-env file
  -o              Save the overlay content into the VARIANT-SERIAL-VERSION-overlay-files-backup.tgz file
  -s              Skip recalculation of the checksum of the backed-up partition, and just save the checksum calculated to determine if the image has changed.
- -0              Skip backup of mtd0 if a backup already exists
+ -0              Skip backup of mtd0 if a backup already exists 
+                   (Ignored for UBIFS partitions)
  --no-drop-cache Skips flushing the RAM page cache after backup
  -l              Write log messages to stderr as well as the system log
  -v              Verbose mode
  -y              Bypass confirmation prompt (answers 'y')
  -C              Adds or removes the scheduled daily backup cron job
  -P              Reports the backup path
- -U             Download the latest version of mtd-backup from GitHub
+ -U              Download the latest version of mtd-backup from GitHub
+                   Do NOT specify any other parameters or options if doing a version upgrade.
 ```
 When run with the -C option (which should be the only option), the scheduled job will be added if it does not already exist, or removed if it does exist in the schedule. By default, the backup will run every day at a random time between 2:00am and 5:00am. You can modify the schedule through the Management card in `tch-gui-unhide`, or by directly modifying the /etc/crontab/root file.
 
 ## mtd-restore
-Restores MTD partitions from an attached USB device or SSHFS filesystem. Only changed partitions are restored  (unless -s is specified).
+Restores partitions from an attached USB device or SSHFS filesystem. Only changed partitions are restored  (unless -s is specified).
 
 USB devices have priority over SSHFS filesystems. 
 ```
@@ -218,8 +220,7 @@ Usage: ./mtd-restore [options] [partition ...]
 Options:
  -d directory   The name of the directory on the USB device or SSHFS filesystem.
                   If not specified, defaults to: backups or backups-VERSION
- -f             Restore rootfs_data and booted bank
- -q             Quiet mode (i.e. no [w] on writing partition)
+ -q             Quiet mode
  -r             Reboot after last partition successfully restored
  -s             Skip check for changed partitions and always restore
  -v             Skip verification of image checksum 
@@ -230,7 +231,7 @@ Parameters:
  partition      One or more partitions to restored.
                   Specify either the device (e.g. "mtd2") or name (e.g. "rootfs_data")
                   Do not specify the device variant prefix (e.g. DJA0231-)
-                  If not specified and -f not specified, defaults to mtd2-rootfs_data
+                  If not specified, defaults to: rootfs_data
 ```
 
 ## reboot-on-coredump
