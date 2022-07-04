@@ -117,8 +117,8 @@ set_defaults() {
 }
 
 set_defaults
-if [ -f .defaults.reset-to-factory-defaults-with-root -a "$(echo "$*" | grep -o '\brestore-config\b')" != "restore-config" ]; then
-  . ./.defaults.reset-to-factory-defaults-with-root
+if [ -f .defaults.$SCRIPT -a "$(echo "$*" | grep -o '\brestore-config\b')" != "restore-config" ]; then
+  . ./.defaults.$SCRIPT
 fi
 
 FIRMWARE=""
@@ -207,7 +207,7 @@ if [ $PARAMS_OK = n ]; then
 fi
 
 if [ $SAVE_DEFAULTS = y ]; then
-  set | grep '^__' > .defaults.reset-to-factory-defaults-with-root
+  set | grep '^__' > .defaults.$SCRIPT
   echo -e "\e[1;32mDefaults saved\e[0m"
   exit
 fi
@@ -484,12 +484,12 @@ case "$OVERLAY_FS" in
     # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
     mkdir -p /overlay/${BOOTED}/etc
     chmod 755 /overlay/${BOOTED} /overlay/${BOOTED}/etc
-    echo -e "logger '/etc/rc.local'
-    logread | grep -q '/etc/rc.local' || /etc/init.d/log restart
+    echo -e "echo 'Setting root password'
     echo root:$__ROOTPWD | chpasswd
     sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
     sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
     $LAN_CFG
+    echo 'Configuring LAN SSH access'
     uci -q set \$(uci show firewall | grep -m 1 \$(fw3 -q print | \
     egrep 'iptables -t filter -A zone_lan_input -p tcp -m tcp --dport 22 -m comment --comment \"!fw3: .+\" -j DROP' 2>/dev/null | \
     sed -n -e 's/^iptables.\+fw3: \(.\+\)\".\+/\1/p') 2>/dev/null | \
@@ -511,7 +511,8 @@ case "$OVERLAY_FS" in
     $NOEXEC_CFG
     $CWMP_CFG
     $RESTORE_CFG
-    rm /overlay/\${BOOTED}/etc/rc.local
+    echo 'Removing rooting script'
+    rm /overlay/${BOOTED}/etc/rc.local
     source /rom/etc/rc.local
     " > /overlay/${BOOTED}/etc/rc.local
     chmod +x /overlay/${BOOTED}/etc/rc.local
