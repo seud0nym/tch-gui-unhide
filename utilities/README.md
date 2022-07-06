@@ -184,7 +184,7 @@ Options:
 ```
 
 ## mtd-backup
-Backs up the device partitions to an attached USB device or SSHFS attached filesystem. Only unchanged partitions are backed up after the first execution.
+Backs up mtd or ubifs device partitions to an attached USB device or SSHFS attached filesystem. Only unchanged partitions are backed up after the first execution.
 
 USB devices have priority over SSHFS filesystems. 
 ```
@@ -211,9 +211,11 @@ Options:
 When run with the -C option (which should be the only option), the scheduled job will be added if it does not already exist, or removed if it does exist in the schedule. By default, the backup will run every day at a random time between 2:00am and 5:00am. You can modify the schedule through the Management card in `tch-gui-unhide`, or by directly modifying the /etc/crontab/root file.
 
 ## mtd-restore
-Restores partitions from an attached USB device or SSHFS filesystem. Only changed partitions are restored  (unless -s is specified).
+Restores mtd or ubifs partitions from an attached USB device or SSHFS filesystem. Only changed partitions are restored (unless -s is specified).
 
-USB devices have priority over SSHFS filesystems. 
+USB devices have priority over SSHFS filesystems.
+
+Due to the nature of the UBI filesystem, restores will fail unless the target partition is not mounted.
 ```
 Usage: ./mtd-restore [options] [partition ...]
 
@@ -250,30 +252,101 @@ This script implements the commands from https://hack-technicolor.readthedocs.io
 Usage: ./reset-to-factory-defaults-with-root [options]
 
 Options:
- -b               Make a full backup of your configuration from /overlay
+ -b               Make a full backup of your configuration from /overlay before resetting to factory defaults.
                     (Requires attached USB device).
- -y               Bypass confirmation prompt (answers 'y')
- -U               Download the latest version of the script from GitHub.
- --save-defaults  Saves the command line options (except -f and -y) as defaults.
-                    When specified, NO changes are applied to the device.
- --no-defaults    Ignores any saved defaults for this execution.
- ```
- The following options are only applicable to firmware versions 17.2, 18.1.c and 20.3.c:
- ```
  -c               Disable CWMP configuration during first boot after reset.
  -e               Disable any 'noexec' flags on USB mounted filesystems.
- -f filename      Flash 'filename' into the mounted bank ($BOOTED) after reset 
-                    and before reboot. If 'filename' ends with .rbi, it will be 
-                    unpacked first, either to an attached USB device, or /tmp if
-                    no USB detected.
+ -f filename      Flashes the specified firmware 'filename' before reset and 
+                    reboot. If 'filename' ends with .rbi, it will be unpacked 
+                    first, either to an attached USB device, or /tmp if no USB 
+                    is detected. 
+                    - If 'filename' ends in .rbi or .bin, it will be flashed 
+                      into the booted bank, unless -s is specified.
+                    - If 'filename' ends with .pkgtb, the firmware will be 
+                      flashed into the passive bank using sysupgrade (root 
+                      access will be preserved) and banks will be switched on 
+                      reboot.
  -i               Keep the existing LAN IP address after reset and reboot.
                     This is the default if --restore-config is specified.
  -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
  -k               Keep existing SSH keys after reset and reboot.
+ -n               Do NOT reboot.
+ -p password      Set the password after reset and reboot. If not specified,
+                    it defaults to root.
+ -s               Apply factory reset with root to the not booted bank, rather 
+                    than the booted bank, and then switch banks after reboot.
+                    Firmware will also be flashed into the passive bank.
+                    This is the default when flashing a .pkgtb firmware into 
+                    the passive bank.
+ -v               Show the reset script after it has been written.
+ -y               Bypass confirmation prompt (answers 'y').
+ --save-defaults  Saves the command line options (except -f/-s/-y) as defaults.
+                    When specified, NO changes are applied to the device.
+ --no-defaults    Ignores any saved defaults for this execution.
+ -U               Download the latest version of the script from GitHub.
+                    Do NOT specify any other parameters or options if doing a version upgrade.
+ ```
+ The following options are only applicable to firmware versions 17.2, 18.1.c and 20.3.c:
+ ```
+ --restore-config Runs the restore-config.sh script after reboot if it is found
+                    in the USB backups directory. Output will be written to the 
+                    system log. --restore-config should be the LAST option
+                    specified, and may optionally be followed by the name of
+                    the overlay backup file to be restored. Saved defaults are
+                    IGNORED when --restore-config is specified.
+ --i              Specifies that the IP address configured by the -i or -I options 
+                    is also to be applied after the configuration is restored. If
+                    not specified, the IP address used will be the one found in the 
+                    configuration backup. Ignored unless --restore-config is also 
+                    specified.
+```
+
+## safe-firmware-upgrade
+Applies a new firmware to the device, without losing root access.
+
+It is basically the same as the procedure as described in
+http://hack-technicolor.rtfd.io/en/stable/Upgrade/#preserving-root-access and
+http://hack-technicolor.rtfd.io/en/stable/Upgrade/#flashing-firmware
+but with some additional options.
+
+This script has a dependency on the `reset-to-factory-defaults-with-root` script. If that script does not exist, or is not the correct version, it will be downloaded as needed.
+```
+Usage: ./safe-firmware-upgrade [options] filename
+
+Where:
+ filename         Is the name of the firmware file to be flashed. If the 
+                    filename ends with .rbi, it will be unpacked first, 
+                    either to an attached USB device, or /tmp if no USB is 
+                    detected. 
+                    - If 'filename' ends in .rbi or .bin, it will be flashed 
+                      into the booted bank ($BOOTED)
+                    - If 'filename' ends with .pkgtb, the firmware will be 
+                      flashed into the passive bank ($NOT_BOOTED) usng the
+                      sysupgrade facility (root access will be preserved) and
+                      banks will be switched on reboot.
+
+Options:
+ -b               Make a full backup of your configuration from /overlay
+                    (Requires attached USB device).
+ -c               Disable CWMP configuration during first boot after reset.
+ -e               Disable any 'noexec' flags on USB mounted filesystems.
+ -i               Keep the existing LAN IP address after reset and reboot.
+                    This is the default if --restore-config is specified.
+ -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
+ -k               Keep existing SSH keys after reset and reboot.
+ -n               Do NOT reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
  -v               Show the reset script after it has been written.
- -n               Do NOT reboot.
+ -y               Bypass confirmation prompt (answers 'y')
+ --save-defaults  Saves the command line options (except filename/-s/-y) as defaults.
+                    When specified, NO changes are applied to the device.
+ --no-defaults    Ignores any saved defaults for this execution.
+ -U               Download the latest version of the script from GitHub.
+                    Do NOT specify any other parameters or options if doing a version upgrade.
+ ```
+ The following options are only applicable to firmware versions 17.2, 18.1.c and 20.3.c:
+ ```
  --restore-config Runs the restore-config.sh script after reboot if it is found
                     in the USB backups directory. Output will be written to the 
                     system log. --restore-config should be the LAST option

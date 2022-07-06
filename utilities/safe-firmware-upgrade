@@ -35,14 +35,15 @@ Where:
                     either to an attached USB device, or /tmp if no USB is 
                     detected. 
                     - If 'filename' ends in .rbi or .bin, it will be flashed 
-                      into the booted bank ($BOOTED)
+                      into the booted bank, unless -s is specified.
                     - If 'filename' ends with .pkgtb, the firmware will be 
-                      flashed into the passive bank ($NOT_BOOTED) usng the
-                      sysupgrade facility (root access will be preserved) and
-                      banks will be switched on reboot.
+                      flashed into the passive bank using sysupgrade (root 
+                      access will be preserved) and banks will be switched on 
+                      reboot.
 
 Options:
- -b               Make a full backup of your configuration from /overlay.
+ -b               Make a full backup of your configuration from /overlay
+                    before resetting to factory defaults.
                     (Requires attached USB device).
  -c               Disable CWMP configuration during first boot after reset.
  -e               Disable any 'noexec' flags on USB mounted filesystems.
@@ -53,11 +54,16 @@ Options:
  -n               Do NOT reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
+ -s               Apply factory reset and acquire root on the passive bank, 
+                    rather than the booted bank, and then switch banks after 
+                    reboot. Firmware will also be flashed into the passive 
+                    bank. This is the default when flashing a .pkgtb firmware 
+                    into the passive bank.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y').
- --save-defaults  Saves the command line options (except filename and -y) as 
+ --save-defaults  Saves the command line options (except filename/-s/-y) as 
                     defaults.
-                    When specified, NO changes are applied to the device
+                    When specified, NO changes are applied to the device.
  --no-defaults    Ignores any saved defaults for this execution
  -U               Download the latest version of $SCRIPT from GitHub.
                     Do NOT specify any other parameters or options if doing
@@ -120,17 +126,17 @@ set_defaults
 
 FIRMWARE=""
 YES="N"
-SAVE_DEFAULTS=n
-RESTORE_CONFIG=n
+SAVE_DEFAULTS="N"
+RESTORE_CONFIG="N"
 OPTIONS="--no-defaults"
 
-while getopts :bcef:iI:knp:vyU-: option; do
+while getopts :bcef:iI:knp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
         i)              OPTIONS="$OPTIONS --i";;
-        restore-config) RESTORE_CONFIG="y";;
+        restore-config) RESTORE_CONFIG="Y";;
         no-defaults)    set_defaults;;
-        save-defaults)  SAVE_DEFAULTS="y";;
+        save-defaults)  SAVE_DEFAULTS="Y";;
         *)              usage;;
       esac;;
   b)  __BKUP="Y"; OPTIONS="$OPTIONS -b";;
@@ -141,21 +147,22 @@ while getopts :bcef:iI:knp:vyU-: option; do
   k)  __KEYS="Y"; OPTIONS="$OPTIONS -k";;
   n)  __REBOOT="N"; OPTIONS="$OPTIONS -n";;
   p)  __ROOTPWD="${OPTARG}"; OPTIONS="$OPTIONS -p ${OPTARG}";;
+  s)  OPTIONS="$OPTIONS -s";;
   v)  __VERBOSE="Y"; OPTIONS="$OPTIONS -v";;
-  y)  YES="Y"; OPTIONS="$OPTIONS -y";;
+  y)  OPTIONS="$OPTIONS -y";;
   U)  download $SCRIPT; exit;;
   *)  usage;;
  esac
 done
 shift $((OPTIND-1))
 
-if [ $SAVE_DEFAULTS = y ]; then
+if [ $SAVE_DEFAULTS = "Y" ]; then
   set | grep '^__' > .defaults.$SCRIPT
   echo -e "\e[1;32mDefaults saved\e[0m"
   exit
 fi
 
-if [ $RESTORE_CONFIG = y ]; then
+if [ $RESTORE_CONFIG = "Y" ]; then
   OPTIONS="$OPTIONS --restore-config"
   if [ $# -gt 1 ]; then
     OPTIONS="$OPTIONS $1"

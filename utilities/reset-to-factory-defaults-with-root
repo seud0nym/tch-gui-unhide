@@ -24,6 +24,7 @@ else
   BOOTED="bank_$(bootmgr partition booted)"
   NOT_BOOTED="bank_$(bootmgr partition notbooted)"
 fi
+[ $ACTIVE = bank_1 ] && PASSIVE=2 || PASSIVE=1
 
 usage() {
 cat <<EOH
@@ -37,7 +38,8 @@ but with some additional options.
 Usage: $0 [options]
 
 Options:
- -b               Make a full backup of your configuration from /overlay.
+ -b               Make a full backup of your configuration from /overlay
+                    before resetting to factory defaults.
                     (Requires attached USB device).
  -c               Disable CWMP configuration during first boot after reset.
  -e               Disable any 'noexec' flags on USB mounted filesystems.
@@ -46,11 +48,11 @@ Options:
                     first, either to an attached USB device, or /tmp if no USB 
                     is detected. 
                     - If 'filename' ends in .rbi or .bin, it will be flashed 
-                      into the booted bank ($BOOTED).
+                      into the booted bank, unless -s is specified.
                     - If 'filename' ends with .pkgtb, the firmware will be 
-                      flashed into the passive bank ($NOT_BOOTED) usng the
-                      sysupgrade facility (root access will be preserved) and
-                      banks will be switched on reboot.
+                      flashed into the passive bank using sysupgrade (root 
+                      access will be preserved) and banks will be switched on 
+                      reboot.
  -i               Keep the existing LAN IP address after reset and reboot.
                     This is the default if --restore-config is specified.
  -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
@@ -58,10 +60,15 @@ Options:
  -n               Do NOT reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
+ -s               Apply factory reset and acquire root on the passive bank, 
+                    rather than the booted bank, and then switch banks after 
+                    reboot. Firmware will also be flashed into the passive 
+                    bank. This is the default when flashing a .pkgtb firmware 
+                    into the passive bank.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y').
- --save-defaults  Saves the command line options (except -f and -y) as defaults
-                    When specified, NO changes are applied to the device
+ --save-defaults  Saves the command line options (except -f/-s/-y) as defaults.
+                    When specified, NO changes are applied to the device.
  --no-defaults    Ignores any saved defaults for this execution
  -U               Download the latest version of $SCRIPT from GitHub.
                     Do NOT specify any other parameters or options if doing
@@ -122,18 +129,19 @@ fi
 
 FIRMWARE=""
 YES="N"
-SAVE_DEFAULTS=n
-RESTORE_CONFIG=n
-RESTORE_IPADDR=n
+SAVE_DEFAULTS="N"
+RESTORE_CONFIG="N"
+RESTORE_IPADDR="N"
 RESTORE_OPTIONS=""
+SWITCH_BANK="N"
 
-while getopts :bcef:iI:knp:vyU-: option; do
+while getopts :bcef:iI:knp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
-        i)              RESTORE_IPADDR="y";;
-        restore-config) RESTORE_CONFIG="y"; __CWMP="Y"; __NOEXEC="Y"; __KEYS="Y"; __VERBOSE="Y"; [ -z "$__IPADDR" ] && __IPADDR="$(uci get network.lan.ipaddr)";;
+        i)              RESTORE_IPADDR="Y";;
+        restore-config) RESTORE_CONFIG="Y"; __CWMP="Y"; __NOEXEC="Y"; __KEYS="Y"; __VERBOSE="Y"; [ -z "$__IPADDR" ] && __IPADDR="$(uci get network.lan.ipaddr)";;
         no-defaults)    set_defaults;;
-        save-defaults)  SAVE_DEFAULTS="y";;
+        save-defaults)  SAVE_DEFAULTS="Y";;
         *)              usage;;
       esac;;
   b)  __BKUP="Y";;
@@ -146,7 +154,7 @@ while getopts :bcef:iI:knp:vyU-: option; do
       fi
       FIRMWARE="${OPTARG}";;
   i)  __IPADDR="$(uci get network.lan.ipaddr)"; [ $? -ne 0 ] && exit;;
-  I)  if  echo "${OPTARG}" | grep -qE "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"; then
+  I)  if echo "${OPTARG}" | grep -qE "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"; then
         __IPADDR="${OPTARG}"
       else
         echo -e "${RED}ERROR:    Invalid IP address: $OPTARG${NC}"
@@ -155,6 +163,12 @@ while getopts :bcef:iI:knp:vyU-: option; do
   k)  __KEYS="Y";;
   n)  __REBOOT="N";;
   p)  __ROOTPWD="${OPTARG}";;
+  s)  if [ "$ACTIVE" = "$BOOTED" ]; then
+        SWITCH_BANK="Y"
+      else
+        echo -e "${RED}ERROR:    Cannot switch banks when booted from inactive bank!${NC}"
+        exit
+      fi;;
   v)  __VERBOSE="Y";;
   y)  YES="Y";;
   U)  upgrade;;
@@ -172,7 +186,7 @@ echo -e "${GREY}INFO:     /overlay filesystem  = $OVERLAY_FS${NC}"
 echo -e "${GREY}INFO:     /rom filesystem      = $ROM_FS${NC}"
 echo -e "${GREY}INFO:     USB symbolic link    = $USB${NC}"
 
-if [ "$RESTORE_CONFIG" = "y" -a ! \( "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" -o "$VERSION" = "20.3.c" \) ]; then
+if [ "$RESTORE_CONFIG" = "Y" -a ! \( "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" -o "$VERSION" = "20.3.c" \) ]; then
   echo -e "${RED}ABORTING: Configuration restore is not supported on firmware $VERSION!!${NC}"
   exit 2
 fi
@@ -232,7 +246,7 @@ if [ $RESTORE_CONFIG = y ]; then
       echo -e "${RED}ABORTING: $RESTORE_OPTIONS found, but ${RESTORE_OPTIONS%-overlay-files-backup.tgz}-config.gz does not exist!${NC}"
     fi
     OVERLAY_BACKUP="$(basename $RESTORE_OPTIONS | cut -d- -f1-3) ($(ls -l $RESTORE_OPTIONS | tr -s ' ' | cut -d' ' -f6-8))"
-    if [ "$RESTORE_IPADDR" = "y" ]; then
+    if [ "$RESTORE_IPADDR" = "Y" ]; then
       RESTORE_OPTIONS="-i $__IPADDR $RESTORE_OPTIONS"
     fi
     RESPONSE_CODE=$(curl -kLsI -m 5 -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/restore-config/.sha256)
@@ -345,6 +359,7 @@ if [ -n "$FIRMWARE" ]; then
   if [ -f "$FIRMWARE" ]; then
     if [ "$ROM_FS" = "ubifs" ]; then
       echo -e "NOTE:     ${ORANGE}$(basename $FIRMWARE)${NC} will be flashed into ${GREEN}$NOT_BOOTED${NC} and a ${GREEN}bank switch performed${NC}"
+      SWITCH_BANK="Y"
     else
       if echo "$FIRMWARE" | grep -qE '\.rbi$'; then
         RBI=y
@@ -399,7 +414,9 @@ if [ -n "$__KEYS" ]; then
   KEYS_CFG="echo '$(tar -czf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
 fi
 
+[ $SWITCH_BANK = Y ] && echo -e "NOTE:     The active bank will be switched to ${GREEN}bank_$PASSIVE${NC}"
 [ $__VERBOSE = Y ] && echo -e "NOTE:     The reset script will be displayed once it has been created${NC}"
+
 if [ "$__REBOOT" = "Y" ]; then
   if [ $RESTORE_CONFIG = y ]; then
     echo -e "${ORANGE}WARNING:  The device will reboot ${GREEN}TWICE${ORANGE} to apply the restored configuration!${NC}"
@@ -430,7 +447,7 @@ if [ $RBI = y ]; then
   echo -n -e "${GREEN}ACTION:   Enter y to continue, or anything else to abort: ${NC}"
   read CONFIRM
 
-  if [ "$CONFIRM" = "y" ]; then
+  if [ "$CONFIRM" = "y" -o "$CONFIRM" = "Y" ]; then
     if [ -f "$target" ]; then
       echo -e "$INFO:     Removing existing ${ORANGE}$target${NC} before extracting ${ORANGE}$FIRMWARE${NC}"
       rm $target
@@ -450,6 +467,11 @@ if [ $RBI = y ]; then
 fi
 
 TARGET_BANK=/overlay/${BOOTED}
+TARGET_MTD=${BOOTED}
+if [ $SWITCH_BANK = "Y" ]; then
+  TARGET_BANK=/overlay/${NOT_BOOTED}
+  TARGET_MTD=${NOT_BOOTED}
+fi
 
 if [ -n "$FIRMWARE" ]; then
   if [ "$ROM_FS" = "ubifs" ]; then
@@ -464,12 +486,12 @@ if [ -n "$FIRMWARE" ]; then
       exit 2
     fi
   else
-    echo -e "INFO:     Writing ${ORANGE}$FIRMWARE${NC} into ${ORANGE}${BOOTED}${NC}..."
+    echo -e "INFO:     Writing ${ORANGE}$FIRMWARE${NC} into ${ORANGE}${TARGET_MTD}${NC}..."
     echo -en "${GREY}"
-    mtd -e ${BOOTED} write "$FIRMWARE" ${BOOTED}
+    mtd -e ${TARGET_MTD} write "$FIRMWARE" ${TARGET_MTD}
     echo -en "${NC}"
-    echo -e "INFO:     Verifying ${ORANGE}${BOOTED}${NC} against ${ORANGE}$FIRMWARE${NC}..."
-    VERIFY_RESULT=$(mtd verify "$FIRMWARE" ${BOOTED} 2>&1)
+    echo -e "INFO:     Verifying ${ORANGE}${TARGET_MTD}${NC} against ${ORANGE}$FIRMWARE${NC}..."
+    VERIFY_RESULT=$(mtd verify "$FIRMWARE" ${TARGET_MTD} 2>&1)
     echo -e "${GREY}$VERIFY_RESULT${NC}"
     if echo "$VERIFY_RESULT" | grep -q 'Failed'; then
       echo -e "${RED}ABORTING: mtd verify FAILED!!${NC}"
@@ -520,6 +542,15 @@ if [ $__VERBOSE = Y ]; then
   echo -en "${NC}"
 fi
 echo -e "${GREEN}INFO:     Device has been reset to factory defaults and root access retained${NC}"
+
+if [ $SWITCH_BANK = "Y" ]; then
+  echo -e "INFO:     Switching active bank to ${GREEN}bank_$PASSIVE${NC}"
+  if [ -z "$(which bootmgr)" ]; then
+    echo bank_$PASSIVE > /proc/banktable/active
+  elif [ -z "$FIRMWARE" ]; then
+    bootmgr switch_over $PASSIVE
+  fi
+fi
 
 if [ "$__REBOOT" = "Y" ]; then
   echo -e "${ORANGE}INFO:     Rebooting...${NC}"
