@@ -15,58 +15,57 @@ ROM_FS="$(mount | grep '/rom type' | cut -d' ' -f5)"
 MOUNT_PATH="$(uci get mountd.mountd.path)"
 USB="$(ls $MOUNT_PATH | head -n1)"
 
-[ "$ROM_FS" = "squashfs" ] && ACTIVE="$(cat /proc/banktable/active 2>/dev/null)" || ACTIVE="bank_$(bootmgr partition active | grep -v rd_metadata)"
-[ "$ROM_FS" = "squashfs" ] && BOOTED="$(cat /proc/banktable/booted 2>/dev/null)" || BOOTED="bank_$(bootmgr partition booted)"
+if [ -z "$(which bootmgr)" ]; then
+  ACTIVE="$(cat /proc/banktable/active 2>/dev/null)"
+  BOOTED="$(cat /proc/banktable/booted 2>/dev/null)"
+  NOT_BOOTED="$(cat /proc/banktable/notbooted 2>/dev/null)"
+else
+  ACTIVE="bank_$(bootmgr partition active | grep -v rd_metadata)"
+  BOOTED="bank_$(bootmgr partition booted)"
+  NOT_BOOTED="bank_$(bootmgr partition notbooted)"
+fi
 
 usage() {
 cat <<EOH
 Resets the device to factory defaults, and prepares a run-once root access
 setup script to be executed on the next boot.
 
-EOH
-[ "$OVERLAY_FS" = "jffs2" ] && cat <<EOH
 It is basically the same as the procedure as described in
 http://hack-technicolor.rtfd.io/en/stable/Upgrade/#preserving-root-access,
 but with some additional options.
 
-EOH
-cat <<EOH
 Usage: $0 [options]
 
 Options:
  -b               Make a full backup of your configuration from /overlay.
                     (Requires attached USB device).
-EOH
-[ "$OVERLAY_FS" = "jffs2" ] && cat <<EOH
  -c               Disable CWMP configuration during first boot after reset.
  -e               Disable any 'noexec' flags on USB mounted filesystems.
-EOH
-[ "$ROM_FS" = "squashfs" ] && cat <<EOH
- -f filename      Flash 'filename' into the mounted bank ($BOOTED) after reset
-                    and before reboot. If 'filename' ends with .rbi, it will be
-                    unpacked first, either to an attached USB device, or /tmp if
-                    no USB detected.
-EOH
-[ "$OVERLAY_FS" = "jffs2" ] && cat <<EOH
+ -f filename      Flashes the specified firmware 'filename' before reset and 
+                    reboot. If 'filename' ends with .rbi, it will be unpacked 
+                    first, either to an attached USB device, or /tmp if no USB 
+                    is detected. 
+                    - If 'filename' ends in .rbi or .bin, it will be flashed 
+                      into the booted bank ($BOOTED).
+                    - If 'filename' ends with .pkgtb, the firmware will be 
+                      flashed into the passive bank ($NOT_BOOTED) usng the
+                      sysupgrade facility (root access will be preserved) and
+                      banks will be switched on reboot.
  -i               Keep the existing LAN IP address after reset and reboot.
                     This is the default if --restore-config is specified.
  -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
  -k               Keep existing SSH keys after reset and reboot.
+ -n               Do NOT reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
-EOH
-cat <<EOH
- -y               Bypass confirmation prompt (answers 'y').
-EOH
-[ "$OVERLAY_FS" = "jffs2" ] && cat <<EOH
  -v               Show the reset script after it has been written.
- -n               Do NOT reboot.
-EOH
-cat <<EOH
- -U               Download the latest version of $SCRIPT from GitHub.
+ -y               Bypass confirmation prompt (answers 'y').
  --save-defaults  Saves the command line options (except -f and -y) as defaults
                     When specified, NO changes are applied to the device
  --no-defaults    Ignores any saved defaults for this execution
+ -U               Download the latest version of $SCRIPT from GitHub.
+                    Do NOT specify any other parameters or options if doing
+                    a version upgrade.
 EOH
 [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" -o "$VERSION" = "20.3.c" ] && cat <<EOH
  --restore-config Runs the restore-config.sh script after reboot if it is found
@@ -128,8 +127,7 @@ RESTORE_CONFIG=n
 RESTORE_IPADDR=n
 RESTORE_OPTIONS=""
 
-while getopts :bcef:iI:knp:vyU-: option
-do
+while getopts :bcef:iI:knp:vyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
         i)              RESTORE_IPADDR="y";;
@@ -141,9 +139,14 @@ do
   b)  __BKUP="Y";;
   c)  __CWMP="Y";;
   e)  __NOEXEC="Y";;
-  f)  FIRMWARE="${OPTARG}";;
+  f)  if [ "$ROM_FS" = "ubifs" ]; then
+        echo "$OPTARG" | grep -qE '\.pkgtb$' || { echo -e "${RED}ERROR:    Firmware file names must end with .pkgtb!${NC}"; exit 2; }
+      else
+        echo "$OPTARG" | grep -qE '\.(rbi|bin)$' || { echo -e "${RED}ERROR:    Firmware file names must end with .rbi or .bin!${NC}"; exit 2; }
+      fi
+      FIRMWARE="${OPTARG}";;
   i)  __IPADDR="$(uci get network.lan.ipaddr)"; [ $? -ne 0 ] && exit;;
-  I)  if  echo "${OPTARG}" | grep -q -E "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"; then
+  I)  if  echo "${OPTARG}" | grep -qE "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"; then
         __IPADDR="${OPTARG}"
       else
         echo -e "${RED}ERROR:    Invalid IP address: $OPTARG${NC}"
@@ -160,50 +163,18 @@ do
 done
 shift $((OPTIND-1))
 
-echo -e "${GREY}INFO:     Firmware version    = $VERSION${NC}"
-echo -e "${GREY}INFO:     /overlay filesystem = $OVERLAY_FS${NC}"
-echo -e "${GREY}INFO:     /rom filesystem     = $ROM_FS${NC}"
-echo -e "${GREY}INFO:     Active partition    = $ACTIVE${NC}"
-echo -e "${GREY}INFO:     Booted partition    = $BOOTED${NC}"
-echo -e "${GREY}INFO:     USB symbolic link   = $USB${NC}"
+echo -e "${GREY}INFO:     Active Firmware      = $(uci -q get env.var.friendly_sw_version_activebank)${NC}"
+echo -e "${GREY}INFO:     Passive Firmware     = $(uci -q get env.var.friendly_sw_version_passivebank)${NC}"
+echo -e "${GREY}INFO:     Active partition     = $ACTIVE${NC}"
+echo -e "${GREY}INFO:     Booted partition     = $BOOTED${NC}"
+echo -e "${GREY}INFO:     Not Booted partition = $NOT_BOOTED${NC}"
+echo -e "${GREY}INFO:     /overlay filesystem  = $OVERLAY_FS${NC}"
+echo -e "${GREY}INFO:     /rom filesystem      = $ROM_FS${NC}"
+echo -e "${GREY}INFO:     USB symbolic link    = $USB${NC}"
 
-PARAMS_OK=y
-if [ -n "$FIRMWARE" -a "$ROM_FS" != "squashfs" ]; then
-  echo -e "${RED}ABORTING: Firmware flashing is not supported on the '$ROM_FS' filesystem!!${NC}"
-  PARAMS_OK=n
-fi
 if [ "$RESTORE_CONFIG" = "y" -a ! \( "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" -o "$VERSION" = "20.3.c" \) ]; then
   echo -e "${RED}ABORTING: Configuration restore is not supported on firmware $VERSION!!${NC}"
-  PARAMS_OK=n
-fi
-if [ "$OVERLAY_FS" = "ubifs" ]; then
-  if [ -n "$__CWMP" ]; then
-    echo -e "${RED}ABORTING: Disabling CWMP during boot is not supported on the '$OVERLAY_FS' filesystem!!${NC}"
-    PARAMS_OK=n
-  fi
-  if [ -n "$__IPADDR" ]; then
-    echo -e "${RED}ABORTING: Setting IP address is not supported on the '$OVERLAY_FS' filesystem!!${NC}"
-    PARAMS_OK=n
-  fi
-  if [ "$__REBOOT" = "N" ]; then
-    echo -e "${RED}ABORTING: Reboot bypass is not supported on the '$OVERLAY_FS' filesystem!!${NC}"
-    PARAMS_OK=n
-  fi
-  if [ "$__KEYS" = "Y" ]; then
-  echo -e "${RED}ABORTING: Retaining SSH keys is not supported on the '$OVERLAY_FS' filesystem!!${NC}"
-    PARAMS_OK=n
-  fi
-  if [ "$__ROOTPWD" != "root" ]; then
-    echo -e "${RED}ABORTING: Setting password to anything other than 'root' is not supported on the '$OVERLAY_FS' filesystem!!${NC}"
-    PARAMS_OK=n
-  fi
-elif [ "$OVERLAY_FS" != "jffs2" ]; then
-  echo -e "${RED}ABORTING: /overlay with '$OVERLAY_FS' filesystem is not supported!!${NC}"
-  PARAMS_OK=n
-fi
-if [ $PARAMS_OK = n ]; then
-  echo
-  exit
+  exit 2
 fi
 
 if [ $SAVE_DEFAULTS = y ]; then
@@ -356,39 +327,50 @@ sh "${DIR}/000-core.sh" $*
 EoSH
 [ -e $TARGET/restore-config.sh ] && chmod +x $TARGET/restore-config.sh
 
+if [ $RESTORE_CONFIG = y ]; then
+  echo -e "NOTE:     Configuration backup ${GREEN}${OVERLAY_BACKUP}${NC} will be restored to the device!"
+  echo -e "${ORANGE}WARNING:  Configuration restore can take 5-10 minutes. Be patient!${NC}"
+  echo -e "${ORANGE}WARNING:  The device MUST have internet access after factory reset or the configuration restore will ${RED}FAIL!${NC}"
+  echo "COMMAND:  ${MOUNT_PATH}${USB}/backups/restore-config ${RESTORE_OPTIONS}"
+  RESTORE_CFG="(while [ ! -e ${MOUNT_PATH}${USB}/backups/restore-config.sh ]; do sleep 2; done; sh ${MOUNT_PATH}${USB}/backups/restore-config.sh -vvy $RESTORE_OPTIONS 2>&1 | logger -t restore-config) &"
+else
+  echo -e "${ORANGE}WARNING:  You are resetting to factory defaults!${NC}"
+  echo -e "${ORANGE}          Any customisation or settings you have changed will be lost!${NC}"
+  grep -q 'tch-gui-unhide' /www/docroot/gateway.lp && echo -e "NOTE:     You will need to ${ORANGE}re-run tch-gui-unhide${NC} after rebooting!"
+fi
+echo -e "NOTE:     Root access will be preserved and the root password will be set to '${GREEN}${__ROOTPWD}${NC}'"
+
 RBI=n
 if [ -n "$FIRMWARE" ]; then
   if [ -f "$FIRMWARE" ]; then
-    if [ "$ACTIVE" = "bank_1" -a "$BOOTED" = "bank_2" ]; then
-      echo "$FIRMWARE" | grep -q -E '\.rbi$'
-      if [ $? -eq 0 ]; then
+    if [ "$ROM_FS" = "ubifs" ]; then
+      echo -e "NOTE:     ${ORANGE}$(basename $FIRMWARE)${NC} will be flashed into ${GREEN}$NOT_BOOTED${NC} and a ${GREEN}bank switch performed${NC}"
+    else
+      if echo "$FIRMWARE" | grep -qE '\.rbi$'; then
         RBI=y
         if [ -z "$USB" ]; then
-          echo "NOTE:     $FIRMWARE will be unpacked to /tmp before flashing. Do you have enough space?"
+          echo -e "WARNING:  ${ORANGE}$(basename $FIRMWARE) will be unpacked to /tmp before flashing. "
+          echo -e "          ${RED}THIS IS NOT RECOMMENDED!${NC} You should use a USB stick."
+          echo "          Do you have enough RAM?"
         else
-          echo "NOTE:     $FIRMWARE will be unpacked to ${MOUNT_PATH}${USB} before flashing. Do you have enough space?"
+          echo "NOTE:     $(basename $FIRMWARE) will be unpacked to ${MOUNT_PATH}${USB} before flashing."
+          echo "          Do you have enough space?"
         fi
-        echo "NOTE:     $(basename $FIRMWARE .rbi).bin will be flashed into $BOOTED after reset"
-      else
-        echo "$FIRMWARE" | grep -q -E '\.bin$'
-        if [ $? -eq 1 ]; then
-          echo -e "${ORANGE}WARNING:  Flash image files normally end with '.bin'.${NC}"
-          echo -e "${ORANGE}          Are you REALLY sure you wish to proceed?"
-        fi
-        echo "NOTE:     $FIRMWARE will be flashed into $BOOTED after reset"
+        echo "NOTE:     $(basename $FIRMWARE .rbi).bin will be flashed into $BOOTED"
+      else # .bin
+        echo "NOTE:     $(basename $FIRMWARE) will be flashed into $BOOTED"
       fi
-    else
+    fi
+    if [ "$ACTIVE" = "bank_1" -a "$BOOTED" = "bank_2" ]; then
       echo -e "${RED}WARNING:  Bank plan is NOT optimal! Active bank is $ACTIVE and booted bank is $BOOTED!${NC}"
       echo -e "${ORANGE}          Are you REALLY, REALLY sure you wish to proceed?"
     fi
   else
     echo -e "${RED}ABORTING: $FIRMWARE does not exist!${NC}"
-    exit
+    exit 2
   fi
 fi
 
-echo -e "NOTE:     Root access will be preserved and the root password will be set to '${GREEN}${__ROOTPWD}${NC}'"
-LAN_CFG="echo 'Configuring root SSH access'"
 if [ -n "$__IPADDR" ]; then
   IPPREFIX="$(echo $__IPADDR | cut -d. -f1-3)"
   for GUESTIP in $(uci show network | grep "network\.Guest.*ipaddr=" | cut -d"'" -f2 | cut -d. -f1-3 | sort -u)
@@ -399,55 +381,46 @@ if [ -n "$__IPADDR" ]; then
     fi
   done
   echo -e "NOTE:     IP address will be set to '${GREEN}$__IPADDR${NC}'"
-  LAN_CFG="echo 'Setting LAN IP address to $__IPADDR';uci set network.lan.ipaddr='$__IPADDR';uci commit network;/etc/init.d/network reload;"
+  LAN_CFG="uci set network.lan.ipaddr='$__IPADDR';"
 fi
+
 if [ -n "$__CWMP" ]; then
   echo -e "NOTE:     CWMP will be ${ORANGE}stopped${NC} during the reboot"
-  CWMP_CFG="echo 'Disabling CWMP';uci set cwmpd.cwmpd_config.state='0';uci commit cwmpd;/etc/init.d/cwmpd stop &"
+  CWMP_CFG="uci set cwmpd.cwmpd_config.state='0';/etc/init.d/cwmpd disable"
 fi
+
 if [ -n "$__NOEXEC" ]; then
   echo -e "NOTE:     Any 'noexec' flags will be ${ORANGE}removed${NC} from USB filesystem mounts after reset"
-  NOEXEC_CFG="echo 'Removing noexec mount flags';sed -e 's/noexec,//' -e 's/,noexec//' -i /etc/config/mountd"
+  NOEXEC_CFG="sed -e 's/noexec,//' -e 's/,noexec//' -i /etc/config/mountd"
 fi
+
 if [ -n "$__KEYS" ]; then
   echo -e "NOTE:     SSH keys will be ${GREEN}restored${NC} after reset: ${GREEN}$(ls /etc/dropbear | xargs)${NC}"
-  KEYS_CFG="echo 'Restoring SSH keys';echo '$(tar -czf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
+  KEYS_CFG="echo '$(tar -czf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
 fi
-if [ $RESTORE_CONFIG = y ]; then
-  echo -e "NOTE:     Configuration backup ${GREEN}${OVERLAY_BACKUP}${NC} will be restored to the device!"
-  echo -e "${ORANGE}WARNING:  Configuration restore can take 5-10 minutes. Be patient!${NC}"
-  echo -e "${ORANGE}WARNING:  The device MUST have internet access after factory reset or the configuration restore will ${RED}FAIL!${NC}"
-  echo "COMMAND:  ${MOUNT_PATH}${USB}/backups/restore-config ${RESTORE_OPTIONS}"
-  RESTORE_CFG="(while [ -e /etc/rc.local -a ! -e ${MOUNT_PATH}${USB}/backups/restore-config.sh ]; do sleep 2; done; sh ${MOUNT_PATH}${USB}/backups/restore-config.sh -vvy $RESTORE_OPTIONS 2>&1 | logger -t restore-config) &"
-else
-  echo -e "${ORANGE}WARNING:  You are resetting to factory defaults!${NC}"
-  echo -e "${ORANGE}          Any customisation or settings you have changed will be lost!${NC}"
-  grep -q 'tch-gui-unhide' /www/docroot/gateway.lp && echo "NOTE:     You will also need to re-run tch-gui-unhide after rebooting!"
-fi
+
+[ $__VERBOSE = Y ] && echo -e "NOTE:     The reset script will be displayed once it has been created${NC}"
 if [ "$__REBOOT" = "Y" ]; then
   if [ $RESTORE_CONFIG = y ]; then
     echo -e "${ORANGE}WARNING:  The device will reboot ${GREEN}TWICE${ORANGE} to apply the restored configuration!${NC}"
-  elif [ "$OVERLAY_FS" = "ubifs" ]; then
-    echo -e "${ORANGE}WARNING:  The device will be reset with the system rtfd command!${NC}"
-  else
+  elif [ -e /proc/sysrq-trigger ]; then
     echo -e "${ORANGE}WARNING:  The device will be rebooted using SysRQ trigger!${NC}"
+  else
+    echo -e "${ORANGE}WARNING:  The device will be rebooted using the system reboot command!${NC}"
   fi
 else
   echo -e "${ORANGE}WARNING:  The device will ${GREEN}NOT REBOOT${ORANGE}!${NC}"
 fi
-echo
-echo -n -e "${GREEN}ACTION:   Enter y to continue, or anything else to exit now${NC} "
+
 if [ $YES = N ]; then
+  echo -en "${GREEN}ACTION:   Enter y to continue, or anything else to exit now${NC} "
   read
   if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
     exit
   fi
-else
-  echo
 fi
 
-if [ $RBI = y ]
-then
+if [ $RBI = y ]; then
   if [ -z "$USB" ]; then
     target="/tmp/$(basename $FIRMWARE .rbi).bin"
   else
@@ -476,90 +449,86 @@ then
   fi
 fi
 
-echo -e "${ORANGE}INFO:     Resetting...${NC}"
-case "$OVERLAY_FS" in 
-  jffs2)
-    # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#clean-up
-    rm -rf /overlay/${BOOTED}
-    # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
-    mkdir -p /overlay/${BOOTED}/etc
-    chmod 755 /overlay/${BOOTED} /overlay/${BOOTED}/etc
-    echo -e "echo 'Setting root password'
-    echo root:$__ROOTPWD | chpasswd
-    sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
-    sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
-    $LAN_CFG
-    echo 'Configuring LAN SSH access'
-    uci -q set \$(uci show firewall | grep -m 1 \$(fw3 -q print | \
-    egrep 'iptables -t filter -A zone_lan_input -p tcp -m tcp --dport 22 -m comment --comment \"!fw3: .+\" -j DROP' 2>/dev/null | \
-    sed -n -e 's/^iptables.\+fw3: \(.\+\)\".\+/\1/p') 2>/dev/null | \
-    sed -n -e \"s/\(.\+\).name='.\+'$/\1/p\").target='ACCEPT'
-    uci add dropbear dropbear
-    uci rename dropbear.@dropbear[-1]=afg
-    uci set dropbear.afg.enable='1'
-    uci set dropbear.afg.Interface='lan'
-    uci set dropbear.afg.Port='22'
-    uci set dropbear.afg.IdleTimeout='600'
-    uci set dropbear.afg.PasswordAuth='on'
-    uci set dropbear.afg.RootPasswordAuth='on'
-    uci set dropbear.afg.RootLogin='1'
-    uci set dropbear.lan.enable='0'
-    uci commit dropbear
-    $KEYS_CFG
-    /etc/init.d/dropbear enable
-    /etc/init.d/dropbear restart
-    $NOEXEC_CFG
-    $CWMP_CFG
-    $RESTORE_CFG
-    echo 'Removing rooting script'
-    rm /overlay/${BOOTED}/etc/rc.local
-    source /rom/etc/rc.local
-    " > /overlay/${BOOTED}/etc/rc.local
-    chmod +x /overlay/${BOOTED}/etc/rc.local
-    if [ $__VERBOSE = Y ]; then
-      echo -e "${GREY}"
-      cat /overlay/${BOOTED}/etc/rc.local
-      echo -e "${NC}"
-    fi
-    echo -e "${GREEN}INFO:     Device has been reset to factory defaults and root access retained${NC}"
-    ;;
-  ubifs)
-    [ -f /etc/rtfd_persistent_filelist.conf ] || touch /etc/rtfd_persistent_filelist.conf
-    for f in /etc/passwd /etc/shadow /etc/config/dropbear /etc/rc.d/*dropbear; do
-      grep -q -E "^$f$" /etc/rtfd_persistent_filelist.conf
-      if [ $? -eq 1 ]; then
-        echo "$f">>/etc/rtfd_persistent_filelist.conf
-      fi
-    done
-    ;;
-  *) echo -e "${RED}ABORTING: Unable to handle /overlay with '$OVERLAY_FS' filesystem!${NC}";;
-esac
-sync
+TARGET_BANK=/overlay/${BOOTED}
 
 if [ -n "$FIRMWARE" ]; then
-  echo -e "INFO:     Writing ${ORANGE}$FIRMWARE${NC} into ${ORANGE}${BOOTED}${NC}..."
-  echo -e "${GREY}"
-  mtd -e ${BOOTED} write "$FIRMWARE" ${BOOTED}
-  echo -e "${NC}"
-  echo -e "INFO:     Verifying ${ORANGE}${BOOTED}${NC} against ${ORANGE}$FIRMWARE${NC}..."
-  VERIFY_RESULT=$(mtd verify "$FIRMWARE" ${BOOTED} 2>&1)
-  echo -e "${GREY}$VERIFY_RESULT${NC}"
-  if echo "$VERIFY_RESULT" | grep -q 'Failed'; then
-    echo -e "${RED}ERROR:    Verification FAILED!!${NC}"
-    exit 2
+  if [ "$ROM_FS" = "ubifs" ]; then
+    TARGET_BANK=/overlay/${NOT_BOOTED}
+    echo -e "INFO:     Writing ${ORANGE}$FIRMWARE${NC} into ${ORANGE}${NOT_BOOTED}${NC}..."
+    echo -en "${GREY}"
+    sysupgrade -n -v --no-reboot "$FIRMWARE"
+    VERIFY_RESULT=$?
+    echo -en "${NC}"
+    if [ "$VERIFY_RESULT" -ne 0 ]; then
+      echo -e "${RED}ABORTING: sysupgrade FAILED!!${NC}"
+      exit 2
+    fi
+  else
+    echo -e "INFO:     Writing ${ORANGE}$FIRMWARE${NC} into ${ORANGE}${BOOTED}${NC}..."
+    echo -en "${GREY}"
+    mtd -e ${BOOTED} write "$FIRMWARE" ${BOOTED}
+    echo -en "${NC}"
+    echo -e "INFO:     Verifying ${ORANGE}${BOOTED}${NC} against ${ORANGE}$FIRMWARE${NC}..."
+    VERIFY_RESULT=$(mtd verify "$FIRMWARE" ${BOOTED} 2>&1)
+    echo -e "${GREY}$VERIFY_RESULT${NC}"
+    if echo "$VERIFY_RESULT" | grep -q 'Failed'; then
+      echo -e "${RED}ABORTING: mtd verify FAILED!!${NC}"
+      exit 2
+    fi
   fi
 fi
 
+echo -e "${ORANGE}INFO:     Resetting...${NC}"
+# https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#clean-up
+echo -e "${GREY}INFO:     Deleting $TARGET_BANK...${NC}"
+rm -rf $TARGET_BANK
+# https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
+echo -e "${GREY}INFO:     Creating ${TARGET_BANK}/etc/uci-defaults/zzz-9999-reroot...${NC}"
+mkdir -p ${TARGET_BANK}/etc/uci-defaults
+chmod 755 ${TARGET_BANK} ${TARGET_BANK}/etc/uci-defaults
+cat <<-END > ${TARGET_BANK}/etc/uci-defaults/zzz-9999-reroot
+  echo root:$__ROOTPWD | chpasswd
+  sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
+  sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
+  uci -q set \$(uci show firewall | grep -m 1 \$(fw3 -q print | \
+    egrep 'iptables -t filter -A zone_lan_input -p tcp -m tcp --dport 22 -m comment --comment \"!fw3: .+\" -j DROP' 2>/dev/null | \
+    sed -n -e 's/^iptables.\+fw3: \(.\+\)\".\+/\1/p') 2>/dev/null | \
+    sed -n -e \"s/\(.\+\).name='.\+'$/\1/p\").target='ACCEPT'
+  uci add dropbear dropbear
+  uci rename dropbear.@dropbear[-1]=afg
+  uci set dropbear.afg.enable='1'
+  uci set dropbear.afg.Interface='lan'
+  uci set dropbear.afg.Port='22'
+  uci set dropbear.afg.IdleTimeout='600'
+  uci set dropbear.afg.PasswordAuth='on'
+  uci set dropbear.afg.RootPasswordAuth='on'
+  uci set dropbear.afg.RootLogin='1'
+  uci set dropbear.lan.enable='0'
+  /etc/init.d/dropbear enable
+  $LAN_CFG
+  $CWMP_CFG
+  $NOEXEC_CFG
+  $KEYS_CFG
+  $RESTORE_CFG
+  exit 0
+END
+chmod +x ${TARGET_BANK}/etc/uci-defaults/zzz-9999-reroot
+sync
+if [ $__VERBOSE = Y ]; then
+  echo -en "${GREY}"
+  cat ${TARGET_BANK}/etc/uci-defaults/zzz-9999-reroot
+  echo -en "${NC}"
+fi
+echo -e "${GREEN}INFO:     Device has been reset to factory defaults and root access retained${NC}"
+
 if [ "$__REBOOT" = "Y" ]; then
-  if [ "$OVERLAY_FS" = "ubifs" ]; then
-    echo -e "${GREEN}INFO:     Device will reset to factory defaults and root access will be retained after reboot${NC}"
-    echo -e "${ORANGE}INFO:     Rebooting...${NC}"
-    /usr/bin/rtfd --soft
-    sleep 10
-  else
-    echo -e "${ORANGE}INFO:     Rebooting...${NC}"
+  echo -e "${ORANGE}INFO:     Rebooting...${NC}"
+  if [ -e /proc/sysrq-trigger ]; then
     sleep 1
     echo 1 > /proc/sys/kernel/sysrq
     echo b > /proc/sysrq-trigger
+  else
+    reboot
   fi
+  sleep 10
 fi

@@ -1,0 +1,182 @@
+#!/bin/sh
+
+SCRIPT="$(basename $0)"
+
+
+GREEN='\033[1;32m'
+GREY='\033[90m'
+ORANGE='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+VERSION="$(uci get version.@version[0].marketing_version)"
+if [ -z "$(which bootmgr)" ]; then
+  BOOTED="$(cat /proc/banktable/booted 2>/dev/null)"
+  NOT_BOOTED="$(cat /proc/banktable/notbooted 2>/dev/null)"
+else
+  BOOTED="bank_$(bootmgr partition booted)"
+  NOT_BOOTED="bank_$(bootmgr partition notbooted)"
+fi
+
+usage() {
+cat <<EOH
+Applies a new firmware to the device, without losing root access.
+
+It is basically the same as the procedure as described in
+http://hack-technicolor.rtfd.io/en/stable/Upgrade/#preserving-root-access and
+http://hack-technicolor.rtfd.io/en/stable/Upgrade/#flashing-firmware
+but with some additional options.
+
+Usage: $0 [options] filename
+
+Where:
+ filename         Is the name of the firmware file to be flashed. If the 
+                    filename ends with .rbi, it will be unpacked first, 
+                    either to an attached USB device, or /tmp if no USB is 
+                    detected. 
+                    - If 'filename' ends in .rbi or .bin, it will be flashed 
+                      into the booted bank ($BOOTED)
+                    - If 'filename' ends with .pkgtb, the firmware will be 
+                      flashed into the passive bank ($NOT_BOOTED) usng the
+                      sysupgrade facility (root access will be preserved) and
+                      banks will be switched on reboot.
+
+Options:
+ -b               Make a full backup of your configuration from /overlay.
+                    (Requires attached USB device).
+ -c               Disable CWMP configuration during first boot after reset.
+ -e               Disable any 'noexec' flags on USB mounted filesystems.
+ -i               Keep the existing LAN IP address after reset and reboot.
+                    This is the default if --restore-config is specified.
+ -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
+ -k               Keep existing SSH keys after reset and reboot.
+ -n               Do NOT reboot.
+ -p password      Set the password after reset and reboot. If not specified,
+                    it defaults to root.
+ -v               Show the reset script after it has been written.
+ -y               Bypass confirmation prompt (answers 'y').
+ --save-defaults  Saves the command line options (except filename and -y) as 
+                    defaults.
+                    When specified, NO changes are applied to the device
+ --no-defaults    Ignores any saved defaults for this execution
+ -U               Download the latest version of $SCRIPT from GitHub.
+                    Do NOT specify any other parameters or options if doing
+                    a version upgrade.
+EOH
+[ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" -o "$VERSION" = "20.3.c" ] && cat <<EOH
+ --restore-config Runs the restore-config.sh script after reboot if it is found
+                    in the USB backups directory. Output will be written to the 
+                    system log. --restore-config should be the LAST option
+                    specified, and may optionally be followed by the name of
+                    the overlay backup file to be restored. Saved defaults are
+                    IGNORED when --restore-config is specified.
+ --i              Specifies that the IP address configured by the -i or -I options 
+                    is also to be applied after the configuration is restored. If
+                    not specified, the IP address used will be the one found in the 
+                    configuration backup. Ignored unless --restore-config is also 
+                    specified.
+EOH
+echo
+exit
+}
+
+download() {
+  local SCRIPT="$1"
+  local RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ]; then
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
+    if [ $? -eq 0 ]; then
+      chmod +x $SCRIPT
+      echo -e "${GREEN}SUCCESS:  Downloaded $SCRIPT${NC}"
+    else
+      echo -e "${RED}ERROR:    Failed to download $SCRIPT?${NC}"
+      exit
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]; then
+    echo -e "${RED}ERROR:    Not found on GitHub???${NC}"
+    exit
+  elif [ "$RESPONSE_CODE" = 000 ]; then
+    echo -e "${RED}ERROR:    No Internet connection???${NC}"
+    exit
+  else
+    echo -e "${RED}ERROR:    Unknown response code $RESPONSE_CODE${NC}"
+    exit
+  fi
+}
+
+set_defaults() {
+  __BKUP=""
+  __CWMP=""
+  __IPADDR=""
+  __KEYS=""
+  __NOEXEC=""
+  __ROOTPWD="root"
+  __REBOOT="Y"
+  __VERBOSE=N
+}
+
+set_defaults
+[ -f .defaults.$SCRIPT ] && source ./.defaults.$SCRIPT
+
+FIRMWARE=""
+YES="N"
+SAVE_DEFAULTS=n
+RESTORE_CONFIG=n
+OPTIONS="--no-defaults"
+
+while getopts :bcef:iI:knp:vyU-: option; do
+ case "${option}" in
+  -)  case "${OPTARG}" in
+        i)              OPTIONS="$OPTIONS --i";;
+        restore-config) RESTORE_CONFIG="y";;
+        no-defaults)    set_defaults;;
+        save-defaults)  SAVE_DEFAULTS="y";;
+        *)              usage;;
+      esac;;
+  b)  __BKUP="Y"; OPTIONS="$OPTIONS -b";;
+  c)  __CWMP="Y"; OPTIONS="$OPTIONS -c";;
+  e)  __NOEXEC="Y"; OPTIONS="$OPTIONS -e";;
+  i)  __IPADDR="$(uci get network.lan.ipaddr)"; OPTIONS="$OPTIONS -i"; [ $? -ne 0 ] && exit;;
+  I)  __IPADDR="${OPTARG}"; OPTIONS="$OPTIONS -I ${OPTARG}";;
+  k)  __KEYS="Y"; OPTIONS="$OPTIONS -k";;
+  n)  __REBOOT="N"; OPTIONS="$OPTIONS -n";;
+  p)  __ROOTPWD="${OPTARG}"; OPTIONS="$OPTIONS -p ${OPTARG}";;
+  v)  __VERBOSE="Y"; OPTIONS="$OPTIONS -v";;
+  y)  YES="Y"; OPTIONS="$OPTIONS -y";;
+  U)  download $SCRIPT; exit;;
+  *)  usage;;
+ esac
+done
+shift $((OPTIND-1))
+
+if [ $SAVE_DEFAULTS = y ]; then
+  set | grep '^__' > .defaults.$SCRIPT
+  echo -e "\e[1;32mDefaults saved\e[0m"
+  exit
+fi
+
+if [ $RESTORE_CONFIG = y ]; then
+  OPTIONS="$OPTIONS --restore-config"
+  if [ $# -gt 1 ]; then
+    OPTIONS="$OPTIONS $1"
+    shift
+  fi
+fi
+
+FIRMWARE="$1"
+if [ -z "$FIRMWARE" ]; then
+  echo -e "${RED}ABORTING: No firmware file name specified!${NC}"
+  usage
+fi
+
+OPTIONS="-f $FIRMWARE $OPTIONS"
+
+if [ ! -e reset-to-factory-defaults-with-root ]; then
+  echo -e "NOTE:     Downloading script dependency 'reset-to-factory-defaults-with-root'..."
+  download reset-to-factory-defaults-with-root
+elif ! grep -q sysupgrade reset-to-factory-defaults-with-root; then
+  echo -e "NOTE:     Upgrading script dependency 'reset-to-factory-defaults-with-root'..."
+  download reset-to-factory-defaults-with-root
+fi
+
+sh reset-to-factory-defaults-with-root $OPTIONS
