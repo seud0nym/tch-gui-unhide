@@ -6,10 +6,13 @@ VERSION=$(uci -q get version.@version[0].marketing_version)
 
 usage() {
 cat <<EOH
-Restores partitions from an attached USB device or SSHFS filesystem. Only
-changed partitions are restored (unless -s is specified).
+Restores mtd or ubifs partitions from an attached USB device or SSHFS 
+filesystem. Only changed partitions are restored (unless -s is specified).
 
 USB devices have priority over SSHFS filesystems.
+
+Due to the nature of the UBI filesystem, restores will fail unless the 
+target partition is not mounted.
 
 Usage: $0 [options] [partition ...]
 
@@ -17,11 +20,11 @@ Options:
  -d directory   The name of the directory on the USB device or SSHFS
                   filesystem containing the backups. If not specified,
                   defaults to: backups or backups-$VERSION
+ -q             Quiet mode
  -r             Reboot after last partition successfully restored
  -s             Skip check for changed partitions and always restore
  -v             Skip verification of image checksum (if it exists i.e. if
                   mtd-backup was NOT executed with the -s option)
- -q             Quiet mode
  -U             Download the latest version of $SCRIPT from GitHub
                   Do NOT specify any other parameters or options if doing
                   a version upgrade.
@@ -123,25 +126,65 @@ fi
 
 IMAGES=$(echo $IMAGES | tr " " "\n" | sort -u | xargs)
 LAST=""
+RESTORE_UBI="N"
 echo "$(date +%F@%X): $(echo $IMAGES | wc -w) backups selected for restore:"
 for gz in $IMAGES; do
   echo "                     -> $gz"
   LAST="$gz"
+  echo "$gz" | grep -qE "$VARIANT-ubi" && RESTORE_UBI="Y"
 done
-if [ $SKIP_CHG_CHECK = Y ]; then
-  echo -e "$(date +%F@%X): ${ORANGE}NOTE: Partitions will be restored WITHOUT checking for changes first!${NC}"
-fi
-if [ $REBOOT = Y ]; then
-  echo -e "$(date +%F@%X): ${ORANGE}NOTE: Device will be rebooted after restoring $LAST!${NC}"
-fi
+[ $SKIP_CHG_CHECK = Y ] && echo -e "$(date +%F@%X): ${ORANGE}NOTE: Partitions will be restored WITHOUT checking for changes first!${NC}"
+[ $RESTORE_UBI = Y ] && echo -e "$(date +%F@%X): ${RED}WARNING: ${ORANGE}Attempting to restore a UBIFS backup to a mounted device will ${RED}FAIL!${NC}"
+[ $REBOOT = Y ] && echo -e "$(date +%F@%X): ${ORANGE}NOTE: Device will be rebooted after restoring $LAST!${NC}"
 echo -e -n "$(date +%F@%X): ${GREEN}If you wish to commence the restore, enter y otherwise just press [Enter] to exit.${NC} "
 read
-if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
-  exit
-fi
+[ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
 
 echo "$(date +%F@%X): Cleaning up any old images..."
 find $SOURCE -name "$VARIANT-*.img" -exec rm {} \;
+
+restoreMTD() {
+  local RETVAL
+  if [ $REBOOT = Y -a "$LAST" = "$gz" ]; then
+    echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partition $dev ($PARTITION) and rebooting"
+    mtd $QUIET -r -e $PARTITION write $SOURCE/$VARIANT-$dev-$name.img $PARTITION
+    RETVAL=$?
+  else
+    echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partition $dev ($PARTITION)"
+    mtd $QUIET -e $PARTITION write $SOURCE/$VARIANT-$dev-$name.img $PARTITION
+    RETVAL=$?
+  fi
+  return $RETVAL
+}
+
+restoreUBI() {
+  local RETVAL
+  if [ $REBOOT = Y -a "$LAST" = "$gz" ]; then
+    echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partition $dev ($PARTITION) and rebooting"
+  else
+    echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partition $dev ($PARTITION)"
+  fi
+  ubiupdatevol $TARGET -t
+  RETVAL=$?
+  if [ $RETVAL -eq 0 ]; then
+    ubiupdatevol $TARGET $SOURCE/$VARIANT-$dev-$name.img
+    RETVAL=$?
+    [ $RETVAL -eq 0 -a \( $REBOOT = Y -a \( "$LAST" = "$gz" -o "$PARTITION" = "rootfs_data" \) \) ] && reboot
+  else
+    echo -e "$(date +%F@%X): ${RED}ABORTING $SOURCE/$VARIANT-$dev-$name.img restore - failed to erase volume!${NC}"
+  fi
+  return $RETVAL
+}
+
+restoreDevice() {
+  echo $dev | grep -q "^mtd" && restoreMTD || restoreUBI
+  if [ $? -eq 0 ]; then
+    echo -e "$(date +%F@%X): ${GREEN}RESTORED $SOURCE/$VARIANT-$dev-$name.img to partition $dev ($PARTITION)${NC}"
+    echo $SOURCE/$VARIANT-$dev-$name.img > $RESTORED
+  else
+    echo -e "$(date +%F@%X): ${RED}FAILED to restore $SOURCE/$VARIANT-$dev-$name.img to partition $dev ($PARTITION)!${NC}"
+  fi
+}
 
 RESTORED="$(mktemp)"
 
@@ -153,7 +196,7 @@ for gz in $IMAGES; do
     continue
   fi
 
-  basename $gz | sed -e "s/^$VARIANT-\(mtd\)\([^-]*\)-\(.*\).img.gz$/\1\2 \3/" | while read -r dev name; do
+  basename $gz | sed -e "s/^$VARIANT-\(mtd\|ubi\)\([^-]*\)-\(.*\).img.gz$/\1\2 \3/" | while read -r dev name; do
     TARGET="/dev/${dev}"
     PARTITION="$(echo $name | cut -d- -f1)"
     SHA256CHK=N
@@ -196,26 +239,15 @@ for gz in $IMAGES; do
         VERIFIED=$?
       fi
       if [ $VERIFIED -eq 0 ]; then
-        # http://www.infradead.org/pipermail/linux-mtd/2017-August/076260.html
-        # If you want to backup/restore UBIFS, dd from /dev/ubiX_Y and restore using ubiupdatevol.
-        if [ $REBOOT = Y -a "$LAST" = "$gz" ]; then
-          echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partion $dev ($PARTITION) and rebooting"
-          mtd $QUIET -r -e $PARTITION write $SOURCE/$VARIANT-$dev-$name.img $PARTITION
-        else
-          echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partion $dev ($PARTITION)"
-          mtd $QUIET -e $PARTITION write $SOURCE/$VARIANT-$dev-$name.img $PARTITION
-        fi
-        if [ $? -eq 0 ]; then
-          echo -e "$(date +%F@%X): ${GREEN}RESTORED $SOURCE/$VARIANT-$dev-$name.img to partion $dev ($PARTITION)${NC}"
-          echo $SOURCE/$VARIANT-$dev-$name.img > $RESTORED
-        else
-          echo -e "$(date +%F@%X): ${RED}FAILED to restore $SOURCE/$VARIANT-$dev-$name.img to partion $dev ($PARTITION)!${NC}"
-        fi
+        restoreDevice
       else
         echo -e "$(date +%F@%X): ${RED}FAILED to successfully expand $dev backup to $SOURCE/$VARIANT-$dev-$name.img!${NC}"
       fi
     fi
-    [ -f $SOURCE/$VARIANT-$dev-$name.img ] && rm $SOURCE/$VARIANT-$dev-$name.img
+    if [ -f $SOURCE/$VARIANT-$dev-$name.img ]; then
+      echo "$(date +%F@%X): DELETING temporary file $SOURCE/$VARIANT-$dev-$name.img"
+      rm $SOURCE/$VARIANT-$dev-$name.img
+    fi
   done
 done
 

@@ -5,13 +5,23 @@ SCRIPT="$(basename $0)"
 SERIAL=$(uci get env.var.serial)
 VARIANT=$(uci -q get env.var.variant_friendly_name)
 VERSION=$(uci get version.@version[0].version | cut -d- -f1)
-BOOTED=$(cat /proc/banktable/booted)
+
+if [ -z "$(which bootmgr)" ]; then
+  BOOTED="$(cat /proc/banktable/booted 2>/dev/null)"
+  NOT_BOOTED="$(cat /proc/banktable/notbooted 2>/dev/null)"
+else
+  BOOTED="bank_$(bootmgr partition booted)"
+  NOT_BOOTED="bank_$(bootmgr partition notbooted)"
+fi
+OTHER_VERSION="$(uci -q get env.var.friendly_sw_version_passivebank | cut -d- -f1)"
+OTHER_BANK="$(echo $NOT_BOOTED | cut -d_ -f2)"
+BOOTED_BANK="$(echo $BOOTED | cut -d_ -f2)"
 
 usage() {
 cat <<EOH
-Backs up the MTD partitions to an attached USB device or SSHFS attached
-filesystem. Only unchanged partitions are backed up after the first
-execution.
+Backs up mtd or ubifs device partitions to an attached USB device or SSHFS 
+attached filesystem. Only unchanged partitions are backed up after the 
+first execution.
 
 USB devices have priority over SSHFS filesystems.
 
@@ -31,6 +41,7 @@ Options:
                    and just save the checksum calculated to determine if the
                    image has changed.
  -0              Skip backup of mtd0 if a backup already exists
+                   (Ignored for UBIFS partitions)
  --no-drop-cache Skips flushing the RAM page cache after backup
  -l              Write log messages to stderr as well as the system log
  -v              Verbose mode
@@ -38,6 +49,8 @@ Options:
  -C              Adds or removes the scheduled daily backup cron job
  -P              Reports the backup path
  -U              Download the latest version of $SCRIPT from GitHub
+                   Do NOT specify any other parameters or options if doing 
+                   a version upgrade.
 
 EOH
 exit
@@ -76,8 +89,7 @@ PATH_ONLY=N
 RECALC_SHA=Y
 YES=N
 
-while getopts :cd:elosvy0CPU- option
-do
+while getopts :cd:elosvy0CPU- option; do
  case "${option}" in
   -)  case "${OPTARG}" in no-drop-cache) FLUSH=N;; *) usage;; esac;;
   C)  CRON=Y;;
@@ -361,11 +373,7 @@ sh "${DIR}/000-core.sh" $*
 EoSH
 [ -e $TARGET/restore-config.sh ] && chmod +x $TARGET/restore-config.sh
 
-sed -e '/dev:/d' -e 's/\(mtd[^:]*\)[^"]*"\([^"]*\)"/\1 \2/' /proc/mtd | while read -r dev name
-do
-  if [ "$name" = "rootfs_data" -o "$name" = "$BOOTED" ]; then
-    name="$name-$VERSION"
-  fi
+getExistingSHA256() {
   if [ -f $TARGET/$VARIANT-$dev-$name.img.sha256= ]; then
     SHA256SRC=$TARGET/$VARIANT-$dev-$name.img.sha256=
     SHA256OLD="$(cat $SHA256SRC | cut -d' ' -f1)"
@@ -376,16 +384,15 @@ do
     SHA256SRC=""
     SHA256OLD=""
   fi
+}
 
-  if [ "$dev" = "mtd0" -a $MTD0 = N -a -n "$SHA256SRC" -a -n "$SHA256OLD" -a -f $TARGET/$VARIANT-$dev-$name.img.gz ]; then
-    $LOGGER user.info "SKIPPED backup of $dev - Already exists and -0 option specified"
-    continue
-  fi
-
+backupDevice() {
+  local source="/dev/${dev}"
+  [ -e "${source}ro" ] && source="${source}ro"
   [ $DEBUG = Y ] && $LOGGER user.debug "CALCULATING SHA256 for $dev..."
   SECONDS=$(date +%s)
   SHA256_ERROR=$(mktemp)
-  SHA256=$(cat "/dev/${dev}ro" 2>$SHA256_ERROR | sha256sum | cut -d' ' -f1)
+  SHA256=$(cat "$source" 2>$SHA256_ERROR | sha256sum | cut -d' ' -f1)
   if [ -s $SHA256_ERROR ]; then
     $LOGGER user.err "FAILURE calculating SHA256 for $dev: $(cat $SHA256_ERROR)"
   else 
@@ -415,7 +422,7 @@ do
       SECONDS=$(date +%s)
       ACTIVE="$TARGET/$VARIANT-$dev-$name.img.*"
       DD_ERROR=$(mktemp)
-      if dd if="/dev/${dev}ro" bs=1M 2>$DD_ERROR | gzip > $TARGET/$VARIANT-$dev-$name.img.gz; then
+      if dd if="$source" bs=1M 2>$DD_ERROR | gzip > $TARGET/$VARIANT-$dev-$name.img.gz; then
         [ $DEBUG = Y ] && $LOGGER user.debug "WRITING $dev to $TARGET/$VARIANT-$dev-$name.img.gz took $(( $(date +%s) - $SECONDS )) seconds"
         if [ $RECALC_SHA = N ]; then
           $LOGGER user.info "WRITING $dev checksum to $TARGET/$VARIANT-$dev-$name.img.sha256"
@@ -439,8 +446,46 @@ do
     fi
   fi
   [ -e $SHA256_ERROR ] && rm $SHA256_ERROR
-done
+}
 
+if [ -z "$(which ubinfo)" ]; then
+  # Fix incorrect names from previous versions
+  rm -f $(ls $TARGET/$VARIANT-mtd2-rootfs_data-*.img.* | grep -v $VERSION)
+  for f in $(ls $TARGET/$VARIANT-mtd2-rootfs_data-$VERSION* 2>/dev/null); do
+    mv "$f" "$(echo $f | sed -e "s/-$VERSION//")"
+  done
+  sed -e '/dev:/d' -e 's/\(mtd[^:]*\)[^"]*"\([^"]*\)"/\1 \2/' /proc/mtd | while read -r dev name; do
+    if [ "$name" = "$BOOTED" ]; then
+      name="$name-$VERSION"
+    elif [ "$name" = "$NOT_BOOTED" ]; then
+      # Fix incorrect names from previous versions
+      for f in $(ls $TARGET/$VARIANT-$dev-$name.* 2>/dev/null); do
+        rm "$f"
+      done
+      name="$name-$OTHER_VERSION"
+    fi
+    getExistingSHA256
+
+    if [ "$dev" = "mtd0" -a $MTD0 = N -a -n "$SHA256SRC" -a -n "$SHA256OLD" -a -f $TARGET/$VARIANT-$dev-$name.img.gz ]; then
+      $LOGGER user.info "SKIPPED backup of $dev - Already exists and -0 option specified"
+      continue
+    fi
+
+    backupDevice
+  done
+else
+  for dev in $(ls /dev/ubi* | grep _ | grep -v ubi_ctrl); do
+    dev=$(basename $dev)
+    name=$(ubinfo /dev/$dev | grep "Name:" | tr -s ' ' | cut -d' ' -f2)
+    if [ "$name" = "rootfs$BOOTED_BANK" ]; then
+      name="$name-$VERSION"
+    elif [ "$name" = "rootfs$OTHER_BANK" ]; then
+      name="$name-$OTHER_VERSION"
+    fi
+    getExistingSHA256
+    backupDevice
+  done
+fi
 if [ $FLUSH = Y ]; then
   $LOGGER user.info "Flushing page cache..."
   sync
