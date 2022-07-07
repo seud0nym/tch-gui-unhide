@@ -1,5 +1,22 @@
 # Utility Scripts
-A collection of utility scripts for your Technicolor router.
+A collection of utility scripts for your Technicolor router. Most of the names are self-explanatory.
+
+- [de-telstra](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra)
+- [dumaos](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos)
+- [hijack-dns](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#hijack-dns)
+- [log-check](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#log-check)
+- [mtd-backup](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-backup)
+- [mtd-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-restore)
+- [overlay-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#overlay-restore)
+- [reboot-on-coredump](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#reboot-on-coredump)
+- [reset-to-factory-defaults-with-root](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#reset-to-factory-defaults-with-root)
+- [safe-firmware-upgrade](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#safe-firmware-upgrade)
+- [set-optimal-bank-plan](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#set-optimal-bank-plan)
+- [set-web-admin-password](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#set-web-admin-password)
+- [show-bank-plan](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#show-bank-plan)
+- [transformer-cli](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#transformer-cli)
+- [unpack-rbi](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#unpack-rbi)
+- [update-ca-certificates](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#update-ca-certificates)
 
 Download and execution instructions are [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#how-to-download-and-execute-these-scripts).
 
@@ -35,7 +52,7 @@ Optionally, it can also:
 - Protect against loss of root when doing a factory reset, by preserving the password files and dropbear (SSH) configuration
 - Completely remove the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks
 
-It does NOT remove the hidden BH-xxxxxx SSID from the DJA0230 or DJA0231, as this is not related to Telstra AIR. It is the wireless backhaul for EasyMesh.
+It does NOT remove the hidden BH-xxxxxx SSID, as this is not related to Telstra AIR. It is the wireless backhaul for EasyMesh.
 ```
 Usage: ./de-telstra [options]
 
@@ -191,12 +208,18 @@ USB devices have priority over SSHFS filesystems.
 Usage: ./mtd-backup [options]
 
 Options:
- -d directory    The name of the directory on the USB device or SSHFS filesystem.
+ -d directory    The name of the directory on the USB device or SSHFS 
+                   filesystem.
                    If not specified, defaults to: backups
- -c              Save the current UCI configuration into the VARIANT-SERIAL-VERSION-config.gz file
- -e              Save the current environment into the VARIANT-SERIAL-VERSION-env file
- -o              Save the overlay content into the VARIANT-SERIAL-VERSION-overlay-files-backup.tgz file
- -s              Skip recalculation of the checksum of the backed-up partition, and just save the checksum calculated to determine if the image has changed.
+ -c              Save the current UCI configuration into the 
+                   VARIANT-SERIAL-VERSION-config.gz file
+ -e              Save the current environment into the 
+                   VARIANT-SERIAL-VERSION-env file
+ -o              Save the overlay content into the 
+                   VARIANT-SERIAL-VERSION-overlay-files-backup.tgz file
+ -s              Skip recalculation of the checksum of the backed-up 
+                   partition, and just save the checksum calculated 
+                   to determine if the image has changed.
  -0              Skip backup of mtd0 if a backup already exists 
                    (Ignored for UBIFS partitions)
  --no-drop-cache Skips flushing the RAM page cache after backup
@@ -206,7 +229,8 @@ Options:
  -C              Adds or removes the scheduled daily backup cron job
  -P              Reports the backup path
  -U              Download the latest version of mtd-backup from GitHub
-                   Do NOT specify any other parameters or options if doing a version upgrade.
+                   Do NOT specify any other parameters or options if 
+                   doing a version upgrade.
 ```
 When run with the -C option (which should be the only option), the scheduled job will be added if it does not already exist, or removed if it does exist in the schedule. By default, the backup will run every day at a random time between 2:00am and 5:00am. You can modify the schedule through the Management card in `tch-gui-unhide`, or by directly modifying the /etc/crontab/root file.
 
@@ -220,15 +244,18 @@ Due to the nature of the UBI filesystem, restores will fail unless the target pa
 Usage: ./mtd-restore [options] [partition ...]
 
 Options:
- -d directory   The name of the directory on the USB device or SSHFS filesystem.
+ -d directory   The name of the directory on the USB device or SSHFS 
+                  filesystem.
                   If not specified, defaults to: backups or backups-VERSION
  -q             Quiet mode
  -r             Reboot after last partition successfully restored
  -s             Skip check for changed partitions and always restore
  -v             Skip verification of image checksum 
-                  (if it exists i.e. if mtd-backup was NOT executed with the -s option)
+                  (if it exists i.e. if mtd-backup was NOT executed with 
+                  the -s option)
  -U             Download the latest version of mtd-restore from GitHub
-                  Do NOT specify any other parameters or options if doing a version upgrade.
+                  Do NOT specify any other parameters or options if 
+                  doing a version upgrade.
 Parameters:
  partition      One or more partitions to restored.
                   Specify either the device (e.g. "mtd2") or name (e.g. "rootfs_data")
@@ -250,9 +277,11 @@ Options:
  -p             Only restore the not booted bank overlay
  -v             Verbose mode (list files as they are restored)
  -R             Do NOT reboot after restore is completed
-                  This is the default if only the not booted bank is being restored.
+                  This is the default if only the not booted bank 
+                  is being restored.
  -U             Download the latest version of $SCRIPT from GitHub
-                  Do NOT specify any other parameters or options if doing a version upgrade.
+                  Do NOT specify any other parameters or options 
+                  if doing a version upgrade.
 Parameters:
  filename      The filename containing the /overlay tar backup. If not specified, defaults to: 
                   /mnt/usb/FIRST USB DEVICE/backups/VARIANT-SERIAL-VERSION-overlay-files-backup.tgz
@@ -274,7 +303,8 @@ This script implements the commands from https://hack-technicolor.readthedocs.io
 Usage: ./reset-to-factory-defaults-with-root [options]
 
 Options:
- -b               Make a full backup of your configuration from /overlay before resetting to factory defaults.
+ -b               Make a full backup of your configuration from /overlay 
+                    before resetting to factory defaults.
                     (Requires attached USB device).
  -c               Disable CWMP configuration during first boot after reset.
  -e               Disable any 'noexec' flags on USB mounted filesystems.
@@ -306,7 +336,8 @@ Options:
                     When specified, NO changes are applied to the device.
  --no-defaults    Ignores any saved defaults for this execution.
  -U               Download the latest version of the script from GitHub.
-                    Do NOT specify any other parameters or options if doing a version upgrade.
+                    Do NOT specify any other parameters or options if doing a 
+                    version upgrade.
  ```
  The following options are only applicable to firmware versions 17.2, 18.1.c and 20.3.c:
  ```
@@ -341,11 +372,11 @@ Where:
                     either to an attached USB device, or /tmp if no USB is 
                     detected. 
                     - If 'filename' ends in .rbi or .bin, it will be flashed 
-                      into the booted bank ($BOOTED)
+                      into the booted bank
                     - If 'filename' ends with .pkgtb, the firmware will be 
-                      flashed into the passive bank ($NOT_BOOTED) usng the
-                      sysupgrade facility (root access will be preserved) and
-                      banks will be switched on reboot.
+                      flashed into the passive bank using sysupgrade (root 
+                      access will be preserved) and banks will be switched 
+                      on reboot.
 
 Options:
  -b               Make a full backup of your configuration from /overlay
