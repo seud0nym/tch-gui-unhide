@@ -236,6 +236,28 @@ Parameters:
                   If not specified, defaults to: rootfs_data
 ```
 
+## overlay-restore
+Restores an overlay tar backup, such as those created by mtd-backup, reset-to-factory-defaults-with-root, and safe-firmware-upgrade. 
+
+By default, both bank_1 and bank_2 will be restored.
+```
+Usage: ./overlay-restore [options] [filename]
+
+Options:
+ -1             Only restore the bank_1 overlay
+ -2             Only restore the bank_2 overlay
+ -b             Only restore the booted bank overlay
+ -p             Only restore the not booted bank overlay
+ -v             Verbose mode (list files as they are restored)
+ -R             Do NOT reboot after restore is completed
+                  This is the default if only the not booted bank is being restored.
+ -U             Download the latest version of $SCRIPT from GitHub
+                  Do NOT specify any other parameters or options if doing a version upgrade.
+Parameters:
+ filename      The filename containing the /overlay tar backup. If not specified, defaults to: 
+                  /mnt/usb/FIRST USB DEVICE/backups/VARIANT-SERIAL-VERSION-overlay-files-backup.tgz
+```
+
 ## reboot-on-coredump
 Enables or disables reboot on core dump. If you have a process that is continually crashing and core dumping, use this script to disable reboot on coredump.
 ```

@@ -1,0 +1,155 @@
+#!/bin/sh
+
+SCRIPT="$(basename $0)"
+
+SERIAL=$(uci get env.var.serial)
+VARIANT=$(uci -q get env.var.variant_friendly_name)
+VERSION=$(uci get version.@version[0].version | cut -d- -f1)
+
+if [ -z "$(which bootmgr)" ]; then
+  BOOTED="$(cat /proc/banktable/booted 2>/dev/null)"
+  NOT_BOOTED="$(cat /proc/banktable/notbooted 2>/dev/null)"
+else
+  BOOTED="bank_$(bootmgr partition booted)"
+  NOT_BOOTED="bank_$(bootmgr partition notbooted)"
+fi
+
+usage() {
+cat <<EOH
+Restores an overlay tar backup. By default, both bank_1 and bank_2 
+will be restored.
+
+Usage: $0 [options] [filename]
+
+Options:
+ -1             Only restore the bank_1 overlay
+ -2             Only restore the bank_2 overlay
+ -b             Only restore the booted bank overlay
+ -p             Only restore the not booted bank overlay
+ -v             Verbose mode (list files as they are restored)
+ -R             Do NOT reboot after restore is completed
+                  This is the default if only the not booted bank is being
+                  restored.
+ -U             Download the latest version of $SCRIPT from GitHub
+                  Do NOT specify any other parameters or options if doing
+                  a version upgrade.
+Parameters:
+ filename      The filename containing the /overlay tar backup. If not 
+                  specified, defaults to: 
+                  {USB Path}/backups/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz
+
+EOH
+exit
+}
+
+upgrade() {
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ]; then
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
+    if [ $? -eq 0 ]; then
+      chmod +x $SCRIPT
+      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
+    else
+      echo "[$SCRIPT] Failed to download $SCRIPT."
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]; then
+    echo "[$SCRIPT] ERROR! Not found on GitHub???"
+  elif [ "$RESPONSE_CODE" = 000 ]; then
+    echo "ERROR! No Internet connection???"
+  else
+    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
+  fi
+  exit
+}
+
+REBOOT="Y"
+RESTORE="./bank_1 ./bank_2"
+VERBOSE=""
+
+GREEN='\033[1;32m'
+ORANGE='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+while getopts :12bpvRU option; do
+ case "${option}" in
+  1)  RESTORE="./bank_1";;
+  2)  RESTORE="./bank_2";;
+  b)  RESTORE="./$BOOTED";;
+  p)  RESTORE="./$NOT_BOOTED";;
+  v)  VERBOSE="v";;
+  R)  REBOOT="N";;
+  U)  upgrade;;
+  *)  usage;;
+ esac
+done
+[ "$REBOOT" = "Y" -a "$RESTORE" = "./$NOT_BOOTED" ] && REBOOT="N"
+
+shift $((OPTIND-1))
+FILENAME="$1"
+if [ -z "$FILENAME" ]; then
+  MOUNT_PATH=$(uci get mountd.mountd.path)
+  USB="$(ls $MOUNT_PATH | head -n1)"
+  if [ -z "$USB" ]; then
+    echo -e "$(date +%F@%X): ${RED}ERROR! No USB device found${NC}"
+    exit 2
+  else
+    FILENAME=${MOUNT_PATH}${USB}/backups/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz
+  fi
+fi
+
+if [ ! -e $FILENAME ]; then
+  echo -e "$(date +%F@%X): ${RED}ERROR! $FILENAME not found${NC}"
+  exit 2
+fi
+
+echo -e "$(date +%F@%X): CHECKING ${GREEN}${FILENAME}${NC}..."
+[ "$(hexdump -e '/2 "%02x"' -n 2 $FILENAME)" = "8b1f" ] && { GZIP="z"; echo "$(date +%F@%X):  ==> NOTE: Backup is compressed"; } || { GZIP=""; echo "$(date +%F@%X):  ==> NOTE: Backup is NOT compressed"; }
+if basename $FILENAME | grep -qE '^[^-]+-[^-]+-[0-9a-z.]+-overlay-files-backup.tgz$'; then
+  set -- $(basename $FILENAME | tr '-' ' ')
+  [ "$VARIANT" = "$1" ] && echo -e "$(date +%F@%X):  ==> NOTE: Backup was taken on same device variant (${GREEN}$1${NC})" || echo -e "$(date +%F@%X):  ==> ${ORANGE}WARNING:${NC} Backup was taken on different device (${ORANGE}$1 ${NC}!=${ORANGE} $VARIANT${NC})"
+  [ "$SERIAL" = "$2" ] && echo -e "$(date +%F@%X):  ==> NOTE: Backup was taken on this device (Serial Number ${GREEN}$2${NC})" || echo -e "$(date +%F@%X):  ==> ${ORANGE}WARNING:${NC} Backup was taken on different device (${ORANGE}$2 ${NC}!=${ORANGE} $SERIAL${NC})"
+  [ "$VERSION" = "$3" ] && echo -e "$(date +%F@%X):  ==> NOTE: Backup was taken on same booted firmware (${GREEN}$3${NC})" || echo -e "$(date +%F@%X):  ==> ${ORANGE}WARNING:${NC} Backup was taken on different booted firmware (${ORANGE}$3 ${NC}!=${ORANGE} $VERSION${NC})"
+fi
+for DIR in $RESTORE; do
+  COUNT=$(tar -t${GZIP} -f $FILENAME $DIR 2>/dev/null | wc -l)
+  if [ $? -ne 0 -o $COUNT -eq 0 ]; then
+    echo -e "$(date +%F@%X):  ==> ${RED}ERROR: No files found in backup for ${DIR}!${NC} Removing directory from restore..."
+    RESTORE=$(echo $RESTORE | sed -e "s|$DIR||" | xargs)
+  elif [ $COUNT -eq 1 ]; then
+    echo -e "$(date +%F@%X):  ==> NOTE: ${GREEN}One${NC} file will be restored into ${GREEN}$DIR${NC}"
+  elif [ $COUNT -gt 1 ]; then
+    echo -e "$(date +%F@%X):  ==> NOTE: ${GREEN}${COUNT}${NC} files will be restored into ${GREEN}$DIR${NC}"
+  fi
+done
+
+[ -z "$RESTORE" ] && { echo -e "$(date +%F@%X): ${RED}ERROR! Nothing to restore?${NC}"; exit 1; }
+
+echo -e "$(date +%F@%X): NOTE: Restoring ${GREEN}${RESTORE}${NC} into /overlay"
+echo -e "$(date +%F@%X): NOTE: Booted bank is ${GREEN}${BOOTED}${NC}"
+[ $REBOOT = Y ] && echo -e "$(date +%F@%X): ${ORANGE}NOTE: Device will be rebooted after restoring!${NC}" || echo -e "$(date +%F@%X): NOTE: Device will ${ORANGE}NOT${NC} be rebooted after restoring"
+echo -e -n "$(date +%F@%X): ${GREEN}If you wish to commence the restore, enter y otherwise just press [Enter] to exit:${NC} "
+read
+[ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
+
+echo -e "$(date +%F@%X): ${GREEN}RESTORING...${NC}"
+if tar -x${GZIP}${VERBOSE} -f $FILENAME -C /overlay $RESTORE; then
+  sync
+  echo -e "$(date +%F@%X): ${GREEN}COMPLETED${NC}"
+  if [ $REBOOT = Y ]; then
+    echo "$(date +%F@%X): REBOOTING..."
+    if [ -e /proc/sysrq-trigger ]; then
+      sleep 1
+      echo 1 > /proc/sys/kernel/sysrq
+      echo b > /proc/sysrq-trigger
+    else
+      reboot
+    fi
+    sleep 10
+  else
+    echo "$(date +%F@%X): You should reboot as soon as possible."
+  fi
+else
+  echo -e "$(date +%F@%X): ${RED}RESTORE FAILED!${NC}"
+  exit 1
+fi

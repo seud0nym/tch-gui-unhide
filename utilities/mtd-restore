@@ -136,7 +136,7 @@ done
 [ $SKIP_CHG_CHECK = Y ] && echo -e "$(date +%F@%X): ${ORANGE}NOTE: Partitions will be restored WITHOUT checking for changes first!${NC}"
 [ $RESTORE_UBI = Y ] && echo -e "$(date +%F@%X): ${RED}WARNING: ${ORANGE}Attempting to restore a UBIFS backup to a mounted device will ${RED}FAIL!${NC}"
 [ $REBOOT = Y ] && echo -e "$(date +%F@%X): ${ORANGE}NOTE: Device will be rebooted after restoring $LAST!${NC}"
-echo -e -n "$(date +%F@%X): ${GREEN}If you wish to commence the restore, enter y otherwise just press [Enter] to exit.${NC} "
+echo -e -n "$(date +%F@%X): ${GREEN}If you wish to commence the restore, enter y otherwise just press [Enter] to exit:${NC} "
 read
 [ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
 
