@@ -181,7 +181,7 @@ local reqprefix_map = {
   { "auto",T"Automatic" },
 }
 
-for prefix_len = 64,0,-1 do
+for prefix_len = 64,32,-1 do
   reqprefix_map[#reqprefix_map+1] = { tostring(prefix_len),T("/"..prefix_len) }
 end
 
@@ -209,7 +209,7 @@ if content["uci_wan6_reqprefix"] == "" then
 end
 
 local wan_ppp_ll_intf = proxy.get("rpc.network.interface.@wan.ppp.ll_intf")
-local wan_ppp_over_atm = ""
+local wan_ppp_over_atm = true
 local wan_atm_uci_path = ""
 
 if wan_ppp_ll_intf and wan_ppp_ll_intf[1].value then
