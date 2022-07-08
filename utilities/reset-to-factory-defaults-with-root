@@ -371,14 +371,14 @@ if [ -n "$FIRMWARE" ]; then
           echo "NOTE:     $(basename $FIRMWARE) will be unpacked to ${MOUNT_PATH}${USB} before flashing."
           echo "          Do you have enough space?"
         fi
-        echo "NOTE:     $(basename $FIRMWARE .rbi).bin will be flashed into $BOOTED"
+        echo -e "NOTE:     $(basename $FIRMWARE .rbi).bin will be flashed into ${GREEN}$BOOTED${NC}"
       else # .bin
-        echo "NOTE:     $(basename $FIRMWARE) will be flashed into $BOOTED"
+        echo -e "NOTE:     $(basename $FIRMWARE) will be flashed into ${GREEN}$BOOTED${NC}"
       fi
-    fi
-    if [ "$ACTIVE" = "bank_1" -a "$BOOTED" = "bank_2" ]; then
-      echo -e "${RED}WARNING:  Bank plan is NOT optimal! Active bank is $ACTIVE and booted bank is $BOOTED!${NC}"
-      echo -e "${ORANGE}          Are you REALLY, REALLY sure you wish to proceed?"
+      if [ "$ACTIVE" = "$BOOTED" ]; then
+        echo -e "${RED}WARNING:  Bank plan is NOT optimal! Active bank is $ACTIVE and booted bank is $BOOTED!${NC}"
+        echo -e "${ORANGE}          Are you REALLY, REALLY sure you wish to proceed?"
+      fi
     fi
   else
     echo -e "${RED}ABORTING: $FIRMWARE does not exist!${NC}"
