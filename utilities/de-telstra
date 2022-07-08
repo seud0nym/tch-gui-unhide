@@ -1584,14 +1584,10 @@ if [ $__GUEST = y ]; then
       SRV_mesh_broker=$(( $SRV_mesh_broker + 1 ))
     done
     uci -q delete web.guest
-    uci -q commit web
   fi
-  uci -q commit dhcp
-  uci -q commit parental
-  uci -q commit qos
-  uci -q commit wireless
-  uci -q commit network
-  uci -q commit firewall
+  for cfg in dhcp parental qos wireless network firewall mesh_broker web; do
+    uci -q commit $cfg
+  done
 fi
 if [ $SRV_mesh_broker -lt 0 -a $(uci -q show network | grep -E '\.Guest.*=interface' | wc -l) -eq 0 -a "$(uci -q get wireless.wl1_2)" = "wifi-iface" -a -z "$(uci -q get wireless.wl1_1)" ]; then
   echo [$SCRIPT]: Renaming wireless interface wl1_2 to wl1_1...
