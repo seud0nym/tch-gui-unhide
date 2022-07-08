@@ -1,6 +1,15 @@
 echo [$SCRIPT]: Allow DHCP logging
 sed \
   -e 's/"localise_queries", "logqueries"/"localise_queries", "logdhcp", "logqueries"/' \
+  -e '$ a\ \
+-- uci.dhcp.odhcpd.{i}\
+local dhcp_odhcpd = {\
+    config = config_dhcp,\
+    type = "odhcpd",\
+    options = { "loglevel" },\
+}\
+ \
+mapper("uci_1to1").registerNamedMultiMap(dhcp_odhcpd)' \
   -i /usr/share/transformer/mappings/uci/dhcp.map
 
 echo [$SCRIPT]: Allow custom DHCP options for static leases

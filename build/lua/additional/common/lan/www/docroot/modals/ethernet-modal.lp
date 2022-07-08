@@ -63,7 +63,7 @@ if lfs.attributes("/www/lua/dhcpreset_helper.lua","mode") == "file" then
 end
 
 local function num2ipv4(ip)
-  local ret = bit.band(ip,255)
+  local ret = tostring(bit.band(ip,255))
   ip = bit.rshift(ip,8)
   for _=1,3 do
     ret = bit.band(ip,255).."."..ret
@@ -488,6 +488,7 @@ local mapParams = {
   localdevmask = "uci.network.interface.@"..curintf..".netmask",
   localIPv6 = "uci.network.interface.@"..curintf..".ipv6",
   dhcplog = getDomainNamePath().."logdhcp",
+  dhcplogv6 = "uci.dhcp.odhcpd.@odhcpd.loglevel",
 }
 
 local dnsIndex = 0
@@ -706,13 +707,10 @@ local function calculateDHCPStartAddress (baseip,netmask,start,numips)
   local ipmax = bit.bor(network,bit.bnot(netmask)) - 1
   local ipstart = bit.bor(network,bit.band(start,bit.bnot(netmask)))
   local ipend = ipstart+numips-1
-  ipstart = num2ipv4(ipstart)
   if ipend > ipmax then
     ipend = ipmax
   end
-  ipend = num2ipv4(ipend)
-  network = num2ipv4(network)
-  return ipstart,ipend,network
+  return num2ipv4(ipstart),num2ipv4(ipend),num2ipv4(network)
 end
 
 local function getDHCPData(object)
@@ -910,6 +908,7 @@ local mapValid = {
   dns_v6_pri = validateDNSv6,
   dns_v6_sec = validateDNSv6,
   dhcplog = gOV(vB),
+  dhcplogv6 = gOV(gVNIR(6,7)),
 }
 
 local function validateByPass(_,_,_)
@@ -1034,6 +1033,9 @@ if content["localIPv6"] == "" then
 end
 if content["dhcplog"] == "" then
   content["dhcplog"] = "0"
+end
+if content["dhcplogv6"] == "" then
+  content["dhcplogv6"] = "6"
 end
 
 if not match(content["leaseTime"],"^0*([1-9]%d*[smhdw])$") then
@@ -1268,6 +1270,12 @@ ngx.print('\
                     off = "disabled"
                   }
                 }
+                local switchDHCPv6Log = {
+                  values = {
+                    on = "7",
+                    off = "6"
+                  }
+                }
                 ngx.print(
                   ui_helper.createSwitch(T"DHCPv4 Server","dhcpv4State",content["dhcpv4State"],switchDHCP),
                   ui_helper.createLabel(T"Network Address",network,advanced),
@@ -1314,6 +1322,7 @@ ngx.print('\
                   end
                 end
                 ngx.print(
+                  ui_helper.createSwitch(T"Log DHCPv6 Requests","dhcplogv6",content["dhcplogv6"],switchDHCPv6Log),
                   [[</div>]]
                 )
               end
