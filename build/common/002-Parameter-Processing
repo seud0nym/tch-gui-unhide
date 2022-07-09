@@ -8,6 +8,7 @@ YES=n
 THEME_ONLY=n
 XTRAS=""
 UPDATE_XTRAS=n
+SAVE_DEFAULTS=n
 
 FILENAME=$(basename $0)
 
@@ -97,6 +98,7 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
         no-service-restart) RESTART_SERVICES=n;;
         reboot) REBOOT=y;;
         restore-base*) RESTORE_BASE="${OPTARG#restore-base=}"; [ -n "$RESTORE_BASE" -a -d "$RESTORE_BASE/www" ] || { echo "ERROR: Could not find www directory (--$OPTARG)"; exit 2; };;
+        save-defaults) SAVE_DEFAULTS=y;;
         *) usage $OPTIND;;
       esac;;
    a) if [ "${OPTARG}" = "4" -o "${OPTARG}" = "5" ]; then ACROSS=$OPTARG; else echo "ERROR: Cards across must be either 4 or 5"; exit 2; fi;;
@@ -215,6 +217,13 @@ if [ "$ICONS" = "" ]; then
 fi
 
 [ "$BG_RFRSH" = "false" ] && CHART_CARDS="n"
+
+if [ $SAVE_DEFAULTS = "y" ]; then
+  set | grep -E 'ACROSS|BG_RFRSH|CHART_CARDS|COLOR|DFLT_USR|FIX_DFLT_USR|FIX_FW_UPGRD|FW_UPGRD|ICONS|KEEPLP|MINIFY|SIP_PWDS|THEME|TITLE|UPDATE_BTN' > .defaults.$SCRIPT
+  echo -e "\e[1;32mNOTE: Defaults are only used in clean installs, not upgrades!\e[0m"
+  echo -e "\e[1;32mDefaults saved!\e[0m"
+  exit
+fi
 
 LOCK="/var/run/${SCRIPT}.lck"
 unlock() { 
