@@ -1,3 +1,22 @@
+2022.07.09
+==========
+* tch-gui-unhide: Update Available button was not showing on FW 20.4
+* tch-gui-unhide: Fixed bug that broke the devices screen when a Wi-Fi radio had been disabled (#96)
+* tch-gui-unhide: Removed device bandwidth monitoring because iptables/ip6tables counters not reliable (probably kernel issue)
+* tch-gui-unhide: Telephony card could show incorrect DECT Emission state
+* tch-gui-unhide: Fixed allowed IPv6 prefix sizes on Internet and Local Network screens
+* tch-gui-unhide: Added switch to enable/disable DHCPv6 logging
+* de-telstra: --save-defaults option not working (#99)
+* mtd-backup: Support for backing up ubi (Smart Modem Gen 3) filesystem partitions   
+* mtd-restore: Removed -f option and now defaults to rootfs_data as default backup source 
+* mtd-restore: Support for restoring ubi (Smart Modem Gen 3) filesystem partitions (Important: partition must be dismounted otherwise restore will fail)
+* overlay-restore: New utility to restore both or individual banks to /overlay from the backups such as those created by mtd-backup, reset-to-factory-defaults-with-root, and safe-firmware-upgrade
+* reset-to-factory-defaults-with-root: Changed from using /etc/rc.local for re-rooting script to using a /etc/uci-defaults script
+* reset-to-factory-defaults-with-root: All options (excluding --restore-config and --i) now supported on Smart Modem Gen 3
+* reset-to-factory-defaults-with-root: Now supports firmware upgrade using .pkgtb files (Smart Modem Gen 3) using sysupgrade and bank-switching without losing root
+* reset-to-factory-defaults-with-root: Added -s option to RTFD and root the inactive bank, and switch to the inactive bank after reboot
+* safe-firmware-upgrade: New script dedicated to firmware upgrade without losing root
+
 2022.06.01
 ==========
 * tch-gui-unhide: Fixed interface names not correctly populated when adding/editing static route (#92)
