@@ -491,17 +491,18 @@ echo -e "${ORANGE}INFO:     Resetting...${NC}"
 echo -e "${GREY}INFO:     Deleting $TARGET_BANK...${NC}"
 rm -rf $TARGET_BANK
 # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
-echo -e "${GREY}INFO:     Creating ${TARGET_BANK}/etc/uci-defaults/zzz-9999-reroot...${NC}"
+UCI_DEFAULTS="zzz-9999-reroot"
+echo -e "${GREY}INFO:     Creating ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}...${NC}"
 mkdir -p ${TARGET_BANK}/etc/uci-defaults
 chmod 755 ${TARGET_BANK} ${TARGET_BANK}/etc/uci-defaults
-cat <<-END > ${TARGET_BANK}/etc/uci-defaults/zzz-9999-reroot
+cat <<-END > ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}
+  exec 1>/tmp/${UCI_DEFAULTS}.out 2>/tmp/${UCI_DEFAULTS}.err
   echo root:$__ROOTPWD | chpasswd
   sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
   sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
-  uci -q set \$(uci show firewall | grep -m 1 \$(fw3 -q print | \
-    egrep 'iptables -t filter -A zone_lan_input -p tcp -m tcp --dport 22 -m comment --comment \"!fw3: .+\" -j DROP' 2>/dev/null | \
-    sed -n -e 's/^iptables.\+fw3: \(.\+\)\".\+/\1/p') 2>/dev/null | \
-    sed -n -e \"s/\(.\+\).name='.\+'$/\1/p\").target='ACCEPT'
+  for r in \$(uci show firewall | grep "dest_port='22'" | cut -d. -f1-2); do 
+    [ "\$(uci -q get \$r.target)" = DROP -a "\$(uci -q get \$r.src)" = lan -a -z "\$(uci -q get \$r.dest)" ] && uci -q set \$r.target='ACCEPT'
+  done
   uci add dropbear dropbear
   uci rename dropbear.@dropbear[-1]=afg
   uci set dropbear.afg.enable='1'
@@ -520,11 +521,11 @@ cat <<-END > ${TARGET_BANK}/etc/uci-defaults/zzz-9999-reroot
   $RESTORE_CFG
   exit 0
 END
-chmod +x ${TARGET_BANK}/etc/uci-defaults/zzz-9999-reroot
+chmod +x ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}
 sync
 if [ $__VERBOSE = Y ]; then
   echo -en "${GREY}"
-  cat ${TARGET_BANK}/etc/uci-defaults/zzz-9999-reroot
+  cat ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}
   echo -en "${NC}"
 fi
 echo -e "${GREEN}INFO:     Device has been reset to factory defaults and root access retained${NC}"
@@ -562,4 +563,7 @@ if [ "$__REBOOT" = "Y" ]; then
     reboot
   fi
   sleep 10
+else
+  echo -e "${ORANGE}ACTION:   You should power cycle the device now!${NC}"
+  echo -e "${GREEN}INFO:     Done!${NC}"
 fi
