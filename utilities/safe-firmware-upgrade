@@ -173,7 +173,12 @@ fi
 FIRMWARE="$1"
 if [ -z "$FIRMWARE" ]; then
   echo -e "${RED}ABORTING: No firmware file name specified!${NC}"
-  usage
+  exit 2
+fi
+
+if [ -n "$2" ]; then
+  echo -e "${RED}ABORTING: Parameters found after firmware file name! Options must be specified BEFORE the filename.${NC}"
+  exit 2
 fi
 
 OPTIONS="-f $FIRMWARE $OPTIONS"
