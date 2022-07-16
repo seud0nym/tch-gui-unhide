@@ -1,0 +1,109 @@
+#!/bin/sh
+# Make sure that we are running on Telstra firmware
+if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]
+then
+  echo "ERROR! This script is intended for devices with Telstra firmware. Exiting"
+  exit 1
+fi
+
+SCRIPT="$(basename $0)"
+
+usage() {
+cat <<EOH
+Checks if there is a later release of AdGuard Home and if so, upgrades the 
+installed version.
+
+Usage: $0 [options]
+
+Options:
+ -C  Adds or removes the scheduled monthly cron job
+ -U  Download the latest version of $SCRIPT from GitHub
+
+EOH
+exit
+}
+
+upgrade() {
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ];then
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/$SCRIPT
+    if [ $? -eq 0 ];then
+      chmod +x $SCRIPT
+      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
+    else
+      echo "[$SCRIPT] Failed to download $SCRIPT."
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ];then
+    echo "[$SCRIPT] ERROR! Not found on GitHub???"
+  elif [ "$RESPONSE_CODE" = 000 ];then
+    echo "ERROR! No Internet connection???"
+  else
+    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
+  fi
+  exit
+}
+
+AGHDIR=$(dirname $(grep -o -m 1 -E '/.*/AdGuardHome/AdGuardHome ' /etc/init.d/AdGuardHome))
+[ -z "$AGHDIR" ] && { echo "[$SCRIPT] ERROR! Could not determine AdGuardHome installation directory. Aborting..."; exit 2; }
+
+CRON=N
+while getopts :CU option; do
+ case "${option}" in
+  C)  CRON=Y;;
+  U)  upgrade;;
+  *)  usage;;
+ esac
+done
+shift $((OPTIND-1))
+
+if [ $CRON = Y ]; then
+  grep -q "$SCRIPT" /etc/crontabs/root
+  if [ $? = 0 ]; then
+    sed -e "/$SCRIPT/d" -i /etc/crontabs/root
+    echo "[$SCRIPT] Scheduled AdGuard Home update has been removed."
+  else
+    mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
+    hh=$(awk 'BEGIN{srand();print int(rand()*3)+2;}')
+    dd=$(awk 'BEGIN{srand();print int(rand()*28);}')
+    echo "$mm $hh $dd * * $(cd $(dirname $0); pwd)/$SCRIPT" >> /etc/crontabs/root
+    echo "[$SCRIPT] AdGuard Home update has been scheduled to execute at $hh:$(printf '%02d' $mm)am on day $dd of each month."
+  fi
+  /etc/init.d/cron reload
+  exit
+fi
+
+echo "[$SCRIPT] Getting AdGuard Home version..."
+CURRENT=$($AGHDIR/AdGuardHome --version | awk '{print $4}')
+[ -z "$CURRENT" ] && { echo "[$SCRIPT] ERROR! Could not determine current AdGuardHome version. Aborting..."; exit 2; }
+echo "[$SCRIPT] Installed AdGuard Home version is $CURRENT"
+
+LATEST=$(basename $(curl -Iks https://github.com/AdguardTeam/AdGuardHome/releases/latest | awk '/^Location:/{print $2;}0'))
+[ -z "$LATEST" ] && { echo "[$SCRIPT] ERROR! Could not determine latest AdGuardHome version. Aborting..."; exit 2; }
+echo "[$SCRIPT] Latest AdGuard Home version is $LATEST"
+
+if [ $CURRENT != $LATEST ]; then
+  case "$(uname -m)" in
+    aarch64)  ARCH="64";;
+    armv7l)   ARCH="v5";;
+    *)        echo "[$SCRIPT] ERROR! Unable to handle $(uname -m) archictecture! Aborting..."; exit 2;;
+  esac
+  FILENAME="AdGuardHome_linux_arm${ARCH}.tar.gz"
+  URL="https://static.adguard.com/adguardhome/release/$FILENAME"
+
+  cd /tmp
+  echo "[$SCRIPT] Downloading $URL"
+  curl -kLSO "$URL"
+  echo "[$SCRIPT] Extracting $FILENAME into /tmp"
+  tar -zxvf "$FILENAME"
+  cd $AGHDIR
+  echo "[$SCRIPT] Stopping AdGuard Home $CURRENT..."
+  ./AdGuardHome -s stop
+  echo "[$SCRIPT] Upgrading AdGuard Home to $LATEST..."
+  cp /tmp/AdGuardHome/AdGuardHome .
+  echo "[$SCRIPT] Starting AdGuard Home..."
+  ./AdGuardHome -s start
+  echo "[$SCRIPT] Cleaning up..."
+  rm -rf "/tmp/$FILENAME" /tmp/AdGuardHome 
+fi
+
+echo "[$SCRIPT] Done!"
