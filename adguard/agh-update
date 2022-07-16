@@ -29,22 +29,22 @@ upgrade() {
     curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/$SCRIPT
     if [ $? -eq 0 ];then
       chmod +x $SCRIPT
-      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
+      echo "[AdGuard-Home-Update] Successfully downloaded $SCRIPT."
     else
-      echo "[$SCRIPT] Failed to download $SCRIPT."
+      echo "[AdGuard-Home-Update] Failed to download $SCRIPT."
     fi
   elif [ "$RESPONSE_CODE" = 404 ];then
-    echo "[$SCRIPT] ERROR! Not found on GitHub???"
+    echo "[AdGuard-Home-Update] ERROR! Not found on GitHub???"
   elif [ "$RESPONSE_CODE" = 000 ];then
     echo "ERROR! No Internet connection???"
   else
-    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
+    echo "[AdGuard-Home-Update] ERROR! Unknown response code $RESPONSE_CODE"
   fi
   exit
 }
 
 AGHDIR=$(dirname $(grep -o -m 1 -E '/.*/AdGuardHome/AdGuardHome ' /etc/init.d/AdGuardHome))
-[ -z "$AGHDIR" ] && { echo "[$SCRIPT] ERROR! Could not determine AdGuardHome installation directory. Aborting..."; exit 2; }
+[ -z "$AGHDIR" ] && { echo "[AdGuard-Home-Update] ERROR! Could not determine AdGuardHome installation directory. Aborting..."; exit 2; }
 
 CRON=N
 while getopts :CU option; do
@@ -60,50 +60,51 @@ if [ $CRON = Y ]; then
   grep -q "$SCRIPT" /etc/crontabs/root
   if [ $? = 0 ]; then
     sed -e "/$SCRIPT/d" -i /etc/crontabs/root
-    echo "[$SCRIPT] Scheduled AdGuard Home update has been removed."
+    echo "[AdGuard-Home-Update] Scheduled AdGuard Home update has been removed."
   else
     mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
     hh=$(awk 'BEGIN{srand();print int(rand()*3)+2;}')
     dd=$(awk 'BEGIN{srand();print int(rand()*28);}')
     echo "$mm $hh $dd * * $(cd $(dirname $0); pwd)/$SCRIPT" >> /etc/crontabs/root
-    echo "[$SCRIPT] AdGuard Home update has been scheduled to execute at $hh:$(printf '%02d' $mm)am on day $dd of each month."
+    echo "[AdGuard-Home-Update] AdGuard Home update has been scheduled to execute at $hh:$(printf '%02d' $mm)am on day $dd of each month."
   fi
   /etc/init.d/cron reload
   exit
 fi
 
-echo "[$SCRIPT] Getting AdGuard Home version..."
+echo "[AdGuard-Home-Update] Getting installed AdGuard Home version..."
 CURRENT=$($AGHDIR/AdGuardHome --version | awk '{print $4}')
-[ -z "$CURRENT" ] && { echo "[$SCRIPT] ERROR! Could not determine current AdGuardHome version. Aborting..."; exit 2; }
-echo "[$SCRIPT] Installed AdGuard Home version is $CURRENT"
+[ -z "$CURRENT" ] && { echo "[AdGuard-Home-Update] ERROR! Could not determine current AdGuardHome version. Aborting..."; exit 2; }
+echo "[AdGuard-Home-Update] Installed AdGuard Home version is $CURRENT"
 
+echo "[AdGuard-Home-Update] Getting latest AdGuard Home version..."
 LATEST=$(basename $(curl -Iks https://github.com/AdguardTeam/AdGuardHome/releases/latest | awk '/^Location:/{print $2;}0'))
-[ -z "$LATEST" ] && { echo "[$SCRIPT] ERROR! Could not determine latest AdGuardHome version. Aborting..."; exit 2; }
-echo "[$SCRIPT] Latest AdGuard Home version is $LATEST"
+[ -z "$LATEST" ] && { echo "[AdGuard-Home-Update] ERROR! Could not determine latest AdGuardHome version. Aborting..."; exit 2; }
+echo "[AdGuard-Home-Update] Latest AdGuard Home version is $LATEST"
 
 if [ $CURRENT != $LATEST ]; then
   case "$(uname -m)" in
     aarch64)  ARCH="64";;
     armv7l)   ARCH="v5";;
-    *)        echo "[$SCRIPT] ERROR! Unable to handle $(uname -m) archictecture! Aborting..."; exit 2;;
+    *)        echo "[AdGuard-Home-Update] ERROR! Unable to handle $(uname -m) archictecture! Aborting..."; exit 2;;
   esac
   FILENAME="AdGuardHome_linux_arm${ARCH}.tar.gz"
   URL="https://static.adguard.com/adguardhome/release/$FILENAME"
 
   cd /tmp
-  echo "[$SCRIPT] Downloading $URL"
+  echo "[AdGuard-Home-Update] Downloading $URL"
   curl -kLSO "$URL"
-  echo "[$SCRIPT] Extracting $FILENAME into /tmp"
+  echo "[AdGuard-Home-Update] Extracting $FILENAME into /tmp"
   tar -zxvf "$FILENAME"
   cd $AGHDIR
-  echo "[$SCRIPT] Stopping AdGuard Home $CURRENT..."
+  echo "[AdGuard-Home-Update] Stopping AdGuard Home $CURRENT..."
   ./AdGuardHome -s stop
-  echo "[$SCRIPT] Upgrading AdGuard Home to $LATEST..."
+  echo "[AdGuard-Home-Update] Upgrading AdGuard Home to $LATEST..."
   cp /tmp/AdGuardHome/AdGuardHome .
-  echo "[$SCRIPT] Starting AdGuard Home..."
+  echo "[AdGuard-Home-Update] Starting AdGuard Home..."
   ./AdGuardHome -s start
-  echo "[$SCRIPT] Cleaning up..."
+  echo "[AdGuard-Home-Update] Cleaning up..."
   rm -rf "/tmp/$FILENAME" /tmp/AdGuardHome 
 fi
 
-echo "[$SCRIPT] Done!"
+echo "[AdGuard-Home-Update] Done!"
