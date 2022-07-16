@@ -62,11 +62,11 @@ else
     html[#html+1] = "</style>"
   elseif settings["THEME"] == "classic"  then
     html[#html+1] = "<style>"
-    html[#html+1] = ".lp-logo{display:block;-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/logo.gif) no-repeat;width:240px;height:93px;padding-left:240px;background-size:240px;}"
+    html[#html+1] = ".lp-logo{display:block;-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/light/logo.gif) no-repeat center center;width:240px;height:150px;padding-left:240px;background-size:240px;}"
     html[#html+1] = "</style>"
   else -- Telstra
     html[#html+1] = "<style>"
-    html[#html+1] = ".lp-logo{display:block;-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/logo.gif) no-repeat;width:240px;height:93px;padding-left:240px;background-size:240px;}"
+    html[#html+1] = ".lp-logo{display:block;-moz-box-sizing:border-box;box-sizing:border-box;background:url(/img/logo.gif) no-repeat center center;width:240px;height:150px;padding-left:240px;background-size:240px;}"
     html[#html+1] = "</style>"
   end
 end

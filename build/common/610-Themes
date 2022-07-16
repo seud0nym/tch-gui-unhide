@@ -4,6 +4,16 @@ chmod +x /www /www/docroot /www/docroot/css /www/docroot/css/telstra /www/docroo
 echo [$SCRIPT]: Persisting theme settings
 echo -n "THEME=$THEME COLOR=$COLOR ICONS=$ICONS KEEPLP=$KEEPLP" > /etc/tch-gui-unhide.theme
 
+useTelstraPNGLogo() {
+  if [ ! -e /www/docroot/img/logo.gif -a -e /www/docroot/img/logo.png ]; then
+    echo [$SCRIPT]: Telstra logo.gif not found - using logo.png
+    sed \
+      -e 's|/img/logo.gif|/img/logo.png|' \
+      -e 's|/img/light/logo.gif|/img/logo.png|' \
+      -i /www/snippets/theme-basic.lp
+  fi
+}
+
 if [ $CUSTOM_LOGO = y ]; then
   LOGO="$(find_file logo.gif logo)"
   if [ -n "$LOGO" ]; then
@@ -13,6 +23,10 @@ if [ $CUSTOM_LOGO = y ]; then
       cp "$LOGO" "$f"
     done
     sed -e 's|src="/img/logo.png"|src="/img/logo.gif"|' -i /www/docroot/gateway.lp
+  else
+    useTelstraPNGLogo
   fi
+else
+    useTelstraPNGLogo
 fi
 
