@@ -104,7 +104,7 @@ The following optional configuration parameters may be specified **after** the d
   - The version of AdGuard Home to be installed (e.g. v0.107.7).
   - The default is the latest version. 
   - Ignored if -xg or -xx specified.
-- -x c|g|i|u|x
+- -x c|g|i|s|u|x
   - Exclude features:
     - -xc
       - Do not update the System CA certificates
