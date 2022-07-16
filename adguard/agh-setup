@@ -15,52 +15,56 @@ Installs AdGuard Home and replaces dnsmasq for DNS and DHCP.
 Usage: agh-setup [options]
 
 options:
- -n username   The AdGuard Home web user name.
-                  If not specified, the user name defaults to: root
- -p password   The plain text AdGuard Home web password. The password will be
-                  hashed by calling https://bcrypt.org/api/generate-hash.json
- -h 'hash'     The Bcrypt password hash representing the AdGuard Home web
-                  password. If not specified and -p is also not specifed, the
-                  password defaults to: agh-admin
-                  The hash value MUST be specified within single quotes.
-                  You can generate the hash using an online generator, such as:
-                    - https://bcrypt.org/
-                    - https://www.appdevtools.com/bcrypt-generator
-                    - https://wtools.io/bcrypt-generator-online
-                  If you supply a password hash, you should use the -p option
-                  to specify the matching password, so that AdGuard Home status
-                  can be checked post-installation, and any static leases
-                  currently defined in dnsmasq can be loaded into AdGuard Home.
- -d            Do NOT enable the AdGuard Home DHCP server.
-                  This will continue to use dnsmasq for DHCP, at the expense
-                  of some additional RAM.
- -e            Install AdGuard Home on USB rather than INTERNAL storage.
-                  This is the default if the local filesystem is jffs2, because 
-                  AdGuard Home is INCOMPATIBLE with jffs2.
- -i            Install AdGuard Home on INTERNAL storage rather than USB.
-                  This is the default if the local filesystem is NOT jffs2. If
-                  the local filesystem is jffs, then this option will create 
-                  the working directory on tmpfs, which is cleared on reboot. 
-                  However, this script will set up a cron sync job, so that the 
-                  most you should lose will be the events and changes in the 
-                  last minute before an unexpected system reboot.
- -x c|g|i|u|y|x Exclude features:
-                  -xc   Do not update System CA certificates
-                          NOTE: If certificates are not up to date, AdGuard Home
-                                will FAIL to download filters
-                  -xg   Do not get the latest version of AdGuard Home if it has
-                          already been downloaded
-                  -xi   Do not enable DNS hijacking
-                  -xu   Do not download utility scripts
-                  -xy   Do not replace an existing AdGuard Home Configuration
-                          file (no effect if the .yaml file does not exist)
-                  -xx   Same as -xc -xg -xi -xy -xu
- -s            Skips the free memory check.
-                  If there is not enough free memory, the installation will be
-                  aborted. Use this option to install anyway.
- -r            Removes AdGuard Home and re-enables dnsmasq.
- -u            Uninstalls AdGuard Home (but does not remove it) and re-enables
-                  dnsmasq.
+ -n username       The AdGuard Home web user name.
+                      If not specified, the user name defaults to: root
+ -p password       The plain text AdGuard Home web password. The password will be
+                      hashed by calling https://bcrypt.org/api/generate-hash.json
+ -h 'hash'         The Bcrypt password hash representing the AdGuard Home web
+                      password. If not specified and -p is also not specifed, the
+                      password defaults to: agh-admin
+                      The hash value MUST be specified within single quotes.
+                      You can generate the hash using an online generator, such as:
+                        - https://bcrypt.org/
+                        - https://www.appdevtools.com/bcrypt-generator
+                        - https://wtools.io/bcrypt-generator-online
+                      If you supply a password hash, you should use the -p option
+                      to specify the matching password, so that AdGuard Home status
+                      can be checked post-installation, and any static leases
+                      currently defined in dnsmasq can be loaded into AdGuard Home.
+ -d                Do NOT enable the AdGuard Home DHCP server.
+                      This will continue to use dnsmasq for DHCP, at the expense
+                      of some additional RAM.
+ -e                Install AdGuard Home on USB rather than INTERNAL storage.
+                      This is the default if the local filesystem is jffs2, because 
+                      AdGuard Home is INCOMPATIBLE with jffs2.
+ -i                Install AdGuard Home on INTERNAL storage rather than USB.
+                      This is the default if the local filesystem is NOT jffs2. If
+                      the local filesystem is jffs, then this option will create 
+                      the working directory on tmpfs, which is cleared on reboot. 
+                      However, this script will set up a cron sync job, so that the 
+                      most you should lose will be the events and changes in the 
+                      last minute before an unexpected system reboot.
+ -v 'version'      The version of AdGuard Home to be installed (e.g. v0.107.7).
+                     The default is the latest version. Ignored if -xg or -xx
+                     specified.
+ -x c|g|i|s|u|y|x  Exclude features:
+                     -xc  Do not update System CA certificates
+                            NOTE: If certificates are not up to date, AdGuard Home
+                                  will FAIL to download filters
+                     -xg  Do not get the latest version of AdGuard Home if it has
+                            already been downloaded
+                     -xi  Do not enable DNS hijacking
+                     -xs  Do not enable scheduled update of AdGuard Home
+                     -xu  Do not download utility scripts (Implies -xs)
+                     -xy  Do not replace an existing AdGuard Home Configuration
+                            file (no effect if the .yaml file does not exist)
+                     -xx  Same as -xc -xg -xi -xs -xy -xu
+ -s                Skips the free memory check.
+                      If there is not enough free memory, the installation will be
+                      aborted. Use this option to install anyway.
+ -r                Removes AdGuard Home and re-enables dnsmasq.
+ -u                Uninstalls AdGuard Home (but does not remove it) and re-enables
+                      dnsmasq.
 
 NOTE: The -r and -u options are mutually exclusive. If both are specified, the
       LAST specified will take precedence. If either is specified, all other
@@ -83,8 +87,10 @@ PWD_HASH="$DFLT_HASH"
 CA_CERT=Y
 DEL_AGH=Y
 AGH_DHCP=true
+AGH_VER=""
 DOWNLOAD=Y
 HIJACKING=Y
+SCHEDULED=Y
 UTILITIES=Y
 REMOVE=N
 OVERWRITE=Y
@@ -102,8 +108,7 @@ else
   QUERYLOG_INTERVAL=24h
 fi
 
-while getopts :deih:n:p:rsux: option
-do
+while getopts :deih:n:p:rsuv:x: option; do
  case "${option}" in
   d)  AGH_DHCP=false;;
   e)  EXTERNAL=Y;QUERYLOG_INTERVAL=2160h;;
@@ -114,13 +119,15 @@ do
   r)  REMOVE=Y;DEL_AGH=Y;;
   s)  SKIP_MEM_CHK=Y;;
   u)  REMOVE=Y;DEL_AGH=N;;
+  v)  AGH_VER="$OPTARG";;
   x)  case "$OPTARG" in
         c)  CA_CERT=N;;
         g)  DOWNLOAD=N;;
         i)  HIJACKING=N;;
-        u)  UTILITIES=N;;
+        s)  SCHEDULED=N;;
+        u)  UTILITIES=N;SCHEDULED=N;;
         y)  OVERWRITE=N;;
-        x)  CA_CERT=N;DOWNLOAD=N;HIJACKING=N;UTILITIES=N;OVERWRITE=N;;
+        x)  CA_CERT=N;DOWNLOAD=N;HIJACKING=N;SCHEDULED=N;UTILITIES=N;OVERWRITE=N;;
         *)  echo -e "${RED}[$SCRIPT] Unknown -x$OPTARG option! Aborting...${NC}"; exit 2;;
       esac;;
   *)  usage;;
@@ -129,7 +136,7 @@ done
 shift $((OPTIND-1))
 
 IPv4=$(ip -o a | grep -E '^[0-9]*: br-lan * inet ' | tr -s ' ' | cut -d' ' -f4 | cut -d/ -f1)
-IPv6=$(ip -o a | grep -v -E '^[0-9]*: (lo|if|wl|br-lan)' | grep ' inet6 '| grep -v -E ' inet6 f[de]'  | tr -s ' ' | cut -d' ' -f4 | cut -d/ -f1 | xargs)
+IPv6=$(ip -o a | grep -v -E '^[0-9]*: (lo|if|wl|br-lan)' | grep ' inet6 ' | tr -s ' ' | cut -d' ' -f4 | grep -v '^fe' | cut -d/ -f1 | xargs)
 
 configure_dnmasq() {
   local DNSMASQ="$1"
@@ -162,10 +169,9 @@ configure_dnmasq() {
   uci -q delete network.wan.dns
 
   if [ -n "$IPv6" ]; then
-    echo -e "${GREEN}[$SCRIPT] Configuring IPv6 DNS...${NC}"
+    echo -e "${GREEN}[$SCRIPT] Configuring IPv6 WAN DNS...${NC}"
     uci set network.wan6.peerdns="$PEER_DNS"
-    for addr in $IPv6
-    do
+    for addr in $IPv6; do
       uci -q ${LIST_ACTION}_list network.lan.dns="$addr"
       uci -q ${LIST_ACTION}_list network.wan6.dns="$addr"
     done
@@ -248,9 +254,14 @@ if [ $REMOVE = Y ]; then
     rm /etc/hotplug.d/mount/00-adguardhome
   fi
 
+  grep -q "agh-update" /etc/crontabs/root
+  if [ $? -eq 0 ]; then
+    echo -e "${GREEN}[$SCRIPT] Removing scheduled AdGuard Home update...${NC}"
+    sed -e "/agh-update/d" -i /etc/crontabs/root
+  fi
+
   grep -q "agh-lists-update" /etc/crontabs/root
-  if [ $? -eq 0 ]
-  then
+  if [ $? -eq 0 ]; then
     echo -e "${GREEN}[$SCRIPT] Removing scheduled block list update...${NC}"
     sed -e "/agh-lists-update/d" -i /etc/crontabs/root
   fi
@@ -417,13 +428,20 @@ if [ $HIJACKING = Y ]; then
 fi
 
 if [ $DOWNLOAD = Y -o ! -d AdGuardHome ]; then
-  echo -e "${GREEN}[$SCRIPT] Downloading latest release of AdGuard Home...${NC}"
+  if [ -z "$AGH_VER" ]; then
+    echo -e "${GREEN}[$SCRIPT] Downloading latest release of AdGuard Home...${NC}"
+    AGH_URL="https://static.adguard.com/adguardhome/release/AdGuardHome_linux_arm"
+  else
+    echo -e "${GREEN}[$SCRIPT] Downloading release $AGH_VER of AdGuard Home...${NC}"
+    AGH_URL="https://github.com/AdguardTeam/AdGuardHome/releases/download/$AGH_VER/AdGuardHome_linux_arm"
+  fi
   case "$(uname -m)" in
     aarch64)  ARCH="64";;
     armv7l)   ARCH="v5";;
     *)        echo -e "${RED}[$SCRIPT] Unable to handle $(uname -m) archictecture! Aborting...${NC}"; exit 2;;
   esac
-  curl -kL https://static.adguard.com/adguardhome/release/AdGuardHome_linux_arm${ARCH}.tar.gz | tar -xzf -
+  AGH_URL="${AGH_URL}${ARCH}.tar.gz"
+  curl -kL $AGH_URL | tar -xzf -
   if [ $? -ne 0 ]; then
     echo -e "${RED}[$SCRIPT] Failed to download AdGuard Home! Aborting...${NC}"
     exit 2
@@ -518,15 +536,14 @@ else
   SLAAC="false"
 fi
 
-# BIND_HOSTS="|  - 127.0.0.1|"
-# for addr in $IPv4 $IPv6
-# do
-#   BIND_HOSTS="${BIND_HOSTS}  - ${addr}|"
-# done
-# if [ "$BIND_HOSTS" = "|  - 127.0.0.1|" ]; then
-#   BIND_HOSTS="  - 0.0.0.0"
-# fi
-# BIND_HOSTS="$(echo "$BIND_HOSTS" | tr '|' '\n')"
+BIND_HOSTS="|  - 127.0.0.1|"
+for addr in $IPv4 $IPv6; do
+  BIND_HOSTS="${BIND_HOSTS}  - ${addr}|"
+done
+if [ "$BIND_HOSTS" = "|  - 127.0.0.1|" ]; then
+  BIND_HOSTS="  - 0.0.0.0"
+fi
+BIND_HOSTS="$(echo "$BIND_HOSTS" | tr '|' '\n')"
 
 if [  $OVERWRITE = y -o ! -e $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring AdGuard Home...${NC}"
@@ -559,8 +576,7 @@ dns:
   all_servers: false
   allowed_clients: []
   anonymize_client_ip: false
-  bind_hosts:
-  - 0.0.0.0
+  bind_hosts: $BIND_HOSTS
   blocked_hosts:
   - version.bind
   - id.server
@@ -855,11 +871,15 @@ if [ $AGH_RUNNING = 'true' ]; then
   done
 
   if [ $UTILITIES = Y ]; then
-    for s in agh-change-password agh-lists-update; do
+    for s in agh-change-password agh-lists-update agh-update; do
       echo -e "${GREEN}[$SCRIPT] Downloading utility script: $s to $INSTALL_ROOT/AdGuardHome ${NC}"
       curl -kL -o AdGuardHome/$s https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/$s
       chmod +x AdGuardHome/$s
     done
+    if [ $SCHEDULED = Y ]; then
+      grep -q agh-update /etc/crontabs/root && sed -e "/agh-update/d" -i /etc/crontabs/root
+      AdGuardHome/agh-update -C
+    fi
   fi
 
   echo -e "${GREEN}[$SCRIPT] Done. You can now access AdGuard Home on http://${GATEWAY}:8008${NC}"

@@ -100,6 +100,10 @@ The following optional configuration parameters may be specified **after** the d
     - https://www.appdevtools.com/bcrypt-generator
     - https://wtools.io/bcrypt-generator-online
   - If you supply a password hash, you *must* also use the `-p` option to specify the matching password, so that AdGuard Home can be checked post-installation and any static leases currently defined in dnsmasq can be loaded.
+- -v 'version'
+  - The version of AdGuard Home to be installed (e.g. v0.107.7).
+  - The default is the latest version. 
+  - Ignored if -xg or -xx specified.
 - -x c|g|i|u|x
   - Exclude features:
     - -xc
@@ -110,8 +114,10 @@ The following optional configuration parameters may be specified **after** the d
       - Do not get the latest version of AdGuard Home if it has already been downloaded
     - -xi
       - Do not enable DNS hijacking/interception
+    - -xs 
+      - Do not enable scheduled update of AdGuard Home
     - -xu
-      - Do not download utility scripts
+      - Do not download utility scripts (implies -xs)
     - -xy
       - Do not replace an existing AdGuard Home Configuration file 
       - Has no effect if the AdGuardHome.yaml file does not exist
@@ -129,19 +135,9 @@ The following optional configuration parameters may be specified **after** the d
 When the script completes, you will be able to access AdGuard Home in your browser at http://[router ip address]:8008
 
 # Upgrading
-When a new release of AdGuard Home becomes available, you can upgrade using the following commands:
-```
-cd /tmp
-curl -kLSO https://static.adguard.com/adguardhome/release/AdGuardHome_linux_armv5.tar.gz
-tar -zxvf AdGuardHome_linux_armv5.tar.gz
-cd $(dirname $(grep -o -m 1 -E '/.*/AdGuardHome/AdGuardHome ' /etc/init.d/AdGuardHome))
-./AdGuardHome -s stop
-cp /tmp/AdGuardHome/AdGuardHome .
-./AdGuardHome -s start
-rm -rf /tmp/AdGuardHome
-```
+By default, the setup will schedule a monthly task to update AdGuard Home.
 
-If you are upgrading AdGuard Home on a Telstra Smart Modem Gen 3, then change the filename in the second and third commands to AdGuardHome_linux_arm**64**.tar.gz instead of AdGuardHome_linux_arm**v5**.tar.gz.
+To manually update AdGuard Home, use the [`agh-update`](https://github.com/seud0nym/tch-gui-unhide/tree/master/adguard#agh-update) script below.
 
 # Uninstalling
 Run the following command on your device:
@@ -203,6 +199,24 @@ NOTE:
 - If -U is specified, it must be the only option.
 - The password option (-p) is *MANDATORY* unless -U is specified, **OR** if you are removing the cron job.
 - The username will be determined automatically from the AdGuard Home configuration.
+
+## agh-update
+Checks the installed version of AdGuard Home against the latest version available, and if a newer version is available, it will upgrade the installation.
+
+You can configure the update to run automatically every month by specifying the -C option. (This is done automatically by the setup, unless the `-xs` option was specified.)
+
+Usage: agh-update [-C]]|[-U]
+
+Parameters:
+ - -C
+    - Adds or removes the scheduled monthly cron job
+ - -U
+    - Download the latest version of agh-update from GitHub
+
+NOTE:
+- If -C is specified, it must be the only option.
+- If -U is specified, it must be the only option.
+- When executed with either the -C or -U options, no update check is performed.
 
 # Other Scripts
 
