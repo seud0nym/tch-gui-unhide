@@ -1,7 +1,9 @@
-# Replacing dnsmasq with AdGuard Home on a Telstra Technicolor Gateway Device
+# Replacing dnsmasq with AdGuard Home on a Technicolor Gateway Device
 The following instructions are based on this post on the OpenWRT forums: https://forum.openwrt.org/t/howto-running-adguard-home-on-openwrt/51678
 
-The instructions have been adapted for use on the Telstra branded Technicolor devices.
+The instructions have been adapted for use on Technicolor devices.
+
+**_NOTE_:** These scripts have only been tested on Telstra branded devices.
 
 **Please read the following notes carefully to decide if this solution is right for you!**
 
@@ -35,7 +37,7 @@ The default dnsmasq service provides both DNS forwarding and DHCP. It allows dif
 
 The AdGuard Home DHCP Server listens on all interfaces (including the Guest networks) but can only serve addresses from a single pool. Therefore, devices connecting to the Guest Wi-Fi networks would be unable to acquire a valid IP address for their subnet.
 
-By default, this script disables dnsmasq to maximize free memory and enables the AdGuard Home DHCP server, therefore you *cannot* run Guest SSIDs. You can use the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script with `-G` option to remove the Guest Wi-FI SSIDs, networks and firewall rules and zones, if you are not using Guest Wi-Fi.
+By default, this script disables dnsmasq to maximize free memory and enables the AdGuard Home DHCP server, therefore you *cannot* run Guest SSIDs. You can use the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script (for Telstra branded devices) with `-G` option to remove the Guest Wi-FI SSIDs, networks and firewall rules and zones, if you are not using Guest Wi-Fi.
 
 However, if you wish or need to use Guest Wi-Fi, or if you just want to continue using dnsmasq for DHCP, you can specify the `-d` installation option, as described below. However, continuing to run dnsmasq for DHCP comes at the cost of consuming additional RAM, which could be an issue on devices with less memory, such as the DJA0231.
 
@@ -44,7 +46,7 @@ The forum post starts by saying that devices require 100MB RAM free. A subsequen
 
 The actual amount will depend on a variety of factors, including the number of block lists defined.
 
-I haven't run it long enough to know if this is indicative over time, so you should monitor your free memory closely and try and shut down unnecessary services if required. The [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script has a `-M` option to shutdown and disable optional services to try and free up as much memory as possible.
+I haven't run it long enough to know if this is indicative over time, so you should monitor your free memory closely and try and shut down unnecessary services if required. The [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script (for Telstra branded devices) has a `-M` option to shutdown and disable optional services to try and free up as much memory as possible.
 
 # Installation Pre-requisites
 - A working internet connection on your device
