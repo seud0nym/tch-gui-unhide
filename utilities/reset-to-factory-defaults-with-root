@@ -494,7 +494,7 @@ rm -rf $TARGET_BANK
 UCI_DEFAULTS="zzz-9999-reroot"
 echo -e "${GREY}INFO:     Creating ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}...${NC}"
 mkdir -p ${TARGET_BANK}/etc/uci-defaults
-chmod 755 ${TARGET_BANK} ${TARGET_BANK}/etc/uci-defaults
+chmod 755 ${TARGET_BANK} ${TARGET_BANK}/etc ${TARGET_BANK}/etc/uci-defaults
 cat <<-END > ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}
   exec 1>/tmp/${UCI_DEFAULTS}.out 2>/tmp/${UCI_DEFAULTS}.err
   echo root:$__ROOTPWD | chpasswd
