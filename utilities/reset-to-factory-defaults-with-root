@@ -503,6 +503,7 @@ cat <<-END > ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}
   for r in \$(uci show firewall | grep "dest_port='22'" | cut -d. -f1-2); do 
     [ "\$(uci -q get \$r.target)" = DROP -a "\$(uci -q get \$r.src)" = lan -a -z "\$(uci -q get \$r.dest)" ] && uci -q set \$r.target='ACCEPT'
   done
+  uci -q delete dropbear.afg
   uci add dropbear dropbear
   uci rename dropbear.@dropbear[-1]=afg
   uci set dropbear.afg.enable='1'
