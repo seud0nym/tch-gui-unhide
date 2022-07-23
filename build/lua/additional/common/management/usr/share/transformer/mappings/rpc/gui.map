@@ -141,7 +141,7 @@ GUI_.set = {
     end
   end,
   UpdateNow = function(_,_,value,_)
-    local pgrep,procs = popen(format("pgrep -fla 'tch-gui-unhide-%s -W -y'",value),"r"),nil
+    local pgrep,procs = popen(format("pgrep -f 'tch-gui-unhide-%s'",value),"r"),nil
     if pgrep then
       procs = pgrep:read("*a")
       pgrep:close()
