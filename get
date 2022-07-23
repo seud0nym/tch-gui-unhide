@@ -16,22 +16,22 @@ Downloads and extracts the tch-gui-unhide release archive.
 Usage: $0 [options]
 
 Options:
- -d               Delete the extracted scripts after copying.
-                    (Ignored if neither -r or -u specified.)
- -f version       Get the archive for the specifed firmware version 
-                    rather than the archive for the current device.
- -g               Run tch-gui-unhide after extract.
-                    (Ignored if -X specified.)
- -h               Run de-telstra after extract.
-                    (Ignored if -X specified.)
- -k               Keep the downloaded archive after extracting the
-                    scripts.
- -r               Copy the extracted scripts to the /root directory.
- -u               Copy the extracted scripts to the attached USB device,
-                    if one is found.
- -v version       Get the specified version of the tch-gui-unhide archive,
-                    rather than the latest version.
- -X               Do NOT extract the archive contents. Download only.
+ -d           Delete the extracted scripts after copying.
+                (Ignored if neither -r or -u specified.)
+ -f version   Get the archive for the specified firmware version 
+                rather than the archive for the current device.
+ -g           Run tch-gui-unhide after extract.
+                (Ignored if -X specified.)
+ -h           Run de-telstra after extract.
+                (Ignored if -X specified.)
+ -k           Keep the downloaded archive after extracting the
+                scripts.
+ -r           Copy the extracted scripts to the /root directory.
+ -u           Copy the extracted scripts to the attached USB device,
+                if one is found.
+ -v version   Get the specified version of the tch-gui-unhide archive,
+                rather than the latest version.
+ -X           Do NOT extract the archive contents. Download only.
 EOH
 echo
 exit
