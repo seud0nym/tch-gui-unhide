@@ -141,9 +141,11 @@ GUI_.set = {
     end
   end,
   UpdateNow = function(_,_,value,_)
-    local pgrep = popen(format("pgrep -fla 'tch-gui-unhide-%s -W -y'",value),"r")
-    local procs = pgrep:read("*a")
-    pgrep:close()
+    local pgrep,procs = popen(format("pgrep -fla 'tch-gui-unhide-%s -W -y'",value),"r"),nil
+    if pgrep then
+      procs = pgrep:read("*a")
+      pgrep:close()
+    end
     if procs ~= "" then
       return nil,"Upgrade already running?<br>"..procs
     end
