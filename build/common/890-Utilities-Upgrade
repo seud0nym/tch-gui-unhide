@@ -1,0 +1,36 @@
+# Command string executed in build/lua/additional/common/management/usr/share/transformer/mappings/rpc/gui.map
+if [ "$(pwd)" = "/tmp" -a -n "$(pgrep -f './tch-gui-unhide -y')" -a -n "$(pgrep -f 'logger -t tch-gui-unhide -p user.info')" ]; then
+  if [ "$FW_BASE" = "17.2" -a -f transformer-cli -a ! -f /usr/bin/transformer-cli ]; then
+    echo [$SCRIPT]: Adding transformer-cli to command path
+    cp transformer-cli /usr/bin/transformer-cli
+    chmod 755 /usr/bin/transformer-cli
+  fi
+
+  __COPYTO=""
+  [ -e /root/tch-gui-unhide-$FW_BASE ] && __COPYTO="$__COPYTO /root"
+  __MOUNT_PATH=$(uci -q get mountd.mountd.path)
+  if [ -n "$__MOUNT_PATH" ]; then
+    __USB="$(ls $__MOUNT_PATH | head -n1)"
+    if [ -n "$__USB" -a -e ${__MOUNT_PATH}${__USB}/tch-gui-unhide-$FW_BASE ]; then
+      __COPYTO="$__COPYTO ${__MOUNT_PATH}${__USB}"
+    fi
+  fi
+  unset __MOUNT_PATH __USB
+
+  if [ -n "$__COPYTO" ]; then
+    echo [$SCRIPT]: GUI upgrade detected - Copying updated utilities
+    for __FILE in $(grep -l '^EOH$' $(find . -maxdepth 1 -type f -perm 755) | sort); do
+      for __DIR in $__COPYTO; do
+        __TARGET="$__DIR/$(basename $__FILE)"
+        if [ ! -e $__TARGET -o $__FILE -nt $__TARGET ]; then
+          echo "[$SCRIPT]: - Copying $__FILE to $__DIR"
+          cp $__FILE $__TARGET
+        else
+          [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Skipped $__TARGET ($__FILE is not newer)"
+        fi
+      done
+    done
+    unset __FILE __DIR __TARGET
+  fi
+  unset __COPYTO
+fi
