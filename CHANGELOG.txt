@@ -1,3 +1,12 @@
+2022.07.23
+==========
+* tch-gui-unhide: Added check, force and retry intervals to Dynamic DNS configuration
+* tch-gui-unhide: Made username and password optional on CWMP modal
+* tch-gui-unhide: Fixed landing page logo when using Telstra themes on FW 20.4
+* tch-gui-unhide: When upgrading via the GUI, any updated utilities will replace existing versions found in /root or the root directory of an attached USB device
+* reset-to-factory-defaults-with-root: Re-sequenced reset and flash for pre Smart Modem Gen 3 devices to fix command Input/output errors
+* safe-firmware-upgrade: Added check for parameters specified after filename to be flashed
+
 2022.07.09
 ==========
 * tch-gui-unhide: Update Available button was not showing on FW 20.4

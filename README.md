@@ -7,16 +7,14 @@ These scripts can be applied to various Telstra branded Technicolor devices to u
 ### Installation
 Skip any of these steps that you have already done.
 1. Root your device (see https://hack-technicolor.rtfd.io) and ensure it is running a supported firmware version.
-2. [Download](https://github.com/seud0nym/tch-gui-unhide/releases/latest) the latest release for your firmware.
-3. Copy the downloaded file(s) into the /root directory of your device, or onto your USB stick (I normally use a USB stick so that the scripts are not lost if the device is reset, otherwise I use /root so the scripts are in the root user home directory). Do *NOT* use /tmp, as it is cleared on reboot.
-4. Change to the directory containing the release, and extract the files using the command: `tar -xzvf <filename>`
-5. Set the optimal bank plan. Run `./show-bank-plan` to see if your bank plan is optimal,and if not, execute: `./set-optimal-bank-plan` (*WARNING: This will reboot your device*)
-6. Harden root access and disable un-needed services with the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script. Run `./de-telstra -?` to see available options, or for some sensible settings, just execute: `./de-telstra -A`
-7. Change the root password by executing: `passwd`
-8. Optionally, download any [extra feature scripts](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras) you want to install into the same directory as the scripts. 
-9. Optionally create your *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* files in the same directory as the scripts. (See [**Custom DNS Servers**](https://github.com/seud0nym/tch-gui-unhide#custom-dns-servers))
-10. Apply the GUI changes. Run `./tch-gui-unhide -?` to see available options, or just execute: `./tch-gui-unhide`
-11. Optionally run `./tch-gui-unhide-cards` to change card sequence and visibility
+2. Download the latest release for your firmware. Run: `curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/get | sh -s --`
+3. If the download script reports that your bank plan is not optimal, run: `./set-optimal-bank-plan` (*WARNING: This will reboot your device*)
+4. Harden root access and disable un-needed services with the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script. Run `./de-telstra -?` to see available options, or for some sensible settings, just execute: `./de-telstra -A`
+5. Change the root password by executing: `passwd`
+6. Optionally, download any [extra feature scripts](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras) you want to install into the same directory as the scripts. 
+7. Optionally create your *ipv4-DNS-Servers* and/or *ipv6-DNS-Servers* files in the same directory as the scripts. (See [**Custom DNS Servers**](https://github.com/seud0nym/tch-gui-unhide#custom-dns-servers))
+8. Apply the GUI changes. Run `./tch-gui-unhide -?` to see available options, or just execute: `./tch-gui-unhide`
+9. Optionally run `./tch-gui-unhide-cards` to change card sequence and visibility
 
 #### NOTES:
 - If you reset your device, *or* restore it to a state before you applied the scripts, *or* upgrade the firmware, you will need to run `de-telstra` and `tch-gui-unhide` again!
@@ -24,7 +22,7 @@ Skip any of these steps that you have already done.
 - You can revert to the Telstra GUI with the command: `./tch-gui-unhide -r`
 
 ### Upgrading (Requires Internet Access on the device)
-1. Log on to your device and change to the directory where you copied the release (e.g. /root or the USB stick).
+1. Log on to your device and change to the directory where you copied the release.
 2. Execute: `./tch-gui-unhide -U`
     - You do not need to re-specify the parameters you initially used when installing, as they are persisted with the installation (but you can apply any new or changed options as you need).
 
@@ -210,13 +208,33 @@ Click [`here`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities)
 ### Second, download and extract the scripts
 Download and extract the release archive directly to the device with the following command:
 ```
- curl -k -L https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/$(uci get version.@version[0].marketing_version).tar.gz | tar -xzvf -
+ curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/get | sh -s --
 ```
 The above command will only work if run from a supported firmware version, with internet access.
 
-Alternatively, you can download the release for your firmware version to your computer and then upload it up to your device using WinSCP or equivalent. Run the `tar -xzvf <filename>` command to extract the release files. **WARNING** Do NOT use WinZip to extract the files on your PC and then upload them individually - the scripts will not run!
+The [`get`](https://github.com/seud0nym/tch-gui-unhide/blob/master/get) has additional options that you can add after the `--`:
+- -d
+    - Delete the extracted scripts after copying. (Ignored if neither -r or -u specified.)
+- -f version
+    - Get the archive for the specified firmware version rather than the archive for the current device.
+- -g
+    - Run tch-gui-unhide after extract. (Ignored if -X specified.)
+- -h
+    - Run de-telstra after extract. (Ignored if -X specified.)
+- -k
+    - Keep the downloaded archive after extracting the scripts.
+- -r
+    - Copy the extracted scripts to the /root directory.
+- -u
+    - Copy the extracted scripts to the attached USB device, if one is found.
+- -v version
+    - Get the specified version of the tch-gui-unhide archive, rather than the latest version.
+- -X
+    - Do NOT extract the archive contents. Download only.
 
-The best location for the scripts on your device is on a USB stick, so that if you need to reset or re-apply the firmware, the scripts will still be available without needing to upload them to the device again. Otherwise, I normally put them in the /root directory (the root user home directory) so they are available as soon as you log in without changing to another directory. /tmp is also suitable.
+Alternatively, you can [download](https://github.com/seud0nym/tch-gui-unhide/releases/latest) the release for your firmware version to your computer and then upload it up to your device using WinSCP or equivalent. Run the `tar -xzvf <filename>` command to extract the release files. **WARNING** Do NOT use WinZip to extract the files on your PC and then upload them individually - the scripts will not run!
+
+The best location for the scripts on your device is on a USB stick, so that if you need to reset or re-apply the firmware, the scripts will still be available without needing to upload them to the device again. Otherwise, I normally put them in the /root directory (the root user home directory) so they are available as soon as you log in without changing to another directory. /tmp is not suitable, as it is cleared on reboot.
 
 #### Harden your root access
 It is recommended that you apply whatever hardening (such as the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script) and other configuration changes you want to make *before* executing the script, as some features are enabled or disabled depending on the current configuration of the target device.
