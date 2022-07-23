@@ -1,0 +1,181 @@
+#!/bin/sh
+
+SCRIPT="$(basename $0)"
+
+
+GREEN='\033[1;32m'
+GREY='\033[90m'
+ORANGE='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+usage() {
+cat <<EOH
+Downloads and extracts the tch-gui-unhide release archive.
+
+Usage: $0 [options]
+
+Options:
+ -d               Delete the extracted scripts after copying.
+                    (Ignored if neither -r or -u specified.)
+ -f version       Get the archive for the specifed firmware version 
+                    rather than the archive for the current device.
+ -g               Run tch-gui-unhide after extract.
+                    (Ignored if -X specified.)
+ -h               Run de-telstra after extract.
+                    (Ignored if -X specified.)
+ -k               Keep the downloaded archive after extracting the
+                    scripts.
+ -r               Copy the extracted scripts to the /root directory.
+ -u               Copy the extracted scripts to the attached USB device,
+                    if one is found.
+ -v version       Get the specified version of the tch-gui-unhide archive,
+                    rather than the latest version.
+ -X               Do NOT extract the archive contents. Download only.
+EOH
+echo
+exit
+}
+
+__COPYTO=""
+__DELETE=n
+__EXTRACT=y
+__FW_OVERRIDE=n
+__FW_VERSION="$(uci -q get version.@version[0].marketing_version)"
+__GUI=n
+__HARDEN=n
+__KEEP=n
+__TGU_OVERRIDE=n
+__TGU_VERSION="latest"
+
+
+while getopts :df:ghkruv:X option; do
+ case "${option}" in
+  d)  __DELETE=y;;
+  f)  __FW_VERSION="$OPTARG"; __FW_OVERRIDE=y;;
+  g)  __GUI=y;;
+  h)  __HARDEN=y;;
+  k)  __KEEP=y;;
+  r)  if [ -d /root ]; then
+        __COPYTO="$__COPYTO /root"
+      else
+        echo -e "${ORANGE}WARNING:  ${NC}/root does not exist - ${RED}ignoring${NC} -r option!"
+      fi;;
+  u)  __MOUNT_PATH=$(uci -q get mountd.mountd.path)
+      if [ -z "$__MOUNT_PATH" ]; then
+        echo -e "${ORANGE}WARNING:  ${NC}Failed to determine USB mount path - ${RED}ignoring${NC} -u option!"
+      else
+        __USB="$(ls $__MOUNT_PATH | head -n1)"
+        if [ -z "$__USB" ]; then
+          echo -e "${ORANGE}WARNING:  ${NC}No USB device found - ${RED}ignoring${NC} -u option!"
+        else
+          __COPYTO="$__COPYTO ${__MOUNT_PATH}${__USB}"
+        fi
+      fi;;
+  v)  __TGU_VERSION="$OPTARG"; __TGU_OVERRIDE=y;;
+  X)  __EXTRACT=n;;
+  *)  usage;;
+ esac
+done
+
+if [ -z "$__FW_VERSION" ]; then
+  echo -e "${RED}ERROR:    ${NC}Failed to determine firmware version!! You must specify the -f option."
+  usage
+else
+  __ARCHIVE="$__FW_VERSION.tar.gz"
+fi
+
+__URL="https://github.com/seud0nym/tch-gui-unhide/releases"
+[ "$__TGU_VERSION" = "latest" ] && __URL="$__URL/latest/download" || __URL="$__URL/download/$__TGU_VERSION"
+__URL="$__URL/$__ARCHIVE"
+
+echo -e "${ORANGE}INFO:     ${NC}Validating requested download for $__TGU_VERSION release on Firmware $__FW_VERSION..."
+__RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' $__URL)
+if [ "$__RESPONSE_CODE" = 200 ]; then
+  echo -e "${GREEN}INFO:     ${NC}Downloading $__URL ..."
+  [ -f $__ARCHIVE ] && rm -f $__ARCHIVE
+  curl -kLO $__URL
+  if [ $? -eq 0 ]; then
+    echo -e "${GREEN}SUCCESS:  ${NC}Downloaded $__URL"
+  else
+    echo -e "${RED}ERROR:    ${NC}Failed to download $__URL?"
+    exit
+  fi
+elif [ "$__RESPONSE_CODE" = 404 ]; then
+  echo -e "${RED}ERROR:    ${NC}$__URL ${RED}NOT FOUND${NC}!"
+  [ $__TGU_OVERRIDE = y ] && echo -e "${ORANGE}CHECK:    ${NC}Are you sure version ${ORANGE}${__TGU_VERSION}${NC} is correct???"
+  [ $__FW_OVERRIDE = y ] && echo -e "${ORANGE}ERROR:    ${NC}Firmware version ${ORANGE}${__FW_VERSION}${NC} may be unsupported??"
+  exit
+elif [ "$__RESPONSE_CODE" = 000 ]; then
+  echo -e "${RED}ERROR:    ${NC}No Internet connection???"
+  exit
+else
+  echo -e "${RED}ERROR:    ${NC}Unknown response code $__RESPONSE_CODE"
+  exit
+fi
+
+if [ $__EXTRACT = y ]; then
+  echo -e "${ORANGE}INFO:     ${NC}Extracting scripts from $__ARCHIVE..."
+  __FILES=$(tar -xzvf $__ARCHIVE)
+  if [ $? -eq 0 ]; then
+    echo -e "${GREY}${__FILES}${NC}"
+    __PWD=$(pwd)
+    if [ -z "$__COPYTO" ]; then
+      __TARGET="."
+    else
+      for __TARGET in $__COPYTO; do
+        if [ $__TARGET = $__PWD ]; then
+          echo -e "${ORANGE}INFO:     ${NC}Skipped copy to $__TARGET - present directory"
+          if [ $__DELETE = y ]; then
+            echo -e "${ORANGE}WARNING:  ${NC}Ignored -d option - incompatible with specified copy option"
+            __DELETE=n
+          fi
+        else
+          echo -e "${GREEN}INFO:     ${NC}Copying extracted files to $__TARGET..."
+          for __FILE in $__FILES; do
+            echo -e "${GREY}${__TARGET}/${__FILE}${NC}"
+            cp $__FILE ${__TARGET}/${__FILE}
+          done
+        fi
+      done
+      if [ $__DELETE = y ]; then
+        echo -e "${ORANGE}INFO:     ${NC}Deleting extracted files..."
+        rm -f $__FILES
+      fi
+    fi
+    cd $__TARGET
+    if [ -e show-bank-plan -a "$(mount | grep '/rom type' | cut -d' ' -f5)" = squashfs ]; then
+      if sh show-bank-plan -q; then
+        echo -e "${GREEN}INFO:     Bank Plan is OPTIMAL${NC}."
+      else
+        echo -e "${ORANGE}WARNING:  ${RED}Bank Plan is NOT OPTIMAL${NC}. You should run $__TARGET/set-optimal-bank-plan"
+      fi
+    fi
+    if [ $__HARDEN = y -a -e de-telstra ]; then
+      echo -e "${GREEN}INFO:     ${NC}Applying de-telstra hardening..."
+      sh de-telstra -Ay
+    fi
+    if [ $__GUI = y -a -e tch-gui-unhide ]; then
+      echo -e "${GREEN}INFO:     ${NC}Applying tch-gui-unhide GUI modifications..."
+      sh tch-gui-unhide -y
+    fi
+    cd $__PWD
+  else
+    echo -e "${RED}ERROR:    ${NC}Failed to extract files from $__ARCHIVE??"
+    exit
+  fi
+fi
+
+if [ $__EXTRACT = y -a $__KEEP = n ]; then
+  echo -e "${ORANGE}INFO:     ${NC}Deleting $__ARCHIVE..."
+  rm -f $__ARCHIVE
+fi
+
+echo -e "${GREEN}INFO:     ${NC}Done."
+
+if [ $__EXTRACT = y -a $__HARDEN = n -a $__GUI = n ]; then
+  echo -e "${GREEN}INFO:     ${NC}You should now run the following commands to harden root access and apply the GUI modifications:"
+  [ "$__TARGET" != "$__PWD" ] && echo "cd $__TARGET"
+  echo ./de-telstra -A
+  echo ./tch-gui-unhide
+fi
