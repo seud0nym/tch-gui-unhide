@@ -23,7 +23,7 @@ if [ -f /usr/bin/wireguard-go -a -f /usr/bin/wg-go -a -f /lib/netifd/proto/wireg
 
   cat <<"HP" > /etc/hotplug.d/net/10-wireguard-peer-firewall
 HP
-  cat <<"FW" > /usr/share/tch-gui-unhide/wireguard-peer-firewall.sh
+  cat <<"FW" > /usr/share/tch-gui-unhide/wg0-peer-firewall.sh
 FW
   cat <<"CA" > /usr/share/transformer/commitapply/uci_wireguard.ca
 CA
@@ -47,7 +47,7 @@ MOD
 HLP
 
   chmod 755 /etc/hotplug.d/net/10-wireguard-peer-firewall
-  chmod 755 /usr/share/tch-gui-unhide/wireguard-peer-firewall.sh
+  chmod 755 /usr/share/tch-gui-unhide/wg0-peer-firewall.sh
   chmod 644 /usr/share/transformer/commitapply/uci_wireguard.ca
   chmod 644 /usr/share/transformer/mappings/rpc/gui.wireguard.map
   chmod 644 /usr/share/transformer/mappings/uci/wireguard.map

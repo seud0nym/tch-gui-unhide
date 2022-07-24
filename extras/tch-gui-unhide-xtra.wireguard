@@ -29,11 +29,11 @@ config_load network
 config_get proto "$INTERFACE" "proto" "unknown"
 config_get listen_port "$INTERFACE" "listen_port"
 
-[ "$proto" = "wireguard" -a -n "$listen_port" ] && /usr/share/tch-gui-unhide/wireguard-peer-firewall.sh
+[ "$proto" = "wireguard" -a -n "$listen_port" ] && /usr/share/tch-gui-unhide/wg0-peer-firewall.sh
 
 exit 0
 HP
-  cat <<"FW" > /usr/share/tch-gui-unhide/wireguard-peer-firewall.sh
+  cat <<"FW" > /usr/share/tch-gui-unhide/wg0-peer-firewall.sh
 #!/bin/sh
 . /lib/functions.sh
 
@@ -126,7 +126,7 @@ handle_interface() {
 
   config_get enabled "$interface" "enabled" "1"
   if [ "$enabled" = "1" -a "$(ifstatus $interface | jsonfilter -e '@.up')" = "true" ]; then
-    /usr/bin/logger -t "wireguard-peer-firewall.sh" -p daemon.notice "Applying peer firewall rules on interface '$interface'"
+    /usr/bin/logger -t "wg0-peer-firewall.sh" -p daemon.notice "Applying peer firewall rules on interface '$interface'"
     for cmd in $commands; do
       for chain in input forwarding; do
         for protocol in tcp udp; do
@@ -136,7 +136,7 @@ handle_interface() {
     done
     config_foreach handle_peer "wireguard_$interface" "$interface" "$ipv6"
   else
-    /usr/bin/logger -t "wireguard-peer-firewall.sh" -p daemon.notice "Removing peer firewall rules on interface '$interface'"
+    /usr/bin/logger -t "wg0-peer-firewall.sh" -p daemon.notice "Removing peer firewall rules on interface '$interface'"
     for cmd in iptables ip6tables; do
       for chain in input forwarding; do
         delete_chain "$cmd" "${interface}" "${chain}"
@@ -155,8 +155,8 @@ FW
 CA
   cat <<"RPC" > /usr/share/transformer/mappings/rpc/gui.wireguard.map
 local uci_helper = mapper("ucihelper")
-local logger = require("tch.logger")
-local log = logger.new("rpc.gui.wireguard", 4)
+--local logger = require("tch.logger")
+--local log = logger.new("rpc.gui.wireguard", 4)
 
 local wireguard_status = "/usr/bin/wg-go show all dump"
 local find, format, match = string.find, string.format, string.match
@@ -226,7 +226,6 @@ local function wgShowAllDump()
   local cmd = io.popen(wireguard_status,'r')
   if cmd then
     wg_cache.time_check = os.time()
-    local line
     for line in cmd:lines() do
       local pIface, pPubKey, pPSK, pEndPoint, pAllowedIPs, pLatestHandShake, pRX, pTX, pKeepAlive = match(line, "^([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t(%S+)$")
       if pIface then
@@ -281,13 +280,12 @@ local function wgShowAllDump()
         end
       end
     end
+    cmd:close()
   end
-  cmd:close()
 
   if active_client_iface and wg_cache.summary.client_active_peers == 1 then
     local elements = uci_helper.get_from_uci({ config = 'network', sectionname = active_client_iface, option = "addresses", extended = true })
     if type(elements) == "table" then
-      local address
       for _,address in pairs(elements) do
         if address ~= "" then
           local opt
@@ -389,7 +387,7 @@ local GUI_WG_ = {
   }
 }
 
-GUI_WG_.get = function(mapping, param)
+GUI_WG_.get = function(_, param)
   if param == "external_ipv4_address" then
     return getExternalIPAddress(4)
   elseif param == "external_ipv6_address" then
@@ -440,17 +438,16 @@ local GUI_WG_IFACE_ = {
   },
 }
 
-GUI_WG_IFACE_.entries = function(mapping)
+GUI_WG_IFACE_.entries = function(_)
   local _, details = wgShowAllDump()
   local keys = {}
-  local key
   for key in pairs(details) do
     keys[#keys+1] = key
   end
   return keys
 end
 
-GUI_WG_IFACE_.get = function(mapping, param, key)
+GUI_WG_IFACE_.get = function(_,param,key)
   local _, details = wgShowAllDump()
   return details[key][param] or ""
 end
@@ -512,19 +509,18 @@ local GUI_WG_IFACE_PEER_ = {
   },
 }
 
-GUI_WG_IFACE_PEER_.entries = function(mapping, parentkey)
+GUI_WG_IFACE_PEER_.entries = function(_, parentkey)
   local _, details = wgShowAllDump()
   local iface = details[parentkey] or {}
   local peers = iface["peers"] or {}
   local keys = {}
-  local key
   for key in pairs(peers) do
     keys[#keys + 1] = format("%s|%d", parentkey, key)
   end
   return keys
 end
 
-GUI_WG_IFACE_PEER_.get = function(mapping, param, key, parentkey)
+GUI_WG_IFACE_PEER_.get = function(_, param, key, parentkey)
   local _, details = wgShowAllDump()
   local iface = details[parentkey] or {}
   local peers = iface["peers"] or {}
@@ -572,7 +568,7 @@ end
 local function _set(option,_,value,key,parentkey)
   local elements,binding = _elements(option,parentkey)
   local index = tonumber(match(key,"|(%d+)$"))
-  if elements[index] then
+  if index and elements[index] then
     elements[index] = value
     uci_helper.set_on_uci(binding,elements,commitapply)
     _changed(binding.sectionname)
@@ -2184,7 +2180,7 @@ return M
 HLP
 
   chmod 755 /etc/hotplug.d/net/10-wireguard-peer-firewall
-  chmod 755 /usr/share/tch-gui-unhide/wireguard-peer-firewall.sh
+  chmod 755 /usr/share/tch-gui-unhide/wg0-peer-firewall.sh
   chmod 644 /usr/share/transformer/commitapply/uci_wireguard.ca
   chmod 644 /usr/share/transformer/mappings/rpc/gui.wireguard.map
   chmod 644 /usr/share/transformer/mappings/uci/wireguard.map

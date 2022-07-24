@@ -5,6 +5,6 @@ config_load network
 config_get proto "$INTERFACE" "proto" "unknown"
 config_get listen_port "$INTERFACE" "listen_port"
 
-[ "$proto" = "wireguard" -a -n "$listen_port" ] && /usr/share/tch-gui-unhide/wireguard-peer-firewall.sh
+[ "$proto" = "wireguard" -a -n "$listen_port" ] && /usr/share/tch-gui-unhide/wg0-peer-firewall.sh
 
 exit 0
