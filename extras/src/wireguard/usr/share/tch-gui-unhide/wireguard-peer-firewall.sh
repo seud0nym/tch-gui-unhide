@@ -90,7 +90,7 @@ handle_interface() {
 
   config_get enabled "$interface" "enabled" "1"
   if [ "$enabled" = "1" -a "$(ifstatus $interface | jsonfilter -e '@.up')" = "true" ]; then
-    /usr/bin/logger -t "wireguard-peer-firewall.sh" -p daemon.notice "Applying peer firewall rules on interface '$interface'"
+    /usr/bin/logger -t "wg0-peer-firewall.sh" -p daemon.notice "Applying peer firewall rules on interface '$interface'"
     for cmd in $commands; do
       for chain in input forwarding; do
         for protocol in tcp udp; do
@@ -100,7 +100,7 @@ handle_interface() {
     done
     config_foreach handle_peer "wireguard_$interface" "$interface" "$ipv6"
   else
-    /usr/bin/logger -t "wireguard-peer-firewall.sh" -p daemon.notice "Removing peer firewall rules on interface '$interface'"
+    /usr/bin/logger -t "wg0-peer-firewall.sh" -p daemon.notice "Removing peer firewall rules on interface '$interface'"
     for cmd in iptables ip6tables; do
       for chain in input forwarding; do
         delete_chain "$cmd" "${interface}" "${chain}"
