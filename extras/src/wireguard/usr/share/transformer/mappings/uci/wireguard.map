@@ -35,7 +35,7 @@ end
 local function _set(option,_,value,key,parentkey)
   local elements,binding = _elements(option,parentkey)
   local index = tonumber(match(key,"|(%d+)$"))
-  if elements[index] then
+  if index and elements[index] then
     elements[index] = value
     uci_helper.set_on_uci(binding,elements,commitapply)
     _changed(binding.sectionname)
