@@ -1,3 +1,7 @@
+2022.07.24
+==========
+* tch-gui-unhide-xtra.wireguard: Fixed script naming that broke application of firewall rules
+
 2022.07.23
 ==========
 * tch-gui-unhide: Added check, force and retry intervals to Dynamic DNS configuration
