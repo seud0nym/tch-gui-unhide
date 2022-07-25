@@ -21,7 +21,7 @@ done
 if [ -f /usr/bin/wireguard-go -a -f /usr/bin/wg-go -a -f /lib/netifd/proto/wireguard.sh -a -z "$XTRAS_REMOVE" ]; then
   echo " Adding WireGuard support..."
 
-  cat <<"HP" > /etc/hotplug.d/net/10-wireguard-peer-firewall
+  cat <<"HP" > /etc/hotplug.d/net/10-wg0-peer-firewall
 HP
   cat <<"FW" > /usr/share/tch-gui-unhide/wg0-peer-firewall.sh
 FW
@@ -46,7 +46,7 @@ MOD
   cat <<"HLP" > /www/lua/wireguard_helper.lua
 HLP
 
-  chmod 755 /etc/hotplug.d/net/10-wireguard-peer-firewall
+  chmod 755 /etc/hotplug.d/net/10-wg0-peer-firewall
   chmod 755 /usr/share/tch-gui-unhide/wg0-peer-firewall.sh
   chmod 644 /usr/share/transformer/commitapply/uci_wireguard.ca
   chmod 644 /usr/share/transformer/mappings/rpc/gui.wireguard.map
@@ -58,6 +58,8 @@ HLP
   chmod 644 /www/docroot/js/qrcode.min.js
   chmod 644 /www/docroot/modals/wireguard-modal.lp
   chmod 644 /www/lua/wireguard_helper.lua
+
+  [ -e /etc/hotplug.d/net/10-wireguard-peer-firewall ] && /etc/hotplug.d/net/10-wireguard-peer-firewall
 
   SRV_transformer=$(( $SRV_transformer + 1 ))
 
