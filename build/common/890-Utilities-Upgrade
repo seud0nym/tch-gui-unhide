@@ -18,8 +18,8 @@ if [ "$(pwd)" = "/tmp" -a -n "$(pgrep -f './tch-gui-unhide -y')" -a -n "$(pgrep 
   unset __MOUNT_PATH __USB
 
   if [ -n "$__COPYTO" ]; then
-    echo [$SCRIPT]: GUI upgrade detected - Copying updated utilities
-    for __FILE in $(grep -l '^EOH$' $(find . -maxdepth 1 -type f -perm 755) | sort); do
+    echo [$SCRIPT]: GUI upgrade detected - Copying updated utilities and extras scripts
+    for __FILE in $(grep -l '^EOH$' $(find . -maxdepth 1 -type f -perm 755) | sort) $(find . -maxdepth 1 -name 'tch-gui-unhide-xtra.*'); do
       for __DIR in $__COPYTO; do
         __TARGET="$__DIR/$(basename $__FILE)"
         if [ ! -e $__TARGET -o $__FILE -nt $__TARGET ]; then
