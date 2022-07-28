@@ -14,7 +14,7 @@ add_input_port_rule() {
 
   for port in $*; do
     for protocol in $(echo $protocols | tr -s ',' ' '); do
-      $cmd -A "$chain" --protocol "$protocol" --dport "$port" -s "$allowed_ip" -j reject
+      $cmd -A "$chain" --protocol "$protocol" --dport "$port" -s "$allowed_ip" -j DROP
     done
   done
 }
@@ -47,14 +47,14 @@ handle_peer() {
     case "${allowed_ip}" in
       *:*)
         if [ "$ipv6" != "0" ]; then
-          [ "$lan_access" != "1" ] && ip6tables -A "${interface}_forwarding" -o br-lan -s "$allowed_ip" -j reject
-          [ "$wan_access" != "1" ] && ip6tables -A "${interface}_forwarding" ! -o br-lan -s "$allowed_ip" -j reject
+          [ "$lan_access" != "1" ] && ip6tables -A "${interface}_forwarding" -o br-lan -s "$allowed_ip" -j DROP
+          [ "$wan_access" != "1" ] && ip6tables -A "${interface}_forwarding" ! -o br-lan -s "$allowed_ip" -j DROP
           [ "$ssh_access" != "1" ] && add_input_port_rule ip6tables "${interface}_input" "$allowed_ip" "tcp,udp" $_ssh_ports
           [ "$gui_access" != "1" ] && add_input_port_rule ip6tables "${interface}_input" "$allowed_ip" "tcp" $_gui_ports
         fi;;
       *.*)
-        [ "$lan_access" != "1" ] && iptables -A "${interface}_forwarding" -o br-lan -s "$allowed_ip" -j reject
-        [ "$wan_access" != "1" ] && iptables -A "${interface}_forwarding" ! -o br-lan -s "$allowed_ip" -j reject
+        [ "$lan_access" != "1" ] && iptables -A "${interface}_forwarding" -o br-lan -s "$allowed_ip" -j DROP
+        [ "$wan_access" != "1" ] && iptables -A "${interface}_forwarding" ! -o br-lan -s "$allowed_ip" -j DROP
         [ "$ssh_access" != "1" ] && add_input_port_rule iptables "${interface}_input" "$allowed_ip" "tcp,udp" $_ssh_ports
         [ "$gui_access" != "1" ] && add_input_port_rule iptables "${interface}_input" "$allowed_ip" "tcp" $_gui_ports
         ;;
@@ -64,7 +64,7 @@ handle_peer() {
 
 handle_interface() {
   local interface="$1"
-  local enabled proto listen_port ipv6 cmd chain
+  local enabled proto listen_port ipv6 cmd chain peer
 
   config_get proto "$interface" "proto" "unknown"
   config_get listen_port "$interface" "listen_port"
@@ -98,7 +98,9 @@ handle_interface() {
         done
       done
     done
-    config_foreach handle_peer "wireguard_$interface" "$interface" "$ipv6"
+    for peer in $(uci show network | awk "/=wireguard_$interface/{sub(/=.*/,\"\");sub(/^network\./,\"\");print;}0"); do
+      handle_peer "$peer" "$interface" "$ipv6"
+    done
   else
     /usr/bin/logger -t "wg0-peer-firewall.sh" -p daemon.notice "Removing peer firewall rules on interface '$interface'"
     for cmd in iptables ip6tables; do
