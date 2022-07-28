@@ -859,18 +859,20 @@ fi
 
 # Domain Name
 DOMAIN_NOW="$(uci -q get dhcp.main.domain)"
-LOCAL_NOW="$(uci -q get dhcp.main.local)"
-if [ "$__DOMAIN" = "u" -o \( "$DOMAIN_NOW" = "$__DOMAIN" -a "$LOCAL_NOW" = "/$__DOMAIN/" -a "$LOCAL_NOW" = "/$DOMAIN_NOW/" \) ]; then
+if [ "$__DOMAIN" = "u" -o "$DOMAIN_NOW" = "$__DOMAIN" ]; then
   echo [$SCRIPT]: Domain name unchanged \[$DOMAIN_NOW\]
 else
-  if [ "$__DOMAIN" = "u" -a "$LOCAL_NOW" != "/$DOMAIN_NOW/" ]; then
-    $__DOMAIN="$DOMAIN_NOW"
-  fi
   echo [$SCRIPT]: Setting the domain to $__DOMAIN
   uci -q set dhcp.main.domain="$__DOMAIN"
-  uci -q set dhcp.main.local="/$__DOMAIN/"
   uci -q commit dhcp
-  SRV_dnsmasq=$(( $SRV_dnsmasq + 2 ))
+  SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
+fi
+LOCAL_NOW="$(uci -q get dhcp.main.local)"
+if [ -n "$LOCAL_NOW" -a $(grep -E "$(echo $LOCAL_NOW | sed -e 's|/\([^/]*\)/|\\.\1\\b|')" /etc/hosts | wc -l) -eq 0 ]; then
+  echo [$SCRIPT]: Removing incorrect dhcp.main.local configuration
+  uci -q delete dhcp.main.local
+  uci commit dhcp
+  SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
 fi
 
 # DNS Servers

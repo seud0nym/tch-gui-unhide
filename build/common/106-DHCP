@@ -49,3 +49,11 @@ sed \
   -e 's/\({ "ip", "mac", "name", "tag"\)\(, "owner" }\)/\1, "dns"\2/' \
   -i /usr/share/transformer/mappings/uci/dhcp.map
 
+DHCP_MAIN_LOCAL="$(uci -q get dhcp.main.local)"
+if [ -n "$DHCP_MAIN_LOCAL" -a $(grep -E "$(echo $DHCP_MAIN_LOCAL | sed -e 's|/\([^/]*\)/|\\.\1\\b|')" /etc/hosts | wc -l) -eq 0 ]; then
+  echo [$SCRIPT]: Removing incorrect dhcp.main.local configuration added by de-telstra
+  uci -q delete dhcp.main.local
+  uci commit dhcp
+  SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
+fi
+unset DHCP_MAIN_LOCAL
