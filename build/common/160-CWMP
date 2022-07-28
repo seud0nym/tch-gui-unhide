@@ -18,7 +18,7 @@ if [ -f /etc/init.d/cwmpd ]; then
 
   echo [$SCRIPT]: Making username and password optional on CWMP modal
   sed \
-    -e 's/\(getValidateStringLengthInRange(\)\(1\)\(, *255)\)/\10\3/' 
+    -e 's/\(getValidateStringLengthInRange(\)\(1\)\(, *255)\)/\10\3/' \
     -i /www/docroot/modals/cwmpconf-modal.lp
 else
   echo [$SCRIPT]: CWMP not found - Removing from GUI
