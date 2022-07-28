@@ -133,6 +133,7 @@ local function die(msg)
 end
 --die = error--DEBUG
 
+---@diagnostic disable-next-line: redundant-parameter
 if not string.match(_VERSION, "5.1", 1, 1) then  -- sanity check
   die("requires Lua 5.1 to run")
 end
