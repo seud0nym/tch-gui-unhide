@@ -24,8 +24,11 @@ sed \
  -e '/^local function validateIPv6/i \  end' \
  -e '/^local function validateIPv6/i \  return valid, msg' \
  -e '/^local function validateIPv6/i \end' \
- -e '/slaacState = "uci/i \  ip6assign = "uci.network.interface.@" .. curintf .. ".ip6assign",' \
- -e '/slaacState = "uci/a \  ula_prefix = "uci.network.globals.ula_prefix",' \
+ -e '/mapValid.dhcpv4State = validateByPass/a \else' \
+ -e '/mapValid.dhcpv4State = validateByPass/a \    mapParams.ip6assign = "uci.network.interface.@" .. curintf .. ".ip6assign"' \
+ -e '/mapValid.dhcpv4State = validateByPass/a \    mapValid.ip6assign = gOV(gVNIR(48,64))' \
+ -e '/mapValid.dhcpv4State = validateByPass/a \    mapParams.ula_prefix = "uci.network.globals.ula_prefix"' \
+ -e '/mapValid.dhcpv4State = validateByPass/a \    mapValid.ula_prefix = validateULAPrefix' \
  -e '/"IPv6 State"/a \            if not bridged.isBridgedMode() then' \
  -e '/"IPv6 State"/a \              if curintf == "lan" then' \
  -e '/"IPv6 State"/i \                local ula_attr = {' \
@@ -60,8 +63,6 @@ sed \
  -e "/\"IPv6 State\"/a \              ngx.print(ui_helper.createInputSelect(T\"IPv6 Prefix Size<span class='icon-question-sign' title='Delegate a prefix of the given length to this interface'></span>\",\"ip6assign\",req_prefix_map,content[\"ip6assign\"],number_attr,helpmsg[\"ip6assign\"]))" \
  -e '/"IPv6 State"/a \              end' \
  -e '/"IPv6 State"/a \            end' \
- -e '/slaacState = gVIES(/a \  ip6assign = gOV(gVNIR(48,64)),' \
- -e '/slaacState = gVIES(/a \  ula_prefix = validateULAPrefix,' \
  -e '/^(function() {/i \function rand(max){return Math.floor(Math.random()*max);}\\' \
  -e '/^(function() {/i \function rand16() {return rand(2**16).toString(16);}\\' \
  -e '/^(function() {/a \  var gen_ula_span = document.createElement("SPAN");\\' \
