@@ -1,3 +1,13 @@
+2022.07.28
+==========
+* tch-gui-unhide: Fixed hanging install when making CWMP username/password optional
+* tch-gui-unhide: Fixed bridge mode default gateway validation error (#106)
+* tch-gui-unhide: Removed incorrect dhcp.main.local configuration added by de-telstra (#107)
+* tch-gui-unhide: When upgrading via the GUI, any updated extras scripts will replace existing versions found in /root or the root directory of an attached USB device
+* tch-gui-unhide: Fixed text on update screen specifying that updated utilities will replace existing versions found in /root or the root directory of an attached USB device
+* tch-gui-unhide-xtra.wireguard: Fixed peer firewall rules not being applied
+* de-telstra: Removed incorrect dhcp.main.local configuration (#107)
+
 2022.07.24
 ==========
 * tch-gui-unhide-xtra.wireguard: Fixed script naming that broke application of firewall rules
