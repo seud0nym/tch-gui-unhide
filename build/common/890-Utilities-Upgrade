@@ -11,7 +11,7 @@ if [ "$(pwd)" = "/tmp" -a -n "$(pgrep -f './tch-gui-unhide -y')" -a -n "$(pgrep 
   __MOUNT_PATH=$(uci -q get mountd.mountd.path)
   if [ -n "$__MOUNT_PATH" ]; then
     __USB="$(ls $__MOUNT_PATH | head -n1)"
-    if [ -n "$__USB" -a \( -e ${__MOUNT_PATH}${__USB}/tch-gui-unhide-$FW_BASE -o ${__MOUNT_PATH}${__USB}/de-telstra \) ]; then
+    if [ -n "$__USB" -a \( -e ${__MOUNT_PATH}${__USB}/tch-gui-unhide-$FW_BASE -o -e ${__MOUNT_PATH}${__USB}/de-telstra \) ]; then
       __COPYTO="$__COPYTO ${__MOUNT_PATH}${__USB}"
     fi
   fi
