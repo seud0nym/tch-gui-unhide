@@ -5,7 +5,8 @@ sed \
   -e '/T"Service"/i \    {"mmpbx-inoutgoingmap-modal.lp", T"In\/Outgoing Map"},' \
   -e '/T"Service"/a \    {"mmpbx-codec-modal.lp", T"Codecs"},' \
   -e '/T"Service"/a \    {"mmpbx-dialplan-modal.lp", T"Dial Plans"},' \
-  -e '/T"DECT"/a    \    {"mmpbx-contacts-modal.lp", T"Phone Book"},' \
+  -e '/T"Service"/a \    {"mmpbx-statistics-modal.lp", T"Statistics"},' \
+  -e '/T"Service"/a \    {"mmpbx-contacts-modal.lp", T"Phone Book"},' \
   -i /www/snippets/tabs-voice.lp
 
 echo [$SCRIPT]: Display Telephony tabs even when mmpbx disabled

@@ -21,11 +21,10 @@ fi
 
 # Check all modals are enabled, except:
 #  - diagnostics-airiq-modal.lp (requires Flash player)
-#  - mmpbx-sipdevice-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
-#  - mmpbx-statistics-modal.lp (only required for firmware 17.2.0188-820-RA and earlier)
-#  - speedservice-modal.lp
+#  - mmpbx-sipdevice-modal.lp (only applicable to firmware 17.2.0188-820-RA and earlier: https://hack-technicolor.readthedocs.io/en/stable/Unlock/#expose-some-more-voip-settings-into-the-web-ui)
+#  - speedservice-modal.lp (internal Technicolor testing?)
 echo [$SCRIPT]: Checking modal visibility
-for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal.lp\|mmpbx-sipdevice-modal.lp\|mmpbx-statistics-modal.lp\|speedservice-modal.lp\)); do
+for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal.lp\|mmpbx-sipdevice-modal.lp\|speedservice-modal.lp\)); do
   MODAL=$(basename $f)
   RULE=$(uci show web | grep "/modals/$MODAL" | grep -m 1 -v card_ | cut -d. -f2)
   if [ -z "$RULE" ]; then
