@@ -182,8 +182,8 @@ sed \
   -e "/<\/form>/i\  </fieldset>\\\\" \
   -e "/<\/form>/i\  <fieldset><legend>Send a Message</legend>\\\\" \
   -e "/<\/form>/i\  ');" \
-  -e '/<\/form>/i\  ngx.print(ui_helper.createAlertBlock(T"Sending SMS messages is <b>NOT</b> supported with the Telstra Backup SIM."))\
-  local mapParams = {\
+  -e "/<\/form>/i\  ngx.print('<div data-bind=\"visible: messages().length == 0\">',ui_helper.createAlertBlock(T'Sending SMS messages is <b>NOT</b> supported with the Telstra Backup SIM.'),'</div>')" \
+  -e '/<\/form>/i\  local mapParams = {\
     to_number = "rpc.gui.sms.number",\
     sms_msg = "rpc.gui.sms.message",\
   }\
