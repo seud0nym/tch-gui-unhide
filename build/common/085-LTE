@@ -45,13 +45,13 @@ sed \
   -e 's/\(p class="subinfos"\)>/\1 style="display:none;">/' \
   -e '/$\.\(post\|ajax\)/i\                                $("#mobiletab p.subinfos").show();\\' \
   -e '/"subinfos"/a\				<div style="height: 20px;" data-bind="visible: registrationStatus().length > 0">\\' \
-  -e "/\"subinfos\"/a\					<label class=\"card-label\">');  ngx.print( T\"Network\"..\":\" ); ngx.print('</label>\\\\" \
+  -e "/\"subinfos\"/a\					<label class=\"card-label\">'); ngx.print(T\"Network\"..\":\"); ngx.print('</label>\\\\" \
   -e '/"subinfos"/a\					<div class="controls">\\' \
   -e '/"subinfos"/a\						<strong data-bind="text: registrationStatus"></strong>\\' \
   -e '/"subinfos"/a\					</div>\\' \
   -e '/"subinfos"/a\				</div>\\' \
   -e '/<\/p>/i\				<div style="height: 20px;" data-bind="visible: unreadSMS().length > 0">\\' \
-  -e "/<\/p>/i\					<label class=\"card-label\">');  ngx.print( T\"Unread SMS\"..\":\" ); ngx.print('</label>\\\\" \
+  -e "/<\/p>/i\					<label class=\"card-label modal-link\" data-toggle=\"modal\" data-remote=\"modals/lte-sms.lp\" data-id=\"lte-sms\">'); ngx.print(T\"Unread SMS\"..\":\" ); ngx.print('</label>\\\\" \
   -e '/<\/p>/i\					<div class="controls">\\' \
   -e '/<\/p>/i\						<strong data-bind="text: unreadSMS"></strong>\\' \
   -e '/<\/p>/i\					</div>\\' \
@@ -175,6 +175,7 @@ sed \
 
 echo [$SCRIPT]: Add SMS send capability
 sed \
+  -e '/bootstrap-progressbar/a\<script language="javascript">$("#waiting:not(.do-not-show)").hide();</script>\\' \
   -e '/^local ui_helper/a\local post_helper = require("web.post_helper")' \
   -e '/^local ui_helper/a\local message_helper = require("web.uimessage_helper")' \
   -e '/^local ui_helper/a\local proxy = require("datamodel")' \
