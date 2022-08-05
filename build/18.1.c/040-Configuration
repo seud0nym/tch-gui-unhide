@@ -11,10 +11,11 @@ if grep -q "sh -c 'opkg update 2>&1 | logger -t rpc.gui.opkg -p user.info'" /etc
 fi
 
 for f in /etc/config/iperf /etc/init.d/iperf; do
-  echo [$SCRIPT]: Fixing iperf enabled configuration in $f
-  sed -e 's/\benable\b/enabled/' -i "$f"
+  if grep -q '\benable\b' $f; then
+    echo [$SCRIPT]: Fixing iperf enabled configuration in $f
+    sed -e 's/\benable\b/enabled/' -i "$f"
+  fi
 done
-
 IPERF_ENABLED=$(uci -q get iperf.iperf.enable)
 if [ -n "$IPERF_ENABLED" ]; then
   echo [$SCRIPT]: Fixing iperf enabled configuration
