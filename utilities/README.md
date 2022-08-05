@@ -4,7 +4,6 @@ A collection of utility scripts for your Technicolor router. Most of the names a
 - [de-telstra](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra)
 - [dumaos](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos)
 - [hijack-dns](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#hijack-dns)
-- [log-check](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#log-check)
 - [mtd-backup](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-backup)
 - [mtd-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-restore)
 - [overlay-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#overlay-restore)
@@ -190,15 +189,6 @@ _NOTE_: **tch-gui-unhide releases starting with 2021.08.18 allow you to enable a
 
 ## intercept-dns
 *The intercept-dns script has been renamed to [hijack-dns](#hijack-dns) to avoid confusion with the intercept daemon.*
-
-## log-check
-Checks that the logging RAM buffer and disk-based messages log are both being written correctly.
-```
-Usage: ./log-check [options]
-
-Options:
- -C    Adds or removes the scheduled hourly cron job
-```
 
 ## mtd-backup
 Backs up mtd or ubifs device partitions to an attached USB device or SSHFS attached filesystem. Only unchanged partitions are backed up after the first execution.

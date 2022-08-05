@@ -31,10 +31,10 @@ rm ../*.tar.gz *.tar.gz 2>/dev/null
 
 for major in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
   case "$major" in
-    17.2)   utilities=$(find ../utilities/ -maxdepth 1 -type f | grep -vE '(README|dumaos|log-check)' | sort | sed -e 's,^\.\./,,');;
-    18.1.c) utilities=$(find ../utilities/ -maxdepth 1 -type f | grep -vE '(README|log-check|transformer)' | sort | sed -e 's,^\.\./,,');;
+    17.2)   utilities=$(find ../utilities/ -maxdepth 1 -type f | grep -vE '(README|dumaos)' | sort | sed -e 's,^\.\./,,');;
+    18.1.c) utilities=$(find ../utilities/ -maxdepth 1 -type f | grep -vE '(README|transformer)' | sort | sed -e 's,^\.\./,,');;
     20.3.c) utilities=$(find ../utilities/ -maxdepth 1 -type f | grep -vE '(README|transformer)' | sort | sed -e 's,^\.\./,,');;
-    20.4)   utilities=$(find ../utilities/ -maxdepth 1 -type f | grep -vE '(README|log-check|mtd-|set-optimal-bank-plan|transformer|unpack-rbi)' | sort | sed -e 's,^\.\./,,');;
+    20.4)   utilities=$(find ../utilities/ -maxdepth 1 -type f | grep -vE '(README|mtd-|set-optimal-bank-plan|transformer|unpack-rbi)' | sort | sed -e 's,^\.\./,,');;
     *)      utilities=$(find ../utilities/ -maxdepth 1 -type f | grep -vE '(README)' | sort | sed -e 's,^\.\./,,');;
   esac
   echo "Writing ${major}.tar.gz ..."
