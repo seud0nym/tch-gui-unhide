@@ -9,8 +9,14 @@ if not bridged.isBridgedMode() then
 
   local items = {
     {"broadband-modal.lp",T"Configuration"},
-    {"broadband-usage-modal.lp",T"Usage History"},
+    {"broadband-usage-modal.lp?wan_intf=wan",T"Broadband Usage History"},
   }
+
+  local result = require("web.lte-utils").getContent("rpc.mobiled.DeviceNumberOfEntries")
+  local devices = tonumber(result.DeviceNumberOfEntries)
+  if devices and devices > 0 then
+    items[#items+1] = {"broadband-usage-modal.lp?wan_intf=wwan",T"Mobile Usage History"}
+  end
 
   local html = {}
 

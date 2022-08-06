@@ -9,22 +9,20 @@ local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 
 local date,time = os.date,os.time
-local match = string.match
+local match,sub = string.match,string.sub
+local floor = math.floor
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
+local getargs = ngx.req.get_uri_args()
 local wan_intf ="wan"
-local content_wan = {
-  wwan_ipaddr = "rpc.network.interface.@wwan.ipaddr",
-  wwan_ip6addr = "rpc.network.interface.@wwan.ip6addr",
-}
-content_helper.getExactContent(content_wan)
-if content_wan.wwan_ipaddr:len() ~= 0 or content_wan.wwan_ip6addr:len() ~= 0 then
-  wan_intf = "wwan"
+if getargs.wan_intf then
+  wan_intf = untaint(getargs.wan_intf)
 end
+
 local content = {
   ifname = "rpc.network.interface.@"..wan_intf..".ifname",
 }
@@ -116,29 +114,29 @@ local summary_data = {
 
 local function to_megabytes(val)
   local mb = tonumber(val) / 1048576
-  local rounded = math.floor((mb * 10^2) + 0.5) / (10^2)
-  local left,num,right = string.match(rounded,'^([^%d]*%d)(%d*)(.-)$')
+  local rounded = tostring(floor((mb * 10^2) + 0.5) / (10^2))
+  local left,num,right = match(rounded,'^([^%d]*%d)(%d*)(.-)$')
   if (#right == 0) then
     right = ".00"
   elseif (#right < 3) then
-    right = right..string.sub("000",1,3-#right)
+    right = right..sub("000",1,3-#right)
   end
-  return left..(num:reverse():gsub('(%d%d%d)','%1,'):reverse())..right
+  return tonumber(left..(num:reverse():gsub('(%d%d%d)','%1,'):reverse())..right)
 end
 
 local bb_usage_filter = function(data)
   if data.interface == content.ifname then
     local yyyy,mm,dd = match(untaint(data.date),"(%d%d%d%d)-(%d%d)-(%d%d)")
-    local date = os.time({ year=yyyy,month=mm,day=dd })
-    if date <= ignr then
+    local date_time = os.time({ year=yyyy,month=mm,day=dd })
+    if date_time <= ignr then
       return false
     else
-      local date_str = os.date("%F",date)
+      local date_str = os.date("%F",date_time)
       local idx
-      if date <= prev then
+      if date_time <= prev then
         idx = 3
         data.period = "Previous Month"
-      elseif date <= last then
+      elseif date_time <= last then
         idx = 2
         data.period = "Last Month"
       else
@@ -146,7 +144,7 @@ local bb_usage_filter = function(data)
         data.period = "This Month"
       end
       if date_str < summary_data[idx][1] then
-        summary_data[idx][1] = date_str
+        summary_data[idx][1] = tostring(date_str)
       end
       summary_data[idx][3] = summary_data[idx][3] + data.tx_bytes
       summary_data[idx][4] = summary_data[idx][4] + data.rx_bytes
@@ -184,27 +182,22 @@ local number_attr = {
   }
 }
 
-
-ngx.print(ui_helper.createHeader(T"Broadband",false,true,600))
-ngx.print('\
+ngx.print(ui_helper.createHeader(T"Broadband",false,true,600),'\
 <div class="modal-body update">\
 '); lp.include("tabs-broadband.lp"); ngx.print('\
-  <form class="traffichistory form-horizontal" method="post" action="modals/broadband-usage-modal.lp">\
-    ');
-    ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-    ngx.print('<legend>');  ngx.print( T("Configuration") ); ngx.print('</legend>');
-    ngx.print(ui_helper.createInputText(T"Roll-over Day","rollover_day",content_rollover["rollover_day"],number_attr))
-    ngx.print(ui_helper.createLabel(T"Interface",string.upper(wan_intf)))
-    ngx.print(ui_helper.createLabel(T"Interface Device",content["ifname"]))
-    ngx.print('<legend>');  ngx.print( T("Summary Usage") ); ngx.print('</legend>');
-    bb_usage_columns[1].header = T"From Date"
-    bb_usage_columns[2].header = T"End Date"
-    ngx.print(ui_helper.createTable(bb_usage_columns,summary_data,summary_options))
-    ngx.print('<legend>');  ngx.print( T("Daily Usage") ); ngx.print('</legend>');
-    bb_usage_columns[1].header = T"Period"
-    bb_usage_columns[2].header = T"Date"
-    ngx.print(ui_helper.createTable(bb_usage_columns,bb_usage_data,bb_usage_options,nil,bb_usage_helpmsg))
-    ngx.print('\
+  <form class="traffichistory form-horizontal" method="post" action="modals/broadband-usage-modal.lp?wan_intf=',wan_intf,'">',
+    ui_helper.createMessages(message_helper.popMessages()),
+    '<legend>',T("Configuration"),'</legend>',
+      ui_helper.createInputText(T"Roll-over Day","rollover_day",content_rollover["rollover_day"],number_attr),
+      ui_helper.createLabel(T"Interface Device",content["ifname"]),
+    '<legend>',T("Summary Usage"),'</legend>');
+      bb_usage_columns[1].header = T"From Date"
+      bb_usage_columns[2].header = T"End Date"
+      ngx.print(ui_helper.createTable(bb_usage_columns,summary_data,summary_options),
+    '<legend>',T("Daily Usage"),'</legend>');
+      bb_usage_columns[1].header = T"Period"
+      bb_usage_columns[2].header = T"Date"
+      ngx.print(ui_helper.createTable(bb_usage_columns,bb_usage_data,bb_usage_options,nil,bb_usage_helpmsg),'\
   </form>\
 </div>\
-');  ngx.print(ui_helper.createFooter());
+',ui_helper.createFooter());
