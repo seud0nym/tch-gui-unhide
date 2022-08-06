@@ -14,19 +14,18 @@ sed \
   -i $LTE_CARD
 echo [$SCRIPT]: Show Mobile Only Mode status
 sed \
-  -e 's/height: 25/height:20/' \
   -e '/\.card-label/a margin-bottom:0px;\\' \
   -e '/local light/i local proxy = require("datamodel")' \
   -e '/local light/i local primarywanmode = proxy.get("uci.wansensing.global.primarywanmode")' \
-  -e "/card_bg/a ');" \
-  -e '/card_bg/a if primarywanmode then' \
-  -e '/card_bg/a   if primarywanmode[1].value == "MOBILE" then' \
-  -e '/card_bg/a     ngx.print(ui_helper.createSimpleLight("1", T("Mobile Only Mode enabled")) );' \
-  -e '/card_bg/a   else' \
-  -e '/card_bg/a     ngx.print(ui_helper.createSimpleLight("0", T("Mobile Only Mode disabled")) );' \
-  -e '/card_bg/a   end' \
-  -e '/card_bg/a end' \
-  -e "/card_bg/a ngx.print('\\\\" \
+  -e "/\"content\"/a ');" \
+  -e '/"content"/a if primarywanmode then' \
+  -e '/"content"/a   if primarywanmode[1].value == "MOBILE" then' \
+  -e '/"content"/a     ngx.print(ui_helper.createSimpleLight("1", T("Mobile Only Mode enabled")) );' \
+  -e '/"content"/a   else' \
+  -e '/"content"/a     ngx.print(ui_helper.createSimpleLight("0", T("Mobile Only Mode disabled")) );' \
+  -e '/"content"/a   end' \
+  -e '/"content"/a end' \
+  -e "/\"content\"/a ngx.print('\\\\" \
   -i $LTE_CARD
 
 echo [$SCRIPT]: Show LTE Network Registration and Service status
@@ -44,18 +43,20 @@ sed \
 sed \
   -e 's/\(p class="subinfos"\)>/\1 style="display:none;">/' \
   -e '/$\.\(post\|ajax\)/i\                                $("#mobiletab p.subinfos").show();\\' \
-  -e '/"subinfos"/a\				<div style="height: 20px;" data-bind="visible: registrationStatus().length > 0">\\' \
+  -e '/"subinfos"/a\				<div style="height: 17px;" data-bind="visible: registrationStatus().length > 0">\\' \
   -e "/\"subinfos\"/a\					<label class=\"card-label\">'); ngx.print(T\"Network\"..\":\"); ngx.print('</label>\\\\" \
   -e '/"subinfos"/a\					<div class="controls">\\' \
   -e '/"subinfos"/a\						<strong data-bind="text: registrationStatus"></strong>\\' \
   -e '/"subinfos"/a\					</div>\\' \
   -e '/"subinfos"/a\				</div>\\' \
-  -e '/<\/p>/i\				<div style="height: 20px;" data-bind="visible: unreadSMS().length > 0">\\' \
+  -e '/<\/p>/i\				<div style="height: 17px;" data-bind="visible: unreadSMS().length > 0">\\' \
   -e "/<\/p>/i\					<label class=\"card-label modal-link\" data-toggle=\"modal\" data-remote=\"modals/lte-sms.lp\" data-id=\"lte-sms\">'); ngx.print(T\"Unread SMS\"..\":\" ); ngx.print('</label>\\\\" \
   -e '/<\/p>/i\					<div class="controls">\\' \
   -e '/<\/p>/i\						<strong data-bind="text: unreadSMS"></strong>\\' \
   -e '/<\/p>/i\					</div>\\' \
   -e '/<\/p>/i\				</div>\\' \
+  -e '/float:/a\                height: 17px;\\' \
+  -e 's/height: 25/height:17/' \
   -e '/this.deviceStatus/a\			this.registrationStatus = ko.observable("");\\' \
   -e '/this.deviceStatus/a\			this.unreadSMS = ko.observable("");\\' \
   -e '/elementCSRFtoken/a\					if(data.registration_status != undefined) {\\' \
