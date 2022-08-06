@@ -11,16 +11,17 @@ local tonumber = tonumber
 
 local M = {}
 
-local function getCurrentWANInterface()
-  local wan_intf = "wan"
+local function getActiveWANInterfaces()
+  local wan_intf = {}
   local content_wan = {
     wwan_ipaddr = "rpc.network.interface.@wwan.ipaddr",
     wwan_ip6addr = "rpc.network.interface.@wwan.ip6addr",
   }
   content_helper.getExactContent(content_wan)
   if content_wan.wwan_ipaddr:len() ~= 0 or content_wan.wwan_ip6addr:len() ~= 0 then
-    wan_intf = "wwan"
+    wan_intf[#wan_intf+1] = "wwan"
   end
+  wan_intf[#wan_intf+1] = "wan"
   return wan_intf
 end
 
@@ -58,8 +59,8 @@ function M.getBroadbandCardHTML(wansensing)
         if stats.carrier ~= "0" then
           intf_state = "connected"
           connected_iface = connected_iface.." "..iface
-        else
-          intf_state = intf_state ~= "connected" and "disconnected"
+        elseif intf_state ~= "connected" then
+          intf_state = "disconnected"
         end
       end
     end
@@ -105,29 +106,31 @@ function M.getBroadbandCardHTML(wansensing)
       tx_bytes = 0,
       total_bytes = 0,
     }
-    local wan_intf = getCurrentWANInterface()
-    local wan_ifname = wan_data["wan_ifname"]
-    local rpc_ifname = proxy.get("rpc.network.interface.@"..wan_intf..".ifname")
-    if rpc_ifname then
-      local path = format("%s_%s",os.date("%F"),rpc_ifname[1].value)
-      local rx_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".rx_bytes")
-      if rx_bytes then
-        content_rpc.rx_bytes = rx_bytes[1].value
-        content_rpc.tx_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".tx_bytes")[1].value
-        content_rpc.total_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".total_bytes")[1].value
-      else
-        content_rpc.rx_bytes = tonumber(proxy.get("rpc.network.interface.@"..wan_intf..".rx_bytes")[1].value)
-        content_rpc.tx_bytes = tonumber(proxy.get("rpc.network.interface.@"..wan_intf..".tx_bytes")[1].value)
-        content_rpc.total_bytes = content_rpc.rx_bytes + content_rpc.tx_bytes
+    local wan_intf
+    for _,v in pairs(getActiveWANInterfaces()) do
+      local rpc_ifname = proxy.get("rpc.network.interface.@"..v..".ifname")
+      if rpc_ifname then
+        wan_intf = v
+        local path = format("%s_%s",os.date("%F"),rpc_ifname[1].value)
+        local rx_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".rx_bytes")
+        if rx_bytes then
+          content_rpc.rx_bytes = content_rpc.rx_bytes + rx_bytes[1].value
+          content_rpc.tx_bytes = content_rpc.tx_bytes + proxy.get("rpc.gui.traffichistory.usage.@"..path..".tx_bytes")[1].value
+        else
+          content_rpc.rx_bytes = content_rpc.rx_bytes + tonumber(proxy.get("rpc.network.interface.@"..v..".rx_bytes")[1].value)
+          content_rpc.tx_bytes = content_rpc.tx_bytes + tonumber(proxy.get("rpc.network.interface.@"..v..".tx_bytes")[1].value)
+        end
       end
     end
+    content_rpc.total_bytes = content_rpc.rx_bytes + content_rpc.tx_bytes
 
+    local wan_ifname = wan_data["wan_ifname"]
     local up = false
     if (mobile and wired) or not mobile then
       if not wired or (wan_ifname and (find(wan_ifname,"ptm") or find(wan_ifname,"atm"))) then
         if wan_data["dsl_status"] == "Up" then
           up = true
-          html[#html+1] = ui_helper.createSimpleLight("1","DSL connected")
+          html[#html+1] = ui_helper.createSimpleLight("1","Fixed DSL connected")
           -- After disabling broadband the page immediately refreshes. At this time the state is still up but the line
           -- rate is already cleared.
           local rate_up = tonumber(wan_data["dsl_linerate_up"])
@@ -139,23 +142,23 @@ function M.getBroadbandCardHTML(wansensing)
           end
           status = "up"
         elseif wan_data["dsl_status"] == "NoSignal" then
-          html[#html+1] = ui_helper.createSimpleLight("4","DSL disconnected")
+          html[#html+1] = ui_helper.createSimpleLight("4","Fixed DSL disconnected")
           status = "down"
         elseif wan_data["dsl0_enabled"] == "0" then
-          html[#html+1] = ui_helper.createSimpleLight("0","DSL disabled")
+          html[#html+1] = ui_helper.createSimpleLight("0","Fixed DSL disabled")
           status = "disabled"
         else
-          html[#html+1] = ui_helper.createSimpleLight("2","DSL connecting")
+          html[#html+1] = ui_helper.createSimpleLight("2","Fixed DSL connecting")
           status = "connecting"
         end
       end
       if not wired or (wan_ifname and find(wan_ifname,"eth")) then
         if wan_data["ethwan_status"] == "up" then
           up = true
-          html[#html+1] = ui_helper.createSimpleLight("1","Ethernet connected")
+          html[#html+1] = ui_helper.createSimpleLight("1","Fixed Ethernet connected")
           status = "up"
         else
-          html[#html+1] = ui_helper.createSimpleLight("4","Ethernet disconnected")
+          html[#html+1] = ui_helper.createSimpleLight("4","Fixed Ethernet disconnected")
           status = "down"
         end
       end
@@ -177,19 +180,17 @@ function M.getBroadbandCardHTML(wansensing)
         else
           html[#html+1] = ui_helper.createSimpleLight("0","VLAN "..vlanid.." inactive")
         end
-      else
-        html[#html+1] = ui_helper.createSimpleLight("0","No VLAN defined")
       end
     end
     if mobiled_state["mob_session_state"] == "connected" then
-      html[#html+1] = ui_helper.createSimpleLight("1","Mobile Internet connected")
+      html[#html+1] = ui_helper.createSimpleLight("1","Mobile SIM connected")
       status = "up"
     elseif mobile then
-      html[#html+1] = ui_helper.createSimpleLight("4","Mobile Internet disconnected")
+      html[#html+1] = ui_helper.createSimpleLight("4","Mobile SIM disconnected")
       status = "down"
     end
-    if rpc_ifname then
-      html[#html+1] = format('<span class="simple-desc modal-link" data-toggle="modal" data-remote="/modals/broadband-usage-modal.lp" data-id="bb-usage-modal" style="padding-top:5px"><span class="icon-small status-icon">&udarr;</span>%s&ensp;<i class="icon-cloud-upload status-icon"></i> %s&ensp;<i class="icon-cloud-download status-icon"></i> %s</span>',
+    if wan_intf then
+      html[#html+1] = format('<span class="simple-desc modal-link" data-toggle="modal" data-remote="/modals/broadband-usage-modal.lp?wan_intf='..wan_intf..'" data-id="bb-usage-modal" style="padding-top:5px"><span class="icon-small status-icon">&udarr;</span>%s&ensp;<i class="icon-cloud-upload status-icon"></i> %s&ensp;<i class="icon-cloud-download status-icon"></i> %s</span>',
         common.bytes2string(content_rpc.total_bytes),common.bytes2string(content_rpc.tx_bytes),common.bytes2string(content_rpc.rx_bytes))
     end
   end
