@@ -114,14 +114,14 @@ local summary_data = {
 
 local function to_megabytes(val)
   local mb = tonumber(val) / 1048576
-  local rounded = tostring(floor((mb * 10^2) + 0.5) / (10^2))
+  local rounded = floor((mb * 10^2) + 0.5) / (10^2)
   local left,num,right = match(rounded,'^([^%d]*%d)(%d*)(.-)$')
   if (#right == 0) then
     right = ".00"
   elseif (#right < 3) then
     right = right..sub("000",1,3-#right)
   end
-  return tonumber(left..(num:reverse():gsub('(%d%d%d)','%1,'):reverse())..right)
+  return left..(num:reverse():gsub('(%d%d%d)','%1,'):reverse())..right
 end
 
 local bb_usage_filter = function(data)
@@ -160,9 +160,9 @@ end
 
 local bb_usage_data,bb_usage_helpmsg = post_helper.handleTableQuery(bb_usage_columns,bb_usage_options,bb_usage_filter,nil,nil)
 
-if summary_data[3][5] == 0 then
+if summary_data[3][5] == 0 then -- Previous Month Total
   table.remove(summary_data,3)
-  if summary_data[2][5] == 0 then
+  if summary_data[2][5] == 0 then -- Last Month Total
     table.remove(summary_data,2)
   end
 end
