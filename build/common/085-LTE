@@ -28,17 +28,22 @@ sed \
   -e "/\"content\"/a ngx.print('\\\\" \
   -i $LTE_CARD
 
-echo [$SCRIPT]: Show LTE Network Registration and Service status
+echo [$SCRIPT]: Show LTE Service Provider, Network Registration and Service status
 sed \
-  -e 's/\(, signal_quality\)/\1, registration_status, unread_sms/' \
+  -e 's/\(, signal_quality\)/\1, registration_status, unread_sms, service_provider/' \
   -e '/radio_interface_map/a\			result = utils.getContent(rpc_path .. "network.serving_system.nas_state")' \
   -e '/radio_interface_map/a\			registration_status = utils.nas_state_map[result.nas_state]' \
   -e '/radio_interface_map/a\			result = utils.getContent("rpc.mobiled.sms.info.unread_messages")' \
   -e '/radio_interface_map/a\			if result.unread_messages and (tonumber(result.unread_messages) or 0) > 0 then' \
   -e '/radio_interface_map/a\			  unread_sms = result.unread_messages' \
   -e '/radio_interface_map/a\			end' \
+  -e '/radio_interface_map/a\			result = utils.getContent(rpc_path .. "network.serving_system.network_desc")' \
+  -e '/radio_interface_map/a\			if result.network_desc then' \
+  -e '/radio_interface_map/a\			  service_provider = string.match(result.network_desc,"^(%S+)")' \
+  -e '/radio_interface_map/a\			end' \
   -e '/local data =/a\	registration_status = registration_status or "",' \
   -e '/local data =/a\	unread_sms = unread_sms or "",' \
+  -e '/local data =/a\	service_provider = service_provider or "",' \
   -i /www/docroot/ajax/mobiletab.lua
 sed \
   -e 's/\(p class="subinfos"\)>/\1 style="display:none;">/' \
@@ -59,11 +64,15 @@ sed \
   -e 's/height: 25/height:17/' \
   -e '/this.deviceStatus/a\			this.registrationStatus = ko.observable("");\\' \
   -e '/this.deviceStatus/a\			this.unreadSMS = ko.observable("");\\' \
+  -e '/this.deviceStatus/a\			this.service_provider = ko.observable("");\\' \
   -e '/elementCSRFtoken/a\					if(data.registration_status != undefined) {\\' \
   -e '/elementCSRFtoken/a\						self.registrationStatus(data.registration_status);\\' \
   -e '/elementCSRFtoken/a\					}\\' \
   -e '/elementCSRFtoken/a\					if(data.unread_sms != undefined) {\\' \
   -e '/elementCSRFtoken/a\						self.unreadSMS(data.unread_sms);\\' \
+  -e '/elementCSRFtoken/a\					}\\' \
+  -e '/elementCSRFtoken/a\					if(data.service_provider != undefined) {\\' \
+  -e '/elementCSRFtoken/a\						$("#Mobile_tab").text("Mobile ").append("<span style=\\\\"font-size:x-small\\\\">"+data.service_provider+"</span>");\\' \
   -e '/elementCSRFtoken/a\					}\\' \
   -i $LTE_CARD
 
