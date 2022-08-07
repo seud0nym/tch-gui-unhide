@@ -3,7 +3,7 @@ local json = require("dkjson")
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
-local format = string.format
+local format,gsub = string.format,string.gsub
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
@@ -46,8 +46,8 @@ else
       local interface_pn = proxy.getPN("rpc.network.interface.",true)
       for _,v in pairs(interface_pn or {}) do
         if v.path then
-          local ifconfig = proxy.get(v.path.."type",v.path.."available")
-          if ifconfig[1].value == "wan" and ifconfig[2].value == "1" then
+          local ifconfig = proxy.get(v.path.."type",v.path.."available",gsub(v.path,"^rpc","uci").."peerdns")
+          if ifconfig[1].value == "wan" and ifconfig[2].value == "1" and ifconfig[3].value ~= "0" then
             dnsservers_paths[#dnsservers_paths + 1] = v.path.."dnsservers"
           end
         end

@@ -30,6 +30,9 @@ local add_options = {
   { text = "Select from known IPv6 DNS Servers", values = {} },
 }
 
+local result = require("web.lte-utils").getContent("rpc.mobiled.DeviceNumberOfEntries")
+local devices = tonumber(result.DeviceNumberOfEntries) or 0
+
 local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
 local dnsmasq_path = dns_helper.dnsmasq_path
 
@@ -45,7 +48,11 @@ if not isBridgedMode then
   dns_params["uci_wan_peerdns"] = "uci.network.interface.@wan.peerdns"
   dns_params["uci_wan6_peerdns"] = "uci.network.interface.@wan6.peerdns"
   dns_valid["uci_wan_peerdns"] = vB
-  dns_valid["uci_wan6_peerdns"] = vB  
+  dns_valid["uci_wan6_peerdns"] = vB
+  if devices > 0 then
+    dns_params["uci_wwan_peerdns"] = "uci.network.interface.@wwan.peerdns"
+    dns_valid["uci_wwan_peerdns"] = vB
+  end
 end
 
 local dns_config,dns_config_helpmsg = post_helper.handleQuery(dns_params,dns_valid)
@@ -55,6 +62,9 @@ if not isBridgedMode then
   end
   if dns_config["uci_wan6_peerdns"] == "" then
     dns_config["uci_wan6_peerdns"] = "1"
+  end
+  if devices > 0 and dns_config["uci_wwan_peerdns"] == "" then
+    dns_config["uci_wwan_peerdns"] = "1"
   end
 end
 
@@ -131,7 +141,7 @@ end
 
 local custom_dns_data,custom_dns_helpmsg = dns_helper.handleDNSTableQuery(custom_dns_columns,custom_dns_options,nil,nil,custom_dns_valid)
 
-local current_dns,ipv4DNScolumns,ipv4DNSoptions,ipv4DNSdata,ipv4DNShelpmsg,ipv6DNScolumns,ipv6DNSoptions,ipv6DNSdata,ipv6DNShelpmsg
+local current_dns,ipv4DNScolumns,ipv4DNSoptions,ipv4DNSdata,ipv4DNShelpmsg,ipv6DNScolumns,ipv6DNSoptions,ipv6DNSdata,ipv6DNShelpmsg,wwanDNScolumns,wwanDNSoptions,wwanDNSdata,wwanDNShelpmsg
 
 local ipv4pattern = "^(((([1]?\\d)?\\d|2[0-4]\\d|25[0-5])\\.){3}(([1]?\\d)?\\d|2[0-4]\\d|25[0-5]))$"
 ipv4DNScolumns = {
@@ -140,7 +150,7 @@ ipv4DNScolumns = {
     name = "wanDnsParam",
     param = "value",
     type = "text",
-    attr = { input = { class="span2",maxlength="15",pattern = ipv4pattern } },
+    attr = { input = { class="span2",maxlength="15",pattern=ipv4pattern } },
   },
 }
 ipv4DNSoptions = {
@@ -149,7 +159,7 @@ ipv4DNSoptions = {
   canDelete = true,
   tableid = "dns4server",
   basepath = "uci.network.interface.@wan.dns.@.",
-  createMsg = T"Add IPv4 DNS Server",
+  createMsg = T"Add IPv4 Interface DNS Server",
   minEntries = 0,
   maxEntries = 4,
   sorted = function(a,b)
@@ -176,7 +186,7 @@ if not isBridgedMode then
     canDelete = true,
     tableid = "dns6server",
     basepath = "uci.network.interface.@wan6.dns.@.",
-    createMsg = T"Add IPv6 DNS Server",
+    createMsg = T"Add Interface IPv6 DNS Server",
     minEntries = 0,
     maxEntries = 4,
     sorted = function(a,b)
@@ -193,14 +203,47 @@ if not isBridgedMode then
     ipv4 = "rpc.network.interface.@wan.dnsservers",
     ipv6 = "rpc.network.interface.@wan6.dnsservers",
   }
+
+  if devices > 0 then
+    wwanDNScolumns = {
+      {
+        header = T"DNS Server Address",
+        name = "wanDnsParam",
+        param = "value",
+        type = "text",
+        attr = { input = { class="span2",maxlength="39" } },
+      },
+    }
+    wwanDNSoptions = {
+      canEdit = true,
+      canAdd = true,
+      canDelete = true,
+      tableid = "dnsWWANserver",
+      basepath = "uci.network.interface.@wwan.dns.@.",
+      createMsg = T"Add WWAN Interface DNS Server",
+      minEntries = 0,
+      maxEntries = 4,
+      sorted = function(a,b)
+        return tonumber(a.paramindex) < tonumber(b.paramindex)
+      end
+    }
+    local wwanDNSvalid = {
+      wanDnsParam =  vSII,
+    }
+    wwanDNSdata,wwanDNShelpmsg = post_helper.handleTableQuery(wwanDNScolumns,wwanDNSoptions,nil,nil,wwanDNSvalid)
+
+    current_dns["wwan"] = "rpc.network.interface.@wwan.dnsservers"
+  end
+
+  local dnstab = split(proxy.get("rpc.network.interface.@loopback.dnsservers")[1].value,"[^%,]+")
   ajax_helper.handleAjaxQuery(current_dns,function(c)
-    local dnstab = split(proxy.get("rpc.network.interface.@loopback.dnsservers")[1].value,"[^%,]+")
-    local dnsv4,dnsv6 = "",""
+    local dnsv4,dnsv6,all = "","",""
     for _,v in ipairs(dnstab) do
+      all = all..format("%s,",v)
       if match(v,"^%d+%.%d+%.%d+%.%d+$") then
-        dnsv4=dnsv4..format("%s,",v)
+        dnsv4 = dnsv4..format("%s,",v)
       else
-        dnsv6=dnsv6..format("%s,",v)
+        dnsv6 = dnsv6..format("%s,",v)
       end
     end
     if #dnsv4 > 1 then
@@ -208,6 +251,9 @@ if not isBridgedMode then
     end
     if #dnsv6 > 1 then
       dnsv6 = string.sub(dnsv6,1,#dnsv6-1)
+    end
+    if #all > 1 then
+      all = string.sub(all,1,#all-1)
     end
     if proxy.get("uci.network.interface.@wan.auto")[1].value ~= "0" then
       c["ipv4"] = content_helper.getMergedList(proxy.get("rpc.network.interface.@wan.dnsservers")[1].value,dnsv4)
@@ -218,6 +264,12 @@ if not isBridgedMode then
     if ipv6_enabled and ipv6_enabled[1].value == "1" then
       c["ipv6"] = content_helper.getMergedList(proxy.get("rpc.network.interface.@wan6.dnsservers")[1].value,dnsv6)
     end
+    if devices > 0 then
+      local wwan_enabled = proxy.get("uci.network.interface.@wwan.enabled")
+      if wwan_enabled and wwan_enabled[1].value == "1" then
+        c["wwan"] = content_helper.getMergedList(proxy.get("rpc.network.interface.@wwan.dnsservers")[1].value,all)
+      end
+    end
   end)
   -- will stop in handleAjaxQuery if it is an actual AJAX query
   content_helper.getExactContent(current_dns)
@@ -226,6 +278,9 @@ if not isBridgedMode then
   end
   if current_dns["ipv6"] and current_dns["ipv6"]:len() > 0 then
     current_dns["ipv6"] = current_dns["ipv6"]:gsub("%s+","")
+  end
+  if current_dns["wwan"] and current_dns["wwan"]:len() > 0 then
+    current_dns["wwan"] = current_dns["wwan"]:gsub("%s+","")
   end
 end
 
@@ -240,7 +295,7 @@ ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
       <fieldset>\
         <legend>'); ngx.print(T"Configuration"); ngx.print('</legend>\
         ');
-        ngx.print(ui_helper.createSwitch(T"Ignore Interface DNS<span class='icon-question-sign' title='When ON,do NOT fallback to the Interface DNS Servers if the Custom DNS Servers fail to respond.'></span>","noresolv",dns_config["noresolv"],nil,dns_config_helpmsg["noresolv"]))
+        ngx.print(ui_helper.createSwitch(T"Ignore Interface DNS<span class='icon-question-sign' title='When ON, do NOT fallback to the Interface DNS Servers if the Custom DNS Servers fail to respond.'></span>","noresolv",dns_config["noresolv"],nil,dns_config_helpmsg["noresolv"]))
         ngx.print(ui_helper.createSwitch(T"Log Queries","logqueries",dns_config["logqueries"],nil,dns_config_helpmsg["logqueries"]))
         ngx.print('\
       </fieldset>\
@@ -284,6 +339,15 @@ ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
         ajax_attr.span.id = "ipv6"
         ngx.print(ui_helper.createLabel(T"WAN6 DNS Servers",current_dns["ipv6"],ajax_attr))
         ngx.print(ui_helper.createTable(ipv6DNScolumns,ipv6DNSdata,ipv6DNSoptions,nil,ipv6DNShelpmsg))
+        if devices > 0 then
+          ngx.print('\
+            <legend><small>'); ngx.print(T"WWAN Interface DNS Servers"); ngx.print('</small></legend>\
+          ');
+          ngx.print(ui_helper.createSwitch(T"Auto-Discover WWAN DNS","uci_wwan_peerdns",dns_config["uci_wwan_peerdns"],nil,dns_config_helpmsg["uci_wwan_peerdns"]))
+          ajax_attr.span.id = "wwan"
+          ngx.print(ui_helper.createLabel(T"WWAN DNS Servers",current_dns["wwan"],ajax_attr))
+          ngx.print(ui_helper.createTable(wwanDNScolumns,wwanDNSdata,wwanDNSoptions,nil,wwanDNShelpmsg))
+        end
         ngx.print('\
       </fieldset>\
       ');
