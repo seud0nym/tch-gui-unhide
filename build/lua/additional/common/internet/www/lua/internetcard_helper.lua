@@ -5,8 +5,9 @@ local find,format,gsub = string.find,string.format,string.gsub
 
 
 local items = {
-  ["OK"] = {"1", T"Fixed Broadband Service online",},
-  ["OK_LTE"] = {"1", T"Mobile Broadband Service online"},
+  ["OK"] = {"1", T"Fixed Broadband online",},
+  ["OK_LTE"] = {"1", T"Mobile Broadband online"},
+  ["OK_BOTH"] = {"1", T"Fixed + Mobile Broadband online"},
   ["OFF"] = {"2", T"Broadband Service disabled",},
   ["E_NO_PRE"] = {"4", T"Broadband Service down", "<ol><li>Check that your Telephone or Ethernet cable is firmly connected to the correct port, the Filter on the Telephone socket or the Ethernet socket on the wall.</li><li>Check that your username is correct and re-enter your password <a aria-label='Page redirection for Internet Access Modal' href=/gateway.lp?openmodal=internet-modal.lp>here</a>.</li><li>Restart.</li></ol>",},
   ["E_PPP_DSL"] = {"4", T"Broadband Service down", "<ol><li>Check that your Telephone cable is firmly connected to the correct port or the Filter on the telephone socket on the wall.</li><li>Check that your username is correct and re-enter your password <a aria-label='Page redirection for Internet Access Modal' href=/gateway.lp?openmodal=internet-modal.lp>here</a>.</li><li>Restart.</li></ol>",},
@@ -18,38 +19,7 @@ local items = {
 local M = {}
 
 function M.getInternetCardHTML(mode_active)
-  local mobile_status = {
-    wwan_up = "rpc.network.interface.@wwan.up",
-  }
-  content_helper.getExactContent(mobile_status)
-
   local msg_key = "E_NO_PRE"
-  local mobile_ip
-  local mobile_dns
-  if mobile_status.wwan_up == "1" then
-    msg_key = "OK_LTE"
-    local content_mobile = {
-      ipaddr = "rpc.network.interface.@wwan.ipaddr",
-      ip6addr = "rpc.network.interface.@wwan.ip6addr",
-      dns = "rpc.network.interface.@wwan.dnsservers",
-      rx_bytes = "rpc.network.interface.@wwan.rx_bytes",
-      tx_bytes = "rpc.network.interface.@wwan.tx_bytes",
-    }
-    content_helper.getExactContent(content_mobile)
-    if content_mobile.ipaddr ~= "" then
-      mobile_ip = content_mobile.ipaddr
-      mobile_dns = content_mobile.dns
-    elseif content_mobile.ip6addr ~= "" then
-      mobile_ip = content_mobile.ip6addr
-      mobile_dns = gsub(content_mobile.dns,",",",")
-    end
-    if tonumber(content_mobile.rx_bytes) * 100 < tonumber(content_mobile.tx_bytes) then
-      mobile_status["wwan_up"] = "2"
-      mobile_status["state"] = "Mobile SIM disabled?"
-    else
-      mobile_status["state"] = "Mobile Internet connected"
-    end
-  end
 
   local ws_content = {
     primarywanmode = "uci.wansensing.global.primarywanmode",
@@ -71,9 +41,9 @@ function M.getInternetCardHTML(mode_active)
 
   local html = {""}
 
-  local function addIPs(ipaddr,ip6addr,ipv6uniqueglobaladdr,ipv6uniquelocaladdr,ip6prefix)
+  local function addIPs(source,ipaddr,ip6addr,ipv6uniqueglobaladdr,ipv6uniquelocaladdr,ip6prefix)
     html[#html+1] = '<p class="subinfos" style="margin-bottom:1px;line-height:14px;">'
-    html[#html+1] = format(T'WAN IP: <strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>',ipaddr)
+    html[#html+1] = format(T'%s IP: <strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>',source,ipaddr)
     if ip6addr and ip6addr ~= "" then
       local addr = ip6addr
       if find(ip6addr," ") then
@@ -142,12 +112,12 @@ function M.getInternetCardHTML(mode_active)
         dhcp_state = "disabled"
       end
 
-      html[#html+1] = ui_helper.createSimpleLight(nil,dhcp_state_map[dhcp_state],{ light = { class = dhcp_light_map[dhcp_state] } })
       if dhcp_state == "connected" then
         msg_key = "OK"
-        addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+        addIPs("DHCP WAN",cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
       else
         msg_key = "E_DHCP_"..L2
+        html[#html+1] = ui_helper.createSimpleLight(nil,dhcp_state_map[dhcp_state],{ light = { class = dhcp_light_map[dhcp_state] } })
       end
     -- PPOE
     elseif mode_active == "pppoe" then
@@ -207,10 +177,11 @@ function M.getInternetCardHTML(mode_active)
         ppp_status = "disabled"
         msg_key = "OFF"
       end
-      html[#html+1] = ui_helper.createSimpleLight(nil,ppp_state_map[ppp_status],{ light = { class = ppp_light_map[ppp_status] } })
       if ppp_status == "connected" then
-        addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+        addIPs("PPP WAN",cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
         msg_key = "OK"
+      else
+        html[#html+1] = ui_helper.createSimpleLight(nil,ppp_state_map[ppp_status],{ light = { class = ppp_light_map[ppp_status] } })
       end
     -- STATIC
     elseif mode_active == "static" then
@@ -233,57 +204,71 @@ function M.getInternetCardHTML(mode_active)
         content_helper.getExactContent(wan_data)
         if wan_data["wan_ifname"] and (find(wan_data["wan_ifname"],"ptm0") or find(wan_data["wan_ifname"],"atm")) then
           if wan_data["dsl_status"] == "Up" then
-            html[#html+1] = ui_helper.createSimpleLight("1","Connected with Static IP")
-            addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+            addIPs("Static WAN",cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
             msg_key = "OK"
           elseif wan_data["dsl_status"] == "NoSignal" then
-            html[#html+1] = ui_helper.createSimpleLight("4","Static IP but disconnected")
-            addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+            html[#html+1] = ui_helper.createSimpleLight("4","Disconnected")
+            addIPs("Static WAN",cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
             msg_key = "E_NO_PRE"
           elseif wan_data["dsl0_enabled"] == "0" then
             html[#html+1] = ui_helper.createSimpleLight("0","Static IP connection disabled")
-            addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+            addIPs("Static WAN",cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
             msg_key = "OFF"
           else
-            html[#html+1] = ui_helper.createSimpleLight("2","Trying to connect with Static IP...")
-            addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+            html[#html+1] = ui_helper.createSimpleLight("2","Trying to connect...")
+            addIPs("Static WAN",cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
             msg_key = "E_NO_PRE"
           end
         end
         if wan_data["wan_ifname"] and find(wan_data["wan_ifname"],"eth") then
           if wan_data["ethwan_status"] == "up" then
-            html[#html+1] = ui_helper.createSimpleLight("1","Connected with Static IP")
-            addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+            addIPs("Static WAN",cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
             msg_key = "OK"
           else
-            html[#html+1] = ui_helper.createSimpleLight("4","Static IP but disconnected")
-            addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+            html[#html+1] = ui_helper.createSimpleLight("4","Disconnected")
+            addIPs("Static WAN",cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
             msg_key = "E_NO_PRE"
           end
         end
       else
         html[#html+1] = ui_helper.createSimpleLight("0","Static IP connection disabled")
-        addIPs(cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
+        addIPs("Static WAN",cs["ipaddr"],cs["ip6addr"],cs["ipv6uniqueglobaladdr"],cs["ipv6uniquelocaladdr"],cs["wan6_prefix"])
         msg_key = "OFF"
       end
     end
   end
 
-  local fixed_status = msg_key
-  if mobile_ip then
-    html[#html+1] = ui_helper.createSimpleLight(mobile_status["wwan_up"],mobile_status["state"])
-    addIPs(mobile_ip,nil,mobile_dns,nil,nil)
-    if mobile_status["wwan_up"] == "1" or mobile_status["wwan_up"] == "2" then
+  local mobile_status = {
+    wwan_up = "rpc.network.interface.@wwan.up",
+  }
+  content_helper.getExactContent(mobile_status)
+  if mobile_status.wwan_up == "1" then
+    if msg_key == "OK" then
+      msg_key = "OK_BOTH"
+    else
       msg_key = "OK_LTE"
     end
+    local content_mobile = {
+      ipaddr = "rpc.network.interface.@wwan.ipaddr",
+      ip6addr = "rpc.network.interface.@wwan.ip6addr",
+      ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
+      ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
+      wan6_prefix = "rpc.network.interface.@wwan.ip6prefix",
+      rx_bytes = "rpc.network.interface.@wwan.rx_bytes",
+      tx_bytes = "rpc.network.interface.@wwan.tx_bytes",
+    }
+    content_helper.getExactContent(content_mobile)
+    if tonumber(content_mobile.rx_bytes) * 100 < tonumber(content_mobile.tx_bytes) then
+      html[#html+1] = ui_helper.createSimpleLight("2","Mobile SIM disabled?")
+    end
+
+    addIPs("SIM WWAN",content_mobile.ipaddr,content_mobile.ip6addr,content_mobile.ipv6uniqueglobaladdr,content_mobile.ipv6uniquelocaladdr,content_mobile.wan6_prefix)
   end
 
-  if not (fixed_status == "OK" and msg_key == "OK_LTE") then
-    local item = items[msg_key] or items["E_NO_PRE"]
-    html[1] = ui_helper.createSimpleLight(item[1],item[2])
-    if item[3] then
-      html[#html+1] = format('<div>%s</div>',item[3])
-    end
+  local item = items[msg_key] or items["E_NO_PRE"]
+  html[1] = ui_helper.createSimpleLight(item[1],item[2])
+  if item[3] then
+    html[#html+1] = format('<div>%s</div>',item[3])
   end
 
   return html
