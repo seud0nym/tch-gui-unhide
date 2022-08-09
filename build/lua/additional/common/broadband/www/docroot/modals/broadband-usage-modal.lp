@@ -27,18 +27,19 @@ local content = {
   ifname = "rpc.network.interface.@"..wan_intf..".ifname",
 }
 content_helper.getExactContent(content)
+if content.ifname == "" and wan_intf == "wwan" then
+  content.ifname = "wwan0"
+end
 
 local mapParams = {
   rollover_day = "rpc.gui.traffichistory."..wan_intf.."_rollover",
 }
-
 local mapValid = {
   rollover_day = post_helper.getValidateNumberInRange(1,31),
 }
-
 local content_rollover = post_helper.handleQuery(mapParams,mapValid)
 
-local day = tonumber(untaint(content_rollover.rollover_day))
+local day = tonumber(untaint(content_rollover.rollover_day)) or 1
 local this,last,prev,ignr
 local today = date("*t")
 if (today.day < day) then
