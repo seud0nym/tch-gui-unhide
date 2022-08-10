@@ -109,7 +109,9 @@ local range,helpmes
 if ngx.var.request_method == "POST" then
   local content = ngx.req.get_post_args()
   if content["action"]=="SAVE" then
-    range,helpmes = getValidateNumberInRange(2,2048,content["intf_vlanid"])
+    if content["intf_vlan"]~="0" then
+      range,helpmes = getValidateNumberInRange(2,2048,content["intf_vlanid"])
+    end
     if content["auswahlliste"] == "devnot" then
       if range and (content["intf_vlanid"]~=vid or content["intf_vlan"]~="0") then
         if proxy.get(path) then
@@ -213,6 +215,7 @@ else
     b = match(difname,"[%w]+")
   else
     b = "empty"
+    difname = "0"
   end
 end
 
@@ -220,7 +223,7 @@ ngx.print('\
 <fieldset>\
   <legend>'); ngx.print( T"Internet Channel" ); ngx.print('</legend>');
 
-  local liste = {
+  local notations = {
     {"devnot",T"Device &nbsp;"},
     {"dotnot",T"Dot &nbsp;"}
   }
@@ -230,7 +233,7 @@ ngx.print('\
     input = {
       class = "monitor-changes"
     },
-    values = {on = b,off = ""},
+    values = {on = b,off = "0"},
   }
   local vlanidclass = {
     group = {
@@ -246,7 +249,7 @@ ngx.print('\
     html[#html + 1] = ui_helper.createAlertBlock(T"WAN Sensing may not inter-operate correctly with VLAN. Disable WAN Sensing and select Connection Mode first, before setting VLAN ID.",alertclass)
   end
   html[#html + 1] = ui_helper.createSwitch(T"Using VLAN","intf_vlan",difname,vlanswitchclass)
-  html[#html + 1] = ui_helper.createInputRadio(T"Notation","auswahlliste" ,liste,check,vlanidclass)
+  html[#html + 1] = ui_helper.createInputRadio(T"Notation","auswahlliste" ,notations,check,vlanidclass)
   html[#html + 1] = ui_helper.createInputText(T"VLAN ID","intf_vlanid",vid,vlanidclass,helpmes)
   ngx.print(html)
 
