@@ -12,14 +12,15 @@ sed \
   -e '/require("web.lte-utils")/a if devices and devices > 0 then' \
   -e '$ a end' \
   -i $LTE_CARD
-echo [$SCRIPT]: Show Mobile Only Mode status
+
+echo [$SCRIPT]: Show Mobile Only Mode status on Mobile card
 sed \
   -e '/\.card-label/a margin-bottom:0px;\\' \
   -e '/local light/i local proxy = require("datamodel")' \
-  -e '/local light/i local primarywanmode = proxy.get("uci.wansensing.global.primarywanmode")' \
+  -e '/local light/i local primarywanmode = proxy.get("uci.wansensing.global.enable","uci.wansensing.global.primarywanmode")' \
   -e "/\"content\"/a ');" \
-  -e '/"content"/a if primarywanmode then' \
-  -e '/"content"/a   if primarywanmode[1].value == "MOBILE" then' \
+  -e '/"content"/a if primarywanmode and primarywanmode[1].value == "1" then' \
+  -e '/"content"/a   if primarywanmode[2].value == "MOBILE" then' \
   -e '/"content"/a     ngx.print(ui_helper.createSimpleLight("1", T("Mobile Only Mode enabled")) );' \
   -e '/"content"/a   else' \
   -e '/"content"/a     ngx.print(ui_helper.createSimpleLight("0", T("Mobile Only Mode disabled")) );' \
@@ -27,6 +28,13 @@ sed \
   -e '/"content"/a end' \
   -e "/\"content\"/a ngx.print('\\\\" \
   -i $LTE_CARD
+
+echo [$SCRIPT]: Hide Mobile Only Mode on Mobile Configuration screen is WAN Sensing disabled
+sed \
+  -e '/getExactContent(content_wansensing)/i\p.mapParams.wsenable = "uci.wansensing.global.enable"' \
+  -e '/Mobile Only Mode/i if page.content.wsenable == "1" then' \
+  -e '/Mobile Only Mode/a end' \
+  -i /www/docroot/modals/lte-modal.lp
 
 echo [$SCRIPT]: Show LTE Service Provider, Network Registration and Service status
 sed \
@@ -239,8 +247,14 @@ sed \
 
 echo [$SCRIPT]: Add new Mobile tabs
 sed \
-  -e '/{"lte-doctor.lp", T"Diagnostics"},/a\	{"lte-autofailover.lp", T"Auto-Failover"},' \
-  -e '/{"lte-doctor.lp", T"Diagnostics"},/a\	{"lte-operators.lp", T"Network Operators"},' \
+  -e '/lte-profiles.lp/a\	{"lte-operators.lp", T"Network Operators"},' \
+  -e '/^local uri/i\
+local proxy = require("datamodel")\
+local wsens = proxy.get("uci.wansensing.global.enable")\
+if wsens and wsens[1].value == "1" then\
+  tinsert(items,2,{"lte-autofailover.lp", T"Auto-Failover"})\
+end\
+' \
   -i /www/snippets/tabs-mobiled.lp
 
 echo [$SCRIPT]: Configure transformer for missing WanSensing settings
