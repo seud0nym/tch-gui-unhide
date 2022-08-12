@@ -199,7 +199,16 @@ if dns_int then
               local idx = proxy.add(lan_dns_path)
               proxySet(lan_dns_path.."@"..idx..".value",new_dest_ipv6)
               proxySet(path["Intercept-DNSv6"].."destIP",new_dest_ipv6)
-              proxySet("rpc.gui.firewall.dns6_intercept.add_exception",new_dest_ipv6)
+              local hosts = proxy.getPN("rpc.hosts.host.",true)
+              for _,v in ipairs(hosts) do
+                local addresses = proxy.get(v.path..'IPv6')
+                if addresses and addresses[1].value:find(new_dest_ipv6) then
+                  for address in addresses[1].value:gmatch('%S+') do
+                    proxySet("rpc.gui.firewall.dns6_intercept.add_exception",address)
+                  end
+                  break
+                end
+              end
               dest_ipv6 = new_dest_ipv6
             else
               proxySet(path["Intercept-DNSv6"].."destIP","")

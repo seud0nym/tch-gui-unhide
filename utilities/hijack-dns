@@ -241,7 +241,7 @@ unlock() {
   [ "$1" = "normally" ] && exit || exit 2
 }
 
-REQUIRED_FILES="/usr/sbin/doh-ipsets-maintain /usr/sbin/ipsets-restore /usr/sbin/tproxy-firewall /usr/sbin/tproxy-go /etc/init.d/tproxy"
+REQUIRED_FILES="/usr/sbin/doh-ipsets-maintain /usr/sbin/ipsets-restore /usr/sbin/tproxy-firewall /usr/sbin/tproxy-go /etc/init.d/tproxy /etc/hotplug.d/iface/60-add-IPv6-DNS-intercept-exceptions"
 
 upgrade() {
   if download master/utilities/$SCRIPT $SCRIPT; then
@@ -278,7 +278,7 @@ while getopts :4:6:d:x:rU-: option; do
           ip -4 route get $IPv4_DNS | grep -q br-lan && IPv4_EXC="$(echo $IPv4_EXC $IPv4_DNS | xargs)"
         elif [ "$IP_TYPE" = ":" -a "$(ip -6 route get $OPTARG 2>/dev/null | grep "dev \b[^ ]*\b" | wc -l)" -ne 0 ]; then
           IPv6_DNS="$OPTARG"
-          ip -6 route get $IPv6_DNS | grep -q br-lan && IPv6_EXC="$(echo $IPv6_EXC $IPv6_DNS | xargs)"
+          ip -6 route get $IPv6_DNS | grep -q br-lan && IPv6_EXC="$(echo $IPv6_EXC $(lua -e "proxy=require('datamodel') hosts=proxy.getPN('rpc.hosts.host.',true) if not hosts then hosts=proxy.getPN('sys.hosts.host.',true) end for _,v in ipairs(hosts) do addresses=proxy.get(v.path..'IPv6') if addresses and addresses[1].value:find('$IPv6_DNS') then print(addresses[1].value) break end end") | xargs)"
         else
           echo -e "[$SCRIPT]${RED} ERROR! IP Address specified for local DNS Server ($OPTARG) is not a valid IPv4 or IPv6 address${NC}"
           exit

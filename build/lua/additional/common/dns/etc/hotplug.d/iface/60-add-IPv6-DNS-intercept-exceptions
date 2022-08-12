@@ -1,0 +1,30 @@
+#!/bin/sh
+
+[ "$ACTION" = "ifup" ] || exit 0
+[ "$INTERFACE" = "wan6" -o "$INTERFACE" = "wwan" -o "$INTERFACE" = "wwan_6" ] || exit 0
+
+. /lib/functions.sh
+config_load tproxy
+config_get __ENABLED "config" "enabled" "0"
+[ "$__ENABLED" = "1" ] || exit 0
+config_get __DNSV6 "dnsv6" "enabled" "0"
+[ "$__DNSV6" = "1" ] || exit 0
+config_get __DESTIP "dnsv6" "destIP" ""
+[ -z "$__DESTIP" ] || exit 0
+
+echo "proxy = require('datamodel')
+hosts = proxy.getPN('sys.hosts.host.',true)
+if not hosts then 
+  hosts = proxy.getPN('rpc.hosts.host.',true)
+end
+for _,v in ipairs(hosts) do
+  addresses = proxy.get(v.path..'IPv6')
+  if addresses and addresses[1].value:find('$__DESTIP') then
+    for address in addresses[1].value:gmatch('%S+') do
+      os.execute('transformer-cli set rpc.gui.firewall.dns_intercept.add_exception '..address)
+    end
+    break
+  end
+end" | lua
+
+exit 0
