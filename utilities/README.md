@@ -310,6 +310,9 @@ Options:
                       reboot.
  -i               Keep the existing LAN IP address after reset and reboot.
                     This is the default if --restore-config is specified.
+                    By default, also restores port forwards, static leases
+                    and the IPv6 ULA and prefix size (unless --no-forwards, 
+                    --no-leases or --no-ula are specified).
  -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
  -k               Keep existing SSH keys after reset and reboot.
  -n               Do NOT reboot.
@@ -322,9 +325,16 @@ Options:
                     the passive bank.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y').
+ --no-forwards    Bypass restore of port forwards (ignored unless -i is
+                    specified).
+ --no-leases      Bypass restore of static leases (ignored unless -i is
+                    specified).
+ --no-ula         Bypass restore of the IPv6 ULA and LAN prefix size (ignored 
+                    unless -i is specified).
  --save-defaults  Saves the command line options (except -f/-s/-y) as defaults.
                     When specified, NO changes are applied to the device.
  --no-defaults    Ignores any saved defaults for this execution.
+                    --no-defaults must be the FIRST option specified.
  -U               Download the latest version of the script from GitHub.
                     Do NOT specify any other parameters or options if doing a 
                     version upgrade.
@@ -375,6 +385,9 @@ Options:
  -e               Disable any 'noexec' flags on USB mounted filesystems.
  -i               Keep the existing LAN IP address after reset and reboot.
                     This is the default if --restore-config is specified.
+                    By default, also restores port forwards, static leases
+                    and the IPv6 ULA and prefix size (unless --no-forwards, 
+                    --no-leases or --no-ula are specified).
  -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
  -k               Keep existing SSH keys after reset and reboot.
  -n               Do NOT reboot.
@@ -382,11 +395,20 @@ Options:
                     it defaults to root.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y')
- --save-defaults  Saves the command line options (except filename/-s/-y) as defaults.
+ --no-forwards    Bypass restore of port forwards (ignored unless -i is
+                    specified).
+ --no-leases      Bypass restore of static leases (ignored unless -i is
+                    specified).
+ --no-ula         Bypass restore of the IPv6 ULA and LAN prefix size (ignored 
+                    unless -i is specified).
+ --save-defaults  Saves the command line options (except filename/-s/-y) as 
+                    defaults.
                     When specified, NO changes are applied to the device.
  --no-defaults    Ignores any saved defaults for this execution.
+                    --no-defaults must be the FIRST option specified.
  -U               Download the latest version of the script from GitHub.
-                    Do NOT specify any other parameters or options if doing a version upgrade.
+                    Do NOT specify any other parameters or options if doing a
+                    version upgrade.
  ```
  The following options are only applicable to firmware versions 17.2, 18.1.c and 20.3.c:
  ```

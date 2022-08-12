@@ -49,6 +49,9 @@ Options:
  -e               Disable any 'noexec' flags on USB mounted filesystems.
  -i               Keep the existing LAN IP address after reset and reboot.
                     This is the default if --restore-config is specified.
+                    By default, also restores port forwards, static leases
+                    and the IPv6 ULA and prefix size (unless --no-forwards, 
+                    --no-leases or --no-ula are specified).
  -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
  -k               Keep existing SSH keys after reset and reboot.
  -n               Do NOT reboot.
@@ -61,10 +64,17 @@ Options:
                     into the passive bank.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y').
+ --no-forwards    Bypass restore of port forwards (ignored unless -i is
+                    specified).
+ --no-leases      Bypass restore of static leases (ignored unless -i is
+                    specified).
+ --no-ula         Bypass restore of the IPv6 ULA and LAN prefix size (ignored 
+                    unless -i is specified).
  --save-defaults  Saves the command line options (except filename/-s/-y) as 
                     defaults.
                     When specified, NO changes are applied to the device.
- --no-defaults    Ignores any saved defaults for this execution
+ --no-defaults    Ignores any saved defaults for this execution.
+                    --no-defaults must be the FIRST option specified.
  -U               Download the latest version of $SCRIPT from GitHub.
                     Do NOT specify any other parameters or options if doing
                     a version upgrade.
@@ -73,9 +83,10 @@ EOH
  --restore-config Runs the restore-config.sh script after reboot if it is found
                     in the USB backups directory. Output will be written to the 
                     system log. --restore-config should be the LAST option
-                    specified, and may optionally be followed by the name of
-                    the overlay backup file to be restored. Saved defaults are
-                    IGNORED when --restore-config is specified.
+                    specified before the firmware filename, and may optionally 
+                    be followed by the name of the overlay backup file to be 
+                    restored. Saved defaults are IGNORED when --restore-config 
+                    is specified.
  --i              Specifies that the IP address configured by the -i or -I options 
                     is also to be applied after the configuration is restored. If
                     not specified, the IP address used will be the one found in the 
@@ -110,46 +121,25 @@ download() {
   fi
 }
 
-set_defaults() {
-  __BKUP=""
-  __CWMP=""
-  __IPADDR=""
-  __KEYS=""
-  __NOEXEC=""
-  __ROOTPWD="root"
-  __REBOOT="Y"
-  __VERBOSE=N
-}
-
-set_defaults
-[ -f .defaults.$SCRIPT ] && source ./.defaults.$SCRIPT
+OPTIONS="--no-defaults"
+[ -f .defaults.$SCRIPT ] && echo "$*" | grep -qv '\brestore-config\b' && grep -q ^OPTIONS .defaults.$SCRIPT && source ./.defaults.$SCRIPT || echo -e "${ORANGE}WARNING:  Saved defaults are invalid! Please save again.${NC}"
 
 FIRMWARE=""
 YES="N"
 SAVE_DEFAULTS="N"
 RESTORE_CONFIG="N"
-OPTIONS="--no-defaults"
 
-while getopts :bcef:iI:knp:svyU-: option; do
+while getopts :bceiI:knp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
-        i)              OPTIONS="$OPTIONS --i";;
+        i|no-forwards|no-leases|no-ula) OPTIONS="$OPTIONS --${OPTARG}";;
         restore-config) RESTORE_CONFIG="Y";;
-        no-defaults)    set_defaults;;
         save-defaults)  SAVE_DEFAULTS="Y";;
+        no-defaults)    OPTIONS="--no-defaults";;
         *)              usage;;
       esac;;
-  b)  __BKUP="Y"; OPTIONS="$OPTIONS -b";;
-  c)  __CWMP="Y"; OPTIONS="$OPTIONS -c";;
-  e)  __NOEXEC="Y"; OPTIONS="$OPTIONS -e";;
-  i)  __IPADDR="$(uci get network.lan.ipaddr)"; OPTIONS="$OPTIONS -i"; [ $? -ne 0 ] && exit;;
-  I)  __IPADDR="${OPTARG}"; OPTIONS="$OPTIONS -I ${OPTARG}";;
-  k)  __KEYS="Y"; OPTIONS="$OPTIONS -k";;
-  n)  __REBOOT="N"; OPTIONS="$OPTIONS -n";;
-  p)  __ROOTPWD="${OPTARG}"; OPTIONS="$OPTIONS -p ${OPTARG}";;
-  s)  OPTIONS="$OPTIONS -s";;
-  v)  __VERBOSE="Y"; OPTIONS="$OPTIONS -v";;
-  y)  OPTIONS="$OPTIONS -y";;
+  b|c|e|i|k|n|s|v|y)  OPTIONS="$OPTIONS -${option}";;
+  I|p)  OPTIONS="$OPTIONS -${option} ${OPTARG}";;
   U)  download $SCRIPT; exit;;
   *)  usage;;
  esac
@@ -157,7 +147,7 @@ done
 shift $((OPTIND-1))
 
 if [ $SAVE_DEFAULTS = "Y" ]; then
-  set | grep '^__' > .defaults.$SCRIPT
+  set | grep '^OPTIONS' > .defaults.$SCRIPT
   echo -e "\e[1;32mDefaults saved\e[0m"
   exit
 fi

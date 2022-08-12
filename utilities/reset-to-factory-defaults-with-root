@@ -14,6 +14,7 @@ OVERLAY_FS="$(mount | grep '/overlay type' | cut -d' ' -f5)"
 ROM_FS="$(mount | grep '/rom type' | cut -d' ' -f5)"
 MOUNT_PATH="$(uci get mountd.mountd.path)"
 USB="$(ls $MOUNT_PATH | head -n1)"
+UCI_DEFAULTS="zzz-9999-reroot"
 
 if [ -z "$(which bootmgr)" ]; then
   ACTIVE="$(cat /proc/banktable/active 2>/dev/null)"
@@ -55,6 +56,9 @@ Options:
                       reboot.
  -i               Keep the existing LAN IP address after reset and reboot.
                     This is the default if --restore-config is specified.
+                    By default, also restores port forwards, static leases
+                    and the IPv6 ULA and prefix size (unless --no-forwards, 
+                    --no-leases or --no-ula are specified).
  -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
  -k               Keep existing SSH keys after reset and reboot.
  -n               Do NOT reboot.
@@ -67,9 +71,16 @@ Options:
                     into the passive bank.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y').
+ --no-forwards    Bypass restore of port forwards (ignored unless -i is
+                    specified).
+ --no-leases      Bypass restore of static leases (ignored unless -i is
+                    specified).
+ --no-ula         Bypass restore of the IPv6 ULA and LAN prefix size (ignored 
+                    unless -i is specified).
  --save-defaults  Saves the command line options (except -f/-s/-y) as defaults.
                     When specified, NO changes are applied to the device.
  --no-defaults    Ignores any saved defaults for this execution
+                    --no-defaults must be the FIRST option specified.
  -U               Download the latest version of $SCRIPT from GitHub.
                     Do NOT specify any other parameters or options if doing
                     a version upgrade.
@@ -111,6 +122,36 @@ upgrade() {
   exit
 }
 
+rtfd_script() {
+cat <<-END
+exec 1>/tmp/${UCI_DEFAULTS}.out 2>/tmp/${UCI_DEFAULTS}.err
+echo root:$__ROOTPWD | chpasswd
+sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
+sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
+for r in \$(uci show firewall | grep "dest_port='22'" | cut -d. -f1-2); do 
+  [ "\$(uci -q get \$r.target)" = DROP -a "\$(uci -q get \$r.src)" = lan -a -z "\$(uci -q get \$r.dest)" ] && uci -q set \$r.target='ACCEPT'
+done
+uci -q delete dropbear.afg
+uci add dropbear dropbear
+uci rename dropbear.@dropbear[-1]=afg
+uci set dropbear.afg.enable='1'
+uci set dropbear.afg.Interface='lan'
+uci set dropbear.afg.Port='22'
+uci set dropbear.afg.IdleTimeout='600'
+uci set dropbear.afg.PasswordAuth='on'
+uci set dropbear.afg.RootPasswordAuth='on'
+uci set dropbear.afg.RootLogin='1'
+uci set dropbear.lan.enable='0'
+/etc/init.d/dropbear enable
+$LAN_CFG
+$CWMP_CFG
+$NOEXEC_CFG
+$KEYS_CFG
+$RESTORE_CFG
+exit 0
+END
+}
+
 set_defaults() {
   __BKUP=""
   __CWMP=""
@@ -120,6 +161,9 @@ set_defaults() {
   __ROOTPWD="root"
   __REBOOT="Y"
   __VERBOSE=N
+  __NO_FWD="N"
+  __NO_LEASES="N"
+  __NO_ULA="N"
 }
 
 set_defaults
@@ -134,13 +178,20 @@ RESTORE_CONFIG="N"
 RESTORE_IPADDR="N"
 RESTORE_OPTIONS=""
 SWITCH_BANK="N"
+ULA=""
+IP6ASSIGN=""
+FORWARDS=""
+LEASES=""
 
 while getopts :bcef:iI:knp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
         i)              RESTORE_IPADDR="Y";;
-        restore-config) RESTORE_CONFIG="Y"; __CWMP="Y"; __NOEXEC="Y"; __KEYS="Y"; __VERBOSE="Y"; [ -z "$__IPADDR" ] && __IPADDR="$(uci get network.lan.ipaddr)";;
         no-defaults)    set_defaults;;
+        no-forwards)    __NO_FWD="Y";;
+        no-leases)      __NO_LEASES="Y";;
+        no-ula)         __NO_ULA="Y";;
+        restore-config) RESTORE_CONFIG="Y"; __CWMP="Y"; __NOEXEC="Y"; __KEYS="Y"; __VERBOSE="Y"; [ -z "$__IPADDR" ] && __IPADDR="$(uci get network.lan.ipaddr)"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y";;
         save-defaults)  SAVE_DEFAULTS="Y";;
         *)              usage;;
       esac;;
@@ -153,9 +204,9 @@ while getopts :bcef:iI:knp:svyU-: option; do
         echo "$OPTARG" | grep -qE '\.(rbi|bin)$' || { echo -e "${RED}ERROR:    Firmware file names must end with .rbi or .bin!${NC}"; exit 2; }
       fi
       FIRMWARE="${OPTARG}";;
-  i)  __IPADDR="$(uci get network.lan.ipaddr)"; [ $? -ne 0 ] && exit;;
+  i)  __IPADDR="$(uci get network.lan.ipaddr)";;
   I)  if echo "${OPTARG}" | grep -qE "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"; then
-        __IPADDR="${OPTARG}"
+        __IPADDR="${OPTARG}"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y"
       else
         echo -e "${RED}ERROR:    Invalid IP address: $OPTARG${NC}"
         exit
@@ -186,12 +237,12 @@ echo -e "${GREY}INFO:     /overlay filesystem  = $OVERLAY_FS${NC}"
 echo -e "${GREY}INFO:     /rom filesystem      = $ROM_FS${NC}"
 echo -e "${GREY}INFO:     USB symbolic link    = $USB${NC}"
 
-if [ "$RESTORE_CONFIG" = "Y" -a ! \( "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" -o "$VERSION" = "20.3.c" \) ]; then
+if [ $RESTORE_CONFIG = Y -a ! \( "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" -o "$VERSION" = "20.3.c" \) ]; then
   echo -e "${RED}ABORTING: Configuration restore is not supported on firmware $VERSION!!${NC}"
   exit 2
 fi
 
-if [ $SAVE_DEFAULTS = y ]; then
+if [ $SAVE_DEFAULTS = Y ]; then
   set | grep '^__' > .defaults.$SCRIPT
   echo -e "\e[1;32mDefaults saved\e[0m"
   exit
@@ -222,7 +273,7 @@ if [ -n "$__BKUP" ]; then
   fi
 fi
 
-if [ $RESTORE_CONFIG = y ]; then
+if [ $RESTORE_CONFIG = Y ]; then
   if [ -z "$USB" ]; then
     echo -e "${RED}ABORTING: Configuration restore requested, but no attached USB device found!${NC}"
     exit
@@ -261,7 +312,7 @@ if [ $RESTORE_CONFIG = y ]; then
     fi
   fi
 fi
-[ $RESTORE_CONFIG = y -a ! -e $TARGET/restore-config.sh ] && cat <<"EoSH" > $TARGET/restore-config.sh
+[ $RESTORE_CONFIG = Y -a ! -e $TARGET/restore-config.sh ] && cat <<"EoSH" > $TARGET/restore-config.sh
 #!/bin/sh
 
 SCRIPT="$(basename $0)"
@@ -341,7 +392,7 @@ sh "${DIR}/000-core.sh" $*
 EoSH
 [ -e $TARGET/restore-config.sh ] && chmod +x $TARGET/restore-config.sh
 
-if [ $RESTORE_CONFIG = y ]; then
+if [ $RESTORE_CONFIG = Y ]; then
   echo -e "NOTE:     Configuration backup ${GREEN}${OVERLAY_BACKUP}${NC} will be restored to the device!"
   echo -e "${ORANGE}WARNING:  Configuration restore can take 5-10 minutes. Be patient!${NC}"
   echo -e "${ORANGE}WARNING:  The device MUST have internet access after factory reset or the configuration restore will ${RED}FAIL!${NC}"
@@ -354,7 +405,7 @@ else
 fi
 echo -e "NOTE:     Root access will be preserved and the root password will be set to '${GREEN}${__ROOTPWD}${NC}'"
 
-RBI=n
+RBI="N"
 if [ -n "$FIRMWARE" ]; then
   if [ -f "$FIRMWARE" ]; then
     if [ "$ROM_FS" = "ubifs" ]; then
@@ -362,7 +413,7 @@ if [ -n "$FIRMWARE" ]; then
       SWITCH_BANK="Y"
     else
       if echo "$FIRMWARE" | grep -qE '\.rbi$'; then
-        RBI=y
+        RBI="Y"
         if [ -z "$USB" ]; then
           echo -e "WARNING:  ${ORANGE}$(basename $FIRMWARE) will be unpacked to /tmp before flashing. "
           echo -e "          ${RED}THIS IS NOT RECOMMENDED!${NC} You should use a USB stick."
@@ -388,20 +439,47 @@ fi
 
 if [ -n "$__IPADDR" ]; then
   IPPREFIX="$(echo $__IPADDR | cut -d. -f1-3)"
-  for GUESTIP in $(uci show network | grep "network\.Guest.*ipaddr=" | cut -d"'" -f2 | cut -d. -f1-3 | sort -u)
-  do
+  for GUESTIP in $(uci show network | grep "network\.Guest.*ipaddr=" | cut -d"'" -f2 | cut -d. -f1-3 | sort -u);do
     if [ "$IPPREFIX" = "$GUESTIP" ]; then
       echo -e "${RED}ABORTING: $__IPADDR conflicts with the Guest IP address range!${NC}"
       exit
     fi
   done
   echo -e "NOTE:     IP address will be set to '${GREEN}$__IPADDR${NC}'"
-  LAN_CFG="uci set network.lan.ipaddr='$__IPADDR';"
+  LAN_CFG="uci set network.lan.ipaddr='$__IPADDR'"
+  if [ $RESTORE_CONFIG = N ]; then
+    if [ $__NO_ULA = N ]; then
+      IP6ASSIGN="$(uci -q get network.lan.ip6assign)"
+      if [ -n "$IP6ASSIGN" ]; then
+        echo -e "NOTE:     LAN IPv6 prefix size will be set to '${GREEN}/$IP6ASSIGN${NC}'"
+        LAN_CFG="$LAN_CFG"$'\n'"uci set network.lan.ip6assign='$IP6ASSIGN'"
+      fi
+      ULA="$(uci -q get network.globals.ula_prefix)"
+      if [ -n "$ULA" ]; then
+        echo -e "NOTE:     IPv6 ULA address will be set to '${GREEN}$ULA${NC}'"
+        LAN_CFG="$LAN_CFG"$'\n'"uci set network.globals.ula_prefix='$ULA'"
+      fi
+    fi
+    if [ $__NO_LEASES = N ]; then
+      LEASES="$(uci show dhcp | awk -e '/=host$/{print "uci set " $0; sub(/=host$/,"");KEY=$0;next;} {if(KEY != "" && index($0,KEY) != 0) print "uci set " $0;}0')"
+      if [ -n "$LEASES" ]; then
+        echo -e "NOTE:     Static leases will be '${GREEN}restored${NC}'"
+        LAN_CFG="$LAN_CFG"$'\n'"$LEASES"
+      fi
+    fi
+    if [ $__NO_FWD = N ]; then
+      FORWARDS="$(uci show firewall | awk -e '/=userredirect$/{print "uci set " $0; sub(/=userredirect$/,"");KEY=$0;next;} {if(KEY != "" && index($0,KEY) != 0) print "uci set " $0;}0')"
+      if [ -n "$FORWARDS" ]; then
+        echo -e "NOTE:     Port forwarding rules will be '${GREEN}restored${NC}'"
+        LAN_CFG="$LAN_CFG"$'\n'"$FORWARDS"
+      fi
+    fi
+  fi
 fi
 
 if [ -n "$__CWMP" ]; then
   echo -e "NOTE:     CWMP will be ${ORANGE}stopped${NC} during the reboot"
-  CWMP_CFG="uci set cwmpd.cwmpd_config.state='0';/etc/init.d/cwmpd disable"
+  CWMP_CFG="uci set cwmpd.cwmpd_config.state='0'"$'\n'"/etc/init.d/cwmpd disable"
 fi
 
 if [ -n "$__NOEXEC" ]; then
@@ -415,10 +493,9 @@ if [ -n "$__KEYS" ]; then
 fi
 
 [ $SWITCH_BANK = Y ] && echo -e "NOTE:     The active bank will be switched to ${GREEN}bank_$PASSIVE${NC}"
-[ $__VERBOSE = Y ] && echo -e "NOTE:     The reset script will be displayed once it has been created${NC}"
 
 if [ "$__REBOOT" = "Y" ]; then
-  if [ $RESTORE_CONFIG = y ]; then
+  if [ $RESTORE_CONFIG = Y ]; then
     echo -e "${ORANGE}WARNING:  The device will reboot ${GREEN}TWICE${ORANGE} to apply the restored configuration!${NC}"
   elif [ -e /proc/sysrq-trigger ]; then
     echo -e "${ORANGE}WARNING:  The device will be rebooted using SysRQ trigger!${NC}"
@@ -429,6 +506,12 @@ else
   echo -e "${ORANGE}WARNING:  The device will ${GREEN}NOT REBOOT${ORANGE}!${NC}"
 fi
 
+if [ $__VERBOSE = Y ]; then
+  echo -e "NOTE:     The following reset script will executed after reboot:${GREY}"
+  rtfd_script | sed -e '/^$/d' -e 's/^/  /'
+  echo -en "${NC}"
+fi
+
 if [ $YES = N ]; then
   echo -en "${GREEN}ACTION:   Enter y to continue, or anything else to exit now${NC} "
   read
@@ -437,7 +520,7 @@ if [ $YES = N ]; then
   fi
 fi
 
-if [ $RBI = y ]; then
+if [ $RBI = Y ]; then
   if [ -z "$USB" ]; then
     target="/tmp/$(basename $FIRMWARE .rbi).bin"
   else
@@ -491,44 +574,12 @@ echo -e "${ORANGE}INFO:     Resetting...${NC}"
 echo -e "${GREY}INFO:     Deleting $TARGET_BANK...${NC}"
 rm -rf $TARGET_BANK
 # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
-UCI_DEFAULTS="zzz-9999-reroot"
 echo -e "${GREY}INFO:     Creating ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}...${NC}"
 mkdir -p ${TARGET_BANK}/etc/uci-defaults
 chmod 755 ${TARGET_BANK} ${TARGET_BANK}/etc ${TARGET_BANK}/etc/uci-defaults
-cat <<-END > ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}
-  exec 1>/tmp/${UCI_DEFAULTS}.out 2>/tmp/${UCI_DEFAULTS}.err
-  echo root:$__ROOTPWD | chpasswd
-  sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
-  sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
-  for r in \$(uci show firewall | grep "dest_port='22'" | cut -d. -f1-2); do 
-    [ "\$(uci -q get \$r.target)" = DROP -a "\$(uci -q get \$r.src)" = lan -a -z "\$(uci -q get \$r.dest)" ] && uci -q set \$r.target='ACCEPT'
-  done
-  uci -q delete dropbear.afg
-  uci add dropbear dropbear
-  uci rename dropbear.@dropbear[-1]=afg
-  uci set dropbear.afg.enable='1'
-  uci set dropbear.afg.Interface='lan'
-  uci set dropbear.afg.Port='22'
-  uci set dropbear.afg.IdleTimeout='600'
-  uci set dropbear.afg.PasswordAuth='on'
-  uci set dropbear.afg.RootPasswordAuth='on'
-  uci set dropbear.afg.RootLogin='1'
-  uci set dropbear.lan.enable='0'
-  /etc/init.d/dropbear enable
-  $LAN_CFG
-  $CWMP_CFG
-  $NOEXEC_CFG
-  $KEYS_CFG
-  $RESTORE_CFG
-  exit 0
-END
+rtfd_script > ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}
 chmod +x ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}
 sync
-if [ $__VERBOSE = Y ]; then
-  echo -en "${GREY}"
-  cat ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}
-  echo -en "${NC}"
-fi
 echo -e "${GREEN}INFO:     Device has been reset to factory defaults and root access retained${NC}"
 
 if [ -n "$FIRMWARE" -a "$ROM_FS" = "squashfs" ]; then
