@@ -1,0 +1,30 @@
+#!/bin/sh
+
+[ "$ACTION" = "ifup" -o "$ACTION" = "ifdown" ] || exit 0
+[ "$INTERFACE" = "wan" -o "$INTERFACE" = "wwan" ] || exit 0
+
+. /lib/functions.sh
+config_load network
+config_get __WWAN_ENABLED "wwan" "enabled" "0"
+[ "$__WWAN_ENABLED" = "1" ] || exit 0
+config_get __WWAN_METRIC "wwan" "metric" "0"
+[ "$__WWAN_METRIC" = "20" ] || exit 0
+
+__WWAN="$(ifstatus wwan)"
+[ -n "$__WWAN" ] || exit 0
+__WAN="$(ifstatus wan)"
+[ -n "$__WAN" ] || exit 0
+
+. /usr/share/libubox/jshn.sh
+json_load "$__WAN"
+json_get_var __WAN_UP up
+json_load "$__WWAN"
+json_get_var __WWAN_UP up
+
+if [ "$__WAN_UP" = 1 ]; then # WAN is up
+  ubus send network.interface '{"action":"ifup","interface":"wan"}'
+elif [ "$__WWAN_UP" = 1 ]; then # WAN is down, but WWAN is up
+  ubus send network.interface '{"action":"ifup","interface":"wwan"}'
+fi
+
+exit 0
