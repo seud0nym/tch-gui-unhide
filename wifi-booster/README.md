@@ -72,6 +72,7 @@ Options:
  -n n.n.n.n  Set LAN DNS Server IP address to n.n.n.n 
               Specify multiple times for multiple DNS servers. Default is the LAN Gateway IP address.
               (This option is ignored if -R specified)
+ -6          Enable LAN IPv6
  -l 0-9      Set EasyMesh logging level (only applicable to Gen 1.1 and Gen 2 devices)
               0=off 2=Default 9=very verbose
  -R          Restore to Routed Mode
