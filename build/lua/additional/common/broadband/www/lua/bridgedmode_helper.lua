@@ -111,6 +111,35 @@ function M.configBridgedMode()
   ngx.log(ngx.WARN,format("configBridgedMode: Configuring WAN Sensing, LAN, WAN Mode and DHCP (Result=%s)",tostring(success)))
 
   if success then
+    if not proxy.getPN("uci.network.interface.@lan6.",true) then
+      local added,errs = proxy.add("uci.network.interface.","lan6")
+      if added then
+        ngx.log(ngx.WARN,format("configBridgedMode: Adding LAN6 (Result=%s)",tostring(added)))
+        success,errors = proxy.set({
+          ["uci.network.interface.@lan6.defaultreqopts"] = '0',
+          ["uci.network.interface.@lan6.forceprefix"] = '0',
+          ["uci.network.interface.@lan6.iface_464xlat"] = '0',
+          ["uci.network.interface.@lan6.ifname"] = 'br-lan',
+          ["uci.network.interface.@lan6.noslaaconly"] = '1',
+          ["uci.network.interface.@lan6.peerdns"] = '1',
+          ["uci.network.interface.@lan6.proto"] = 'dhcpv6',
+          ["uci.network.interface.@lan6.reqaddress"] = 'force',
+          ["uci.network.interface.@lan6.reqopts"] = '23 17',
+          ["uci.network.interface.@lan6.reqprefix"] = 'no',
+          ["uci.network.interface.@lan6.soltimeout"] = '240',
+        })
+        if success then
+          ngx.log(ngx.WARN,format("configBridgedMode: Configuring LAN6 (Result=%s)",tostring(success)))
+        else
+          logErrors("configBridgedMode[lan6]",errors)
+        end
+      else
+        logErrors("configBridgedMode[lan6]",errs)
+      end
+    end
+  end
+
+  if success then
     local delnames = { -- populated by 095-Network
     }
 
@@ -148,6 +177,10 @@ function M.configRoutedMode()
         ngx.log(ngx.WARN,format("configRoutedMode: Failed to delete %s ([%s]: %s)",dns.path,errcode,errmsg))
       end
     end
+  end
+  local deleted,delerrmsg,delerrcode = proxy.del("uci.network.interface.@lan6.")
+  if not deleted then
+    ngx.log(ngx.WARN,format("configRoutedMode: Failed to delete uci.network.interface.@lan6. ([%s]: %s)",delerrcode,delerrmsg))
   end
 
   local ifnames = { -- populated by 095-Network
