@@ -22,7 +22,7 @@ local content,helpmsg
 local match,format,toupper = string.match,string.format,string.upper
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
-local find = string.find
+local find,gsub = string.find,string.gsub
 local ipv42num = post_helper.ipv42num
 local bridged = require("bridgedmode_helper")
 
@@ -489,7 +489,11 @@ local mapParams = {
   localIPv6 = "uci.network.interface.@"..curintf..".ipv6",
   dhcplog = getDomainNamePath().."logdhcp",
   dhcplogv6 = "uci.dhcp.odhcpd.@odhcpd.loglevel",
+  ipv6addr = "rpc.network.interface.@lan.ip6addr",
 }
+if isBridgedMode and require("datamodel").get("rpc.network.interface.@lan6.ip6addr") then
+  mapParams.ipv6addr = "rpc.network.interface.@lan6.ip6addr"
+end
 
 local dnsIndex = 0
 local ntpIndex = 0
@@ -1214,8 +1218,13 @@ ngx.print('\
                 class = "monitor-changes span2"
               }
             }
+            local ipv6_attr = {
+              group = {
+                class = "monitor-localIPv6 monitor-1 monitor-hidden-localIPv6",
+              }
+            }
             ngx.print(
-              ui_helper.createInputText(T"Device IP Address","localdevIP",content["localdevIP"],{input = {class = "span2"}},helpmsg["localdevIP"]),
+              ui_helper.createInputText(T"Device IPv4 Address","localdevIP",content["localdevIP"],{input = {class = "span2"}},helpmsg["localdevIP"]),
               ui_helper.createInputText(T"Local Network Subnet","localdevmask",content["localdevmask"],advanced,helpmsg["localdevmask"])
             )
 
@@ -1227,7 +1236,7 @@ ngx.print('\
               end
             end
 
-            ngx.print(ui_helper.createSwitch(T"IPv6 State","localIPv6",content["localIPv6"],switch_class_enable))
+            ngx.print(ui_helper.createSwitch(T"IPv6 State","localIPv6",content["localIPv6"],switch_class_enable),ui_helper.createLabel(T"Device IPv6 Address",content["ipv6addr"],ipv6_attr))
 
             if not isBridgedMode then
               local info_attr = {
@@ -1313,7 +1322,7 @@ ngx.print('\
                 )
                 if cur_dhcp_intf == "lan" and not adguard then
                   if dns_int_ipv6_ok and not helpmsg["dns_v6_pri"] and not helpmsg["dns_v6_sec"]  then
-                    ngx.print(ui_helper.createLabel(T"IPv6 DNS Server<span class='icon-question-sign' title='IPv6 DNS Hijacking enabled'></span>",content["dns_v6_pri"],hijacked_label))
+                    ngx.print(ui_helper.createLabel(T"IPv6 DNS Server<span class='icon-question-sign' title='IPv6 DNS Hijacking enabled'></span>",gsub(untaint(content["dns_v6_pri"]),"-",":"),hijacked_label))
                     ngx.print(ui_helper.createSimpleInputHidden("dns_v6_pri",content["dns_v6_pri"]))
                     ngx.print(ui_helper.createSimpleInputHidden("dns_v6_sec",""))
                   else
