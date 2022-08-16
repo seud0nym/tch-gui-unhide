@@ -10,16 +10,12 @@ local M = {}
 
 function M.isMultiAPEnabled()
   local multiap_state = {
---    agent = "uci.wireless.map-agent.@agent.state",
+    agent = "uci.wireless.map-agent.@agent.state",
     controller = "uci.mesh_broker.meshapp.@mesh_common.controller_enabled",
     meshbrokerState = "uci.mesh_broker.global.@mesh_broker.enable"
   }
   content_helper.getExactContent(multiap_state)
---  local multiap_enabled = multiap_state.agent == "1" and multiap_state.controller == "1" and multiap_state.meshbrokerState == "1"
---  if multiap_state.agent == "0" and multiap_state.meshbrokerState == "1" and multiap_state.controller == "1" then
---    multiap_enabled = true
---  end
-  return multiap_state.controller == "1" and multiap_state.meshbrokerState == "1"
+  return multiap_state.agent == "0" and multiap_state.controller == "1" and multiap_state.meshbrokerState == "1"
 end
 
 function M.getWiFiCardHTML()
