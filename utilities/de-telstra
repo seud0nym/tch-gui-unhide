@@ -1113,22 +1113,31 @@ if [ "$__WPS" = "u" ]; then
   fi
 else
   if [ $(uci -q show wireless | grep '=wifi-ap' | wc -l) -eq 0 ]; then
-    aps=$(uci -q show wireless | grep -E "^wireless\.($(uci -q show wireless | grep ssid= | grep -v -E '(Guest|BH-)' | cut -d. -f2 | xargs | tr ' ' '|'))\.wps_state=" | cut -d. -f2)
+    for path in $(transformer-cli get rpc.X_AIRTIES_Obj.MultiAPController.SSIDProfile.| grep 'SSID \[string\] = ' | grep -vE '= ($|Guest|BH-)' | cut -d. -f1-5); do
+      ssid="$(transformer-cli get ${path}.SSID | cut -d= -f2 | xargs)"
+      [ "$(transformer-cli get ${path}.WPS | cut -d= -f2 | xargs)" = true ] && wps_state=1 || wps_state=0
+      if [ "$wps_state" = "$__WPS" ]; then
+        echo [$SCRIPT]: WPS State unchanged on SSID $ssid \[$(status2text $__WPS)\]
+      else
+        [ "$__WPS" = 1 ] && transformer-cli set ${path}.WPS true || transformer-cli set ${path}.WPS false
+        SRV_hostapd=$(( $SRV_hostapd + 1 ))
+        echo [$SCRIPT]: WPS State on SSID $ssid $(status2text $__WPS)
+      fi
+    done
   else
-    aps=$(uci -q show wireless | grep -E "='($(uci -q show wireless | grep ssid= | grep -v -E '(Guest|BH-)' | cut -d. -f2 | xargs | tr ' ' '|'))'$" | cut -d. -f2)
+    for ap in $(uci -q show wireless | grep -E "='($(uci -q show wireless | grep ssid= | grep -v -E '(Guest|BH-)' | cut -d. -f2 | xargs | tr ' ' '|'))'$" | cut -d. -f2); do
+      ssid="$(uci -q get wireless.$ap.ssid)"
+      [ -z "$ssid" ] && ssid=$(uci -q get wireless.$(uci -q get wireless.$ap.iface).ssid)
+      wps_state="$(uci -q get wireless.$ap.wps_state)"
+      if [ "$wps_state" = "$__WPS" ]; then
+        echo [$SCRIPT]: WPS State unchanged on SSID $ssid \[$(status2text $__WPS)\]
+      else
+        uci -q set wireless.$ap.wps_state="$__WPS"
+        SRV_hostapd=$(( $SRV_hostapd + 1 ))
+        echo [$SCRIPT]: WPS State on SSID $ssid $(status2text $__WPS)
+      fi
+    done
   fi
-  for ap in $aps; do
-    ssid="$(uci -q get wireless.$ap.ssid)"
-    [ -z "$ssid" ] && ssid=$(uci -q get wireless.$(uci -q get wireless.$ap.iface).ssid)
-    wps_state="$(uci -q get wireless.$ap.wps_state)"
-    if [ "$wps_state" = "$__WPS" ]; then
-      echo [$SCRIPT]: WPS State unchanged on SSID $ssid \[$(status2text $__WPS)\]
-    else
-      uci -q set wireless.$ap.wps_state="$__WPS"
-      SRV_hostapd=$(( $SRV_hostapd + 1 ))
-      echo [$SCRIPT]: WPS State on SSID $ssid $(status2text $__WPS)
-    fi
-  done
   if [ $SRV_hostapd -gt 0 ]; then
     uci -q commit wireless
   fi
