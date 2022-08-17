@@ -136,19 +136,16 @@ configure_dnmasq() {
   local DNSMASQ="$1"
   local DHCP_SERVER=""
   local PEER_DNS=""
-  local LIST_ACTION=""
   local LOCAL_USE=""
   local DNS_PORT=""
 
   if [ "$DNSMASQ" = "enable" ]; then
     PEER_DNS="1"
-    LIST_ACTION="del"
     LOCAL_USE="1"
     DNS_PORT="53"
     DHCP_SERVER="server"
   else
     PEER_DNS="0"
-    LIST_ACTION="add"
     LOCAL_USE="0"
     DNS_PORT="0"
     if [ $AGH_DHCP = true ]; then
@@ -165,10 +162,6 @@ configure_dnmasq() {
   if [ -n "$IPv6" ]; then
     echo -e "${GREEN}[$SCRIPT] Configuring IPv6 WAN DNS...${NC}"
     uci set network.wan6.peerdns="$PEER_DNS"
-    for addr in $IPv6; do
-      uci -q ${LIST_ACTION}_list network.lan.dns="$addr"
-      uci -q ${LIST_ACTION}_list network.wan6.dns="$addr"
-    done
   fi
 
   echo -e "${GREEN}[$SCRIPT] Applying network changes...${NC}"
@@ -530,15 +523,6 @@ else
   SLAAC="false"
 fi
 
-BIND_HOSTS="|  - 127.0.0.1|"
-for addr in $IPv4 $IPv6; do
-  BIND_HOSTS="${BIND_HOSTS}  - ${addr}|"
-done
-if [ "$BIND_HOSTS" = "|  - 127.0.0.1|" ]; then
-  BIND_HOSTS="  - 0.0.0.0"
-fi
-BIND_HOSTS="$(echo "$BIND_HOSTS" | tr '|' '\n')"
-
 if [  $OVERWRITE = y -o ! -e $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring AdGuard Home...${NC}"
   cat <<YAML_END >$INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml
@@ -570,7 +554,8 @@ dns:
   all_servers: false
   allowed_clients: []
   anonymize_client_ip: false
-  bind_hosts: $BIND_HOSTS
+  bind_hosts:
+  - 0.0.0.0
   blocked_hosts:
   - version.bind
   - id.server
@@ -712,19 +697,16 @@ configure_dnmasq() {
   local IPv6=$(ip -o a | grep -v -E '^[0-9]*: (lo|if|wl|br-lan)' | grep ' inet6 '| grep -v -E ' inet6 f[de]'  | tr -s ' ' | cut -d' ' -f4 | cut -d/ -f1 | xargs)
   local DHCP_SERVER=""
   local PEER_DNS=""
-  local LIST_ACTION=""
   local LOCAL_USE=""
   local DNS_PORT=""
 
   if [ "$1" = "enable" ]; then
     PEER_DNS="1"
-    LIST_ACTION="del"
     LOCAL_USE="1"
     DNS_PORT="53"
     DHCP_SERVER="server"
   else
     PEER_DNS="0"
-    LIST_ACTION="add"
     LOCAL_USE="0"
     DNS_PORT="0"
     if [ $AGH_DHCP = true ]; then
@@ -739,11 +721,6 @@ configure_dnmasq() {
 
   if [ -n "$IPv6" ]; then
     uci set network.wan6.peerdns="$PEER_DNS"
-    for addr in $IPv6
-    do
-      uci -q ${LIST_ACTION}_list network.lan.dns="$addr"
-      uci -q ${LIST_ACTION}_list network.wan6.dns="$addr"
-    done
   fi
   uci commit network
   /etc/init.d/network reload >/dev/null 2>&1
@@ -830,12 +807,6 @@ fi
 echo -e "${GREEN}[$SCRIPT] Installing AdGuard Home...${NC}"
 AdGuardHome/AdGuardHome -s install -c $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml -w $WORKING_DIR
 
-if [ $HIJACKING = Y ]; then
-  echo -e "${GREEN}[$SCRIPT] Running hijack-dns...${NC}"
-  sh /tmp/hijack-dns -d $IPv4
-  rm /tmp/hijack-dns
-fi
-
 echo -e "${GREEN}[$SCRIPT] Checking AdGuard Home status...${NC}"
 AGH_RUNNING='false'
 STATUS_CHK=0
@@ -874,6 +845,12 @@ if [ $AGH_RUNNING = 'true' ]; then
       grep -q agh-update /etc/crontabs/root && sed -e "/agh-update/d" -i /etc/crontabs/root
       AdGuardHome/agh-update -C
     fi
+  fi
+
+  if [ $HIJACKING = Y ]; then
+    echo -e "${GREEN}[$SCRIPT] Running hijack-dns...${NC}"
+    sh /tmp/hijack-dns
+    rm /tmp/hijack-dns
   fi
 
   echo -e "${GREEN}[$SCRIPT] Done. You can now access AdGuard Home on http://${GATEWAY}:8008${NC}"
