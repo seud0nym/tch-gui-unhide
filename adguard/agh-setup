@@ -375,21 +375,23 @@ fi
 
 if [ -z "$PWD_HASH" -a -n "$PASSWORD" ]; then
   echo -e "${GREEN}[$SCRIPT] Generating password hash...${NC}"
-  results=$(lua -e "
-    dkjson=require('dkjson')
-    cmd=io.popen('curl -skLX POST --data \"password=$PASSWORD&cost=10\" https://bcrypt.org/api/generate-hash.json')
-    json=cmd:read('*a')
-    cmd:close()
-    obj=dkjson.decode(json)
-    print(obj.ok,obj.password,obj.hash,obj.msg)
-  ")
-  shift $#
-  set -- $results
-  HASHD_OK="$1"; shift
-  CHCK_PWD="$1"; shift
-  NEW_HASH="$1"; shift
-  HASH_MSG="$*"
-  if [ "$HASHD_OK" = "true" ]; then
+  JSON=$(curl -skLX POST --data "password=$PASSWORD&cost=10" https://bcrypt.org/api/generate-hash.json)
+  JSON_RC=$?
+  if [ $JSON_RC -eq 6 ]; then
+    HASHD_OK="0"
+    HASH_MSG="curl: (6) Could not resolve host: bcrypt.org"
+  elif [ $JSON_RC -ne 0 ]; then
+    HASHD_OK="0"
+    HASH_MSG="curl: ($JSON_RC) Failed to generate hash from bcrypt.org"
+  else
+    . /usr/share/libubox/jshn.sh
+    json_load "$JSON"
+    json_get_var HASHD_OK ok
+    json_get_var CHCK_PWD password
+    json_get_var NEW_HASH hash
+    json_get_var HASH_MSG msg
+  fi
+  if [ "$HASHD_OK" = "1" ]; then
     if [ "$CHCK_PWD" = "$PASSWORD" ]; then
       PWD_HASH="$NEW_HASH"
     else
@@ -397,7 +399,7 @@ if [ -z "$PWD_HASH" -a -n "$PASSWORD" ]; then
       exit 2
     fi
   else
-    echo -e "${RED}[$SCRIPT] Password hash failed with message: $HASH_MSG Aborting...${NC}"
+    echo -e "${RED}[$SCRIPT] Password hash failed with message: ${NC}${HASH_MSG}${RED} Aborting...${NC}"
     exit 2
   fi
 fi
