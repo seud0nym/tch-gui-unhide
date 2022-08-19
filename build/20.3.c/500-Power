@@ -5,7 +5,7 @@ check_pwr_setting() {
   if [ -z "$(uci -q get power.$section.$option)" ]; then
     pwrctl show | grep "$text" | grep -q Disabled
     value=$?
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - power.$section.$option=$value"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - power.$section.$option=$value"
     uci set power.$section.$option="$value"
     SRV_power=$(( $SRV_power + 1 ))
   fi

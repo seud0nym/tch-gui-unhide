@@ -1,7 +1,7 @@
 echo [$SCRIPT]: Adding management tabs
 for f in /www/docroot/modals/assistance-modal.lp /www/docroot/modals/usermgr-modal.lp
 do
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Updating $f"
+  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Updating $f"
   sed \
     -e '/^if not bridged.isBridgedMode/i \  local lp = require("web.lp")' \
     -e '/^if not bridged.isBridgedMode/i \  lp.setpath("/www/snippets/")' \
@@ -12,7 +12,7 @@ done
 
 if [ "$MINIFY" = y ]; then
   echo [$SCRIPT]: Pre-minify fixes
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/usermgr-modal.lp"
+  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/usermgr-modal.lp"
   sed \
     -e 's/\(var oldpassword\)/;\1/' \
     -e 's/\(split(",")\)\(\\\)/\1;\2/' \

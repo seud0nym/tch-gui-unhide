@@ -21,7 +21,7 @@ sed \
 
 if [ "$MINIFY" = y ]; then
   echo [$SCRIPT]: Pre-minify fixes
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/snippets/graph-cpu.lp"
+  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/snippets/graph-cpu.lp"
   sed \
     -e 's/\(var gets = {}\)\(\\\)/\1;\2/' \
     -i /www/snippets/graph-cpu.lp

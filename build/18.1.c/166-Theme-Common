@@ -44,7 +44,7 @@ fi
 
 if [ "$MINIFY" = y ]; then
   echo [$SCRIPT]: Pre-minify fixes
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/landingpage.lp"
+  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/landingpage.lp"
   sed \
     -e 's/\(window.location.href\)\(\\\)/\1;\2/' \
     -e 's/\(blink_on)\)\(\\\)/\1;\2/' \
@@ -62,7 +62,7 @@ if [ "$MINIFY" = y ]; then
     -e 's/\(var gameparent\)/;\1/' \
     -e 's/\(gameparent.onblur\)/;\1/' \
     -i /www/docroot/landingpage.lp
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/loginbasic.lp"
+  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/loginbasic.lp"
   sed \
     -e 's/\(window.location.href\)\(\\\)/\1;\2/' \
     -e 's/\(srp\.error\)/;\1/' \

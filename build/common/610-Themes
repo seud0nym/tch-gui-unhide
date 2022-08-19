@@ -19,7 +19,7 @@ if [ $CUSTOM_LOGO = y ]; then
   if [ -n "$LOGO" ]; then
     echo [$SCRIPT]: Custom logo $LOGO found - replacing Telstra and theme logos
     for f in /www/docroot/img/logo.gif /www/docroot/img/light/logo.gif /www/docroot/img/night/logo.gif; do
-      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Replacing $f"
+      [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Replacing $f"
       cp "$LOGO" "$f"
     done
     sed -e 's|src="/img/logo.png"|src="/img/logo.gif"|' -i /www/docroot/gateway.lp

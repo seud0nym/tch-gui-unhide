@@ -26,7 +26,7 @@ if [ "$(pwd)" = "/tmp" -a -n "$(pgrep -f './tch-gui-unhide -y')" -a -n "$(pgrep 
           echo "[$SCRIPT]: - Copying $__FILE to $__DIR"
           cp $__FILE $__TARGET
         else
-          [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Skipped $__TARGET ($__FILE is not newer)"
+          [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Skipped $__TARGET ($__FILE is not newer)"
         fi
       done
     done

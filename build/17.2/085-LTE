@@ -20,7 +20,7 @@ sed \
 
 if [ "$MINIFY" = y ]; then
   echo [$SCRIPT]: Pre-minify fixes
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/lte-sms.lp"
+  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/lte-sms.lp"
   sed \
     -e 's/\()\)\(\\\)/\1;\2/' \
     -i /www/docroot/modals/lte-sms.lp

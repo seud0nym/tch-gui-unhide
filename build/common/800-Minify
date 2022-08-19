@@ -47,14 +47,14 @@ minify() {
 
 if [ "$MINIFY" = y -a "$THEME_ONLY" = n ]; then
   echo [$SCRIPT]: Pre-minify fixes
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/snippets/networkmap.lp"
+  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/snippets/networkmap.lp"
   sed -e 's/\("pointer"})\)\(\\\)/\1;\2/' -i /www/snippets/networkmap.lp
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/lua/parental_helper.lua"
+  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/lua/parental_helper.lua"
   sed -e '/--\[\[/,/\]\]/d' -e 's/[ \t]*--[ \t]*\(T"ToD"\|tod_aggregate\|.*getTod()\).*$//' -i /www/lua/parental_helper.lua
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/tod_wireless-modal.lp"
+  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/tod_wireless-modal.lp"
   sed -e 's/[ \t]*-- weekdays can be empty.*$//' -i /www/docroot/modals/tod_wireless-modal.lp
   if [ -e /www/docroot/modals/cwmpconf-modal.lp ]; then
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/cwmpconf-modal.lp"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/cwmpconf-modal.lp"
     sed -e 's/\(block\|none\)\(")\)\\/\1\2;\\/' -i /www/docroot/modals/cwmpconf-modal.lp
   fi
 
@@ -65,7 +65,7 @@ if [ "$MINIFY" = y -a "$THEME_ONLY" = n ]; then
     was=$(ls -l "$lua" | tr -s ' ' | cut -d' ' -f5)
     minify "$lua"
     is=$(ls -l "$lua" | tr -s ' ' | cut -d' ' -f5)
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Minified $lua: Before=$was bytes Now=$is bytes ($(expr 100 - \( $is \* 100 / $was \))% reduction)"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Minified $lua: Before=$was bytes Now=$is bytes ($(expr 100 - \( $is \* 100 / $was \))% reduction)"
     BEFORE_MIN=$(( $BEFORE_MIN + $was ))
     AFTER_MIN=$(( $AFTER_MIN + $is ))
   done

@@ -5,7 +5,7 @@ sed \
 
 echo [$SCRIPT]: Fix transformer path mapping for devices
 for f in $(grep -rl rpc\.hosts\.host\. /www/ 2>/dev/null); do
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing $f"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing $f"
     sed \
     -e 's/rpc\.hosts\.host\./sys.hosts.host./' \
     -i "$f"

@@ -26,8 +26,6 @@ uci -q commit system
 log D "Calculating tch-gui-unhide options"
 options="--no-service-restart -y"
 
-[ $VERBOSE = y ] && options="$options --debug"
-
 [ -n "$($UCI -q get web.uidefault.defaultuser)" -a -n "$($UCI -q get web.default.default_user)" ]  && options="$options -dy" || options="$options -dn"
 [ "$($UCI -q get web.uidefault.upgradefw)" = "1" ] && options="$options -fy" || options="$options -fn"
 

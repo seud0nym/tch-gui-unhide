@@ -79,7 +79,7 @@ sed \
 
 if [ "$MINIFY" = y ]; then
   echo [$SCRIPT]: Pre-minify fixes
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/gateway-modal.lp"
+  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/gateway-modal.lp"
   sed \
     -e 's|\(var retain_contact_mode = "default"\)\\|\1;\\|' \
     -e "s|\(ngx.print('\" + data.errorcode + \")\")\)\\\\|\1;\\\\|" \
@@ -131,7 +131,7 @@ sed \
   -e '/lp.include(v)/a\         end)' \
   -i /www/docroot/gateway.lp
 
-if [ "$DEBUG" = "V" ]; then
+if [ "$DEBUG" = "Y" ]; then
   echo [$SCRIPT]: Log card loading times
   sed \
     -e '/gettext.textdomain/a\local gettime = require("socket").gettime' \

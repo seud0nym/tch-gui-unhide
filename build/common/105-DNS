@@ -3,7 +3,7 @@ if [ -n "$ipv4DNSServers" ]; then
   echo [$SCRIPT]: Adding custom IPv4 DNS Servers from $ipv4DNSServers
   sed -e 's/\r//g' "$ipv4DNSServers" | sort | while read -r host ip; do
     if [ -n "$ip" ]; then
-      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $host ($ip) to /www/lua/dns_servers_helper.lua"
+      [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Adding $host ($ip) to /www/lua/dns_servers_helper.lua"
       sed -e "/ipv4-DNS-Servers/i\    {\"$ip\", T\"$host ($ip)\"}," -i /www/lua/dns_servers_helper.lua
     fi
   done
@@ -15,7 +15,7 @@ if [ -n "$ipv6DNSServers" ]; then
   sed -e 's/\r//g' "$ipv6DNSServers" | sort | while read -r host ip; do
     if [ -n "$ip" ]; then
       ipv6=$(echo $ip  | tr ':' '-')
-      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $host ($ip) to /www/lua/dns_servers_helper.lua"
+      [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Adding $host ($ip) to /www/lua/dns_servers_helper.lua"
       sed -e "/ipv6-DNS-Servers/i\    {\"$ipv6\", T\"$host ($ip)\"}," -i /www/lua/dns_servers_helper.lua
     fi
   done
@@ -32,17 +32,17 @@ WAN6_DNS="$(uci -q get network.wan6.dns)"
 if [ -z "$(uci -q get dhcp.main.server)" -a \( -n "$WAN_DNS" -o -n "$WAN6_DNS" \) ]; then
   echo [$SCRIPT]: Migrating custom DNS servers from network interfaces to dnsmasq
   for DNS_SERVER in $WAN6_DNS $WAN_DNS; do
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $DNS_SERVER"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Adding $DNS_SERVER"
     uci add_list dhcp.main.server="$DNS_SERVER"
     SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
   done
   uci commit dhcp
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Removing network interface DNS servers"
+  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Removing network interface DNS servers"
   uci -q delete network.wan.dns
   uci -q delete network.wan6.dns
   uci commit network
   SRV_network=$(( $SRV_network + 2 ))
 else
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: No custom DNS servers on network interfaces or already migrated to dnsmasq"
+  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: No custom DNS servers on network interfaces or already migrated to dnsmasq"
 fi
 

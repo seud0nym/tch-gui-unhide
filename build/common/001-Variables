@@ -159,7 +159,7 @@ USB="$(find $(uci get mountd.mountd.path) -follow -maxdepth 1 -mindepth 1 -type 
 if [ -n "$USB" ]; then
   echo "$SEARCH_PATH" | grep -q "${MOUNT_PATH}${USB}" || SEARCH_PATH="$SEARCH_PATH ${MOUNT_PATH}${USB}"
 fi
-[ "$DEBUG" = "V" ] && echo "[$SCRIPT]: Search path = $SEARCH_PATH"
+[ -n "$VERBOSE" ] && echo "[$SCRIPT]: Search path = $SEARCH_PATH"
 
 find_file() {
   local filename="$1"

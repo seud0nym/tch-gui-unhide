@@ -1,5 +1,6 @@
 CUSTOM_LOGO=y
-DEBUG=""
+DEBUG=n
+VERBOSE=""
 REBOOT=n
 RESTORE=n
 RESTORE_BASE='/rom'
@@ -94,11 +95,12 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
  case "${option}" in
    -) case "${OPTARG}" in
         abort) exit;;
-        debug) DEBUG="V";;
+        debug) DEBUG=y;;
         no-service-restart) RESTART_SERVICES=n;;
         reboot) REBOOT=y;;
         restore-base*) RESTORE_BASE="${OPTARG#restore-base=}"; [ -n "$RESTORE_BASE" -a -d "$RESTORE_BASE/www" ] || { echo "ERROR: Could not find www directory (--$OPTARG)"; exit 2; };;
         save-defaults) SAVE_DEFAULTS=y;;
+        verbose) VERBOSE="V";;
         *) usage $OPTIND;;
       esac;;
    a) if [ "${OPTARG}" = "4" -o "${OPTARG}" = "5" ]; then ACROSS=$OPTARG; else echo "ERROR: Cards across must be either 4 or 5"; exit 2; fi;;

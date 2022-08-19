@@ -1,7 +1,7 @@
 echo [$SCRIPT]: Add cogs to card headers
 for f in $(grep -l createCardHeaderNoIcon /www/cards/*)
 do
-  [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Updating $f"
+  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Updating $f"
   sed -e 's/createCardHeaderNoIcon/createCardHeader/' -i $f
 done
 

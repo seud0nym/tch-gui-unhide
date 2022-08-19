@@ -46,10 +46,10 @@ do
     fi
     req=$(grep -n 'local lp = require("web.lp")' $f | cut -d: -f1)
     if [ -z "$req" ]; then
-      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $LP theme style sheets to $f"
+      [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Adding $LP theme style sheets to $f"
       sed -e "/<\/head>\\\/i '); local lp = require(\"web.lp\"); lp.include(\"../snippets/theme-$LP.lp\"); ngx.print('\\\\" -i $f
     else
-      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Adding $LP theme style sheets to $f"
+      [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Adding $LP theme style sheets to $f"
       head=$(grep -n '</head>\\' $f | cut -d: -f1)
       if [ $head -lt $req ]; then
         sed -e "/<\/head>\\\/i '); local lp = require(\"web.lp\"); lp.include(\"../snippets/theme-$LP.lp\"); ngx.print('\\\\" -e "${req}d" -i $f

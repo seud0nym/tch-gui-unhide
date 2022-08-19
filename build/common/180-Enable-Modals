@@ -12,7 +12,7 @@ else
   echo [$SCRIPT]: Telstra Air and Fon SSIDs FOUND - Leaving in GUI
   if [ "$MINIFY" = y ]; then
     echo [$SCRIPT]: Pre-minify fixes
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/fon-modal.lp"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/fon-modal.lp"
     sed \
       -e 's/\(})\)\(\\\)/\1;\2/' \
       -i /www/docroot/modals/fon-modal.lp
@@ -34,14 +34,14 @@ for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal
     CREATE_RULE=n
   fi
   if [ $CREATE_RULE = y ]; then
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Creating Rule $RULE: target=/modals/$MODAL"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Creating Rule $RULE: target=/modals/$MODAL"
     uci set web.$RULE=rule
     uci set web.$RULE.target=/modals/$MODAL
     uci set web.$RULE.normally_hidden='1'
     uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 4 ))
   elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]; then
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing Rule $RULE: target=/modals/$MODAL Setting role to admin"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing Rule $RULE: target=/modals/$MODAL Setting role to admin"
     uci -q delete web.$RULE.roles
     uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 2 ))
@@ -60,14 +60,14 @@ for f in $(find /www/docroot/ajax -type f | grep -vE 'internet.lua|wirelesscard.
     CREATE_RULE=n
   fi
   if [ $CREATE_RULE = y ]; then
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Creating Rule $RULE: target=/ajax/$AJAX"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Creating Rule $RULE: target=/ajax/$AJAX"
     uci set web.$RULE=rule
     uci set web.$RULE.target=/ajax/$AJAX
     uci set web.$RULE.normally_hidden='1'
     uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 4 ))
   elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]; then
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Fixing Rule $RULE: target=/ajax/$AJAX Setting role to admin"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing Rule $RULE: target=/ajax/$AJAX Setting role to admin"
     uci -q delete web.$RULE.roles
     uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 2 ))
@@ -81,7 +81,7 @@ do
   f=/www/docroot$(echo "$c" | cut -d"'" -f2)
   if [ ! -f "$f" ]; then
     RULE=$(echo $c | cut -d. -f2)
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Deleting rule $RULE for missing target $f"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Deleting rule $RULE for missing target $f"
     uci -q delete web.$RULE
     uci -q del_list web.ruleset_main.rules=$RULE
     SRV_nginx=$(( $SRV_nginx + 2 ))

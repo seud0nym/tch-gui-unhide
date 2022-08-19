@@ -1,7 +1,7 @@
 if [ "$BG_RFRSH" = "false" ]; then
   echo [$SCRIPT]: Removing Chart cards because background refresh disabled
   for CHART in Charts CPU RAM WANDown WANUp; do
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Removing /www/cards/000_${CHART}.lp"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Removing /www/cards/000_${CHART}.lp"
     rm -f /www/cards/000_${CHART}.lp
   done
   sed -e '/CPU and RAM charts depend/d' -i /www/docroot/modals/theme-modal.lp
@@ -53,7 +53,7 @@ for CARD_PATH in $(find /www/cards/ -maxdepth 1 -type f -name '*.lp' | sort); do
     HIDDEN=0
   fi
   if [ "$(uci -q get web.${CARD_RULE})" != "card" ]; then
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Card Rule $CARD_RULE: card=$CARD_FILE hide=$HIDDEN modal=$MODAL_RULE"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Card Rule $CARD_RULE: card=$CARD_FILE hide=$HIDDEN modal=$MODAL_RULE"
     uci set web.${CARD_RULE}=card
     uci set web.${CARD_RULE}.card="$CARD_FILE"
   fi
@@ -105,13 +105,13 @@ else
   for CARD_RULE in $(uci show web | grep '=card' | cut -d= -f1); do
     CARD=$(uci -q get ${CARD_RULE}.card)
     CARD_FILE=$(ls /www/cards/???_${CARD#*_} 2>/dev/null)
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Card Rule $CARD_RULE: card=$CARD search=/www/cards/???_${CARD#*_} found=$CARD_FILE"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Card Rule $CARD_RULE: card=$CARD search=/www/cards/???_${CARD#*_} found=$CARD_FILE"
     if [ -z "$CARD_FILE" ]; then
-      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Removing obsolete configuration $CARD_RULE"
+      [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Removing obsolete configuration $CARD_RULE"
       uci delete $CARD_RULE
       SRV_nginx=$(( $SRV_nginx + 1 ))
     elif [ "$CARD" != "$(basename $CARD_FILE)" ]; then
-      [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Renaming $CARD_FILE to /www/cards/$CARD"
+      [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Renaming $CARD_FILE to /www/cards/$CARD"
       mv $CARD_FILE /www/cards/$CARD
     fi
   done
@@ -124,7 +124,7 @@ do
   CARD_PATH=/www/cards/$(echo "$CARD_FILE" | cut -d"'" -f2)
   if [ ! -f "$CARD_PATH" ]; then
     CARD_RULE=$(echo $CARD_FILE | cut -d. -f2)
-    [ "$DEBUG" = "V" ] && echo "[$SCRIPT]: - Deleting card configuration $CARD_RULE for missing card $CARD_PATH"
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Deleting card configuration $CARD_RULE for missing card $CARD_PATH"
     uci -q delete web.$CARD_RULE
     SRV_nginx=$(( $SRV_nginx + 1 ))
   fi
