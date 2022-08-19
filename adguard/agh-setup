@@ -1,6 +1,8 @@
 #!/bin/sh
 
 SCRIPT="AdGuard-Home-Setup"
+MIN_VER="v0.107.10"
+SCHEMA_VER="14"
 
 usage() {
 cat <<EOH
@@ -38,9 +40,9 @@ options:
                       However, this script will set up a cron sync job, so that the 
                       most you should lose will be the events and changes in the 
                       last minute before an unexpected system reboot.
- -v 'version'      The version of AdGuard Home to be installed (e.g. v0.107.7).
-                     The default is the latest version. Ignored if -xg or -xx
-                     specified.
+ -v 'version'      The version of AdGuard Home to be installed (e.g. $MIN_VER).
+                     The default is the latest version, and the minimum version is
+                     $MIN_VER. Ignored if -xg or -xx specified.
  -x c|g|i|s|u|y|x  Exclude features:
                      -xc  Do not update System CA certificates
                             NOTE: If certificates are not up to date, AdGuard Home
@@ -128,6 +130,31 @@ while getopts :deih:n:p:rsuv:x: option; do
  esac
 done
 shift $((OPTIND-1))
+
+if [ -n "$AGH_VER" ]; then
+  if ! echo $AGH_VER | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+    echo -e "${RED}[$SCRIPT] Invalid version number for -v option! Aborting...${NC}"
+    exit 2
+  fi
+  set -- $(echo $AGH_VER | cut -c2- | tr '.' ' ');REQ_MAJOR=$1;REQ_MINOR=$2;REQ_POINT=$3
+  set -- $(echo $MIN_VER | cut -c2- | tr '.' ' ');MIN_MAJOR=$1;MIN_MINOR=$2;MIN_POINT=$3
+  VER_OK=Y
+  if [ $REQ_MAJOR -lt $MIN_MAJOR ]; then
+    VER_OK=N
+  elif [ $REQ_MAJOR -eq $MIN_MAJOR ]; then
+    if [ $REQ_MINOR -lt $MIN_MINOR ]; then
+      VER_OK=N
+    elif [ $REQ_MINOR -eq $MIN_MINOR ]; then
+      if [ $REQ_POINT -lt $MIN_POINT ]; then
+        VER_OK=N
+      fi
+    fi
+  fi
+  if [ $VER_OK = N ]; then
+    echo -e "${RED}[$SCRIPT] Requested version must be greater than or equal to ${MIN_VER}! Aborting...${NC}"
+    exit 2
+  fi
+fi
 
 IPv4=$(ip -o a | grep -E '^[0-9]*: br-lan * inet ' | tr -s ' ' | cut -d' ' -f4 | cut -d/ -f1)
 IPv6=$(ip -o a | grep -v -E '^[0-9]*: (lo|if|wl|br-lan)' | grep ' inet6 ' | tr -s ' ' | cut -d' ' -f4 | grep -v '^fe' | cut -d/ -f1 | xargs)
@@ -525,142 +552,135 @@ else
   SLAAC="false"
 fi
 
-if [  $OVERWRITE = y -o ! -e $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml ]; then
+if [ $OVERWRITE = Y -o ! -e $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring AdGuard Home...${NC}"
   cat <<YAML_END >$INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml
-auth_attempts: 5
-beta_bind_port: 0
 bind_host: $GATEWAY
 bind_port: 8008
+beta_bind_port: 0
+users:
+  - name: $USERNAME
+    password: $PWD_HASH
+auth_attempts: 5
 block_auth_min: 15
-clients: []
+http_proxy: ""
+language: ""
+rlimit_nofile: 0
 debug_pprof: false
-dhcp:
-  dhcpv4:
-    gateway_ip: $GATEWAY
-    icmp_timeout_msec: 1000
-    lease_duration: $LEASE_TIME
-    options: []
-    range_end: $DHCPv4_END
-    range_start: $DHCPv4_START
-    subnet_mask: $NETMASK
-  dhcpv6:
-    lease_duration: $LEASE_TIME
-    ra_allow_slaac: $SLAAC
-    ra_slaac_only: false
-    range_start: $DHCPv6_START
-  enabled: $AGH_DHCP
-  interface_name: br-lan
+web_session_ttl: 720
 dns:
-  aaaa_disabled: false
-  all_servers: false
-  allowed_clients: []
-  anonymize_client_ip: false
   bind_hosts:
-  - 0.0.0.0
-  blocked_hosts:
-  - version.bind
-  - id.server
-  - hostname.bind
-  blocked_response_ttl: 10
-  blocked_services: []
-  blocking_ipv4: ""
-  blocking_ipv6: ""
-  blocking_mode: default
-  bogus_nxdomain: []
-  bootstrap_dns:
-  - 9.9.9.10
-  - 149.112.112.10
-  - 2620:fe::10
-  - 2620:fe::fe:10
-  cache_optimistic: false
-  cache_size: 4194304
-  cache_time: 30
-  cache_ttl_max: 0
-  cache_ttl_min: 0
-  disallowed_clients: []
-  edns_client_subnet: false
-  enable_dnssec: false
-  fastest_addr: false
-  fastest_timeout: 1s
-  filtering_enabled: true
-  filters_update_interval: 24
-  ipset: []
-  local_domain_name: $DOMAIN
-  local_ptr_upstreams: []
-  max_goroutines: 300
-  parental_block_host: family-block.dns.adguard.com
-  parental_cache_size: 1048576
-  parental_enabled: false
+    - 0.0.0.0
   port: 53
-  protection_enabled: true
+  statistics_interval: 1
   querylog_enabled: false
   querylog_file_enabled: true
   querylog_interval: $QUERYLOG_INTERVAL
   querylog_size_memory: 1000
+  anonymize_client_ip: false
+  protection_enabled: true
+  blocking_mode: default
+  blocking_ipv4: ""
+  blocking_ipv6: ""
+  blocked_response_ttl: 10
+  parental_block_host: family-block.dns.adguard.com
+  safebrowsing_block_host: standard-block.dns.adguard.com
   ratelimit: 20
   ratelimit_whitelist: []
   refuse_any: true
-  resolve_clients: true
-  rewrites: []
-  safebrowsing_block_host: standard-block.dns.adguard.com
-  safebrowsing_cache_size: 1048576
-  safebrowsing_enabled: false
-  safesearch_cache_size: 1048576
-  safesearch_enabled: false
-  statistics_interval: 1
-  trusted_proxies:
-  - 127.0.0.0/8
-  - ::1/128
   upstream_dns:
-  - https://dns10.quad9.net/dns-query
+    - https://dns10.quad9.net/dns-query
   upstream_dns_file: ""
-  upstream_timeout: 10s
-  use_private_ptr_resolvers: true
+  bootstrap_dns:
+    - 9.9.9.10
+    - 149.112.112.10
+    - 2620:fe::10
+    - 2620:fe::fe:10
+  all_servers: false
+  fastest_addr: false
+  allowed_clients: []
+  disallowed_clients: []
+  blocked_hosts:
+    - version.bind
+    - id.server
+    - hostname.bind
+  cache_size: 4194304
+  cache_ttl_min: 0
+  cache_ttl_max: 0
+  bogus_nxdomain: []
+  aaaa_disabled: false
+  enable_dnssec: false
+  edns_client_subnet: false
+  max_goroutines: 300
+  ipset: []
+  filtering_enabled: true
+  filters_update_interval: 24
+  parental_enabled: false
+  safesearch_enabled: false
+  safebrowsing_enabled: false
+  safebrowsing_cache_size: 1048576
+  safesearch_cache_size: 1048576
+  parental_cache_size: 1048576
+  cache_time: 30
+  rewrites: []
+  blocked_services: []
+  local_domain_name: $DOMAIN
+  resolve_clients: true
+  local_ptr_upstreams: []
+tls:
+  enabled: false
+  server_name: ""
+  force_https: false
+  port_https: 443
+  port_dns_over_tls: 853
+  port_dns_over_quic: 784
+  port_dnscrypt: 0
+  dnscrypt_config_file: ""
+  allow_unencrypted_doh: false
+  strict_sni_check: false
+  certificate_chain: ""
+  private_key: ""
+  certificate_path: ""
+  private_key_path: ""
 filters:
-- enabled: true
-  id: 1
-  name: AdGuard DNS filter
-  url: https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt
-- enabled: true
-  id: 2
-  name: AdAway Default Blocklist
-  url: https://adaway.org/hosts.txt
-http_proxy: ""
-language: ""
+  - enabled: true
+    url: https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt
+    name: AdGuard DNS filter
+    id: 1
+  - enabled: true
+    url: https://adaway.org/hosts.txt
+    name: AdAway Default Blocklist
+    id: 2
+  - enabled: false
+    url: https://www.malwaredomainlist.com/hostslist/hosts.txt
+    name: MalwareDomainList.com Hosts List
+    id: 4
+whitelist_filters: []
+user_rules: []
+dhcp:
+  enabled: $AGH_DHCP
+  interface_name: br-lan
+  dhcpv4:
+    gateway_ip: $GATEWAY
+    subnet_mask: $NETMASK
+    range_start: $DHCPv4_START
+    range_end: $DHCPv4_END
+    lease_duration: $LEASE_TIME
+    icmp_timeout_msec: 1000
+    options: []
+  dhcpv6:
+    range_start: $DHCPv6_START
+    lease_duration: $LEASE_TIME
+    ra_slaac_only: false
+    ra_allow_slaac: $SLAAC
 log_compress: false
-log_file: ""
 log_localtime: false
-log_max_age: 3
 log_max_backups: 0
 log_max_size: 100
-os:
-  group: ""
-  rlimit_nofile: 0
-  user: ""
-schema_version: 12
-tls:
-  allow_unencrypted_doh: false
-  certificate_chain: ""
-  certificate_path: ""
-  dnscrypt_config_file: ""
-  enabled: false
-  force_https: false
-  port_dns_over_quic: 784
-  port_dns_over_tls: 853
-  port_dnscrypt: 0
-  port_https: 443
-  private_key: ""
-  private_key_path: ""
-  server_name: ""
-  strict_sni_check: false
-user_rules: []
-users:
-- name: $USERNAME
-  password: $PWD_HASH
+log_max_age: 3
+log_file: ""
 verbose: false
-web_session_ttl: 720
-whitelist_filters: []
+schema_version: $SCHEMA_VER
 YAML_END
 else
   echo -e "${ORANGE}[$SCRIPT] Existing AdGuard Home configuration NOT overwritten${NC}"
@@ -824,18 +844,20 @@ while [ $STATUS_CHK -lt 5 ]; do
 done
 
 if [ $AGH_RUNNING = 'true' ]; then
-  echo -e "${GREEN}[$SCRIPT] Loading static leases...${NC}"
-  for host in $(uci show dhcp | grep '@host.*=host$' | cut -d= -f1); do
-    SLEASE_MAC="$(uci -q get $host.mac)"
-    SLEASE_IP="$(uci -q get $host.ip)"
-    SLEASE_NAME="$(uci -q get $host.name)"
-    if [ -n "$SLEASE_IP" -a -n "$SLEASE_MAC" -a -n "$SLEASE_NAME" ]; then
-      echo -e "[$SCRIPT] Loading static lease for $SLEASE_IP ($SLEASE_MAC - $SLEASE_NAME)"
-      curl -u $USERNAME:$PASSWORD -X POST --data "{ \"mac\":\"$SLEASE_MAC\", \"ip\":\"$SLEASE_IP\", \"hostname\":\"$SLEASE_NAME\" }" http://${GATEWAY}:8008/control/dhcp/add_static_lease
-    else
-      echo -e "${ORANGE}[$SCRIPT] SKIPED loading static lease - missing parameter (MAC=$SLEASE_MAC: IP=$SLEASE_IP HOST NAME=$SLEASE_NAME)${NC}"
-    fi
-  done
+  if [ $AGH_DHCP = true ]; then
+    echo -e "${GREEN}[$SCRIPT] Loading static leases...${NC}"
+    for host in $(uci show dhcp | grep '@host.*=host$' | cut -d= -f1); do
+      SLEASE_MAC="$(uci -q get $host.mac)"
+      SLEASE_IP="$(uci -q get $host.ip)"
+      SLEASE_NAME="$(uci -q get $host.name)"
+      if [ -n "$SLEASE_IP" -a -n "$SLEASE_MAC" -a -n "$SLEASE_NAME" ]; then
+        echo -e "[$SCRIPT] Loading static lease for $SLEASE_IP ($SLEASE_MAC - $SLEASE_NAME)"
+        curl -u $USERNAME:$PASSWORD -X POST --data "{ \"mac\":\"$SLEASE_MAC\", \"ip\":\"$SLEASE_IP\", \"hostname\":\"$SLEASE_NAME\" }" http://${GATEWAY}:8008/control/dhcp/add_static_lease
+      else
+        echo -e "${ORANGE}[$SCRIPT] SKIPED loading static lease - missing parameter (MAC=$SLEASE_MAC: IP=$SLEASE_IP HOST NAME=$SLEASE_NAME)${NC}"
+      fi
+    done
+  fi
 
   if [ $UTILITIES = Y ]; then
     for s in agh-change-password agh-lists-update agh-update; do
