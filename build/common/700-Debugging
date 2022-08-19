@@ -1,0 +1,28 @@
+if [ $DEBUG = y ]; then
+  echo [$SCRIPT]: Log card loading times
+  sed \
+    -e '/gettext.textdomain/a\local gettime = require("socket").gettime' \
+    -e '/gettext.textdomain/a\local log = require("tch.logger").new("gateway.lp",7)' \
+    -e '/gettext.textdomain/a\log:notice("Invoked!")' \
+    -e '/gettext.textdomain/a\local debug_started = gettime()' \
+    -e '/local cards/i\        log:notice("Elapsed time before loading cards: %.4f sec",gettime()-debug_started)' \
+    -e '/local cards/i\        debug_started = gettime()' \
+    -e '/local cards/a\        log:notice("Loading card info took %.4f sec",gettime()-debug_started)' \
+    -e '/lp.include(v)/i\          local started = gettime()' \
+    -e '/lp.include(v)/a\          log:notice("Card %s loaded in %.4f sec",v,gettime()-started)' \
+    -i /www/docroot/gateway.lp
+
+  echo [$SCRIPT]: Log validation errors 
+  for f in $(grep -rl post_helper.handleQuery /www/docroot/); do
+    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Updating $f"
+    awk -e '/post_helper\.handleQuery/ {
+      print;
+      split($0,a,"=");
+      split(a[1],b,",");
+      if(b[2] != "") print "if " b[2] " then for dbg_val_fail_f,dbg_val_fail_m in pairs(" b[2] ") do ngx.log(ngx.ALERT,\"Validation Failure on \",dbg_val_fail_f,\": \",dbg_val_fail_m) end end";
+      next;
+    }
+    1' "$f" > /tmp/tch-gui-unhide.debug.handleQuery && mv /tmp/tch-gui-unhide.debug.handleQuery "$f"
+  done
+fi
+
