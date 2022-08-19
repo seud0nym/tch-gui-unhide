@@ -15,7 +15,7 @@ if [ $DEBUG = y ]; then
   echo [$SCRIPT]: Log validation errors 
   for f in $(grep -rl post_helper.handleQuery /www/docroot/); do
     [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Updating $f"
-    awk -e '/post_helper\.handleQuery/ {
+    awk -e '/= *post_helper\.handleQuery/ {
       print;
       split($0,a,"=");
       split(a[1],b,",");
