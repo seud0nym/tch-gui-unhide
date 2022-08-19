@@ -115,7 +115,7 @@ local summary_data = {
 
 local function to_megabytes(val)
   local mb = tonumber(val) / 1048576
-  local rounded = floor((mb * 10^2) + 0.5) / (10^2)
+  local rounded = tostring(floor((mb * 10^2) + 0.5) / (10^2))
   local left,num,right = match(rounded,'^([^%d]*%d)(%d*)(.-)$')
   if (#right == 0) then
     right = ".00"
@@ -169,9 +169,8 @@ if summary_data[3][5] == 0 then -- Previous Month Total
 end
 
 for _,data in ipairs(summary_data) do
-  data[3] = to_megabytes(data[3])
-  data[4] = to_megabytes(data[4])
-  data[5] = to_megabytes(data[5])
+---@diagnostic disable-next-line: assign-type-mismatch
+  data[3] = to_megabytes(data[3]); data[4] = to_megabytes(data[4]); data[5] = to_megabytes(data[5])
 end
 
 local number_attr = {
