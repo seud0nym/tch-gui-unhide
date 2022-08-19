@@ -33,6 +33,8 @@ echo [$SCRIPT]: Hide Mobile Only Mode on Mobile Configuration screen is WAN Sens
 sed \
   -e '/getExactContent(content_wansensing)/i\p.mapParams.wsenable = "uci.wansensing.global.enable"' \
   -e '/Mobile Only Mode/i if page.content.wsenable == "1" then' \
+  -e '/Mobile Only Mode/a else' \
+  -e '/Mobile Only Mode/a   tinsert(html, ui_helper.createSimpleInputHidden("primarywanmode", page.content["primarywanmode"] and page.content["primarywanmode"] == "MOBILE" and "1" or "0"))' \
   -e '/Mobile Only Mode/a end' \
   -i /www/docroot/modals/lte-modal.lp
 
