@@ -1,3 +1,33 @@
+2022.08.20
+==========
+* tch-gui-unhide: Fixed bug where utilities were always copied to USB during GUI upgrade, even if they didn't exist before
+* tch-gui-unhide: Fixed bug where Cancel/Save buttons were not replaced with Close button after successfully updating Broadband configuration
+* tch-gui-unhide: Fixed layout issues and missing status for Mobile Only Mode on Mobile card
+* tch-gui-unhide: Fixed LAN IPv6 in bridged mode
+* tch-gui-unhide: Fixed IPv6 DNS Server display on Local Network card when DNS hijacking enabled
+* tch-gui-unhide: Added Permanent WWAN switch to Broadband Configuration (when enabled, Mobile Internet will be permanently connected at a lower priority so that normal traffic will pass through the WAN connection, but if that fails, traffic will be routed immediately through the WWAN connection) NOTE: Should not be used with Telstra Backup SIM - it will probably get disabled (Thanks to @UncleSam1966 for original code)
+* tch-gui-unhide: Added separate tabs for Fixed and Mobile Broadband Usage
+* tch-gui-unhide: Added device IPv6 addresses to Local Network card
+* tch-gui-unhide: Added device IPv6 addresses to Local Network Screen
+* tch-gui-unhide: Added Statistics tab to Telephony
+* tch-gui-unhide: Added ability to configure WWAN peer DNS
+* tch-gui-unhide: Added SIM card service provider to Mobile card header
+* tch-gui-unhide: Added direct link to SMS tab from Unread SMS count on Mobile card
+* tch-gui-unhide: Removed "SMS messages not supported with the Telstra Backup SIM" alert if SMS messages were found
+* tch-gui-unhide: Removed log check during install (not reliable)
+* tch-gui-unhide: Daily upload/download volume shown on Broadband card includes both Fixed and Mobile usage (not just current active interface)
+* tch-gui-unhide: Internet card now correctly shows both Fixed and Mobile IPs if both active
+* tch-gui-unhide: Hide Mobile Only Mode status on Mobile card if WAN Sensing disabled
+* tch-gui-unhide: Hide Mobile Only Mode switch on Mobile Configuration screen if WAN Sensing disabled
+* tch-gui-unhide: Hide Mobile Auto-Failover tab if WAN Sensing disabled
+* tch-gui-unhide: When DNS hijacking enabled, automatically detect additional IPv6 addresses assigned to the specified IPv6 DNS Server (when a WAN interface comes up) and automatically exclude them from interception
+* tch-gui-unhide: Updated tproxy-go to v2022.08.20-0-gcf5bf47
+* de-telstra: WPS setting not correctly applied on FW 20.4 (Smart Modem Gen 3)
+* log-check: Removed script (not reliable)
+* reset-to-factory-defaults-with-root: When the -i (restore current IP address) option is specified, port forwards, static leases and the IPv6 ULA and prefix size will be restored (unless --no-forwards, --no-leases or --no-ula are specified).
+* safe-firmware-upgrade: Fixed saved defaults not correctly applied
+* safe-firmware-upgrade: When the -i (restore current IP address) option is specified, port forwards, static leases and the IPv6 ULA and prefix size will be restored (unless --no-forwards, --no-leases or --no-ula are specified).
+
 2022.07.28
 ==========
 * tch-gui-unhide: Fixed hanging install when making CWMP username/password optional
@@ -306,7 +336,7 @@
 ==========
 * tch-gui-unhide: Fixed firewall changes commit/apply
 * tch-gui-unhide: Fixed Telephony card call stats for 20.3.c FW
-* tch-gui-unhide: Fixed backend DMZ validation [#42] (Thanks Bertram Truong)
+* tch-gui-unhide: Fixed backend DMZ validation [#42] (Thanks @bt)
 * tch-gui-unhide: Update Available button now shows the change log, and can optionally invoke an automatic update
 * tch-gui-unhide: New option to show only a single summary chart card [#40] (-Cs), individual chart cards (-Ci (the default)) or no chart cards (-Cn) 
 * tch-gui-unhide: Reviewed and reworked NAT ALG helpers UI on 20.3.c FW to simplify and work more consistently
@@ -480,7 +510,7 @@
 2021.05.16
 ==========
 * tch-gui-unhide: Fixed bug in new MAC vendor lookup that broke device list on first execution
-* mtd-backup/mtd-restore: Speed up MTD backups and restores by a factor of 5-10 [#26] (Thanks neg2led)
+* mtd-backup/mtd-restore: Speed up MTD backups and restores by a factor of 5-10 [#26] (Thanks @neg2led)
 
 2021.05.15
 ==========
