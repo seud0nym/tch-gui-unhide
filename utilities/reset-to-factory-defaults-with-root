@@ -10,6 +10,7 @@ NC='\033[0m' # No Color
 
 VERSION="$(uci get version.@version[0].marketing_version)"
 SERIAL=$(uci get env.var.serial)
+LAN_IP_NOW="$(uci get network.lan.ipaddr)"
 OVERLAY_FS="$(mount | grep '/overlay type' | cut -d' ' -f5)"
 ROM_FS="$(mount | grep '/rom type' | cut -d' ' -f5)"
 MOUNT_PATH="$(uci get mountd.mountd.path)"
@@ -191,7 +192,7 @@ while getopts :bcef:iI:knp:svyU-: option; do
         no-forwards)    __NO_FWD="Y";;
         no-leases)      __NO_LEASES="Y";;
         no-ula)         __NO_ULA="Y";;
-        restore-config) RESTORE_CONFIG="Y"; __CWMP="Y"; __NOEXEC="Y"; __KEYS="Y"; __VERBOSE="Y"; [ -z "$__IPADDR" ] && __IPADDR="$(uci get network.lan.ipaddr)"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y";;
+        restore-config) RESTORE_CONFIG="Y"; __CWMP="Y"; __NOEXEC="Y"; __KEYS="Y"; __VERBOSE="Y"; [ -z "$__IPADDR" ] && __IPADDR="$LAN_IP_NOW"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y";;
         save-defaults)  SAVE_DEFAULTS="Y";;
         *)              usage;;
       esac;;
@@ -204,7 +205,7 @@ while getopts :bcef:iI:knp:svyU-: option; do
         echo "$OPTARG" | grep -qE '\.(rbi|bin)$' || { echo -e "${RED}ERROR:    Firmware file names must end with .rbi or .bin!${NC}"; exit 2; }
       fi
       FIRMWARE="${OPTARG}";;
-  i)  __IPADDR="$(uci get network.lan.ipaddr)";;
+  i)  __IPADDR="$LAN_IP_NOW";;
   I)  if echo "${OPTARG}" | grep -qE "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"; then
         __IPADDR="${OPTARG}"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y"
       else
@@ -447,7 +448,7 @@ if [ -n "$__IPADDR" ]; then
   done
   echo -e "NOTE:     IP address will be set to '${GREEN}$__IPADDR${NC}'"
   LAN_CFG="uci set network.lan.ipaddr='$__IPADDR'"
-  if [ $RESTORE_CONFIG = N ]; then
+  if [ $RESTORE_CONFIG = N -a "$__IPADDR" = "$LAN_IP_NOW" ]; then
     if [ $__NO_ULA = N ]; then
       IP6ASSIGN="$(uci -q get network.lan.ip6assign)"
       if [ -n "$IP6ASSIGN" ]; then
@@ -468,7 +469,7 @@ if [ -n "$__IPADDR" ]; then
       fi
     fi
     if [ $__NO_FWD = N ]; then
-      FORWARDS="$(uci show firewall | awk -e '/=userredirect$/{print "uci set " $0; sub(/=userredirect$/,"");KEY=$0;next;} {if(KEY != "" && index($0,KEY) != 0) print "uci set " $0;}0')"
+      FORWARDS="$(uci show firewall | awk -e '/=(userredirect|pinholerule)$/{print "uci set " $0; sub(/=(userredirect|pinholerule)$/,"");KEY=$0;next;} {if(KEY != "" && index($0,KEY) != 0) print "uci set " $0;}0')"
       if [ -n "$FORWARDS" ]; then
         echo -e "NOTE:     Port forwarding rules will be '${GREEN}restored${NC}'"
         LAN_CFG="$LAN_CFG"$'\n'"$FORWARDS"

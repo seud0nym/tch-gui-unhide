@@ -140,7 +140,7 @@ while getopts :bceiI:knp:svyU-: option; do
       esac;;
   b|c|e|i|k|n|s|v|y)  OPTIONS="$OPTIONS -${option}";;
   I|p)  OPTIONS="$OPTIONS -${option} ${OPTARG}";;
-  U)  download $SCRIPT; exit;;
+  U)  download reset-to-factory-defaults-with-root; download $SCRIPT; exit;;
   *)  usage;;
  esac
 done
@@ -175,6 +175,9 @@ OPTIONS="-f $FIRMWARE $OPTIONS"
 
 if [ ! -e reset-to-factory-defaults-with-root ]; then
   echo -e "NOTE:     Downloading script dependency 'reset-to-factory-defaults-with-root'..."
+  download reset-to-factory-defaults-with-root
+elif ! grep -q pinholerule reset-to-factory-defaults-with-root; then
+  echo -e "NOTE:     Upgrading script dependency 'reset-to-factory-defaults-with-root'..."
   download reset-to-factory-defaults-with-root
 elif ! grep -q sysupgrade reset-to-factory-defaults-with-root; then
   echo -e "NOTE:     Upgrading script dependency 'reset-to-factory-defaults-with-root'..."
