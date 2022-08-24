@@ -27,11 +27,17 @@ exit
 }
 
 remove() {
-  echo -e "${ORANGE}[$SCRIPT] Uninstalling OpenSpeedTest Server...${NC}"
-  /etc/init.d/nginx stop
   echo -e "${ORANGE}[$SCRIPT] Deconfiguring OpenSpeedTest Server from nginx...${NC}"
-  sed -e '/OpenSpeedTest-Server.conf/d' -i /etc/nginx/nginx.conf
+  /etc/init.d/nginx stop
+  sed \
+    -e 's/\(worker_connections[[:blank:]]*\)\([[:digit:]]*\);/\1256;/' \
+    -e '/worker_rlimit_nofile/d' \
+    -e '/multi_accept/d' \
+    -e '/default_type/d' \
+    -e '/OpenSpeedTest-Server.conf/d' \
+    -i /etc/nginx/nginx.conf
   if [ -e /etc/nginx/OpenSpeedTest-Server.conf ]; then
+    echo -e "${ORANGE}[$SCRIPT] Uninstalling OpenSpeedTest Server...${NC}"
     rm -rf "/$(grep root /etc/nginx/OpenSpeedTest-Server.conf | cut -d/ -f2- | tr -d ';')"
     rm -f /etc/nginx/OpenSpeedTest-Server.conf
   fi
@@ -154,9 +160,24 @@ server {
     expires off;
     etag off;
   }
+  location /assets {
+    access_log off;
+    expires 365d;
+    add_header Cache-Control public;
+    add_header Vary Accept-Encoding;
+    tcp_nodelay off;
+    open_file_cache max=3000 inactive=120s;
+    open_file_cache_valid 45s;
+    open_file_cache_min_uses 2;
+    open_file_cache_errors off;
+ }
 }
 CONF_END
-grep -q OpenSpeedTest-Server.conf /etc/nginx/nginx.conf || sed -e '/include[[:blank:]]*mime.types;/a\    include\t/etc/nginx/OpenSpeedTest-Server.conf;' -i /etc/nginx/nginx.conf
+sed -e 's/\(worker_connections[[:blank:]]*\)\([[:digit:]]*\);/\12048;/' -i /etc/nginx/nginx.conf
+grep -q 'OpenSpeedTest-Server.conf' /etc/nginx/nginx.conf || sed -e '/include[[:blank:]]*mime.types;/a\    include /etc/nginx/OpenSpeedTest-Server.conf;' -i /etc/nginx/nginx.conf
+grep -q 'worker_rlimit_nofile' /etc/nginx/nginx.conf || sed -e '/worker_processes/a\worker_rlimit_nofile 100000;' -i /etc/nginx/nginx.conf
+grep -q 'multi_accept' /etc/nginx/nginx.conf || sed -e '/worker_connections/a\    multi_accept on;' -i /etc/nginx/nginx.conf
+grep -q 'default_type' /etc/nginx/nginx.conf || sed -e '/include[[:blank:]]*mime.types;/a\    default_type application/octet-stream;' -i /etc/nginx/nginx.conf
 
 echo -e "${ORANGE}[$SCRIPT] Checking nginx configuration...${NC}"
 nginx -t
