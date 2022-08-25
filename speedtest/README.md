@@ -27,7 +27,7 @@ When the script completes, you will be able to access OpenSpeedTest in your brow
 ## Uninstalling
 Run the following command on your device:
 ```
-curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/openspeedtest/ost-setup | sh -s -- -r
+curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/speedtest/ost-setup | sh -s -- -r
 ```
 Or, if you downloaded the script manually, you can run `./ost-setup -r`.
 
