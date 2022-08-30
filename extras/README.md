@@ -7,12 +7,15 @@ Extras scripts that rely on packages to be installed require `opkg` to be config
 ## tch-gui-unhide-xtra.adblock
 Creates a GUI interface for the [`Adblock`](https://openwrt.org/packages/pkgdata/adblock) package that allows you to block ads at the router level.
 #### Firmware Applicability
-Should be applicable to all firmware versions supported by `tch-gui-unhide`, as long as you install the firmware-specific prerequisites.
+Should be applicable to all firmware versions supported by `tch-gui-unhide` (except 20.4 as there is no compatible repository for firmware 20.4 packages), as long as you install the firmware-specific prerequisites.
 #### Prerequisites 
 ##### CA Certificates
 The System CA Certificates must be updated. You can do this either by (preferably) running the [`update-ca-certificates`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#update-ca-certificates) script, or by manually installing the CA certificates packages using `opkg install ca-certificates ca-bundle`. The `update-ca-certificates` script will install the latest available certificates (and gives you the option to schedule a regular job to update them), whereas the opkg packages may not contain the latest certificates.
 ##### adblock
-Requires adblock version 3.5 to be installed using the `opkg` command. Different firmware versions have different dependencies:
+Requires adblock version 3.5 to be installed using the `opkg` command (see **opkg Configuration** [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#opkg-Configuration)).
+Different firmware versions have different dependencies:
+###### Firmware 20.4
+Not applicable. There is no compatible repository for firmware 20.4 packages.
 ###### Firmware 20.3.c
 `opkg install adblock uclient-fetch`
 ###### Firmware 18.1.c
@@ -39,9 +42,9 @@ The version of adblock in the standard 17.2 repository is incompatible with this
 ## tch-gui-unhide-xtra.minidlna
 Replaces the stock DLNA server management in the GUI so that it supports OpenWRT minidlna.
 #### Firmware Applicability
-Should be applicable to all firmware versions supported by `tch-gui-unhide`.
+Should be applicable to all firmware versions supported by `tch-gui-unhide`, except 20.4 as there is no compatible repository for firmware 20.4 packages.
 #### Prerequisites 
-Install minidlna using the opkg command: `opkg install minidlna`
+Install minidlna using the `opkg` command (see **opkg Configuration** [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#opkg-Configuration)): `opkg install minidlna`
 #### Installation
 `./tch-gui-unhide -x minidlna`
 #### Removal Instructions
@@ -56,9 +59,9 @@ Adds the ability to enable and disable the rsync daemon from the GUI.
 - Adds the *tmp* module to /etc/rsyncd.conf to allow read/write access to the /tmp directory via rsync (e.g. `rsync 192.168.0.1::tmp`)
 - Adds the *usb* module to /etc/rsyncd.conf to allow read/write access to the USB device via rsync (e.g. `rsync 192.168.0.1::usb`)
 #### Firmware Applicability
-Should be applicable to all firmware versions supported by `tch-gui-unhide`.
+Should be applicable to all firmware versions supported by `tch-gui-unhide`, except 20.4 as there is no compatible repository for firmware 20.4 packages.
 #### Prerequisites 
-Install rsyncd using the opkg command: `opkg install rsync rsyncd`
+Install rsyncd using the `opkg` command (see **opkg Configuration** [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#opkg-Configuration)): `opkg install rsync rsyncd`
 #### Installation
 `./tch-gui-unhide -x rsyncd`
 #### Removal Instructions
@@ -69,9 +72,9 @@ Install rsyncd using the opkg command: `opkg install rsync rsyncd`
 ## tch-gui-unhide-xtra.samba36-server
 Correctly configures OpenWRT SAMBA 3.6 to provide SMBv2 for Windows 10 inter-operability. This update adds the ability to change the password via the GUI.
 #### Firmware Applicability
-You should only install SAMBA 3.6 on the 17.2 and 18.1.c firmware. The 20.3.c firmware contains NQE rather than SAMBA, and does not require the SAMBA 3.6 update to upgrade to SMBv2 and inter-operate with Windows 10.
+You should *only* install SAMBA 3.6 on the 17.2 and 18.1.c firmware. The 20.3.c and 20.4 firmware contains NQE rather than SAMBA, and does not require the SAMBA 3.6 update to upgrade to SMBv2 and inter-operate with Windows 10.
 #### Prerequisites
-Install SAMBA v3.6 using the opkg command: `opkg --force-overwrite install samba36-server`
+Install SAMBA v3.6 using the `opkg` command (see **opkg Configuration** [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#opkg-Configuration)): `opkg --force-overwrite install samba36-server`
 #### Installation
 `./tch-gui-unhide -x samba36-server`
 #### Removal Instructions
@@ -84,9 +87,9 @@ Install SAMBA v3.6 using the opkg command: `opkg --force-overwrite install samba
 Creates a GUI interface for configuring the Wireguard VPN.
 #### Firmware Applicability
 For firmware 20.3.c. *only*.
-- Firmware prior to 20.3.c has not been compiled with TUN support in the kernel, and therefore VPN tunnels cannot be created.
+- All other firmware has not been compiled with TUN support in the kernel, and therefore VPN tunnels cannot be created.
 #### Prerequisites
-Add the [openwrt-wireguard-go](https://github.com/seud0nym/openwrt-wireguard-go) repository and install the package with these commands:  
+Ensure opkg in configured correctly (see **opkg Configuration** [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#opkg-Configuration)). Then, add the [openwrt-wireguard-go](https://github.com/seud0nym/openwrt-wireguard-go) repository and install the package with these commands:  
 `grep -q '/openwrt-wireguard-go/' /etc/opkg/customfeeds.conf || echo 'src/gz wg_go https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/repository/arm_cortex-a9/base' >> /etc/opkg/customfeeds.conf`  
 `opkg update`  
 `opkg install wireguard-go`  
@@ -162,7 +165,7 @@ src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/pack
 src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony
 ```
 
-#### Firmware Versions starting with 18 and later
+#### Firmware Versions starting with 18 and 20.3
 - /etc/opkg.conf
 ```
 dest root /
@@ -184,6 +187,9 @@ src/gz chaos_calmer_routing_macoers https://repository.macoers.com/homeware/18/b
 src/gz chaos_calmer_telephony_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony
 src/gz chaos_calmer_core_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages
 ```
+
+#### Firmware Versions starting with 20.4
+At present there is *no* opkg repository for the 20.4 firmware.
 
 ## Post Configuration
 After configuring opkg, you need to update the package lists. You need to do this each time before you install any packages:
