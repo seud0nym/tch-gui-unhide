@@ -29,6 +29,19 @@ if command then
 end
 log.info("Firmware version = %s",fw_version)
 
+local architecture = "Unknown"
+command = popen("grep 'model.*: *' /proc/cpuinfo | cut -d: -f2 | sort -u | xargs")
+if command then
+  local cpu = command:read()
+  command:close()
+  if find(cpu,"ARMv7") then
+    architecture = "ARMv7"
+  elseif find(cpu,"MIPS") then
+    architecture = "MIPS"
+  end
+end
+log.info("Architecture = %s",architecture)
+
 command = popen("grep '^Version:' /rom/usr/lib/opkg/info/*.control")
 if command then
   for file in command:lines() do
@@ -116,119 +129,125 @@ local function checkPackages(grp)
 
   local pattern,package,version = "","",""
   cmd = popen("grep -E '^Package|^Version|^Status|^Installed-Time' /usr/lib/opkg/status")
-  for line in cmd:lines() do
-    local key,value = string.match(line,"^(%S+):%s(.*)")
-    if key == "Package" then
-      package = value
-    elseif key == "Version" then
-      version = value
-    elseif key == "Status" then
-      if find(value,"not%-installed") then
-        package,version = "",""
-      end
-    elseif key == "Installed-Time" and package ~= "" and version ~= "" then
-      local system,target,keys = source(package)
-      data["packages"][package] = target
-      data[keys][#data[keys]+1] = package
-      data[target][package] = {
-        name = package,
-        description = "",
-        installed_version = version,
-        installed_time = value,
-        available_version = "",
-        warning = "",
-        system = system,
-        action = "",
-      }
-      if pattern == "" then
-        pattern = package .. " - ".. version
-      else
-        pattern = pattern .. "|" .. package .. " - ".. version
-      end
-      package,version = "",""
-    end
-  end
-  cmd:close()
-
-  cmd = popen("grep -E '^Description|^ ' /usr/lib/opkg/info/*.control","r")
-  for line in cmd:lines() do
-    local pkg,_,value = string.match(line,"^/usr/lib/opkg/info/(.*)%.control:(%w+): (.*)")
-    if pkg then
-      local target = data["packages"][pkg]
-      if not target then
-        target = "available"
-        local keys = "available_keys"
-        data["packages"][pkg] = target
-        data[keys][#data[keys]+1] = pkg
-        data[target][pkg] = {
-          name = pkg,
-          description = value,
-          installed_version = "",
-          installed_time = "",
+  if cmd then
+    for line in cmd:lines() do
+      local key,value = string.match(line,"^(%S+):%s(.*)")
+      if key == "Package" then
+        package = value
+      elseif key == "Version" then
+        version = value
+      elseif key == "Status" then
+        if find(value,"not%-installed") then
+          package,version = "",""
+        end
+      elseif key == "Installed-Time" and package ~= "" and version ~= "" then
+        local system,target,keys = source(package)
+        data["packages"][package] = target
+        data[keys][#data[keys]+1] = package
+        data[target][package] = {
+          name = package,
+          description = "",
+          installed_version = version,
+          installed_time = value,
           available_version = "",
           warning = "",
-          system = source(package),
+          system = system,
           action = "",
         }
-      else
-        data[target][pkg]["description"] = value
-      end
-    else
-      local pkg,desc = string.match(line,"^/usr/lib/opkg/info/(.*)%.control:%s(.*)")
-      if desc then
-        local target = data["packages"][pkg]
-        data[target][pkg]["description"] = data[target][pkg]["description"] .. " " .. desc
+        if pattern == "" then
+          pattern = package .. " - ".. version
+        else
+          pattern = pattern .. "|" .. package .. " - ".. version
+        end
+        package,version = "",""
       end
     end
+    cmd:close()
   end
-  cmd:close()
+
+  cmd = popen("grep -E '^Description|^ ' /usr/lib/opkg/info/*.control","r")
+  if cmd then
+    for line in cmd:lines() do
+      local pkg,_,value = string.match(line,"^/usr/lib/opkg/info/(.*)%.control:(%w+): (.*)")
+      if pkg then
+        local target = data["packages"][pkg]
+        if not target then
+          target = "available"
+          local keys = "available_keys"
+          data["packages"][pkg] = target
+          data[keys][#data[keys]+1] = pkg
+          data[target][pkg] = {
+            name = pkg,
+            description = value,
+            installed_version = "",
+            installed_time = "",
+            available_version = "",
+            warning = "",
+            system = source(package),
+            action = "",
+          }
+        else
+          data[target][pkg]["description"] = value
+        end
+      else
+        local pkg,desc = string.match(line,"^/usr/lib/opkg/info/(.*)%.control:%s(.*)")
+        if desc then
+          local target = data["packages"][pkg]
+          data[target][pkg]["description"] = data[target][pkg]["description"] .. " " .. desc
+        end
+      end
+    end
+    cmd:close()
+  end
 
   cmd = popen("opkg list | grep -v -E '" .. pattern .. "'","r")
-  for line in cmd:lines() do
-    local pkg,available_version,description = match(line,"(%S+)%s+%-%s+(%S+)%s*%-*%s*(.*)")
-    local warning = ""
-    if not pkg then
-      pkg,available_version = match(line,"Package%s(%S+)%sversion%s(%S+)%shas no valid architecture, ignoring.")
-      description = ""
-      warning = line
-    end
-    if pkg then
-      local target = data["packages"][pkg]
-      if not target then
-        target = "available"
-        local keys = "available_keys"
-        data[keys][#data[keys]+1] = pkg
-        data[target][pkg] = {
-          name = pkg,
-          description = description or "",
-          installed_version = "",
-          installed_time = "",
-          available_version = available_version,
-          warning = warning,
-          system = "system",
-          action = "",
-        }
-        data["packages"][pkg] = target
-      else
-        if (data[target][pkg]["description"] or "") == "" then
-          data[target][pkg]["description"] = description
-        end
-        if (data[target][pkg]["warning"] or "") == "" then
-          data[target][pkg]["warning"] = warning
-        end
+  if cmd then
+    for line in cmd:lines() do
+      local pkg,available_version,description = match(line,"(%S+)%s+%-%s+(%S+)%s*%-*%s*(.*)")
+      local warning = ""
+      if not pkg then
+        pkg,available_version = match(line,"Package%s(%S+)%sversion%s(%S+)%shas no valid architecture, ignoring.")
+        description = ""
+        warning = line
       end
-      local installed_version = data[target][pkg]["installed_version"]
-      if warning == "" and installed_version ~= "" and available_version ~= installed_version and available_version > installed_version then
-        data[target][pkg]["available_version"] = available_version
-        if data[target][pkg]["system"] == "" then
-          opkg_cache.usr_upgradable = opkg_cache.usr_upgradable + 1
+      if pkg then
+        local target = data["packages"][pkg]
+        if not target then
+          target = "available"
+          local keys = "available_keys"
+          data[keys][#data[keys]+1] = pkg
+          data[target][pkg] = {
+            name = pkg,
+            description = description or "",
+            installed_version = "",
+            installed_time = "",
+            available_version = available_version,
+            warning = warning,
+            system = "system",
+            action = "",
+          }
+          data["packages"][pkg] = target
         else
-          opkg_cache.sys_upgradable = opkg_cache.sys_upgradable + 1
+          if (data[target][pkg]["description"] or "") == "" then
+            data[target][pkg]["description"] = description
+          end
+          if (data[target][pkg]["warning"] or "") == "" then
+            data[target][pkg]["warning"] = warning
+          end
+        end
+        local installed_version = data[target][pkg]["installed_version"]
+        if warning == "" and installed_version ~= "" and available_version ~= installed_version and available_version > installed_version then
+          data[target][pkg]["available_version"] = available_version
+          if data[target][pkg]["system"] == "" then
+            opkg_cache.usr_upgradable = opkg_cache.usr_upgradable + 1
+          else
+            opkg_cache.sys_upgradable = opkg_cache.sys_upgradable + 1
+          end
         end
       end
     end
+    cmd:close()
   end
-  cmd:close()
 
   opkg_cache.tbl = data
   opkg_cache.time_check = time
@@ -353,7 +372,7 @@ GUI_OPKG_.get = {
     else
       source = '/sbin/logread'
     end
-    local today = sub(os.date(),1,10)
+    local today = sub(tostring(os.date()),1,10)
     local status = ""
     local cmd = popen(source.." | grep -E '^"..today..".* user\\..* rpc\\.gui\\.opkg' | tail -n 50","r")
     if cmd then
@@ -378,6 +397,9 @@ GUI_OPKG_.get = {
 GUI_OPKG_.set = {
   feeds_configured = function(_,_,value,_)
     if value == "1" and feeds_configured() == "0" then
+      if architecture ~= "ARMv7" then
+        return nil, "Unsupported architecture"
+      end
       os.execute("rm /etc/opkg.conf;\
         echo 'dest root'>/etc/opkg.conf;\
         echo 'dest ram /tmp'>>/etc/opkg.conf;\

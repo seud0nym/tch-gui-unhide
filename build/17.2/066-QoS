@@ -17,14 +17,27 @@ sed \
   -i /www/snippets/tabs-qos.lp
 
 if [ ! -f /usr/sbin/tc ]; then
-  echo [$SCRIPT]: tc command not found - installing
-  grep -qE '\ball\b' /etc/opkg.conf || echo "arch all 1">>/etc/opkg.conf
-  grep -qE '\bnoarch\b' /etc/opkg.conf || echo "arch noarch 1">>/etc/opkg.conf
-  grep -qE '\barm_cortex-a9\b' /etc/opkg.conf || echo "arch arm_cortex-a9 10">>/etc/opkg.conf
-  grep -qE '\barm_cortex-a9_neon\b' /etc/opkg.conf || echo "arch arm_cortex-a9_neon 20">>/etc/opkg.conf
-  grep -qE '\bbrcm63xx-tch\b' /etc/opkg.conf || echo 'arch brcm63xx-tch 30'>>/etc/opkg.conf
-  grep -qE '\bbcm53xx\b' /etc/opkg.conf || echo 'arch bcm53xx 40'>>/etc/opkg.conf
-  opkg --force-depends install /tmp/tc_4.0.0-1_bcm53xx.ipk 2>/dev/null
+  if grep -q 'model.*:.*ARMv7 Processor rev 1 (v7l)' /proc/cpuinfo; then
+    echo [$SCRIPT]: tc command not found - installing
+    grep -qE '\ball\b' /etc/opkg.conf || echo "arch all 1">>/etc/opkg.conf
+    grep -qE '\bnoarch\b' /etc/opkg.conf || echo "arch noarch 1">>/etc/opkg.conf
+    grep -qE '\barm_cortex-a9\b' /etc/opkg.conf || echo "arch arm_cortex-a9 10">>/etc/opkg.conf
+    grep -qE '\barm_cortex-a9_neon\b' /etc/opkg.conf || echo "arch arm_cortex-a9_neon 20">>/etc/opkg.conf
+    grep -qE '\bbrcm63xx-tch\b' /etc/opkg.conf || echo 'arch brcm63xx-tch 30'>>/etc/opkg.conf
+    grep -qE '\bbcm53xx\b' /etc/opkg.conf || echo 'arch bcm53xx 40'>>/etc/opkg.conf
+    opkg --force-depends install /tmp/tc_4.0.0-1_bcm53xx.ipk 2>/dev/null
+  elif grep -q 'model.*:.*Broadcom BMIPS4350 V8.0' /proc/cpuinfo; then
+    echo [$SCRIPT]: tc command not found - installing
+    grep -qE '\ball\b' /etc/opkg.conf || echo "arch all 1">>/etc/opkg.conf
+    grep -qE '\bnoarch\b' /etc/opkg.conf || echo "arch noarch 1">>/etc/opkg.conf
+    grep -qE '\bbrcm63xx-tch\b' /etc/opkg.conf || echo 'arch brcm63xx-tch 30'>>/etc/opkg.conf
+    opkg --force-depends install /tmp/tc_4.0.0-1_brcm63xx-tch.ipk 2>/dev/null
+  else
+    echo [$SCRIPT]: Unsupported architecture for QoS Bandwidth Shaping - Removing from GUI
+    sed -e '/qos-bqos-modal.lp/d' -i /www/snippets/tabs-qos.lp
+    sed -e '/dataQoS.bqos_enabled,format/,/end/d' -i /www/cards/008_qos.lp
+    sed -e '/bqos_/d' -i /www/cards/008_qos.lp
+  fi
 fi
-[ -f /tmp/tc_4.0.0-1_bcm53xx.ipk ] && rm /tmp/tc_4.0.0-1_bcm53xx.ipk
+rm -f /tmp/tc_4.0.0-1_bcm*.ipk
 
