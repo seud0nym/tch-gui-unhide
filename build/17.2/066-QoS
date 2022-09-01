@@ -39,5 +39,5 @@ if [ ! -f /usr/sbin/tc ]; then
     sed -e '/bqos_/d' -i /www/cards/008_qos.lp
   fi
 fi
-rm -f /tmp/tc_4.0.0-1_bcm*.ipk
+rm -f /tmp/tc_4.0.0-1_*.ipk
 
