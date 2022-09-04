@@ -35,7 +35,7 @@ This repository (and the releases) also contain a number of utility scripts to a
 
 | Script | Function |
 | ------ | -------- |
-| [de-telstra](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#hijack-dns) | Device hardening, and removal of Telstra monitoring/data collection |
+| [de-telstra](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) | Device hardening, and removal of Telstra monitoring/data collection |
 | [dumaos](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos) | Enables or disables DumaOS (if device is capable) |
 | [hijack-dns](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#hijack-dns) | Hijacks DNS requests to ensure that they are handled by the device, or by a specified DNS Server |
 | [mtd-backup](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-backup) | Backs up mtd or ubifs device partitions to an attached USB device or SSHFS attached filesystem |
