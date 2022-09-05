@@ -4,10 +4,39 @@
 ![Total Downloads](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/total)
 [![Latest Release](https://img.shields.io/github/release/seud0nym/tch-gui-unhide/all.svg?style=flat&label=latest)](https://github.com/seud0nym/tch-gui-unhide/releases) 
 ![Latest Release Downloads](https://img.shields.io/github/downloads/seud0nym/tch-gui-unhide/latest/total)
+
 # Unlock the GUI on your Telstra Technicolor Device
 These scripts can be applied to various Telstra branded Technicolor devices to unlock hidden features in the web GUI.
 
 [Features](https://github.com/seud0nym/tch-gui-unhide/wiki/Features) that have been unlocked or added are shown in the [wiki](https://github.com/seud0nym/tch-gui-unhide/wiki).
+
+<!-- Links from old README.md -->
+<a name="tldr"></a>
+<a name="installation"></a>
+<a name="notes"></a>
+<a name="upgrading-requires-internet-access-on-the-device"></a>
+<a name="why-not-just-use-httpsgithubcomansueltch-nginx-gui"></a>
+<a name="what-gui-features-are-unlocked"></a>
+<a name="gui-features-incorporated-from-the-ansuel-custom-gui"></a>
+<a name="additional-new-gui-features"></a>
+<a name="what-else-does-it-do"></a>
+<a name="custom-dns-servers"></a>
+<a name="device-dns-servers"></a>
+<a name="lan-client-dns-servers"></a>
+<a name="firmware-versions-0468-and-later"></a>
+<a name="firmware-version-181c0514-and-later-specific"></a>
+<a name="what-does-it-actually-do"></a>
+<a name="how-do-i-run-it"></a>
+<a name="first-you-need-to-get-root-access-to-your-device-and-ensure-it-is-running-the-correct-firmware"></a>
+<a name="second-download-and-extract-the-scripts"></a>
+<a name="harden-your-root-access"></a>
+<a name="third-optionally-create-customisation-files"></a>
+<a name="last-execute-the-script"></a>
+<a name="finally-clear-your-browser-cache-if-there-are-any-display-issues"></a>
+<a name="other-important-things-to-note"></a>
+<a name="cards"></a>
+<a name="themes"></a>
+<a name="custom-logo"></a>
 
 [Installation instructions](https://github.com/seud0nym/tch-gui-unhide/wiki/Installation) can also be found in the [wiki](https://github.com/seud0nym/tch-gui-unhide/wiki).
 
