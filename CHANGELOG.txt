@@ -1,3 +1,9 @@
+2022.09.06
+==========
+* tch-gui-unhide: Fixed broken tc install on MIPS devices (#108)
+* reset-to-factory-defaults-with-root: IPv6 static leases were not restored as expected
+* safe-firmware-upgrade: IPv6 static leases were not restored as expected
+
 2022.08.20
 ==========
 * tch-gui-unhide: Fixed bug where utilities were always copied to USB during GUI upgrade, even if they didn't exist before
