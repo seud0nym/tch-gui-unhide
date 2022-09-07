@@ -26,6 +26,8 @@ Options:
                 (Ignored if -X specified.)
  -k           Keep the downloaded archive after extracting the
                 scripts.
+ -p           Include pre-releases when determining latest version.
+                (Ignored if -v specified.)
  -r           Copy the extracted scripts to the /root directory.
  -u           Copy the extracted scripts to the attached USB device,
                 if one is found.
@@ -45,17 +47,19 @@ __FW_VERSION="$(uci -q get version.@version[0].marketing_version)"
 __GUI=n
 __HARDEN=n
 __KEEP=n
+__PRE=n
 __TGU_OVERRIDE=n
 __TGU_VERSION="latest"
 
 
-while getopts :df:ghkruv:X option; do
+while getopts :df:ghkpruv:X option; do
  case "${option}" in
   d)  __DELETE=y;;
   f)  __FW_VERSION="$OPTARG"; __FW_OVERRIDE=y;;
   g)  __GUI=y;;
   h)  __HARDEN=y;;
   k)  __KEEP=y;;
+  p)  [ "$__TGU_VERSION" = "latest" ] && __PRE=y;;
   r)  if [ -d /root ]; then
         __COPYTO="$__COPYTO /root"
       else
@@ -72,7 +76,7 @@ while getopts :df:ghkruv:X option; do
           __COPYTO="$__COPYTO ${__MOUNT_PATH}${__USB}"
         fi
       fi;;
-  v)  __TGU_VERSION="$OPTARG"; __TGU_OVERRIDE=y;;
+  v)  __TGU_VERSION="$OPTARG"; __TGU_OVERRIDE=y; __PRE=n;;
   X)  __EXTRACT=n;;
   *)  usage;;
  esac
@@ -83,6 +87,17 @@ if [ -z "$__FW_VERSION" ]; then
   usage
 else
   __ARCHIVE="$__FW_VERSION.tar.gz"
+fi
+
+if [ $__PRE = y ]; then
+  echo -e "${ORANGE}INFO:     ${NC}Determining latest version including pre-releases..."
+  __LATEST="$(curl -qskLm5 --connect-timeout 1 'https://github.com/seud0nym/tch-gui-unhide/releases' | grep -om1 'href="/seud0nym/tch-gui-unhide/releases/tag/20[2-9][0-9]\.[0-9][0-9]\.[0-9][0-9]"' | tr -d '"' | cut -d/ -f6)"
+  if [ -n "$__LATEST" ]; then
+    __TGU_VERSION="$__LATEST"
+  else
+    echo -e "${RED}ERROR:    ${NC}Failed to determine latest version???"
+    exit
+  fi
 fi
 
 __URL="https://github.com/seud0nym/tch-gui-unhide/releases"
