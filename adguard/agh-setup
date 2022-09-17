@@ -174,10 +174,11 @@ configure_dnmasq() {
   else
     PEER_DNS="0"
     LOCAL_USE="0"
-    DNS_PORT="0"
     if [ $AGH_DHCP = true ]; then
+      DNS_PORT="0"
       DHCP_SERVER="disabled"
     else
+      DNS_PORT="53835"
       DHCP_SERVER="server"
     fi
   fi
@@ -551,6 +552,7 @@ else
   DHCPv6_START='""'
   SLAAC="false"
 fi
+LOCAL_DOMAIN="$(uci get dhcp.@dnsmasq[0].domain)"
 
 if [ $OVERWRITE = Y -o ! -e $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring AdGuard Home...${NC}"
@@ -589,7 +591,10 @@ dns:
   ratelimit_whitelist: []
   refuse_any: true
   upstream_dns:
-    - https://dns10.quad9.net/dns-query
+    - tls://1dot1dot1dot1.cloudflare-dns.com
+    - tls://dns10.quad9.net
+    - tls://dns.google
+    - quic://unfiltered.adguard-dns.com
   upstream_dns_file: ""
   bootstrap_dns:
     - 9.9.9.10
@@ -655,11 +660,60 @@ filters:
     url: https://www.malwaredomainlist.com/hostslist/hosts.txt
     name: MalwareDomainList.com Hosts List
     id: 4
-whitelist_filters: []
+  - enabled: false
+    url: https://someonewhocares.org/hosts/zero/hosts
+    name: Dan Pollock's List
+    id: 1626696441
+  - enabled: false
+    url: https://raw.githubusercontent.com/Perflyst/PiHoleBlocklist/master/SmartTV-AGH.txt
+    name: Perflyst and Dandelion Sprout's Smart-TV Blocklist
+    id: 1626696443
+  - enabled: false
+    url: https://pgl.yoyo.org/adservers/serverlist.php?hostformat=adblockplus&showintro=1&mimetype=plaintext
+    name: Peter Lowe's List
+    id: 1626696444
+  - enabled: false
+    url: https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/spy.txt
+    name: WindowsSpyBlocker - Hosts spy rules
+    id: 1626696445
+  - enabled: false
+    url: https://www.github.developerdan.com/hosts/lists/ads-and-tracking-extended.txt
+    name: Developer Dan's Ads and Tracking List
+    id: 1626696453
+  - enabled: false
+    url: https://v.firebog.net/hosts/static/w3kbl.txt
+    name: WaLLy3K's Blacklist
+    id: 1626696456
+  - enabled: false
+    url: https://raw.githubusercontent.com/anudeepND/blacklist/master/adservers.txt
+    name: Anudeep ND's Blacklist
+    id: 1626696458
+  - enabled: false
+    url: https://raw.githubusercontent.com/bigdargon/hostsVN/master/hosts
+    name: hostsVN
+    id: 1626696462
+  - enabled: false
+    url: https://v.firebog.net/hosts/Easyprivacy.txt
+    name: Easyprivacy
+    id: 1626696463
+  - enabled: false
+    url: https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts
+    name: Fademind's Risky Hosts
+    id: 1626696475
+  - enabled: false
+    url: https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+    name: Steven Black Hosts List
+    id: 1626916178
+whitelist_filters:
+  - enabled: false
+    url: https://raw.githubusercontent.com/anudeepND/whitelist/master/domains/whitelist.txt
+    name: anudeepND's Curated Whitelist
+    id: 1626696452
 user_rules: []
 dhcp:
   enabled: $AGH_DHCP
   interface_name: br-lan
+  local_domain_name: $LOCAL_DOMAIN
   dhcpv4:
     gateway_ip: $GATEWAY
     subnet_mask: $NETMASK
@@ -682,6 +736,12 @@ log_file: ""
 verbose: false
 schema_version: $SCHEMA_VER
 YAML_END
+  [ $AGH_DHCP = false ] && sed \
+    -e  "/upstream_dns:/a\    - '[/$LOCAL_DOMAIN/]127.0.0.1:53835'" \
+    -e "s/local_ptr_upstreams: \[\]/local_ptr_upstreams:/" \
+    -e  "/local_ptr_upstreams:/a\    - 127.0.0.1:53835" \
+    -e  "/local_ptr_upstreams:/i\  use_private_ptr_resolvers: true" \
+    -i $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml
 else
   echo -e "${ORANGE}[$SCRIPT] Existing AdGuard Home configuration NOT overwritten${NC}"
 fi
@@ -730,10 +790,11 @@ configure_dnmasq() {
   else
     PEER_DNS="0"
     LOCAL_USE="0"
-    DNS_PORT="0"
     if [ $AGH_DHCP = true ]; then
+      DNS_PORT="0"
       DHCP_SERVER="disabled"
     else
+      DNS_PORT="53835"
       DHCP_SERVER="server"
     fi
   fi
