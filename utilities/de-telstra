@@ -1618,7 +1618,7 @@ fi
 
 echo [$SCRIPT]: Applying service changes...
 [ "$__LITE" = 'R' ] && {
-  for s in cupsd dumaos lte-doctor-logger mesh_broker mmpbxfwctl mmpbxd mmpbxbrcmdect mud multiap_agent multiap_controller multiap_vendorextensions ndhttpd telemetry-daemon xl2tpd; do
+  for s in cupsd dumaos mesh_broker mmpbxfwctl mmpbxd mmpbxbrcmdect mud multiap_agent multiap_controller multiap_vendorextensions ndhttpd telemetry-daemon xl2tpd; do
     [ -e /etc/init.d/$s -a ! $(/etc/init.d/$s enabled) ] && { /etc/init.d/$s enable; /etc/init.d/$s start; } > /dev/null 2>&1
   done
 }
@@ -1698,7 +1698,6 @@ if [ "$__LITE" = 'y' ]; then
   [ "$__SAMBA" = "0" -a -e /etc/init.d/samba ] && { /etc/init.d/samba disable; /etc/init.d/samba stop; } > /dev/null 2>&1
   [ "$__SAMBA" = "0" -a -e /etc/init.d/samba-nmbd ] && { /etc/init.d/samba-nmbd disable; /etc/init.d/samba-nmbd stop; } > /dev/null 2>&1
   [ "$__UPNP" = "0" ] && { /etc/init.d/miniupnpd-tch disable; /etc/init.d/miniupnpd-tch stop; } > /dev/null 2>&1
-  { /etc/init.d/lte-doctor-logger disable; /etc/init.d/lte-doctor-logger stop; } > /dev/null 2>&1
   [ ! -e /etc/ipsec.conf ] && { /etc/init.d/xl2tpd disable; /etc/init.d/xl2tpd stop; } > /dev/null 2>&1
 fi
 
