@@ -489,9 +489,9 @@ local mapParams = {
   localIPv6 = "uci.network.interface.@"..curintf..".ipv6",
   dhcplog = getDomainNamePath().."logdhcp",
   dhcplogv6 = "uci.dhcp.odhcpd.@odhcpd.loglevel",
-  ipv6addr = "rpc.network.interface.@lan.ip6addr",
+  ipv6addr = "rpc.network.interface.@"..curintf..".ip6addr",
 }
-if isBridgedMode and require("datamodel").get("rpc.network.interface.@lan6.ip6addr") then
+if isBridgedMode and curintf == "lan" and require("datamodel").get("rpc.network.interface.@lan6.ip6addr") then
   mapParams.ipv6addr = "rpc.network.interface.@lan6.ip6addr"
 end
 
