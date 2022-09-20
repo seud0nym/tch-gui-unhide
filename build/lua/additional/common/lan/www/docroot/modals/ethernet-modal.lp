@@ -466,7 +466,7 @@ end
 local function getDomainNamePath()
   for _,dnsmidx in pairs(proxy.getPN("uci.dhcp.dnsmasq.",true)) do
     for _,dnsmif in pairs(proxy.get(dnsmidx.path.."interface.")) do
-      if dnsmif.value == "lan" then
+      if dnsmif.value == curintf then
         return dnsmidx.path
       end
     end
@@ -1228,12 +1228,10 @@ ngx.print('\
               ui_helper.createInputText(T"Local Network Subnet","localdevmask",content["localdevmask"],advanced,helpmsg["localdevmask"])
             )
 
-            if curintf == "lan" then
-              if isBridgedMode then
-                ngx.print(ui_helper.createInputText(T"Local Gateway","localgw",content["localgw"],advanced,helpmsg["localgw"]))
-              else
-                ngx.print(ui_helper.createInputText(T"Local Domain Name","localdomain",content["localdomain"],advanced,helpmsg["localdomain"]))
-              end
+            if isBridgedMode then
+              ngx.print(ui_helper.createInputText(T"Local Gateway","localgw",content["localgw"],advanced,helpmsg["localgw"]))
+            else
+              ngx.print(ui_helper.createInputText(T"Local Domain Name","localdomain",content["localdomain"],advanced,helpmsg["localdomain"]))
             end
 
             ngx.print(ui_helper.createSwitch(T"IPv6 State","localIPv6",content["localIPv6"],switch_class_enable),ui_helper.createLabel(T"Device IPv6 Address",content["ipv6addr"],ipv6_attr))
@@ -1290,48 +1288,46 @@ ngx.print('\
                   ui_helper.createLabel(T"Network Address",network,advanced),
                   ui_helper.createInputText(T"DHCP Start Address","dhcpStartAddress",ipstart,advanced,helpmsg["dhcpStart"]),
                   ui_helper.createInputText(T"DHCP End Address","dhcpEndAddress",ipend,advanced,helpmsg["dhcpLimit"]),
-                  ui_helper.createInputText(T"Lease Time","leaseTime",content["leaseTime"],advanced,helpmsg["leaseTime"])
+                  ui_helper.createInputText(T"Lease Time","leaseTime",content["leaseTime"],advanced,helpmsg["leaseTime"]),
+                  ui_helper.createSwitch(T"Log DHCP Requests","dhcplog",content["dhcplog"])
                 )
-                if cur_dhcp_intf == "lan" and not adguard then
-                  ngx.print(ui_helper.createSwitch(T"Log DHCP Requests","dhcplog",content["dhcplog"]))
-                  local ntpServerEnabled = proxy.get("uci.system.ntp.enable_server")
-                  if ntpServerEnabled and ntpServerEnabled[1].value == "1" then
-                    local switchNTP = {
-                      values = {
-                        on = "42,"..content["localdevIP"],
-                        off = ""
-                      }
+                local ntpServerEnabled = proxy.get("uci.system.ntp.enable_server")
+                if ntpServerEnabled and ntpServerEnabled[1].value == "1" then
+                  local switchNTP = {
+                    values = {
+                      on = "42,"..content["localdevIP"],
+                      off = ""
                     }
-                    ngx.print(ui_helper.createSwitch(T"Device as NTP Server","ntpServer",content["ntpServer"],switchNTP))
-                  else
-                    ngx.print(ui_helper.createSimpleInputHidden("ntpServer",""))
-                  end
-                  if dns_int_ipv4_ok and not helpmsg["dns_v4_pri"] and not helpmsg["dns_v4_sec"] then
-                    ngx.print(ui_helper.createLabel(T"IPv4 DNS Server<span class='icon-question-sign' title='IPv4 DNS Hijacking enabled'></span>",content["dns_v4_pri"],hijacked_label))
-                    ngx.print(ui_helper.createSimpleInputHidden("dns_v4_pri",content["dns_v4_pri"]))
-                    ngx.print(ui_helper.createSimpleInputHidden("ipv4_dns_sec",""))
-                  else
-                    ngx.print(ui_helper.createInputSelect(T"IPv4 Primary DNS","dns_v4_pri",dns_list[1],content["dns_v4_pri"],stdattributes,helpmsg["dns_v4_pri"]))
-                    ngx.print(ui_helper.createInputSelect(T"IPv4 Secondary DNS","ipv4_dns_sec",dns_list[1],content["dns_v4_sec"],stdattributes,helpmsg["dns_v4_sec"]))
-                  end
+                  }
+                  ngx.print(ui_helper.createSwitch(T"Device as NTP Server","ntpServer",content["ntpServer"],switchNTP))
+                else
+                  ngx.print(ui_helper.createSimpleInputHidden("ntpServer",""))
+                end
+                if dns_int_ipv4_ok and not helpmsg["dns_v4_pri"] and not helpmsg["dns_v4_sec"] then
+                  ngx.print(ui_helper.createLabel(T"IPv4 DNS Server<span class='icon-question-sign' title='IPv4 DNS Hijacking enabled'></span>",content["dns_v4_pri"],hijacked_label))
+                  ngx.print(ui_helper.createSimpleInputHidden("dns_v4_pri",content["dns_v4_pri"]))
+                  ngx.print(ui_helper.createSimpleInputHidden("ipv4_dns_sec",""))
+                else
+                  ngx.print(ui_helper.createInputSelect(T"IPv4 Primary DNS","dns_v4_pri",dns_list[1],content["dns_v4_pri"],stdattributes,helpmsg["dns_v4_pri"]))
+                  ngx.print(ui_helper.createInputSelect(T"IPv4 Secondary DNS","ipv4_dns_sec",dns_list[1],content["dns_v4_sec"],stdattributes,helpmsg["dns_v4_sec"]))
                 end
                 ngx.print(
                   [[<div class="monitor-localIPv6 monitor-1 monitor-hidden-localIPv6">]],
                   ui_helper.createSwitch(T"DHCPv6 Server","dhcpv6State",content["dhcpv6State"],switchDHCP),
                   ui_helper.createSwitch(T"SLAAC + RA<span class='icon-question-sign' title='IPv6 Stateless Address Auto-Configuration + Router Advertisement'></span>","slaacState",content["slaacState"],switchDHCP)
                 )
-                if cur_dhcp_intf == "lan" and not adguard then
-                  if dns_int_ipv6_ok and not helpmsg["dns_v6_pri"] and not helpmsg["dns_v6_sec"]  then
-                    ngx.print(ui_helper.createLabel(T"IPv6 DNS Server<span class='icon-question-sign' title='IPv6 DNS Hijacking enabled'></span>",gsub(untaint(content["dns_v6_pri"]),"-",":"),hijacked_label))
-                    ngx.print(ui_helper.createSimpleInputHidden("dns_v6_pri",content["dns_v6_pri"]))
-                    ngx.print(ui_helper.createSimpleInputHidden("dns_v6_sec",""))
-                  else
-                    ngx.print(ui_helper.createInputSelect(T"IPv6 Primary DNS","dns_v6_pri",dns_list[2],content["dns_v6_pri"],stdattributes,helpmsg["dns_v4_pri"]))
-                    ngx.print(ui_helper.createInputSelect(T"IPv6 Secondary DNS","dns_v6_sec",dns_list[2],content["dns_v6_sec"],stdattributes,helpmsg["dns_v6_sec"]))
-                  end
+                if cur_dhcp_intf == "lan" then
+                  ngx.print(ui_helper.createSwitch(T"Log DHCPv6 Requests","dhcplogv6",content["dhcplogv6"],switchDHCPv6Log))
+                end
+                if dns_int_ipv6_ok and not helpmsg["dns_v6_pri"] and not helpmsg["dns_v6_sec"]  then
+                  ngx.print(ui_helper.createLabel(T"IPv6 DNS Server<span class='icon-question-sign' title='IPv6 DNS Hijacking enabled'></span>",gsub(untaint(content["dns_v6_pri"]),"-",":"),hijacked_label))
+                  ngx.print(ui_helper.createSimpleInputHidden("dns_v6_pri",content["dns_v6_pri"]))
+                  ngx.print(ui_helper.createSimpleInputHidden("dns_v6_sec",""))
+                else
+                  ngx.print(ui_helper.createInputSelect(T"IPv6 Primary DNS","dns_v6_pri",dns_list[2],content["dns_v6_pri"],stdattributes,helpmsg["dns_v4_pri"]))
+                  ngx.print(ui_helper.createInputSelect(T"IPv6 Secondary DNS","dns_v6_sec",dns_list[2],content["dns_v6_sec"],stdattributes,helpmsg["dns_v6_sec"]))
                 end
                 ngx.print(
-                  ui_helper.createSwitch(T"Log DHCPv6 Requests","dhcplogv6",content["dhcplogv6"],switchDHCPv6Log),
                   [[</div>]]
                 )
               end
