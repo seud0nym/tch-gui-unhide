@@ -249,6 +249,7 @@ sed \
 
 echo [$SCRIPT]: Add new Mobile tabs
 sed \
+  -e 's/\(T"Profiles"}\)$/\1,/' \
   -e '/lte-profiles.lp/a\	{"lte-operators.lp", T"Network Operators"},' \
   -e '/^local uri/i\
 local proxy = require("datamodel")\
