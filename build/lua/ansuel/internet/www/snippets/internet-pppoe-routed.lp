@@ -14,6 +14,7 @@ local format,match,find,upper = string.format,string.match,string.find,string.up
 local iconUp = "<i class=\"icon-upload icon-large gray\"></i> "
 local iconDown = " <i class=\"icon-download icon-large gray\"></i> "
 local untaint_mt = require("web.taint").untaint_mt
+local ipv6_rpc_path = require("ipv6_rpc_path").getPath()
 
 local ppp_state_map = {
   disabled = T"Disabled",
@@ -324,10 +325,10 @@ local content_rpc = {
   dns = "rpc.network.interface.@wan.dnsservers",
   concentrator_name = "rpc.network.interface.@wan.ppp.access_concentrator_name",
   concentrator_mac = "rpc.network.interface.@wan.ppp.access_concentrator_mac",
-  ipv6_gua = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
-  ip6addr = "rpc.network.interface.@wan6.ip6addr",
-  ip6prefix = "rpc.network.interface.@wan6.ip6prefix",
-  dnsv6 = "rpc.network.interface.@wan6.dnsservers",
+  ipv6_gua = ipv6_rpc_path.."ipv6uniquelocaladdr",
+  ip6addr = ipv6_rpc_path.."ip6addr",
+  ip6prefix = ipv6_rpc_path.."ip6prefix",
+  dnsv6 = ipv6_rpc_path.."dnsservers",
 }
 
 

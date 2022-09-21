@@ -11,6 +11,7 @@ local ajax_helper = require("web.ajax_helper")
 local tonumber = tonumber
 local match,format = string.match,string.format
 local post_helper = require("web.post_helper")
+local ipv6_rpc_path = require("ipv6_rpc_path").getPath()
 
 -- State data
 local dhcp_state = "connecting"
@@ -254,10 +255,10 @@ local cs = {
   ipaddr = "rpc.network.interface.@wan.ipaddr",
   nexthop = "rpc.network.interface.@wan.nexthop",
   dns = "rpc.network.interface.@wan.dnsservers",
-  ipv6_gua = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
-  ip6addr = "rpc.network.interface.@wan6.ip6addr",
-  ip6prefix = "rpc.network.interface.@wan6.ip6prefix",
-  dnsv6 = "rpc.network.interface.@wan6.dnsservers",
+  ipv6_gua = ipv6_rpc_path.."ipv6uniquelocaladdr",
+  ip6addr = ipv6_rpc_path.."ip6addr",
+  ip6prefix = ipv6_rpc_path.."ip6prefix",
+  dnsv6 = ipv6_rpc_path.."dnsservers",
 }
 
 local dhcp_lease = {
@@ -287,7 +288,7 @@ ajax_helper.handleAjaxQuery(cs,function(c)
   end
   local ipv6_enabled = proxy.get("uci.network.interface.@wan.ipv6")
   if ipv6_enabled and ipv6_enabled[1].value == "1" then
-    c.dnsv6 = content_helper.getMergedList(proxy.get("rpc.network.interface.@wan6.dnsservers")[1].value,dnsv6)
+    c.dnsv6 = content_helper.getMergedList(proxy.get(ipv6_rpc_path.."dnsservers")[1].value,dnsv6)
   end
   if ds == "connected" then
     content_helper.getExactContent(dhcp_lease)

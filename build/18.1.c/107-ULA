@@ -44,7 +44,7 @@ sed \
  -e '/"IPv6 State"/i \                }' \
  -e "/\"IPv6 State\"/a \                ngx.print(ui_helper.createInputText(T\"IPv6 ULA Prefix<span class='icon-question-sign' title='IPv6 equivalent of IPv4 private addresses. Must start with fd followed by 40 random bits and a /48 range (e.g. fd12:3456:789a::/48)'></span>\", \"ula_prefix\", content[\"ula_prefix\"], ula_attr, helpmsg[\"ula_prefix\"]))" \
  -e '/"IPv6 State"/a \              end' \
- -e '/"IPv6 State"/a \              local ip6prefix = proxy.get("rpc.network.interface.@wan6.ip6prefix")' \
+ -e '/"IPv6 State"/a \              local ip6prefix = proxy.get(require("ipv6_rpc_path").getPath("ip6prefix"))' \
  -e '/"IPv6 State"/a \              if ip6prefix and ip6prefix[1].value ~= "" then' \
  -e '/"IPv6 State"/a \                local min_prefix_len = tonumber(match(untaint(ip6prefix[1].value),"/(%d+)$")) or 48' \
  -e '/"IPv6 State"/a \                if min_prefix_len < 64 then min_prefix_len = min_prefix_len + 1 end' \

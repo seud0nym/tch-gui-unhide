@@ -5,6 +5,7 @@ gettext.textdomain('webui-core')
 local ajax_helper = require("web.ajax_helper")
 local content_helper = require("web.content_helper")
 local dns_helper = require("dns_helper")
+local ipv6_rpc_path = require("ipv6_rpc_path").getPath
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
@@ -201,7 +202,7 @@ if not isBridgedMode then
 
   current_dns = {
     ipv4 = "rpc.network.interface.@wan.dnsservers",
-    ipv6 = "rpc.network.interface.@wan6.dnsservers",
+    ipv6 = ipv6_rpc_path("dnsservers"),
   }
 
   if devices > 0 then
@@ -262,7 +263,7 @@ if not isBridgedMode then
     end
     local ipv6_enabled = proxy.get("uci.network.interface.@wan.ipv6")
     if ipv6_enabled and ipv6_enabled[1].value == "1" then
-      c["ipv6"] = content_helper.getMergedList(proxy.get("rpc.network.interface.@wan6.dnsservers")[1].value,dnsv6)
+      c["ipv6"] = content_helper.getMergedList(proxy.get(ipv6_rpc_path("dnsservers"))[1].value,dnsv6)
     end
     if devices > 0 then
       local wwan_enabled = proxy.get("uci.network.interface.@wwan.enabled")

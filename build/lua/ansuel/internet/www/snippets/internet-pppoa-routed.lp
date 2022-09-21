@@ -13,6 +13,7 @@ local string = string
 local format,match,find,upper = string.format,string.match,string.find,string.upper
 local session = ngx.ctx.session
 local untaint_mt = require("web.taint").untaint_mt
+local ipv6_rpc_path = require("ipv6_rpc_path").getPath()
 
 local ppp_state_map = {
   disabled = T"Disabled",
@@ -270,9 +271,9 @@ local content_rpc = {
   ipaddr = "rpc.network.interface.@wan.ipaddr",
   nexthop = "rpc.network.interface.@wan.nexthop",
   dns = "rpc.network.interface.@wan.dnsservers",
-  ip6addr = "rpc.network.interface.@wan6.ip6addr",
-  ip6prefix = "rpc.network.interface.@wan6.ip6prefix",
-  dnsv6 = "rpc.network.interface.@wan6.dnsservers",
+  ip6addr = ipv6_rpc_path.."ip6addr",
+  ip6prefix = ipv6_rpc_path.."ip6prefix",
+  dnsv6 = ipv6_rpc_path.."dnsservers",
 }
 
 
