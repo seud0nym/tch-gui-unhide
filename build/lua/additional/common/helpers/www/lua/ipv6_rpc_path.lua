@@ -12,7 +12,7 @@ function M.getPath(suffix)
   for _,path in ipairs(paths) do
     local ip6addr = proxy.get(path.."ip6addr")
     if ip6addr and ip6addr[1].value ~= "" then
-      return path..(suffix or ""), ip6addr
+      return path..(suffix or "")
     end
   end
   return paths[1]..(suffix or "")
