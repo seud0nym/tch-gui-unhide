@@ -5,165 +5,67 @@
 -- Localization
 gettext.textdomain('webui-core')
 
--- Process POST query
-local bit = require("bit")
-local proxy = require("datamodel")
-local lfs = require("lfs")
-local pairs,string ,ipairs,ngx = pairs,string,ipairs,ngx
-local session = ngx.ctx.session
-local ui_helper = require("web.ui_helper")
+local ethernet_helper = require("ethernet_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
+local ui_helper = require("web.ui_helper")
+
+local ngx = ngx
+local cur_intf,cur_dhcp_intf,all_intfs,lan_intfs,ppp_dev,ppp_intf,dnsmasq_path,wireless_radio = ethernet_helper.get_interfaces()
+
+--We need to update IPv6 state only when user want to update the IPv6 state alone.
+if ngx.var.request_method == "POST" and ngx.req.get_post_args(0).iPv6StateOnlyChanged == "yes" then
+  local ipv6MapParam = {
+    localIPv6 = "uci.network.interface.@"..cur_intf..".ipv6"
+  }
+  local ipv6MapValid = {
+    localIPv6 = ethernet_helper.validateIPv6(cur_intf,wireless_radio,ppp_dev,ppp_intf)
+  }
+  post_helper.handleQuery(ipv6MapParam,ipv6MapValid)
+  ngx.print(ui_helper.createMessages(message_helper.popMessages()))
+  ngx.exit(ngx.HTTP_OK)
+end
+
+local bridged = require("bridgedmode_helper")
 local content_helper = require("web.content_helper")
-local uinetwork = require("web.uinetwork_helper")
-local hosts_ac = uinetwork.getAutocompleteHostsList()
+local lfs = require("lfs")
+local proxy = require("datamodel")
+
+local dhcpDefaultExist
+if lfs.attributes("/www/lua/dhcpreset_helper.lua","mode") == "file" then
+  dhcpDefaultExist = require("dhcpreset_helper")
+end
+
+local dns_list = require('dns_servers_helper').all()
+local hosts_ac = require("web.uinetwork_helper").getAutocompleteHostsList()
+local split = require("split").split
+
+local ipairs,pairs,string = ipairs,pairs,string
 local tonumber,tostring = tonumber,tostring
-local content,helpmsg
-local match,format,toupper = string.match,string.format,string.upper
+local find,format,gsub,match = string.find,string.format,string.gsub,string.match
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
-local find,gsub = string.find,string.gsub
-local ipv42num = post_helper.ipv42num
-local bridged = require("bridgedmode_helper")
+local session = ngx.ctx.session
 
 local isBridgedMode = bridged.isBridgedMode()
+local hosts_mac = ethernet_helper.get_hosts_mac()
+local tags = ethernet_helper.get_dhcp_tags()
+local lan_ula = ethernet_helper.get_lan_ula()
 
--- Shortcuts to validation helpers to make lines shorter
-local aIPV = post_helper.advancedIPValidation
+local ipv42num = post_helper.ipv42num
 local vB = post_helper.validateBoolean
 local vIP4N = post_helper.validateIPv4Netmask
 local vQTN = post_helper.validateQTN
 local gAV = post_helper.getAndValidation
 local gOV = post_helper.getOptionalValidation
-local gVIES = post_helper.getValidateInEnumSelect
 local gVNIR = post_helper.getValidateNumberInRange
-local sLIPV = post_helper.staticLeaseIPValidation
 local vNES = post_helper.validateNonEmptyString
 local vSIDN = post_helper.validateStringIsDomainName
 local vSIIP = post_helper.validateStringIsIP
 local vSIIP4 = post_helper.validateStringIsIPv4
 local vSIIP6 = post_helper.validateStringIsIPv6
-local vSILT = post_helper.validateStringIsLeaseTime
-local vSIM = post_helper.validateStringIsMAC
 
-local dhcpDefaultExist
-
-local hosts_mac = {}
-for k,_ in pairs(hosts_ac) do
-  local hostname,mac = match(k,"([%w%s%p]+) %[([%x:]+)%]$")
-  hosts_mac[#hosts_mac+1] = {mac,mac.." ["..hostname.."]"}
-end
-table.sort(hosts_mac,function(k1,k2) return k1[1] < k2[1] end)
-hosts_mac[#hosts_mac+1] = {"custom",T"custom"}
-
-local dns_list = require('dns_servers_helper').all()
-
-if lfs.attributes("/www/lua/dhcpreset_helper.lua","mode") == "file" then
-  dhcpDefaultExist = require("dhcpreset_helper")
-end
-
-local function num2ipv4(ip)
-  local ret = tostring(bit.band(ip,255))
-  ip = bit.rshift(ip,8)
-  for _=1,3 do
-    ret = bit.band(ip,255).."."..ret
-    ip = bit.rshift(ip,8)
-  end
-  return ret
-end
-
-local getargs = ngx.req.get_uri_args()
-local getintf = getargs.intf
-
-local curintf = "lan"
--- Get all the LAN interfaces
-local net_intfs_path = "rpc.network.interface."
-local all_intfs = content_helper.convertResultToObject(net_intfs_path.."@.",proxy.get(net_intfs_path))
-local wireless_radio = {}
-for _,v in ipairs(proxy.getPN("rpc.wireless.ssid.",true)) do
-  local radios = match(v.path,"rpc%.wireless%.ssid%.@([^%.]+)%.")
-  if radios then
-    wireless_radio[radios] = true
-  end
-end
-local lan_intfs = {}
-local pppIntf,pppDev
-for _,v in ipairs(all_intfs) do
-  if v.type == "lan" and v.name ~= "wg0" and v.proto ~= "wireguard" and (not find(v["ppp.ll_intf"],"wl") or wireless_radio[untaint(v["ppp.ll_intf"])]) then
-    if v.name and v.name ~= "" then
-      lan_intfs[#lan_intfs + 1] = {name = v.name,index = v.paramindex}
-    else
-      lan_intfs[#lan_intfs + 1] = {name = v.paramindex,index = v.paramindex}
-    end
-  end
-  if v.paramindex == getintf then
-    curintf = v.paramindex
-    pppDev = v["ppp.ll_dev"]
-    pppIntf = v["ppp.ll_intf"]
-  end
-end
-
-local function isQtnGuestWiFi(intf)
-  if wireless_radio[untaint(intf)] then
-     local radio = proxy.get(format("rpc.wireless.ssid.@%s.radio",intf))
-     local isRemote = proxy.get(format("rpc.wireless.radio.@%s.remotely_managed",radio[1].value))
-     if isRemote and isRemote[1].value == "1" then
-        for _,v in ipairs(proxy.getPN("rpc.wireless.ap.",true)) do
-          local isGuest = proxy.get(v.path.."ap_isolation")
-          if isGuest and isGuest[1].value == "1" then
-            return true
-          end
-        end
-     end
-  end
-end
-
-local IP6assign = "uci.network.interface.@"..curintf..".ip6assign"
-
-local mapParam = {
-  localIPv6 = "uci.network.interface.@"..curintf..".ipv6"
-}
-
-local function validateIPv6(value,_,_)
-  local valid,msg = vB(value)
-  if valid then
-    if value == "0" then
-      -- In case we disable IPv6, we must first invalidate the existing prefix so that local devices know not to use IPv6 anymore
-      -- Do this here by set the ip6assign pref and only on ipv6 state change
-      local ipv6 = proxy.get(mapParam["localIPv6"]) -- get current value in datamodel to know if we're switching state
-      if ipv6 and untaint(ipv6[1].value) ~= "0" then -- default is enabled so anything non 0 is enabled
-        proxy.set(IP6assign,"0") -- the value will be set back to its current value by process_query
-        proxy.apply()
-        ngx.sleep(3) -- ugly but need to give it the time to complete
-    end
-    else
-      proxy.set(IP6assign,"64")
-      proxy.apply()
-    end
-    if isQtnGuestWiFi(pppDev) then
-      local ucipath = content_helper.getMatchedContent("uci.network.device.",{ifname = pppIntf})
-      if ucipath and #ucipath > 0 then
-        proxy.set(ucipath[1].path.."ipv6",value)
-      end
-    end
-  end
-  return valid,msg
-end
---We need to update IPv6 state only when user want to update the IPv6 state alone.
-if ngx.var.request_method == "POST" and ngx.req.get_post_args(0).iPv6StateOnlyChanged == "yes" then
-  local validation = {
-    localIPv6 = validateIPv6,
-  }
-  post_helper.handleQuery(mapParam,validation)
-  ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-  ngx.exit(ngx.HTTP_OK)
-end
-
-local tags = { {"",T""},}
-for _,tag in pairs(proxy.getPN("uci.dhcp.tag.",true)) do
-  local name = match(tag.path,"uci%.dhcp%.tag%.@([^%.]+)%.")
-  tags[#tags+1] = { name,T(name) }
-end
+local content,helpmsg
 
 -- Static Leases
 local sleases_columns = {
@@ -215,49 +117,10 @@ local sleases_columns = {
   },
 }
 
--- Function to avoid users to enter ReservedStatic name as custom static lease name
-local function sleases_name_validation(value)
-  if (value:find("^ReservedStatic") ~= nil) then
-    return nil,T"Cannot use reserved names as static lease name"
-  end
-  return true
-end
-
-local function sleases_mac_validation(value,object,key)
-  local r1,r2 = vSIM(value)
-  if r1 then
-    if string.lower(value) == "ff:ff:ff:ff:ff:ff" then
-      return nil,T"The requested MAC Address can't be the broadcast MAC"
-    else
-      value = value:match("^%x%x%-%x%x%-%x%x%-%x%x%-%x%x%-%x%x$") and value:gsub("-",":") or value
-      object[key] = string.lower(value)
-    end
-  end
-  return r1,r2
-end
-
-local function sleases_ip_validation(value,object,_)
-  if value == "" then
-    return true
-  end
-  for _,host in pairs(proxy.getPN("uci.dhcp.host.",true)) do
-    local existing = proxy.get(host.path.."ip", host.path.."mac")
-    if value == existing[1].value and object.sleases_mac ~= existing[2].value then
-      return nil,"IP already in use for MAC "..untaint(existing[2].value)
-    end
-  end
-  local contentdata = {
-    localdevIP = "uci.network.interface.@"..curintf..".ipaddr",
-    localdevmask = "uci.network.interface.@"..curintf..".netmask",
-  }
-  content_helper.getExactContent(contentdata)
-  return sLIPV(value,contentdata)
-end
-
 local sleases_valid = {
-  sleases_name = gAV(sleases_name_validation,vSIDN),
-  sleases_mac = gAV(sleases_mac_validation,vQTN),
-  sleases_ip = gOV(gAV(sleases_ip_validation,vQTN)),
+  sleases_name = gAV(ethernet_helper.validateStaticLeaseName,vSIDN),
+  sleases_mac = gAV(ethernet_helper.validateStaticLeaseMAC,vQTN),
+  sleases_ip = gOV(gAV(ethernet_helper.validateStaticLeaseIP(cur_intf),vQTN)),
 }
 
 local sleases_options = {
@@ -266,9 +129,7 @@ local sleases_options = {
   createMsg = T"Add Static Lease",
   objectName = post_helper.getRandomKey(),
   addNamedObject = true,
-  sorted = function(a,b)
-    return toupper(a.name or "") < toupper(b.name or "")
-  end,
+  sorted = ethernet_helper.sort_static_leases,
 }
 
 local used_tags = {}
@@ -309,7 +170,6 @@ for _,v in ipairs(sleases_data) do
   end
 end
 
--- Tags
 local tags_columns = {
   {
     header = T"Tag",
@@ -354,12 +214,7 @@ local tags_filter = function(data)
 end
 
 local tags_valid = {
-  tags_name = function(value,_,_)
-    if not value:match("^[%w]+$") then
-      return nil,"must not be empty and must only contain alphanumeric characters"
-    end
-    return true
-  end,
+  tags_name = ethernet_helper.validateTagName,
   tags_dns1 = vSIIP4,
   tags_dns2 = gOV(vSIIP4),
 }
@@ -370,33 +225,8 @@ local tags_options = {
   createMsg = T"Add Tag",
   addNamedObject = true,
   canEdit = false,
-  onAdd = function(index,added)
-    local value = ""
-    if added.tags_dns1 ~= "" then
-      value = "6,"..added.tags_dns1
-      if added.tags_dns2 ~= "" then
-        value = value..","..added.tags_dns2
-      end
-    end
-    if value ~= "" then
-      local key,errmsg = proxy.add("uci.dhcp.tag.@"..index..".dhcp_option.")
-      if errmsg then
-        message_helper.pushMessage(T(string.format("Failed to add DHCP option to Tag %s: %s",index,errmsg)),"error")
-      else
-        local success,errors = proxy.set("uci.dhcp.tag.@"..index..".dhcp_option.@"..key..".value",value)
-        if success then
-          proxy.apply()
-        else
-          for _,err in ipairs(errors) do
-            message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
-          end
-        end
-      end
-    end
-  end,
-  sorted = function(a,b)
-    return toupper(a.paramindex or "") < toupper(b.paramindex or "")
-  end,
+  onAdd = ethernet_helper.onAddTag,
+  sorted = ethernet_helper.sort_tags,
 }
 
 local tags_data,tags_helpmsg = post_helper.handleTableQuery(tags_columns,tags_options,tags_filter,nil,tags_valid)
@@ -452,46 +282,24 @@ if ngx.var.request_method == "POST" then
   end
 end
 
-local cur_dhcp_intf = "lan"
-local dhcp_intfs_path = "uci.dhcp.dhcp."
-local all_dhcp_intfs = content_helper.convertResultToObject(dhcp_intfs_path.."@.",proxy.get(dhcp_intfs_path))
-
-for _,v in ipairs(all_dhcp_intfs) do
-  if v.interface == curintf then
-    cur_dhcp_intf = v.paramindex
-    break
-  end
-end
-
-local function getDomainNamePath()
-  for _,dnsmidx in pairs(proxy.getPN("uci.dhcp.dnsmasq.",true)) do
-    for _,dnsmif in pairs(proxy.get(dnsmidx.path.."interface.")) do
-      if dnsmif.value == curintf then
-        return dnsmidx.path
-      end
-    end
-  end
-end
-
--- Standard parameters
 local mapParams = {
   dhcpStart = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".start",
   dhcpLimit = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".limit",
   dhcpv4State = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcpv4",
   dhcpv6State = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcpv6",
   slaacState = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".ra",
-  localdomain = getDomainNamePath().."domain",
-  localgw = "uci.network.interface.@"..curintf..".gateway",
+  localdomain = dnsmasq_path.."domain",
+  localgw = "uci.network.interface.@"..cur_intf..".gateway",
   dhcpIgnore = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".ignore",
   leaseTime = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".leasetime",
-  localdevIP = "uci.network.interface.@"..curintf..".ipaddr",
-  localdevmask = "uci.network.interface.@"..curintf..".netmask",
-  localIPv6 = "uci.network.interface.@"..curintf..".ipv6",
-  dhcplog = getDomainNamePath().."logdhcp",
+  localdevIP = "uci.network.interface.@"..cur_intf..".ipaddr",
+  localdevmask = "uci.network.interface.@"..cur_intf..".netmask",
+  localIPv6 = "uci.network.interface.@"..cur_intf..".ipv6",
+  dhcplog = dnsmasq_path.."logdhcp",
   dhcplogv6 = "uci.dhcp.odhcpd.@odhcpd.loglevel",
-  ipv6addr = "rpc.network.interface.@"..curintf..".ip6addr",
+  ipv6addr = "rpc.network.interface.@"..cur_intf..".ip6addr",
 }
-if isBridgedMode and curintf == "lan" and require("datamodel").get("rpc.network.interface.@lan6.ip6addr") then
+if isBridgedMode and cur_intf == "lan" and proxy.get("rpc.network.interface.@lan6.ip6addr") then
   mapParams.ipv6addr = "rpc.network.interface.@lan6.ip6addr"
 end
 
@@ -499,43 +307,10 @@ local dnsIndex = 0
 local ntpIndex = 0
 local dhcp = {}
 local dhcp_dns = {}
+local dns_servers = {""}
 local baseDHCPOptions = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcp_option."
 local baseDHCPDNS = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dns."
-local dns_servers = {""}
-
-local function isNonPublicIPRange(ip)
-  if ip >= ipv42num("10.0.0.0") and ip <= ipv42num("10.255.255.255") or
-     ip >= ipv42num("172.16.0.0") and ip <= ipv42num("172.31.255.255") or
-     ip >= ipv42num("192.168.0.0") and ip <= ipv42num("192.168.255.255") then
-    return true
-  end
-  return nil
-end
-
-local splitter = require("split")
-local split = splitter.split
-
-
-local function get_lan_ula()
-  local ula = proxy.get("rpc.network.interface.@lan.ipv6uniquelocaladdr")
-  if ula == nil or ula[1].value == nil then
-    return ""
-  end
-
-  return split(format("%s",ula[1].value),"&")[1] or ""
-end
-
-local lan_ula = get_lan_ula()
-
-local function find_dns(ip,list)
-  local dns = untaint(ip)
-  for i,v in ipairs(list) do
-    if i > 1 and dns == v[1] then
-      return true
-    end
-  end
-  return false
-end
+local old_lan_ip = proxy.get(mapParams.localdevIP)[1].value
 
 local function validateDNSv6(value,object,key)
   if value ~= "" and vSIIP6(untaint(value):gsub("-",":")) ~= true then
@@ -563,7 +338,6 @@ local function validateDNSv6(value,object,key)
   end
 
   local dns_ip = value:gsub("-",":")
-
   if dns_ip == "::1" then -- Localhost as DNS server
     if object["dns_v6_sec"] == "" then
      -- only localhost
@@ -588,7 +362,6 @@ local function validateDNSv6(value,object,key)
       mapParams["dns_v6_pri"] = baseDHCPDNS.."@1.value"
     end
   end
-
   if object["dns_v6_sec"] ~= nil and object["dns_v6_sec"] ~= "" and mapParams["dns_v6_sec"] == nil then
     local index = proxy.add(baseDHCPDNS)
     if index == "2" then
@@ -597,18 +370,12 @@ local function validateDNSv6(value,object,key)
   end
 
   object[key] = dns_ip
-
   return true
 end
 
 local function validateDNS(value,object,key)
-  if cur_dhcp_intf ~= "lan" then
-    return true
-  end
-
-  local post_data = ngx.req.get_post_args(0)
   local dns_str = ""
-  local old_lan_ip = proxy.get("uci.network.interface.@lan.ipaddr")[1].value
+  local post_data = ngx.req.get_post_args(0)
 
   -- handle IPv4 dns setting
   dns_servers[2] = value
@@ -668,9 +435,6 @@ local function validateDNS(value,object,key)
       return true
     end
   end
-
-  dns_servers = {""}
-  return true
 end
 
 local function validateNTP(value,object,key)
@@ -691,237 +455,42 @@ local function validateNTP(value,object,key)
   return true
 end
 
-local function validateLeaseTime(value,postdata,key)
-  if value == '-1' then -- included '-1' as a feasible set value as specified in TR 181
-    postdata[key] = "infinite" -- included to ensure uci parameter is set as infinite
-    return true
-  else
-    local isLeaseTime,msg = vSILT(value)
-    if isLeaseTime then
-      postdata["leaseTime"] = match(untaint(value),"^0*([1-9]%d*[smhdw]?)$")
-      return true
-    else
-      return nil,msg
-    end
-  end
+local local_dev_ip
+if ngx.var.request_method == "POST" then
+  local_dev_ip = ngx.req.get_post_args(0)["localdevIP"]
+else
+  local_dev_ip = old_lan_ip
 end
-
-local function calculateDHCPStartAddress (baseip,netmask,start,numips)
-  local network = bit.band(baseip,netmask)
-  local ipmax = bit.bor(network,bit.bnot(netmask)) - 1
-  local ipstart = bit.bor(network,bit.band(start,bit.bnot(netmask)))
-  local ipend = ipstart+numips-1
-  if ipend > ipmax then
-    ipend = ipmax
-  end
-  return num2ipv4(ipstart),num2ipv4(ipend),num2ipv4(network)
-end
-
-local function getDHCPData(object)
-  -- Check the entered IP is valid IP and convert it to number
-  local baseip = vSIIP(object["localdevIP"]) and ipv42num(object["localdevIP"])
-  local netmask = vSIIP(object["localdevmask"]) and ipv42num(object["localdevmask"])
-  local dhcpstart = vSIIP(object["dhcpStartAddress"]) and ipv42num(object["dhcpStartAddress"])
-  local dhcpend = vSIIP(object["dhcpEndAddress"]) and ipv42num(object["dhcpEndAddress"])
-
-  return baseip,netmask,dhcpstart,dhcpend
-end
-
--- Validation is done for the dhcpLimit for the particular subnet
--- If different subnet mask is given other than 255.255.255.0,then the
--- DHCP Range limit has to be calculated from the new subnet and the validation
--- has to be done for the new limit.
-local function DHCPValidationNotRequired()
-  local post_data = ngx.req.get_post_args(0)
-  local localdevIP = proxy.get("uci.network.interface.@"..curintf..".ipaddr")
-  local dhcpIgnore = proxy.get(mapParams["dhcpIgnore"])
-  if (localdevIP and localdevIP[1].value ~= post_data["localdevIP"]) or (dhcpIgnore and dhcpIgnore[1].value == "1") then
-    return true
-  end
-  return false
-end
-local function validateLimit(value,object)
-    if DHCPValidationNotRequired() then
-      return true
-    end
-  if match(value,"^[0-9]*$") then
-    local baseip,netmask,dhcpstart,dhcpend = getDHCPData(object)
-
-    if not dhcpend then
-       return nil,T"DHCP End Address is Invalid"
-    end
-
-    if dhcpstart and dhcpstart > dhcpend then
-       return nil,T"DHCP Start Address should not be greater than End Address"
-    end
-
-    if baseip and netmask and dhcpstart then
-      local network = bit.band(baseip,netmask)
-      local ipmax = bit.bor(network,bit.bnot(netmask))
-      local numips = dhcpend - dhcpstart + 1
-      local limit = ipmax - network - 1
-
-      if dhcpend == ipmax then
-          return nil,T"Broadcast Address should not be used"
-      end
-
-      local validatorNumberInRange = gVNIR(1,limit)
-      local limitvalue = validatorNumberInRange(numips)
-      if not limitvalue or dhcpend <= network or dhcpend >= ipmax then
-          return nil,T"DHCP End Address is not valid in Subnet Range"
-      end
-      return true
-    else
-      return nil
-    end
-  else
-    return nil,T"DHCP End Address is Invalid"
-  end
-end
-
--- Validation is done for the DHCP start Address for the particular subnet
--- For different subnets,validation for dhcpStart Address has to be done
--- from the new DHCP Range with respect to the subnet mask & Network Address
-local function validateDHCPStart(value,object)
-    if DHCPValidationNotRequired() then
-      return true
-    end
-    if match(value,"^[0-9]*$") then
-      local baseip,netmask,dhcpstart,dhcpend = getDHCPData(object)
-
-      if not dhcpstart then
-         return nil,T"DHCP Start Address is Invalid"
-      end
-
-      if baseip and netmask and dhcpend then
-        local network = bit.band(baseip,netmask)
-        local ipmax = bit.bor(network,bit.bnot(netmask))
-        local start = dhcpstart - network
-        local numips = dhcpend - dhcpstart + 1
-
-        local limit = ipmax - network - 1
-
-        local validatorNumberInRange = gVNIR(1,limit)
-
-        if dhcpstart == baseip then
-           return nil,T"DHCP Start Address should not be the Device IP Address"
-        elseif dhcpstart == network then
-           return nil,T"DHCP Start Address should not be a Network Address"
-        end
-
-        local val = validatorNumberInRange(start)
-        if not val or dhcpstart <= network or dhcpstart >= ipmax then
-            return nil,T"DHCP Start Address is not valid in Subnet Range"
-        end
-
-        -- Setting the dhcpStart and dhcpLimit from the calculated DHCP Range
-        object["dhcpStart"] = tostring(start)
-        object["dhcpLimit"] = tostring(numips)
-
-        return true
-      else
-        return nil
-      end
-    else
-      return nil,T"DHCP Start Address is Invalid"
-    end
-end
-
--- This function will validate the Modem IP Address and check for
--- Valid IP Format,Limited Broadcast Address,Public IP Range,Multicast Address Range
-local function validateGWIP(value,object,key)
-  local val,errmsg = aIPV(value,object,key)
-  if not val then
-    return nil,errmsg
-  end
-  if post_helper.isWANIP then
-    local isWan,intf = post_helper.isWANIP(value,all_intfs)
-    if isWan then
-      return nil,T("Device IP should not be in "..intf.." IP Range")
-    end
-  end
-  if post_helper.isLANIP then
-    local isLan,intf = post_helper.isLANIP(value,all_intfs,curintf)
-    if isLan then
-      return nil,T("Device IP should not be in "..intf.." IP Range")
-    end
-  end
-  local ip = ipv42num(value)
-
-  for _,intf in pairs(lan_intfs) do
-    if intf.index ~= curintf then
-      local ipaddr = proxy.get("uci.network.interface.@"..intf.index..".ipaddr")[1].value
-      local mask = proxy.get("uci.network.interface.@"..intf.index..".netmask")[1].value
-      local baseip = vSIIP(ipaddr) and ipv42num(ipaddr)
-      local netmask = vSIIP(mask) and ipv42num(mask)
-
-      local network,ipmax
-      if baseip and netmask then
-        network = bit.band(baseip,netmask)
-        ipmax = bit.bor(network,bit.bnot(netmask))
-      end
-
-      if network and ipmax then
-        if ip >= network and ip <= ipmax then
-              return nil,T"Device IP should not be in "..intf.name..T" IP Range"
-        end
-      end
-    end
-  end
-
-  if isNonPublicIPRange(ip) then
-    return true
-  else
-    return nil,T"Public IP Range should not be used"
-  end
-end
-
-local function validatedhcpIgnore(value,object,_)
-  local valid,msg = gOV(value)
-  if not valid then
-    return nil,msg
-  end
-  if object["dhcpv4State"] == "server" then
-    if object["dhcpIgnore"] == "1" then
-      object["dhcpIgnore"] = "0"
-    end
-  end
-  return true
-end
-
-local dhcpStateselect = {
-  {"server"},
-  {"disabled"},
-}
-
 local mapValid = {
-  localdevIP = validateGWIP,
-  localIPv6 = validateIPv6,
+  localdevIP = ethernet_helper.validateGatewayIP(cur_intf,all_intfs,lan_intfs),
+  localIPv6 = ethernet_helper.validateIPv6(cur_intf,wireless_radio,ppp_dev,ppp_intf),
   dns_v4_pri = validateDNS,
   ntpServer = validateNTP,
-  leaseTime = validateLeaseTime,
+  leaseTime = ethernet_helper.validateLeaseTime,
   localdevmask = gAV(vIP4N,vSIIP),
-  dhcpStart = validateDHCPStart,
-  dhcpLimit = validateLimit,
-  dhcpv4State = gVIES(dhcpStateselect),
-  dhcpv6State = gVIES(dhcpStateselect),
-  slaacState = gVIES(dhcpStateselect),
+  dhcpStart = ethernet_helper.validateDHCPStart(cur_intf,cur_dhcp_intf,local_dev_ip),
+  dhcpLimit = ethernet_helper.validateDHCPLimit(cur_intf,cur_dhcp_intf,local_dev_ip),
+  dhcpv4State = ethernet_helper.validateDHCPState(),
+  dhcpv6State = ethernet_helper.validateDHCPState(),
+  slaacState = ethernet_helper.validateDHCPState(),
   localdomain = vNES,
   localgw = gOV(vSIIP4),
-  dhcpIgnore = validatedhcpIgnore,
+  dhcpIgnore = ethernet_helper.validateDHCPIgnore,
   dns_v6_pri = validateDNSv6,
   dns_v6_sec = validateDNSv6,
   dhcplog = gOV(vB),
   dhcplogv6 = gOV(gVNIR(6,7)),
 }
 
-local function validateByPass(_,_,_)
-    return true
-end
 if isBridgedMode then
-    mapValid.dhcpStart = validateByPass
-    mapValid.dhcpLimit = validateByPass
-    mapValid.dhcpv4State = validateByPass
+  mapValid.dhcpStart = ethernet_helper.validateByPass
+  mapValid.dhcpLimit = ethernet_helper.validateByPass
+  mapValid.dhcpv4State = ethernet_helper.validateByPass
+else
+  mapParams.ip6assign = "uci.network.interface.@" .. cur_intf .. ".ip6assign"
+  mapValid.ip6assign = gOV(gVNIR(48,64))
+  mapParams.ula_prefix = "uci.network.globals.ula_prefix"
+  mapValid.ula_prefix = ethernet_helper.validateULAPrefix
 end
 
 -- Check if there is a custom DNS server, if so, then retrieve its index
@@ -942,13 +511,12 @@ content_helper.addListContent(dhcp_dns,{ dnses = baseDHCPDNS })
 if dhcp_dns.dnses[1] ~= nil then
   mapParams["dns_v6_pri"] = baseDHCPDNS.."@".."1.value"
 end
-
 if dhcp_dns.dnses[2] ~= nil then
   mapParams["dns_v6_sec"] = baseDHCPDNS.."@".."2.value"
 end
 
 content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
-if (ngx.var.request_method == "POST") and not next(helpmsg) then
+if ngx.var.request_method == "POST" and not next(helpmsg) then
   local dhcp_options_path = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcp_option."
   local dhcp_options = content_helper.convertResultToObject(dhcp_options_path,proxy.get(dhcp_options_path))
   for _,v in ipairs(dhcp_options) do
@@ -957,10 +525,10 @@ if (ngx.var.request_method == "POST") and not next(helpmsg) then
     elseif v.value:find("^6,") == 1 then
       local dns4pri = match(v.value,"^6,([^,]+)")
       local dns4sec = match(v.value,"^6,[^,]+,(.+)")
-      if dns4sec and not find_dns(dns4sec,dns_list[1]) then
+      if dns4sec and not ethernet_helper.find_dns(dns4sec,dns_list[1]) then
         table.insert(dns_list[1],3,{dns4sec, T("Custom ("..dns4sec..")")})
       end
-      if dns4pri and not find_dns(dns4pri,dns_list[1]) then
+      if dns4pri and not ethernet_helper.find_dns(dns4pri,dns_list[1]) then
         table.insert(dns_list[1],3,{dns4pri, T("Custom ("..dns4pri..")")})
       end
     end
@@ -970,19 +538,19 @@ end
 if #dns_servers == 1 and content["dns_v4_pri"] ~= nil and content["dns_v4_pri"] ~= "" then
   dns_servers = split(format("%s",content["dns_v4_pri"]),",")
 end
-if dns_servers[2] ~= nil and dns_servers[2] ~= "" and not find_dns(dns_servers[2],dns_list[1]) then
+if dns_servers[2] ~= nil and dns_servers[2] ~= "" and not ethernet_helper.find_dns(dns_servers[2],dns_list[1]) then
   dns_list[1][#dns_list[1]+1]={dns_servers[2],T("Custom ("..dns_servers[2]..")")}
 end
-if dns_servers[3] ~= nil and dns_servers[3] ~= "" and not find_dns(dns_servers[3],dns_list[1]) then
+if dns_servers[3] ~= nil and dns_servers[3] ~= "" and not ethernet_helper.find_dns(dns_servers[3],dns_list[1]) then
   dns_list[1][#dns_list[1]+1]={dns_servers[3],T("Custom ("..dns_servers[3]..")")}
 end
 
 content["dns_v4_pri"] = content["localdevIP"]
 content["dns_v4_sec"] = ""
-if dns_servers[2] ~= nil and find_dns(dns_servers[2],dns_list[1]) then
+if dns_servers[2] ~= nil and ethernet_helper.find_dns(dns_servers[2],dns_list[1]) then
   content["dns_v4_pri"] = dns_servers[2]
 end
-if dns_servers[3] ~= nil and find_dns(dns_servers[3],dns_list[1]) then
+if dns_servers[3] ~= nil and ethernet_helper.find_dns(dns_servers[3],dns_list[1]) then
   content["dns_v4_sec"] = dns_servers[3]
 end
 
@@ -1003,11 +571,11 @@ else
   content["dns_v6_sec"] = "--1"
 end
 
-if content["dns_v6_pri"] ~= nil and content["dns_v6_pri"] ~= "" and content["dns_v6_pri"] ~= "--1" and not find_dns(content["dns_v6_pri"],dns_list[2]) then
+if content["dns_v6_pri"] ~= nil and content["dns_v6_pri"] ~= "" and content["dns_v6_pri"] ~= "--1" and not ethernet_helper.find_dns(content["dns_v6_pri"],dns_list[2]) then
   local customipv6dns = content["dns_v6_pri"]:gsub("-",":")
   dns_list[2][#dns_list[2]+1]={ content["dns_v6_pri"],T("Custom ("..customipv6dns..")")}
 end
-if content["dns_v6_sec"] ~= nil and content["dns_v6_sec"] ~= "" and content["dns_v6_sec"] ~= "--1" and not find_dns(content["dns_v6_sec"],dns_list[2]) then
+if content["dns_v6_sec"] ~= nil and content["dns_v6_sec"] ~= "" and content["dns_v6_sec"] ~= "--1" and not ethernet_helper.find_dns(content["dns_v6_sec"],dns_list[2]) then
   local customipv6dns = content["dns_v6_sec"]:gsub("-",":")
   dns_list[2][#dns_list[2]+1]={ content["dns_v6_sec"],T("Custom ("..customipv6dns..")")}
 end
@@ -1051,7 +619,7 @@ local start = tonumber(content["dhcpStart"])
 local numips = tonumber(content["dhcpLimit"])
 local ipstart,ipend,network
 if start and numips and not helpmsg["localdevIP"] and not helpmsg["localdevmask"] and not helpmsg["dhcpStart"] and not helpmsg["dhcpLimit"] then
-  ipstart,ipend,network = calculateDHCPStartAddress(baseip,netmask,start,numips)
+  ipstart,ipend,network = ethernet_helper.calculateDHCPStartAddress(baseip,netmask,start,numips)
   if ipstart then
     session:store("dhcpStartAddr",ipstart)
     session:store("dhcpEndAddr",ipend)
@@ -1070,15 +638,16 @@ if ngx.var.request_method == "POST" then
   local gwIP = session:retrieve("old_ip")
   session:store("old_ip",(content["localdevIP"]))
 
-  if curintf == "lan" and content["localdevIP"]~= gwIP and not next(helpmsg) then ngx.print('\
+  if cur_intf == "lan" and content["localdevIP"] ~= gwIP and not next(helpmsg) then 
+    ngx.print('\
     <script type="text/javascript">\
-      window.location="http://'); ngx.print(content["localdevIP"]); ngx.print('";\
+      window.location="http://',content["localdevIP"],'";\
     </script>\
-    '); session:logout()
+    ')
+    session:logout()
   end
 
-  local content1 = ngx.req.get_post_args(0)
-  local action = content1["action"]
+  local action = ngx.req.get_post_args(0)["action"]
   if action == "BRIDGED" then
     if not isBridgedMode then
       if bridged.configBridgedMode() then
@@ -1093,8 +662,8 @@ if ngx.var.request_method == "POST" then
     end
   end
 
-  if curintf == "lan" then
-    local local_path = getDomainNamePath().."local"
+  if cur_intf == "lan" then
+    local local_path = dnsmasq_path.."local"
     local localValue = untaint(proxy.get(local_path)[1].value)
     local localName = format("/%s/",content["localdomain"])
     local domainName = session:retrieve("old_domain")
@@ -1107,7 +676,7 @@ if ngx.var.request_method == "POST" then
   end
 else
   session:store("old_ip",(content["localdevIP"]))
-  if curintf == "lan" then
+  if cur_intf == "lan" then
     session:store("old_domain",(content["localdomain"]))
   end
 end
@@ -1124,7 +693,7 @@ local dns_int_ipv4 = false
 local dns_int_ipv4_dest_ip = ""
 local dns_int_ipv6 = false
 local dns_int_ipv6_dest_ip = ""
-if curintf == "lan" then
+if cur_intf == "lan" then
   for _,v in ipairs(proxy.getPN("uci.firewall.redirect.",true)) do
     local values = proxy.get(v.path.."name")
     if values then
@@ -1141,22 +710,23 @@ if curintf == "lan" then
       end
     end
   end
-  local values = proxy.get("uci.tproxy.config.enabled","uci.tproxy.rule.@dnsv6.enabled","uci.tproxy.rule.@dnsv6.destIP")
-  if values then
-    dns_int_ipv6 = values[1].value ~= "0" and values[2].value ~= "0"
-    dns_int_ipv6_dest_ip = untaint(values[3].value)
-    if not dns_int_ipv6_dest_ip or dns_int_ipv6_dest_ip == "" then
-      dns_int_ipv6_dest_ip = lan_ula
+  if content["localIPv6"] == "1" then
+    local values = proxy.get("uci.tproxy.config.enabled","uci.tproxy.rule.@dnsv6.enabled","uci.tproxy.rule.@dnsv6.destIP")
+    if values then
+      dns_int_ipv6 = values[1].value ~= "0" and values[2].value ~= "0"
+      dns_int_ipv6_dest_ip = untaint(values[3].value)
+      if not dns_int_ipv6_dest_ip or dns_int_ipv6_dest_ip == "" then
+        dns_int_ipv6_dest_ip = lan_ula
+      end
     end
   end
 end
 local dns_int_ipv4_ok = dns_int_ipv4 and content["dns_v4_pri"] == dns_int_ipv4_dest_ip
-local dns_int_ipv6_ok = dns_int_ipv6 and find(dns_int_ipv6_dest_ip:gsub(":","-"),untaint(content["dns_v6_pri"]),1,true)
+local dns_int_ipv6_ok = dns_int_ipv6 and (dns_int_ipv6_dest_ip == content["dns_v6_pri"] or find(dns_int_ipv6_dest_ip:gsub(":","-"),untaint(content["dns_v6_pri"]),1,true))
 
-ngx.print(ui_helper.createHeader(T"Local Network",true,false));
-ngx.print('\
+ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
    <div class="modal-body update">\
-     <form class="form-horizontal" method="post" action="'); ngx.print(ngx.var.request_uri); ngx.print('">\
+     <form class="form-horizontal" method="post" action="',ngx.var.request_uri,'">\
      ');
      if #lan_intfs> 1 and (not isBridgedMode) then
        ngx.print('\
@@ -1166,7 +736,7 @@ ngx.print('\
         local html = { format('<li class="nav-header">%s</li>',T"LAN Interfaces") }
         for _,v in ipairs(lan_intfs) do
             local active = ""
-            if v.index == curintf then
+            if v.index == cur_intf then
               active = "active"
             end
             if v.index ~= "loopback" then
@@ -1174,20 +744,18 @@ ngx.print('\
               html[#html+1] = format('<li class="%s"><a id = "%s" href="#" data-remote="%s">%s</a></li>',active,v.index,url,v.name)
             end
         end
-        ngx.print(html)
-        ngx.print('\
+        ngx.print(html,'\
         </ul>\
      </div>\
      <div class="span9">\
         ');
       end
-      ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-      ngx.print('\
+      ngx.print(ui_helper.createMessages(message_helper.popMessages()),'\
         <fieldset>\
           '); if not isBridgedMode then ngx.print('\
           <div class="span4">\
           '); end ngx.print('\
-            <legend>'); ngx.print(T"Global Information"); ngx.print('</legend>\
+            <legend>',T"Global Information",'</legend>\
             ');
             local advanced = {
               group = {
@@ -1234,20 +802,47 @@ ngx.print('\
               ngx.print(ui_helper.createInputText(T"Local Domain Name","localdomain",content["localdomain"],advanced,helpmsg["localdomain"]))
             end
 
-            ngx.print(ui_helper.createSwitch(T"IPv6 State","localIPv6",content["localIPv6"],switch_class_enable),ui_helper.createLabel(T"Device IPv6 Address",content["ipv6addr"],ipv6_attr))
+            ngx.print(
+              ui_helper.createSwitch(T"IPv6 State","localIPv6",content["localIPv6"],switch_class_enable),
+              ui_helper.createLabel(T"Device IPv6 Address",content["ipv6addr"],ipv6_attr)
+            )
 
             if not isBridgedMode then
-              local info_attr = {
-                alert = {
-                  class = "alert-info"
-                },
+              if cur_intf == "lan" then
+                local ula_attr = {
+                  controls = { style = "width:220px", },
+                  group = { class = "monitor-localIPv6 monitor-1 monitor-hidden-localIPv6", },
+                  input = { style = "width:180px", }
+                }
+                ngx.print(ui_helper.createInputText(T"IPv6 ULA Prefix<span class='icon-question-sign' title='IPv6 equivalent of IPv4 private addresses. Must start with fd followed by 40 random bits and a /48 range (e.g. fd12:3456:789a::/48)'></span>", "ula_prefix", content["ula_prefix"], ula_attr, helpmsg["ula_prefix"]))
+              end
+              local min_prefix_len = 48
+              local ip6prefix = proxy.get(require("ipv6_rpc_path").getPath("ip6prefix"))
+              if ip6prefix and ip6prefix[1].value ~= "" then
+                min_prefix_len = tonumber(match(untaint(ip6prefix[1].value),"/(%d+)$")) or 48
+              end
+              if min_prefix_len < 64 then min_prefix_len = min_prefix_len + 1 end
+              local req_prefix_map = {}
+              for prefix_len = 64,min_prefix_len,-1 do
+                req_prefix_map[#req_prefix_map+1] = { tostring(prefix_len),T("/"..prefix_len) }
+              end
+              local number_attr = {
+                group = { class = "monitor-localIPv6 monitor-1 monitor-hidden-localIPv6", },
+                select = { style = "width:100px", }
               }
-              local warn_attr = {
-                alert = {
-                  class = "alert-danger"
-                },
-              }
+              ngx.print(ui_helper.createInputSelect(T"IPv6 Prefix Size<span class='icon-question-sign' title='Delegate a prefix of the given length to this interface'></span>","ip6assign",req_prefix_map,content["ip6assign"],number_attr,helpmsg["ip6assign"]))
+
               if cur_dhcp_intf == "lan" then
+                local info_attr = {
+                  alert = {
+                    class = "alert-info"
+                  },
+                }
+                local warn_attr = {
+                  alert = {
+                    class = "alert-danger"
+                  },
+                }
                 if dns_int_ipv4 or dns_int_ipv6 then
                   if dns_int_ipv4 and not dns_int_ipv4_ok then
                     ngx.print(ui_helper.createAlertBlock(T("DNS Hijacking is enabled, so IPv4 Primary DNS should be set to '"..dns_int_ipv4_dest_ip.."'."),warn_attr))
@@ -1266,7 +861,7 @@ ngx.print('\
             ngx.print('\
             </div>\
             <div class="span4">\
-              <legend>'); ngx.print(T"DHCP Settings"); ngx.print('</legend>\
+              <legend>',T"DHCP Settings",'</legend>\
               ');
               if adguard then
                 ngx.print(format(T'Configure DHCP through <a style="color:inherit;text-decoration:none;" target="_blank" href="http://%s:8008"><b>AdGuard Home</b></a>',content["localdevIP"]))
@@ -1327,43 +922,38 @@ ngx.print('\
                   ngx.print(ui_helper.createInputSelect(T"IPv6 Primary DNS","dns_v6_pri",dns_list[2],content["dns_v6_pri"],stdattributes,helpmsg["dns_v4_pri"]))
                   ngx.print(ui_helper.createInputSelect(T"IPv6 Secondary DNS","dns_v6_sec",dns_list[2],content["dns_v6_sec"],stdattributes,helpmsg["dns_v6_sec"]))
                 end
-                ngx.print(
-                  [[</div>]]
-                )
+                ngx.print([[</div>]])
               end
-                 ngx.print('\
+              ngx.print('\
             </div>\
               ');
-              if curintf == "lan" then
+              if cur_intf == "lan" then
                 if not adguard then
                 ngx.print('\
               </fieldset>\
               <fieldset>\
-                  <legend>'); ngx.print(T"Static Leases"); ngx.print('</legend>\
-                  ');
-                    local confilictipchange_alert = {
-                      alert = {
-                          class = "alert hide",
-                          id = "confilictipchange-msg"
-                      }
+                <legend>',T"Static Leases",'</legend>\
+                ');
+                  local confilictipchange_alert = {
+                    alert = {
+                        class = "alert hide",
+                        id = "confilictipchange-msg"
                     }
-                    ngx.print(
-                      ui_helper.createAlertBlock(T"The latest added/modified static lease is set to an IP that is already in use, please perform a reboot to apply the changes",confilictipchange_alert),
-                      ui_helper.createTable(sleases_columns,sleases_data,sleases_options,nil,sleases_helpmsg))
-                    ngx.print('\
+                  }
+                  ngx.print(
+                    ui_helper.createAlertBlock(T"The latest added/modified static lease is set to an IP that is already in use, please perform a reboot to apply the changes",confilictipchange_alert),
+                    ui_helper.createTable(sleases_columns,sleases_data,sleases_options,nil,sleases_helpmsg))
+                  ngx.print('\
               </fieldset>\
               <fieldset>\
-                  <legend>'); ngx.print(T"Custom DHCP Options"); ngx.print('</legend>\
-                  ');
-                    ngx.print(
-                      ui_helper.createTable(tags_columns,tags_data,tags_options,nil,tags_helpmsg))
-                    ngx.print('\
+                <legend>',T"Custom DHCP Options",'</legend>\
+                ',ui_helper.createTable(tags_columns,tags_data,tags_options,nil,tags_helpmsg),'\
               </fieldset>\
                 ');
               end
               ngx.print('\
               <fieldset>\
-                <legend>'); ngx.print(T"Network Mode"); ngx.print('</legend>\
+                <legend>',T"Network Mode",'</legend>\
                 ');
                 local html = {}
                 bridged.addBridgedModeButtons(html)
@@ -1384,12 +974,21 @@ ngx.print('\
           </div>\
           ');
           end
-            ngx.print('\
+          ngx.print('\
           <input type="hidden" name="isAdvanced" id="isAdvanced" value="0">\
         </form>\
    </div>\
 <script type="text/javascript">\
-$(function() {\
+function rand(max){return Math.floor(Math.random()*max);}\
+function rand16() {return rand(2**16).toString(16);}\
+ $(function() {\
+    var gen_ula_span = document.createElement("SPAN");\
+    gen_ula_span.setAttribute("id","random_ula_prefix");\
+    gen_ula_span.setAttribute("class","btn icon-random");\
+    gen_ula_span.setAttribute("style","padding:5px 3px 8px 3px;");\
+    gen_ula_span.setAttribute("title","Click to generate a random ULA prefix");\
+    $("#ula_prefix").after(gen_ula_span);\
+    $("#random_ula_prefix").click(function(){var i=$("#ula_prefix");i.val((parseInt("fd00",16)+rand(2**8)).toString(16)+":"+rand16()+":"+rand16()+"::/48");var e=jQuery.Event("keydown");e.which=e.keyCode=13;i.trigger(e);});\
     var iPv6StateOnlyChanged = 0;\
     $("input,select").on("change",function(){\
        if(this.id == "localIPv6" && iPv6StateOnlyChanged == 0)\
@@ -1439,7 +1038,7 @@ $("[name =\'sleases_mac\'],[name =\'dns_v4_pri\'],[name =\'ipv4_dns_sec\'],[name
     $(this).replaceWith($(\'<input/>\',{\'type\':\'text\',\'name\':this.name,\'class\':this.className}));\
   }\
 });\
-');  if dhcpDefaultExist then ngx.print('\
+'); if dhcpDefaultExist then ngx.print('\
 $("#btn-dhcp-reset").click(function(){\
   '); for k,v in pairs(dhcpDefaultExist) do ngx.print('\
     $("#'); ngx.print(k); ngx.print('").val("'); ngx.print(v); ngx.print('");\
@@ -1449,12 +1048,12 @@ $("#btn-dhcp-reset").click(function(){\
   $("#modal-changes").show();\
   $("#modal-no-change").hide();\
 });\
-');  end  ngx.print('\
+'); end ngx.print('\
   '); if inUseFlag == true then ngx.print('\
   $("#confilictipchange-msg").show();\
   '); end ngx.print('\
 </script>\
-');  ngx.print(ui_helper.createFooter())   ngx.print('\
+',ui_helper.createFooter(),'\
 <script src="/js/srp-min.js"></script>\
 <script src="/js/bridgedmode.js"></script>\
 <script>\

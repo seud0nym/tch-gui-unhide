@@ -1,0 +1,16 @@
+echo [$SCRIPT]: Adding transformer support for IPv6 ULA Prefix
+sed \
+ -e '/^uci_1to1.registerSimpleMap(network_config)/a \ ' \
+ -e '/^uci_1to1.registerSimpleMap(network_config)/a \-- uci.network.globals.' \
+ -e '/^uci_1to1.registerSimpleMap(network_config)/a \local network_globals = {' \
+ -e '/^uci_1to1.registerSimpleMap(network_config)/a \    config = config_network,' \
+ -e '/^uci_1to1.registerSimpleMap(network_config)/a \    section = "globals",' \
+ -e '/^uci_1to1.registerSimpleMap(network_config)/a \    type = "globals",' \
+ -e '/^uci_1to1.registerSimpleMap(network_config)/a \    options = {' \
+ -e '/^uci_1to1.registerSimpleMap(network_config)/a \        "ula_prefix",' \
+ -e '/^uci_1to1.registerSimpleMap(network_config)/a \    }' \
+ -e '/^uci_1to1.registerSimpleMap(network_config)/a \}' \
+ -e '/^uci_1to1.registerSimpleMap(network_config)/a \ ' \
+ -e '/^uci_1to1.registerSimpleMap(network_config)/a \uci_1to1.registerSimpleMap(network_globals)' \
+ -i /usr/share/transformer/mappings/uci/network.map
+
