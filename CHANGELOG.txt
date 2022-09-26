@@ -1,11 +1,14 @@
-2022.09.22
+2022.09.26
 ==========
 * tch-gui-unhide: Fixed broken tc install on MIPS devices (#108)
 * tch-gui-unhide: Fixed incorrect device IPv6 address on Guest interfaces
 * tch-gui-unhide: Fixed bug preventing display of Mobile tabs (FW 17.2)
+* tch-gui-unhide: Fixed bug preventing changes to Local Network screen when WAN IPv6 not enabled
 * tch-gui-unhide: Added domain name and extra DHCP settings on Guest interfaces
 * tch-gui-unhide: Allow for different IPv6 RPC network interfaces (e.g. PPPoE uses wan instead of wan6)
 * tch-gui-unhide: Show LAN IPv6 prefix size even if no WAN prefix has been assigned
+* tch-gui-unhide: IPv6 ULA configuration now visible on FW 17.2
+* tch-gui-unhide: Completely reworked Local Network screen to attempt to improve performance
 * de-telstra: Removed lte-logger-doctor from minimum memory mode disabled services because it breaks the Mobile Diagnostics chart
 * reset-to-factory-defaults-with-root: IPv6 static leases were not restored as expected
 * safe-firmware-upgrade: IPv6 static leases were not restored as expected
