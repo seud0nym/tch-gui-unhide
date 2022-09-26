@@ -35,8 +35,10 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
   end
   content_helper.getExactContent(lanParams)
 
+  local lanIPv6 = lanParams["ipv6State"] == "" or lanParams["ipv6State"] == "1"
+
   if not isBridgedMode then
-    if lanParams["ipv6State"] == "" or lanParams["ipv6State"] == "1" then
+    if lanIPv6 then
       if lanParams["dhcpv6State"] == "" or lanParams["dhcpv6State"] == "server" then
         if lanParams["ignored"] == "1" then
           dhcp6State_text = T"DHCPv6 ignored (Bridged mode)"
@@ -61,9 +63,6 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
         slaacState_text = T"SLAAC + RA disabled"
         slaacState = "0"
       end
-    else
-        dhcp6State_text = T"IPv6 disabled"
-        dhcp6State = "0"
     end
 
     if lanParams["dhcpv4State"] == "" or lanParams["dhcpv4State"] == "server" then
@@ -102,7 +101,7 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
         ngx.print(ui_helper.createSimpleLight("1","Bridged Mode"))
       else
         ngx.print(ui_helper.createSimpleLight(dhcp4State,dhcp4State_text))
-        if lanParams["ipv6State"] == "" or lanParams["ipv6State"] == "1" then
+        if lanIPv6 then
           ngx.print(
             ui_helper.createSimpleLight(dhcp6State,dhcp6State_text),
             ui_helper.createSimpleLight(slaacState,slaacState_text)
@@ -112,14 +111,18 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
       ngx.print(
         '<p class="subinfos" style="line-height:14px">',
         format(T'Gateway IP: <strong style="letter-spacing:-1px;font-size:12px;">%s</strong>',lanParams["localdevIP"]),
-        '<br>')
-      if lanParams["ipv6addr"] ~= "" then
-        ngx.print(
-          format(T'<strong style="letter-spacing:-1px;font-size:12px;">%s</strong>',gsub(untaint(lanParams["ipv6addr"])," ","<br>")),
-          '<br>')
-      end
-      if lanParams["ipv6prefix"] ~= "" then
-        ngx.print(format(T'Prefix: <nobr><strong style="letter-spacing:-1px;font-size:12px;">%s</strong></nobr>',lanParams["ipv6prefix"]))
+        '<br>'
+      )
+      if lanIPv6 then
+        if lanParams["ipv6addr"] ~= "" then
+          ngx.print(
+            format(T'<strong style="letter-spacing:-1px;font-size:12px;">%s</strong>',gsub(untaint(lanParams["ipv6addr"])," ","<br>")),
+            '<br>'
+          )
+        end
+        if lanParams["ipv6prefix"] ~= "" then
+          ngx.print(format(T'Prefix: <nobr><strong style="letter-spacing:-1px;font-size:12px;">%s</strong></nobr>',lanParams["ipv6prefix"]))
+        end
       end
       ngx.print(
       '</p>\
