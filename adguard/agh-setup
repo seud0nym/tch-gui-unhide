@@ -249,6 +249,11 @@ if [ $REMOVE = Y ]; then
   echo -e "${GREEN}[$SCRIPT] Uninstalling AdGuard Home...${NC}"
   $AGH_CMD -s stop
   $AGH_CMD -s uninstall
+  if [ -e /etc/init.d/AdGuardHome ]; then
+    /etc/init.d/AdGuardHome stop
+    /etc/init.d/AdGuardHome disable
+    rm /etc/init.d/AdGuardHome
+  fi
 
   configure_dnmasq enable
 
