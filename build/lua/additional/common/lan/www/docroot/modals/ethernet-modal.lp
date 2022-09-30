@@ -817,7 +817,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
                 ngx.print(ui_helper.createInputText(T"IPv6 ULA Prefix<span class='icon-question-sign' title='IPv6 equivalent of IPv4 private addresses. Must start with fd followed by 40 random bits and a /48 range (e.g. fd12:3456:789a::/48)'></span>", "ula_prefix", content["ula_prefix"], ula_attr, helpmsg["ula_prefix"]))
               end
               local min_prefix_len = 48
-              local ip6prefix = proxy.get(require("ipv6_rpc_path").getPath("ip6prefix"))
+              local ip6prefix = proxy.get("rpc.network.interface.@wan6.ip6prefix")
               if ip6prefix and ip6prefix[1].value ~= "" then
                 min_prefix_len = tonumber(match(untaint(ip6prefix[1].value),"/(%d+)$")) or 48
               end

@@ -13,7 +13,6 @@ local string = string
 local format,match,find,upper = string.format,string.match,string.find,string.upper
 local session = ngx.ctx.session
 local untaint_mt = require("web.taint").untaint_mt
-local ipv6_rpc_path = require("ipv6_rpc_path").getPath()
 
 local ppp_state_map = {
   disabled = T"Disabled",
@@ -271,9 +270,9 @@ local content_rpc = {
   ipaddr = "rpc.network.interface.@wan.ipaddr",
   nexthop = "rpc.network.interface.@wan.nexthop",
   dns = "rpc.network.interface.@wan.dnsservers",
-  ip6addr = ipv6_rpc_path.."ip6addr",
-  ip6prefix = ipv6_rpc_path.."ip6prefix",
-  dnsv6 = ipv6_rpc_path.."dnsservers",
+  ip6addr = "rpc.network.interface.@wan6.ip6addr",
+  ip6prefix = "rpc.network.interface.@wan6.ip6prefix",
+  dnsv6 = "rpc.network.interface.@wan6.dnsservers",
 }
 
 
@@ -394,11 +393,11 @@ html[#html + 1] = "</div></div>"
 html[#html + 1] = ui_helper.createInputText(T"Password","uci_wan_password",content["uci_wan_password"],class_username,helpmsg["uci_wan_password"])
 
 ajax_attr.span.id = "ipaddr"
-html[#html+1] = ui_helper.createLabel(T"IPv4 address",content_rpc["ipaddr"],ajax_attr)
+html[#html+1] = ui_helper.createLabel(T"IPv4 Address",content_rpc["ipaddr"],ajax_attr)
 ajax_attr.span.id = "nexthop"
-html[#html+1] = ui_helper.createLabel(T"Gateway",content_rpc["nexthop"],ajax_attr)
+html[#html+1] = ui_helper.createLabel(T"IPv4 Gateway",content_rpc["nexthop"],ajax_attr)
 ajax_attr.span.id = "dns"
-html[#html+1] = ui_helper.createLabel(T"DNS servers",content_rpc["dns"],ajax_attr)
+html[#html+1] = ui_helper.createLabel(T"IPv4 DNS Servers",content_rpc["dns"],ajax_attr)
 if content["uci_wan_peerdns"] == "" then
     content["uci_wan_peerdns"] = "1"
 end
@@ -409,7 +408,7 @@ html[#html+1] = '</div>'
 
 if content_rpc["ip6addr"] and content_rpc["ip6addr"]:len() > 0 then
 	ajax_attr.span.id = "ip6addr"
-	html[#html+1] = ui_helper.createLabel(T"IPv6 Address",content_rpc["ip6addr"],ajax_attr)
+	html[#html+1] = ui_helper.createLabel(T"IPv6 Addresses",content_rpc["ip6addr"],ajax_attr)
 end
 if content_rpc["ip6prefix"] and content_rpc["ip6prefix"]:len() > 0 then
 	ajax_attr.span.id = "ip6prefix"

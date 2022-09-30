@@ -11,7 +11,8 @@ local ajax_helper = require("web.ajax_helper")
 local tonumber = tonumber
 local match,format = string.match,string.format
 local post_helper = require("web.post_helper")
-local ipv6_rpc_path = require("ipv6_rpc_path").getPath()
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 -- State data
 local dhcp_state = "connecting"
@@ -255,10 +256,11 @@ local cs = {
   ipaddr = "rpc.network.interface.@wan.ipaddr",
   nexthop = "rpc.network.interface.@wan.nexthop",
   dns = "rpc.network.interface.@wan.dnsservers",
-  ipv6_gua = ipv6_rpc_path.."ipv6uniquelocaladdr",
-  ip6addr = ipv6_rpc_path.."ip6addr",
-  ip6prefix = ipv6_rpc_path.."ip6prefix",
-  dnsv6 = ipv6_rpc_path.."dnsservers",
+  ipv6_uga = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
+  ipv6_ula = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
+  ip6addr = "rpc.network.interface.@wan6.ip6addr",
+  ip6prefix = "rpc.network.interface.@wan6.ip6prefix",
+  dnsv6 = "rpc.network.interface.@wan6.dnsservers",
 }
 
 local dhcp_lease = {
@@ -288,7 +290,7 @@ ajax_helper.handleAjaxQuery(cs,function(c)
   end
   local ipv6_enabled = proxy.get("uci.network.interface.@wan.ipv6")
   if ipv6_enabled and ipv6_enabled[1].value == "1" then
-    c.dnsv6 = content_helper.getMergedList(proxy.get(ipv6_rpc_path.."dnsservers")[1].value,dnsv6)
+    c.dnsv6 = content_helper.getMergedList(proxy.get("rpc.network.interface.@wan6.dnsservers")[1].value,dnsv6)
   end
   if ds == "connected" then
     content_helper.getExactContent(dhcp_lease)
@@ -422,22 +424,30 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
 ');
   html = {}
   ajax_attr.span.id = "leaseobtained"
-  html[#html+1] = ui_helper.createLabel(T"Lease obtained",cs["leaseobtained"],ajax_attr)
+  html[#html+1] = ui_helper.createLabel(T"Lease Obtained",cs["leaseobtained"],ajax_attr)
   ajax_attr.span.id = "leaseexpires"
-  html[#html+1] = ui_helper.createLabel(T"Lease expires",cs["leaseexpires"],ajax_attr)
+  html[#html+1] = ui_helper.createLabel(T"Lease Expires",cs["leaseexpires"],ajax_attr)
   ajax_attr.span.id = "ipaddr"
-  html[#html+1] = ui_helper.createLabel(T"IPv4 address",cs["ipaddr"],ajax_attr)
+  html[#html+1] = ui_helper.createLabel(T"IPv4 Address",cs["ipaddr"],ajax_attr)
   ajax_attr.span.id = "nexthop"
-  html[#html+1] = ui_helper.createLabel(T"Gateway",cs["nexthop"],ajax_attr)
+  html[#html+1] = ui_helper.createLabel(T"IPv4 Gateway",cs["nexthop"],ajax_attr)
   ajax_attr.span.id = "dns"
-  html[#html+1] = ui_helper.createLabel(T"IPv4 DNS servers",cs["dns"],ajax_attr)
+  html[#html+1] = ui_helper.createLabel(T"IPv4 DNS Servers",cs["dns"],ajax_attr)
   if cs["ip6addr"] and cs["ip6addr"]:len() > 0 then
     ajax_attr.span.id = "ip6addr"
-    html[#html+1] = ui_helper.createLabel(T"IPv6 address",cs["ip6addr"],ajax_attr)
+    local label = T"IPv6 Address"
+    if string.find(untaint(cs["ip6addr"])," ") then
+      label = T"IPv6 Addresses"
+    end
+    html[#html+1] = ui_helper.createLabel(label,cs["ip6addr"],ajax_attr)
+    end
+  if cs["ipv6_uga"] and cs["ipv6_uga"]:len() > 0 then
+    ajax_attr.span.id = "ipv6_uga"
+    html[#html+1] = ui_helper.createLabel(T"IPv6 Unique Global Address",cs["ipv6_uga"],ajax_attr)
   end
-  if cs["ipv6_gua"] and cs["ipv6_gua"]:len() > 0 then
-    ajax_attr.span.id = "ipv6_gua"
-    html[#html+1] = ui_helper.createLabel(T"IPv6 GUA",cs["ipv6_gua"],ajax_attr)
+  if cs["ipv6_ula"] and cs["ipv6_ula"]:len() > 0 then
+    ajax_attr.span.id = "ipv6_ula"
+    html[#html+1] = ui_helper.createLabel(T"IPv6 Unique Local Address",cs["ipv6_ula"],ajax_attr)
   end
   if cs["ip6prefix"] and cs["ip6prefix"]:len() > 0 then
     ajax_attr.span.id = "ip6prefix"

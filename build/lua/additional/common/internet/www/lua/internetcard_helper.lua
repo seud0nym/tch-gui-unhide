@@ -1,9 +1,9 @@
 local content_helper = require("web.content_helper")
-local ipv6_rpc_path = require("ipv6_rpc_path").getPath()
 local ui_helper = require("web.ui_helper")
 local untaint_mt = require("web.taint").untaint_mt
 local find,format,gsub = string.find,string.format,string.gsub
-
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 local items = {
   ["OK"] = {"1", T"Fixed Broadband online",},
@@ -45,15 +45,15 @@ function M.getInternetCardHTML(mode_active)
   local function addIPs(source,ipaddr,ip6addr,ipv6uniqueglobaladdr,ipv6uniquelocaladdr,ip6prefix)
     html[#html+1] = '<p class="subinfos" style="margin-bottom:1px;line-height:14px;">'
     html[#html+1] = format(T'%s IP: <strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>',source,ipaddr)
-    if ip6addr and ip6addr ~= "" then
-      local addr = ip6addr
-      if find(ip6addr," ") then
-        if ipv6uniqueglobaladdr and ipv6uniqueglobaladdr ~= "" and find(ip6addr,gsub(ipv6uniqueglobaladdr,"/%d+","")) then
-          addr = gsub(ipv6uniqueglobaladdr,"/%d+","")
-        elseif ipv6uniquelocaladdr and ipv6uniquelocaladdr ~= "" and find(ip6addr,gsub(ipv6uniquelocaladdr,"/%d+","")) then
-          addr = gsub(ipv6uniquelocaladdr,"/%d+","")
-        end
+    local addr = ip6addr
+    if not addr or addr == "" or find(untaint(ip6addr)," ") then
+      if ipv6uniqueglobaladdr and ipv6uniqueglobaladdr ~= "" then
+        addr = gsub(ipv6uniqueglobaladdr,"/%d+","")
+      elseif ipv6uniquelocaladdr and ipv6uniquelocaladdr ~= "" then
+        addr = gsub(ipv6uniquelocaladdr,"/%d+","")
       end
+    end
+    if ip6addr and ip6addr ~= "" then
       html[#html+1] = format(T'<br><strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>',addr)
     end
     html[#html+1] = '</p>'
@@ -80,11 +80,11 @@ function M.getInternetCardHTML(mode_active)
       local cs = {
         uci_wan_auto = "uci.network.interface.@wan.auto",
         uci_wan6_auto = "uci.network.interface.@wan6.auto",
-        wan6_prefix = ipv6_rpc_path.."ip6prefix",
+        wan6_prefix = "rpc.network.interface.@wan6.ip6prefix",
         ipaddr = "rpc.network.interface.@wan.ipaddr",
-        ip6addr = ipv6_rpc_path.."ip6addr",
-        ipv6uniqueglobaladdr = ipv6_rpc_path.."ipv6uniqueglobaladdr",
-        ipv6uniquelocaladdr = ipv6_rpc_path.."ipv6uniquelocaladdr",
+        ip6addr = "rpc.network.interface.@wan6.ip6addr",
+        ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
+        ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
       }
       content_helper.getExactContent(cs)
       local dhcp_state = "connecting"
@@ -129,11 +129,11 @@ function M.getInternetCardHTML(mode_active)
       local cs = {
         wan_ppp_state = "rpc.network.interface.@wan.ppp.state",
         wan_ppp_error = "rpc.network.interface.@wan.ppp.error",
-        wan6_prefix = ipv6_rpc_path.."ip6prefix",
+        wan6_prefix = "rpc.network.interface.@wan6.ip6prefix",
         ipaddr = "rpc.network.interface.@wan.ipaddr",
-        ip6addr = ipv6_rpc_path.."ip6addr",
-        ipv6uniqueglobaladdr = ipv6_rpc_path.."ipv6uniqueglobaladdr",
-        ipv6uniquelocaladdr = ipv6_rpc_path.."ipv6uniquelocaladdr",
+        ip6addr = "rpc.network.interface.@wan6.ip6addr",
+        ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
+        ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
       }
       content_helper.getExactContent(cs)
       local ppp_state_map = {
@@ -188,11 +188,11 @@ function M.getInternetCardHTML(mode_active)
     elseif mode_active == "static" then
       local cs = {
         uci_wan_auto = "uci.network.interface.@wan.auto",
-        wan6_prefix = ipv6_rpc_path.."ip6prefix",
+        wan6_prefix = "rpc.network.interface.@wan6.ip6prefix",
         ipaddr = "rpc.network.interface.@wan.ipaddr",
-        ip6addr = ipv6_rpc_path.."ip6addr",
-        ipv6uniqueglobaladdr = ipv6_rpc_path.."ipv6uniqueglobaladdr",
-        ipv6uniquelocaladdr = ipv6_rpc_path.."ipv6uniquelocaladdr",
+        ip6addr = "rpc.network.interface.@wan6.ip6addr",
+        ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
+        ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
       }
       content_helper.getExactContent(cs)
       if cs["uci_wan_auto"] ~= "0" then
@@ -252,8 +252,8 @@ function M.getInternetCardHTML(mode_active)
     local content_mobile = {
       ipaddr = "rpc.network.interface.@wwan.ipaddr",
       ip6addr = "rpc.network.interface.@wwan.ip6addr",
-      ipv6uniqueglobaladdr = ipv6_rpc_path.."ipv6uniqueglobaladdr",
-      ipv6uniquelocaladdr = ipv6_rpc_path.."ipv6uniquelocaladdr",
+      ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
+      ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
       wan6_prefix = "rpc.network.interface.@wwan.ip6prefix",
       rx_bytes = "rpc.network.interface.@wwan.rx_bytes",
       tx_bytes = "rpc.network.interface.@wwan.tx_bytes",

@@ -14,7 +14,8 @@ local format,match,find,upper = string.format,string.match,string.find,string.up
 local iconUp = "<i class=\"icon-upload icon-large gray\"></i> "
 local iconDown = " <i class=\"icon-download icon-large gray\"></i> "
 local untaint_mt = require("web.taint").untaint_mt
-local ipv6_rpc_path = require("ipv6_rpc_path").getPath()
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 local ppp_state_map = {
   disabled = T"Disabled",
@@ -325,10 +326,11 @@ local content_rpc = {
   dns = "rpc.network.interface.@wan.dnsservers",
   concentrator_name = "rpc.network.interface.@wan.ppp.access_concentrator_name",
   concentrator_mac = "rpc.network.interface.@wan.ppp.access_concentrator_mac",
-  ipv6_gua = ipv6_rpc_path.."ipv6uniquelocaladdr",
-  ip6addr = ipv6_rpc_path.."ip6addr",
-  ip6prefix = ipv6_rpc_path.."ip6prefix",
-  dnsv6 = ipv6_rpc_path.."dnsservers",
+  ipv6_uga = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
+  ipv6_ula = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
+  ip6addr = "rpc.network.interface.@wan6.ip6addr",
+  ip6prefix = "rpc.network.interface.@wan6.ip6prefix",
+  dnsv6 = "rpc.network.interface.@wan6.dnsservers",
 }
 
 
@@ -532,9 +534,9 @@ html[#html + 1] = "</div></div>"
 html[#html + 1] = ui_helper.createInputText(T"Password","uci_wan_password",content["uci_wan_password"],class_username,helpmsg["uci_wan_password"])
 html[#html + 1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac",content["uci_wan_mac"],nil,helpmsg["uci_wan_mac"])
 ajax_attr.span.id = "ipaddr"
-html[#html+1] = ui_helper.createLabel(T"IPv4 address",content_rpc["ipaddr"],ajax_attr)
+html[#html+1] = ui_helper.createLabel(T"IPv4 Address",content_rpc["ipaddr"],ajax_attr)
 ajax_attr.span.id = "nexthop"
-html[#html+1] = ui_helper.createLabel(T"Gateway",content_rpc["nexthop"],ajax_attr)
+html[#html+1] = ui_helper.createLabel(T"IPv4 Gateway",content_rpc["nexthop"],ajax_attr)
 if content_rpc["concentrator_name"] ~= "" then
   ajax_attr.span.id = "concentrator_name"
   html[#html+1] = ui_helper.createLabel(T"Concentrator Name",content_rpc["concentrator_name"],ajax_attr)
@@ -545,11 +547,19 @@ ajax_attr.span.id = "dns"
 html[#html+1] = ui_helper.createLabel(T"IPv4 DNS servers",content_rpc["dns"],ajax_attr)
 if content_rpc["ip6addr"] and content_rpc["ip6addr"]:len() > 0 then
   ajax_attr.span.id = "ip6addr"
-  html[#html+1] = ui_helper.createLabel(T"IPv6 Address",content_rpc["ip6addr"],ajax_attr)
+  local label = T"IPv6 Address"
+  if find(untaint(content_rpc["ip6addr"])," ") then
+    label = T"IPv6 Addresses"
+  end
+  html[#html+1] = ui_helper.createLabel(label,content_rpc["ip6addr"],ajax_attr)
 end
-if content_rpc["ipv6_gua"] and content_rpc["ipv6_gua"]:len() > 0 then
-  ajax_attr.span.id = "ipv6_gua"
-  html[#html+1] = ui_helper.createLabel(T"IPv6 GUA",content_rpc["ipv6_gua"],ajax_attr)
+if content_rpc["ipv6_uga"] and content_rpc["ipv6_uga"]:len() > 0 then
+  ajax_attr.span.id = "ipv6_uga"
+  html[#html+1] = ui_helper.createLabel(T"IPv6 Unique Global Address",content_rpc["ipv6_uga"],ajax_attr)
+end
+if content_rpc["ipv6_ula"] and content_rpc["ipv6_ula"]:len() > 0 then
+  ajax_attr.span.id = "ipv6_ula"
+  html[#html+1] = ui_helper.createLabel(T"IPv6 Unique Local Address",content_rpc["ipv6_ula"],ajax_attr)
 end
 if content_rpc["ip6prefix"] and content_rpc["ip6prefix"]:len() > 0 then
   ajax_attr.span.id = "ip6prefix"
