@@ -53,7 +53,7 @@ function M.getInternetCardHTML(mode_active)
         addr = gsub(ipv6uniquelocaladdr,"/%d+","")
       end
     end
-    if ip6addr and ip6addr ~= "" then
+    if addr and addr ~= "" then
       html[#html+1] = format(T'<br><strong style="letter-spacing:-1px"><span style="font-size:12px">%s</span></strong>',addr)
     end
     html[#html+1] = '</p>'
