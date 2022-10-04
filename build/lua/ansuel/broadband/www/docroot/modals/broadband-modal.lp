@@ -48,21 +48,7 @@ if devices and devices > 0 and content["wwan_metric"] == "" then
 end
 
 if ngx.var.request_method == "POST" then
-  local content1 = ngx.req.get_post_args(0)
-  local action = content1["action"]
-  if action == "BRIDGED" then
-    if not bridged.isBridgedMode() then
-      if bridged.configBridgedMode() then
-        return bridged.resetreboot("rpc.system.reboot","GUI")
-      end
-    end
-  elseif action == "ROUTED" then
-    if bridged.isBridgedMode() then
-      if bridged.configRoutedMode() then
-        return bridged.resetreboot("rpc.system.reboot","GUI")
-      end
-    end
-  end
+  bridged.configure(ngx.req.get_post_args(0)["action"])
 end
 
 if not tabdata.current.ajax then

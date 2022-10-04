@@ -647,20 +647,7 @@ if ngx.var.request_method == "POST" then
     session:logout()
   end
 
-  local action = ngx.req.get_post_args(0)["action"]
-  if action == "BRIDGED" then
-    if not isBridgedMode then
-      if bridged.configBridgedMode() then
-        return bridged.resetreboot("rpc.system.reboot","GUI")
-      end
-    end
-  elseif action == "ROUTED" then
-    if isBridgedMode then
-      if bridged.configRoutedMode() then
-        return bridged.resetreboot("rpc.system.reboot","GUI")
-      end
-    end
-  end
+  bridged.configure(ngx.req.get_post_args(0)["action"])
 
   if cur_intf == "lan" then
     local local_path = dnsmasq_path.."local"

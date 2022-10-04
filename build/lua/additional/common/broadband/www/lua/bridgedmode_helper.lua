@@ -33,6 +33,25 @@ local function configGuestFirewall(value)
   return success
 end
 
+local function failed(message)
+  ngx.header.content_type = "application/json"
+  ngx.print('{ "success":false, "message":"'..message..'" }')
+  ngx.timer.at(0,function()
+    proxy.apply()
+  end)
+  ngx.exit(ngx.HTTP_OK)
+end
+
+local function reboot()
+  proxy.set("rpc.system.reboot","GUI")
+  ngx.header.content_type = "application/json"
+  ngx.print('{ "success":true }')
+  ngx.timer.at(0,function()
+    proxy.apply()
+  end)
+  ngx.exit(ngx.HTTP_OK)
+end
+
 function M.addBridgedModeButtons(html)
   local bridged_rebooting = {
     alert = {
@@ -115,8 +134,7 @@ function M.configBridgedMode()
       local added,errs = proxy.add("uci.network.interface.","lan6")
       if added then
         ngx.log(ngx.WARN,format("configBridgedMode: Adding LAN6 (Result=%s)",tostring(added)))
-        success,errors = proxy.set({
-          ["uci.network.interface.@lan6.defaultreqopts"] = '0',
+        local ok,err = proxy.set({
           ["uci.network.interface.@lan6.forceprefix"] = '0',
           ["uci.network.interface.@lan6.iface_464xlat"] = '0',
           ["uci.network.interface.@lan6.ifname"] = 'br-lan',
@@ -126,12 +144,11 @@ function M.configBridgedMode()
           ["uci.network.interface.@lan6.reqaddress"] = 'force',
           ["uci.network.interface.@lan6.reqopts"] = '23 17',
           ["uci.network.interface.@lan6.reqprefix"] = 'no',
-          ["uci.network.interface.@lan6.soltimeout"] = '240',
         })
-        if success then
+        if ok then
           ngx.log(ngx.WARN,format("configBridgedMode: Configuring LAN6 (Result=%s)",tostring(success)))
         else
-          logErrors("configBridgedMode[lan6]",errors)
+          logErrors("configBridgedMode[lan6]",err)
         end
       else
         logErrors("configBridgedMode[lan6]",errs)
@@ -163,6 +180,11 @@ function M.configBridgedMode()
   end
 
   ngx.log(ngx.WARN,format("configBridgedMode: Returning %s)",tostring(success)))
+
+  if not success then
+    M.configRoutedMode()
+  end
+
   return success
 end
 
@@ -230,17 +252,39 @@ function M.configRoutedMode()
   end
 
   ngx.log(ngx.WARN,format("configRoutedMode: Returning %s)",tostring(success)))
+
+  if not success then
+    M.configBridgedMode()
+  end
+
   return success
 end
 
-function M.resetreboot(path,value)
-  proxy.set(path,value)
-  ngx.header.content_type = "application/json"
-  ngx.print('{ "success":"true" }')
-  ngx.timer.at(0,function()
-    proxy.apply()
-  end)
-  ngx.exit(ngx.HTTP_OK)
+function M.configure(mode)
+  local isBridgedMode = M.isBridgedMode()
+  if mode == "bridged" then
+    if not isBridgedMode then
+      if M.configBridgedMode() then
+        reboot()
+      else
+        failed("Check system log: Failed to configure bridged mode!")
+      end
+    else
+      failed("Bridged mode already configured?")
+    end
+  elseif mode == "routed" then
+    if isBridgedMode then
+      if M.configRoutedMode() then
+        reboot()
+      else
+        failed("Check system log: Failed to configure routed mode!")
+      end
+    else
+      failed("Routed mode already configured!")
+    end
+  elseif mode ~= "" then
+    failed("Unknown Network Mode: "..mode.."?")
+  end
 end
 
 return M

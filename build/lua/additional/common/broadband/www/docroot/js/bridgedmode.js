@@ -2,7 +2,8 @@ var refreshTimeOut = 5000;
 var refreshDelay = 3000;
 var target = $(".modal form").attr("action");
 function wait_for_webserver_running() {
-  $.ajax({ url: "/",timeout: refreshTimeOut })
+  console.log("wait_for_webserver_running")
+  $.ajax({ url: "/gateway.lp",timeout: refreshTimeOut })
   .done(function(data) {
     document.open("text/html");
     document.write(data);
@@ -13,6 +14,7 @@ function wait_for_webserver_running() {
   });
 }
 function wait_for_webserver_down() {
+  console.log("wait_for_webserver_down")
   $.ajax({ url: target,timeout: refreshTimeOut })
   .done(function() {
     window.setTimeout(wait_for_webserver_down,refreshDelay);
@@ -21,47 +23,60 @@ function wait_for_webserver_down() {
     window.setTimeout(wait_for_webserver_running,refreshDelay);
   });
 }
-function resetreboot(msg,msg_dst,action) {
-  msg_dst.after(msg);
+function cancel_request(action) {
+  $("#"+action+"-confirming-msg").addClass("hide");
+  $("#"+action+"-changes").addClass("hide");
+  $("#"+action+"-rebooting-msg").addClass("hide");
+}
+function confirm_request(action) {
+  $("#"+action+"-confirming-msg").removeClass("hide");
+  $("#"+action+"-changes").removeClass("hide");
+  $(".modal-body").animate({"scrollTop":"+=100px"},"fast")
+}
+function reconfigure(action) {
+  let msg = $("#"+action+"-rebooting-msg")
+  let button = $("#btn-"+action+"")
+  $("#"+action+"-confirming-msg").addClass("hide");
+  $("#"+action+"-changes").addClass("hide");
+  button.addClass("hide");
+  button.after(msg);
   msg.removeClass("hide");
   msg[0].scrollIntoView();
+  $(".btn-close").addClass("hide");
+  $("#modal-no-change").addClass("hide");
   $.post(
     target,
-    { action: action,CSRFtoken: $("meta[name=CSRFtoken]").attr("content") },
-    wait_for_webserver_down,
+    { "action":action,"CSRFtoken":$("meta[name=CSRFtoken]").attr("content") },
+    function(data) {
+      if(data.success) {
+        wait_for_webserver_down();
+      } else {
+        msg.text(data.message);
+        msg.removeClass("alert");
+        msg.addClass("alert alert-error");
+        $(".btn-close").removeClass("hide");
+        $("#modal-no-change").removeClass("hide");
+      }
+    },
     "json"
   );
   return false;
 }
 $("#btn-bridged").click(function() {
-  $("#bridged-confirming-msg").removeClass("hide");
-  $("#bridged-changes").removeClass("hide");
-  $(".modal-body").animate({"scrollTop":"+=100px"},"fast")
+  confirm_request("bridged")
 });
 $("#bridged-confirm").click(function() {
-  $("#bridged-confirming-msg").addClass("hide");
-  $("#bridged-changes").addClass("hide");
-  $("#btn-bridged").addClass("hide");
-  return resetreboot($("#bridged-rebooting-msg"),$("#btn-bridged"),"BRIDGED");
+  return reconfigure("bridged");
 });
 $("#bridged-cancel").click(function() {
-  $("#bridged-confirming-msg").addClass("hide");
-  $("#bridged-changes").addClass("hide");
-  $("#bridged-rebooting-msg").addClass("hide");
+  cancel_request("bridged")
 });
 $("#btn-routed").click(function() {
-  $("#routed-confirming-msg").removeClass("hide");
-  $("#routed-changes").removeClass("hide");
-  $(".modal-body").animate({"scrollTop":"+=100px"},"fast")
+  confirm_request("routed")
 });
 $("#routed-confirm").click(function() {
-  $("#routed-confirming-msg").addClass("hide");
-  $("#routed-changes").addClass("hide");
-  $("#btn-routed").addClass("hide");
-  return resetreboot($("#routed-rebooting-msg"),$("#btn-routed"),"ROUTED");
+  return reconfigure("routed");
 });
 $("#routed-cancel").click(function() {
-  $("#routed-confirming-msg").addClass("hide");
-  $("#routed-changes").addClass("hide");
-  $("#routed-rebooting-msg").addClass("hide");
+  cancel_request("routed")
 });
