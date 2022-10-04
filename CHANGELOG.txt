@@ -1,5 +1,6 @@
-2022.09.30
+2022.10.04
 ==========
+* tch-gui-unhide: Fixed Bridged Mode broken in 2022.08.20 (when switching to Bridged mode, some routed configuration silently failed to be removed)
 * tch-gui-unhide: Fixed broken tc install on MIPS devices (#108)
 * tch-gui-unhide: Fixed incorrect device IPv6 address on Guest interfaces
 * tch-gui-unhide: Fixed bug preventing display of Mobile tabs (FW 17.2)
