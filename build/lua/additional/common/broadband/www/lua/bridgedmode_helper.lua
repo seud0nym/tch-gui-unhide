@@ -282,8 +282,6 @@ function M.configure(mode)
     else
       failed("Routed mode already configured!")
     end
-  elseif mode ~= "" then
-    failed("Unknown Network Mode: "..mode.."?")
   end
 end
 
