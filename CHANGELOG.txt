@@ -1,3 +1,7 @@
+2022.10.06
+==========
+* tch-gui-unhide: Fixed Local Network and Broadband screens were showing error message '{ "success":false, "message":"Unknown Network Mode: SAVE?" }' when saving any change (except when changing between routed mode and bridged mode)
+
 2022.10.04
 ==========
 * tch-gui-unhide: Fixed Bridged Mode broken in 2022.08.20 (when switching to Bridged mode, some routed configuration silently failed to be removed)
