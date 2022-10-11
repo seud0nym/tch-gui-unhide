@@ -115,10 +115,24 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
       )
       if lanIPv6 then
         if lanParams["ipv6addr"] ~= "" then
-          ngx.print(
-            format(T'<strong style="letter-spacing:-1px;font-size:12px;">%s</strong>',gsub(untaint(lanParams["ipv6addr"])," ","<br>")),
-            '<br>'
-          )
+          local addresses = require("split").split(untaint(lanParams["ipv6addr"])," ")
+          local max_show = 2
+          if isBridgedMode then
+            max_show = 7
+          end
+          ngx.print(T'<strong style="letter-spacing:-1px;font-size:12px;">')
+          for i,address in ipairs(addresses) do
+            if i > 1 and i <= max_show then
+              ngx.print('<br>')
+            end
+            if i <= max_show then
+              ngx.print(address)
+            end
+          end
+          if #addresses > max_show then
+            ngx.print("<small> + ",(#addresses - max_show)," more</small>")
+          end
+          ngx.print("<br>")
         end
         if lanParams["ipv6prefix"] ~= "" then
           ngx.print(format(T'Prefix: <nobr><strong style="letter-spacing:-1px;font-size:12px;">%s</strong></nobr>',lanParams["ipv6prefix"]))
