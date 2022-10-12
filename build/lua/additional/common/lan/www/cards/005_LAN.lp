@@ -6,7 +6,7 @@ gettext.textdomain('webui-core')
 local ui_helper = require("web.ui_helper")
 local proxy = require("datamodel")
 local content_helper = require("web.content_helper")
-local format,gsub = string.format,string.gsub
+local format = string.format
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 local session = ngx.ctx.session
@@ -21,12 +21,12 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
   local slaacState
 
   local lanParams = {
-    dhcpv4State = "uci.dhcp.dhcp.@lan.dhcpv4",
     ipv6State = "uci.network.interface.@lan.ipv6",
+    dhcpv4State = "uci.dhcp.dhcp.@lan.dhcpv4",
     dhcpv6State = "uci.dhcp.dhcp.@lan.dhcpv6",
     slaacState = "uci.dhcp.dhcp.@lan.ra",
     ignored = "uci.dhcp.dhcp.@lan.ignore",
-    localdevIP = "rpc.network.interface.@lan.ipaddr",
+    ipv4addr = "rpc.network.interface.@lan.ipaddr",
     ipv6addr = "rpc.network.interface.@lan.ip6addr",
     ipv6prefix = "rpc.network.interface.@lan.ip6prefix_assignment",
   }
@@ -81,11 +81,11 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
         if adguard and adguard[1].value == "1" then
           local fmt = T'<a style="color:inherit;text-decoration:none;" target="_blank" href="http://%s:8008"><b>AdGuard Home</b></a> %s enabled'
           dhcp4State = "1"
-          dhcp4State_text = format(fmt,lanParams["localdevIP"],"DHCPv4")
+          dhcp4State_text = format(fmt,lanParams["ipv4addr"],"DHCPv4")
           dhcp6State = "1"
-          dhcp6State_text = format(fmt,lanParams["localdevIP"],"DHCPv6")
+          dhcp6State_text = format(fmt,lanParams["ipv4addr"],"DHCPv6")
           slaacState = "1"
-          slaacState_text = format(fmt,lanParams["localdevIP"],"SLAAC")
+          slaacState_text = format(fmt,lanParams["ipv4addr"],"SLAAC")
         end
       end
     end

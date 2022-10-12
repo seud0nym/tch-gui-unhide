@@ -292,8 +292,8 @@ local mapParams = {
   localgw = "uci.network.interface.@"..cur_intf..".gateway",
   dhcpIgnore = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".ignore",
   leaseTime = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".leasetime",
-  localdevIP = "uci.network.interface.@"..cur_intf..".ipaddr",
-  localdevmask = "uci.network.interface.@"..cur_intf..".netmask",
+  localIPv4 = "uci.network.interface.@"..cur_intf..".ipaddr",
+  localmask = "uci.network.interface.@"..cur_intf..".netmask",
   localIPv6 = "uci.network.interface.@"..cur_intf..".ipv6",
   dhcplog = dnsmasq_path.."logdhcp",
   dhcplogv6 = "uci.dhcp.odhcpd.@odhcpd.loglevel",
@@ -310,7 +310,7 @@ local dhcp_dns = {}
 local dns_servers = {""}
 local baseDHCPOptions = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcp_option."
 local baseDHCPDNS = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dns."
-local old_lan_ip = proxy.get(mapParams.localdevIP)[1].value
+local old_lan_ip = proxy.get(mapParams.localIPv4)[1].value
 
 local function validateDNSv6(value,object,key)
   if value ~= "" and vSIIP6(untaint(value):gsub("-",":")) ~= true then
@@ -391,7 +391,7 @@ local function validateDNS(value,object,key)
 
   if value ~= "" then
     if value == old_lan_ip then
-      dns_str = object["localdevIP"]
+      dns_str = object["localIPv4"]
     elseif vSIIP4(value) then
       dns_str = value
     else
@@ -401,7 +401,7 @@ local function validateDNS(value,object,key)
 
   if post_data.ipv4_dns_sec ~= "" then
     if post_data.ipv4_dns_sec == old_lan_ip then
-      dns_str = dns_str..","..object["localdevIP"]
+      dns_str = dns_str..","..object["localIPv4"]
     elseif vSIIP4(post_data.ipv4_dns_sec) then
       dns_str = dns_str..","..post_data.ipv4_dns_sec
     else
@@ -409,7 +409,7 @@ local function validateDNS(value,object,key)
     end
   end
 
-  if dns_str == object["localdevIP"] then
+  if dns_str == object["localIPv4"] then
     dns_str = "" -- only the localhost as the dns server
   end
 
@@ -449,7 +449,7 @@ local function validateNTP(value,object,key)
         ntpIndex = proxy.add(baseDHCPOptions)
       end
       mapParams[key] = baseDHCPOptions.."@"..ntpIndex..".value"
-      object[key] = "42,"..object["localdevIP"] -- DHCP option for NTP server is option 42
+      object[key] = "42,"..object["localIPv4"] -- DHCP option for NTP server is option 42
     end
   end
   return true
@@ -457,17 +457,17 @@ end
 
 local local_dev_ip
 if ngx.var.request_method == "POST" then
-  local_dev_ip = ngx.req.get_post_args(0)["localdevIP"]
+  local_dev_ip = ngx.req.get_post_args(0)["localIPv4"]
 else
   local_dev_ip = old_lan_ip
 end
 local mapValid = {
-  localdevIP = ethernet_helper.validateGatewayIP(cur_intf,all_intfs,lan_intfs),
+  localIPv4 = ethernet_helper.validateGatewayIP(cur_intf,all_intfs,lan_intfs),
   localIPv6 = ethernet_helper.validateIPv6(cur_intf,wireless_radio,ppp_dev,ppp_intf),
   dns_v4_pri = validateDNS,
   ntpServer = validateNTP,
   leaseTime = ethernet_helper.validateLeaseTime,
-  localdevmask = gAV(vIP4N,vSIIP),
+  localmask = gAV(vIP4N,vSIIP),
   dhcpStart = ethernet_helper.validateDHCPStart(cur_intf,cur_dhcp_intf,local_dev_ip),
   dhcpLimit = ethernet_helper.validateDHCPLimit(cur_intf,cur_dhcp_intf,local_dev_ip),
   dhcpv4State = ethernet_helper.validateDHCPState(),
@@ -516,6 +516,39 @@ if dhcp_dns.dnses[2] ~= nil then
 end
 
 content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
+
+if cur_intf == "lan" then
+  if ngx.var.request_method == "POST" then
+    bridged.configure(ngx.req.get_post_args(0)["action"])
+
+    local local_path = dnsmasq_path.."local"
+    local localValue = untaint(proxy.get(local_path)[1].value)
+    local localName = format("/%s/",content["localdomain"])
+    local domainName = session:retrieve("old_domain")
+    session:store("old_domain",(content["localdomain"]))
+    if (content["localdomain"] ~= domainName or localValue ~= localName) and not next(helpmsg) then
+      proxy.set(local_path,localName)
+      proxy.apply()
+    end
+
+    local gwIP = session:retrieve("old_ip")
+    session:store("old_ip",(content["localIPv4"]))
+    if content["localIPv4"] ~= gwIP and not next(helpmsg) then
+      ngx.print('\
+      <script type="text/javascript">\
+        window.location="http://',content["localIPv4"],'";\
+      </script>\
+      ')
+      session:logout()
+    end
+  else
+    session:store("old_ip",(content["localIPv4"]))
+    if cur_intf == "lan" then
+      session:store("old_domain",(content["localdomain"]))
+    end
+  end
+end
+
 if ngx.var.request_method == "POST" and not next(helpmsg) then
   local dhcp_options_path = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcp_option."
   local dhcp_options = content_helper.convertResultToObject(dhcp_options_path,proxy.get(dhcp_options_path))
@@ -545,7 +578,7 @@ if dns_servers[3] ~= nil and dns_servers[3] ~= "" and not ethernet_helper.find_d
   dns_list[1][#dns_list[1]+1]={dns_servers[3],T("Custom ("..dns_servers[3]..")")}
 end
 
-content["dns_v4_pri"] = content["localdevIP"]
+content["dns_v4_pri"] = content["localIPv4"]
 content["dns_v4_sec"] = ""
 if dns_servers[2] ~= nil and ethernet_helper.find_dns(dns_servers[2],dns_list[1]) then
   content["dns_v4_pri"] = dns_servers[2]
@@ -580,13 +613,13 @@ if content["dns_v6_sec"] ~= nil and content["dns_v6_sec"] ~= "" and content["dns
   dns_list[2][#dns_list[2]+1]={ content["dns_v6_sec"],T("Custom ("..customipv6dns..")")}
 end
 
--- because we do the localdevmask validation in localdevIP validation, we check if local ip starts with error msg "[netmask]".
--- If so move it to localdevmask
-if helpmsg["localdevIP"] then
-  local msg = match(helpmsg["localdevIP"],'^%[netmask%]%s(.*)')
+-- because we do the localmask validation in localIPv4 validation, we check if local ip starts with error msg "[netmask]".
+-- If so move it to localmask
+if helpmsg["localIPv4"] then
+  local msg = match(helpmsg["localIPv4"],'^%[netmask%]%s(.*)')
   if msg then
-    helpmsg["localdevIP"] = nil
-    helpmsg["localdevmask"] = msg
+    helpmsg["localIPv4"] = nil
+    helpmsg["localmask"] = msg
   end
 end
 if helpmsg["dhcpLimit"] then
@@ -613,12 +646,12 @@ end
 if not match(content["leaseTime"],"^0*([1-9]%d*[smhdw])$") then
   content["leaseTime"] = content["leaseTime"].."s"
 end
-local netmask = ipv42num(content["localdevmask"])
-local baseip = ipv42num(content["localdevIP"])
+local netmask = ipv42num(content["localmask"])
+local baseip = ipv42num(content["localIPv4"])
 local start = tonumber(content["dhcpStart"])
 local numips = tonumber(content["dhcpLimit"])
 local ipstart,ipend,network
-if start and numips and not helpmsg["localdevIP"] and not helpmsg["localdevmask"] and not helpmsg["dhcpStart"] and not helpmsg["dhcpLimit"] then
+if start and numips and not helpmsg["localIPv4"] and not helpmsg["localmask"] and not helpmsg["dhcpStart"] and not helpmsg["dhcpLimit"] then
   ipstart,ipend,network = ethernet_helper.calculateDHCPStartAddress(baseip,netmask,start,numips)
   if ipstart then
     session:store("dhcpStartAddr",ipstart)
@@ -632,40 +665,6 @@ else
  end
 if helpmsg["leaseTime"] then
   content["leaseTime"] = ngx.req.get_post_args(0).leaseTime
-end
-
-if ngx.var.request_method == "POST" then
-  local gwIP = session:retrieve("old_ip")
-  session:store("old_ip",(content["localdevIP"]))
-
-  if cur_intf == "lan" and content["localdevIP"] ~= gwIP and not next(helpmsg) then 
-    ngx.print('\
-    <script type="text/javascript">\
-      window.location="http://',content["localdevIP"],'";\
-    </script>\
-    ')
-    session:logout()
-  end
-
-  bridged.configure(ngx.req.get_post_args(0)["action"])
-
-  if cur_intf == "lan" then
-    local local_path = dnsmasq_path.."local"
-    local localValue = untaint(proxy.get(local_path)[1].value)
-    local localName = format("/%s/",content["localdomain"])
-    local domainName = session:retrieve("old_domain")
-    session:store("old_domain",(content["localdomain"]))
-
-    if (content["localdomain"] ~= domainName or localValue ~= localName) and not next(helpmsg) then
-      proxy.set(local_path,localName)
-      proxy.apply()
-    end
-  end
-else
-  session:store("old_ip",(content["localdevIP"]))
-  if cur_intf == "lan" then
-    session:store("old_domain",(content["localdomain"]))
-  end
 end
 
 local adguard = false
@@ -691,7 +690,7 @@ if cur_intf == "lan" then
           dns_int_ipv4 = values[1].value ~= "0"
           dns_int_ipv4_dest_ip = untaint(values[2].value)
           if not dns_int_ipv4_dest_ip or dns_int_ipv4_dest_ip == "" then
-            dns_int_ipv4_dest_ip = untaint(content["localdevIP"])
+            dns_int_ipv4_dest_ip = untaint(content["localIPv4"])
           end
         end
       end
@@ -779,8 +778,8 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
               }
             }
             ngx.print(
-              ui_helper.createInputText(T"Device IPv4 Address","localdevIP",content["localdevIP"],{input = {class = "span2"}},helpmsg["localdevIP"]),
-              ui_helper.createInputText(T"Local Network Subnet","localdevmask",content["localdevmask"],advanced,helpmsg["localdevmask"])
+              ui_helper.createInputText(T"Device IPv4 Address","localIPv4",content["localIPv4"],{input = {class = "span2"}},helpmsg["localIPv4"]),
+              ui_helper.createInputText(T"Local Network Subnet","localmask",content["localmask"],advanced,helpmsg["localmask"])
             )
 
             if isBridgedMode then
@@ -851,7 +850,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
               <legend>',T"DHCP Settings",'</legend>\
               ');
               if adguard then
-                ngx.print(format(T'Configure DHCP through <a style="color:inherit;text-decoration:none;" target="_blank" href="http://%s:8008"><b>AdGuard Home</b></a>',content["localdevIP"]))
+                ngx.print(format(T'Configure DHCP through <a style="color:inherit;text-decoration:none;" target="_blank" href="http://%s:8008"><b>AdGuard Home</b></a>',content["localIPv4"]))
               else
                 local switchDHCP = {
                   values = {
@@ -877,7 +876,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
                 if ntpServerEnabled and ntpServerEnabled[1].value == "1" then
                   local switchNTP = {
                     values = {
-                      on = "42,"..content["localdevIP"],
+                      on = "42,"..content["localIPv4"],
                       off = ""
                     }
                   }
@@ -1045,7 +1044,7 @@ $("#btn-dhcp-reset").click(function(){\
 <script src="/js/bridgedmode.js"></script>\
 <script>\
 (function() {\
-  $(\'input[name="localdevIP"]\').keydown(function(){\
+  $(\'input[name="localIPv4"]\').keydown(function(){\
     var msg = $("#lanipchange-msg");\
     var msg_dst = $(this);\
     msg_dst.after(msg);\
