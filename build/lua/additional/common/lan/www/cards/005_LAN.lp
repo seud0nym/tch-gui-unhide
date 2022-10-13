@@ -110,7 +110,7 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
       end
       ngx.print(
         '<p class="subinfos" style="line-height:14px">',
-        format(T'Gateway IP: <strong style="letter-spacing:-1px;font-size:12px;">%s</strong>',lanParams["localdevIP"]),
+        format(T'Gateway IP: <strong style="letter-spacing:-1px;font-size:12px;">%s</strong>',lanParams["ipv4addr"]),
         '<br>'
       )
       if lanIPv6 then
