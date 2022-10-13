@@ -79,19 +79,22 @@ end
 local M = {}
 
 M.proto = {
-  { "static", "Static IP"},
+  { "static", "Static IP&nbsp;&nbsp;"},
   { "dhcp", "DHCP Assigned IP"}
 }
 
 function M.calculateDHCPStartAddress(baseip,netmask,start,numips)
-  local network = bit.band(baseip,netmask)
-  local ipmax = bit.bor(network,bit.bnot(netmask)) - 1
-  local ipstart = bit.bor(network,bit.band(start,bit.bnot(netmask)))
-  local ipend = ipstart+numips-1
-  if ipend > ipmax then
-    ipend = ipmax
+  if baseip and netmask and start and numips and baseip ~= "" and netmask ~= "" and start ~= "" and numips ~= "" then
+    local network = bit.band(baseip,netmask)
+    local ipmax = bit.bor(network,bit.bnot(netmask)) - 1
+    local ipstart = bit.bor(network,bit.band(start,bit.bnot(netmask)))
+    local ipend = ipstart+numips-1
+    if ipend > ipmax then
+      ipend = ipmax
+    end
+    return num2ipv4(ipstart),num2ipv4(ipend),num2ipv4(network)
   end
-  return num2ipv4(ipstart),num2ipv4(ipend),num2ipv4(network)
+  return nil
 end
 
 function M.find_dns(ip,list)

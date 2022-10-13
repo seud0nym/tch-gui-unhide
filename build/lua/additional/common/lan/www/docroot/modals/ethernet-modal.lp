@@ -58,6 +58,7 @@ local vIP4N = post_helper.validateIPv4Netmask
 local vQTN = post_helper.validateQTN
 local gAV = post_helper.getAndValidation
 local gOV = post_helper.getOptionalValidation
+local gVIES = post_helper.getValidateInEnumSelect
 local gVNIR = post_helper.getValidateNumberInRange
 local vNES = post_helper.validateNonEmptyString
 local vSIDN = post_helper.validateStringIsDomainName
@@ -236,6 +237,7 @@ for i,row in pairs(tags_data) do
 end
 
 local inUseFlag = false
+local local_dev_ip
 if ngx.var.request_method == "POST" then
   local post_data = ngx.req.get_post_args(0)
   if post_data.tableid == "sleases" then
@@ -280,37 +282,70 @@ if ngx.var.request_method == "POST" then
       end
     end
   end
-end
-
-local mapParams = {
-  dhcpStart = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".start",
-  dhcpLimit = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".limit",
-  dhcpv4State = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcpv4",
-  dhcpv6State = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcpv6",
-  slaacState = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".ra",
-  localdomain = dnsmasq_path.."domain",
-  localgw = "uci.network.interface.@"..cur_intf..".gateway",
-  dhcpIgnore = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".ignore",
-  leaseTime = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".leasetime",
-  localIPv4 = "uci.network.interface.@"..cur_intf..".ipaddr",
-  localmask = "uci.network.interface.@"..cur_intf..".netmask",
-  localIPv6 = "uci.network.interface.@"..cur_intf..".ipv6",
-  dhcplog = dnsmasq_path.."logdhcp",
-  dhcplogv6 = "uci.dhcp.odhcpd.@odhcpd.loglevel",
-  ipv6addr = "rpc.network.interface.@"..cur_intf..".ip6addr",
-}
-if isBridgedMode and cur_intf == "lan" and proxy.get("rpc.network.interface.@lan6.ip6addr") then
-  mapParams.ipv6addr = "rpc.network.interface.@lan6.ip6addr"
+  local_dev_ip = post_data["localIPv4"]
+else
+  local_dev_ip = proxy.get("rpc.network.interface.@"..cur_intf..".ipaddr")[1].value
 end
 
 local dnsIndex = 0
 local ntpIndex = 0
-local dhcp = {}
-local dhcp_dns = {}
 local dns_servers = {""}
 local baseDHCPOptions = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcp_option."
 local baseDHCPDNS = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dns."
-local old_lan_ip = proxy.get(mapParams.localIPv4)[1].value
+
+local mapParams = {
+  dhcpIgnore = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".ignore",
+  dhcpLimit = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".limit",
+  dhcplog = dnsmasq_path.."logdhcp",
+  dhcplogv6 = "uci.dhcp.odhcpd.@odhcpd.loglevel",
+  dhcpStart = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".start",
+  dhcpv4State = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcpv4",
+  dhcpv6State = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcpv6",
+  leaseTime = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".leasetime",
+  localdomain = dnsmasq_path.."domain",
+  localgw = "uci.network.interface.@"..cur_intf..".gateway",
+  localIPv4 = "uci.network.interface.@"..cur_intf..".ipaddr",
+  localIPv6 = "uci.network.interface.@"..cur_intf..".ipv6",
+  localmask = "uci.network.interface.@"..cur_intf..".netmask",
+  slaacState = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".ra",
+  ip6assign = "uci.network.interface.@" .. cur_intf .. ".ip6assign",
+  ula_prefix = "uci.network.globals.ula_prefix",
+  proto = "uci.network.interface.@lan.proto",
+}
+
+if isBridgedMode and cur_intf == "lan" then
+  for k,_ in pairs(mapParams) do
+    if k ~= "localIPv4" and k ~= "localIPv6" and k ~= "localmask" and k ~= "localgw" and k ~= "proto" then
+      mapParams[k] = nil
+    end
+  end
+else
+  mapParams["proto"] = nil
+
+  local dhcp = {}
+  local dhcp_dns = {}
+  -- Check if there is a custom DNS server, if so, then retrieve its index
+  -- we'll update the parameters list to include it for retrieval
+  content_helper.addListContent(dhcp,{ options = baseDHCPOptions })
+  for i,v in ipairs(dhcp.options) do
+    if v:find("^6,") == 1 then
+      dnsIndex = i
+      mapParams["dns_v4_pri"] = baseDHCPOptions.."@"..i..".value"
+    end
+    if v:find("^42,") == 1 then
+      ntpIndex = i
+      mapParams["ntpServer"] = baseDHCPOptions.."@"..i..".value"
+    end
+  end
+
+  content_helper.addListContent(dhcp_dns,{ dnses = baseDHCPDNS })
+  if dhcp_dns.dnses[1] ~= nil then
+    mapParams["dns_v6_pri"] = baseDHCPDNS.."@".."1.value"
+  end
+  if dhcp_dns.dnses[2] ~= nil then
+    mapParams["dns_v6_sec"] = baseDHCPDNS.."@".."2.value"
+  end
+end
 
 local function validateDNSv6(value,object,key)
   if value ~= "" and vSIIP6(untaint(value):gsub("-",":")) ~= true then
@@ -373,7 +408,7 @@ local function validateDNSv6(value,object,key)
   return true
 end
 
-local function validateDNS(value,object,key)
+local function validateDNSv4(value,object,key)
   local dns_str = ""
   local post_data = ngx.req.get_post_args(0)
 
@@ -390,7 +425,7 @@ local function validateDNS(value,object,key)
   end
 
   if value ~= "" then
-    if value == old_lan_ip then
+    if value == local_dev_ip then
       dns_str = object["localIPv4"]
     elseif vSIIP4(value) then
       dns_str = value
@@ -400,7 +435,7 @@ local function validateDNS(value,object,key)
   end
 
   if post_data.ipv4_dns_sec ~= "" then
-    if post_data.ipv4_dns_sec == old_lan_ip then
+    if post_data.ipv4_dns_sec == local_dev_ip then
       dns_str = dns_str..","..object["localIPv4"]
     elseif vSIIP4(post_data.ipv4_dns_sec) then
       dns_str = dns_str..","..post_data.ipv4_dns_sec
@@ -455,65 +490,29 @@ local function validateNTP(value,object,key)
   return true
 end
 
-local local_dev_ip
-if ngx.var.request_method == "POST" then
-  local_dev_ip = ngx.req.get_post_args(0)["localIPv4"]
-else
-  local_dev_ip = old_lan_ip
-end
 local mapValid = {
-  localIPv4 = ethernet_helper.validateGatewayIP(cur_intf,all_intfs,lan_intfs),
-  localIPv6 = ethernet_helper.validateIPv6(cur_intf,wireless_radio,ppp_dev,ppp_intf),
-  dns_v4_pri = validateDNS,
-  ntpServer = validateNTP,
-  leaseTime = ethernet_helper.validateLeaseTime,
-  localmask = gAV(vIP4N,vSIIP),
-  dhcpStart = ethernet_helper.validateDHCPStart(cur_intf,cur_dhcp_intf,local_dev_ip),
-  dhcpLimit = ethernet_helper.validateDHCPLimit(cur_intf,cur_dhcp_intf,local_dev_ip),
-  dhcpv4State = ethernet_helper.validateDHCPState(),
-  dhcpv6State = ethernet_helper.validateDHCPState(),
-  slaacState = ethernet_helper.validateDHCPState(),
-  localdomain = vNES,
-  localgw = gOV(vSIIP4),
   dhcpIgnore = ethernet_helper.validateDHCPIgnore,
-  dns_v6_pri = validateDNSv6,
-  dns_v6_sec = validateDNSv6,
+  dhcpLimit = ethernet_helper.validateDHCPLimit(cur_intf,cur_dhcp_intf,local_dev_ip),
   dhcplog = gOV(vB),
   dhcplogv6 = gOV(gVNIR(6,7)),
+  dhcpStart = ethernet_helper.validateDHCPStart(cur_intf,cur_dhcp_intf,local_dev_ip),
+  dhcpv4State = ethernet_helper.validateDHCPState(),
+  dhcpv6State = ethernet_helper.validateDHCPState(),
+  dns_v4_pri = validateDNSv4,
+  dns_v6_pri = validateDNSv6,
+  dns_v6_sec = validateDNSv6,
+  ip6assign = gOV(gVNIR(48,64)),
+  leaseTime = ethernet_helper.validateLeaseTime,
+  localdomain = vNES,
+  localgw = gOV(vSIIP4),
+  localIPv4 = ethernet_helper.validateGatewayIP(cur_intf,all_intfs,lan_intfs),
+  localIPv6 = ethernet_helper.validateIPv6(cur_intf,wireless_radio,ppp_dev,ppp_intf),
+  localmask = gAV(vIP4N,vSIIP),
+  ntpServer = validateNTP,
+  proto = gVIES(ethernet_helper.proto),
+  slaacState = ethernet_helper.validateDHCPState(),
+  ula_prefix = ethernet_helper.validateULAPrefix,
 }
-
-if isBridgedMode then
-  mapValid.dhcpStart = ethernet_helper.validateByPass
-  mapValid.dhcpLimit = ethernet_helper.validateByPass
-  mapValid.dhcpv4State = ethernet_helper.validateByPass
-else
-  mapParams.ip6assign = "uci.network.interface.@" .. cur_intf .. ".ip6assign"
-  mapValid.ip6assign = gOV(gVNIR(48,64))
-  mapParams.ula_prefix = "uci.network.globals.ula_prefix"
-  mapValid.ula_prefix = ethernet_helper.validateULAPrefix
-end
-
--- Check if there is a custom DNS server, if so, then retrieve its index
--- we'll update the parameters list to include it for retrieval
-content_helper.addListContent(dhcp,{ options = baseDHCPOptions })
-for i,v in ipairs(dhcp.options) do
-  if v:find("^6,") == 1 then
-    dnsIndex = i
-    mapParams["dns_v4_pri"] = baseDHCPOptions.."@"..i..".value"
-  end
-  if v:find("^42,") == 1 then
-    ntpIndex = i
-    mapParams["ntpServer"] = baseDHCPOptions.."@"..i..".value"
-  end
-end
-
-content_helper.addListContent(dhcp_dns,{ dnses = baseDHCPDNS })
-if dhcp_dns.dnses[1] ~= nil then
-  mapParams["dns_v6_pri"] = baseDHCPDNS.."@".."1.value"
-end
-if dhcp_dns.dnses[2] ~= nil then
-  mapParams["dns_v6_sec"] = baseDHCPDNS.."@".."2.value"
-end
 
 content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
 
@@ -521,14 +520,46 @@ if cur_intf == "lan" then
   if ngx.var.request_method == "POST" then
     bridged.configure(ngx.req.get_post_args(0)["action"])
 
-    local local_path = dnsmasq_path.."local"
-    local localValue = untaint(proxy.get(local_path)[1].value)
-    local localName = format("/%s/",content["localdomain"])
-    local domainName = session:retrieve("old_domain")
-    session:store("old_domain",(content["localdomain"]))
-    if (content["localdomain"] ~= domainName or localValue ~= localName) and not next(helpmsg) then
-      proxy.set(local_path,localName)
-      proxy.apply()
+    if content["localdomain"] then
+      local local_path = dnsmasq_path.."local"
+      local localValue = untaint(proxy.get(local_path)[1].value)
+      local localName = format("/%s/",content["localdomain"])
+      local domainName = session:retrieve("old_domain")
+      session:store("old_domain",(content["localdomain"]))
+      if (content["localdomain"] ~= domainName or localValue ~= localName) and not next(helpmsg) then
+        proxy.set(local_path,localName)
+        proxy.apply()
+      end
+    end
+
+    if isBridgedMode then
+      local proto = session:retrieve("old_proto")
+      session:store("old_proto",(content["proto"]))
+      if content["proto"] ~= proto and not next(helpmsg) then
+        local cur_ip
+        repeat
+          ngx.sleep(5)
+          cur_ip = proxy.get("rpc.network.interface.@lan.ipaddr","rpc.network.interface.@lan.ipmask")
+          content["localIPv4"] = untaint(cur_ip[1].value)
+          content["localmask"] = bridged.maskCIDRToDottedDecimal(cur_ip[2].value)
+        until content["localIPv4"] ~= ""
+        if content["proto"] == "static" then
+          local uci_ipaddr = proxy.get("uci.network.interface.@lan.ipaddr")[1].value
+          if uci_ipaddr == "" then
+            proxy.set("uci.network.interface.@lan.ipaddr",content["localIPv4"])
+          else
+            content["localIPv4"] = untaint(uci_ipaddr)
+          end
+          local uci_mask = proxy.get("uci.network.interface.@lan.netmask")[1].value
+          if uci_mask == "" then
+            content["localmask"] = uci_mask
+            proxy.set("uci.network.interface.@lan.netmask",content["localmask"])
+          else
+            content["localmask"] = untaint(uci_mask)
+          end
+        end
+        proxy.apply()
+      end
     end
 
     local gwIP = session:retrieve("old_ip")
@@ -543,8 +574,11 @@ if cur_intf == "lan" then
     end
   else
     session:store("old_ip",(content["localIPv4"]))
-    if cur_intf == "lan" then
+    if content["localdomain"] then
       session:store("old_domain",(content["localdomain"]))
+    end
+    if isBridgedMode then
+      session:store("old_proto",(content["proto"]))
     end
   end
 end
@@ -630,41 +664,43 @@ if helpmsg["dhcpLimit"] then
     end
 end
 
-if content["dhcpv4State"] == "" then
+if content["dhcpv4State"] and content["dhcpv4State"] == "" then
   content["dhcpv4State"] = "server"
 end
-if content["localIPv6"] == "" then
+if content["localIPv6"] and content["localIPv6"] == "" then
   content["localIPv6"] = "1"
 end
-if content["dhcplog"] == "" then
+if content["dhcplog"] and content["dhcplog"] == "" then
   content["dhcplog"] = "0"
 end
-if content["dhcplogv6"] == "" then
+if content["dhcplogv6"] and content["dhcplogv6"] == "" then
   content["dhcplogv6"] = "6"
 end
 
-if not match(content["leaseTime"],"^0*([1-9]%d*[smhdw])$") then
-  content["leaseTime"] = content["leaseTime"].."s"
-end
-local netmask = ipv42num(content["localmask"])
-local baseip = ipv42num(content["localIPv4"])
-local start = tonumber(content["dhcpStart"])
-local numips = tonumber(content["dhcpLimit"])
 local ipstart,ipend,network
-if start and numips and not helpmsg["localIPv4"] and not helpmsg["localmask"] and not helpmsg["dhcpStart"] and not helpmsg["dhcpLimit"] then
-  ipstart,ipend,network = ethernet_helper.calculateDHCPStartAddress(baseip,netmask,start,numips)
-  if ipstart then
-    session:store("dhcpStartAddr",ipstart)
-    session:store("dhcpEndAddr",ipend)
-    session:store("networkAddr",network)
+if content["leaseTime"] then
+  if not match(content["leaseTime"],"^0*([1-9]%d*[smhdw])$") then
+    content["leaseTime"] = content["leaseTime"].."s"
   end
-else
-  ipstart = ngx.req.get_post_args(0).dhcpStartAddress
-  ipend = ngx.req.get_post_args(0).dhcpEndAddress
-  network = session:retrieve("networkAddr")
- end
-if helpmsg["leaseTime"] then
-  content["leaseTime"] = ngx.req.get_post_args(0).leaseTime
+  local netmask = ipv42num(content["localmask"])
+  local baseip = ipv42num(content["localIPv4"])
+  local start = tonumber(content["dhcpStart"])
+  local numips = tonumber(content["dhcpLimit"])
+  if start and numips and not helpmsg["localIPv4"] and not helpmsg["localmask"] and not helpmsg["dhcpStart"] and not helpmsg["dhcpLimit"] then
+    ipstart,ipend,network = ethernet_helper.calculateDHCPStartAddress(baseip,netmask,start,numips)
+    if ipstart then
+      session:store("dhcpStartAddr",ipstart)
+      session:store("dhcpEndAddr",ipend)
+      session:store("networkAddr",network)
+    end
+  else
+    ipstart = ngx.req.get_post_args(0).dhcpStartAddress
+    ipend = ngx.req.get_post_args(0).dhcpEndAddress
+    network = session:retrieve("networkAddr")
+  end
+  if helpmsg["leaseTime"] then
+    content["leaseTime"] = ngx.req.get_post_args(0).leaseTime
+  end
 end
 
 local adguard = false
@@ -714,7 +750,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
    <div class="modal-body update">\
      <form class="form-horizontal" method="post" action="',ngx.var.request_uri,'">\
      ');
-     if #lan_intfs> 1 and (not isBridgedMode) then
+     if #lan_intfs > 1 and not isBridgedMode then
        ngx.print('\
      <div class="span2">\
         <ul class="nav nav-list">\
@@ -774,24 +810,70 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
             }
             local ipv6_attr = {
               group = {
-                class = "monitor-localIPv6 monitor-1 monitor-hidden-localIPv6",
+                class = "monitor-localIPv6 monitor-1",
               }
             }
-            ngx.print(
-              ui_helper.createInputText(T"Device IPv4 Address","localIPv4",content["localIPv4"],{input = {class = "span2"}},helpmsg["localIPv4"]),
-              ui_helper.createInputText(T"Local Network Subnet","localmask",content["localmask"],advanced,helpmsg["localmask"])
-            )
+            local dhcp_attr = {
+              group = {
+                class = "monitor-proto monitor-dhcp",
+              }
+            }
+            local static_attr = {
+              group = {
+                class = "advanced monitor-proto monitor-static",
+              },
+              input = {
+                class = "span2"
+              }
+            }
 
+            if isBridgedMode and cur_intf == "lan" then
+              local cur_ip = proxy.get("rpc.network.interface.@lan.ipaddr","rpc.network.interface.@lan.ipmask","rpc.network.interface.@lan.nexthop")
+              local dhcp_warn_attr = {
+                alert = {
+                  class = "monitor-proto monitor-dhcp alert-danger"
+                },
+              }
+              local proto_attr = {
+                input = {
+                  class = "monitor-changes",
+                },
+              }
+              ngx.print(
+                ui_helper.createInputRadio(T"IPv4 Address Source","proto",ethernet_helper.proto,content["proto"],proto_attr,helpmsg["proto"]),
+                ui_helper.createAlertBlock(T"DHCP Assigned IP address must <I>only</I> be used on LAN bridges. Do <B>NOT</B> use on a WAN bridge!",dhcp_warn_attr)
+              )
+              if cur_ip and cur_ip[2].value ~= "" then
+                ngx.print(
+                  ui_helper.createLabel(T"Device IPv4 Address",cur_ip[1].value,dhcp_attr),
+                  ui_helper.createLabel(T"Local Network Subnet",bridged.maskCIDRToDottedDecimal(cur_ip[2].value),dhcp_attr),
+                  ui_helper.createLabel(T"Local Gateway",cur_ip[3].value,dhcp_attr)
+                )
+              end
+            end
+            ngx.print(
+              ui_helper.createInputText(T"Device IPv4 Address","localIPv4",content["localIPv4"],static_attr,helpmsg["localIPv4"]),
+              ui_helper.createInputText(T"Local Network Subnet","localmask",content["localmask"],static_attr,helpmsg["localmask"])
+            )
             if isBridgedMode then
-              ngx.print(ui_helper.createInputText(T"Local Gateway","localgw",content["localgw"],advanced,helpmsg["localgw"]))
+              ngx.print(ui_helper.createInputText(T"Local Gateway","localgw",content["localgw"],static_attr,helpmsg["localgw"]))
             else
               ngx.print(ui_helper.createInputText(T"Local Domain Name","localdomain",content["localdomain"],advanced,helpmsg["localdomain"]))
             end
 
-            ngx.print(
-              ui_helper.createSwitch(T"IPv6 State","localIPv6",content["localIPv6"],switch_class_enable),
-              ui_helper.createLabel(T"Device IPv6 Address",content["ipv6addr"],ipv6_attr)
-            )
+            ngx.print(ui_helper.createSwitch(T"IPv6 State","localIPv6",content["localIPv6"],switch_class_enable))
+            if content["localIPv6"] == "1" then
+              local ipv6addr
+              if cur_intf == "lan" then
+                ipv6addr = proxy.get("rpc.network.interface.@lan6.ip6addr")
+              end
+              if not ipv6addr then
+                ipv6addr = proxy.get("rpc.network.interface.@"..cur_intf..".ip6addr")
+              end
+              if ipv6addr then
+                ngx.print(ui_helper.createLabel(T"Device IPv6 Address",ipv6addr[1].value,ipv6_attr))
+              end
+            end
 
             if not isBridgedMode then
               if cur_intf == "lan" then

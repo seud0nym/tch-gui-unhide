@@ -52,6 +52,26 @@ local function reboot()
   ngx.exit(ngx.HTTP_OK)
 end
 
+function M.maskCIDRToDottedDecimal(cidr)
+  local arrayIP = {0,0,0,0}
+  local n = tonumber(untaint(cidr))
+  if n and n >= 0 and n <= 32 then
+    local int = math.floor(n+0.5)
+    local divisionWhole = math.floor((int-1)/8)
+    local cidrFraction = int-(8*divisionWhole)
+    for i = 0,3,1 do
+      if divisionWhole == i then
+        arrayIP[i+1] = 256-math.pow(2,(8-cidrFraction))
+      elseif divisionWhole > i then
+        arrayIP[i+1] = 255
+      else
+        arrayIP[i+1] = 0
+      end
+    end
+  end
+  return table.concat(arrayIP,".")
+end
+
 function M.addBridgedModeButtons(html)
   local bridged_rebooting = {
     alert = {
@@ -121,10 +141,10 @@ end
 
 function M.configBridgedMode()
   local success,errors = proxy.set({
-    ["uci.wansensing.global.enable"] = '0',
-    ["uci.network.interface.@lan.ifname"] = 'eth0 eth1 eth2 eth3 eth4 wl0 wl0_1 wl1 wl1_1 atm_8_35 ptm0',
-    ["uci.network.config.wan_mode"] = 'bridge',
-    ["uci.dhcp.dhcp.@lan.ignore"] = '1',
+    ["uci.wansensing.global.enable"] = "0",
+    ["uci.network.interface.@lan.ifname"] = "eth0 eth1 eth2 eth3 eth4 wl0 wl0_1 wl1 wl1_1 atm_8_35 ptm0",
+    ["uci.network.config.wan_mode"] = "bridge",
+    ["uci.dhcp.dhcp.@lan.ignore"] = "1",
   })
 
   ngx.log(ngx.WARN,format("configBridgedMode: Configuring WAN Sensing, LAN, WAN Mode and DHCP (Result=%s)",tostring(success)))
@@ -135,15 +155,15 @@ function M.configBridgedMode()
       if added then
         ngx.log(ngx.WARN,format("configBridgedMode: Adding LAN6 (Result=%s)",tostring(added)))
         local ok,err = proxy.set({
-          ["uci.network.interface.@lan6.forceprefix"] = '0',
-          ["uci.network.interface.@lan6.iface_464xlat"] = '0',
-          ["uci.network.interface.@lan6.ifname"] = 'br-lan',
-          ["uci.network.interface.@lan6.noslaaconly"] = '1',
-          ["uci.network.interface.@lan6.peerdns"] = '1',
-          ["uci.network.interface.@lan6.proto"] = 'dhcpv6',
-          ["uci.network.interface.@lan6.reqaddress"] = 'force',
-          ["uci.network.interface.@lan6.reqopts"] = '23 17',
-          ["uci.network.interface.@lan6.reqprefix"] = 'no',
+          ["uci.network.interface.@lan6.forceprefix"] = "0",
+          ["uci.network.interface.@lan6.iface_464xlat"] = "0",
+          ["uci.network.interface.@lan6.ifname"] = "br-lan",
+          ["uci.network.interface.@lan6.noslaaconly"] = "1",
+          ["uci.network.interface.@lan6.peerdns"] = "1",
+          ["uci.network.interface.@lan6.proto"] = "dhcpv6",
+          ["uci.network.interface.@lan6.reqaddress"] = "force",
+          ["uci.network.interface.@lan6.reqopts"] = "23 17",
+          ["uci.network.interface.@lan6.reqprefix"] = "no",
         })
         if ok then
           ngx.log(ngx.WARN,format("configBridgedMode: Configuring LAN6 (Result=%s)",tostring(success)))
@@ -227,13 +247,22 @@ function M.configRoutedMode()
   end
 
   if success then
-    success,errors = proxy.set({
-      ["uci.wansensing.global.enable"] = '1',
-      ["uci.network.interface.@lan.ifname"] = 'eth0 eth1 eth2 eth3',
+    local settings = {
+      ["uci.wansensing.global.enable"] = "1",
+      ["uci.network.interface.@lan.ifname"] = "eth0 eth1 eth2 eth3",
       ["uci.network.interface.@lan.gateway"] = "",
       ["uci.network.config.wan_mode"] = "dhcp",
       ["uci.dhcp.dhcp.@lan.ignore"] = "0",
-    })
+    }
+    if proxy.get("uci.network.interface.@lan.proto")[1].value == "dhcp" then
+      settings["uci.network.interface.@lan.proto"] = "static"
+      local ipaddr = proxy.get("uci.network.interface.@lan.ipaddr")
+      if not ipaddr or ipaddr[1].value == "" then
+        settings["uci.network.interface.@lan.ipaddr"] = proxy.get("rpc.network.interface.@lan.ipaddr")[1].value
+        settings["uci.network.interface.@lan.netmask"] = M.maskCIDRToDottedDecimal(proxy.get("rpc.network.interface.@lan.ipmask")[1].value)
+      end
+    end
+    success,errors = proxy.set(settings)
 
     ngx.log(ngx.WARN,format("configRoutedMode: Configuring WAN Sensing, LAN, WAN Mode and DHCP (Result=%s)",tostring(success)))
 
