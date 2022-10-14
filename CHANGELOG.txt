@@ -1,7 +1,8 @@
-2022.10.13
+2022.10.14
 ==========
 * tch-gui-unhide: Allow Local Network IPv4 address to be provided by DHCP when in Bridged mode (#113)
 * tch-gui-unhide: Fixed multiple IPv6 addresses overflowing on Local Network card
+* tch-gui-unhide: Debugging now enabled by default in pre-releases
 
 2022.10.06
 ==========
