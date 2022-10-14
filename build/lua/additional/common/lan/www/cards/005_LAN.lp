@@ -134,6 +134,7 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
           end
           ngx.print("<br>")
         end
+        ngx.print(T'</strong>')
         if lanParams["ipv6prefix"] ~= "" then
           ngx.print(format(T'Prefix: <nobr><strong style="letter-spacing:-1px;font-size:12px;">%s</strong></nobr>',lanParams["ipv6prefix"]))
         end
