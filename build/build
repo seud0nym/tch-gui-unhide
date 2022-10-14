@@ -4,14 +4,16 @@ DATE_VERSION=$(date +%Y.%m.%d)
 FULL_VERSION=$(date +%Y.%m.%d@%H:%M)
 
 DEBUG=''
+PRERELEASE=''
 
 GREEN='\033[1;32m'
 ORANGE='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-while getopts :v:D option; do
+while getopts :pv:D option; do
   case $option in
+    p)  PRERELEASE="Pre-";;
     v)  echo $OPTARG | grep -q -E '^[0-9][0-9][0-9][0-9]\.[0-1][0-9]\.[0-3][0-9]$'
         if [ $? -eq 1 ]; then
           echo "${RED}ERROR: -v option requires a parameter in the format YYYY.MM.DD${NC}"
@@ -120,7 +122,7 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
   TARGET=../tch-gui-unhide-$MAJOR
   echo "${GREEN}Writing $TARGET...${NC}"
   echo "#!/bin/sh" > $TARGET
-  echo "echo 000@\$(date +%H:%M:%S): Built for firmware version $MAJOR - Release $DATE_VERSION" >> $TARGET
+  echo "echo 000@\$(date +%H:%M:%S): Built for firmware version $MAJOR - ${PRERELEASE}Release $DATE_VERSION" >> $TARGET
   echo "RELEASE='$FULL_VERSION'" >> $TARGET
 
   for s in $(find common $MAJOR -type f -a ! -name .do-not-delete ! -name .include -printf '%f/%h\n' | cat - $MAJOR/.include 2>/dev/null | grep -v '^#' | sort)
@@ -151,7 +153,7 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
         echo "  echo BLD@\$(date +%H:%M:%S): Adding version details to copyright" >> $TARGET
         echo "  for l in \$(grep -l -r 'current_year); ngx.print(' /www 2>/dev/null)" >> $TARGET
         echo "  do" >> $TARGET
-        echo "    sed -e \"s/\(current_year); ngx.print('\)/\\\1 \[tch-gui-unhide Release $DATE_VERSION for Firmware \$CUSTOM_VERSION (\$MKTING_NAME)\]/\" -i \$l" >> $TARGET
+        echo "    sed -e \"s/\(current_year); ngx.print('\)/\\\1 \[tch-gui-unhide ${PRERELEASE}Release $DATE_VERSION for Firmware \$CUSTOM_VERSION (\$MKTING_NAME)\]/\" -i \$l" >> $TARGET
         echo "  done" >> $TARGET
         echo "  echo BLD@\$(date +%H:%M:%S): Auto-refreshing browser cache" >> $TARGET
         echo "  for l in \$(grep -lrE \"['\\\"][^'\\\"]+\.(cs|j)s['\\\"]\" /www/cards /www/docroot /www/snippets | grep -v -E '.js$|.sh$|.json$' 2>/dev/null)" >> $TARGET
@@ -165,9 +167,10 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
       sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
     fi
   done
+  [ -n "$PRERELEASE" ] && sed -e 's/^\(DEBUG=\)n/\1y/' -i $TARGET
 done
 
 echo "${GREEN}Cleaning up..${NC}"
 cleanup /tmp/tch-gui-unhide /tmp/*.b64
 
-echo "${GREEN}Build Complete @ $(date +%H:%M:%S) for version $FULL_VERSION${NC}"
+echo "${GREEN}Build Complete @ $(date +%H:%M:%S) for ${PRERELEASE}Release $FULL_VERSION${NC}"

@@ -2,20 +2,26 @@
 
 cd $(dirname $0)
 
-if [ "x$1" = "x-f" ]; then
-  version=$(date +%Y.%m.%d)
+if [ "x$1" = "x-p" ]; then
+  VERSION=$(date +%Y.%m.%d)
+  PR_TEXT="Pre-Release"
+  PR_OPTN="-p"
 else
-  version="$(head -n 1 ../VERSION.txt)"
+  VERSION="$(head -n 1 ../VERSION.txt)"
+  PR_TEXT="Release"
+  PR_OPTN=""
 fi
 
-if [ "$(date +%Y.%m.%d)" != "$version" ]; then
-  echo "ERROR: First line of VERSION.txt does not match expected version number!!!"
+if [ "$(date +%Y.%m.%d)" != "$VERSION" ]; then
+  echo "ERROR: First line of VERSION.txt does not match expected VERSION number!!!"
+  echo "       Use the -p option to create a pre-release build."
+  echo
   exit 1
 else
-  echo Building Release $version
+  echo Building $PR_TEXT $VERSION
 fi
 
-./build -v$version
+./build $PR_OPTN -v$VERSION
 
 echo Fixing utilities line endings...
 DOS=$(find ../utilities/ -type f | xargs file | grep CRLF | cut -d: -f1 | xargs)
