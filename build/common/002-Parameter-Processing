@@ -95,7 +95,7 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
  case "${option}" in
    -) case "${OPTARG}" in
         abort) exit;;
-        debug) DEBUG=y;;
+        debug) [ $DEBUG = y ] && DEBUG=n || DEBUG=y;;
         no-service-restart) RESTART_SERVICES=n;;
         reboot) REBOOT=y;;
         restore-base*) RESTORE_BASE="${OPTARG#restore-base=}"; [ -n "$RESTORE_BASE" -a -d "$RESTORE_BASE/www" ] || { echo "ERROR: Could not find www directory (--$OPTARG)"; exit 2; };;
