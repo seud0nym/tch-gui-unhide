@@ -13,13 +13,13 @@ if [ $DEBUG = y ]; then
     -i /www/docroot/gateway.lp
 
   echo [$SCRIPT]: Log validation errors 
-  for f in $(grep -rl post_helper.handleQuery /www/docroot/); do
+  for f in $(grep -rl '[[:alnum:]_]* *, *[[:alnum:]_]* *= *[[:alnum:]_]*\.handleQuery' /www/docroot/); do
     [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Updating $f"
-    awk -e '/= *post_helper\.handleQuery/ {
+    awk -e '/[[:alnum:]_]* *, *[[:alnum:]_]* *= *[[:alnum:]_]*\.handleQuery/ {
       print;
       split($0,a,"=");
       split(a[1],b,",");
-      if(b[2] != "") print "if " b[2] " then for dbg_val_fail_f,dbg_val_fail_m in pairs(" b[2] ") do ngx.log(ngx.ALERT,\"Validation Failure on \",dbg_val_fail_f,\": \",dbg_val_fail_m) end end";
+      if(b[2] != "") print "if " b[2] " then for k,v in pairs(" b[2] ") do ngx.log(ngx.ALERT,\"Validation Failure on \",k,\": \",v) end end";
       next;
     }
     1' "$f" > /tmp/tch-gui-unhide.debug.handleQuery && mv /tmp/tch-gui-unhide.debug.handleQuery "$f"
