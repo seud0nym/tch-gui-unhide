@@ -462,14 +462,14 @@ if [ -n "$__IPADDR" ]; then
       fi
     fi
     if [ $__NO_LEASES = N ]; then
-      LEASES="$(uci show dhcp | awk -e '/=host$/{print "uci set " $0; sub(/=host$/,"");KEY=$0;next;} {if(KEY != "" && index($0,KEY) != 0) print "uci set " $0;}0')"
+      LEASES="$(uci show dhcp | awk -e '/=host$/{print "uci set " $0; sub(/=.*$/,"");KEY=$0;next;} {if(KEY != "" && index($0,KEY) != 0) print "uci set " $0;}0')"
       if [ -n "$LEASES" ]; then
         echo -e "NOTE:     Static leases will be '${GREEN}restored${NC}'"
         LAN_CFG="$LAN_CFG"$'\n'"$LEASES"
       fi
     fi
     if [ $__NO_FWD = N ]; then
-      FORWARDS="$(uci show firewall | awk -e '/=(userredirect|pinholerule)$/{print "uci set " $0; sub(/=(userredirect|pinholerule)$/,"");KEY=$0;next;} {if(KEY != "" && index($0,KEY) != 0) print "uci set " $0;}0')"
+      FORWARDS="$(uci show firewall | awk -e '/=(userredirect|pinholerule)$/{print "uci set " $0; sub(/=.*$/,"");KEY=$0;next;} /proto=/{if(KEY != "" && index($0,KEY) != 0) print "uci add_list " $0;next;} $0 !~ /_key/{if(KEY != "" && index($0,KEY) != 0) print "uci set " $0;}0')"
       if [ -n "$FORWARDS" ]; then
         echo -e "NOTE:     Port forwarding rules will be '${GREEN}restored${NC}'"
         LAN_CFG="$LAN_CFG"$'\n'"$FORWARDS"
