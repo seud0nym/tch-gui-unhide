@@ -62,17 +62,25 @@ The script can also restore your device from Bridged Mode to Routed Mode (with t
 Usage: ./bridged-booster [options]
 
 Options:
- -i n.n.n.n  Set LAN IP address to n.n.n.n (default is the current LAN IP address if it is in the 192.168.0.0/24 range, or 192.168.0.2 if it is not)
-              The IP address must be in the same LAN subnet as the primary device
- -m n.n.n.n  Set LAN Subnet Mask to n.n.n.n (default is 255.255.255.0)
-              The Subnet Mask must be the same as the LAN subnet mask configured on the primary device
- -g n.n.n.n  Set LAN Gateway IP address to n.n.n.n (default is 192.168.0.1)
-              This is the LAN IP address of the primary device
+ -d          Set LAN IP address, Subnet Mask and Gateway using DHCP
               (This option is ignored if -R specified)
- -n n.n.n.n  Set LAN DNS Server IP address to n.n.n.n 
-              Specify multiple times for multiple DNS servers. Default is the LAN Gateway IP address.
+ -i n.n.n.n  Set LAN IP address to n.n.n.n (default is -i$LAN_IP_ADDR)
+              The IP address must be in the same LAN subnet as the primary device
+              (This option is ignored if -d specified)
+ -m n.n.n.n  Set LAN Subnet Mask to n.n.n.n (default is -m$LAN_NETMASK)
+              The Subnet Mask must be the same as the LAN subnet mask configured 
+              on the primary device.
+              (This option is ignored if -d specified)
+ -g n.n.n.n  Set LAN Gateway IP address to n.n.n.n (default is -g$LAN_GATEWAY)
+              This is the LAN IP address of the primary device.
+              (This option is ignored if -d or -R specified)
+ -n n.n.n.n  Set LAN DNS Server IP address to n.n.n.n
+              Specify multiple times for multiple DNS servers. 
+              Default is the LAN Gateway IP address unless -d is specified, in
+              which case the DNS Servers will be obtained via DHCP.
               (This option is ignored if -R specified)
  -6          Enable LAN IPv6
+              (This option is ignored if -R specified)
  -l 0-9      Set EasyMesh logging level (only applicable to Gen 1.1 and Gen 2 devices)
               0=off 2=Default 9=very verbose
  -R          Restore to Routed Mode

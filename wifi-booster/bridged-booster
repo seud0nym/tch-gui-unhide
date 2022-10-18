@@ -30,19 +30,25 @@ Configures the device to act as an EasyMesh "booster" node.
 Usage: $0 [options]
 
 Options:
+ -d          Set LAN IP address, Subnet Mask and Gateway using DHCP
+              (This option is ignored if -R specified)
  -i n.n.n.n  Set LAN IP address to n.n.n.n (default is -i$LAN_IP_ADDR)
               The IP address must be in the same LAN subnet as the primary device
+              (This option is ignored if -d specified)
  -m n.n.n.n  Set LAN Subnet Mask to n.n.n.n (default is -m$LAN_NETMASK)
               The Subnet Mask must be the same as the LAN subnet mask configured 
               on the primary device.
+              (This option is ignored if -d specified)
  -g n.n.n.n  Set LAN Gateway IP address to n.n.n.n (default is -g$LAN_GATEWAY)
               This is the LAN IP address of the primary device.
-              (This option is ignored if -R specified)
+              (This option is ignored if -d or -R specified)
  -n n.n.n.n  Set LAN DNS Server IP address to n.n.n.n
               Specify multiple times for multiple DNS servers. 
-              Default is the LAN Gateway IP address.
+              Default is the LAN Gateway IP address unless -d is specified, in
+              which case the DNS Servers will be obtained via DHCP.
               (This option is ignored if -R specified)
  -6          Enable LAN IPv6
+              (This option is ignored if -R specified)
 EOH
 if [ $EASYMESH = multiap ]; then cat <<EOH
  -l 0-9      Set MultiAP logging level
@@ -77,6 +83,7 @@ LAN_IPv6="0"
 LAN_IP_ADDR="$IP_ADDR"
 LAN_NETMASK="$NETMASK"
 LAN_GATEWAY="$(echo $LAN_IP_ADDR | cut -d. -f1-3).1"
+LAN_DHCP='n'
 LAN_DNS=''
 MULTIAP_LOGGING_LEVEL=2
 REBOOT='y'
@@ -88,9 +95,10 @@ YES='n'
 [ -f /etc/init.d/ndhttpd ] && NDHTTPD='/etc/init.d/ndhttpd' || NDHTTPD=''
 [ -f /etc/init.d/uhttpd ] && UHTTPD='/etc/init.d/uhttpd' || UHTTPD=''
 
-while getopts :6g:i:l:m:n:rsyR option; do
+while getopts :6dg:i:l:m:n:rsyR option; do
   case "${option}" in
     6)  LAN_IPv6="1";;
+    d)  LAN_DHCP='y';;
     g)  LAN_GATEWAY="$OPTARG";;
     i)  LAN_IP_ADDR="$OPTARG";IP_ADDR_SET='y';;
     l)  [ $EASYMESH = "multiap" ] && MULTIAP_LOGGING_LEVEL="$OPTARG" || echo -e "${ORANGE}WARNING! -l option ignored on this EasyMesh implementation${NC}";;
@@ -131,7 +139,7 @@ if [ $RESTORE = n ]; then
     exit
   fi
   if [ -z "$LAN_DNS" ]; then
-    LAN_DNS="$LAN_GATEWAY"
+    [ $LAN_DHCP = "n" ] && LAN_DNS="$LAN_GATEWAY"
   else
     for DNS in $LAN_DNS
     do
@@ -157,10 +165,14 @@ if [ $RESTORE = n ]; then
   echo -e " - ${ORANGE}DISABLE QoS${NC}"
   [ -n "$UHTTPD" ] && echo -e " - ${ORANGE}DISABLE DumaOS UHTTP daemon${NC}"
   [ -n "$NDHTTPD" ] && echo -e " - ${ORANGE}DISABLE DumaOS NDHTTP daemon${NC}"
-  [ $LAN_IP_ADDR != $IP_ADDR ] && echo -e " - ${GREEN}Set LAN IP address to $LAN_IP_ADDR${NC}"
-  [ $LAN_NETMASK != $NETMASK ] && echo -e " - ${GREEN}Set LAN Subnet Mask to $LAN_NETMASK${NC}"
-  echo -e " - ${GREEN}Set LAN Gateway IP address to $LAN_GATEWAY${NC}"
-  echo -e " - ${GREEN}Set LAN DNS to $(echo $LAN_DNS | tr \"$IFS\" ' ')${NC}"
+  if [ $LAN_DHCP = "y" ]; then
+    echo -e " - ${GREEN}Set LAN IP from DHCP${NC}"
+  else
+    [ $LAN_IP_ADDR != $IP_ADDR ] && echo -e " - ${GREEN}Set LAN IP address to $LAN_IP_ADDR${NC}"
+    [ $LAN_NETMASK != $NETMASK ] && echo -e " - ${GREEN}Set LAN Subnet Mask to $LAN_NETMASK${NC}"
+    echo -e " - ${GREEN}Set LAN Gateway IP address to $LAN_GATEWAY${NC}"
+  fi
+  [ $LAN_DHCP = "n" -a -z "$LAN_DNS" ] && echo -e " - ${GREEN}Set LAN DNS to $(echo $LAN_DNS | tr \"$IFS\" ' ')${NC}"
   echo -e " - ${GREEN}ENABLE Bridged Mode${NC}"
   [ "$LAN_IPv6" = "1" ] && echo -e " - ${GREEN}ENABLE LAN IPv6${NC}"
   if [ $FW_VER = "20.3.c" ]; then
@@ -248,18 +260,30 @@ if [ $RESTORE = n ]; then
     $NDHTTPD disable
   fi
 
-  if [ $LAN_IP_ADDR != $IP_ADDR ]; then
-    echo -e "${GREEN}Setting LAN IP address to $LAN_IP_ADDR${NC}"
-    uci set network.lan.ipaddr="$LAN_IP_ADDR"
+  if [ $LAN_DHCP = "y" ]; then
+      echo -e "${GREEN}Configuring LAN IP to be set by DHCP${NC}"
+    uci set network.lan.proto="dhcp"
+  else
+    uci set network.lan.proto="static"
+    if [ $LAN_IP_ADDR != $IP_ADDR ]; then
+      echo -e "${GREEN}Setting LAN IP address to $LAN_IP_ADDR${NC}"
+      uci set network.lan.ipaddr="$LAN_IP_ADDR"
+    fi
+    if [ $LAN_NETMASK != $NETMASK ]; then
+      echo -e "${GREEN}Setting LAN Subnet Mask to $LAN_NETMASK${NC}"
+      uci set network.lan.netmask="$LAN_NETMASK"
+    fi
+    echo -e "${GREEN}Setting LAN Gateway IP address to $LAN_GATEWAY${NC}"
+    uci set network.lan.gateway="$LAN_GATEWAY"
   fi
-  if [ $LAN_NETMASK != $NETMASK ]; then
-    echo -e "${GREEN}Setting LAN Subnet Mask to $LAN_NETMASK${NC}"
-    uci set network.lan.netmask="$LAN_NETMASK"
+  if [ -n "$LAN_DNS" ]; then
+    echo -e "${GREEN}Setting LAN DNS${NC}"
+    uci -q delete network.lan.dns
+    for dns in $LAN_DNS; do
+      echo -e "${GREEN} -> Adding $dns${NC}"
+      uci add_list network.lan.dns="$dns"
+    done
   fi
-  echo -e "${GREEN}Setting LAN Gateway IP address to $LAN_GATEWAY${NC}"
-  uci set network.lan.gateway="$LAN_GATEWAY"
-  echo -e "${GREEN}Setting LAN DNS${NC}"
-  uci -q delete network.lan.dns
   [ "$LAN_IPv6" = "1" ] && echo -e "${GREEN}Enabling LAN IPv6${NC}" || echo -e "${GREEN}Disabling LAN IPv6${NC}"
   uci set network.lan.ipv6="$LAN_IPv6"
   if [ "$(uci -q get network.config.wan_mode)" = "bridge" -a -z "$(uci -q get network.lan6)" ]; then
@@ -276,10 +300,6 @@ if [ $RESTORE = n ]; then
     uci set network.lan6.reqprefix='no'
     uci set network.lan6.soltimeout='240'
   fi
-  for dns in $LAN_DNS; do
-    echo -e "${GREEN} -> Adding $dns${NC}"
-    uci add_list network.lan.dns="$dns"
-  done
   echo -e "${GREEN}Configuring bridged mode${NC}"
   uci set network.config.wan_mode='bridge'
   uci set network.lan.ifname="eth0 eth1 eth2 eth3 eth4 wl0 wl1 $BHAUL_IF"
@@ -449,6 +469,7 @@ else # RESTORE
     fi
   fi
 
+  uci set network.lan.proto="static"
   if [ $LAN_IP_ADDR != $IP_ADDR ]; then
     echo -e "${GREEN}Setting LAN IP address to $LAN_IP_ADDR${NC}"
     uci set network.lan.ipaddr="$LAN_IP_ADDR"
@@ -458,7 +479,7 @@ else # RESTORE
     uci set network.lan.netmask="$LAN_NETMASK"
   fi
   echo -e "${ORANGE}Removing LAN Gateway IP address"
-  uci set network.lan.gateway=""
+  uci -q delete network.lan.gateway
   echo -e "${ORANGE}Removing LAN DNS${NC}"
   uci -q delete network.lan.dns
   echo -e "${ORANGE}Removing LAN6 interface${NC}"
