@@ -129,7 +129,7 @@ local device_options = {
 local post_data
 if ngx.var.request_method == "POST" then
   post_data = ngx.req.get_post_args()
-  if post_data.tableid == "devices" and post_data.action == "TABLE-EDIT" then
+  if post_data.tableid == "devices" and (post_data.action == "TABLE-EDIT" or post_data.action == "TABLE-MODIFY") then
     device_columns[1].readonly = true
   end
 end
