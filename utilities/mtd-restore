@@ -17,6 +17,8 @@ target partition is not mounted.
 Usage: $0 [options] [partition ...]
 
 Options:
+ -b             When restoring firmware bank partitions, swap the banks
+                  (e.g. if restoring bank_1, write it into bank_2) 
  -d directory   The name of the directory on the USB device or SSHFS
                   filesystem containing the backups. If not specified,
                   defaults to: backups or backups-$VERSION
@@ -28,6 +30,7 @@ Options:
  -U             Download the latest version of $SCRIPT from GitHub
                   Do NOT specify any other parameters or options if doing
                   a version upgrade.
+ --dry-run      Show restore commands rather than executing them
 Parameters:
  partition      One or more partitions to restored.
                   Specify either the device (e.g. mtd2) or name
@@ -60,18 +63,25 @@ upgrade() {
 }
 
 DIR="backups"
+DRY_RUN=N
 QUIET=""
 REBOOT=N
 SKIP_CHG_CHECK=N
 SKIP_SHA_CHECK=N
+SWAP_BANKS=N
 
 GREEN='\033[1;32m'
 ORANGE='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-while getopts :d:qrsvU option; do
+while getopts :bd:qrsvU-: option; do
  case "${option}" in
+  -)  case "${OPTARG}" in
+        dry-run) DRY_RUN=Y;;
+        *) usage;;
+      esac;;
+  b)  SWAP_BANKS=Y;;
   d)  DIR="$(echo $OPTARG | sed -e 's,/$,,')";;
   q)  QUIET="-q";;
   r)  REBOOT=Y;;
@@ -133,9 +143,11 @@ for gz in $IMAGES; do
   LAST="$gz"
   echo "$gz" | grep -qE "$VARIANT-ubi" && RESTORE_UBI="Y"
 done
+[ $SWAP_BANKS = Y ] && echo -e "$(date +%F@%X): ${ORANGE}NOTE: Firmware partitions will be restored to the OTHER bank!${NC}"
 [ $SKIP_CHG_CHECK = Y ] && echo -e "$(date +%F@%X): ${ORANGE}NOTE: Partitions will be restored WITHOUT checking for changes first!${NC}"
 [ $RESTORE_UBI = Y ] && echo -e "$(date +%F@%X): ${RED}WARNING: ${ORANGE}Attempting to restore a UBIFS backup to a mounted device will ${RED}FAIL!${NC}"
-[ $REBOOT = Y ] && echo -e "$(date +%F@%X): ${ORANGE}NOTE: Device will be rebooted after restoring $LAST!${NC}"
+[ $DRY_RUN = N -a $REBOOT = Y ] && echo -e "$(date +%F@%X): ${ORANGE}NOTE: Device will be rebooted after restoring $LAST!${NC}"
+[ $DRY_RUN = Y ] && echo -e "$(date +%F@%X): ${ORANGE}NOTE: This is a DRY RUN - no partitions will be restored.${NC}"
 echo -e -n "$(date +%F@%X): ${GREEN}If you wish to commence the restore, enter y otherwise just press [Enter] to exit:${NC} "
 read
 [ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
@@ -145,13 +157,16 @@ find $SOURCE -name "$VARIANT-*.img" -exec rm {} \;
 
 restoreMTD() {
   local RETVAL
+  local COMMAND
   if [ $REBOOT = Y -a "$LAST" = "$gz" ]; then
-    echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partition $dev ($PARTITION) and rebooting"
-    mtd $QUIET -r -e $PARTITION write $SOURCE/$VARIANT-$dev-$name.img $PARTITION
+    echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partition $TARGET ($PARTITION) and rebooting"
+    COMMAND="mtd $QUIET -r -e $PARTITION write $SOURCE/$VARIANT-$dev-$name.img $PARTITION"
+    [ $DRY_RUN = N ] && $COMMAND || echo "$(date +%F@%X): *DRY RUN* $COMMAND"
     RETVAL=$?
   else
-    echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partition $dev ($PARTITION)"
-    mtd $QUIET -e $PARTITION write $SOURCE/$VARIANT-$dev-$name.img $PARTITION
+    echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partition $TARGET ($PARTITION)"
+    COMMAND="mtd $QUIET -e $PARTITION write $SOURCE/$VARIANT-$dev-$name.img $PARTITION"
+    [ $DRY_RUN = N ] && $COMMAND || echo "$(date +%F@%X): *DRY RUN* $COMMAND"
     RETVAL=$?
   fi
   return $RETVAL
@@ -159,17 +174,20 @@ restoreMTD() {
 
 restoreUBI() {
   local RETVAL
+  local COMMAND
   if [ $REBOOT = Y -a "$LAST" = "$gz" ]; then
-    echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partition $dev ($PARTITION) and rebooting"
+    echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partition $TARGET ($PARTITION) and rebooting"
   else
-    echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partition $dev ($PARTITION)"
+    echo "$(date +%F@%X): RESTORING $SOURCE/$VARIANT-$dev-$name.img to partition $TARGET ($PARTITION)"
   fi
-  ubiupdatevol $TARGET -t
+  COMMAND="ubiupdatevol $TARGET -t"
+  [ $DRY_RUN = N ] && $COMMAND || echo "$(date +%F@%X): *DRY RUN* $COMMAND"
   RETVAL=$?
   if [ $RETVAL -eq 0 ]; then
-    ubiupdatevol $TARGET $SOURCE/$VARIANT-$dev-$name.img
+    COMMAND="ubiupdatevol $TARGET $SOURCE/$VARIANT-$dev-$name.img"
+    [ $DRY_RUN = N ] && $COMMAND || echo "$(date +%F@%X): *DRY RUN* $COMMAND"
     RETVAL=$?
-    [ $RETVAL -eq 0 -a \( $REBOOT = Y -a \( "$LAST" = "$gz" -o "$PARTITION" = "rootfs_data" \) \) ] && reboot
+    [ $DRY_RUN = N -a $RETVAL -eq 0 -a \( $REBOOT = Y -a \( "$LAST" = "$gz" -o "$PARTITION" = "rootfs_data" \) \) ] && reboot
   else
     echo -e "$(date +%F@%X): ${RED}ABORTING $SOURCE/$VARIANT-$dev-$name.img restore - failed to erase volume!${NC}"
   fi
@@ -178,11 +196,13 @@ restoreUBI() {
 
 restoreDevice() {
   echo $dev | grep -q "^mtd" && restoreMTD || restoreUBI
-  if [ $? -eq 0 ]; then
-    echo -e "$(date +%F@%X): ${GREEN}RESTORED $SOURCE/$VARIANT-$dev-$name.img to partition $dev ($PARTITION)${NC}"
-    echo $SOURCE/$VARIANT-$dev-$name.img > $RESTORED
-  else
-    echo -e "$(date +%F@%X): ${RED}FAILED to restore $SOURCE/$VARIANT-$dev-$name.img to partition $dev ($PARTITION)!${NC}"
+  if [ $DRY_RUN = N ]; then
+    if [ $? -eq 0 ]; then
+      echo -e "$(date +%F@%X): ${GREEN}RESTORED $SOURCE/$VARIANT-$dev-$name.img to partition $TARGET ($PARTITION)${NC}"
+      echo $SOURCE/$VARIANT-$dev-$name.img > $RESTORED
+    else
+      echo -e "$(date +%F@%X): ${RED}FAILED to restore $SOURCE/$VARIANT-$dev-$name.img to partition $TARGET ($PARTITION)!${NC}"
+    fi
   fi
 }
 
@@ -192,7 +212,7 @@ for gz in $IMAGES; do
   echo "$(date +%F@%X): PROCESSING backup $gz"
 
   if echo $gz | grep -qe '-mtd0-'; then
-    echo -e "$(date +%F@%X): ${ORANGE}SORRY! You cannot restore mtd0 usng this script${NC}"
+    echo -e "$(date +%F@%X): ${ORANGE}SORRY! You cannot restore mtd0 using this script${NC}"
     continue
   fi
 
@@ -200,6 +220,28 @@ for gz in $IMAGES; do
     TARGET="/dev/${dev}"
     PARTITION="$(echo $name | cut -d- -f1)"
     SHA256CHK=N
+
+    if [ $SWAP_BANKS = Y ]; then
+      if [ "$dev" = "mtd3" -a "$PARTITION" = "bank_1" ]; then
+        TARGET="/dev/mtd4" 
+        PARTITION="bank_2"
+      elif [ "$dev" = "mtd4" -a "$PARTITION" = "bank_2" ]; then
+        TARGET="/dev/mtd3"
+        PARTITION="bank_1"
+      elif [ "$dev" = "ubi0_3" -a "$PARTITION" = "bootfs1" ]; then
+        TARGET="/dev/ubi0_5"
+        PARTITION="bootfs2"
+      elif [ "$dev" = "ubi0_4" -a "$PARTITION" = "rootfs1" ]; then
+        TARGET="/dev/ubi0_6"
+        PARTITION="rootfs2"
+      elif [ "$dev" = "ubi0_5" -a "$PARTITION" = "bootfs2" ]; then
+        TARGET="/dev/ubi0_3"
+        PARTITION="bootfs1"
+      elif [ "$dev" = "ubi0_6" -a "$PARTITION" = "rootfs2" ]; then
+        TARGET="/dev/ubi0_4"
+        PARTITION="rootfs1"
+      fi
+    fi
 
     if [ $SKIP_CHG_CHECK = N ]; then
       if [ -f $SOURCE/$VARIANT-$dev-$name.img.sha256= ]; then
@@ -211,7 +253,7 @@ for gz in $IMAGES; do
         echo -e "$(date +%F@%X): ${ORANGE}SKIPPED restore of $gz: $VARIANT-$dev-$name.img.sha256 does not exist?${NC}"
         continue
       fi
-      echo "$(date +%F@%X): CALCULATING current SHA256 checksum for $dev ($PARTITION)"
+      echo "$(date +%F@%X): CALCULATING current SHA256 checksum for $TARGET ($PARTITION)"
       [ -e "${TARGET}ro" ] && source="${TARGET}ro" || source="$TARGET"
       SHA256=$(sha256sum "$source" | cut -d' ' -f1)
     else
@@ -220,7 +262,7 @@ for gz in $IMAGES; do
     fi
 
     if [ "$SHA256" = "$SHA256OLD" ]; then
-      echo -e "$(date +%F@%X): ${GREEN}SKIPPED restore of $gz - Checksums for $dev match therefore image unchanged${NC}"
+      echo -e "$(date +%F@%X): ${GREEN}SKIPPED restore of $gz - Checksums for $TARGET match therefore image unchanged${NC}"
     else
       echo "$(date +%F@%X): EXPANDING $dev backup to temporary file $SOURCE/$VARIANT-$dev-$name.img"
       if [ $SKIP_SHA_CHECK = N -a $SHA256CHK = Y ]; then
@@ -241,7 +283,7 @@ for gz in $IMAGES; do
       if [ $VERIFIED -eq 0 ]; then
         restoreDevice
       else
-        echo -e "$(date +%F@%X): ${RED}FAILED to successfully expand $dev backup to $SOURCE/$VARIANT-$dev-$name.img!${NC}"
+        echo -e "$(date +%F@%X): ${RED}FAILED to successfully expand $TARGET backup to $SOURCE/$VARIANT-$dev-$name.img!${NC}"
       fi
     fi
     if [ -f $SOURCE/$VARIANT-$dev-$name.img ]; then

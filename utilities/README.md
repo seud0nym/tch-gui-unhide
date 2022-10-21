@@ -153,7 +153,6 @@ Parameters:
 If you enable DumaOS *after* running the `tch-gui-unhide` script, you will need to re-run `tch-gui-unhide` to enable the button to access DumaOS. Similarly, if you disable DumaOS, you will need to re-run `tch-gui-unhide` to remove the button. 
 
 ## hijack-dns
-
 Configures DNS hijacking:
 
  - Hijacks DNS requests to ensure that they are handled by the device, or by a specified DNS Server
@@ -234,18 +233,21 @@ Due to the nature of the UBI filesystem, restores will fail unless the target pa
 Usage: ./mtd-restore [options] [partition ...]
 
 Options:
- -d directory   The name of the directory on the USB device or SSHFS 
-                  filesystem.
-                  If not specified, defaults to: backups or backups-VERSION
+ -b             When restoring firmware bank partitions, swap the banks
+                  (e.g. if restoring bank_1, write it into bank_2) 
+ -d directory   The name of the directory on the USB device or SSHFS
+                  filesystem containing the backups. If not specified,
+                  defaults to: backups or backups-FIRMWARE_MAJOR.MINOR
+                  (e.g. backups-20.3)
  -q             Quiet mode
  -r             Reboot after last partition successfully restored
  -s             Skip check for changed partitions and always restore
- -v             Skip verification of image checksum 
-                  (if it exists i.e. if mtd-backup was NOT executed with 
-                  the -s option)
+ -v             Skip verification of image checksum (if it exists i.e. if
+                  mtd-backup was NOT executed with the -s option)
  -U             Download the latest version of mtd-restore from GitHub
-                  Do NOT specify any other parameters or options if 
-                  doing a version upgrade.
+                  Do NOT specify any other parameters or options if doing
+                  a version upgrade.
+ --dry-run      Show restore commands rather than executing them
 Parameters:
  partition      One or more partitions to restored.
                   Specify either the device (e.g. "mtd2") or name (e.g. "rootfs_data")
