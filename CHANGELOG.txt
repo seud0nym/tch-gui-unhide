@@ -5,6 +5,8 @@
 * tch-gui-unhide: Fixed bug in DSCP handling on QoS Labels tab
 * tch-gui-unhide: Fixed bug in handling of errors when editing bandwidth-shaped devices in QoS (#114)
 * tch-gui-unhide: Debugging now enabled by default in pre-releases
+* mtd-restore: Added new -b option to swap the banks when restoring firmware bank partitions (e.g. if restoring bank_1, write it into bank_2) 
+* mtd-restore: Added new --dry-run option to show the commands to be executed instead of actually running them 
 * reset-to-factory-defaults-with-root: Port forwarding rules were incorrectly restored with proto config specified as an option rather than a list
 * safe-firmware-upgrade: Port forwarding rules were incorrectly restored with proto config specified as an option rather than a list
 
