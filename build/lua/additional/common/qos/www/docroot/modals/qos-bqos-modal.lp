@@ -63,7 +63,6 @@ local device_columns = {
     param = "paramindex",
     type = "text",
     attr = { input = { class="span2" } },
-    unique = true,
   },
   { --[2]
     header = T"MAC Address",
@@ -96,10 +95,28 @@ local device_columns = {
     default = "1",
   },
 }
+
+local post_data
+if ngx.var.request_method == "POST" then
+  post_data = ngx.req.get_post_args()
+  if post_data.tableid == "devices" and (post_data.action == "TABLE-EDIT" or post_data.action == "TABLE-MODIFY") then
+    device_columns[1].readonly = true
+  end
+end
+
 local device_valid = {
   device_name = function(value)
+    if post_data and post_data.action == "TABLE-ADD" then
+      local devices = proxy.getPN("uci.bqos.device.",true)
+      for _,device in ipairs(devices) do
+        local name = match(untaint(device.path),"uci.bqos.device.@([^%.]+).")
+        if value == name then
+          return nil,"Name '"..name.."' has already been used"
+        end
+      end
+    end
     if not value:match("^[%w]+$") then
-      return nil,"must not be empty and must only contain alphanumeric characters"
+      return nil,"Name must not be empty and must only contain alphanumeric characters"
     end
     return true
   end,
@@ -108,6 +125,7 @@ local device_valid = {
   upload = vPN,
   enabled = vB,
 }
+
 local device_options = {
   tableid = "devices",
   basepath = "uci.bqos.device.@.",
@@ -125,14 +143,6 @@ local device_options = {
     proxy.apply()
   end,
 }
-
-local post_data
-if ngx.var.request_method == "POST" then
-  post_data = ngx.req.get_post_args()
-  if post_data.tableid == "devices" and (post_data.action == "TABLE-EDIT" or post_data.action == "TABLE-MODIFY") then
-    device_columns[1].readonly = true
-  end
-end
 
 local device_data,device_helpmsg = post_helper.handleTableQuery(device_columns,device_options,nil,nil,device_valid)
 
