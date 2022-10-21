@@ -1,8 +1,12 @@
-2022.10.14
+2022.10.21
 ==========
 * tch-gui-unhide: Allow Local Network IPv4 address to be provided by DHCP when in Bridged mode (#113)
 * tch-gui-unhide: Fixed multiple IPv6 addresses overflowing on Local Network card
+* tch-gui-unhide: Fixed bug in DSCP handling on QoS Labels tab
+* tch-gui-unhide: Fixed bug in handling of errors when editing bandwidth-shaped devices in QoS (#114)
 * tch-gui-unhide: Debugging now enabled by default in pre-releases
+* reset-to-factory-defaults-with-root: Port forwarding rules were incorrectly restored with proto config specified as an option rather than a list
+* safe-firmware-upgrade: Port forwarding rules were incorrectly restored with proto config specified as an option rather than a list
 
 2022.10.06
 ==========
