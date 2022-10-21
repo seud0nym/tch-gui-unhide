@@ -53,7 +53,7 @@ end
 local function dscpAsHex(value)
   if value and value ~= "" then
     local dscp = tostring(value)
-    if #dscp > 2 and sub(1,2) == "0x" then
+    if #dscp > 2 and sub(dscp,1,2) == "0x" then
       return upper(dscp)
     else
       local decimal = tonumber(dscp)
