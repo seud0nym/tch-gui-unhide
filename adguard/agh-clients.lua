@@ -28,6 +28,16 @@ cmd = io.popen('ip -o -br a | grep br-lan | tr -s " " | cut -d" " -f3-')
 device_ips = cmd:read('*a')
 cmd:close()
 
+function execute(cmd)
+  local popen = io.popen(cmd)
+  if popen then
+    local response = popen:read('*a')
+    popen:close()
+    return response
+  end
+  return nil
+end
+
 function process(target)
   local address = target.address
   local credentials = target.credentials
@@ -40,11 +50,8 @@ function process(target)
   local ids = {}
   local index = {}
 
-  local cmd = string.format('curl -su "%s" http://%s/control/clients', credentials, address)
-  local curl = io.popen(cmd)
-  local raw = curl:read('*a')
-  curl:close()
-  local current = json.decode(raw)
+  local raw = execute(string.format('curl -su "%s" http://%s/control/clients', credentials, address))
+  local current = json.decode(raw or {})
 
   if current.clients then
     for i,client in pairs(current.clients) do
@@ -154,21 +161,18 @@ function process(target)
     if v then
       print("Removing client "..host.." from "..address)
       data = json.encode({ name = host})
-      cmd = string.format('curl -u "%s" -X POST --data \'%s\' http://%s/control/clients/delete', credentials, data, address)
-      os.execute(cmd)
+      print(execute(string.format('curl -su "%s" -X POST -H "Content-Type: application/json" --data \'%s\' http://%s/control/clients/delete', credentials, data, address)))
     end
   end
   for _,host in pairs(append) do
     print("Adding client "..host.name.." to "..address)
     data = json.encode(host)
-    cmd = string.format('curl -u "%s" -X POST --data \'%s\' http://%s/control/clients/add', credentials, data, address)
-    os.execute(cmd)
+    print(execute(string.format('curl -su "%s" -X POST -H "Content-Type: application/json" --data \'%s\' http://%s/control/clients/add', credentials, data, address)))
   end
   for _,host in pairs(update) do
     print("Updating client "..host.name.." on "..address)
     data = json.encode(host)
-    cmd = string.format('curl -u "%s" -X POST --data \'%s\' http://%s/control/clients/update', credentials, data, address)
-    os.execute(cmd)
+    print(execute(string.format('curl -su "%s" -X POST -H "Content-Type: application/json" --data \'%s\' http://%s/control/clients/update', credentials, data, address)))
   end
 end
 
