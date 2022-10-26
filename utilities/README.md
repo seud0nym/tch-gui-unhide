@@ -448,6 +448,8 @@ Parameters:
 
 ## show-bank-plan
 A pretty version of `find /proc/banktable -type f -print -exec cat {} ';'` (on firmware up to 20.3.c) or the output from `bootmgr` on firmware 20.4, with a final analysis to show whether the bank plan is optimal, or not.
+
+The output also indicates if the booted firmware is vulnerable to [tch-exploit](https://github.com/BoLaMN/tch-exploit) or not.
 ```
 Usage: ./show-bank-plan [-q]
 ```
@@ -461,6 +463,8 @@ Example output:
  -> notbooted        : bank_1
  -> notbootedoid     : Unknown
  -> passiveversion   : 20.3.c.0432-3241006-20220315112032-f4cc8d43fdb9e1fe7bf3bba5aa8caddbc8cb4014
+
+ == Booted firmware is VULNERABLE to tch-exploit ==
 
  == Bank Plan is OPTIMAL ==
 ```

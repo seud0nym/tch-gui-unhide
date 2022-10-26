@@ -26,6 +26,7 @@ GREEN='\033[1;32m'
 ORANGE='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
+FMT=" -> ${ORANGE}%-16s${NC} : %s "
 
 OPTIMAL=0
 
@@ -43,7 +44,7 @@ test_optimal() {
 handle_content() {
   local config="$1"
   local content="$2"
-  [ $QUIET = N ] && printf " -> ${ORANGE}%-16s${NC} : %s " "$config" "$content"
+  [ $QUIET = N ] && printf "$FMT" "$config" "$content"
   if [ "$config" = "active" ]; then
     test_optimal "$content" bank_1
   elif [ "$config" = "booted" ]; then
@@ -64,20 +65,30 @@ else
     set -- $(echo $f | tr ':' ' ')
     CONTENT=$(bootmgr $2 $3 2>/dev/null | grep -v rd_metadata)
     [ "$CONTENT" = "1" -o "$CONTENT" = "2" ] && CONTENT="bank_$CONTENT"
-    [ "$1" = activeversion -a -z "$CONTENT" ] && CONTENT=$(uci get env.var.friendly_sw_version_activebank)
-    [ "$1" = passiveversion -a -z "$CONTENT" ] && CONTENT=$(uci get env.var.friendly_sw_version_passivebank)
-    handle_content "$1" "$CONTENT"
+    [ "$1" = activeversion -a -z "$CONTENT" ] && CONTENT=$(uci -q get env.var.friendly_sw_version_activebank)
+    [ "$1" = passiveversion -a -z "$CONTENT" ] && CONTENT=$(uci -q get env.var.friendly_sw_version_passivebank)
+    [ -z "$CONTENT" ] && CONTENT="Unknown"
+    [ $QUIET = N ] && printf "${FMT}\n" "$1" "$CONTENT"
   done
 fi
 
 [ $QUIET = N ] && echo
+
+if [ $QUIET = N ]; then
+  if [ -e /usr/lib/lua/processvendorinfo.lua ] && grep -q acsurl /usr/lib/lua/processvendorinfo.lua; then
+    echo -e " !! ${ORANGE}WARNING${NC}: Booted firmware is ${RED}NOT VULNERABLE${NC} to tch-exploit${NC} !!\n"
+  else
+    echo -e " == Booted firmware is ${GREEN}VULNERABLE${NC} to tch-exploit${NC} ==\n"
+  fi
+fi
+
 if [ $OPTIMAL -eq 2 ]; then
   [ $QUIET = N ] && echo -e " == Bank Plan is ${GREEN}OPTIMAL${NC} ==\n"
   exit 0
 else
   if [ $QUIET = N ]; then
-    echo -e " == Bank Plan is ${RED}NOT OPTIMAL${NC} ==\n"
     if [ $BANKTABLE = Y ]; then
+      echo -e " !! Bank Plan is ${RED}NOT OPTIMAL${NC} !!\n"
       echo
       echo "Run the following command:"
       echo
@@ -94,6 +105,8 @@ else
       echo "      The device will reboot, and you WILL lose root, but you will be able to set"
       echo "      the optimal bank plan after re-acquiring root."
       echo
+    else
+      echo -e " !! Optimal Bank Plan can ${RED}NOT${NC} be applied to this device !!\n"
     fi
   fi
   exit 1
