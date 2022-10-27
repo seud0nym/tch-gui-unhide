@@ -17,6 +17,9 @@ MOUNT_PATH="$(uci get mountd.mountd.path)"
 USB="$(ls $MOUNT_PATH | head -n1)"
 UCI_DEFAULTS="zzz-9999-reroot"
 
+VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
+MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
+
 if [ -z "$(which bootmgr)" ]; then
   ACTIVE="$(cat /proc/banktable/active 2>/dev/null)"
   BOOTED="$(cat /proc/banktable/booted 2>/dev/null)"
@@ -44,6 +47,10 @@ Options:
                     before resetting to factory defaults.
                     (Requires attached USB device).
  -c               Disable CWMP configuration during first boot after reset.
+ -d               Add DNS rewrites to disable CWMP firmware downloads from
+                    fwstore.bdms.telstra.net
+ -D domain        Add DNS rewrites to disable CWMP firmware downloads from
+                    the specified domain. May be specified multiple times.
  -e               Disable any 'noexec' flags on USB mounted filesystems.
  -f filename      Flashes the specified firmware 'filename' before reset and 
                     reboot. If 'filename' ends with .rbi, it will be unpacked 
@@ -55,6 +62,10 @@ Options:
                       flashed into the passive bank using sysupgrade (root 
                       access will be preserved) and banks will be switched on 
                       reboot.
+ -h d|s|hostname  Sets the device hostname, where:
+                    d = Set the hostname to $VARIANT
+                    s = Set the hostname to $VARIANT-$MAC_HEX
+                    hostname = Use the specified hostname
  -i               Keep the existing LAN IP address after reset and reboot.
                     This is the default if --restore-config is specified.
                     By default, also restores port forwards, static leases
@@ -62,6 +73,9 @@ Options:
                     --no-leases or --no-ula are specified).
  -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
  -k               Keep existing SSH keys after reset and reboot.
+ -l n.n.n.n:port  Configure logging to a remote syslog server on the specified
+                    IP address and port. The port is optional and defaults to
+                    514 if not specified.
  -n               Do NOT reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
@@ -146,6 +160,9 @@ uci set dropbear.lan.enable='0'
 /etc/init.d/dropbear enable
 $LAN_CFG
 $CWMP_CFG
+$DNSMASQ_CFG
+$HOSTNAME_CFG
+$SYSLOG_CFG
 $NOEXEC_CFG
 $KEYS_CFG
 $RESTORE_CFG
@@ -156,11 +173,15 @@ END
 set_defaults() {
   __BKUP=""
   __CWMP=""
+  __CWMP_DNS=""
+  __HOSTNAME=""
   __IPADDR=""
   __KEYS=""
   __NOEXEC=""
   __ROOTPWD="root"
   __REBOOT="Y"
+  __SYSLOG_IP=""
+  __SYSLOG_PORT=""
   __VERBOSE=N
   __NO_FWD="N"
   __NO_LEASES="N"
@@ -184,7 +205,9 @@ IP6ASSIGN=""
 FORWARDS=""
 LEASES=""
 
-while getopts :bcef:iI:knp:svyU-: option; do
+VALID_IPv4_PATTERN="([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
+
+while getopts :bcdD:ef:h:iI:kl:np:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
         i)              RESTORE_IPADDR="Y";;
@@ -198,6 +221,8 @@ while getopts :bcef:iI:knp:svyU-: option; do
       esac;;
   b)  __BKUP="Y";;
   c)  __CWMP="Y";;
+  d)  __CWMP_DNS="$__CWMP_DNS fwstore.bdms.telstra.net";;
+  D)  __CWMP_DNS="$__CWMP_DNS $OPTARG";;
   e)  __NOEXEC="Y";;
   f)  if [ "$ROM_FS" = "ubifs" ]; then
         echo "$OPTARG" | grep -qE '\.pkgtb$' || { echo -e "${RED}ERROR:    Firmware file names must end with .pkgtb!${NC}"; exit 2; }
@@ -205,14 +230,26 @@ while getopts :bcef:iI:knp:svyU-: option; do
         echo "$OPTARG" | grep -qE '\.(rbi|bin)$' || { echo -e "${RED}ERROR:    Firmware file names must end with .rbi or .bin!${NC}"; exit 2; }
       fi
       FIRMWARE="${OPTARG}";;
+  h)  __HOSTNAME="$OPTARG";;
   i)  __IPADDR="$LAN_IP_NOW";;
-  I)  if echo "${OPTARG}" | grep -qE "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"; then
+  I)  if echo "${OPTARG}" | grep -qE "$VALID_IPv4_PATTERN"; then
         __IPADDR="${OPTARG}"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y"
       else
         echo -e "${RED}ERROR:    Invalid IP address: $OPTARG${NC}"
         exit
       fi;;
   k)  __KEYS="Y";;
+  l)  if echo "${OPTARG}" | grep -q ':'; then
+        __SYSLOG_IP="${OPTARG%%:*}"
+        __SYSLOG_PORT="$(echo $OPTARG | cut -d: -f2)"
+      else
+        __SYSLOG_IP="${OPTARG}"
+        __SYSLOG_PORT="514"
+      fi
+      if ! echo "${OPTARG}" | grep -qE "$VALID_IPv4_PATTERN"; then
+        echo -e "${RED}ERROR:    Invalid IP address for syslog: $__SYSLOG_IP${NC}"
+        exit
+      fi;;
   n)  __REBOOT="N";;
   p)  __ROOTPWD="${OPTARG}";;
   s)  if [ "$ACTIVE" = "$BOOTED" ]; then
@@ -481,16 +518,44 @@ fi
 if [ -n "$__CWMP" ]; then
   echo -e "NOTE:     CWMP will be ${ORANGE}stopped${NC} during the reboot"
   CWMP_CFG="uci set cwmpd.cwmpd_config.state='0'"$'\n'"/etc/init.d/cwmpd disable"
+elif [ -z "$__CWMP_DNS" ]; then
+  echo -e "${ORANGE}WARNING:  CWMP firmware upgrades will be ${RED}ACTIVE${ORANGE} after reboot!${NC}"
+fi
+
+if [ -n "$__CWMP_DNS" ]; then
+  for domain in $__CWMP_DNS; do
+    echo -e "NOTE:     DNS will be configured to ${ORANGE}disable${NC} CWMP firmware downloads from ${GREEN}${domain}${NC}"
+    [ -n "$DNSMASQ_CFG" ] && DNSMASQ_CFG="${DNSMASQ_CFG}"$'\n'
+    DNSMASQ_CFG="${DNSMASQ_CFG}uci add_list dhcp.main.address='/$domain/127.0.0.1'"$'\n'"uci add_list dhcp.main.address='/$domain/::1'"
+  done
+fi
+
+if [ -n "$__HOSTNAME" ]; then
+  case "${__HOSTNAME}" in
+    d)  __HOSTNAME="$VARIANT";;
+    s)  __HOSTNAME="$VARIANT-$MAC_HEX";;
+  esac
+  echo -e "NOTE:     Host name will be set to ${GREEN}${__HOSTNAME}${NC}"
+  HOSTNAME_CFG="uci delete dhcp.main.hostname"$'\n'"uci add_list dhcp.main.hostname='$__HOSTNAME'"$'\n'"uci set system.@system[0].hostname='$__HOSTNAME'"
 fi
 
 if [ -n "$__NOEXEC" ]; then
   echo -e "NOTE:     Any 'noexec' flags will be ${ORANGE}removed${NC} from USB filesystem mounts after reset"
   NOEXEC_CFG="sed -e 's/noexec,//' -e 's/,noexec//' -i /etc/config/mountd"
+elif [ "${VERSION%%.*}" = "20" ]; then
+  echo -e "${ORANGE}WARNING:  'noexec' flags will ${RED}NOT${ORANGE} be removed from USB filesystem mounts after reset!${NC}"
 fi
 
 if [ -n "$__KEYS" ]; then
   echo -e "NOTE:     SSH keys will be ${GREEN}restored${NC} after reset: ${GREEN}$(ls /etc/dropbear | xargs)${NC}"
   KEYS_CFG="echo '$(tar -czf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
+else
+  echo -e "${ORANGE}WARNING:  SSH keys will ${RED}NOT${ORANGE} be restored after reset!${NC}"
+fi
+
+if [ -n "$__SYSLOG_IP" ]; then
+  echo -e "NOTE:     Log messages will be sent to remote syslog server at ${GREEN}$__SYSLOG_IP${NC} (Port ${GREEN}$__SYSLOG_PORT${NC}) after reset${NC}"
+  SYSLOG_CFG="uci set system.@system[0].log_ip='$__SYSLOG_IP'"$'\n'"uci set system.@system[0].log_port='$__SYSLOG_PORT'"
 fi
 
 [ $SWITCH_BANK = Y ] && echo -e "NOTE:     The active bank will be switched to ${GREEN}bank_$PASSIVE${NC}"
@@ -572,8 +637,10 @@ fi
 
 echo -e "${ORANGE}INFO:     Resetting...${NC}"
 # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#clean-up
-echo -e "${GREY}INFO:     Deleting $TARGET_BANK...${NC}"
-rm -rf $TARGET_BANK
+for d in $TARGET_BANK*; do
+  echo -e "${GREY}INFO:     Deleting $d...${NC}"
+  rm -rf $d
+done
 # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
 echo -e "${GREY}INFO:     Creating ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}...${NC}"
 mkdir -p ${TARGET_BANK}/etc/uci-defaults

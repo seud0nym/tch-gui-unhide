@@ -299,6 +299,10 @@ Options:
                     before resetting to factory defaults.
                     (Requires attached USB device).
  -c               Disable CWMP configuration during first boot after reset.
+ -d               Add DNS rewrites to disable CWMP firmware downloads from
+                    fwstore.bdms.telstra.net
+ -D domain        Add DNS rewrites to disable CWMP firmware downloads from
+                    the specified domain. May be specified multiple times.
  -e               Disable any 'noexec' flags on USB mounted filesystems.
  -f filename      Flashes the specified firmware 'filename' before reset and 
                     reboot. If 'filename' ends with .rbi, it will be unpacked 
@@ -310,6 +314,10 @@ Options:
                       flashed into the passive bank using sysupgrade (root 
                       access will be preserved) and banks will be switched on 
                       reboot.
+ -h d|s|hostname  Sets the device hostname, where:
+                    d = Set the hostname to VARIANT
+                    s = Set the hostname to VARIANT-MAC_HEX
+                    hostname = Use the specified hostname
  -i               Keep the existing LAN IP address after reset and reboot.
                     This is the default if --restore-config is specified.
                     By default, also restores port forwards, static leases
@@ -317,6 +325,9 @@ Options:
                     --no-leases or --no-ula are specified).
  -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
  -k               Keep existing SSH keys after reset and reboot.
+ -l n.n.n.n:port  Configure logging to a remote syslog server on the specified
+                    IP address and port. The port is optional and defaults to
+                    514 if not specified.
  -n               Do NOT reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
@@ -384,7 +395,15 @@ Options:
  -b               Make a full backup of your configuration from /overlay
                     (Requires attached USB device).
  -c               Disable CWMP configuration during first boot after reset.
+ -d               Add DNS rewrites to disable CWMP firmware downloads from
+                    fwstore.bdms.telstra.net
+ -D domain        Add DNS rewrites to disable CWMP firmware downloads from
+                    the specified domain. May be specified multiple times.
  -e               Disable any 'noexec' flags on USB mounted filesystems.
+ -h d|s|hostname  Sets the device hostname, where:
+                    d = Set the hostname to VARIANT
+                    s = Set the hostname to VARIANT-MAC_HEX
+                    hostname = Use the specified hostname
  -i               Keep the existing LAN IP address after reset and reboot.
                     This is the default if --restore-config is specified.
                     By default, also restores port forwards, static leases
@@ -392,6 +411,9 @@ Options:
                     --no-leases or --no-ula are specified).
  -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
  -k               Keep existing SSH keys after reset and reboot.
+ -l n.n.n.n:port  Configure logging to a remote syslog server on the specified
+                    IP address and port. The port is optional and defaults to
+                    514 if not specified.
  -n               Do NOT reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
