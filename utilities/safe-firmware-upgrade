@@ -19,6 +19,8 @@ else
 fi
 
 usage() {
+local VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
+local MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
 cat <<EOH
 Applies a new firmware to the device, without losing root access.
 
@@ -46,7 +48,14 @@ Options:
                     before resetting to factory defaults.
                     (Requires attached USB device).
  -c               Disable CWMP configuration during first boot after reset.
+ -d               Add DNS rewrites to disable CWMP firmware downloads from
+                    fwstore.bdms.telstra.net
+ -D domain        Add DNS rewrites to disable CWMP firmware downloads from
+                    the specified domain. May be specified multiple times.
  -e               Disable any 'noexec' flags on USB mounted filesystems.
+ -h d|s|hostname  Sets the device hostname, where:
+                    d = Set the hostname to $VARIANT
+                    s = Set the hostname to $VARIANT-$MAC_HEX
  -i               Keep the existing LAN IP address after reset and reboot.
                     This is the default if --restore-config is specified.
                     By default, also restores port forwards, static leases
@@ -54,6 +63,9 @@ Options:
                     --no-leases or --no-ula are specified).
  -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
  -k               Keep existing SSH keys after reset and reboot.
+ -l n.n.n.n:port  Configure logging to a remote syslog server on the specified
+                    IP address and port. The port is optional and defaults to
+                    514 if not specified.
  -n               Do NOT reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
@@ -129,7 +141,7 @@ YES="N"
 SAVE_DEFAULTS="N"
 RESTORE_CONFIG="N"
 
-while getopts :bceiI:knp:svyU-: option; do
+while getopts :bcdD:eh:iI:knp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
         i|no-forwards|no-leases|no-ula) OPTIONS="$OPTIONS --${OPTARG}";;
@@ -138,8 +150,8 @@ while getopts :bceiI:knp:svyU-: option; do
         no-defaults)    OPTIONS="--no-defaults";;
         *)              usage;;
       esac;;
-  b|c|e|i|k|n|s|v|y)  OPTIONS="$OPTIONS -${option}";;
-  I|p)  OPTIONS="$OPTIONS -${option} ${OPTARG}";;
+  b|c|d|e|i|k|n|s|v|y)  OPTIONS="$OPTIONS -${option}";;
+  D|h|I|l|p)            OPTIONS="$OPTIONS -${option} ${OPTARG}";;
   U)  download reset-to-factory-defaults-with-root; download $SCRIPT; exit;;
   *)  usage;;
  esac
@@ -176,10 +188,7 @@ OPTIONS="-f $FIRMWARE $OPTIONS"
 if [ ! -e reset-to-factory-defaults-with-root ]; then
   echo -e "NOTE:     Downloading script dependency 'reset-to-factory-defaults-with-root'..."
   download reset-to-factory-defaults-with-root
-elif ! grep -q pinholerule reset-to-factory-defaults-with-root; then
-  echo -e "NOTE:     Upgrading script dependency 'reset-to-factory-defaults-with-root'..."
-  download reset-to-factory-defaults-with-root
-elif ! grep -q sysupgrade reset-to-factory-defaults-with-root; then
+elif [ $(curl -skL "https://api.github.com/repos/seud0nym/tch-gui-unhide/commits?path=utilities/reset-to-factory-defaults-with-root&since=$(date -Is -r reset-to-factory-defaults-with-root)" | jsonfilter -e '$[*].commit.committer.date' | wc -l) -gt 0 ]; then
   echo -e "NOTE:     Upgrading script dependency 'reset-to-factory-defaults-with-root'..."
   download reset-to-factory-defaults-with-root
 fi
