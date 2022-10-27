@@ -1,14 +1,21 @@
-2022.10.21
+2022.10.27
 ==========
 * tch-gui-unhide: Allow Local Network IPv4 address to be provided by DHCP when in Bridged mode (#113)
 * tch-gui-unhide: Fixed multiple IPv6 addresses overflowing on Local Network card
 * tch-gui-unhide: Fixed bug in DSCP handling on QoS Labels tab
 * tch-gui-unhide: Fixed bug in handling of errors when editing bandwidth-shaped devices in QoS (#114)
 * tch-gui-unhide: Debugging now enabled by default in pre-releases
+* tch-gui-unhide: Fixed layout issues in FW 20.4.0428
+* tch-gui-unhide: Fixed Wi-Fi Booster count in FW 20.4.0428
+* mtd-backup: Added version to backup image file name for bootfs1/2 partitions (Smart Modem Gen 3)
 * mtd-restore: Added new -b option to swap the banks when restoring firmware bank partitions (e.g. if restoring bank_1, write it into bank_2) 
 * mtd-restore: Added new --dry-run option to show the commands to be executed instead of actually running them 
-* reset-to-factory-defaults-with-root: Port forwarding rules were incorrectly restored with proto config specified as an option rather than a list
-* safe-firmware-upgrade: Port forwarding rules were incorrectly restored with proto config specified as an option rather than a list
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Port forwarding rules were incorrectly restored with proto config specified as an option rather than a list
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Added -D option to add a DNS rewrite for the specified domain to disable firmware downloads through CWMP (-d option is shortcut for disabling Telstra firmware downloads)
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Added -l option to configure logging to a remote syslog server on the specified IP address and port
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Added -h option to set hostname
+* safe-firmware-upgrade: Improved detection of updated dependency
+* show-bank-plan: Now indicates if the booted firmware is vulnerable to [tch-exploit](https://github.com/BoLaMN/tch-exploit) or not
 
 2022.10.06
 ==========
@@ -28,8 +35,7 @@
 * tch-gui-unhide: IPv6 ULA configuration now visible on FW 17.2
 * tch-gui-unhide: Completely reworked Local Network screen to attempt to improve performance
 * de-telstra: Removed lte-logger-doctor from minimum memory mode disabled services because it breaks the Mobile Diagnostics chart
-* reset-to-factory-defaults-with-root: IPv6 static leases were not restored as expected
-* safe-firmware-upgrade: IPv6 static leases were not restored as expected
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: IPv6 static leases were not restored as expected
 
 2022.08.20
 ==========
