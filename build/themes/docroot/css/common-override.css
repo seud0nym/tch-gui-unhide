@@ -17,7 +17,7 @@
 .iptables-head th:nth-child(n+1):nth-child(-n+2){text-align:right;}
 .simple-desc{display:block;padding-top:2px;}
 .simple-desc.helper-card{display:inline-block;font-size:smaller;letter-spacing:-1px;vertical-align:unset;}
-.smallcard .content{font-size:14px;height:125px;}
+.smallcard .content{font-size:14px;height:125px;line-height:20px !important;}
 .smallcard .subinfos{font-size:14px;margin-top:1px;margin-bottom:0px;line-height:17px;}
 .span3{width:270px;}
 .ssid-status{margin-left:18px;margin-top:2px;padding-top:0px;line-height:12px;height:15px;}
@@ -76,3 +76,4 @@ u{text-decoration:none;}
   #sipProfileTable>tbody>tr>td:nth-child(5) input{width:150px;}
   #sipProfileTable>tbody>tr>td:nth-child(6) input{width:95px;}
 }
+body,li,label,input,button,select,textarea,.table th,.table td{line-height:20px;}

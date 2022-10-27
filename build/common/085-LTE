@@ -70,7 +70,7 @@ sed \
   -e '/<\/p>/i\						<strong data-bind="text: unreadSMS"></strong>\\' \
   -e '/<\/p>/i\					</div>\\' \
   -e '/<\/p>/i\				</div>\\' \
-  -e '/float:/a\                height: 17px;\\' \
+  -e '/\.card-label *{/a\                height: 17px;\\' \
   -e 's/height: 25/height:17/' \
   -e '/this.deviceStatus/a\			this.registrationStatus = ko.observable("");\\' \
   -e '/this.deviceStatus/a\			this.unreadSMS = ko.observable("");\\' \
