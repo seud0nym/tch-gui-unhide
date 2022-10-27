@@ -53,7 +53,7 @@ local nExt = 0
 local synced = 0
 
 if easymesh_role == "Controller" or easymesh_role == "Controller-only" then
-  local deviceCount = proxy.get("Device.WiFi.MultiAP.APDeviceNumberOfEntries")
+  local deviceCount = proxy.get("rpc.wifi.multiap.deviceNumberOfEntries")
   deviceCount = tonumber(deviceCount and deviceCount[1] and deviceCount[1].value or "0")
   nExt = deviceCount and deviceCount > 1 and deviceCount-1 or 0
   if nExt > 0 then

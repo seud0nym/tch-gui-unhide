@@ -1,15 +1,16 @@
 VERSION=$(uci get version.@version[0].version | cut -d- -f1)
 FW_BASE=$(uci get version.@version[0].marketing_version)
-if [ "$FW_BASE" = "$TARGET_VERSION" ]
-then
+if [ "$FW_BASE" = "$TARGET_VERSION" ]; then
   echo [$SCRIPT]: Current version matches target \($TARGET_VERSION\)
+elif [ "$VERSION" = "20.4.0256" ]; then
+  echo [$SCRIPT]: Sorry!! Version 20.4.0256 is 0-day, pre-release, unsupported firmware.
+  exit
 else
   echo [$SCRIPT]: WARNING: This script was developed for the $TARGET_VERSION firmware.
   echo [$SCRIPT]: It MAY work on your $VARIANT with $FW_BASE firmware, but it also may not.
   echo [$SCRIPT]: If you still wish to proceed, reply FORCE \(in capitals as shown\).
   read
-  if [ "$REPLY" != "FORCE" ]
-  then
+  if [ "$REPLY" != "FORCE" ]; then
     echo [$SCRIPT]: Good choice.
     exit
   fi

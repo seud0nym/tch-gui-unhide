@@ -22,3 +22,6 @@ sed \
   -e 's/pairs(radioData\[index\]/& or {}/' \
   -i /www/docroot/modals/wifi-boosters.lp
 
+if [ "$VERSION" = "20.4.0319" ]; then
+  sed -e 's/rpc.wifi.multiap.deviceNumberOfEntries/Device.WiFi.MultiAP.APDeviceNumberOfEntries/' -i /www/cards/005_Easymesh.lp
+fi
