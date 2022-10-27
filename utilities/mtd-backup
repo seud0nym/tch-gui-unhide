@@ -13,9 +13,10 @@ else
   BOOTED="bank_$(bootmgr partition booted)"
   NOT_BOOTED="bank_$(bootmgr partition notbooted)"
 fi
-OTHER_VERSION="$(uci -q get env.var.friendly_sw_version_passivebank | cut -d- -f1)"
 OTHER_BANK="$(echo $NOT_BOOTED | cut -d_ -f2)"
 BOOTED_BANK="$(echo $BOOTED | cut -d_ -f2)"
+OTHER_VERSION="$(uci -q get env.var.friendly_sw_version_passivebank | cut -d- -f1)"
+[ -z "$OTHER_VERSION" ] && OTHER_VERSION="Unknown"
 
 usage() {
 cat <<EOH
@@ -474,12 +475,12 @@ if [ -z "$(which ubinfo)" ]; then
     backupDevice
   done
 else
-  for dev in $(ls /dev/ubi* | grep _ | grep -v ubi_ctrl); do
+  for dev in $(ls /dev/ubi*_* | grep -v 'ubi_ctrl\|ubiblock'); do
     dev=$(basename $dev)
     name=$(ubinfo /dev/$dev | grep "Name:" | tr -s ' ' | cut -d' ' -f2)
-    if [ "$name" = "rootfs$BOOTED_BANK" ]; then
+    if echo "$name" | grep -q "^[br]ootfs${BOOTED_BANK}$"; then
       name="$name-$VERSION"
-    elif [ "$name" = "rootfs$OTHER_BANK" ]; then
+    elif echo "$name" | grep -q "^[br]ootfs${OTHER_BANK}$"; then
       name="$name-$OTHER_VERSION"
     fi
     getExistingSHA256
