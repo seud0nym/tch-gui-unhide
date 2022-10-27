@@ -74,11 +74,11 @@ fi
 
 [ $QUIET = N ] && echo
 
-if [ $QUIET = N ]; then
-  if [ -e /usr/lib/lua/processvendorinfo.lua ] && grep -q acsurl /usr/lib/lua/processvendorinfo.lua; then
-    echo -e " !! ${ORANGE}WARNING${NC}: Booted firmware is ${RED}NOT VULNERABLE${NC} to tch-exploit${NC} !!\n"
-  else
+if [ $QUIET = N -a -e /usr/lib/lua/processvendorinfo.lua ]; then
+  if grep -q acsurl /usr/lib/lua/processvendorinfo.lua; then
     echo -e " == Booted firmware is ${GREEN}VULNERABLE${NC} to tch-exploit${NC} ==\n"
+  else
+    echo -e " !! ${ORANGE}WARNING${NC}: Booted firmware is ${RED}NOT VULNERABLE${NC} to tch-exploit${NC} !!\n"
   fi
 fi
 
