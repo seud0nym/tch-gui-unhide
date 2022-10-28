@@ -19,23 +19,23 @@ The tch-gui-unhide script can be applied to various Telstra branded Technicolor 
 
 Some extra features rely on additional software packages to be installed on the device, and most are firmware version specific. When these packages are detected and the appropriate extension script has been downloaded, the web GUI will be modified to allow access to configure the additional packages:
 
-### [tch-gui-unhide-xtra.adblock](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtraadblock)
+#### [tch-gui-unhide-xtra.adblock](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtraadblock)
 
 Creates a GUI interface for the [`Adblock`](https://openwrt.org/packages/pkgdata/adblock) package that allows you to block ads at the router level.
 
-### [tch-gui-unhide-xtra.minidlna](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtraminidlna)
+#### [tch-gui-unhide-xtra.minidlna](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtraminidlna)
 
 Replaces the stock DLNA server management in the GUI so that it supports OpenWRT minidlna.
 
-### [tch-gui-unhide-xtra.rsyncd](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtrarsyncd)
+#### [tch-gui-unhide-xtra.rsyncd](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtrarsyncd)
 
 Adds the ability to enable and disable the rsync daemon from the GUI.
 
-### [tch-gui-unhide-xtra.samba36-server](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtrasamba36-server)
+#### [tch-gui-unhide-xtra.samba36-server](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtrasamba36-server)
 
 Correctly configures OpenWRT SAMBA 3.6 on firmware 17.2 and 18.1.c to provide SMBv2 for Windows 10 inter-operability. This update adds the ability to change the password via the GUI.
 
-## [tch-gui-unhide-xtra.wireguard](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtrawireguard)
+#### [tch-gui-unhide-xtra.wireguard](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtrawireguard)
 
 Creates a GUI interface for configuring the Wireguard VPN on firmware 20.3.
 
@@ -43,15 +43,15 @@ Creates a GUI interface for configuring the Wireguard VPN on firmware 20.3.
 
 Using the additional scripts found in sub-folders of this repository, you can configure your device with these extended capabilities:
 
-### [AdGuard Home](https://github.com/seud0nym/tch-gui-unhide/tree/master/adguard#readme)
+#### [AdGuard Home](https://github.com/seud0nym/tch-gui-unhide/tree/master/adguard#readme)
 
 Allows you to install and configure [AdGuard Home](https://github.com/AdguardTeam/AdGuardHome) on your device, and _disable_ dnsmasq. AdGuard Home will then handle DNS resolution and DHCP for your local network.
 
-### [OpenSpeedTest](https://github.com/seud0nym/tch-gui-unhide/tree/master/speedtest#readme)
+#### [OpenSpeedTest](https://github.com/seud0nym/tch-gui-unhide/tree/master/speedtest#readme)
 
 Allows you to install the [OpenSpeedTest Server](https://github.com/openspeedtest/Speed-Test) on your device, to test the performance of your Wi-Fi or your LAN in relation to your router.
 
-### [Wi-Fi Booster](https://github.com/seud0nym/tch-gui-unhide/tree/master/wifi-booster#readme)
+#### [Wi-Fi Booster](https://github.com/seud0nym/tch-gui-unhide/tree/master/wifi-booster#readme)
 
 Allows you to configure an EasyMesh-capable Telstra Smart Modem as a "Wi-Fi Booster" to extend Wi-Fi coverage throughout a home (wired back-haul only).
 
