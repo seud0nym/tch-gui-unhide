@@ -53,7 +53,13 @@ end
 
 local function getInterfaceType(data)
   if data["Radio"] and data["Radio"] ~= "" then
-    return "Wireless - "..radios[untaint(data["Radio"])]
+    local key = untaint(data["Radio"])
+    local radio = radios[key]
+    if radio then
+      return "Wireless - "..radio
+    else
+      return "Wireless - "..key
+    end
   elseif match(data["L2Interface"],"eth*") then
     local agentWiFiBand = agentSTA[data["MACAddress"]]
     if agentWiFiBand then
@@ -315,6 +321,7 @@ local interval = 10
 if ngx.var.request_method == "POST" and ngx.var.content_type and match(ngx.var.content_type,"application/x%-www%-form%-urlencoded") then
   local action = ngx.req.get_post_args().action
   if action == "TABLE-EDIT" then
+    ---@diagnostic disable-next-line: cast-local-type
     interval = nil
   end
 end
