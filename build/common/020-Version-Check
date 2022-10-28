@@ -1,5 +1,20 @@
+toComparableVersion() {
+  local major=$(echo -n $1 | sed -e 's/^0*//')
+  local minor=$(echo -n $2 | sed -e 's/^0*//')
+  local subminor=$(echo -n $3 | sed -e 's/^0*//')
+  local revision=$(echo -n $4 | sed -e 's/^0*//')
+  if [ -z "$revision" ]; then
+    revision=$subminor
+    subminor=0
+  else
+    subminor=$(echo -n $subminor | hexdump -d | head -n 1 | sed -e 's/^[0 ]*//')
+  fi
+  printf "%02d%02d%03d%04d" $major $minor $subminor $revision
+}
 VERSION=$(uci get version.@version[0].version | cut -d- -f1)
 FW_BASE=$(uci get version.@version[0].marketing_version)
+COMPVER=$(toComparableVersion $(echo $VERSION | tr '.' ' '))
+
 if [ "$FW_BASE" = "$TARGET_VERSION" ]; then
   echo [$SCRIPT]: Current version matches target \($TARGET_VERSION\)
 elif [ "$VERSION" = "20.4.0256" ]; then
@@ -16,3 +31,4 @@ else
   fi
 fi
 
+[ "$DEBUG" = y ] && echo [$SCRIPT]: Comparable version $VERSION = $COMPVER

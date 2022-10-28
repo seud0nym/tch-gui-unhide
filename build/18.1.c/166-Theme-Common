@@ -3,6 +3,7 @@ sed \
   -e '$ a .card_bg:after{font-size:110px;bottom:-5px;z-index:-20;}' \
   -i /www/docroot/css/gw.css
 if [ -f /www/docroot/landingpage.lp -a "$KEEPLP" = "n" ];then
+  [ $COMPVER -lt 20040000428 ] && LP_TXT_COLOUR=808080 || LP_TXT_COLOUR=545454
   echo [$SCRIPT]: Theming and de-branding landing page
   sed \
     -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color:#f8f8f8;}" \
@@ -35,8 +36,8 @@ if [ -f /www/docroot/landingpage.lp -a "$KEEPLP" = "n" ];then
     -e '/uci.versioncusto.override.fwversion_override/a \  unhide_version = "rpc.gui.UnhideVersion",' \
     -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         </tr>\\\\" \
     -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <tr>\\\\" \
-    -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <td style=\"text-align:right;font-weight: 900;color:#808080;\">tch-gui-unhide</td>\\\\" \
-    -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <td style=\"text-align:left;color:#808080;\">');  ngx.print( cui[\"unhide_version\"] ); ngx.print('</td>\\\\" \
+    -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <td style=\"text-align:right;font-weight: 900;color:#${LP_TXT_COLOUR};\">tch-gui-unhide</td>\\\\" \
+    -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <td style=\"text-align:left;color:#${LP_TXT_COLOUR};\">');  ngx.print( cui[\"unhide_version\"] ); ngx.print('</td>\\\\" \
     -i /www/docroot/landingpage.lp
   # Have to restart if changing landing page
   SRV_nginx=$(( $SRV_nginx + 1 ))
