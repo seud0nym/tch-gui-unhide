@@ -120,7 +120,7 @@ Options:
                          PLUS stops and disables the associated services
  -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks
  -R                    Reset to device defaults: Equivalent to:
-                         -hmymodem -dmodem -na -ay -cy -fy -iy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn -sb
+                         -h mymodem -d modem -na -ay -cy -fy -iy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn -sb
  -o                    Configures opkg
  -O 17|18|19           Overrides the default opkg repository with the specified version
  -U                    Download the latest version of de-telstra from GitHub
@@ -458,12 +458,12 @@ Usage: ./set-optimal-bank-plan
 ## set-web-admin-password
 Allows you to set or remove the web admin password.
 ```
-Usage: ./set-web-admin-password [-d|<newpassword>]
+Usage: ./set-web-admin-password [-d|<password>]
 
 Parameters:
  -d              Enables the default user so that no
                   password is required for the GUI.
- <newpassword>   the new admin password for the GUI. 
+ <password>      The new admin password for the GUI. 
                   (Required if -d is not specified, 
                   ignored when -d is specified.)
 ```
@@ -486,7 +486,7 @@ Example output:
  -> notbootedoid     : Unknown
  -> passiveversion   : 20.3.c.0432-3241006-20220315112032-f4cc8d43fdb9e1fe7bf3bba5aa8caddbc8cb4014
 
- == Booted firmware is VULNERABLE to tch-exploit ==
+!! WARNING: Booted firmware is NOT VULNERABLE to tch-exploit !!
 
  == Bank Plan is OPTIMAL ==
 ```
@@ -496,7 +496,7 @@ The script returns 0 if the bank plan is optimal, and 1 if it is not.
 If run with the `-q` option, then no output is displayed, and you must rely on the return code.
 
 ## transformer-cli
-Version 17 firmwares do not include `/usr/bin/transformer-cli`, which is very useful for working out what is returned in the various GUI scripts.
+Version 17 firmware does not include `/usr/bin/transformer-cli`, which is very useful for working out what is returned in the various GUI scripts.
 
 ## unpack-rbi
 Unpacks the *.rbi* file passed as the first parameter. 
@@ -525,21 +525,21 @@ If you download a tch-gui-unhide release archive, the scripts applicable to that
 
 You can also download the latest version individually:
 
-**NOTE: Replace `<scriptname>` with the name of the script you wish to download.**
+**NOTE: Replace `<script>` with the name of the script you wish to download.**
 
 Execute this command on your device via a PuTTY session or equivalent (an active WAN/Internet connection is required):
 ```
-wget https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/<scriptname> 
+wget https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/<script> 
 ```
 
 Alternatively, download the script manually and load it up to your device using WinSCP or equivalent.
 
 After you have the script on your device, you may need to make it executable, which is done with this command (assuming you are in the same directory as the script):
 ```
-chmod +x <scriptname>
+chmod +x <script>
 ```
 
 Then, execute the script (assuming you are in the same directory into which you downloaded or uploaded the script):
 ```
-./<scriptname> <options>
+./<script> <options>
 ```
