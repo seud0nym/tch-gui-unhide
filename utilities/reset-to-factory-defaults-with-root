@@ -138,6 +138,7 @@ upgrade() {
 }
 
 rtfd_script() {
+# Based on https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
 cat <<-END
 exec 1>/tmp/${UCI_DEFAULTS}.out 2>/tmp/${UCI_DEFAULTS}.err
 echo root:$__ROOTPWD | chpasswd
@@ -224,12 +225,7 @@ while getopts :bcdD:ef:h:iI:kl:np:svyU-: option; do
   d)  __CWMP_DNS="$__CWMP_DNS fwstore.bdms.telstra.net";;
   D)  __CWMP_DNS="$__CWMP_DNS $OPTARG";;
   e)  __NOEXEC="Y";;
-  f)  if [ "$ROM_FS" = "ubifs" ]; then
-        echo "$OPTARG" | grep -qE '\.pkgtb$' || { echo -e "${RED}ERROR:    Firmware file names must end with .pkgtb!${NC}"; exit 2; }
-      else
-        echo "$OPTARG" | grep -qE '\.(rbi|bin)$' || { echo -e "${RED}ERROR:    Firmware file names must end with .rbi or .bin!${NC}"; exit 2; }
-      fi
-      FIRMWARE="${OPTARG}";;
+  f)  echo "$OPTARG" | grep -qE '\.(pkgtb|rbi|bin)$' && FIRMWARE="${OPTARG}" || { echo -e "${RED}ERROR:    Firmware file names must end with .rbi or .bin!${NC}"; exit 2; };;
   h)  __HOSTNAME="$OPTARG";;
   i)  __IPADDR="$LAN_IP_NOW";;
   I)  if echo "${OPTARG}" | grep -qE "$VALID_IPv4_PATTERN"; then
@@ -446,7 +442,7 @@ echo -e "NOTE:     Root access will be preserved and the root password will be s
 RBI="N"
 if [ -n "$FIRMWARE" ]; then
   if [ -f "$FIRMWARE" ]; then
-    if [ "$ROM_FS" = "ubifs" ]; then
+    if echo "$FIRMWARE" | grep -qE '\.pkgtb$'; then
       echo -e "NOTE:     ${ORANGE}$(basename $FIRMWARE)${NC} will be flashed into ${GREEN}$NOT_BOOTED${NC} and a ${GREEN}bank switch performed${NC}"
       SWITCH_BANK="Y"
     else
@@ -622,13 +618,15 @@ if [ $SWITCH_BANK = "Y" ]; then
   TARGET_MTD=${NOT_BOOTED}
 fi
 
-if [ -n "$FIRMWARE" -a "$ROM_FS" = "ubifs" ]; then
+if [ -n "$FIRMWARE" -a "$RBI" = "N" ]; then
   TARGET_BANK=/overlay/${NOT_BOOTED}
   echo -e "INFO:     Writing ${ORANGE}$FIRMWARE${NC} into ${ORANGE}${NOT_BOOTED}${NC}..."
   echo -en "${GREY}"
   sysupgrade -n -v --no-reboot "$FIRMWARE"
   VERIFY_RESULT=$?
   echo -en "${NC}"
+  rm -f /overlay/data.remove_due_to_upgrade /overlay/sysupgrade.bank.switchover
+  [ -d ${TARGET_BANK}.remove_due_to_upgrade ] && mv ${TARGET_BANK}.remove_due_to_upgrade $TARGET_BANK
   if [ "$VERIFY_RESULT" -ne 0 ]; then
     echo -e "${RED}ABORTING: sysupgrade FAILED!!${NC}"
     exit 2
@@ -637,11 +635,8 @@ fi
 
 echo -e "${ORANGE}INFO:     Resetting...${NC}"
 # https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#clean-up
-for d in $TARGET_BANK*; do
-  echo -e "${GREY}INFO:     Deleting $d...${NC}"
-  rm -rf $d
-done
-# https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
+echo -e "${GREY}INFO:     Deleting ${TARGET_BANK}...${NC}"
+rm -rf $TARGET_BANK
 echo -e "${GREY}INFO:     Creating ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}...${NC}"
 mkdir -p ${TARGET_BANK}/etc/uci-defaults
 chmod 755 ${TARGET_BANK} ${TARGET_BANK}/etc ${TARGET_BANK}/etc/uci-defaults
@@ -650,7 +645,7 @@ chmod +x ${TARGET_BANK}/etc/uci-defaults/${UCI_DEFAULTS}
 sync
 echo -e "${GREEN}INFO:     Device has been reset to factory defaults and root access retained${NC}"
 
-if [ -n "$FIRMWARE" -a "$ROM_FS" = "squashfs" ]; then
+if [ -n "$FIRMWARE" -a "$RBI" = "Y" ]; then
   echo -e "INFO:     Writing ${ORANGE}$FIRMWARE${NC} into ${ORANGE}${TARGET_MTD}${NC}..."
   echo -en "${GREY}"
   mtd -e ${TARGET_MTD} write "$FIRMWARE" ${TARGET_MTD}
