@@ -1,4 +1,4 @@
-2022.10.28
+2022.11.01
 ==========
 * tch-gui-unhide: Allow Local Network IPv4 address to be provided by DHCP when in Bridged mode (#113)
 * tch-gui-unhide: Fixed multiple IPv6 addresses overflowing on Local Network card
@@ -9,6 +9,7 @@
 * tch-gui-unhide: Fixed Wi-Fi Booster count in FW 20.4.0428
 * tch-gui-unhide: Fixed Devices screen in FW 20.4.0428
 * tch-gui-unhide: Fixed tch-gui-unhide text colour in landing screen in FW 20.4.0428
+* tch-gui-unhide: Updated tproxy-go to v2022.10.29-0-g95c0329
 * mtd-backup: Added version to backup image file name for bootfs1/2 partitions (Smart Modem Gen 3)
 * mtd-restore: Added new -b option to swap the banks when restoring firmware bank partitions (e.g. if restoring bank_1, write it into bank_2) 
 * mtd-restore: Added new --dry-run option to show the commands to be executed instead of actually running them 
@@ -16,6 +17,7 @@
 * reset-to-factory-defaults-with-root/safe-firmware-upgrade: Added -D option to add a DNS rewrite for the specified domain to disable firmware downloads through CWMP (-d option is shortcut for disabling Telstra firmware downloads)
 * reset-to-factory-defaults-with-root/safe-firmware-upgrade: Added -l option to configure logging to a remote syslog server on the specified IP address and port
 * reset-to-factory-defaults-with-root/safe-firmware-upgrade: Added -h option to set hostname
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Fixed identification of system type for firmware flashing
 * safe-firmware-upgrade: Improved detection of updated dependency
 * show-bank-plan: Now indicates if the booted firmware is vulnerable to [tch-exploit](https://github.com/BoLaMN/tch-exploit) or not
 
