@@ -64,14 +64,14 @@ Usage: ./bridged-booster [options]
 Options:
  -d          Set LAN IP address, Subnet Mask and Gateway using DHCP
               (This option is ignored if -R specified)
- -i n.n.n.n  Set LAN IP address to n.n.n.n (default is -i$LAN_IP_ADDR)
+ -i n.n.n.n  Set LAN IP address to n.n.n.n (default is -i192.168.0.2)
               The IP address must be in the same LAN subnet as the primary device
               (This option is ignored if -d specified)
- -m n.n.n.n  Set LAN Subnet Mask to n.n.n.n (default is -m$LAN_NETMASK)
+ -m n.n.n.n  Set LAN Subnet Mask to n.n.n.n (default is -m255.255.255.0)
               The Subnet Mask must be the same as the LAN subnet mask configured 
               on the primary device.
               (This option is ignored if -d specified)
- -g n.n.n.n  Set LAN Gateway IP address to n.n.n.n (default is -g$LAN_GATEWAY)
+ -g n.n.n.n  Set LAN Gateway IP address to n.n.n.n (default is -g192.168.0.1)
               This is the LAN IP address of the primary device.
               (This option is ignored if -d or -R specified)
  -n n.n.n.n  Set LAN DNS Server IP address to n.n.n.n
