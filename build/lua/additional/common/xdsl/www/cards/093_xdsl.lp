@@ -10,7 +10,11 @@ if session:hasAccess(modalPath) and lfs.attributes("/etc/config/xdsl", "mode") =
   local visible = require("bridgedmode_helper").isBridgedMode()
   if not visible then
     local wan_ifname = require("datamodel").get("uci.network.interface.@wan.ifname")
-    visible = wan_ifname and (wan_ifname[1].value == "ptm0" or wan_ifname[1].value == "atmwan")
+    if wan_ifname then
+      ---@diagnostic disable-next-line: undefined-field
+      local v = string.untaint(wan_ifname[1].value)
+      visible = v:find("ptm0") or v:find("atmwan")
+    end
   end
 
   if visible then
