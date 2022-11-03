@@ -1,3 +1,10 @@
+2022.11.03
+==========
+* tch-gui-unhide: Fixed xDSL card not showing on vDSL connection
+* tch-gui-unhide: Added modified xDSL screen and supporting transformer mapping from tch-nginx-gui
+* tch-gui-unhide: Added Datapump version and DSLAM Chipset/Version to xDSL card
+* tch-gui-unhide: Removed duplicated calculations and optimised Broadband xDSL snippet
+
 2022.11.01
 ==========
 * tch-gui-unhide: Allow Local Network IPv4 address to be provided by DHCP when in Bridged mode (#113)
