@@ -8,6 +8,7 @@ local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
+local proxy = require("datamodel")
 local format = string.format
 local floor = math.floor
 local tonumber = tonumber
@@ -38,9 +39,7 @@ local content = {
   dsl_margin_down = "sys.class.xdsl.@line0.DownstreamNoiseMargin",
   dsl_transfered_up = "sys.class.xdsl.@line0.BytesSent",
   dsl_transfered_down = "sys.class.xdsl.@line0.BytesReceived",
-  dsl_downstream_delay = "sys.class.xdsl.@line0.DownstreamDelay",
-  dsl_bonding_support = "sys.class.xdsl.@line0.BondingSupport",
-  dsl_bonding_status = "sys.class.xdsl.@line0.BondingStatus"
+  dsl_downstream_delay = "sys.class.xdsl.@line0.DownstreamDelay"
 }
 
 local content_other_line = {
@@ -74,9 +73,8 @@ if is_up then
   local iconUp = "<i class=\"icon-upload icon-large gray\"></i> "
   local iconDown = " <i class=\"icon-download icon-large gray\"></i> "
 
-  local showBondingStats
-  local bstats = tonumber(content["dsl_bonding_support"])
-  showBondingStats = bstats == 1 and true or false
+  local bstats = proxy.get("sys.class.xdsl.@line0.BondingSupport")
+  local showBondingStats = (bstats and bstats[1].value == "1") and true or false
 
   local dslLineRateMaxUp,dslLineRateMaxDown = 0,0
   local otherDslLineRateMaxUp,otherDslLineRateMaxDown = 0,0
