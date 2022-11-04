@@ -1,6 +1,7 @@
-2022.11.03
+2022.11.04
 ==========
 * tch-gui-unhide: Fixed xDSL card not showing on vDSL connection
+* tch-gui-unhide: Fixed incorrect xDSL status and missing statistics on Broadband screen (FW 20.4)
 * tch-gui-unhide: Added modified xDSL screen and supporting transformer mapping from tch-nginx-gui
 * tch-gui-unhide: Added Datapump version and DSLAM Chipset/Version to xDSL card
 * tch-gui-unhide: Removed duplicated calculations and optimised Broadband xDSL snippet
