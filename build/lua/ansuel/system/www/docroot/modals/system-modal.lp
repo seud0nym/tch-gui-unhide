@@ -232,6 +232,8 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
 <fieldset>\
   <legend>');  ngx.print( T"Advanced Reboot" ); ngx.print('</legend>\
   ');
+  local html = {}
+
   local bootp_alert = {
     alert = {
       class = "alert-info hide",
@@ -245,6 +247,15 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     button = {
       id = "btn-system-bootp",
       class = "custom-handler"
+    }
+  }
+  html[#html+1] = ui_helper.createButton(T"LAN Update",T"BOOTP","icon-exchange",bootp)
+  html[#html+1] = ui_helper.createAlertBlock(T"Entering BOOTP. Please wait...",bootp_alert)
+
+  local lose_root_warning = {
+    alert = {
+      class = "alert-danger",
+      style = "margin-bottom:5px;"
     }
   }
   local switchover_alert = {
@@ -262,11 +273,10 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
       class = "custom-handler"
     }
   }
-  local html = {}
-  html[#html+1] = ui_helper.createButton(T"LAN Update",T"BOOTP","icon-exchange",bootp)
-  html[#html+1] = ui_helper.createAlertBlock(T"Entering BOOTP. Please wait...",bootp_alert)
-  html[#html+1] = ui_helper.createButton(T"SwitchBank",T"Switchover","icon-exchange",switchover)
+  html[#html+1] = ui_helper.createAlertBlock(T"Root access will be <i>lost</i> when using the <b><i class='icon-exchange' style='width:auto;'></i> Switchover</b> button <i>if</i> you have not previously acquired root on the passive bank.", lose_root_warning)
+  html[#html+1] = ui_helper.createButton(T"Switch Active Bank",T"Switchover","icon-exchange",switchover)
   html[#html+1] = ui_helper.createAlertBlock(T"Switching bank. Please wait...",switchover_alert)
+
   ngx.print(html)
   ngx.print('\
 </fieldset>\
