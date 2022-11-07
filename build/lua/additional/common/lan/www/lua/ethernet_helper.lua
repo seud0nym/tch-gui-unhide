@@ -42,8 +42,8 @@ end
 
 local function getDHCPData(object)
   -- Check the entered IP is valid IP and convert it to number
-  local baseip = vSIIP(object["localIPv4"]) and ipv42num(object["localIPv4"])
-  local netmask = vSIIP(object["localmask"]) and ipv42num(object["localmask"])
+  local baseip = vSIIP(object["localdevIP"]) and ipv42num(object["localdevIP"])
+  local netmask = vSIIP(object["localdevmask"]) and ipv42num(object["localdevmask"])
   local dhcpstart = vSIIP(object["dhcpStartAddress"]) and ipv42num(object["dhcpStartAddress"])
   local dhcpend = vSIIP(object["dhcpEndAddress"]) and ipv42num(object["dhcpEndAddress"])
 
@@ -452,8 +452,8 @@ function M.validateStaticLeaseIP(curintf)
       end
     end
     local contentdata = {
-      localIPv4 = "uci.network.interface.@"..curintf..".ipaddr",
-      localmask = "uci.network.interface.@"..curintf..".netmask",
+      localdevIP = "uci.network.interface.@"..curintf..".ipaddr",
+      localdevmask = "uci.network.interface.@"..curintf..".netmask",
     }
     content_helper.getExactContent(contentdata)
     return sLIPV(value,contentdata)
