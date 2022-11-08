@@ -199,7 +199,7 @@ local function resetreboot(path,value)
   proxy.set(path,value)
   ngx.header.content_type = "application/json"
   ngx.print('{ "success":"true" }')
-  ngx.timer.at(0,function()
+  ngx.timer.at(0,function(_)
     proxy.apply()
   end)
   ngx.exit(ngx.HTTP_OK)

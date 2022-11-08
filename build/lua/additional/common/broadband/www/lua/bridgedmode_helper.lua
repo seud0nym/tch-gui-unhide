@@ -36,7 +36,7 @@ end
 local function failed(message)
   ngx.header.content_type = "application/json"
   ngx.print('{ "success":false, "message":"'..message..'" }')
-  ngx.timer.at(0,function()
+  ngx.timer.at(0,function(_)
     proxy.apply()
   end)
   ngx.exit(ngx.HTTP_OK)
@@ -46,7 +46,7 @@ local function reboot()
   proxy.set("rpc.system.reboot","GUI")
   ngx.header.content_type = "application/json"
   ngx.print('{ "success":true }')
-  ngx.timer.at(0,function()
+  ngx.timer.at(0,function(_)
     proxy.apply()
   end)
   ngx.exit(ngx.HTTP_OK)
