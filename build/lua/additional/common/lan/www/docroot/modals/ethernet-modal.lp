@@ -516,70 +516,70 @@ local mapValid = {
 
 content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
 
-if cur_intf == "lan" then
-  if ngx.var.request_method == "POST" then
+if ngx.var.request_method == "POST" then
+  if cur_intf == "lan" then
     bridged.configure(ngx.req.get_post_args(0)["action"])
+  end
 
-    if content["localdomain"] then
-      local local_path = dnsmasq_path.."local"
-      local localValue = untaint(proxy.get(local_path)[1].value)
-      local localName = format("/%s/",content["localdomain"])
-      local domainName = session:retrieve("old_domain")
-      session:store("old_domain",(content["localdomain"]))
-      if (content["localdomain"] ~= domainName or localValue ~= localName) and not next(helpmsg) then
-        proxy.set(local_path,localName)
-        proxy.apply()
-      end
+  if content["localdomain"] then
+    local local_path = dnsmasq_path.."local"
+    local localValue = untaint(proxy.get(local_path)[1].value)
+    local localName = format("/%s/",content["localdomain"])
+    local domainName = session:retrieve("old_domain")
+    session:store("old_domain",(content["localdomain"]))
+    if (content["localdomain"] ~= domainName or localValue ~= localName) and not next(helpmsg) then
+      proxy.set(local_path,localName)
+      proxy.apply()
     end
+  end
 
-    if isBridgedMode then
-      local proto = session:retrieve("old_proto")
-      session:store("old_proto",(content["proto"]))
-      if content["proto"] ~= proto and not next(helpmsg) then
-        local cur_ip
-        repeat
-          ngx.sleep(5)
-          cur_ip = proxy.get("rpc.network.interface.@lan.ipaddr","rpc.network.interface.@lan.ipmask")
-          content["localdevIP"] = untaint(cur_ip[1].value)
-          content["localdevmask"] = bridged.maskCIDRToDottedDecimal(cur_ip[2].value)
-        until content["localdevIP"] ~= ""
-        if content["proto"] == "static" then
-          local uci_ipaddr = proxy.get("uci.network.interface.@lan.ipaddr")[1].value
-          if uci_ipaddr == "" then
-            proxy.set("uci.network.interface.@lan.ipaddr",content["localdevIP"])
-          else
-            content["localdevIP"] = untaint(uci_ipaddr)
-          end
-          local uci_mask = proxy.get("uci.network.interface.@lan.netmask")[1].value
-          if uci_mask == "" then
-            content["localdevmask"] = uci_mask
-            proxy.set("uci.network.interface.@lan.netmask",content["localdevmask"])
-          else
-            content["localdevmask"] = untaint(uci_mask)
-          end
+  if isBridgedMode then
+    local proto = session:retrieve("old_proto")
+    session:store("old_proto",(content["proto"]))
+    if content["proto"] ~= proto and not next(helpmsg) then
+      local cur_ip
+      repeat
+        ngx.sleep(5)
+        cur_ip = proxy.get("rpc.network.interface.@lan.ipaddr","rpc.network.interface.@lan.ipmask")
+        content["localdevIP"] = untaint(cur_ip[1].value)
+        content["localdevmask"] = bridged.maskCIDRToDottedDecimal(cur_ip[2].value)
+      until content["localdevIP"] ~= ""
+      if content["proto"] == "static" then
+        local uci_ipaddr = proxy.get("uci.network.interface.@lan.ipaddr")[1].value
+        if uci_ipaddr == "" then
+          proxy.set("uci.network.interface.@lan.ipaddr",content["localdevIP"])
+        else
+          content["localdevIP"] = untaint(uci_ipaddr)
         end
-        proxy.apply()
+        local uci_mask = proxy.get("uci.network.interface.@lan.netmask")[1].value
+        if uci_mask == "" then
+          content["localdevmask"] = uci_mask
+          proxy.set("uci.network.interface.@lan.netmask",content["localdevmask"])
+        else
+          content["localdevmask"] = untaint(uci_mask)
+        end
       end
+      proxy.apply()
     end
+  end
 
-    local gwIP = session:retrieve("old_ip")
-    session:store("old_ip",(content["localdevIP"]))
-    if content["localdevIP"] ~= gwIP and not next(helpmsg) then
-      ngx.print('\
-      <script type="text/javascript">\
-        window.location="http://',content["localdevIP"],'";\
-      </script>\
-      ')
-      session:logout()
-    end
-  else
-    session:store("old_ip",(content["localdevIP"]))
-    if content["localdomain"] then
-      session:store("old_domain",(content["localdomain"]))
-    end
-    if isBridgedMode then
-      session:store("old_proto",(content["proto"]))
-    end
+  local gwIP = session:retrieve("old_ip")
+  session:store("old_ip",(content["localdevIP"]))
+  if cur_intf == "lan" and content["localdevIP"] ~= gwIP and not next(helpmsg) then
+    ngx.print('\
+    <script type="text/javascript">\
+      window.location="http://',content["localdevIP"],'";\
+    </script>\
+    ')
+    session:logout()
+  end
+else
+  session:store("old_ip",(content["localdevIP"]))
+  if content["localdomain"] then
+    session:store("old_domain",(content["localdomain"]))
+  end
+  if isBridgedMode then
+    session:store("old_proto",(content["proto"]))
   end
 end
 
@@ -926,12 +926,12 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
                   end
                 end
               end
-            ngx.print('\
-            </div>\
-            <div class="span4">\
-              <legend>',T"DHCP Settings",'</legend>\
+              ngx.print('\
+              </div>\
+              <div class="span4">\
+                <legend>',T"DHCP Settings",'</legend>\
               ');
-              if adguard then
+              if adguard and content["dhcpv4State"] == "disabled" then
                 ngx.print(format(T'Configure DHCP through <a style="color:inherit;text-decoration:none;" target="_blank" href="http://%s:8008"><b>AdGuard Home</b></a>',content["localdevIP"]))
               else
                 local switchDHCP = {
@@ -995,8 +995,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
               ngx.print('\
             </div>\
               ');
-              if cur_intf == "lan" then
-                if not adguard then
+              if not (adguard and content["dhcpv4State"] == "disabled") then
                 ngx.print('\
               </fieldset>\
               <fieldset>\
@@ -1019,7 +1018,8 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
               </fieldset>\
                 ');
               end
-              ngx.print('\
+              if cur_intf == "lan" then
+                ngx.print('\
               <fieldset>\
                 <legend>',T"Network Mode",'</legend>\
                 ');
