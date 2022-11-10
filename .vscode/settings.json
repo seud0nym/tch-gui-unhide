@@ -18,6 +18,7 @@
         "bulkdata",
         "bwstats",
         "Chex",
+        "Chipset",
         "chmod",
         "colour",
         "colours",
@@ -29,12 +30,14 @@
         "customising",
         "cwmp",
         "CWMPD",
+        "Datapump",
         "DDNS",
         "DECT",
         "DLNA",
         "dnsmasq",
         "domainname",
         "DSCP",
+        "DSLAM",
         "dumaos",
         "excludable",
         "Exetel",
@@ -86,6 +89,7 @@
         "strongswan",
         "synflood",
         "sysupgrade",
+        "Technicolor",
         "tmpfs",
         "tproxy",
         "Truong",
@@ -108,7 +112,7 @@
         "N",
         "commitapply"
     ],
-    "Lua.runtime.version": "LuaJIT",
+    "Lua.runtime.version": "Lua 5.1",
     "Lua.workspace.library": [
         "C:\\Users\\Stephen\\Box\\Technicolor\\Extracted\\vcnt-a_20.3.c.0329-MR19-RB\\usr\\lib\\lua\\web",
         "${3rd}/OpenResty/library"
@@ -122,5 +126,9 @@
         "unused-local": "Information"
     },
     "Lua.diagnostics.ignoredFiles": "Enable",
-    "Lua.workspace.checkThirdParty": false
+    "Lua.workspace.checkThirdParty": false,
+    "cSpell.language": "en-GB",
+    "Lua.diagnostics.disable": [
+        "param-type-mismatch"
+    ]
 }
