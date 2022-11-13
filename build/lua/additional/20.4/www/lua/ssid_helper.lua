@@ -26,12 +26,20 @@ function M.getWiFiCardHTML()
     if radio then
       local values = proxy.get(v.path.."band",v.path.."bandwidth",v.path.."channel",v.path.."tx_power_adjust",v.path.."admin_state")
       if values then
-        local info = format("%s Channel %s <sup class='wifi-width'>%s</sup>",values[1].value,values[3].value,values[2].value)
-        if values[4] and values[4].value ~= "" and values[4].value ~= "0" then
-          info = format("%s <span class='wifi-dBm'>(%s dBm)</span>",info,values[4].value)
+        local enabled = untaint(values[5].value)
+        local channel = values[3].value
+        local info
+        if enabled == "0" or channel == "0" then
+          info = format("%s disabled",values[1].value)
+        else
+          local dBm = values[4].value
+          info = format("%s Channel %s <sup class='wifi-width'>%s</sup>",values[1].value,channel,values[2].value)
+          if dBm ~= "" and dBm ~= "0" then
+            info = format("%s <span class='wifi-dBm'>(%s dBm)</span>",info,dBm)
+          end
         end
         radios[radio] = {
-          admin_state = untaint(values[5].value),
+          admin_state = enabled,
           frequency = sub(untaint(values[1].value),1,1),
           info = info,
           ssid = {},
@@ -107,6 +115,14 @@ function M.getWiFiCardHTML()
         radio,ssid,ishidden,isguest,state,sortby,wps_state,iface = fetch_by_intf(paramindex.value)
       end
       if radio then
+        if not radios[radio] then
+          radios[radio] = {
+            admin_state = "0",
+            frequency = "Unknown",
+            info = "",
+            ssid = {},
+          }
+        end
         radios[radio]["ssid"][#radios[radio]["ssid"]+1] = {
           id = format("SSID%s",#radios[radio]["ssid"]),
           ssid = ssid,
