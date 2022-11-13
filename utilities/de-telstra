@@ -34,7 +34,6 @@ SRV_dlna=0
 SRV_dropbear=0
 [ -e /etc/init.d/dumaos ] && SRV_dumaos=0 ||  SRV_dumaos=-1
 SRV_fw=0
-SRV_hostapd=0
 SRV_hotspot=0
 SRV_iqos=0
 SRV_intercept=0
@@ -57,6 +56,7 @@ SRV_system=0
 SRV_upnp=0
 SRV_wansensing=0
 SRV_watchdog=0
+SRV_wifi=0
 
 usage() {
 cat <<EOH
@@ -1152,7 +1152,7 @@ else
         echo [$SCRIPT]: WPS State unchanged on SSID $ssid \[$(status2text $__WPS)\]
       else
         [ "$__WPS" = 1 ] && transformer-cli set ${path}.WPS true || transformer-cli set ${path}.WPS false
-        SRV_hostapd=$(( $SRV_hostapd + 1 ))
+        SRV_wifi=$(( $SRV_wifi + 1 ))
         echo [$SCRIPT]: WPS State on SSID $ssid $(status2text $__WPS)
       fi
     done
@@ -1165,12 +1165,12 @@ else
         echo [$SCRIPT]: WPS State unchanged on SSID $ssid \[$(status2text $__WPS)\]
       else
         exec_uci set wireless.$ap.wps_state="$__WPS"
-        SRV_hostapd=$(( $SRV_hostapd + 1 ))
+        SRV_wifi=$(( $SRV_wifi + 1 ))
         echo [$SCRIPT]: WPS State on SSID $ssid $(status2text $__WPS)
       fi
     done
   fi
-  if [ $SRV_hostapd -gt 0 ]; then
+  if [ $SRV_wifi -gt 0 ]; then
     exec_uci commit wireless
   fi
 fi
@@ -1292,7 +1292,7 @@ if [ $SRV_multiap -ge 0 ]; then
     if [ "$__MULTIAP_BKH" != "u" ]; then
       exec_uci set wireless.$BHAUL_AP.state="$__MULTIAP_BKH"
       exec_uci set wireless.$BHAUL_IF.state="$__MULTIAP_BKH"
-      SRV_hostapd=$(( $SRV_hostapd + 2 ))
+      SRV_wifi=$(( $SRV_wifi + 2 ))
       SRV_network=$(( $SRV_network + 1 ))
       exec_uci commit wireless
     fi
@@ -1601,7 +1601,7 @@ if [ $__GUEST = y ]; then
       ap=$(uci -q show wireless | grep "iface='$ifname'" | cut -d. -f1-2)
       exec_uci delete $ap
       exec_uci delete wireless.$ifname
-      SRV_hostapd=$(( $SRV_hostapd + 1 ))
+      SRV_wifi=$(( $SRV_wifi + 1 ))
     fi
 
     exec_uci delete $nw
@@ -1620,7 +1620,7 @@ if [ $__GUEST = y ]; then
 
     for ifname in $(uci -q get web.guest.intf); do
       exec_uci delete wireless.$ifname
-      SRV_hostapd=$(( $SRV_hostapd + 1 ))
+      SRV_wifi=$(( $SRV_wifi + 1 ))
     done
     for cred in $(uci -q get web.guest.cred); do
       exec_uci delete mesh_broker.$cred
@@ -1640,7 +1640,7 @@ if [ $SRV_mesh_broker -lt 0 -a $(uci -q show network | grep -E '\.Guest.*=interf
   exec_uci rename wireless.wl1_2='wl1_1'
   exec_uci set $ap.iface='wl1_1'
   exec_uci commit wireless
-  SRV_hostapd=$(( $SRV_hostapd + 2 ))
+  SRV_wifi=$(( $SRV_wifi + 2 ))
   if [ $SRV_multiap -ge 0 ]; then
     exec_uci set multiap.al_entity.interfaces="$(uci -q get multiap.al_entity.interfaces | sed -e 's/wl1_2/wl1_1/')"
     exec_uci set multiap.agent.bss_list="$(uci -q get multiap.agent.bss_list | sed -e 's/wl1_2/wl1_1/')"
@@ -1668,7 +1668,7 @@ echo [$SCRIPT]: Applying service changes...
 [ $SRV_dumaos -gt 0 ] && /etc/init.d/dumaos enable > /dev/null 2>&1
 [ $SRV_hotspot -gt 0 -a -e /etc/init.d/hotspotd ] && { /etc/init.d/hotspotd disable; /etc/init.d/hotspotd stop; } > /dev/null 2>&1
 [ $SRV_intercept -gt 0 ] && /etc/init.d/intercept enable > /dev/null 2>&1
-[ $SRV_mesh_broker -gt 0 ] && /etc/init.d/mesh_broker enable > /dev/null 2>&1
+[ $SRV_mesh_broker -gt 0 ] && /etc/init.d/mesh-broker enable > /dev/null 2>&1
 [ $SRV_mmpbxd -gt 0 ] && { /etc/init.d/mmpbxd enable; /etc/init.d/mmpbxfwctl enable; } > /dev/null 2>&1
 [ $SRV_monitor -gt 0 -a -e /etc/init.d/autoreset ] && { /etc/init.d/autoreset disable; /etc/init.d/autoreset stop; } > /dev/null 2>&1
 [ $SRV_monitor -gt 0 -a -e /etc/init.d/tls-thor ] && { /etc/init.d/tls-thor disable; /etc/init.d/tls-thor stop; } > /dev/null 2>&1
@@ -1690,7 +1690,7 @@ else
   [ $SRV_iqos -gt 0 ] && /etc/init.d/iqos restart > /dev/null 2>&1
   [ $SRV_intercept -gt 0 ] && /etc/init.d/intercept restart > /dev/null 2>&1
   [ $SRV_ledfw -gt 0 ] && /etc/init.d/ledfw restart > /dev/null
-  [ $SRV_mesh_broker -gt 0 ] && /etc/init.d/mesh_broker restart > /dev/null 2>&1
+  [ $SRV_mesh_broker -gt 0 ] && /etc/init.d/mesh-broker restart > /dev/null 2>&1
   [ $SRV_mmpbxd -gt 0 ] && { /etc/init.d/mmpbxd restart; /etc/init.d/mmpbxfwctl restart; } > /dev/null 2>&1
   [ $SRV_mobiled -gt 0 ] && /etc/init.d/mobiled restart > /dev/null 2>&1
   [ $SRV_monitor -gt 0 -a -e /etc/init.d/wifi-doctor-agent ] && /etc/init.d/wifi-doctor-agent reload > /dev/null 2>&1
@@ -1705,7 +1705,7 @@ else
   [ $SRV_supervision -gt 0 ] && /etc/init.d/supervision reload > /dev/null 2>&1
   [ $SRV_system -gt 0 ] && /etc/init.d/system reload > /dev/null 2>&1
   [ $SRV_upnp -gt 0 ] && /etc/init.d/miniupnpd-tch restart > /dev/null 2>&1
-  [ $SRV_hostapd -gt 0 ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1
+  [ $SRV_wifi -gt 0 -e /etc/init.d/hostapd ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1 || { ubus call wireless reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1
   [ $SRV_network -gt 0 ] && /etc/init.d/network reload > /dev/null 2>&1
   [ $SRV_fw -gt 0 ] && /etc/init.d/firewall reload > /dev/null 2>&1
   [ $SRV_wansensing -gt 0 ] && /etc/init.d/wansensing restart > /dev/null 2>&1
@@ -1726,7 +1726,7 @@ if [ "$__LITE" = 'y' ]; then
   [ "$__INTERCEPT" = "0" ] && { /etc/init.d/intercept disable; /etc/init.d/intercept stop; } > /dev/null 2>&1
   [ "$__MMPBX" = "0" ] && { /etc/init.d/mmpbxd disable; /etc/init.d/mmpbxfwctl disable; /etc/init.d/mmpbxd stop; /etc/init.d/mmpbxfwctl stop; } > /dev/null 2>&1
   [ "$__NFC" = "0" ] && { /etc/init.d/nfcd disable; /etc/init.d/nfcd stop; } > /dev/null 2>&1
-  [ "$__MULTIAP" = "0" -a $SRV_mesh_broker -ge 0 ] && { /etc/init.d/mesh_broker disable; /etc/init.d/mesh_broker stop; } > /dev/null 2>&1
+  [ "$__MULTIAP" = "0" -a $SRV_mesh_broker -ge 0 ] && { /etc/init.d/mesh-broker disable; /etc/init.d/mesh-broker stop; } > /dev/null 2>&1
   [ "$__MULTIAP" = "0" -a $SRV_multiap -ge 0 ] && { /etc/init.d/multiap_controller disable; /etc/init.d/multiap_agent disable; /etc/init.d/multiap_vendorextensions disable; /etc/init.d/multiap_controller stop; /etc/init.d/multiap_agent stop; /etc/init.d/multiap_vendorextensions stop; } > /dev/null 2>&1
   [ "$__PRNTR" = "0" ] && { /etc/init.d/cupsd disable; /etc/init.d/cupsd stop; } > /dev/null 2>&1
   [ "$__SAMBA" = "0" -a -e /etc/init.d/samba ] && { /etc/init.d/samba disable; /etc/init.d/samba stop; } > /dev/null 2>&1
