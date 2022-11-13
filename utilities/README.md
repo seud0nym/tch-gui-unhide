@@ -3,6 +3,7 @@ A collection of utility scripts for your Technicolor router. Most of the names a
 
 - [de-telstra](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra)
 - [dumaos](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos)
+- [guest-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#guest-restore)
 - [hijack-dns](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#hijack-dns)
 - [mtd-backup](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-backup)
 - [mtd-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-restore)
@@ -151,6 +152,23 @@ Parameters:
  -off   Disables DumaOS and enables reboot on core dump, then stops the DumaOS service.
 ```
 If you enable DumaOS *after* running the `tch-gui-unhide` script, you will need to re-run `tch-gui-unhide` to enable the button to access DumaOS. Similarly, if you disable DumaOS, you will need to re-run `tch-gui-unhide` to remove the button. 
+
+## guest-restore
+Restores the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks if they were removed using the de-telstra -G option.
+```
+Usage: ./guest-restore [options]
+
+Options:
+ -2   Do NOT restore the 2.4GHz Guest Wi-Fi SSID
+ -5   Do NOT restore the 5GHz Guest Wi-Fi SSID
+ -e   Enable Guest Wi-Fi
+        (Default is to leave Guest Wi-Fi disabled)
+ -n   Do NOT reboot.
+        (This is NOT recommended)
+ -v   Show verbose messages
+ -y   Bypass the confirmation prompt (answers "y")
+ -U   Download the latest version of guest-restore from GitHub
+```
 
 ## hijack-dns
 Configures DNS hijacking:

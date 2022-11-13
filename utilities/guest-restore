@@ -1,0 +1,465 @@
+#!/bin/sh
+# Make sure that we are running on Telstra firmware
+if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]; then
+  echo "ERROR! This script is intended for devices with Telstra firmware. Exiting"
+  exit 1
+fi
+
+SCRIPT="$(basename $0)"
+
+GREEN='\033[1;32m'
+GREY='\033[90m'
+ORANGE='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+usage() {
+cat <<EOH
+Restores the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks if
+they were removed using the de-telstra -G option.
+
+Usage: $0 [options]
+
+Options:
+ -2   Do NOT restore the 2.4GHz Guest Wi-Fi SSID
+ -5   Do NOT restore the 5GHz Guest Wi-Fi SSID
+ -e   Enable Guest Wi-Fi
+        (Default is to leave Guest Wi-Fi disabled)
+ -n   Do NOT reboot.
+        (This is NOT recommended)
+ -v   Show verbose messages
+ -y   Bypass the confirmation prompt (answers "y")
+ -U   Download the latest version of $SCRIPT from GitHub
+
+EOH
+
+if [ -n "$1" ]; then
+  local index=$(( $1 - 1 ))
+  echo -e "${RED}ERROR:${NC} Parameter $index is an unknown option!\033[0m"; 
+  echo
+fi
+exit
+}
+
+[ "/$1/" = "/-?/" -o "/$1/" = "/--help/" ] && usage
+
+exec_uci() {
+  local command="$1"
+  shift
+  local arguments="$*"
+  local path="$(echo "$arguments" | cut -d= -f1)"
+  local value="$(echo "$arguments" | cut -d= -f2)"
+  local retval
+
+  if [ "$path" = "$value" ]; then
+    [ -z "$__VERBOSE" ] && echo -e "${GREY}RUNNING:  uci ${command} ${path}${NC}"
+    uci $__VERBOSE ${command} ${path} > /dev/null
+    retval=$?
+  else
+    [ -z "$__VERBOSE" ] && echo -e "${GREY}RUNNING:  uci ${command} ${path}=\"$value\"${NC}"
+    uci $__VERBOSE ${command} ${path}="$value"
+    retval=$?
+  fi
+  if [ "$retval" != "0" ]; then
+    abort "Command Failed: uci $command $arguments"
+  fi
+}
+
+revert() {
+  echo -e "${ORANGE}INFO${NC}:     Clearing any outstanding UCI settings..."
+  for config in $(uci changes | cut -d. -f1 | sed -e 's/^-//' | sort -u); do
+    exec_uci revert $config
+  done
+}
+
+abort() {
+  echo -e "${RED}ABORTING: $*${NC}"
+  revert
+  exit 2
+}
+
+upgrade() {
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ]; then
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
+    if [ $? -eq 0 ]; then
+      chmod +x $SCRIPT
+      echo -e "${GREEN}SUCCESS:  Downloaded $SCRIPT.${NC}"
+    else
+      echo -e "${RED}ERROR:    Failed to download $SCRIPT?${NC}"
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]; then
+    echo -e "${RED}ERROR:    Not found on GitHub???${NC}"
+  elif [ "$RESPONSE_CODE" = 000 ]; then
+    echo -e "${RED}ERROR:    No Internet connection???${NC}"
+  else
+    echo -e "${RED}ERROR:    Unknown response code $RESPONSE_CODE${NC}"
+  fi
+  exit
+}
+
+__BAND="2.4GHz/5GHz"
+__ENABLED="0"
+__REBOOT="Y"
+__VERBOSE="-q"
+__YES="n"
+
+while getopts :12envyU: option; do
+ case "${option}" in
+  2)  [ $__BAND = "2.4GHz/5GHz" ] && __BAND="2.4GHz" || abort "-2 and -5 are mutually exclusive. You cannot specify both.";;
+  5)  [ $__BAND = "2.4GHz/5GHz" ] && __BAND="5GHz" || abort "-2 and -5 are mutually exclusive. You cannot specify both.";;
+  e)  __ENABLED="1";;
+  n)  __REBOOT="N";;
+  v)  __VERBOSE="";;
+  y)  __YES="y";;
+  U)  upgrade;;
+  *)  usage $OPTIND;;
+ esac
+done
+
+echo -e "NOTE:     Guest Wi-Fi to be restored: ${GREEN}$__BAND${NC}..."
+[ $__ENABLED = 0 ] && echo -e "NOTE:     Guest Wi-Fi will ${ORANGE}NOT${NC} be enabled" || echo -e "NOTE:     Guest Wi-Fi ${GREEN}WILL${NC} be enabled"
+[ $__REBOOT = Y ] && echo -e "${ORANGE}WARNING:  Device will be rebooted!${NC}" || echo -e "NOTE:     Device will ${RED}NOT${NC} be rebooted (NOT RECOMMENDED)"
+
+if [ $__YES = n ]; then
+  echo -n -e "${GREEN}ACTION:   Enter y to continue, or anything else to abort: ${NC}"
+  read
+  if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
+    exit
+  fi
+fi
+
+find_next() {
+  local base="$1"
+  local index=1
+  local next=""
+
+  until [ -n "$next" ]; do
+    uci -q get wireless.${base}${index} >/dev/null 2>&1 || next="${base}${index}"
+    index=$(( $index + 1 ))
+  done
+
+  echo $next
+}
+
+config_dhcp() {
+  echo -e "${GREEN}INFO${NC}:     Restoring guest dnsmasq settings..."
+  exec_uci set dhcp.guest=dnsmasq
+  exec_uci set dhcp.guest.disabled="0"
+  exec_uci set dhcp.guest.nonwildcard="1"
+  exec_uci set dhcp.guest.domainneeded="1"
+  exec_uci set dhcp.guest.boguspriv="1"
+  exec_uci set dhcp.guest.filterwin2k="0"
+  exec_uci set dhcp.guest.localise_queries="1"
+  exec_uci set dhcp.guest.rebind_protection="0"
+  exec_uci set dhcp.guest.rebind_localhost="1"
+  exec_uci set dhcp.guest.local="/lan/"
+  exec_uci set dhcp.guest.expandhosts="1"
+  exec_uci set dhcp.guest.nonegcache="0"
+  exec_uci set dhcp.guest.authoritative="1"
+  exec_uci set dhcp.guest.readethers="1"
+  exec_uci set dhcp.guest.leasefile="/tmp/dhcp.leases"
+  exec_uci set dhcp.guest.resolvfile="/tmp/resolv.conf.d/resolv.conf.auto"
+  exec_uci set dhcp.guest.strictorder="1"
+  exec_uci set dhcp.guest.dhcpscript="/lib/dnsmasq/dhcp-event.sh"
+  exec_uci set dhcp.guest.domain="modem"
+  exec_uci set dhcp.guest.add_local_fqdn="0"
+  exec_uci add_list dhcp.guest.hostname="mymodem"
+  exec_uci add_list dhcp.guest.hostname="mygateway"
+  exec_uci add_list dhcp.guest.hostname="telstra"
+  exec_uci set dhcp.guest.notinterface="loopback"
+}
+
+config_network_and_firewall() {
+  local network="$1"
+  local ipaddr="$2"
+  local mask="$3"
+  local hint="$4"
+  local start="$5"
+  local limit="$6"
+  local ifname="$7"
+  
+  echo -e "${GREEN}INFO${NC}:     Restoring network ${ORANGE}$network${NC}..."
+  exec_uci set network.${network}=interface
+  exec_uci set network.${network}.proto="static"
+  exec_uci set network.${network}.ip6assign="64"
+  exec_uci set network.${network}.ip6hint="${hint}"
+  exec_uci set network.${network}.netmask="${mask}"
+  exec_uci set network.${network}.ipaddr="${ipaddr}"
+  exec_uci set network.${network}.ifname="${ifname}"
+  exec_uci set network.${network}.force_link="1"
+  exec_uci set network.${network}.rpfilter="1"
+
+  echo -e "${GREEN}INFO${NC}:     Adding network ${ORANGE}$network${NC} for guest dnsmasq interfaces..."
+  exec_uci add_list dhcp.guest.interface="${network}"
+
+  echo -e "${GREEN}INFO${NC}:     Restoring DHCP settings for network ${ORANGE}$network${NC}..."
+  exec_uci set dhcp.${network}_private=dhcp
+  exec_uci set dhcp.${network}_private.instance="guest"
+  exec_uci set dhcp.${network}_private.interface="${network}"
+  exec_uci set dhcp.${network}_private.start="${start}"
+  exec_uci set dhcp.${network}_private.limit="${limit}"
+  exec_uci set dhcp.${network}_private.leasetime="1d"
+  exec_uci set dhcp.${network}_private.force="1"
+  exec_uci set dhcp.${network}_private.dhcpv6="server"
+  exec_uci set dhcp.${network}_private.ra="server"
+  exec_uci set dhcp.${network}_private.ra_management="0"
+  exec_uci set dhcp.${network}_private.ra_mininterval="200"
+  exec_uci set dhcp.${network}_private.ra_maxinterval="600"
+  exec_uci set dhcp.${network}_private.ra_lifetime="1800"
+  exec_uci set dhcp.${network}_private.ra_hoplimit="64"
+
+  echo -e "${GREEN}INFO${NC}:     Restoring Firewall Zone for network ${ORANGE}$network${NC}..."
+  exec_uci add firewall zone
+  exec_uci set firewall.@zone[-1].name="${network}"
+  exec_uci set firewall.@zone[-1].network="${network}"
+
+  echo -e "${GREEN}INFO${NC}:     Restoring WAN forwarding for network ${ORANGE}$network${NC}..."
+  exec_uci add firewall forwarding
+  exec_uci set firewall.@forwarding[-1].src="${network}"
+  exec_uci set firewall.@forwarding[-1].dest="wan"
+
+  echo -e "${GREEN}INFO${NC}:     Restoring Firewall rules for ${ORANGE}$network${NC}..."
+  exec_uci add firewall rule
+  exec_uci set firewall.@rule[-1].name="drop_lan_2_${network}"
+  exec_uci set firewall.@rule[-1].src="lan"
+  exec_uci set firewall.@rule[-1].dest="${network}"
+  exec_uci set firewall.@rule[-1].proto="all"
+  exec_uci set firewall.@rule[-1].target="DROP"
+  exec_uci add firewall rule
+  exec_uci set firewall.@rule[-1].name="drop_${network}_2_lan"
+  exec_uci set firewall.@rule[-1].src="${network}"
+  exec_uci set firewall.@rule[-1].dest="lan"
+  exec_uci set firewall.@rule[-1].proto="all"
+  exec_uci set firewall.@rule[-1].target="DROP"
+  exec_uci add firewall rule
+  exec_uci set firewall.@rule[-1].name="drop-lan_2_${network}_GW"
+  exec_uci set firewall.@rule[-1].src="lan"
+  exec_uci set firewall.@rule[-1].proto="all"
+  exec_uci set firewall.@rule[-1].target="DROP"
+  exec_uci set firewall.@rule[-1].family="ipv4"
+  exec_uci set firewall.@rule[-1].dest_ip="${ipaddr}"
+  exec_uci add firewall rule
+  exec_uci set firewall.@rule[-1].name="Allow-${network}_ICMP"
+  exec_uci set firewall.@rule[-1].src="${network}"
+  exec_uci set firewall.@rule[-1].proto="icmp"
+  exec_uci set firewall.@rule[-1].target="ACCEPT"
+  exec_uci set firewall.@rule[-1].family="ipv4"
+  exec_uci set firewall.@rule[-1].dest_ip="${ipaddr}"
+  exec_uci add firewall rule
+  exec_uci set firewall.@rule[-1].name="Allow-${network}_DHCP"
+  exec_uci set firewall.@rule[-1].src="${network}"
+  exec_uci set firewall.@rule[-1].proto="udp"
+  exec_uci set firewall.@rule[-1].dest_port="67"
+  exec_uci set firewall.@rule[-1].target="ACCEPT"
+  exec_uci set firewall.@rule[-1].family="ipv4"
+  exec_uci add firewall rule
+  exec_uci set firewall.@rule[-1].name="Allow-${network}_DNS"
+  exec_uci set firewall.@rule[-1].src="${network}"
+  exec_uci set firewall.@rule[-1].proto="udp"
+  exec_uci set firewall.@rule[-1].dest_port="53"
+  exec_uci set firewall.@rule[-1].target="ACCEPT"
+  exec_uci set firewall.@rule[-1].family="ipv4"
+  exec_uci add firewall rule
+  exec_uci set firewall.@rule[-1].name="Allow-${network}_ICMPv6"
+  exec_uci set firewall.@rule[-1].src="${network}"
+  exec_uci set firewall.@rule[-1].proto="icmp"
+  exec_uci add_list firewall.@rule[-1].icmp_type="echo-request"
+  exec_uci add_list firewall.@rule[-1].icmp_type="echo-reply"
+  exec_uci add_list firewall.@rule[-1].icmp_type="destination-unreachable"
+  exec_uci add_list firewall.@rule[-1].icmp_type="packet-too-big"
+  exec_uci add_list firewall.@rule[-1].icmp_type="time-exceeded"
+  exec_uci add_list firewall.@rule[-1].icmp_type="bad-header"
+  exec_uci add_list firewall.@rule[-1].icmp_type="unknown-header-type"
+  exec_uci add_list firewall.@rule[-1].icmp_type="router-solicitation"
+  exec_uci add_list firewall.@rule[-1].icmp_type="neighbour-solicitation"
+  exec_uci add_list firewall.@rule[-1].icmp_type="router-advertisement"
+  exec_uci add_list firewall.@rule[-1].icmp_type="neighbour-advertisement"
+  exec_uci set firewall.@rule[-1].limit="1000/sec"
+  exec_uci set firewall.@rule[-1].family="ipv6"
+  exec_uci set firewall.@rule[-1].target="ACCEPT"
+
+  echo -e "${GREEN}INFO${NC}:     Adding network ${ORANGE}$network${NC} to parental controls LAN interfaces..."
+  exec_uci add_list parental.general.lan_intf="${network}"
+}
+
+config_wifi_technicolor() {
+  local network="$1"
+  local ifname="$2"
+  local radio="$3"
+  local ap="$4"
+  local envvar="$5"
+  local ssid="$6"
+  local modes="none wep wpa2-psk wpa-wpa2-psk wpa2 wpa-wpa2"
+
+  [ "$radio" = "radio_5G" ] && modes="none wpa2-psk wpa-wpa2-psk wpa2 wpa-wpa2"
+
+  echo -e "${GREEN}INFO${NC}:     Adding network ${ORANGE}$network${NC} to QoS Classify/Reclassify rules..."
+  exec_uci add_list qos.reclassify_1.srcif="${network}"
+  exec_uci add_list qos.classify_4.srcif="${network}"
+  exec_uci add_list qos.classify_4_1.srcif="${network}"
+
+  echo -e "${GREEN}INFO${NC}:     Restoring SSID ${ORANGE}$ssid${NC} Wi-Fi interface (${ifname})..."
+  exec_uci set wireless.${ifname}=wifi-iface
+  exec_uci set wireless.${ifname}.device="$radio"
+  exec_uci set wireless.${ifname}.mode="ap"
+  exec_uci set wireless.${ifname}.state="1"
+  exec_uci set wireless.${ifname}.reliable_multicast="0"
+  exec_uci set wireless.${ifname}.ssid="${ssid}"
+  exec_uci set wireless.${ifname}.network="${network}"
+
+  echo -e "${GREEN}INFO${NC}:     Restoring SSID ${ORANGE}$ssid${NC} Wi-Fi access point (${ap})..."
+  exec_uci set wireless.${ap}=wifi-ap
+  exec_uci set wireless.${ap}.iface="${ifname}"
+  exec_uci set wireless.${ap}.state="${__ENABLED}"
+  exec_uci set wireless.${ap}.public="1"
+  exec_uci set wireless.${ap}.ap_isolation="1"
+  exec_uci set wireless.${ap}.station_history="1"
+  exec_uci set wireless.${ap}.max_assoc="0"
+  exec_uci set wireless.${ap}.pmksa_cache="1"
+  exec_uci set wireless.${ap}.wps_state="0"
+  exec_uci set wireless.${ap}.wps_w7pbc="0"
+  exec_uci set wireless.${ap}.wsc_state="configured"
+  exec_uci set wireless.${ap}.wps_ap_setup_locked="1"
+  exec_uci set wireless.${ap}.acl_mode="unlock"
+  exec_uci set wireless.${ap}.acl_registration_time="60"
+  exec_uci set wireless.${ap}.trace_modules=" "
+  exec_uci set wireless.${ap}.trace_level="some"
+  exec_uci set wireless.${ap}.supported_security_modes="${modes}"
+  exec_uci set wireless.${ap}.security_mode="wpa2-psk"
+  exec_uci set wireless.${ap}.pmf="enabled"
+  exec_uci set wireless.${ap}.bandsteer_id="off"
+  exec_uci set wireless.${ap}.wep_key="$(uci get env.var.default_wep_key_${envvar})"
+  exec_uci set wireless.${ap}.wpa_psk_key="$(uci get env.var.default_key_${envvar})"
+  exec_uci set wireless.${ap}.wps_ap_pin="$(uci get env.var.default_wps_ap_pin_${envvar})"
+}
+
+config_wifi_airties() {
+  local ifname="$1"
+  local radio="$2"
+  local cred="$3"
+  local envvar="$4"
+  local ssid="$5"
+  local bands="$6"
+  
+  echo -e "${GREEN}INFO${NC}:     Restoring SSID ${ORANGE}$ssid${NC} Wi-Fi interface (${ifname})..."
+  exec_uci set wireless.${ifname}=wifi-iface
+  exec_uci set wireless.${ifname}.device="${radio}"
+  exec_uci set wireless.${ifname}.mode="ap"
+  exec_uci set wireless.${ifname}.state="${__ENABLED}"
+  exec_uci set wireless.${ifname}.public="1"
+  exec_uci set wireless.${ifname}.ssid="${ssid}"
+  exec_uci set wireless.${ifname}.security_mode="wpa2-psk"
+  exec_uci set wireless.${ifname}.supported_security_modes="none wpa2-psk wpa2-wpa3-psk wpa3-psk"
+  exec_uci set wireless.${ifname}.pmf="enabled"
+  exec_uci set wireless.${ifname}.network="Guest"
+  exec_uci set wireless.${ifname}.ap_isolation="1"
+  exec_uci set wireless.${ifname}.wpa_psk_key="$(uci get env.var.default_key_${envvar})"
+
+  echo -e "${GREEN}INFO${NC}:     Restoring SSID ${ORANGE}$ssid${NC} Mesh Broker controller credentials  (${cred})..."
+  exec_uci set mesh_broker.${cred}=controller_credentials
+  exec_uci set mesh_broker.${cred}.state="${__ENABLED}"
+  exec_uci set mesh_broker.${cred}.security_mode="wpa2-psk"
+  exec_uci set mesh_broker.${cred}.fronthaul="1"
+  exec_uci set mesh_broker.${cred}.backhaul="0"
+  exec_uci set mesh_broker.${cred}.gateway="1"
+  exec_uci set mesh_broker.${cred}.extender="0"
+  exec_uci set mesh_broker.${cred}.vlan_id="20"
+  exec_uci set mesh_broker.${cred}.frequency_bands="${bands}"
+  exec_uci set mesh_broker.${cred}.type="guest"
+  exec_uci set mesh_broker.${cred}.ssid="${ssid}"
+  exec_uci set mesh_broker.${cred}.wpa_psk_key="$(uci get env.var.default_key_${envvar})"
+
+  echo -e "${GREEN}INFO${NC}:     Adding network ${ORANGE}$network${NC} to QoS Classify/Reclassify rules..."
+  exec_uci add_list web.guest.cred="${cred}"
+  exec_uci add_list web.guest.intf="${ifname}"
+}
+
+restart_services() {
+  echo -e "${NC}APPLYING: Wireless configuration${GREY}"
+  [ -e /etc/init.d/hostapd ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; }
+  [ -e /etc/init.d/hostapd ] || { ubus call wireless reload  && ubus send config "{'reload':'wireless'}"; }
+  echo -e "${NC}APPLYING: Network configuration${GREY}"  && /etc/init.d/network reload
+  [ -e /etc/config/mesh_broker ] && echo -e "${NC}APPLYING: Mesh Broker configuration${GREY}" && /etc/init.d/mesh-broker restart
+  [ -e /etc/config/multiap ]     && echo -e "${NC}APPLYING: MultiAP configuration${GREY}"     && { /etc/init.d/multiap_controller restart; /etc/init.d/multiap_agent restart; /etc/init.d/multiap_vendorextensions restart; }
+  echo -e "${NC}APPLYING: DHCP configuration${GREY}"     && /etc/init.d/dnsmasq reload
+  echo -e "${NC}APPLYING: Firewall configuration${GREY}" && /etc/init.d/firewall reload
+  echo -e "${NC}APPLYING: QoS configuration${GREY}"
+  [ -e /etc/init.d/qos ] && /etc/init.d/qos reload > /dev/null 2>&1
+  [ -e /etc/init.d/qos_tch ] && /etc/init.d/qos_tch reload > /dev/null 2>&1
+  echo -en "${NC}"
+}
+
+echo -e "${GREEN}INFO${NC}:     Clearing any oustanding UCI settings..."
+for config in $(uci changes | cut -d. -f1 | sort -u); do
+  exec_uci revert $config
+done
+
+config_dhcp
+
+if [ -e /etc/config/mesh_broker ]; then
+  config_network_and_firewall "Guest"       "192.168.2.254" "255.255.255.0"   "1" "1"   "250" "dummy0"
+  exec_uci set network.Guest.type="bridge"
+
+  echo -e "${GREEN}INFO${NC}:     Adding network ${ORANGE}Guest${NC} to QoS Classify/Reclassify rules..."
+  exec_uci add_list qos_tch.reclassify_1.srcif="Guest"
+  exec_uci add_list qos_tch.classify_4.srcif="Guest"
+  exec_uci add_list qos_tch.classify_4_1.srcif="Guest"
+
+  exec_uci set web.guest=network
+  echo -e "${GREEN}INFO${NC}:     Configuring split SSID..."
+  if [ "$__BAND" = "2.4GHz/5GHz" ]; then
+    exec_uci set web.guest.splitssid='0'
+  else
+    exec_uci set web.guest.splitssid='1'
+  fi
+
+  if echo "$__BAND" | grep -q "2.4GHz"; then
+    config_wifi_airties   "wl1_1" "radio1" "cred3" "r0_s1" "Guest"      "2"
+  fi
+  if echo "$__BAND" | grep -q "5GHz"; then
+    echo -e "${GREEN}INFO${NC}:     Adding network ${ORANGE}Guest_5GHz${NC} for guest dnsmasq interfaces..."
+    exec_uci add_list dhcp.guest.interface="Guest_5GHz"
+    echo -e "${GREEN}INFO${NC}:     Adding network ${ORANGE}Guest_5GHz${NC} to parental controls LAN interfaces..."
+    exec_uci add_list parental.general.lan_intf="Guest_5GHz"
+    if [ "$__BAND" = "2.4GHz/5GHz" ]; then
+      config_wifi_airties "wl0_2" "radio0" "cred4" "r0_s1" "Guest"      "5L"
+    else
+      config_wifi_airties "wl0_2" "radio0" "cred4" "r0_s1" "Guest_5GHz" "5L"
+    fi
+  fi
+else
+  if echo "$__BAND" | grep -q "2.4GHz"; then
+    wl="$(find_next wl0_)"
+    ap="$(find_next ap)"
+    config_network_and_firewall "Guest1"      "192.168.2.126" "255.255.255.128" "1" "1"   "125" "$wl"
+    config_wifi_technicolor     "Guest1"      "$wl" "radio_2G" "$ap" "r0_s1" "Guest1"
+  fi
+  if echo "$__BAND" | grep -q "5GHz"; then
+    wl="$(find_next wl1_)"
+    ap="$(find_next ap)"
+    config_network_and_firewall "Guest1_5GHz" "192.168.2.254" "255.255.255.128" "2" "129" "125" "$wl"
+    config_wifi_technicolor     "Guest1_5GHz" "$wl" "radio_5G" "$ap" "r1_s1" "Guest1-5G"
+  fi
+fi
+
+echo -e "${GREEN}INFO${NC}:     Commiting configuration changes..."
+uci commit
+
+if [ "$__REBOOT" = "Y" ]; then
+  echo -e "${ORANGE}INFO:     Rebooting...${NC}"
+  if [ -e /proc/sysrq-trigger ]; then
+    sleep 1
+    echo 1 > /proc/sys/kernel/sysrq
+    echo b > /proc/sysrq-trigger
+  else
+    reboot
+  fi
+  sleep 10
+else
+  echo -e "${GREEN}INFO${NC}:     Restarting services to apply changes..."
+  [ -z "$__VERBOSE" ] && restart_services || restart_services > /dev/null 2>&1
+
+  echo -e "${ORANGE}ACTION:   You really should power cycle the device now!${NC}"
+  echo -e "${GREEN}INFO:     Done!${NC}"
+fi
