@@ -1705,7 +1705,7 @@ else
   [ $SRV_supervision -gt 0 ] && /etc/init.d/supervision reload > /dev/null 2>&1
   [ $SRV_system -gt 0 ] && /etc/init.d/system reload > /dev/null 2>&1
   [ $SRV_upnp -gt 0 ] && /etc/init.d/miniupnpd-tch restart > /dev/null 2>&1
-  [ $SRV_wifi -gt 0 -e /etc/init.d/hostapd ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1 || { ubus call wireless reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1
+  [ $SRV_wifi -gt 0 -a -e /etc/init.d/hostapd ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1 || { ubus call wireless reload && ubus send config "{'reload':'wireless'}"; } > /dev/null 2>&1
   [ $SRV_network -gt 0 ] && /etc/init.d/network reload > /dev/null 2>&1
   [ $SRV_fw -gt 0 ] && /etc/init.d/firewall reload > /dev/null 2>&1
   [ $SRV_wansensing -gt 0 ] && /etc/init.d/wansensing restart > /dev/null 2>&1
