@@ -441,9 +441,10 @@ exec_uci() {
     uci $__VERBOSE ${command} ${path}="$value"
     retval=$?
   fi
-  if [ "$retval" != "0" ]; then
+  if [ "$retval" != "0" -a "$command" != "delete" ]; then
     echo -e "[$SCRIPT]: ${ORANGE}WARNING - failed to execute${NC} uci $__VERBOSE ${command} $arguments"
   fi
+  return $retval
 }
 
 echo [$SCRIPT]: Applying default hardening rules...
@@ -504,8 +505,8 @@ else
     echo [$SCRIPT]: - Disabling Telstra monitoring
     if [ -e /etc/config/autoreset ]; then
       echo [$SCRIPT]: - Removing autoreset config
-      exec_uci delete autoreset.vsparc_enabled
-      exec_uci delete autoreset.thor_enabled
+      [ -n "$(uci -q get autoreset.vsparc_enabled)" ] && exec_uci delete autoreset.vsparc_enabled
+      [ -n "$(uci -q get autoreset.thor_enabled)" ] && exec_uci delete autoreset.thor_enabled
       exec_uci commit autoreset
       SRV_monitor=$(( $SRV_monitor + 2 ))
     fi
