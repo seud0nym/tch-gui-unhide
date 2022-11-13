@@ -1569,7 +1569,7 @@ fi
 
 # Guest Wi-Fi
 if [ $__GUEST = y ]; then
-  exec_uci delete dhcp.guest
+  [ -n "$(uci -q get dhcp.guest)" ] && exec_uci delete dhcp.guest
   SRV_dhcp=$(( $SRV_dhcp + 1 ))
   for nw in $(uci -q show network | grep -E '\.Guest.*=interface'  | cut -d= -f1); do
     nwname=$(echo $nw | cut -d. -f2)
@@ -1626,9 +1626,10 @@ if [ $__GUEST = y ]; then
       exec_uci delete mesh_broker.$cred
       SRV_mesh_broker=$(( $SRV_mesh_broker + 1 ))
     done
-    exec_uci delete web.guest
+    [ -n "$(uci -q get web.guest)" ] && exec_uci delete web.guest
   fi
   [ $SRV_mesh_broker -ge 0 ] && exec_uci commit mesh_broker
+  [ $SRV_qos_tch -ge 0 ] && exec_uci commit qos_tch
   for cfg in dhcp parental qos wireless network firewall web; do
     exec_uci commit $cfg
   done
