@@ -9,9 +9,18 @@
 
 The tch-gui-unhide script can be applied to various Telstra branded Technicolor devices to unlock hidden features in the web GUI. The aim is to improve the usability of these devices without compromising stability.
 
-[Features](https://github.com/seud0nym/tch-gui-unhide/wiki/Features) that have been unlocked or added are shown in the [wiki](https://github.com/seud0nym/tch-gui-unhide/wiki).
+## Installation
 
-[Installation instructions](https://github.com/seud0nym/tch-gui-unhide/wiki/Installation) can also be found in the [wiki](https://github.com/seud0nym/tch-gui-unhide/wiki).
+Execute this command on the device:
+```
+curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/get | sh -s --
+```
+
+Detailed [installation instructions](https://github.com/seud0nym/tch-gui-unhide/wiki/Installation) can be found in the [wiki](https://github.com/seud0nym/tch-gui-unhide/wiki).
+
+## Features
+
+[Features](https://github.com/seud0nym/tch-gui-unhide/wiki/Features) that have been unlocked or added are shown in the [wiki](https://github.com/seud0nym/tch-gui-unhide/wiki).
 
 ![Night Theme with Monochrome Highlights](https://github.com/seud0nym/tch-gui-unhide/wiki/images/night-mono.png)
 
