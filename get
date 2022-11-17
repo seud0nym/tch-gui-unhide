@@ -159,7 +159,7 @@ if [ $__EXTRACT = y ]; then
       fi
     fi
     cd $__TARGET
-    if [ -e show-bank-plan -a "$(mount | grep '/rom type' | cut -d' ' -f5)" = squashfs ]; then
+    if [ -e show-bank-plan -a "$(mount | grep '/overlay type' | cut -d' ' -f5)" = jffs2 ]; then
       if sh show-bank-plan -q; then
         echo -e "${GREEN}INFO:     Bank Plan is OPTIMAL${NC}."
       else
