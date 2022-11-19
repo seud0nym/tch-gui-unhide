@@ -439,26 +439,26 @@ else
 fi
 echo -e "NOTE:     Root access will be preserved and the root password will be set to '${GREEN}${__ROOTPWD}${NC}'"
 
-RBI="N"
+RBI="Y"
 if [ -n "$FIRMWARE" ]; then
   if [ -f "$FIRMWARE" ]; then
     if echo "$FIRMWARE" | grep -qE '\.pkgtb$'; then
-      echo -e "NOTE:     ${ORANGE}$(basename $FIRMWARE)${NC} will be flashed into ${GREEN}$NOT_BOOTED${NC} and a ${GREEN}bank switch performed${NC}"
+      echo -e "NOTE:     ${GREEN}$(basename $FIRMWARE)${NC} will be flashed into ${GREEN}$NOT_BOOTED${NC} by sysupgrade and a ${GREEN}bank switch performed${NC}"
       SWITCH_BANK="Y"
+      RBI="N"
     else
       if echo "$FIRMWARE" | grep -qE '\.rbi$'; then
-        RBI="Y"
         if [ -z "$USB" ]; then
-          echo -e "WARNING:  ${ORANGE}$(basename $FIRMWARE) will be unpacked to /tmp before flashing. "
+          echo -e "WARNING:  ${ORANGE}$(basename $FIRMWARE) will be unpacked to /tmp before flashing.${NC}"
           echo -e "          ${RED}THIS IS NOT RECOMMENDED!${NC} You should use a USB stick."
           echo "          Do you have enough RAM?"
         else
-          echo "NOTE:     $(basename $FIRMWARE) will be unpacked to ${MOUNT_PATH}${USB} before flashing."
+          echo "NOTE:     ${ORANGE}$(basename $FIRMWARE)${NC} will be unpacked to ${MOUNT_PATH}${USB} before flashing.${NC}"
           echo "          Do you have enough space?"
         fi
-        echo -e "NOTE:     $(basename $FIRMWARE .rbi).bin will be flashed into ${GREEN}$BOOTED${NC}"
+        echo -e "NOTE:     ${GREEN}$(basename $FIRMWARE .rbi).bin${NC} will be flashed into ${GREEN}$BOOTED${NC} by direct mtd write"
       else # .bin
-        echo -e "NOTE:     $(basename $FIRMWARE) will be flashed into ${GREEN}$BOOTED${NC}"
+        echo -e "NOTE:     ${GREEN}$(basename $FIRMWARE)${NC} will be flashed into ${GREEN}$BOOTED${NC} by direct mtd write"
       fi
       if [ "$ACTIVE" = "$BOOTED" ]; then
         echo -e "${RED}WARNING:  Bank plan is NOT optimal! Active bank is $ACTIVE and booted bank is $BOOTED!${NC}"
@@ -582,7 +582,7 @@ if [ $YES = N ]; then
   fi
 fi
 
-if [ $RBI = Y ]; then
+if echo "$FIRMWARE" | grep -qE '\.rbi$'; then
   if [ -z "$USB" ]; then
     target="/tmp/$(basename $FIRMWARE .rbi).bin"
   else
