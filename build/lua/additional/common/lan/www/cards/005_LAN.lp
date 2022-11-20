@@ -118,7 +118,7 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
           local addresses = require("split").split(untaint(lanParams["ipv6addr"])," ")
           local max_show = 2
           if isBridgedMode then
-            max_show = 7
+            max_show = 6
           end
           ngx.print(T'<strong style="letter-spacing:-1px;font-size:12px;">')
           for i,address in ipairs(addresses) do
