@@ -650,10 +650,11 @@ if [ -n "$FIRMWARE" -a "$RBI" = "Y" ]; then
   echo -en "${GREY}"
   mtd -e ${TARGET_MTD} write "$FIRMWARE" ${TARGET_MTD}
   echo -en "${NC}"
+  sync
   echo -e "INFO:     Verifying ${ORANGE}${TARGET_MTD}${NC} against ${ORANGE}$FIRMWARE${NC}..."
   VERIFY_RESULT=$(mtd verify "$FIRMWARE" ${TARGET_MTD} 2>&1)
   echo -e "${GREY}$VERIFY_RESULT${NC}"
-  if echo "$VERIFY_RESULT" | grep -q 'Failed'; then
+  if ! echo "$VERIFY_RESULT" | grep -q 'Success'; then
     echo -e "${RED}ABORTING: mtd verify FAILED!!${NC}"
     exit 2
   fi
