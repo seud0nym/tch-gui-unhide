@@ -188,7 +188,7 @@ OPTIONS="-f $FIRMWARE $OPTIONS"
 if [ ! -e reset-to-factory-defaults-with-root ]; then
   echo -e "NOTE:     Downloading script dependency 'reset-to-factory-defaults-with-root'..."
   download reset-to-factory-defaults-with-root
-elif [ $(curl -skL "https://api.github.com/repos/seud0nym/tch-gui-unhide/commits?path=utilities/reset-to-factory-defaults-with-root&since=$(date -Is -r reset-to-factory-defaults-with-root)" | jsonfilter -e '$[*].commit.committer.date' | wc -l) -gt 0 ]; then
+elif [ $(curl -skL "https://api.github.com/repos/seud0nym/tch-gui-unhide/commits?path=utilities/reset-to-factory-defaults-with-root&since=$(date -Is -r reset-to-factory-defaults-with-root)" | jsonfilter -e '$[*].commit.committer.date' 2>/dev/null | wc -l) -gt 0 ]; then
   echo -e "NOTE:     Upgrading script dependency 'reset-to-factory-defaults-with-root'..."
   download reset-to-factory-defaults-with-root
 fi
