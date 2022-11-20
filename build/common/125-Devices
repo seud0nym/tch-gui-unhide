@@ -16,6 +16,7 @@ if [ "$(uci -q get firewall.bwstats)" != "include" ]; then
   uci set firewall.bwstats.path='/usr/share/tch-gui-unhide/bwstats.sh'
   uci set firewall.bwstats.reload='0'
   uci set firewall.bwstats.enabled='0'
+  uci commit firewall
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 
