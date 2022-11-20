@@ -453,7 +453,7 @@ if [ -n "$FIRMWARE" ]; then
           echo -e "          ${RED}THIS IS NOT RECOMMENDED!${NC} You should use a USB stick."
           echo "          Do you have enough RAM?"
         else
-          echo "NOTE:     ${ORANGE}$(basename $FIRMWARE)${NC} will be unpacked to ${MOUNT_PATH}${USB} before flashing.${NC}"
+          echo -e "NOTE:     ${ORANGE}$(basename $FIRMWARE)${NC} will be unpacked to ${MOUNT_PATH}${USB} before flashing.${NC}"
           echo "          Do you have enough space?"
         fi
         echo -e "NOTE:     ${GREEN}$(basename $FIRMWARE .rbi).bin${NC} will be flashed into ${GREEN}$BOOTED${NC} by direct mtd write"
