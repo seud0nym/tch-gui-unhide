@@ -1,9 +1,11 @@
-2022.11.16
+2022.11.21
 ==========
 * tch-gui-unhide: Fixed xDSL card not showing on vDSL connection
 * tch-gui-unhide: Fixed incorrect xDSL status and missing statistics on Broadband screen (FW 20.4)
 * tch-gui-unhide: Fixed adding static leases (broken by variable name change in 2022.11.01)
 * tch-gui-unhide: Fixed handling of disabled radios on Wireless card
+* tch-gui-unhide: Fixed multiple IPv6 addresses overflowing on Local Network card (again)
+* tch-gui-unhide: Fixed IP address in content and printer sharing URLs when LAN IP assigned via DHCP (#113)
 * tch-gui-unhide: Added modified xDSL screen and supporting transformer mapping from tch-nginx-gui
 * tch-gui-unhide: Added Datapump version and DSLAM Chipset/Version to xDSL card
 * tch-gui-unhide: Removed duplicated calculations and optimised Broadband xDSL snippet
@@ -14,6 +16,9 @@
 * de-telstra: Fixed QoS rules not committed after removing Guest Wi-Fi on FW 20.4
 * de-telstra: Improved detection of configuration update failures
 * guest-restore: New script to restore the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks if they were removed using the de-telstra -G option
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Fixed bugs in .rbi firmware handling
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Inverted check on mtd verify to look for success rather than failure
+* safe-firmware-upgrade: Fixed "Failed to parse json data: unexpected end of data" error when no internet connection
 
 2022.11.01
 ==========
