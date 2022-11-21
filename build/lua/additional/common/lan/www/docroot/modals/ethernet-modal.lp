@@ -544,7 +544,9 @@ if ngx.var.request_method == "POST" then
         content["localdevIP"] = untaint(cur_ip[1].value)
         content["localdevmask"] = bridged.maskCIDRToDottedDecimal(cur_ip[2].value)
       until content["localdevIP"] ~= ""
-      if content["proto"] == "static" then
+      if content["proto"] == "dhcp" then
+        proxy.set("uci.network.interface.@lan.reqopts","1 3 6 43 51 58 59")
+      elseif content["proto"] == "static" then
         local uci_ipaddr = proxy.get("uci.network.interface.@lan.ipaddr")[1].value
         if uci_ipaddr == "" then
           proxy.set("uci.network.interface.@lan.ipaddr",content["localdevIP"])
