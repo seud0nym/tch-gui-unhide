@@ -75,3 +75,8 @@ sed \
     end' \
   -i /www/docroot/modals/contentsharing-modal.lp
 
+echo [$SCRIPT]: Fix Content Share URL 
+sed \
+  -e 's/uci\(\.network\.interface\.@lan\.ipaddr\)/rpc\1/' \
+  -i /www/docroot/modals/contentsharing-modal.lp
+

@@ -65,3 +65,8 @@ end;\
 ngx.print('\\\\" \
   -i /www/cards/012_printersharing.lp
 
+echo [$SCRIPT]: Fix Printer Share URL 
+sed \
+  -e 's/uci\(\.network\.interface\.@lan\.ipaddr\)/rpc\1/' \
+  -i /www/docroot/modals/printersharing-modal.lp
+
