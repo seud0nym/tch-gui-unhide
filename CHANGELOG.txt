@@ -5,6 +5,7 @@
 * tch-gui-unhide: Fixed adding static leases (broken by variable name change in 2022.11.01)
 * tch-gui-unhide: Fixed handling of disabled radios on Wireless card
 * tch-gui-unhide: Fixed multiple IPv6 addresses overflowing on Local Network card (again)
+* tch-gui-unhide: Fixed LAN gateway not assigned via DHCP (#113)
 * tch-gui-unhide: Fixed IP address in content and printer sharing URLs when LAN IP assigned via DHCP (#113)
 * tch-gui-unhide: Added modified xDSL screen and supporting transformer mapping from tch-nginx-gui
 * tch-gui-unhide: Added Datapump version and DSLAM Chipset/Version to xDSL card
