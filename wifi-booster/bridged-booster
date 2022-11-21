@@ -260,9 +260,20 @@ if [ $RESTORE = n ]; then
     $NDHTTPD disable
   fi
 
+  LAN_DHCP_REQOPTS='1 3 6 43 51 58 59'
+  if [ -n "$LAN_DNS" ]; then
+    echo -e "${GREEN}Setting LAN DNS${NC}"
+    uci -q delete network.lan.dns
+    for dns in $LAN_DNS; do
+      echo -e "${GREEN} -> Adding $dns${NC}"
+      uci add_list network.lan.dns="$dns"
+    done
+    LAN_DHCP_REQOPTS='1 3 43 51 58 59'
+  fi
   if [ $LAN_DHCP = "y" ]; then
-      echo -e "${GREEN}Configuring LAN IP to be set by DHCP${NC}"
+    echo -e "${GREEN}Configuring LAN IP to be set by DHCP${NC}"
     uci set network.lan.proto="dhcp"
+    uci set network.lan.reqopts="$LAN_DHCP_REQOPTS"
   else
     uci set network.lan.proto="static"
     if [ $LAN_IP_ADDR != $IP_ADDR ]; then
@@ -275,14 +286,6 @@ if [ $RESTORE = n ]; then
     fi
     echo -e "${GREEN}Setting LAN Gateway IP address to $LAN_GATEWAY${NC}"
     uci set network.lan.gateway="$LAN_GATEWAY"
-  fi
-  if [ -n "$LAN_DNS" ]; then
-    echo -e "${GREEN}Setting LAN DNS${NC}"
-    uci -q delete network.lan.dns
-    for dns in $LAN_DNS; do
-      echo -e "${GREEN} -> Adding $dns${NC}"
-      uci add_list network.lan.dns="$dns"
-    done
   fi
   [ "$LAN_IPv6" = "1" ] && echo -e "${GREEN}Enabling LAN IPv6${NC}" || echo -e "${GREEN}Disabling LAN IPv6${NC}"
   uci set network.lan.ipv6="$LAN_IPv6"
