@@ -118,11 +118,15 @@ end
 
 function M.get_hosts_mac()
   local hosts_mac = {}
+  local unique = {}
   for k,_ in pairs(hosts_ac) do
     local hostname,mac = match(k,"([%w%s%p]+) %[([%x:]+)%]$")
-    hosts_mac[#hosts_mac+1] = {mac,mac.." ["..hostname.."]"}
+    if not unique[mac] then
+      hosts_mac[#hosts_mac+1] = {mac,T(mac.." ["..hostname.."]"),toupper(hostname)}
+      unique[mac] = true
+    end
   end
-  table.sort(hosts_mac,function(k1,k2) return k1[1] < k2[1] end)
+  table.sort(hosts_mac,function(k1,k2) return k1[3] < k2[3] end)
   hosts_mac[#hosts_mac+1] = {"custom",T"custom"}
   return hosts_mac
 end
