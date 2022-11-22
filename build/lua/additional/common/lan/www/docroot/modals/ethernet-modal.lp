@@ -162,14 +162,6 @@ local sleases_filter = function(data)
 end
 
 local sleases_data,sleases_helpmsg = post_helper.handleTableQuery(sleases_columns,sleases_options,sleases_filter,nil,sleases_valid)
-for _,v in ipairs(sleases_data) do
-  for _,m in ipairs(hosts_mac) do
-    if v[1] == m[1] then
-      m[2] = m[1]
-      break
-    end
-  end
-end
 
 local tags_columns = {
   {
@@ -1107,6 +1099,11 @@ $("[name =\'sleases_mac\'],[name =\'dns_v4_pri\'],[name =\'ipv4_dns_sec\'],[name
   if ((this.value) == "custom") {\
     $(this).replaceWith($(\'<input/>\',{\'type\':\'text\',\'name\':this.name,\'class\':this.className}));\
   }\
+});\
+$("#sleases>tbody>tr:not(.line-edit)>td:nth-child(1)").each(function(){\
+  $(this).text(function(i,content){\
+    return content.split(" ")[0];\
+  });\
 });\
 '); if dhcpDefaultExist then ngx.print('\
 $("#btn-dhcp-reset").click(function(){\
