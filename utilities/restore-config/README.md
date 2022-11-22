@@ -85,7 +85,7 @@ If there are any issues with your updated firmware and configuration, you can re
 1. Remove the USB stick from the dead device and insert it into the replacement device.
 2. Restore the original configuration:
       - `cd /mnt/usb/USB-A1/backups`
-      - `./restore-configuration.sh `*`original_variant`*`-`*`original_serial`*`-`*`original_firmware`*`-overlay-files-backup.tgz`
+      - `./restore-config.sh `*`original_variant`*`-`*`original_serial`*`-`*`original_firmware`*`-overlay-files-backup.tgz`
 3. Once the device reboots, your configuration should have been restored.
 
 ### Testing
@@ -95,7 +95,7 @@ If there are any issues with your updated firmware and configuration, you can re
 1. Remove the USB stick from the original device and insert it into the test device.
 2. Restore the original configuration in test mode:
       - `cd /mnt/usb/USB-A1/backups`
-      - `./restore-configuration.sh -vvt `*`original_variant`*`-`*`original_serial`*`-`*`original_firmware`*`-overlay-files-backup.tgz`
+      - `./restore-config.sh -vvt `*`original_variant`*`-`*`original_serial`*`-`*`original_firmware`*`-overlay-files-backup.tgz`
 3. Once the device reboots, your original configuration should have been restored to the test device.
       - The IP address of the test device will be unchanged.
       - The hostname and browser tabs will have `-TEST` appended to easily identify the test device.
