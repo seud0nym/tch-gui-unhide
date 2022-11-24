@@ -77,6 +77,11 @@ sed \
   -e "s/maxEntries = 3,/maxEntries = 6,/" \
   -i /www/docroot/modals/gateway-modal.lp
 
+echo [$SCRIPT]: Add configuration import warning
+sed \
+  -e '/id="form-import"/a\        html[#html + 1] = ui_helper.createAlertBlock(T"Importing configuration from a different firmware version is NOT recommended. At the very least, the current firmware suffix will be <b>wrong</b>, although you can fix that by replacing /etc/config/versioncusto with the correct version from /rom.",{alert={class="alert alert-warn"}})' \
+  -i /www/docroot/modals/gateway-modal.lp
+
 if [ "$MINIFY" = y ]; then
   echo [$SCRIPT]: Pre-minify fixes
   [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/gateway-modal.lp"
