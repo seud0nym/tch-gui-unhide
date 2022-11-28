@@ -82,8 +82,7 @@ local function dns_filter(tab)
 	end
 	return ipv4_dns,ipv6_dns
 end
--- Process POST query
-local post_helper = require("web.post_helper")
+
 local firewall_zone = proxy.get("uci.firewall.zone.")
 local firewall_zone_path = content_helper.convertResultToObject("uci.firewall.zone.",firewall_zone)
 local zonenum = ""
@@ -93,6 +92,7 @@ for _,v in ipairs(firewall_zone_path) do
     break
   end
 end
+
 local firewall_forwarding = proxy.get("uci.firewall.forwarding.")
 local firewall_forwarding_path = content_helper.convertResultToObject("uci.firewall.forwarding.",firewall_forwarding)
 local forwdnum = ""
@@ -102,6 +102,7 @@ for _,v in ipairs(firewall_forwarding_path) do
     break
   end
 end
+
 local function validateNat(value)
   local valid,msg = post_helper.validateBoolean(value)
   if valid and zonenum ~= "" and value ~= proxy.get("uci.firewall.zone."..zonenum..".masq")[1].value then
@@ -139,11 +140,12 @@ local mapParams = {
   uci_wan_auto = "uci.network.interface.@wan.auto",
   uci_wan_masq = "uci.firewall.zone."..zonenum..".masq",
 	uci_wan6_auto = "uci.network.interface.@wan6.auto",
-	uci_wan6_forceprefix = "uci.network.interface.@wan6.forceprefix",
   uci_wan_mac = "uci.network.interface.@wan.macaddr",
 	uci_wan_vendorid = "uci.network.interface.@wan.vendorid",
+	uci_wan6_forceprefix = "uci.network.interface.@wan6.forceprefix",
   uci_wan6_reqaddress = "uci.network.interface.@wan6.reqaddress",
   uci_wan6_reqprefix = "uci.network.interface.@wan6.reqprefix",
+  uci_wan6_noslaaconly = "uci.network.interface.@wan6.noslaaconly",
 }
 
 -- Shortcuts to validation helpers to make lines shorter
@@ -191,11 +193,12 @@ local mapValid = {
   uci_wan_auto = vB,
   uci_wan_masq = validateNat,
   uci_wan6_auto = IPv6andUsername,
-	uci_wan6_forceprefix =vB,
   uci_wan_mac = gOV(post_helper.validateStringIsMAC),
   uci_wan_vendorid = gOV(post_helper.validateNonEmptyString),
+	uci_wan6_forceprefix = vB,
   uci_wan6_reqaddress = gVIES(reqaddress_map),
   uci_wan6_reqprefix = gVIES(reqprefix_map),
+  uci_wan6_noslaaconly = vB,
 }
 
 local content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
@@ -408,9 +411,10 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   html[#html+1] = ui_helper.createSwitch(T"IPv4 Enabled on Boot","uci_wan_auto",content.uci_wan_auto,nil,helpmsg["uci_wan_auto"])
   html[#html+1] = ui_helper.createSwitch(T"NAT","uci_wan_masq",content.uci_wan_masq,nil,helpmsg["uci_wan_masq"])
   html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled on Boot","uci_wan6_auto",content.uci_wan6_auto,switch_class_enable,helpmsg["uci_wan6_auto"])
-  html[#html+1] = ui_helper.createInputSelect(T"IPv6 Address Request<span class='icon-question-sign' title='Behaviour for requesting addresses. The device default is \"Force\",but some RSPs require it to be \"Try\".'></span>","uci_wan6_reqaddress",reqaddress_map,content.uci_wan6_reqaddress,ipv6_input)
-  html[#html+1] = ui_helper.createInputSelect(T"IPv6 Prefix Request<span class='icon-question-sign' title='Behaviour for requesting prefixes (numbers denote hinted prefix length). Use \"None\" if you only want a single IPv6 address for the AP itself without a subnet for routing.'></span>","uci_wan6_reqprefix",reqprefix_map,content.uci_wan6_reqprefix,ipv6_input)
+  html[#html+1] = ui_helper.createInputSelect(T"IPv6 Address Request<span class='icon-question-sign' title='Behaviour for requesting addresses. The device default is \"Force\",but some RSPs require it to be \"Try\". Use \"None\" for Router Advertisement only (no DHCPv6).'></span>","uci_wan6_reqaddress",reqaddress_map,content.uci_wan6_reqaddress,ipv6_input)
+  html[#html+1] = ui_helper.createInputSelect(T"IPv6 Prefix Request<span class='icon-question-sign' title='Behaviour for requesting prefixes (numbers denote hinted prefix length). Use \"No\" if you only want a single IPv6 address for the AP itself without a subnet for routing.'></span>","uci_wan6_reqprefix",reqprefix_map,content.uci_wan6_reqprefix,ipv6_input)
   html[#html+1] = ui_helper.createSwitch(T"IPv6 Force Prefix<span class='icon-question-sign' title='Require the presence of an IPv6 Prefix in received DHCP message.'></span>","uci_wan6_forceprefix",content.uci_wan6_forceprefix,ipv6_input)
+  html[#html+1] = ui_helper.createSwitch(T"No SLAAC Only<span class='icon-question-sign' title='Do not allow configuration via SLAAC (RAs) only'></span>","uci_wan6_noslaaconly",content["uci_wan6_noslaaconly"])
   if supervision_support then
     html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision","supervision_mode",supervision_modes,supervision_modes_content["supervision_mode"])
     html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled","supervision_enabled",supervision_modes_content["supervision_enabled"])
