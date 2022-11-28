@@ -7,12 +7,16 @@
 * tch-gui-unhide: Fixed multiple IPv6 addresses overflowing on Local Network card (again)
 * tch-gui-unhide: Fixed LAN gateway not assigned via DHCP (#113)
 * tch-gui-unhide: Fixed IP address in content and printer sharing URLs when LAN IP assigned via DHCP (#113)
+* tch-gui-unhide: Fixed display issue in static leases when MAC address has been assigned multiple IP addresses
+* tch-gui-unhide: Sorted MAC address drop down list when adding static lease in hostname order
 * tch-gui-unhide: Added modified xDSL screen and supporting transformer mapping from tch-nginx-gui
 * tch-gui-unhide: Added Datapump version and DSLAM Chipset/Version to xDSL card
 * tch-gui-unhide: Removed duplicated calculations and optimised Broadband xDSL snippet
 * tch-gui-unhide: Removed Switch Active Bank button from System Extras screen on FW 20.4 because there is no transformer support for that option
 * tch-gui-unhide: Allow static leases to be defined on Guest and other LAN interfaces (but you can only assign one static lease per MAC address)
 * tch-gui-unhide: Restored Device Bandwidth Monitor, even though it is unreliable. (#115)
+* tch-gui-unhide: Added IPv6 DUID and Host ID to static leases
+* tch-gui-unhide: Allow WAN IPv6 to be set by Router Advertisement only (do not request address from DHCPv6) (#117)
 * de-telstra: Fixed Wi-Fi and EasyMesh service configuration on FW 20.4
 * de-telstra: Fixed QoS rules not committed after removing Guest Wi-Fi on FW 20.4
 * de-telstra: Improved detection of configuration update failures

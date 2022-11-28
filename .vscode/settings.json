@@ -38,6 +38,7 @@
         "domainname",
         "DSCP",
         "DSLAM",
+        "DUID",
         "dumaos",
         "excludable",
         "Exetel",
