@@ -68,6 +68,23 @@ local vSIIP6 = post_helper.validateStringIsIPv6
 
 local content,helpmsg
 
+local function validateDUID(value,object,_)
+  if value ~= "" and (#value ~= 28 or not value:match("^[%x]+$")) then
+    return nil, T"A Client DUID can only contain 28 hexadecimal digits."
+  end
+  if value == "" and object["hostid"] ~= "" then
+    return nil, T"A Client DUID is required when setting the IPv6 Host ID."
+  end
+  return true
+end
+
+local function validateHostID(value,_,_)
+  if#value ~= "" and (#value > 8 or not value:match("^[%x]+$")) then
+    return nil, T"A Host ID can only contain 1 to 8 hexadecimal digits."
+  end
+  return true
+end
+
 -- Static Leases
 local sleases_columns = {
   {
@@ -87,18 +104,32 @@ local sleases_columns = {
     attr = { input = { class="span2" } },
   },
   {
-    header = T"IP Address",
+    header = T"IPv4 Address",
     name = "sleases_ip",
     param = "ip",
     type = "text",
     attr = { input = { class="span2",maxlength="15",style="width:125px" },autocomplete=hosts_ac },
   },
   {
+    header = T"Client DUID&nbsp;<span class='icon-question-sign' title='DHCP Unique Idenntifier as 28 hexadecimal digits is required to assign the IPv6 Host ID.'></span>" ,
+    name = "sleases_duid",
+    param = "duid",
+    type = "text",
+    attr = { input = { class="span2",maxlength="28",minlength="28",style="width:250px" } },
+  },
+  {
+    header = T"IPv6 Host ID" ,
+    name = "sleases_hostid",
+    param = "hostid",
+    type = "text",
+    attr = { input = { class="span2",maxlength="8",style="width:60px" } },
+  },
+  {
     header = T"Custom DHCP Options Tag",
     name = "sleases_tag",
     param = "tag",
     type = "select",
-    attr = { select = { class="span2",style="width:180px" },autocomplete=hosts_ac },
+    attr = { select = { class="span2",style="width:180px" } },
     values = tags,
   },
   {
@@ -122,6 +153,8 @@ local sleases_valid = {
   sleases_name = gAV(ethernet_helper.validateStaticLeaseName,vSIDN),
   sleases_mac = gAV(ethernet_helper.validateStaticLeaseMAC,vQTN),
   sleases_ip = gOV(gAV(ethernet_helper.validateStaticLeaseIP(cur_intf),vQTN)),
+  sleases_hostid = validateHostID,
+  slease_duid = validateDUID,
 }
 
 local sleases_options = {
