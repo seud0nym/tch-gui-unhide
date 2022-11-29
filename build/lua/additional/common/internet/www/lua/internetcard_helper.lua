@@ -198,7 +198,7 @@ function M.getInternetCardHTML(mode_active)
       if cs["uci_wan_auto"] ~= "0" then
         local wan_data = {
           wan_ifname        = "uci.network.interface.@wan.ifname",
-          dsl0_enabled      = "uci.xdsl.xdsl.@dsl0.enabled",
+          dsl0_enabled      = "sys.class.xdsl.@line0.Enable",
           dsl_status        = "sys.class.xdsl.@line0.Status",
           ethwan_status     = "sys.eth.port.@eth4.status",
         }
