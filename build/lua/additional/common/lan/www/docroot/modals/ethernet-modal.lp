@@ -79,7 +79,7 @@ local function validateDUID(value,object,_)
 end
 
 local function validateHostID(value,_,_)
-  if#value ~= "" and (#value > 8 or not value:match("^[%x]+$")) then
+  if value ~= "" and (#value > 8 or not value:match("^[%x]+$")) then
     return nil, T"A Host ID can only contain 1 to 8 hexadecimal digits."
   end
   return true
