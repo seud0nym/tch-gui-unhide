@@ -8,6 +8,7 @@
 * tch-gui-unhide: Fixed LAN gateway not assigned via DHCP (#113)
 * tch-gui-unhide: Fixed IP address in content and printer sharing URLs when LAN IP assigned via DHCP (#113)
 * tch-gui-unhide: Fixed display issue in static leases when MAC address has been assigned multiple IP addresses
+* tch-gui-unhide: Fixed Internet Access card showed Broadband down on static connection because xDSL configuration removed in FW 20.4 (#117)
 * tch-gui-unhide: Sorted MAC address drop down list when adding static lease in hostname order
 * tch-gui-unhide: Added modified xDSL screen and supporting transformer mapping from tch-nginx-gui
 * tch-gui-unhide: Added Datapump version and DSLAM Chipset/Version to xDSL card
