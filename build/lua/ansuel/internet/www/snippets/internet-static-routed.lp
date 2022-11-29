@@ -12,7 +12,8 @@ local untaint = string.untaint
 
 local gAV = post_helper.getAndValidation
 local gOV = post_helper.getOptionalValidation
-local nEIPV = post_helper.getAndValidation(post_helper.validateNonEmptyString,post_helper.advancedIPValidation)
+local vNES = post_helper.validateNonEmptyString
+local nEIPV = post_helper.getAndValidation(vNES,post_helper.advancedIPValidation)
 local vIAS6 = gOV(post_helper.validateIPAndSubnet(6))
 local vSIIP6 = gOV(post_helper.validateStringIsIPv6)
 local gVIES = post_helper.getValidateInEnumSelect
@@ -74,7 +75,7 @@ end
 
 local function validateIPv6(value,object,_)
   local valid,msg = vB(value)
-  if valid and value == "1" and object.uci_wan6_proto == "static" then
+  if valid and value == "1" then
     if object.uci_wan6_addr == "" or object.uci_wan6_gw == "" or object.uci_wan6_prefix == "" then
       return nil,"IPv6 Address, Gateway and LAN Prefix are required"
     end
@@ -98,26 +99,11 @@ local mapParams = {
   uci_wan6_addr = "uci.network.interface.@wan6.ip6addr",
   uci_wan6_gw = "uci.network.interface.@wan6.ip6gw",
   uci_wan6_prefix = "uci.network.interface.@wan6.ip6prefix",
-	uci_wan6_forceprefix = "uci.network.interface.@wan6.forceprefix",
-  uci_wan6_reqaddress = "uci.network.interface.@wan6.reqaddress",
-  uci_wan6_reqprefix = "uci.network.interface.@wan6.reqprefix",
-  uci_wan6_noslaaconly = "uci.network.interface.@wan6.noslaaconly",
 }
 
 local ipv6_proto_map = {
   { "static",T"Static" },
   { "dhcpv6",T"DHCPv6/Router Advertisement" },
-}
-
-local reqaddress_map = {
-  { "try",T"Try" },
-  { "force",T"Force" },
-  { "none",T"None" },
-}
-
-local reqprefix_map = {
-  { "no",T"No" },
-  { "auto",T"Automatic" },
 }
 
 local mapValid = {
@@ -132,10 +118,6 @@ local mapValid = {
   uci_wan6_addr = vIAS6,
   uci_wan6_gw = vSIIP6,
   uci_wan6_prefix = vIAS6,
-	uci_wan6_forceprefix = vB,
-  uci_wan6_reqaddress = gVIES(reqaddress_map),
-  uci_wan6_reqprefix = gVIES(reqprefix_map),
-  uci_wan6_noslaaconly = vB,
 }
 
 local content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
@@ -172,9 +154,6 @@ end
 if content.uci_wan6_auto ~= "0" then
   content.uci_wan6_auto = "1"
 end
-if content.uci_wan6_noslaaconly ~= "1" then
-  content.uci_wan6_noslaaconly = "0"
-end
 
 if ngx.req.get_method() == "POST" then
   local postContent = ngx.req.get_post_args()
@@ -210,9 +189,15 @@ if ngx.req.get_method() == "POST" then
   if content.uci_wan6_auto ~= "0" then
     local ipv4ifname = proxy.get("uci.network.interface.@wan.ifname")[1].value
     local ipv6ifname = proxy.get("uci.network.interface.@wan6.ifname")[1].value
+    local ipv4proto = proxy.get("uci.network.interface.@wan.proto")[1].value
+    local ipv6proto = proxy.get("uci.network.interface.@wan6.proto")[1].value
 
     if ipv6ifname ~= ipv4ifname then
       proxy.set("uci.network.interface.@wan6.ifname",ipv4ifname)
+      doit = true
+    end
+    if ipv6proto ~= ipv4proto then
+      proxy.set("uci.network.interface.@wan6.proto",ipv4proto)
       doit = true
     end
   end
@@ -263,18 +248,11 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
       class ="monitor-uci_wan6_auto monitor-1",
     },
   }
-  local ipv6_proto_select = {
-    group = {
-      class ="monitor-uci_wan6_auto monitor-1",
-    },
-    select = {
-      class = "monitor-changes",
-    }
-  }
 
   html[#html+1] = ui_helper.createSwitch(T"IPv4 Enabled on Boot","uci_wan_auto",content.uci_wan_auto,nil,helpmsg["uci_wan_auto"])
   html[#html+1] = ui_helper.createSwitch(T"NAT","uci_wan_masq",content.uci_wan_masq,nil,helpmsg["uci_wan_masq"])
   html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled on Boot","uci_wan6_auto",content.uci_wan6_auto,switch_class_enable,helpmsg["uci_wan6_auto"])
+  html[#html+1] = ui_helper.createSimpleInputHidden("uci_wan6_proto",content.uci_wan6_proto)
   if supervision_support then
     html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision","supervision_mode",supervision_modes,supervision_modes_content["supervision_mode"])
     html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled","supervision_enabled",supervision_modes_content["supervision_enabled"])
@@ -283,18 +261,9 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   html[#html+1] = ui_helper.createInputText(T"IPv4 Address","wanIpAddrParam",content["wanIpAddrParam"],wanIPClass,helpmsg["wanIpAddrParam"])
   html[#html+1] = ui_helper.createInputText(T"IPv4 Subnet Mask","wanNetmaskParam",content["wanNetmaskParam"],wanNetmaskClass,helpmsg["wanNetmaskParam"])
   html[#html+1] = ui_helper.createInputText(T"IPv4 Gateway","wanGatewayParam",content["wanGatewayParam"],wanGatewayClass,helpmsg["wanGatewayParam"])
-  html[#html+1] = ui_helper.createInputSelect(T"IPv6 Address Source","uci_wan6_proto",ipv6_proto_map,content["uci_wan6_proto"],ipv6_proto_select)
-  html[#html+1] = [[<div class="monitor-uci_wan6_proto monitor-static monitor-hide-uci_wan6_proto">]]
-  html[#html+1] = ui_helper.createInputText(T"IPv6 Address<span class='icon-question-sign' title='Include the CIDR suffix (e.g. /128'></span>)","uci_wan6_addr",content["uci_wan6_addr"],ipv6_input,helpmsg["uci_wan6_addr"])
+  html[#html+1] = ui_helper.createInputText(T"IPv6 Address<span class='icon-question-sign' title='Include the CIDR suffix (e.g. /128)'></span>","uci_wan6_addr",content["uci_wan6_addr"],ipv6_input,helpmsg["uci_wan6_addr"])
   html[#html+1] = ui_helper.createInputText(T"IPv6 Gateway","uci_wan6_gw",content["uci_wan6_gw"],ipv6_input,helpmsg["uci_wan6_gw"])
   html[#html+1] = ui_helper.createInputText(T"IPv6 LAN Prefix<span class='icon-question-sign' title='Include the CIDR suffix (e.g. /64)'></span>","uci_wan6_prefix",content["uci_wan6_prefix"],ipv6_input,helpmsg["uci_wan6_prefix"])
-  html[#html+1] = [[</div>]]
-  html[#html+1] = [[<div class="monitor-uci_wan6_proto monitor-dhcpv6 monitor-hide-uci_wan6_proto">]]
-  html[#html+1] = ui_helper.createInputSelect(T"IPv6 Address Request<span class='icon-question-sign' title='Behaviour for requesting addresses. The device default is \"Force\",but some RSPs require it to be \"Try\". Use \"None\" for Router Advertisement only (no DHCPv6).'></span>","uci_wan6_reqaddress",reqaddress_map,content.uci_wan6_reqaddress,ipv6_input)
-  html[#html+1] = ui_helper.createInputSelect(T"IPv6 Prefix Request<span class='icon-question-sign' title='Behaviour for requesting prefixes (numbers denote hinted prefix length). Use \"No\" if you only want a single IPv6 address for the AP itself without a subnet for routing.'></span>","uci_wan6_reqprefix",reqprefix_map,content.uci_wan6_reqprefix,ipv6_input)
-  html[#html+1] = ui_helper.createSwitch(T"IPv6 Force Prefix<span class='icon-question-sign' title='Require the presence of an IPv6 Prefix in received DHCP message.'></span>","uci_wan6_forceprefix",content.uci_wan6_forceprefix,ipv6_input)
-  html[#html+1] = ui_helper.createSwitch(T"No SLAAC Only<span class='icon-question-sign' title='Do not allow configuration via SLAAC (RAs) only'></span>","uci_wan6_noslaaconly",content["uci_wan6_noslaaconly"])
-  html[#html+1] = [[</div>]]
 
   ngx.print(html)
   ngx.print('\
