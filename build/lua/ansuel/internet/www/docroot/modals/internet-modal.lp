@@ -52,7 +52,7 @@ if not tabdata.current.ajax then
         class = "inline"
       },
       input = {
-        class = "no-save",
+        class = "no-save monitor-changes",
         ["data-for"] = "SWITCH_MODE",
       }
     }
@@ -62,11 +62,20 @@ if not tabdata.current.ajax then
         ["data-value"] = "SWITCH_MODE",
       }
     }
+    local static_attr = {
+      alert = {
+        class = "alert-info monitor-newmode monitor-static"
+      },
+    }
 
     local html = {}
     html[#html+1] = '<fieldset id="conn_mode" class="advanced hide">'
     html[#html+1] = '<legend>'..T"Connection Mode"..'</legend>'
     html[#html+1] = ui_helper.createInputRadio(T"Mode","newmode",mode_options,mode_current,mode_attributes)
+    local wsens = proxy.get("uci.wansensing.global.enable")
+    if wsens and wsens[1].value == "1" then
+      html[#html+1] = ui_helper.createAlertBlock(T("WARNING: Static IP Connections are INCOMPATIBLE with WAN Sensing! WAN Sensing will be DISABLED when saving Static IP Mode configuration."),static_attr)
+    end
     html[#html+1] = ui_helper.createButton("",T"Switch Connection Mode","icon-cog",mode_button)
     html[#html+1] = '</fieldset>'
     ngx.print(html)

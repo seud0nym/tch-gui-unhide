@@ -202,6 +202,12 @@ if ngx.req.get_method() == "POST" then
     end
   end
 
+  local wsens = proxy.get("uci.wansensing.global.enable")
+  if wsens and wsens[1].value == "1" then
+    proxy.get("uci.wansensing.global.enable","0")
+    doit = true
+  end
+
   if doit then
     proxy.apply()
   end
@@ -251,19 +257,19 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
 
   html[#html+1] = ui_helper.createSwitch(T"IPv4 Enabled on Boot","uci_wan_auto",content.uci_wan_auto,nil,helpmsg["uci_wan_auto"])
   html[#html+1] = ui_helper.createSwitch(T"NAT","uci_wan_masq",content.uci_wan_masq,nil,helpmsg["uci_wan_masq"])
+  html[#html+1] = ui_helper.createInputText(T"IPv4 Address","wanIpAddrParam",content["wanIpAddrParam"],wanIPClass,helpmsg["wanIpAddrParam"])
+  html[#html+1] = ui_helper.createInputText(T"IPv4 Subnet Mask","wanNetmaskParam",content["wanNetmaskParam"],wanNetmaskClass,helpmsg["wanNetmaskParam"])
+  html[#html+1] = ui_helper.createInputText(T"IPv4 Gateway","wanGatewayParam",content["wanGatewayParam"],wanGatewayClass,helpmsg["wanGatewayParam"])
   html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled on Boot","uci_wan6_auto",content.uci_wan6_auto,switch_class_enable,helpmsg["uci_wan6_auto"])
   html[#html+1] = ui_helper.createSimpleInputHidden("uci_wan6_proto",content.uci_wan6_proto)
+  html[#html+1] = ui_helper.createInputText(T"IPv6 Address<span class='icon-question-sign' title='Include the CIDR suffix (e.g. /128)'></span>","uci_wan6_addr",content["uci_wan6_addr"],ipv6_input,helpmsg["uci_wan6_addr"])
+  html[#html+1] = ui_helper.createInputText(T"IPv6 Gateway","uci_wan6_gw",content["uci_wan6_gw"],ipv6_input,helpmsg["uci_wan6_gw"])
+  html[#html+1] = ui_helper.createInputText(T"IPv6 LAN Prefix<span class='icon-question-sign' title='Include the CIDR suffix (e.g. /64)'></span>","uci_wan6_prefix",content["uci_wan6_prefix"],ipv6_input,helpmsg["uci_wan6_prefix"])
   if supervision_support then
     html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision","supervision_mode",supervision_modes,supervision_modes_content["supervision_mode"])
     html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled","supervision_enabled",supervision_modes_content["supervision_enabled"])
   end
   html[#html+1] = ui_helper.createInputText(T"MAC Spoof (Wan MAC)","uci_wan_mac",content["uci_wan_mac"],nil,helpmsg["uci_wan_mac"])
-  html[#html+1] = ui_helper.createInputText(T"IPv4 Address","wanIpAddrParam",content["wanIpAddrParam"],wanIPClass,helpmsg["wanIpAddrParam"])
-  html[#html+1] = ui_helper.createInputText(T"IPv4 Subnet Mask","wanNetmaskParam",content["wanNetmaskParam"],wanNetmaskClass,helpmsg["wanNetmaskParam"])
-  html[#html+1] = ui_helper.createInputText(T"IPv4 Gateway","wanGatewayParam",content["wanGatewayParam"],wanGatewayClass,helpmsg["wanGatewayParam"])
-  html[#html+1] = ui_helper.createInputText(T"IPv6 Address<span class='icon-question-sign' title='Include the CIDR suffix (e.g. /128)'></span>","uci_wan6_addr",content["uci_wan6_addr"],ipv6_input,helpmsg["uci_wan6_addr"])
-  html[#html+1] = ui_helper.createInputText(T"IPv6 Gateway","uci_wan6_gw",content["uci_wan6_gw"],ipv6_input,helpmsg["uci_wan6_gw"])
-  html[#html+1] = ui_helper.createInputText(T"IPv6 LAN Prefix<span class='icon-question-sign' title='Include the CIDR suffix (e.g. /64)'></span>","uci_wan6_prefix",content["uci_wan6_prefix"],ipv6_input,helpmsg["uci_wan6_prefix"])
 
   ngx.print(html)
   ngx.print('\

@@ -101,10 +101,20 @@ if not tabdata.current.ajax then
         }
 
         html[#html + 1] = ui_helper.createAlertBlock(T"WAN Sensing sets the connection mode automatically when enabled.",info_box)
+        html[#html+1] = ui_helper.createSwitch(T"WAN Sensing","wsens",content["wsens"],wsensswitchclass)
+        local proxy = require("datamodel")
+        local wan_proto = proxy.get("uci.network.interface.@wan.proto")
+        if wan_proto and wan_proto[1].value == "static" then
+          local danger_box = {
+            alert = {
+              class = "alert alert-danger monitor-wsens monitor-1",
+            }
+          }
+          html[#html + 1] = ui_helper.createAlertBlock(T"WARNING: Static IP Connections are INCOMPATIBLE with WAN Sensing!",danger_box)
+        end
         if content["wsens"] == "1" then
           html[#html + 1] = ui_helper.createAlertBlock(T"Disable WAN Sensing to set the connection mode manually.<br/>After saving the change, the connection mode options will be shown.",info_box)
         end
-        html[#html+1] = ui_helper.createSwitch(T"WAN Sensing","wsens",content["wsens"],wsensswitchclass)
         if content["wsens"] == "0" then
           html[#html + 1] = ui_helper.createInputRadio(T"Connection Mode","newmode",mode_options,mode_current,mode_attributes)
           html[#html + 1] = ui_helper.createButton("",T"Apply Connection Mode","icon-cog",mode_button)
