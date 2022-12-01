@@ -1,1 +1,0 @@
-    for f in $(find /$d -type f ! -path '/www/docroot/help*' ! -name '003_lte.lp')

@@ -33,3 +33,91 @@ restore_www() {
   for d in www/cards www/docroot www/lua www/snippets usr/share/transformer/commitapply usr/share/transformer/mappings/rpc usr/share/transformer/mappings/uci; do
     echo [$SCRIPT]: Restoring directory /$d
     for s in $(find $RESTORE_BASE/$d -type f | grep -vE "^$RESTORE_BASE/www/docroot/help"); do
+      t=${s#$RESTORE_BASE}
+      cmp -s "$s" "$t"
+      if [ $? -ne 0 ]; then
+        if [ "$1" = "V" ]; then
+          echo 014@$(date +%H:%M:%S): Restoring file $t
+        fi
+        cp -f -p "$s" "$t"
+        if [ $d = "usr/share/transformer" ]; then
+          SRV_transformer=$(( $SRV_transformer + 1 ))
+        fi
+      fi
+    done
+
+    # Delete extra files
+    for f in $(find /$d -type f ! -path '/www/docroot/help*');do
+      if [ ! -f "/rom$f" -a -f "$f" ]; then
+        if [ "$1" = "V" ]; then
+          echo 019@$(date +%H:%M:%S): Removing file $f
+        fi
+        rm -f "$f"
+        if [ $d = "usr/share/transformer" ]; then
+          SRV_transformer=$(( $SRV_transformer + 1 ))
+        fi
+      fi
+    done
+  done
+}
+
+if [ $RESTORE = y ]; then
+  restore_www V
+  for f in /etc/tch-gui-unhide.ignored_release /etc/tch-gui-unhide.theme /etc/hotplug.d/iface/10-bqos /etc/init.d/bqos /usr/sbin/bqos /etc/hotplug.d/iface/60-add-IPv6-DNS-intercept-exceptions /etc/hotplug.d/iface/70-WAN-LEDs;do
+    if [ -f "$f" ]; then
+      if [ "$(dirname $f)" = "/etc/init.d" ]; then
+        echo [$SCRIPT]: Disabling and stopping $f
+        $f disable
+        $f stop
+      fi
+      echo [$SCRIPT]: Removing $f
+      rm "$f"
+    fi
+  done
+  for d in /www/docroot/css/light /www/docroot/css/night /www/docroot/css/telstra /www/docroot/img/light /www/docroot/img/night /www/docroot/css/Telstra;do
+    if [ -d "$d" ]; then
+      echo [$SCRIPT]: Removing empty directory $d
+      rmdir "$d"
+    fi
+  done
+  for s in $(uci show web | grep normally_hidden | cut -d. -f2); do
+    echo [$SCRIPT]: Removing config entry web.$s
+    uci -q delete web.$s
+    uci -q del_list web.ruleset_main.rules="$s"
+    SRV_nginx=$(( $SRV_nginx + 2 ))
+  done
+  for s in $(uci show web | grep '=card' | cut -d= -f1); do
+    echo [$SCRIPT]: Removing config entry $s
+    uci -q delete $s
+    SRV_nginx=$(( $SRV_nginx + 1 ))
+  done
+  RULES=$(uci get web.ruleset_main.rules)
+  for s in $(echo $RULES | tr " " "\n" | grep -v dumaos | sort -u); do
+    TARGET=$(uci -q get web.$s.target)
+    if [ -n "$TARGET" -a ":$TARGET" != ":/" -a ! -f /www/docroot$TARGET -a ! -f /www$TARGET -a ! -f /www/docroot/ajax$TARGET ]; then
+      echo [$SCRIPT]: Removing config entry web.$s
+      uci -q delete web.$s
+      uci -q del_list web.ruleset_main.rules="$s"
+      SRV_nginx=$(( $SRV_nginx + 2 ))
+    else
+      ROLE=$(uci -q get web.$s.roles)
+      if [ -n "$ROLE" -a "$ROLE" = "nobody" ]; then
+        echo [$SCRIPT]: Resetting admin role on config entry web.$s.roles
+        uci -q delete web.$s.roles
+        uci add_list web.$s.roles="admin"
+        SRV_nginx=$(( $SRV_nginx + 2 ))
+      fi
+    fi
+  done
+  uci commit web
+  sed -e '/lua_shared_dict *TGU_/d' -i /etc/nginx/nginx.conf
+  SRV_nginx=$(( $SRV_nginx + 1 ))
+  apply_service_changes
+  echo "************************************************************"
+  echo "* Restore complete. You should clear your browser cache of *"
+  echo "* images and files to make sure you can see the changes.   *"
+  echo "* NOTE: No config changes have been restored, except to    *"
+  echo "*       remove added entries to display hidden modals.     *"
+  echo "************************************************************"
+  unlock normally
+fi
