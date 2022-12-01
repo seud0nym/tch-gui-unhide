@@ -121,7 +121,7 @@ apply_defaults() {
       internet.lp)          SEQ="003";;
       iproutes.lp)          SEQ="015";;
       LAN.lp)               SEQ="005";;
-      lte.lp)               if [ "$(uci -q get version.@version[0].marketing_version)" = '17.2' ]; then SEQ="010"; else SEQ="003"; fi;;
+      lte.lp)               lte="$(basename /rom/www/cards/*_lte.lp)"; SEQ="${lte%%_lte.lp}"; unset lte;;
       natalghelper.lp)      SEQ="092";;
       opkg.lp)              SEQ="011";;
       parental.lp)          SEQ="013";;
