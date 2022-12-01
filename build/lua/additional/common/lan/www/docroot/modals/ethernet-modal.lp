@@ -541,6 +541,16 @@ local mapValid = {
 
 content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
 
+local function proxySet(p,v)
+  local success,errors = proxy.set(p,v)
+  if not success then
+    for _,err in ipairs(errors) do
+      message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,v,err.errmsg,err.errcode)),"error")
+    end
+  end
+  return success
+end
+
 if ngx.var.request_method == "POST" then
   if cur_intf == "lan" then
     bridged.configure(ngx.req.get_post_args(0)["action"])
@@ -553,7 +563,7 @@ if ngx.var.request_method == "POST" then
     local domainName = session:retrieve("old_domain")
     session:store("old_domain",(content["localdomain"]))
     if (content["localdomain"] ~= domainName or localValue ~= localName) and not next(helpmsg) then
-      proxy.set(local_path,localName)
+      proxySet(local_path,localName)
       proxy.apply()
     end
   end
@@ -570,18 +580,18 @@ if ngx.var.request_method == "POST" then
         content["localdevmask"] = bridged.maskCIDRToDottedDecimal(cur_ip[2].value)
       until content["localdevIP"] ~= ""
       if content["proto"] == "dhcp" then
-        proxy.set("uci.network.interface.@lan.reqopts","1 3 6 43 51 58 59")
+        proxySet("uci.network.interface.@lan.reqopts","1 3 6 43 51 58 59")
       elseif content["proto"] == "static" then
         local uci_ipaddr = proxy.get("uci.network.interface.@lan.ipaddr")[1].value
         if uci_ipaddr == "" then
-          proxy.set("uci.network.interface.@lan.ipaddr",content["localdevIP"])
+          proxySet("uci.network.interface.@lan.ipaddr",content["localdevIP"])
         else
           content["localdevIP"] = untaint(uci_ipaddr)
         end
         local uci_mask = proxy.get("uci.network.interface.@lan.netmask")[1].value
         if uci_mask == "" then
           content["localdevmask"] = uci_mask
-          proxy.set("uci.network.interface.@lan.netmask",content["localdevmask"])
+          proxySet("uci.network.interface.@lan.netmask",content["localdevmask"])
         else
           content["localdevmask"] = untaint(uci_mask)
         end
