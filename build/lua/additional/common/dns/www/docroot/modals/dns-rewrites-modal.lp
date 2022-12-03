@@ -63,20 +63,15 @@ local function rewrites_filter(data)
 end
 local rewrites_data,rewrites_helpmsg = dns_helper.handleDNSTableQuery(rewrites_columns,rewrites_options,rewrites_filter,nil,rewrites_valid)
 
-ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
+ngx.print(ui_helper.createHeader(T"DNS",true,true),'\
 <div class="modal-body update">\
 '); lp.include("tabs-dns.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/dns-rewrites-modal.lp">\
-    ');
-    ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-    ngx.print('\
+    ',ui_helper.createMessages(message_helper.popMessages()),'\
     <fieldset>\
-      <legend>'); ngx.print(T"DNS Rewrites"); ngx.print('</legend>\
-      ');
-      ngx.print(ui_helper.createTable(rewrites_columns,rewrites_data,rewrites_options,nil,rewrites_helpmsg))
-      ngx.print('\
+      <legend>',T"DNS Rewrites",'</legend>',
+        ui_helper.createTable(rewrites_columns,rewrites_data,rewrites_options,nil,rewrites_helpmsg),'\
     </fieldset>\
   </form>\
 </div>\
-'); ngx.print(ui_helper.createFooter()); ngx.print('\
-');
+',ui_helper.createFooter())
