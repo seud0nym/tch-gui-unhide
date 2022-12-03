@@ -69,7 +69,7 @@ local vSIIP6 = post_helper.validateStringIsIPv6
 local content,helpmsg
 
 local function validateDUID(value,object,_)
-  if value ~= "" and (#value ~= 28 or not value:match("^[%x]+$")) then
+  if value ~= "" and (#value < 20 or #value > 28 or not value:match("^[%x]+$")) then
     return nil, T"A Client DUID can only contain 28 hexadecimal digits."
   end
   if value == "" and object["hostid"] ~= "" then
@@ -85,6 +85,8 @@ local function validateHostID(value,_,_)
   return true
 end
 
+local sleases_mac_attr = { class="span2",maxlength="17",id="lease_mac",style="width:115px" }
+
 -- Static Leases
 local sleases_columns = {
   {
@@ -93,7 +95,7 @@ local sleases_columns = {
     param = "mac",
     type = "select",
     values = hosts_mac,
-    attr = { select = { class="span2",maxlength="17",id="lease_mac",style="width:150px" },autocomplete=hosts_mac },
+    attr = { select = sleases_mac_attr,autocomplete = hosts_mac },
     unique = true,
   },
   {
@@ -101,21 +103,21 @@ local sleases_columns = {
     name = "sleases_name",
     param = "name",
     type = "text",
-    attr = { input = { class="span2" } },
+    attr = { input = { class="span2",style="width:90px" } },
   },
   {
     header = T"IPv4 Address",
     name = "sleases_ip",
     param = "ip",
     type = "text",
-    attr = { input = { class="span2",maxlength="15",style="width:125px" },autocomplete=hosts_ac },
+    attr = { input = { class="span2",maxlength="15",style="width:110px" },autocomplete = hosts_ac },
   },
   {
-    header = T"Client DUID&nbsp;<span class='icon-question-sign' title='DHCP Unique Idenntifier as 28 hexadecimal digits is required to assign the IPv6 Host ID.'></span>" ,
+    header = T"Client DUID&nbsp;<span class='icon-question-sign' title='DHCP Unique Identifier as 28 hexadecimal digits is required to assign the IPv6 Host ID.'></span>" ,
     name = "sleases_duid",
     param = "duid",
     type = "text",
-    attr = { input = { class="span2",maxlength="28",minlength="28",style="width:250px" } },
+    attr = { input = { class="span2",maxlength="28",minlength="20",style="width:210px" } },
   },
   {
     header = T"IPv6 Host ID" ,
@@ -129,7 +131,7 @@ local sleases_columns = {
     name = "sleases_tag",
     param = "tag",
     type = "select",
-    attr = { select = { class="span2",style="width:180px" } },
+    attr = { select = { class="span2",style="width:120px" } },
     values = tags,
   },
   {
@@ -282,12 +284,13 @@ if ngx.var.request_method == "POST" then
         end
       end
       if flag then
+        sleases_mac_attr.value = text_mac
         sleases_columns[1] = {
           header = T"MAC Address",
           name = "sleases_mac",
           param = "mac",
           type = "text",
-          attr = { input = { class="span2",maxlength="17",style="width:150px",id="lease_mac",value=text_mac }},
+          attr = { input = sleases_mac_attr },
           unique = true,
         }
       end
