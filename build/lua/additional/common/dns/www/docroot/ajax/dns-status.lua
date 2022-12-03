@@ -66,7 +66,7 @@ else
 
   html[#html+1] = '<span class="simple-desc"><i>&nbsp</i>'
   html[#html+1] = format(N('<strong %s>%d</strong><span %s> DNS Server</span>','<strong %s>%d</strong><span %s> DNS Servers</span>',#dns_servers),dns_modal_link,#dns_servers,dns_modal_link)
-  html[#html+1] = '</span><p class="subinfos" style="letter-spacing:-1px;font-size:12px;font-weight:bold;line-height:15px;">'
+  html[#html+1] = '</span><p class="subinfos" style="letter-spacing:-1px;font-size:12px;font-weight:bold;line-height:14px;margin-top:0px;margin-bottom:-3px">'
   local max_show = 2
   if isBridgedMode then
     max_show = 4
