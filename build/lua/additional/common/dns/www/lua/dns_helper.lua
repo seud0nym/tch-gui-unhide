@@ -28,9 +28,20 @@ function M.handleDNSTableQuery(columns,options,filter,defaultObject,mapValidatio
   return data,helpmsg
 end
 
+function M.handleRebindTableQuery(columns,options,filter,defaultObject,mapValidation)
+  local data,helpmsg = post_helper.handleTableQuery(columns,options,filter,defaultObject,mapValidation)
+  for k,v in pairs (data) do
+    local domain = M.toDomainAndIP(v[1])
+    if domain then
+      data[k][1] = domain
+    end
+  end
+  return data,helpmsg
+end
+
 function M.toDomainAndIP(value)
   local v = untaint(value)
-  local domain,ip = match(v,"/([^/]+)/(.+)")
+  local domain,ip = match(v,"/([^/]+)/(.*)")
   return domain,ip or v
 end
 

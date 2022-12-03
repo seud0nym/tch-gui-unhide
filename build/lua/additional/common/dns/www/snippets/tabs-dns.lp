@@ -18,7 +18,8 @@ if not adguard or adguard[1].value ~= "1" then
 end
 items[#items+1] = {"dns-interceptd-modal.lp",T"Intercept Daemon"}
 if not isBridgedMode then
-  items[#items+1] = {"firewall-dns_int-modal.lp",T"DNS Hijacking"}
+  items[#items+1] = {"firewall-dns_int-modal.lp",T"Hijacking"}
+  items[#items+1] = {"dns-rebind-modal.lp",T"Rebind Protection"}
 end
 
 local html = {}

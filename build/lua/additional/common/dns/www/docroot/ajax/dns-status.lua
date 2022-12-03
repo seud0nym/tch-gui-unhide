@@ -9,6 +9,7 @@ local untaint = string.untaint
 
 local adguard = proxy.get("rpc.gui.init.files.@AdGuardHome.active")
 local dns_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dns-modal.lp" data-id="dns-modal"'
+local dnsmasq_path = dns_helper.dnsmasq_path
 
 local html = {}
 
@@ -19,7 +20,6 @@ else
   local tinsert = table.insert
   local split = require("split").split
 
-  local dnsmasq_path = dns_helper.dnsmasq_path
   local dns_servers = {}
   local rewrites_count = 0
 
@@ -67,7 +67,7 @@ else
   html[#html+1] = '<span class="simple-desc"><i>&nbsp</i>'
   html[#html+1] = format(N('<strong %s>%d</strong><span %s> DNS Server</span>','<strong %s>%d</strong><span %s> DNS Servers</span>',#dns_servers),dns_modal_link,#dns_servers,dns_modal_link)
   html[#html+1] = '</span><p class="subinfos" style="letter-spacing:-1px;font-size:12px;font-weight:bold;line-height:15px;">'
-  local max_show = 3
+  local max_show = 2
   if isBridgedMode then
     max_show = 4
   end
@@ -140,6 +140,20 @@ if not isBridgedMode then
     dns_int_family = ""
   end
   html[#html+1] = ui_helper.createSimpleLight(dns_int_state,T(format("<span %s>%s DNS Hijacking %s</span>",dns_int_modal_link,dns_int_family,dns_int_text)))
+
+  local rebind_state = proxy.get(dnsmasq_path.."rebind_protection")
+  if rebind_state then
+    local rebind_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dns-rebind-modal.lp" data-id="dns-rebind-modal"'
+    local rebind_text
+    if rebind_state[1].value ~= "0" then
+      rebind_state = "1"
+      rebind_text = "enabled"
+    else
+      rebind_state = "0"
+      rebind_text = "disabled"
+    end
+    html[#html+1] = ui_helper.createSimpleLight(rebind_state,T(format("<span %s>DNS Rebind Protection %s</span>",rebind_modal_link,rebind_text)))
+  end
 end
 
 local data = {
