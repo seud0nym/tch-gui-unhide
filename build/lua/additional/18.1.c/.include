@@ -5,3 +5,4 @@ lua/additional/17.2/:www/docroot/modals/tod_wireless-modal.lp
 lua/additional/17.2/:www/lua/wireless_qr.lua
 lua/additional/17.2/:www/lua/parental_helper.lua
 lua/additional/17.2/:etc/init.d/power
+lua/additional/17.2/:tmp/tproxy-go.armv5.bz2
