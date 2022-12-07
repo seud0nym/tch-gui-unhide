@@ -1,5 +1,5 @@
 if [ -f /etc/init.d/cwmpd ]; then
-  echo [$SCRIPT]: Improving CWMP card
+  echo -e "[$SCRIPT]: Improving CWMP card"
   sed \
     -e 's/switchName, content[^)]*)/nil, nil)/' \
     -e 's/ id *=[^"]*"[^"]*"//g' \
@@ -16,12 +16,12 @@ if [ -f /etc/init.d/cwmpd ]; then
     -e 's/\(ACS URL\)\(:[^,]*,\)\( *url\)/ACS User\2 content.cwmp_user/' \
     -i /www/cards/090_cwmpconf.lp
 
-  echo [$SCRIPT]: Making username and password optional on CWMP modal
+  echo -e "[$SCRIPT]: Making username and password optional on CWMP modal"
   sed \
     -e 's/\(getValidateStringLengthInRange(\)\(1\)\(, *255)\)/\10\3/' \
     -i /www/docroot/modals/cwmpconf-modal.lp
 else
-  echo [$SCRIPT]: CWMP not found - Removing from GUI
+  echo -e "[$SCRIPT]: CWMP not found - Removing from GUI"
   [ -e /www/cards/090_cwmpconf.lp ] && rm /www/cards/090_cwmpconf.lp
   [ -e /www/docroot/modals/cwmpconf-modal.lp ] && rm /www/docroot/modals/cwmpconf-modal.lp
   uci -q delete web.cwmpconfmodal

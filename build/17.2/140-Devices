@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Sort the device map hosts by name
+echo -e "[$SCRIPT]: Sort the device map hosts by name"
 sed \
  -e 's/loadTableData("rpc.hosts.host.", dcols)/loadTableData("rpc.hosts.host.", dcols, nil, "FriendlyName")/' \
  -i /www/snippets/networkmap.lp

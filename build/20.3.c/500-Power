@@ -5,13 +5,13 @@ check_pwr_setting() {
   if [ -z "$(uci -q get power.$section.$option)" ]; then
     pwrctl show | grep "$text" | grep -q Disabled
     value=$?
-    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - power.$section.$option=$value"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - power.$section.$option=$value"
     uci set power.$section.$option="$value"
     SRV_power=$(( $SRV_power + 1 ))
   fi
 }
 
-echo [$SCRIPT]: Checking power saving settings...
+echo -e "[$SCRIPT]: Checking power saving settings..."
 if [ -n "$(uci -q get power.cpu)" ];then
   uci -q delete power.cpu
   SRV_power=$(( $SRV_power + 1 ))

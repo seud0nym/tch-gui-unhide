@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Fix setting of firewall forwarding rule when NAT enabled/disabled
+echo -e "[$SCRIPT]: Fix setting of firewall forwarding rule when NAT enabled/disabled"
 for r in dhcp pppoa pppoe static
 do
   sed -e '/-- 106-BEGIN/,/-- 106-END/d' -i /www/snippets/internet-${r}-routed.lp

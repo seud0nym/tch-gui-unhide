@@ -36,7 +36,7 @@ minify() {
   if grep -q '<%' "$m"; then
     mv "$m" "$f"
   elif ! /usr/share/lua/LuaSrcDiet.lua --maximum --quiet $m -o $m.diet; then
-    echo "800@$(date +%H:%M:%S): - LuaSrcDiet failed for $f"
+    echo -e "[$SCRIPT]: - LuaSrcDiet failed for $f"
     mv "$m" "$f"
   else
     mv "$m.diet" "$f"
@@ -46,30 +46,30 @@ minify() {
 }
 
 if [ "$MINIFY" = y -a "$THEME_ONLY" = n ]; then
-  echo [$SCRIPT]: Pre-minify fixes
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/snippets/networkmap.lp"
+  echo -e "[$SCRIPT]: Pre-minify fixes"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/snippets/networkmap.lp"
   sed -e 's/\("pointer"})\)\(\\\)/\1;\2/' -i /www/snippets/networkmap.lp
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/lua/parental_helper.lua"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/lua/parental_helper.lua"
   sed -e '/--\[\[/,/\]\]/d' -e 's/[ \t]*--[ \t]*\(T"ToD"\|tod_aggregate\|.*getTod()\).*$//' -i /www/lua/parental_helper.lua
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/tod_wireless-modal.lp"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/tod_wireless-modal.lp"
   sed -e 's/[ \t]*-- weekdays can be empty.*$//' -i /www/docroot/modals/tod_wireless-modal.lp
   if [ -e /www/docroot/modals/cwmpconf-modal.lp ]; then
-    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/cwmpconf-modal.lp"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/cwmpconf-modal.lp"
     sed -e 's/\(block\|none\)\(")\)\\/\1\2;\\/' -i /www/docroot/modals/cwmpconf-modal.lp
   fi
 
-  echo [$SCRIPT]: Minifying GUI Lua code
+  echo -e "[$SCRIPT]: Minifying GUI Lua code"
   chmod +x /usr/share/lua/LuaSrcDiet.lua
   STARTED=$(date +%s)
   for lua in $(find /www/cards /www/docroot /www/lua /www/snippets -type f \( -name "*.lp" -o -name "*.lua" \) -a ! -name "help_*.lp"); do
     was=$(ls -l "$lua" | tr -s ' ' | cut -d' ' -f5)
     minify "$lua"
     is=$(ls -l "$lua" | tr -s ' ' | cut -d' ' -f5)
-    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Minified $lua: Before=$was bytes Now=$is bytes ($(expr 100 - \( $is \* 100 / $was \))% reduction)"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Minified $lua: Before=$was bytes Now=$is bytes ($(expr 100 - \( $is \* 100 / $was \))% reduction)"
     BEFORE_MIN=$(( $BEFORE_MIN + $was ))
     AFTER_MIN=$(( $AFTER_MIN + $is ))
   done
-  echo -e "[$SCRIPT]: - Lua GUI code size reduced by \033[0;33m$(expr 100 - \( $AFTER_MIN \* 100 / $BEFORE_MIN \))%\033[0m in $(( $(date +%s) - $STARTED )) seconds"
+  echo -e "[$SCRIPT]: - Lua GUI code size reduced by ${ORANGE}$(expr 100 - \( $AFTER_MIN \* 100 / $BEFORE_MIN \))%${NC} in $(( $(date +%s) - $STARTED )) seconds"
 fi
 rm -rf /usr/share/lua/LuaSrcDiet.lua /usr/share/lua/optlex.lua /usr/share/lua/optparser.lua /usr/share/lua/llex.lua /usr/share/lua/lparser.lua
 

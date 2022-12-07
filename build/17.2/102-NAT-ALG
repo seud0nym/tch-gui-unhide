@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Show individual helper status on NAT Helpers card
+echo -e "[$SCRIPT]: Show individual helper status on NAT Helpers card"
 sed \
   -e '/local enabled/,/^  end/d' \
   -e '/convertResultToObject/a \  local htmlLeft = {}' \
@@ -38,7 +38,7 @@ sed \
   -e '/card_bg/a \            </div>\\' \
   -i /www/cards/092_natalghelper.lp
 
-echo [$SCRIPT]: Fix NAT ALG modal errors and include in Firewall tabs if card hidden
+echo -e "[$SCRIPT]: Fix NAT ALG modal errors and include in Firewall tabs if card hidden"
 sed \
   -e '/^local ui_helper/i \local proxy = require("datamodel")' \
   -e 's/T"Enable"/T"Enabled"/' \

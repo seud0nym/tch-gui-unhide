@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Remove switch bank button from System Extras
+echo -e "[$SCRIPT]: Remove switch bank button from System Extras"
 sed \
   -e '/local lose_root_warning/,/Switching bank/d' \
   -e '/#btn-system-switchover/,/});/d' \

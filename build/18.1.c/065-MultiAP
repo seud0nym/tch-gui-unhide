@@ -1,5 +1,5 @@
 if [ -f /www/docroot/booster.lp ]; then
-  echo [$SCRIPT]: Importing Booster screen into advanced view
+  echo -e "[$SCRIPT]: Importing Booster screen into advanced view"
   sed \
     -e '/lp.include("header.lp")/,/lp.include("message.lp")/d' \
     -e '/local lp = require("web.lp")/i \    ngx.print(ui_helper.createHeader(T"Wi-Fi Boosters", false, false, nil, nil) )' \
@@ -12,7 +12,7 @@ if [ -f /www/docroot/booster.lp ]; then
     /www/docroot/booster.lp > /www/docroot/modals/wireless-boosters-boosters-modal.lp
 fi
 if [ -f /www/docroot/boosterstatus.lp ]; then
-  echo [$SCRIPT]: Importing Booster status screen into advanced view
+  echo -e "[$SCRIPT]: Importing Booster status screen into advanced view"
   sed \
     -e '/lp.include("header.lp")/,/lp.include("message.lp")/d' \
     -e '/require("web.content_helper")/a local ui_helper = require("web.ui_helper")' \
@@ -25,7 +25,7 @@ if [ -f /www/docroot/boosterstatus.lp ]; then
     /www/docroot/boosterstatus.lp > /www/docroot/modals/wireless-boosters-status-modal.lp
 fi
 if [ -f /www/docroot/wifidevices.lp ]; then
-  echo [$SCRIPT]: Importing Booster Wi-Fi devices screen into advanced view
+  echo -e "[$SCRIPT]: Importing Booster Wi-Fi devices screen into advanced view"
   sed \
     -e '/lp.include("header.lp")/,/lp.include("message.lp")/d' \
     -e '/local content =/i \    ngx.print(ui_helper.createHeader(T"Wi-Fi Boosters", false, false, nil, nil) )' \
@@ -36,6 +36,6 @@ if [ -f /www/docroot/wifidevices.lp ]; then
     /www/docroot/wifidevices.lp > /www/docroot/modals/wireless-boosters-devices-modal.lp
 fi
 
-echo "[$SCRIPT]: Fixing 'sh: missing ]' bug in /etc/init.d/multiap_controller"
+echo -e "[$SCRIPT]: Fixing 'sh: missing ]' bug in /etc/init.d/multiap_controller"
 sed -e 's/al_mac"\]/al_mac" ]/' -i /etc/init.d/multiap_controller
 

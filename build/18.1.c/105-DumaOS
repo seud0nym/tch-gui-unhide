@@ -2,7 +2,7 @@ if [ "$VERSION" != "18.1.c.0462" ]
 then
   if [ "$(uci get dumaos.tr69.dumaos_enabled)" = '1' ]
   then
-    echo [$SCRIPT]: Add DumaOS button
+    echo -e "[$SCRIPT]: Add DumaOS button"
     sed \
       -e "/id=\"basicview\"/i\            html[#html + 1] = '<a href=\"desktop/index.html#com.netdumasoftware.desktop\" class=\"btn\" id=\"dumaos\">'" \
       -e "/id=\"basicview\"/i\            html[#html + 1] = T\"DumaOS\"" \

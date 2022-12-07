@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Add webserver wait functions
+echo -e "[$SCRIPT]: Add webserver wait functions"
 sed \
   -e '/function resetreboot(msg, msg_dst, action)/i \  var refreshTimeOut = 5000;\\' \
   -e '/function resetreboot(msg, msg_dst, action)/i \  var refreshDelay = 3000;\\' \
@@ -24,7 +24,7 @@ sed \
   -e '/function resetreboot(msg, msg_dst, action)/i \  }\\' \
   -i /www/docroot/modals/broadband-modal.lp
 
-echo [$SCRIPT]: Fix static leases for FW 17.2
+echo -e "[$SCRIPT]: Fix static leases for FW 17.2"
 sed \
   -e 's/"uci\.dhcp\.host\.@\."/"uci.dhcp.host."/' \
   -e '/objectName/,/addNamedObject/d' \

@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Fixing card backgrounds
+echo -e "[$SCRIPT]: Fixing card backgrounds"
 sed \
   -e '$ a .card_bg{position:relative;z-index:1;}' \
   -e '$ a .card_bg:after{color:#EAEAEA;font-family:FontAwesome;content:attr(data-bg-text);display:block;font-size:110px;line-height:1;position:absolute;bottom:-5px;right:5px;}' \

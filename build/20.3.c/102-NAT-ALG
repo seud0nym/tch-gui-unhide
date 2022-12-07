@@ -1,8 +1,8 @@
-echo [$SCRIPT]: Add description to firewall helpers mapping
+echo -e "[$SCRIPT]: Add description to firewall helpers mapping"
 sed -e 's/\("proto",\)$/\1 "description",/' -i /usr/share/transformer/mappings/uci/firewall_helpers.map
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
-echo [$SCRIPT]: Check firewall helpers module availability
+echo -e "[$SCRIPT]: Check firewall helpers module availability"
 for m in $(uci show firewall_helpers | grep '\.module=')
 do
   module=$(echo $m | cut -d"'" -f2)
@@ -17,7 +17,7 @@ do
   fi
 done
 
-echo [$SCRIPT]: Fix any incorrectly configured helpers
+echo -e "[$SCRIPT]: Fix any incorrectly configured helpers"
 LAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "name='lan'" | cut -d. -f1-2)
 WAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "wan='1'" | cut -d. -f1-2)
 LAN_HELP=$(uci -qd"$IFS" get $LAN_ZONE.helper | sort | xargs)

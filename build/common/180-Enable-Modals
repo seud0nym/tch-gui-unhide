@@ -1,6 +1,6 @@
 if [ $(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | wc -l) -eq 0 ]
 then
-  echo [$SCRIPT]: Telstra Air and Fon SSIDs not found - Removing from GUI
+  echo -e "[$SCRIPT]: Telstra Air and Fon SSIDs not found - Removing from GUI"
   [ -f /www/cards/010_fon.lp ] && rm /www/cards/010_fon.lp
   [ -f /www/docroot/modals/fon-modal.lp ] && rm /www/docroot/modals/fon-modal.lp
   uci -q delete web.fon
@@ -9,10 +9,10 @@ then
   uci -q del_list web.ruleset_main.rules=fonmodal
   uci -q delete web.card_fon
 else
-  echo [$SCRIPT]: Telstra Air and Fon SSIDs FOUND - Leaving in GUI
+  echo -e "[$SCRIPT]: Telstra Air and Fon SSIDs FOUND - Leaving in GUI"
   if [ "$MINIFY" = y ]; then
-    echo [$SCRIPT]: Pre-minify fixes
-    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/fon-modal.lp"
+    echo -e "[$SCRIPT]: Pre-minify fixes"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/fon-modal.lp"
     sed \
       -e 's/\(})\)\(\\\)/\1;\2/' \
       -i /www/docroot/modals/fon-modal.lp
@@ -23,7 +23,7 @@ fi
 #  - diagnostics-airiq-modal.lp (requires Flash player)
 #  - mmpbx-sipdevice-modal.lp (only applicable to firmware 17.2.0188-820-RA and earlier: https://hack-technicolor.readthedocs.io/en/stable/Unlock/#expose-some-more-voip-settings-into-the-web-ui)
 #  - speedservice-modal.lp (internal Technicolor testing?)
-echo [$SCRIPT]: Checking modal visibility
+echo -e "[$SCRIPT]: Checking modal visibility"
 for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal.lp\|mmpbx-sipdevice-modal.lp\|speedservice-modal.lp\)); do
   MODAL=$(basename $f)
   RULE=$(uci show web | grep "/modals/$MODAL" | grep -m 1 -v card_ | cut -d. -f2)
@@ -34,14 +34,14 @@ for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal
     CREATE_RULE=n
   fi
   if [ $CREATE_RULE = y ]; then
-    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Creating Rule $RULE: target=/modals/$MODAL"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Creating Rule $RULE: target=/modals/$MODAL"
     uci set web.$RULE=rule
     uci set web.$RULE.target=/modals/$MODAL
     uci set web.$RULE.normally_hidden='1'
     uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 4 ))
   elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]; then
-    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing Rule $RULE: target=/modals/$MODAL Setting role to admin"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing Rule $RULE: target=/modals/$MODAL Setting role to admin"
     uci -q delete web.$RULE.roles
     uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 2 ))
@@ -49,7 +49,7 @@ for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal
   uci -q get web.ruleset_main.rules | grep -qE "\b${RULE}\b" || uci add_list web.ruleset_main.rules=$RULE
 done
 
-echo [$SCRIPT]: Checking ajax visibility
+echo -e "[$SCRIPT]: Checking ajax visibility"
 for f in $(find /www/docroot/ajax -type f | grep -vE 'internet.lua|wirelesscard.lua'); do
   AJAX=$(basename $f)
   RULE=$(uci show web | grep "/ajax/$AJAX" | grep -m 1 -v card_ | cut -d. -f2)
@@ -60,14 +60,14 @@ for f in $(find /www/docroot/ajax -type f | grep -vE 'internet.lua|wirelesscard.
     CREATE_RULE=n
   fi
   if [ $CREATE_RULE = y ]; then
-    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Creating Rule $RULE: target=/ajax/$AJAX"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Creating Rule $RULE: target=/ajax/$AJAX"
     uci set web.$RULE=rule
     uci set web.$RULE.target=/ajax/$AJAX
     uci set web.$RULE.normally_hidden='1'
     uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 4 ))
   elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]; then
-    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing Rule $RULE: target=/ajax/$AJAX Setting role to admin"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing Rule $RULE: target=/ajax/$AJAX Setting role to admin"
     uci -q delete web.$RULE.roles
     uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 2 ))
@@ -75,13 +75,13 @@ for f in $(find /www/docroot/ajax -type f | grep -vE 'internet.lua|wirelesscard.
   uci -q get web.ruleset_main.rules | grep -qE "\b${RULE}\b" || uci add_list web.ruleset_main.rules=$RULE
 done
 
-echo [$SCRIPT]: Checking configured web rules exist
+echo -e "[$SCRIPT]: Checking configured web rules exist"
 for c in $(uci show web | grep '^web\..*\.target=' | grep -vE 'dumaos|homepage')
 do
   f=/www/docroot$(echo "$c" | cut -d"'" -f2)
   if [ ! -f "$f" ]; then
     RULE=$(echo $c | cut -d. -f2)
-    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Deleting rule $RULE for missing target $f"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Deleting rule $RULE for missing target $f"
     uci -q delete web.$RULE
     uci -q del_list web.ruleset_main.rules=$RULE
     SRV_nginx=$(( $SRV_nginx + 2 ))

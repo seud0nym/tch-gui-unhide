@@ -1,4 +1,4 @@
 # Do the restore
 restore_www
-echo [$SCRIPT]: Pre-update restore completed
+echo -e "[$SCRIPT]: Pre-update restore completed"
 

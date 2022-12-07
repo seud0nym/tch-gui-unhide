@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Update gateway card and status ajax with hardware temperature monitors
+echo -e "[$SCRIPT]: Update gateway card and status ajax with hardware temperature monitors"
 elements=""
 for m in $(find /sys/devices/ -name temp1_input); do
   elements="$elements\"$m\","

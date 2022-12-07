@@ -1,10 +1,10 @@
-echo [$SCRIPT]: Fixing card background image
+echo -e "[$SCRIPT]: Fixing card background image"
 sed \
   -e '$ a .card_bg:after{font-size:110px;bottom:-5px;z-index:-20;}' \
   -i /www/docroot/css/gw.css
 if [ -f /www/docroot/landingpage.lp -a "$KEEPLP" = "n" ];then
   [ $COMPVER -lt 20040000428 ] && LP_TXT_COLOUR=808080 || LP_TXT_COLOUR=545454
-  echo [$SCRIPT]: Theming and de-branding landing page
+  echo -e "[$SCRIPT]: Theming and de-branding landing page"
   sed \
     -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color:#f8f8f8;}" \
     -e "$ a body.landingpage #login_part_mobile>div:nth-child(2){display:none;}" \
@@ -44,8 +44,8 @@ if [ -f /www/docroot/landingpage.lp -a "$KEEPLP" = "n" ];then
 fi
 
 if [ "$MINIFY" = y ]; then
-  echo [$SCRIPT]: Pre-minify fixes
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/landingpage.lp"
+  echo -e "[$SCRIPT]: Pre-minify fixes"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/landingpage.lp"
   sed \
     -e 's/\(window.location.href\)\(\\\)/\1;\2/' \
     -e 's/\(blink_on)\)\(\\\)/\1;\2/' \
@@ -63,7 +63,7 @@ if [ "$MINIFY" = y ]; then
     -e 's/\(var gameparent\)/;\1/' \
     -e 's/\(gameparent.onblur\)/;\1/' \
     -i /www/docroot/landingpage.lp
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/loginbasic.lp"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/loginbasic.lp"
   sed \
     -e 's/\(window.location.href\)\(\\\)/\1;\2/' \
     -e 's/\(srp\.error\)/;\1/' \
@@ -74,7 +74,7 @@ fi
 
 if [ -f /www/snippets/tabs-home.lp ]
 then
-  echo [$SCRIPT]: "Removing 'Boost Your Wi-Fi' tab from basic view"
+  echo -e "[$SCRIPT]: "Removing 'Boost Your Wi-Fi' tab from basic view""
   sed -e '/^else/,/T"Boost Your Wi-Fi"/d' -i /www/snippets/tabs-home.lp
 fi
 

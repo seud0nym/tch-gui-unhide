@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Adding transformer support for IPv6 ULA Prefix
+echo -e "[$SCRIPT]: Adding transformer support for IPv6 ULA Prefix"
 sed \
  -e '/^uci_1to1.registerSimpleMap(network_config)/a \ ' \
  -e '/^uci_1to1.registerSimpleMap(network_config)/a \-- uci.network.globals.' \

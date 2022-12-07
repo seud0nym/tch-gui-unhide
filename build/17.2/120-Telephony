@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Fix default Telephony tab
+echo -e "[$SCRIPT]: Fix default Telephony tab"
 # Default telephony tab is DECT!!!
 sed \
  -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/a \    if mmpbx_state == "1" then' \

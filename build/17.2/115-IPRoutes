@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Fix IP Route modals for FW 17.2
+echo -e "[$SCRIPT]: Fix IP Route modals for FW 17.2"
 sed \
   -e 's/\.@\././' \
   -e '/objectName/,/addNamedObject/d' \

@@ -1,97 +1,133 @@
-echo "[$SCRIPT]: This script will perform the following actions:"
-if [ $FIX_SSH = y ]; then
-  echo "[$SCRIPT]:  - Properly enable SSH access over LAN"
-fi
-  echo "[$SCRIPT]:  - Preserve the password files and SSH configuration to prevent root loss on RTFD"
-if [ $FIX_CFG_PORT = y ]; then
-  echo "[$SCRIPT]:  - Enable unsigned configuration export/import in the web GUI"
-fi
-if [ $FIX_FW_UPGRD = y ]; then
-  if [ "$FW_UPGRD" = "1" ]; then
-    echo "[$SCRIPT]:  - Enable firmware upgrade in the web GUI"
-  else
-    echo "[$SCRIPT]:  - DISABLE firmware upgrade in the web GUI"
-  fi
-fi
-if [ $FIX_DFLT_USR = y ]; then
-  if [ "$DFLT_USR" = "admin" ]; then
-    echo "[$SCRIPT]:  - ENABLE the default user in the web GUI (i.e. GUI access without password)"
-  else
-    echo "[$SCRIPT]:  - Disable the default user in the web GUI"
-  fi
-fi
-if [ $FIX_PARENT_BLK = y ]; then
-  echo "[$SCRIPT]:  - Ensure admin role can administer the parental block"
-fi
+show_setting() {
+  local _TXT="$1"
+  local _OPT="-$2"
+  local _VAL
+  local _ABL
+
+  case "$2" in
+    c)  _ABL="$3"; _VAL="$(echo $3 | cut -c1)";;
+    d)  case "$3" in
+          y)  case "$DFLT_USR" in
+                admin) _VAL="y"; _ABL="Enabled";;
+                *)     _VAL="n"; _ABL="Disabled";;
+              esac;;
+          n)  _OPT=""; _ABL="Unchanged";;
+        esac;;
+    f)  case "$3" in
+          y)  case "$DFLT_USR" in
+                1) _VAL="y"; _ABL="Enabled";;
+                0) _VAL="n"; _ABL="Disabled";;
+              esac;;
+          n)  _OPT=""; _ABL="Unchanged";;
+        esac;;
+    h)  _ABL="$3"
+        case "$3" in
+          "")            _VAL=""; _OPT=""; _ABL="$VARIANT";;
+          $VARIANT-$MAC) _VAL="s";;
+          $VARIANT)      _VAL="d";;
+          $HOSTNAME)     _VAL="h";;
+          *)             _VAL="$3";;
+        esac;;
+    i)  case "$3" in
+          visible) _VAL="y"; _ABL="Visible";;
+          hidden)  _VAL="n"; _ABL="Hidden";;
+        esac;;
+    t)  case "$3" in
+          classic)       _VAL="c"; _ABL="Classic";;
+          light)         _VAL="l"; _ABL="Light";;
+          night)         _VAL="n"; _ABL="Night";;
+          telstramodern) _VAL="m"; _ABL="Telstra Modern";;
+          telstra)       _VAL="t"; _ABL="Telstra Classic";;
+        esac;;
+    C)  _VAL="$3"
+        case "$3" in
+          n) _ABL="Disabled";;
+          s) _ABL="Summary only";;
+          i) _ABL="Individual charts";;
+        esac;;
+    L) _VAL=""
+        case "$3" in
+          y) _ABL="Enabled"; _OPT="";;
+          n) _ABL="Disabled";;
+        esac;;
+    CFG) _VAL=""; _OPT=""
+        case "$3" in
+          y) _ABL="Enabled";;
+          n) _ABL="Already Fixed";;
+        esac;;
+    OPT) _VAL=""; _OPT=""
+         case "$3" in
+          y|V) _ABL="Enabled";;
+          /*)  _ABL="$3";;
+          *)    _ABL="Disabled";;
+        esac;;
+    *)  case "$3" in
+          y|true)  _VAL="y";  _ABL="Enabled";;
+          n|false) _VAL="n";  _ABL="Disabled";;
+          *)       _VAL="$3"; _ABL="$3";
+        esac;;
+  esac
+
+  [ "$2" = m -a "$_ABL" = Enabled ] && echo -en "$ORANGE"
+  echo $1 | grep -qi reboot && [ "$_ABL" = Enabled ] && echo -en "$RED"
+  printf "[$SCRIPT]:  %-35s %-2s%-10s" "$_TXT" "$_OPT" "$_VAL" 
+  echo -e "$_ABL${NC}"
+}
+
 if [ -z "$INSTALLED_RELEASE" ]; then
-  echo "[$SCRIPT]:  - Install tch-gui-unhide release $RELEASE"
+  echo -e "[$SCRIPT]: ${GREEN}Installing tch-gui-unhide release ${ORANGE}$RELEASE${NC}"
 else
-  echo "[$SCRIPT]:  - Replace tch-gui-unhide release $INSTALLED_RELEASE with $RELEASE"
+  echo -e "[$SCRIPT]: ${GREEN}Replacing tch-gui-unhide release ${ORANGE}$INSTALLED_RELEASE${GREEN} with ${ORANGE}$RELEASE${NC}"
 fi
-echo "[$SCRIPT]:  - Allow editing of various settings that are not exposed in the stock GUI"
-echo "[$SCRIPT]:  - Unhide various cards and tabs contained in the stock GUI that are normally hidden"
-echo "[$SCRIPT]:  - Add new cards and screens, and modified cards and screens from the Ansuel tch-nginx-gui"
-echo "[$SCRIPT]:  - Pretty up the GUI screens a bit"
-echo "[$SCRIPT]:  - Apply the $THEME theme with $COLOR highlights and $ICONS card icons"
-echo "[$SCRIPT]:  - Allow $ACROSS cards across the page on wide screens"
-if [ "$BG_RFRSH" = "true" ]; then
-echo "[$SCRIPT]:  - Dashboard cards will auto-refresh"
-else
-echo "[$SCRIPT]:  - Dashboard cards will NOT auto-refresh"
+
+echo -e "[$SCRIPT]: ${CYAN}Theme Options${NC}"
+  show_setting "Theme"                                "t" "$THEME"
+  show_setting "Theme highlight colour"               "c" "$COLOR"
+  show_setting "Card background icons"                "i" "$ICONS"
+  show_setting "Number of cards across wide screens"  "a" "$ACROSS"
+  show_setting "Browser tabs title"                   "h" "$TITLE"
+if [ -f /www/docroot/landingpage.lp ]; then
+  show_setting "Keep Telstra landing page"            "l" "$KEEPLP"
 fi
-case "$CHART_CARDS" in
-  n)  echo "[$SCRIPT]:  - All chart cards will be hidden";;
-  s)  echo "[$SCRIPT]:  - Only the Summary Chart Card will be visible";;
-  i)  echo "[$SCRIPT]:  - The Individual Chart Cards will be visible";;
-esac
-if [ -f /www/docroot/landingpage.lp -a $KEEPLP = n ]; then
-  echo "[$SCRIPT]:  - Theme and de-brand the Telstra Landing Page"
-fi
-if [ -n "$TITLE" ]; then
-  echo "[$SCRIPT]:  - Set the browser tabs titles to $TITLE"
-fi
-if [ "$SIP_PWDS" = y ]; then
-  echo "[$SCRIPT]:  - SIP Profile passwords will be decrypted and displayed in text fields rather than password fields"
-fi
-if [ "$CUSTOM_LOGO" = n ]; then
-  echo "[$SCRIPT]:  - Any custom logo.gif file found will by IGNORED"
-fi
-if [ "$UPDATE_BTN" = y ]; then
-  echo "[$SCRIPT]: New release checking is ENABLED and 'Update Available' will be shown in GUI when new version released"
-else
-  echo "[$SCRIPT]: New release checking is DISABLED! 'Update Available' will NOT be shown in GUI when new version released"
-fi
-if [ -n "$XTRAS" ]; then
-  echo "[$SCRIPT]: These extra feature scripts will be downloaded and applied (if the pre-requisites are met):"
-  for x in $XTRAS; do
-    echo "[$SCRIPT]:  - tch-gui-unhide-xtra.$x"
-  done
-fi
-if [ "$UPDATE_XTRAS" = y ]; then
-  echo "[$SCRIPT]: Any existing extra feature scripts will be updated to the latest version"
-else
-  echo "[$SCRIPT]: Any existing extra feature scripts will NOT be updated to the latest version"
-fi
+  show_setting "Chart cards"                          "C" "$CHART_CARDS"
+  show_setting "Custom logo.gif"                      "L" "$CUSTOM_LOGO"
+echo -e "[$SCRIPT]: ${CYAN}Control Options${NC}"
+  show_setting "Background updating of cards"         "b" "$BG_RFRSH"
+  show_setting "Decrypt SIP Profile passswords"       "p" "$SIP_PWDS"
+  show_setting "Show 'Update Available' button"       "v" "$UPDATE_BTN"
+for x in $XTRAS; do
+  show_setting "Download extra feature script"        "x" "$x"
+done
+  show_setting "Minify GUI Lua code"                  "m" "$MINIFY"
+echo -e "[$SCRIPT]: ${CYAN}Configuration Options${NC}"
+  show_setting "Default User"                         "d" "$FIX_DFLT_USR"
+  show_setting "Firmware Upgrade in GUI"              "f" "$FIX_FW_UPGRD"
+echo -e "[$SCRIPT]: ${CYAN}Installation Options${NC}"
+  show_setting "Verbose messages"                     "OPT" "$VERBOSE"
+  show_setting "Debugging"                            "OPT" "$DEBUG"
+  show_setting "Restore from base directory"          "OPT" "$RESTORE_BASE"
+  show_setting "Restart services"                     "OPT" "$RESTART_SERVICES"
+  show_setting "Reboot after install"                 "OPT" "$REBOOT"
+echo -e "[$SCRIPT]: ${CYAN}Configuration Changes${NC}"
+  show_setting "Fix LAN SSH access"                   "CFG" "$FIX_SSH"
+  show_setting "Allow GUI config export/import"       "CFG" "$FIX_CFG_PORT"
+  show_setting "Allow Parental Block admin"           "CFG" "$FIX_PARENT_BLK"
+  show_setting "Prevent root loss on GUI RTFD"        "CFG" "y"
+
 if [ "$MINIFY" = y ]; then
-  echo -e "[$SCRIPT]: \033[0;33mWARNING! Experimental Lua GUI code minification is enabled!\033[0m"
+  echo -e "[$SCRIPT]: ${ORANGE}WARNING! Experimental Lua GUI code minification is enabled!${NC}"
 fi
 if [ "$RESTORE_BASE" != "/rom" ]; then
-  echo -e "[$SCRIPT]: \033[0;33mWARNING! Stock GUI files will be restored from $RESTORE_BASE rather than /rom!\033[0m"
-fi
-if [ -n "$VERBOSE" ]; then
-  echo -e "[$SCRIPT]: \033[0;33mVerbose messages are ENABLED\033[0m"
-fi
-if [ "$DEBUG" = y ]; then
-  echo -e "[$SCRIPT]: \033[0;33mDebugging is ENABLED\033[0m"
+  echo -e "[$SCRIPT]: ${ORANGE}WARNING! Stock GUI files will be restored from $RESTORE_BASE rather than /rom!${NC}"
 fi
 if [ "$REBOOT" = y ]; then
-  echo -e "[$SCRIPT]: \033[0;31mWARNING! System will be REBOOTED after installation!!\033[0m"
+  echo -e "[$SCRIPT]: ${RED}WARNING! System will be REBOOTED after installation!!${NC}"
 fi
 
 if [ $YES = y ]; then
   REPLY=y
 else
-  echo -n "[$SCRIPT]: If you wish to proceed, enter y otherwise just press [Enter] to stop: "
+  echo -en "[$SCRIPT]: ${GREEN}If you wish to proceed, enter y otherwise just press [Enter] to stop:${NC} "
   read
 fi
 if [ "$REPLY" == "x" ]; then
@@ -102,5 +138,5 @@ elif [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
   unlock normally
 fi
 
-echo [$SCRIPT]: IMPORTANT NOTE - You can restore changed GUI files to their original state by running: $0 -r
+echo -e "[$SCRIPT]: IMPORTANT NOTE - You can restore changed GUI files to their original state by running: ${GREEN}$0 -r${NC}"
 

@@ -1,9 +1,9 @@
 LTE_CARD="$(find /www/cards -type f -name '*lte.lp')"
-echo [$SCRIPT]: Fix missing refreshInterval variable on Mobile card
+echo -e "[$SCRIPT]: Fix missing refreshInterval variable on Mobile card"
 sed \
   -e 's/\(^[[:blank:]]*\)\(setInterval\)/\1var refreshInterval = \2/' \
   -i $LTE_CARD
-echo [$SCRIPT]: Fix display bug on Mobile card, hide if no devices found and stop refresh when any modal displayed
+echo -e "[$SCRIPT]: Fix display bug on Mobile card, hide if no devices found and stop refresh when any modal displayed"
 sed \
   -e '/<script>/a var divs = $("#mobiletab .content").children("div");if(divs.length>0){var p=$("#mobiletab .content .subinfos");divs.appendTo(p);}\\' \
   -e '/var refreshInterval/a addRegisteredInterval(refreshInterval);\\' \
@@ -13,7 +13,7 @@ sed \
   -e '$ a end' \
   -i $LTE_CARD
 
-echo [$SCRIPT]: Show Mobile Only Mode status on Mobile card
+echo -e "[$SCRIPT]: Show Mobile Only Mode status on Mobile card"
 sed \
   -e '/\.card-label/a margin-bottom:0px;\\' \
   -e '/local light/i local proxy = require("datamodel")' \
@@ -29,7 +29,7 @@ sed \
   -e "/\"content\"/a ngx.print('\\\\" \
   -i $LTE_CARD
 
-echo [$SCRIPT]: Hide Mobile Only Mode on Mobile Configuration screen is WAN Sensing disabled
+echo -e "[$SCRIPT]: Hide Mobile Only Mode on Mobile Configuration screen is WAN Sensing disabled"
 sed \
   -e '/getExactContent(content_wansensing)/i\p.mapParams.wsenable = "uci.wansensing.global.enable"' \
   -e '/Mobile Only Mode/i if page.content.wsenable == "1" then' \
@@ -38,7 +38,7 @@ sed \
   -e '/Mobile Only Mode/a end' \
   -i /www/docroot/modals/lte-modal.lp
 
-echo [$SCRIPT]: Show LTE Service Provider, Network Registration and Service status
+echo -e "[$SCRIPT]: Show LTE Service Provider, Network Registration and Service status"
 sed \
   -e 's/\(, signal_quality\)/\1, registration_status, unread_sms, service_provider/' \
   -e '/radio_interface_map/a\			result = utils.getContent(rpc_path .. "network.serving_system.nas_state")' \
@@ -86,7 +86,7 @@ sed \
   -e '/elementCSRFtoken/a\					}\\' \
   -i $LTE_CARD
 
-echo [$SCRIPT]: Add Device Capabilities and LTE Band Selection to Mobile Configuration screen
+echo -e "[$SCRIPT]: Add Device Capabilities and LTE Band Selection to Mobile Configuration screen"
 sed \
   -e 's/getValidateCheckboxSwitch()/validateBoolean/' \
   -e 's/createCheckboxSwitch/createSwitch/' \
@@ -188,12 +188,12 @@ sed \
   -e '/^\s*get_device_info_section/a get_device_capabilities_section(page, html)' \
   -i /www/docroot/modals/lte-modal.lp
 
-echo [$SCRIPT]: Fix uneven SMS messages in night mode
+echo -e "[$SCRIPT]: Fix uneven SMS messages in night mode"
 sed \
   -e '/background-color: *#eee;/a\    color: #000;\\' \
   -i /www/docroot/modals/lte-sms.lp
 
-echo [$SCRIPT]: Add SMS send capability
+echo -e "[$SCRIPT]: Add SMS send capability"
 sed \
   -e '/bootstrap-progressbar/a\<script language="javascript">$("#waiting:not(.do-not-show)").hide();</script>\\' \
   -e '/^local ui_helper/a\local post_helper = require("web.post_helper")' \
@@ -247,7 +247,7 @@ sed \
   -e "/<\/form>/i\  </fieldset>\\\\" \
   -i /www/docroot/modals/lte-sms.lp
 
-echo [$SCRIPT]: Add new Mobile tabs
+echo -e "[$SCRIPT]: Add new Mobile tabs"
 sed \
   -e 's/\(T"Profiles"}\)$/\1,/' \
   -e '/lte-profiles.lp/a\	{"lte-operators.lp", T"Network Operators"},' \
@@ -260,7 +260,7 @@ end\
 ' \
   -i /www/snippets/tabs-mobiled.lp
 
-echo [$SCRIPT]: Configure transformer for missing WanSensing settings
+echo -e "[$SCRIPT]: Configure transformer for missing WanSensing settings"
 sed \
   -e 's/\("autofailover\)/"voiceonfailover", \1", \1maxwait/' \
   -e '/timeout/ {n; :a; /timeout/! {N; ba;}; s/\("timeout"\)/\1, "fasttimeout"/;}' \
@@ -268,14 +268,14 @@ sed \
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
 if [ -e /usr/share/transformer/commitapply/uci_wansensing.ca ]; then
-  echo [$SCRIPT]: Force WanSensing to restart on change rather than reload
+  echo -e "[$SCRIPT]: Force WanSensing to restart on change rather than reload"
   sed -e 's|\(\^wansensing /etc/init.d/wansensing\)\( reload\)|\1 restart|' -i /usr/share/transformer/commitapply/uci_wansensing.ca
   SRV_transformer=$(( $SRV_transformer + 1 ))
 fi
 
 if [ "$MINIFY" = y ]; then
-  echo [$SCRIPT]: Pre-minify fixes
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/lte-doctor.lp"
+  echo -e "[$SCRIPT]: Pre-minify fixes"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/lte-doctor.lp"
   sed -e '/[ \t]*\/\/[ \t]*Zooming with more than 100/d' -i /www/docroot/modals/lte-doctor.lp
 fi
 

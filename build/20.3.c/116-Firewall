@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Add WAN NAT ALG helper count to Firewall card
+echo -e "[$SCRIPT]: Add WAN NAT ALG helper count to Firewall card"
 sed \
   -e '/local enabled_count/,/<br>/d' \
   -e '/local alg_modal_link/a \              local zones = proxy.getPN("uci.firewall.zone.", true)' \
@@ -14,7 +14,7 @@ sed \
   -e '/local alg_modal_link/a \              end' \
   -i /www/cards/008_firewall.lp
 
-echo [$SCRIPT]: Fix firewall disabled setting
+echo -e "[$SCRIPT]: Fix firewall disabled setting"
 awk -e 'BEGIN{inoff=0;} /^  Off = /{inoff=1;} /waninput/{if (inoff==1){gsub(/DROP/,"ACCEPT")}} /defaultoutgoing/{inoff=0;} {print}' /usr/share/transformer/mappings/rpc/network.firewall.map>/tmp/network.firewall.map
 mv /tmp/network.firewall.map /usr/share/transformer/mappings/rpc/network.firewall.map
 chmod 644 /usr/share/transformer/mappings/rpc/network.firewall.map

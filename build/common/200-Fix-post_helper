@@ -1,6 +1,6 @@
 grep -q '^function M.getRandomKey' /usr/lib/lua/web/post_helper.lua
 if [ $? -eq 1 ];then
-  echo [$SCRIPT]: Add missing getRandomKey post_helper function
+  echo -e "[$SCRIPT]: Add missing getRandomKey post_helper function"
   sed -e '/^return M$/i\
 --Generate random key for new rule\
 --@return 16 digit random key.\
@@ -18,7 +18,7 @@ fi
 
 grep -q '^function M.validateStringIsIPv4' /usr/lib/lua/web/post_helper.lua
 if [ $? -eq 1 ];then
-  echo [$SCRIPT]: Add missing validateStringIsIPv4 post_helper function
+  echo -e "[$SCRIPT]: Add missing validateStringIsIPv4 post_helper function"
   sed -e '/^return M$/i\
 -- Validate the given IP address is a valid IPv4 address.\
 -- @string value The IPv4 address.\
@@ -39,7 +39,7 @@ fi
 
 grep -q '^function M.validateStringIsIPv6' /usr/lib/lua/web/post_helper.lua
 if [ $? -eq 1 ];then
-  echo [$SCRIPT]: Add missing validateStringIsIPv6 post_helper function
+  echo -e "[$SCRIPT]: Add missing validateStringIsIPv6 post_helper function"
   sed -e '/^return M$/i\
 --- This function returns a validator that will check that the provided value is an IPv6 address\
 -- @param #string value the IPv6 Address\
@@ -56,7 +56,7 @@ fi
 
 grep -q '^function M.reservedIPValidation' /usr/lib/lua/web/post_helper.lua
 if [ $? -eq 1 ];then
-  echo [$SCRIPT]: Add missing reservedIPValidation post_helper function
+  echo -e "[$SCRIPT]: Add missing reservedIPValidation post_helper function"
   sed -e '/^return M$/i\
 -- Validate the given IP address is not in the Reserved IP list.\
 -- @string value The IPv4 address.\
@@ -80,7 +80,7 @@ fi
 
 grep -q '^function M.validateDMZ' /usr/lib/lua/web/post_helper.lua
 if [ $? -eq 1 ];then
-  echo [$SCRIPT]: Add missing validateDMZ post_helper function
+  echo -e "[$SCRIPT]: Add missing validateDMZ post_helper function"
   sed -e '/^return M$/i\
 --- Validator that will check whether the given IP address is in Network Range.\
 --- Validate the given IP address is not in the Reserved IP list.\
@@ -111,7 +111,7 @@ fi
 
 grep -q '^function M.validateLXC' /usr/lib/lua/web/post_helper.lua
 if [ $? -eq 1 ];then
-  echo [$SCRIPT]: Add missing validateLXC post_helper function
+  echo -e "[$SCRIPT]: Add missing validateLXC post_helper function"
   sed -e '/^return M$/i\
 --- Validate the given IP/MAC is LXC''s IP/MAC\
 -- @param value IP/MAC address\
@@ -144,7 +144,7 @@ function M.validateLXC(value)\
 end\' -i /usr/lib/lua/web/post_helper.lua
 fi
 
-echo [$SCRIPT]: Add specific error messages when table edits fail
+echo -e "[$SCRIPT]: Add specific error messages when table edits fail"
 sed \
   -e '/success = content_helper.setObject/a\                                if not success then\
                                   for _,v in ipairs(msg) do\

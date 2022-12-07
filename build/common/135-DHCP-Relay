@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Add missing DHCP Relay configuration
+echo -e "[$SCRIPT]: Add missing DHCP Relay configuration"
 sed \
  -e '/local format/a \local exists = proxy.get("uci.dhcp.relay.@relay.server_addr")' \
  -e '/local format/a \if not exists then' \
@@ -10,6 +10,6 @@ sed \
  -e '/local format/a \end' \
  -i /www/docroot/modals/relay-modal.lp
 
-echo [$SCRIPT]: Fix duplicate ids
+echo -e "[$SCRIPT]: Fix duplicate ids"
 sed -e 's/ id="relaysetupcard_relayip"//g' -i /www/cards/018_relaysetup.lp
 

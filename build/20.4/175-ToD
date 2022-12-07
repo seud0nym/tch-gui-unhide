@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Fix Time of Day Wireless Control tabs
+echo -e "[$SCRIPT]: Fix Time of Day Wireless Control tabs"
 sed \
   -e 's/T"Time of day wireless control"/T"Wireless Control"/' \
   -e '/lp.setpath/a\if ngx.var.args == "tod" then' \

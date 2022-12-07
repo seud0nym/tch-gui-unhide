@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Fix Telephony Service tab errors
+echo -e "[$SCRIPT]: Fix Telephony Service tab errors"
 sed \
  -e 's/{k, serviceNames\[k\]}/{k, k}/' \
  -e 's/post_helper.variantHasAccess(variantHelper, "showAdvanced", role)/false/' \

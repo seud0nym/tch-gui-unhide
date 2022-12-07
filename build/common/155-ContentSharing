@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Add Mounted USB Devices to Content Sharing card
+echo -e "[$SCRIPT]: Add Mounted USB Devices to Content Sharing card"
 sed \
   -e 's/\t/  /g' \
   -e 's/class = "span4"/style = "width:100%;"/' \
@@ -35,7 +35,7 @@ else\
 end' \
   -i /www/cards/012_contentsharing.lp
 
-echo [$SCRIPT]: Make Content Sharing Screen nicer
+echo -e "[$SCRIPT]: Make Content Sharing Screen nicer"
 sed \
   -e 's/getValidateCheckboxSwitch()/validateBoolean/' \
   -e 's/<form class/<form id="content-sharing-modal" class/' \
@@ -48,7 +48,7 @@ sed \
   -e '/DLNA name"/a\                tinsert(html, "</fieldset>")' \
   -i /www/docroot/modals/contentsharing-modal.lp
 
-echo [$SCRIPT]: Enable or disable SAMBA service when file and printer sharing completely enabled or disabled \(CS\)
+echo -e "[$SCRIPT]: Enable or disable SAMBA service when file and printer sharing completely enabled or disabled (CS)"
 sed \
   -e '/if samba_available and type/i\
     if samba_available and type(post_data["samba_filesharing"]) == "userdata" then\
@@ -75,7 +75,7 @@ sed \
     end' \
   -i /www/docroot/modals/contentsharing-modal.lp
 
-echo [$SCRIPT]: Fix Content Share URL 
+echo -e "[$SCRIPT]: Fix Content Share URL "
 sed \
   -e 's/uci\(\.network\.interface\.@lan\.ipaddr\)/rpc\1/' \
   -i /www/docroot/modals/contentsharing-modal.lp

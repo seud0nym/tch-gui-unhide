@@ -1,2 +1,2 @@
-echo [$SCRIPT]: Add SRA and Bitswap to xDSL mapping
+echo -e "[$SCRIPT]: Add SRA and Bitswap to xDSL mapping"
 sed -e 's/\("maxaggrdatarate"\)/\1, "sra" , "bitswap"/' -i /usr/share/transformer/mappings/uci/xdsl.map

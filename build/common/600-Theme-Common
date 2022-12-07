@@ -1,9 +1,9 @@
 else # THEME_ONLY = y
-  echo [$SCRIPT]: Restoring CSS files to apply theme change
+  echo -e "[$SCRIPT]: Restoring CSS files to apply theme change"
   cp -p $RESTORE_BASE/www/docroot/css/gw.css $RESTORE_BASE/www/docroot/css/gw-telstra.css $RESTORE_BASE/www/docroot/css/responsive.css /www/docroot/css/
 fi # End of if [ THEME_ONLY = n ]
 
-echo [$SCRIPT]: Adding or updating card background icons
+echo -e "[$SCRIPT]: Adding or updating card background icons"
 sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf012;"/' -i $(ls /www/cards/*_lte.lp)
 sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf129;"/' -i $(ls /www/cards/*_gateway.lp)
 sed -e 's/class="content"/class="content card_bg mirror" data-bg-text="\&#xf0c1;"/' -i $(ls /www/cards/*_broadband.lp)
@@ -27,13 +27,13 @@ sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf079;"/' -i 
 [ -f /www/cards/*_nfc.lp ] && sed -e 's/class="content"/class="content card_bg mirror" data-bg-text="\&#xf0b2;"/' -i $(ls /www/cards/*_nfc.lp)
 [ -f /www/cards/*_fon.lp ] && sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf143;"/' -i $(ls /www/cards/*_fon.lp)
 
-echo [$SCRIPT]: Fix some responsive span widths
+echo -e "[$SCRIPT]: Fix some responsive span widths"
 sed \
   -e 's/:56px/:80px/' \
   -e 's/:170px/:150px/' \
   -i /www/docroot/css/responsive.css
 
-echo [$SCRIPT]: Add theme processing
+echo -e "[$SCRIPT]: Add theme processing"
 for f in $(grep -l -r '</head>\\' /www 2>/dev/null | grep -v '\(airiq\|help\|landingpage\)')
 do
   grep -q 'lp.include("../snippets/theme' $f
@@ -46,10 +46,10 @@ do
     fi
     req=$(grep -n 'local lp = require("web.lp")' $f | cut -d: -f1)
     if [ -z "$req" ]; then
-      [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Adding $LP theme style sheets to $f"
+      [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Adding $LP theme style sheets to $f"
       sed -e "/<\/head>\\\/i '); local lp = require(\"web.lp\"); lp.include(\"../snippets/theme-$LP.lp\"); ngx.print('\\\\" -i $f
     else
-      [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Adding $LP theme style sheets to $f"
+      [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Adding $LP theme style sheets to $f"
       head=$(grep -n '</head>\\' $f | cut -d: -f1)
       if [ $head -lt $req ]; then
         sed -e "/<\/head>\\\/i '); local lp = require(\"web.lp\"); lp.include(\"../snippets/theme-$LP.lp\"); ngx.print('\\\\" -e "${req}d" -i $f
@@ -61,7 +61,7 @@ do
 done
 
 if [ $ACROSS -eq 5 ]; then
-  echo [$SCRIPT]: Allowing 5 cards across on wide screens
+  echo -e "[$SCRIPT]: Allowing 5 cards across on wide screens"
   sed \
     -e 's/\(@media screen and (min-width:1200px)\){/\1 and (max-width:1499px){/g' \
     -e '$a\

@@ -6,7 +6,7 @@ restore_www() {
   # Need to remove existing version or it doesn't get replaced??
   if [ -f /usr/sbin/traffichistory.lua ]; then
     if [ "$1" = "V" ]; then
-      echo [$SCRIPT]: Removing file /usr/sbin/traffichistory.lua
+      echo -e "[$SCRIPT]: Removing file /usr/sbin/traffichistory.lua"
     fi
     rm /usr/sbin/traffichistory.lua
   fi
@@ -24,20 +24,20 @@ restore_www() {
     if [ -f "$s" ]; then
       cmp -s "$s" "$t"
       if [ $? -ne 0 ]; then
-        echo [$SCRIPT]: Restoring file $t
+        echo -e "[$SCRIPT]: Restoring file $t"
         cp -f -p "$s" "$t"
       fi
     fi
   done
   # Add directories to be restored here
   for d in www/cards www/docroot www/lua www/snippets usr/share/transformer/commitapply usr/share/transformer/mappings/rpc usr/share/transformer/mappings/uci; do
-    echo [$SCRIPT]: Restoring directory /$d
+    echo -e "[$SCRIPT]: Restoring directory /$d"
     for s in $(find $RESTORE_BASE/$d -type f | grep -vE "^$RESTORE_BASE/www/docroot/help"); do
       t=${s#$RESTORE_BASE}
       cmp -s "$s" "$t"
       if [ $? -ne 0 ]; then
         if [ "$1" = "V" ]; then
-          echo 014@$(date +%H:%M:%S): Restoring file $t
+          echo -e "[$SCRIPT]: Restoring file $t"
         fi
         cp -f -p "$s" "$t"
         if [ $d = "usr/share/transformer" ]; then
@@ -50,7 +50,7 @@ restore_www() {
     for f in $(find /$d -type f ! -path '/www/docroot/help*');do
       if [ ! -f "/rom$f" -a -f "$f" ]; then
         if [ "$1" = "V" ]; then
-          echo 019@$(date +%H:%M:%S): Removing file $f
+          echo -e "[$SCRIPT]: Removing file $f"
         fi
         rm -f "$f"
         if [ $d = "usr/share/transformer" ]; then

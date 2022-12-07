@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Allow increase in WiFi output power to +6dBm
+echo -e "[$SCRIPT]: Allow increase in WiFi output power to +6dBm"
 sed \
  -e '/{"-6", T"25%"}/a \    {"-5", T"&nbsp;-5 dBm"},' \
  -e '/{"-6", T"25%"}/a \    {"-4", T"&nbsp;-4 dBm"},' \
@@ -16,12 +16,12 @@ sed \
  -e "s|Output Power|Adjust Output Power<span class='icon-question-sign' title='Increase or decrease radio output transmission power. Increasing transmission power is NOT recommended. It will cause more interference in neighboring channels, and reduce component lifetime by increasing heat generated.'></span>|" \
  -i /www/docroot/modals/wireless-modal.lp
 
-echo [$SCRIPT]: Fix spelling in WiFi error message
+echo -e "[$SCRIPT]: Fix spelling in WiFi error message"
 sed \
  -e 's/Mac address/MAC Address/' \
  -i /www/docroot/modals/wireless-modal.lp
 
-echo [$SCRIPT]: Add WiFi QR Code button
+echo -e "[$SCRIPT]: Add WiFi QR Code button"
 sed \
   -e '/isguest ~= "1" and \(\(isExtRemman  ~= "1"\)\|isRadiusIncluded\)/i\    local not_security_none = {\
         button = {\
@@ -36,14 +36,14 @@ sed \
   -i /www/docroot/modals/wireless-modal.lp
 
 if [ "$MINIFY" = y ]; then
-  echo [$SCRIPT]: Pre-minify fixes
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/wireless-modal.lp"
+  echo -e "[$SCRIPT]: Pre-minify fixes"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/wireless-modal.lp"
   sed \
     -e 's/\(if *(bandLockState\)/;\1/' \
     -e 's/\(Class("tooltipEnabled")\)/\1;/' \
     -e 's|content["phy_rate"] / 1000|(content["phy_rate"]/1000)|' \
     -i /www/docroot/modals/wireless-modal.lp
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/wireless-client-modal.lp"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/wireless-client-modal.lp"
   sed \
     -e 's/\(var timerajax\)\(\\\)/\1;\2/' \
     -e 's/\(var gets =  {}\)\(\\\)/\1;\2/' \
@@ -54,7 +54,7 @@ if [ "$MINIFY" = y ]; then
 fi
 
 if [ $(uci show network | grep -E '\.Guest.*=interface' | wc -l) -eq 0 ]; then
-  echo [$SCRIPT]: Fixed Basic view Wi-Fi tabs when Guest Wi-Fi removed
+  echo -e "[$SCRIPT]: Fixed Basic view Wi-Fi tabs when Guest Wi-Fi removed"
   sed -e '/^--check whether the.*guest1 exists/,/^$/d' -i /www/snippets/tabs-wifi.lp
 fi
 

@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Fix Firewall modals for FW 17.2
+echo -e "[$SCRIPT]: Fix Firewall modals for FW 17.2"
 sed \
   -e 's/\.@\././' \
   -i /www/docroot/modals/firewall-cone-modal.lp

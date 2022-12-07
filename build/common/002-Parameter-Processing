@@ -16,13 +16,31 @@ FILENAME=$(basename $0)
 usage() {
 cat <<EOH
 Optional parameters:
+ Theme Options:
+ -t l|n|c|t|m     Set a light (l), night (n), classic (c) or Telstra-branded Classic (t) or Modern (m) theme
+                    (Default is current setting, or Telstra Classic if no theme has been applied)
+ -c b|o|g|p|r|m|M Set the theme highlight colour
+                   b=blue o=orange g=green p=purple r=red m=monochrome M=monochrome (with monochrome charts)
+                   (Default is current setting, or (m) for light theme or (b) for night theme)
+ -i y|n           Show (y) or hide (n) the card icons
+                    (Default is current setting, or (n) for light theme and (y) for night theme)
+ -a 4|5           Set the number of cards across on screen width greater than 1200px
+                   (Default is current setting, or 4 for first time installs)
+ -h d|s|n|"txt"   Set the browser tabs title (Default is current setting)
+                   (d)=$VARIANT (s)=$VARIANT-$MAC (n)=$HOSTNAME ("txt")=Specified "txt"
+ -l y|n           Keep the Telstra landing page (y) or de-brand the landing page (n)
+                    (Default is current setting, or (n) if no theme has been applied)
+ -C n|s|i         Keep or remove chart cards
+                    n=No Chart Cards will be available
+                    s=Only the Summary Chart Card will be available
+                    i=Only the Individual Chart Cards will be available (default)
+ -L               Do NOT apply a custom logo if found. Normally, if there is a logo.gif file in one of: 
+                    the current directory, /root, or the USB drive, or in a "logo" (case-insensitive) 
+                    directory in one of those places, it will overwrite the logo in all themes.
+ -T               Apply theme ONLY - bypass all other processing
  Control Options:
  -b y|n           Enable (y) or Disable (n) background updating of dashboard cards 
                    (Default is current setting or (y) for first time installs)
- -d y|n           Enable (y) or Disable (n) Default user (i.e. GUI access without password)
-                   (Default is current setting)
- -f y|n           Enable (y) or Disable (n) firmware upgrade in the web GUI
-                   (Default is current setting)
  -p y|n           Use decrypted text (y) or masked password (n) field for SIP Profile passwords
                    (Default is current setting i.e (n) by default)
  -v y|n           Enable (y) check for new releases and show 'Update Available' button in GUI, or Disable (n)
@@ -34,28 +52,11 @@ Optional parameters:
  -X               Download the latest version of any existing extra feature scripts.
  -m y|n           Minify (y) GUI Lua code (EXPERIMENTAL!!)
                    (Default is current setting or (n) for first time installs)
- Theme Options:
- -a 4|5           Set the number of cards across on screen width greater than 1200px
-                   (Default is current setting, or 4 for first time installs)
- -c b|o|g|p|r|m|M Set the theme highlight colour
-                   b=blue o=orange g=green p=purple r=red m=monochrome M=monochrome (with monochrome charts)
-                   (Default is current setting, or (m) for light theme or (b) for night theme)
- -h d|s|n|"txt"   Set the browser tabs title (Default is current setting)
-                   (d)=$VARIANT (s)=$VARIANT-$MAC (n)=$HOSTNAME ("txt")=Specified "txt"
- -i y|n           Show (y) or hide (n) the card icons
-                    (Default is current setting, or (n) for light theme and (y) for night theme)
- -l y|n           Keep the Telstra landing page (y) or de-brand the landing page (n)
-                    (Default is current setting, or (n) if no theme has been applied)
- -t l|n|c|t|m     Set a light (l), night (n), classic (c) or Telstra-branded Classic (t) or Modern (m) theme
-                    (Default is current setting, or Telstra Classic if no theme has been applied)
- -C n|s|i         Keep or remove chart cards
-                    n=No Chart Cards will be available
-                    s=Only the Summary Chart Card will be available
-                    i=Only the Individual Chart Cards will be available (default)
- -L               Do NOT apply a custom logo if found. Normally, if there is a logo.gif file in one of: 
-                    the current directory, /root, or the USB drive, or in a "logo" (case-insensitive) 
-                    directory in one of those places, it will overwrite the logo in all themes.
- -T               Apply theme ONLY - bypass all other processing
+ Configuration Options:
+ -d y|n           Enable (y) or Disable (n) Default user (i.e. GUI access without password)
+                   (Default is current setting)
+ -f y|n           Enable (y) or Disable (n) firmware upgrade in the web GUI
+                   (Default is current setting)
  Update Options:
  -u               Check for and download any changes to this script (may be newer than latest release version)
                     When specifying the -u option, it must be the ONLY parameter specifed.
@@ -73,7 +74,7 @@ cat <<EOM
  -y               Bypass confirmation prompt (answers 'y')
  -V               Show the release number of this script, the current installed release, and the latest available release on GitHub
 
-NOTE #1: Theme (-t) does not need to be re-specified when re-running the script: current state will be 'remembered'
+NOTE #1: Options do not need to be re-specified when re-running the script: current state will be 'remembered'
          between executions (unless you execute with the -r option, which will remove all state information)
 NOTE #2: Use tch-gui-unhide-cards to set card order and visibility
 
@@ -82,7 +83,7 @@ EOM
 if [ -n "$1" ]; then
   local index=$(( $1 - 1 ))
   [ "$WRAPPER" = "y" ] && index=$(( $index - 1 ))
-  echo -e "\033[0;33mERROR! Parameter $index is an unknown option!\033[0m"; 
+  echo -e "[$SCRIPT]: ${RED}ERROR! Parameter $index is an unknown option!${NC}"; 
   echo
 fi
 
@@ -98,13 +99,13 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
         debug) [ $DEBUG = y ] && DEBUG=n || DEBUG=y;;
         no-service-restart) RESTART_SERVICES=n;;
         reboot) REBOOT=y;;
-        restore-base*) RESTORE_BASE="${OPTARG#restore-base=}"; [ -n "$RESTORE_BASE" -a -d "$RESTORE_BASE/www" ] || { echo "ERROR: Could not find www directory (--$OPTARG)"; exit 2; };;
+        restore-base*) RESTORE_BASE="${OPTARG#restore-base=}"; [ -n "$RESTORE_BASE" -a -d "$RESTORE_BASE/www" ] || { echo -e "[$SCRIPT]: ${RED}ERROR!${NC} Could not find www directory (--$OPTARG)"; exit 2; };;
         save-defaults) SAVE_DEFAULTS=y;;
         verbose) VERBOSE="V";;
         *) usage $OPTIND;;
       esac;;
-   a) if [ "${OPTARG}" = "4" -o "${OPTARG}" = "5" ]; then ACROSS=$OPTARG; else echo "ERROR: Cards across must be either 4 or 5"; exit 2; fi;;
-   b) case "${OPTARG}" in y|Y) BG_RFRSH='true';; n|N) BG_RFRSH='false';;  *) echo 'WARNING: -b valid options are y or n'; exit 2;; esac;;
+   a) if [ "${OPTARG}" = "4" -o "${OPTARG}" = "5" ]; then ACROSS=$OPTARG; else echo -e "[$SCRIPT]: ${RED}ERROR!${NC} Cards across must be either 4 or 5"; exit 2; fi;;
+   b) case "${OPTARG}" in y|Y) BG_RFRSH='true';; n|N) BG_RFRSH='false';;  *) echo -e "[$SCRIPT]: ${RED}ERROR!${NC} -b valid options are y or n"; exit 2;; esac;;
    c) case "$(echo ${OPTARG} | sed 's/\(.\)\(.*\)/\1/')" in
         b) COLOR=blue;;
         g) COLOR=green;;
@@ -113,10 +114,10 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
         r) COLOR=red;;
         m) COLOR=monochrome;;
         M) COLOR=MONOCHROME;;
-        *) echo "ERROR: Unknown color option - $OPTARG"; exit 2;;
+        *) echo -e "[$SCRIPT]: ${RED}ERROR!${NC} Unknown color option - $OPTARG"; exit 2;;
       esac;;
-   d) case "${OPTARG}" in y|Y) FIX_DFLT_USR=y; DFLT_USR='admin';; n|N) FIX_DFLT_USR=y; DFLT_USR='';;  *) echo 'WARNING: -d valid options are y or n'; exit 2;; esac;;
-   f) case "${OPTARG}" in y|Y) FIX_FW_UPGRD=y; FW_UPGRD='1';;     n|N) FIX_FW_UPGRD=y; FW_UPGRD='0';; *) echo 'WARNING: -f valid options are y or n'; exit 2;; esac;;
+   d) case "${OPTARG}" in y|Y) FIX_DFLT_USR=y; DFLT_USR='admin';; n|N) FIX_DFLT_USR=y; DFLT_USR='';;  *) echo -e "[$SCRIPT]: ${RED}ERROR!${NC} -d valid options are y or n"; exit 2;; esac;;
+   f) case "${OPTARG}" in y|Y) FIX_FW_UPGRD=y; FW_UPGRD='1';;     n|N) FIX_FW_UPGRD=y; FW_UPGRD='0';; *) echo -e "[$SCRIPT]: ${RED}ERROR!${NC} -f valid options are y or n"; exit 2;; esac;;
    h) case "${OPTARG}" in
         d) TITLE="$VARIANT";;
         n) TITLE="$HOSTNAME";;
@@ -125,7 +126,7 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
       esac;;
    i) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then ICONS=visible; else ICONS=hidden; fi;;
    l) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then KEEPLP=y; else KEEPLP=n; fi;;
-   m) case "${OPTARG}" in y|Y) MINIFY=y;; n|N) MINIFY=n;; *) echo 'WARNING: -m valid options are y or n'; exit 2;; esac;;
+   m) case "${OPTARG}" in y|Y) MINIFY=y;; n|N) MINIFY=n;; *) echo -e "[$SCRIPT]: ${RED}ERROR!${NC} -m valid options are y or n"; exit 2;; esac;;
    p) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then SIP_PWDS=y; else SIP_PWDS=n; fi;;
    r) RESTORE=y;;
    t) case "${OPTARG}" in
@@ -134,12 +135,12 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
         m) THEME=telstramodern; COLOR=blue; KEEPLP=y;;
         n) THEME=night; COLOR=blue; KEEPLP=n;;
         t) THEME=telstra; COLOR=blue; KEEPLP=y;;
-        *) echo "ERROR: Unknown theme option - $OPTARG"; exit 2;;
+        *) echo -e "[$SCRIPT]: ${RED}ERROR!${NC} Unknown theme option - $OPTARG"; exit 2;;
       esac;;
    u) RESULT=$(curl -m 5 -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME | sed 's/\r//')
       if [ $? -ne 0 ]
       then
-        echo "002@$(date +%H:%M:%S): GitHub check of $FILENAME failed with an unknown error. Do you have an internet connection?"
+        echo -e "[$SCRIPT]: GitHub check of $FILENAME failed with an unknown error. Do you have an internet connection?"
         return 5
       else
         STATUS=$(echo $RESULT | grep '^HTTP' | cut -d' ' -f2)
@@ -162,22 +163,22 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
                   SIZE=$(ls -l $FILENAME | tr -s ' ' | cut -d' ' -f5)
                   if [ $SIZE -eq $LENGTH ]
                   then
-                  echo "002@$(date +%H:%M:%S): Size of $FILENAME matches GitHub version - No update required"
+                  echo -e "[$SCRIPT]: Size of $FILENAME matches GitHub version - No update required"
                   return 0
                   fi
                 fi
                 curl -k -L https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME > $FILENAME
                 if [ $? -eq 0 ]; then
                   chmod +x $FILENAME
-                  echo "002@$(date +%H:%M:%S): Successfully updated $FILENAME."
+                  echo -e "[$SCRIPT]: Successfully updated $FILENAME."
                   return 0
                 else
-                  echo "002@$(date +%H:%M:%S): Failed to download updated version of $FILENAME."
+                  echo -e "[$SCRIPT]: Failed to download updated version of $FILENAME."
                   return 2
                 fi;;
-          404)  echo "002@$(date +%H:%M:%S): Platform script $FILENAME not found!!!"
+          404)  echo -e "[$SCRIPT]: Platform script $FILENAME not found!!!"
                 return 4;;
-          *)    echo "002@$(date +%H:%M:%S): GitHub check of $FILENAME returned $STATUS"
+          *)    echo -e "[$SCRIPT]: GitHub check of $FILENAME returned $STATUS"
                 return 5;;
         esac
       fi
@@ -187,21 +188,21 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
    x) XTRAS="${XTRAS} ${OPTARG}";;
    C) case "${OPTARG}" in
         n|s|i) CHART_CARDS="$OPTARG";;
-        *) echo "ERROR: Unknown chart card option - $OPTARG"; exit 2;;
+        *) echo -e "[$SCRIPT]: ${RED}ERROR!${NC} Unknown chart card option - $OPTARG"; exit 2;;
       esac;;
    L) CUSTOM_LOGO=n;;
    T) THEME_ONLY=y;;
    V) LATEST_RELEASE=$(curl -m 1 -q -s -k -L -r0-9 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/VERSION.txt)
-      echo "002@$(date +%H:%M:%S): This Release       $RELEASE"
+      echo -e "[$SCRIPT]: This Release       $RELEASE"
       if [ -z "$INSTALLED_RELEASE" ]; then
-        echo "002@$(date +%H:%M:%S): Installed Release  NOT INSTALLED"
+        echo -e "[$SCRIPT]: Installed Release  NOT INSTALLED"
       else
-        echo "002@$(date +%H:%M:%S): Installed Release  $INSTALLED_RELEASE"
+        echo -e "[$SCRIPT]: Installed Release  $INSTALLED_RELEASE"
       fi
       if [ -z "$LATEST_RELEASE" ]; then
-        echo "002@$(date +%H:%M:%S): Latest Release     UNKNOWN (No internet access?)"
+        echo -e "[$SCRIPT]: Latest Release     UNKNOWN (No internet access?)"
       else
-        echo "002@$(date +%H:%M:%S): Latest Release     $LATEST_RELEASE"
+        echo -e "[$SCRIPT]: Latest Release     $LATEST_RELEASE"
       fi
       exit;;
    W) WRAPPER=y;;
@@ -222,9 +223,13 @@ fi
 
 if [ $SAVE_DEFAULTS = "y" ]; then
   set | grep -E 'ACROSS|BG_RFRSH|CHART_CARDS|COLOR|DFLT_USR|FIX_DFLT_USR|FIX_FW_UPGRD|FW_UPGRD|ICONS|KEEPLP|MINIFY|SIP_PWDS|THEME|TITLE|UPDATE_BTN' > .defaults.$SCRIPT
-  echo -e "\e[1;32mNOTE: Defaults are only used in clean installs, not upgrades!\e[0m"
-  echo -e "\e[1;32mDefaults saved!\e[0m"
+  echo -e "${GREEN}NOTE: Defaults are only used in clean installs, not upgrades!${NC}"
+  echo -e "${GREEN}Defaults saved!${NC}"
   exit
+fi
+
+if [ "$UPDATE_XTRAS" = y ]; then
+  XTRAS=$(echo $XTRAS $(ls tch-gui-unhide-xtra.* 2>/dev/null | cut -d. -f2 | xargs) | tr ' ' "\n" | sort -u | xargs)
 fi
 
 LOCK="/var/run/${SCRIPT}.lck"

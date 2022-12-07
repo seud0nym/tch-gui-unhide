@@ -1,5 +1,5 @@
 if [ $FIX_SSH = y ]; then
-  echo [$SCRIPT]: Properly enabling SSH access over LAN
+  echo -e "[$SCRIPT]: Properly enabling SSH access over LAN"
   # We need to enable this properly as you can enable/disable via the GUI, and if done
   # without allowing password auth and root login, it can accidently prevent SSH access
   uci set dropbear.lan.enable='1'
@@ -11,7 +11,7 @@ if [ $FIX_SSH = y ]; then
 fi
 
 if [ $FIX_CFG_PORT = y ]; then
-  echo [$SCRIPT]: Enabling unsigned configuration export/import in the web GUI
+  echo -e "[$SCRIPT]: Enabling unsigned configuration export/import in the web GUI"
   uci set system.config.export_plaintext='1'
   uci set system.config.export_unsigned='1'
   uci set system.config.import_plaintext='1'
@@ -22,12 +22,12 @@ fi
 
 if [ $FIX_FW_UPGRD = y ]; then
   if [ $FW_UPGRD = 1 ]; then
-    echo [$SCRIPT]: Enabling firmware upgrade in the web GUI
+    echo -e "[$SCRIPT]: Enabling firmware upgrade in the web GUI"
     uci set web.uidefault.upgradefw='1'
     uci set web.uidefault.upgradefw_role='admin'
     SRV_nginx=$(( $SRV_nginx + 2 ))
   else
-    echo [$SCRIPT]: DISABLING firmware upgrade in the web GUI
+    echo -e "[$SCRIPT]: DISABLING firmware upgrade in the web GUI"
     uci set web.uidefault.upgradefw='0'
     SRV_nginx=$(( $SRV_nginx + 1 ))
   fi
@@ -36,11 +36,11 @@ fi
 
 if [ $FIX_DFLT_USR = y ]; then
   if [ "$DFLT_USR" = "admin" ]; then
-    echo [$SCRIPT]: Enabling the default user in the web GUI
+    echo -e "[$SCRIPT]: Enabling the default user in the web GUI"
     uci set web.default.default_user='usr_admin'
     uci set web.uidefault.defaultuser='admin'
   else
-    echo [$SCRIPT]: Disabling the default user in the web GUI
+    echo -e "[$SCRIPT]: Disabling the default user in the web GUI"
     uci -q delete web.default.default_user
     uci -q delete web.uidefault.defaultuser
   fi
@@ -49,7 +49,7 @@ if [ $FIX_DFLT_USR = y ]; then
 fi
 
 if [ $FIX_PARENT_BLK = y ]; then
-  echo [$SCRIPT]: Ensuring admin role can administer the parental block
+  echo -e "[$SCRIPT]: Ensuring admin role can administer the parental block"
   uci -q del_list web.parentalblock.roles='admin'
   uci add_list web.parentalblock.roles='admin'
   uci commit web
@@ -58,26 +58,26 @@ fi
 
 grep -q -E "lua_shared_dict *TGU_Config" /etc/nginx/nginx.conf
 if [ $? -eq 1 ]; then
-  echo [$SCRIPT]: Creating shared dictionary for configuration
+  echo -e "[$SCRIPT]: Creating shared dictionary for configuration"
   sed -e '/^http/a\    lua_shared_dict TGU_Config 10m;' -i /etc/nginx/nginx.conf
   SRV_nginx=$(( $SRV_nginx + 1 ))
 fi
 
 grep -q -E "lua_shared_dict *TGU_CPU" /etc/nginx/nginx.conf
 if [ $? -eq 1 ]; then
-  echo [$SCRIPT]: Creating shared dictionary for CPU calculations
+  echo -e "[$SCRIPT]: Creating shared dictionary for CPU calculations"
   sed -e '/^http/a\    lua_shared_dict TGU_CPU 10m;' -i /etc/nginx/nginx.conf
   SRV_nginx=$(( $SRV_nginx + 1 ))
 fi
 
 grep -q -E "lua_shared_dict *TGU_MbPS" /etc/nginx/nginx.conf
 if [ $? -eq 1 ]; then
-  echo [$SCRIPT]: Creating shared dictionary for throughput calculations
+  echo -e "[$SCRIPT]: Creating shared dictionary for throughput calculations"
   sed -e '/^http/a\    lua_shared_dict TGU_MbPS 10m;' -i /etc/nginx/nginx.conf
   SRV_nginx=$(( $SRV_nginx + 1 ))
 fi
 
-echo [$SCRIPT]: Preserving password files and SSH configuration to prevent root loss on RTFD
+echo -e "[$SCRIPT]: Preserving password files and SSH configuration to prevent root loss on RTFD"
 [ -f /etc/rtfd_persistent_filelist.conf ] || touch /etc/rtfd_persistent_filelist.conf
 for f in /etc/passwd /etc/shadow /etc/config/dropbear /etc/dropbear/* /etc/rc.d/*dropbear; do
   grep -q -E "^$f$" /etc/rtfd_persistent_filelist.conf

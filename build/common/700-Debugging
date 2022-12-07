@@ -1,5 +1,5 @@
 if [ $DEBUG = y ]; then
-  echo [$SCRIPT]: Log card loading times
+  echo -e "[$SCRIPT]: Log card loading times"
   sed \
     -e '/gettext.textdomain/a\local gettime = require("socket").gettime' \
     -e '/gettext.textdomain/a\local log = require("tch.logger").new("gateway.lp",7)' \
@@ -12,9 +12,9 @@ if [ $DEBUG = y ]; then
     -e '/lp.include(v)/a\          log:notice("Card %s loaded in %.4f sec",v,gettime()-started)' \
     -i /www/docroot/gateway.lp
 
-  echo [$SCRIPT]: Log validation errors 
+  echo -e "[$SCRIPT]: Log validation errors "
   for f in $(grep -rl '[[:alnum:]_]* *, *[[:alnum:]_]* *= *[[:alnum:]_]*\.handleQuery' /www/docroot/); do
-    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Updating $f"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Updating $f"
     awk -e '/[[:alnum:]_]* *, *[[:alnum:]_]* *= *[[:alnum:]_]*\.handleQuery/ {
       print;
       split($0,a,"=");

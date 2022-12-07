@@ -1,22 +1,22 @@
 SERIAL=$(uci get env.var.serial)
-echo [$SCRIPT]: Change config export filename from config.bin to $VARIANT-$SERIAL-$VERSION@YYMMDD.bin
+echo -e "[$SCRIPT]: Change config export filename from config.bin to $VARIANT-$SERIAL-$VERSION@YYMMDD.bin"
 sed \
   -e "s/=config.bin/=$VARIANT-$SERIAL-$VERSION@\" .. os.date(\"%Y%m%d\") .. \".bin/" \
   -i /www/docroot/modals/gateway-modal.lp
-echo [$SCRIPT]: Add reset/upgrade warnings
+echo -e "[$SCRIPT]: Add reset/upgrade warnings"
 sed \
   -e 's|All your configuration and registrations will be lost|&, <b>but</b> root access <i>should</i> be preserved|' \
   -e '/local basic =/i local lose_root_warning = { alert = { class = "alert-info", style = "margin-bottom:5px;" }, }' \
   -e '/T"Reset"/i\    html[#html + 1] = ui_helper.createAlertBlock(T"Root access <i>should</i> be preserved when using the <b><i class=\\"icon-bolt\\" style=\\"width:auto;\\">\</i> Reset</b> button.", lose_root_warning)' \
   -e '/T"Upgrade"/i\          html[#html + 1] = ui_helper.createAlertBlock(T"<b>WARNING!</b> Upgrading firmware using this method will cause loss of root access!", lose_root_warning)' \
   -i /www/docroot/modals/gateway-modal.lp
-echo [$SCRIPT]: Add tch-gui-unhide version to gateway modal and remove Global Information heading
+echo -e "[$SCRIPT]: Add tch-gui-unhide version to gateway modal and remove Global Information heading"
 sed \
   -e '/"uci.versioncusto.override.fwversion_override"/a\   unhide_version = "rpc.gui.UnhideVersion",' \
   -e '/"Serial Number"/i\    html[#html + 1] = ui_helper.createLabel(T"tch-gui-unhide Version", content["unhide_version"], basic)' \
   -e '/Global Information/d' \
   -i /www/docroot/modals/gateway-modal.lp
-echo [$SCRIPT]: Allow hostname to be changed via GUI
+echo -e "[$SCRIPT]: Allow hostname to be changed via GUI"
 sed \
   -e '/uci.system.system.@system\[0\].timezone/i\   system_hostname = "uci.system.system.@system[0].hostname",' \
   -e '/system_timezone = function/i\  system_hostname = function(value, object, key)\
@@ -49,7 +49,7 @@ sed \
   -e 's|\(/etc/init.d/dnsmasq reload\)|\1;/etc/init.d/system reload|' \
   -i /usr/share/transformer/commitapply/uci_system.ca
 
-echo [$SCRIPT]: Add option to disable/enable NTP Server
+echo -e "[$SCRIPT]: Add option to disable/enable NTP Server"
 sed \
   -e '/uci.system.system.@system\[0\].timezone/i\   system_ntpserver = "uci.system.ntp.enable_server",' \
   -e '/system_timezone = function/i\  system_ntpserver = post_helper.validateBoolean,' \
@@ -68,7 +68,7 @@ sed \
   end' \
   -i /www/docroot/modals/gateway-modal.lp
 
-echo [$SCRIPT]: Allow additional NTP servers to be added
+echo -e "[$SCRIPT]: Allow additional NTP servers to be added"
 sed \
   -e 's/NTP servers/NTP Servers/' \
   -e 's/Server name/Server Name/' \
@@ -77,14 +77,14 @@ sed \
   -e "s/maxEntries = 3,/maxEntries = 6,/" \
   -i /www/docroot/modals/gateway-modal.lp
 
-echo [$SCRIPT]: Add configuration import warning
+echo -e "[$SCRIPT]: Add configuration import warning"
 sed \
   -e '/id="form-import"/a\        html[#html + 1] = ui_helper.createAlertBlock(T"Importing configuration from a different firmware version is NOT recommended. At the very least, the current firmware suffix will be <b>wrong</b>, although you can fix that by replacing /etc/config/versioncusto with the correct version from /rom.",{alert={class="alert alert-warn"}})' \
   -i /www/docroot/modals/gateway-modal.lp
 
 if [ "$MINIFY" = y ]; then
-  echo [$SCRIPT]: Pre-minify fixes
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/gateway-modal.lp"
+  echo -e "[$SCRIPT]: Pre-minify fixes"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/gateway-modal.lp"
   sed \
     -e 's|\(var retain_contact_mode = "default"\)\\|\1;\\|' \
     -e "s|\(ngx.print('\" + data.errorcode + \")\")\)\\\\|\1;\\\\|" \
@@ -93,7 +93,7 @@ if [ "$MINIFY" = y ]; then
 fi
 
 if [ "$UPDATE_BTN" = y ]; then
-  echo [$SCRIPT]: Add update available button
+  echo -e "[$SCRIPT]: Add update available button"
   grep -q isBridgedMode /www/docroot/gateway.lp && INSERT_BEFORE="isBridgedMode" || INSERT_BEFORE="session:isdefaultuser"
   sed \
     -e '/uci.version.version.@version\[0\].timestamp/a\    updatable = "rpc.gui.UpdateAvailable",' \
@@ -109,24 +109,24 @@ if [ "$UPDATE_BTN" = y ]; then
     -e '/local getargs/a\end' \
     -i /www/docroot/gateway.lp
 else
-  echo [$SCRIPT]: Update available button will NOT be shown in GUI
+  echo -e "[$SCRIPT]: Update available button will NOT be shown in GUI"
 fi
 
-echo [$SCRIPT]: Add auto-refresh management, chart library, and wait indicator when opening modals
+echo -e "[$SCRIPT]: Add auto-refresh management, chart library, and wait indicator when opening modals"
 sed \
   -e "/<title>/i\    <script>window.autoRefreshEnabled=$BG_RFRSH;</script>\\\\" \
   -e '/<title>/i\    <script src="/js/tch-gui-unhide.js"></script>\\' \
   -e '/<title>/i\    <script src="/js/chart-min.js"></script>\\' \
   -i /www/docroot/gateway.lp
 
-echo [$SCRIPT]: Improve performance of card loading
+echo -e "[$SCRIPT]: Improve performance of card loading"
 sed \
   -e 's/\(local cards = require("cards")\)/\1.cards()/' \
   -e 's/_,v in pairs(cards.cards())/k=1,#cards,1/' \
   -e '/lp.include(v)/i\         local v = cards[k]' \
   -i /www/docroot/gateway.lp
 
-echo [$SCRIPT]: Add improved debugging when errors cause cards to fail to load
+echo -e "[$SCRIPT]: Add improved debugging when errors cause cards to fail to load"
 sed \
   -e '/local cards/a\        local xpcall = xpcall' \
   -e '/lp.include(v)/i\         local success,msg = xpcall(function()' \
@@ -136,18 +136,18 @@ sed \
   -e '/lp.include(v)/a\         end)' \
   -i /www/docroot/gateway.lp
 
-echo [$SCRIPT]: Remove unnecessary variable retrievals
+echo -e "[$SCRIPT]: Remove unnecessary variable retrievals"
 sed \
   -e '/uidefault\.nsplink/,/uidefault\.alwaysadvanced/d' \
   -e "s/'); *ngx.print( *cui.advanced *); *ngx.print('/1/" \
   -i /www/docroot/gateway.lp
 
-echo [$SCRIPT]: Remove Sign in button when using default user and default user is admin
+echo -e "[$SCRIPT]: Remove Sign in button when using default user and default user is admin"
 sed \
   -e "/\"signin\"/i\if session:getusername() ~= \"admin\" then" \
   -e "/\"signin\"/,/<\/a>/ s/'<\/a>'/&\nend/" \
   -i /www/docroot/gateway.lp
 
-echo [$SCRIPT]: Fix uptime on basic Broadband tab
+echo -e "[$SCRIPT]: Fix uptime on basic Broadband tab"
 sed -e 's/days > 1/days > 0/' -i /www/docroot/broadband.lp
 

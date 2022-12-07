@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Configure SAMBA Printer Sharing when printer sharing enabled or disabled
+echo -e "[$SCRIPT]: Configure SAMBA Printer Sharing when printer sharing enabled or disabled"
 sed \
   -e '/^createUsbPartitionTable/a\
 if ngx.req.get_method() == "POST" then\
@@ -8,7 +8,7 @@ if ngx.req.get_method() == "POST" then\
 end' \
   -i /www/docroot/modals/printersharing-modal.lp
 
-echo [$SCRIPT]: Change checkbox to switch
+echo -e "[$SCRIPT]: Change checkbox to switch"
 sed \
   -e 's/getValidateCheckboxSwitch()/validateBoolean/' \
   -e 's/createCheckboxSwitch/createSwitch/' \

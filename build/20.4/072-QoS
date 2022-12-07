@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Create transformer mapping for qos_tch
+echo -e "[$SCRIPT]: Create transformer mapping for qos_tch"
 sed \
   -e 's/qos/&_tch/g' \
   /usr/share/transformer/mappings/uci/qos.map > /usr/share/transformer/mappings/uci/qos_tch.map
@@ -8,10 +8,10 @@ sed \
   -i /usr/share/transformer/mappings/rpc/gui.qos.map
 SRV_transformer=$(( $SRV_transformer + 2 ))
 
-echo [$SCRIPT]: Pointing QoS GUI at qos_tch transformer mapping
+echo -e "[$SCRIPT]: Pointing QoS GUI at qos_tch transformer mapping"
 for f in qos-device-modal.lp qos-label-modal.lp qos-classify-modal.lp qos-queue-modal.lp qos-reclassify-modal.lp qos-swshaper-modal.lp; do
   if [ -f /www/docroot/modals/$f ]; then
-    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/$f"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/$f"
     sed \
       -e 's/uci\.qos\./uci.qos_tch./g' \
       -e 's/uci%\.qos%\./uci%.qos_tch%./g' \
@@ -19,7 +19,7 @@ for f in qos-device-modal.lp qos-label-modal.lp qos-classify-modal.lp qos-queue-
   fi
 done
 
-echo [$SCRIPT]: Adding Device IP Interface Classification Rules
+echo -e "[$SCRIPT]: Adding Device IP Interface Classification Rules"
 sed \
   -e '/ui_helper.createHeader/i\
 local interfaces = {}\
@@ -162,7 +162,7 @@ end\
 ' \
   -i /www/docroot/modals/qos-classify-modal.lp
 
-echo [$SCRIPT]: Adding Device IP Interface Classification Rules
+echo -e "[$SCRIPT]: Adding Device IP Interface Classification Rules"
 sed \
   -e '/ui_helper.createHeader/i\
 local queue_columns = {\

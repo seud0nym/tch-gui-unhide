@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Enable or disable SAMBA service when file and printer sharing completely enabled or disabled \(PS\)
+echo -e "[$SCRIPT]: Enable or disable SAMBA service when file and printer sharing completely enabled or disabled (PS)"
 sed \
   -e '/proxy.apply/i\
   local ps = string.untaint(postArgs.printersharing_enabled)\
@@ -22,13 +22,13 @@ sed \
   end' \
   -i /www/docroot/modals/printersharing-modal.lp
 
-echo [$SCRIPT]: Fix printer sharing HTML
+echo -e "[$SCRIPT]: Fix printer sharing HTML"
 sed \
   -e 's/General/Printer Sharing/' \
   -e '/createTable/i\ html[#html+1] = "<br>"' \
   -i /www/docroot/modals/printersharing-modal.lp
 
-echo [$SCRIPT]: Add Mounted USB Printers to Printer Sharing card
+echo -e "[$SCRIPT]: Add Mounted USB Printers to Printer Sharing card"
 sed \
   -e 's/Printer sharing/Printer Sharing/' \
   -e 's/); *ngx.print( */,/' \
@@ -65,7 +65,7 @@ end;\
 ngx.print('\\\\" \
   -i /www/cards/012_printersharing.lp
 
-echo [$SCRIPT]: Fix Printer Share URL 
+echo -e "[$SCRIPT]: Fix Printer Share URL "
 sed \
   -e 's/uci\(\.network\.interface\.@lan\.ipaddr\)/rpc\1/' \
   -i /www/docroot/modals/printersharing-modal.lp

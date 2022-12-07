@@ -1,5 +1,5 @@
 if [ -f /www/docroot/wifidevices.lp ]; then
-  echo [$SCRIPT]: Importing Wi-Fi devices screen as Devices tab
+  echo -e "[$SCRIPT]: Importing Wi-Fi devices screen as Devices tab"
   sed \
     -e '/lp.include("header.lp")/,/lp.include("message.lp")/d' \
     -e '/local content =/i \    ngx.print(ui_helper.createHeader(T"Devices", false, false, nil, nil) )' \
@@ -11,7 +11,7 @@ if [ -f /www/docroot/wifidevices.lp ]; then
   sed \
     -e '/device-modal/a\  {"device-wireless-modal.lp",T"Wi-Fi Device List"},' \
     -i /www/snippets/tabs-devices.lp
-  echo [$SCRIPT]: Changing Wi-Fi links on Devices card to point to new Wi-Fi Devices tab
+  echo -e "[$SCRIPT]: Changing Wi-Fi links on Devices card to point to new Wi-Fi Devices tab"
   sed \
     -e "/^local device_modal_link/a\local wifi_modal_link='class=\"modal-link\" data-toggle=\"modal\" data-remote=\"modals/device-wireless-modal.lp\" data-id=\"device-wireless-modal\"'" \
     -e 's/nWiFi),device/nWiFi),wifi/' \

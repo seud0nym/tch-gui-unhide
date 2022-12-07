@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Fixing EasyMesh Configuration screen
+echo -e "[$SCRIPT]: Fixing EasyMesh Configuration screen"
 sed \
   -e '/^local getValidationIfPropInList/,/^local getValidateInEnumSelect/d' \
   -e 's/meshBrokerState == "1" and meshBrokerController == "1" and meshBrokerAgent == "1"/false/' \
@@ -17,7 +17,7 @@ sed \
   -e '/var meshBrokerEnabled/a\  $("#meshBrokerController,#meshBrokerAgent").change(function(){var ctlr=$("#meshBrokerController").val();var agnt=$("#meshBrokerAgent").val();if(ctlr==agnt){$("#meshBrokerState").val(ctlr);}else{$("#meshBrokerState").val("1");}});\\' \
   -i /www/docroot/modals/easymesh-modal.lp
 
-echo [$SCRIPT]: Fix potential nil argument error on EasyMesh Boosters screen
+echo -e "[$SCRIPT]: Fix potential nil argument error on EasyMesh Boosters screen"
 sed \
   -e 's/pairs(radioData\[index\]/& or {}/' \
   -i /www/docroot/modals/wifi-boosters.lp

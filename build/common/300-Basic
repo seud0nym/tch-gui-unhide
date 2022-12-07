@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Fix Basic view header
+echo -e "[$SCRIPT]: Fix Basic view header"
 sed \
   -e '/inverse/'d \
   -e '/pull-right/i\<img src="/img/logo.gif" style="max-height:67.5px" class="basic-view-logo">\\' \

@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Add File Sharing User Management
+echo -e "[$SCRIPT]: Add File Sharing User Management"
 sed \
   -e '/-- usb Devices/a\
 local function exec_nqcsctrl(params)\

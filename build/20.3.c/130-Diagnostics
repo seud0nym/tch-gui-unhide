@@ -1,27 +1,27 @@
-echo [$SCRIPT]: Add missing icons on Diagnostics card and change default tab to Traffic Monitor
+echo -e "[$SCRIPT]: Add missing icons on Diagnostics card and change default tab to Traffic Monitor"
 sed \
  -e 's^"Diagnostics", "modals/diagnostics-xdsl-modal.lp"^"Diagnostics", "modals/diagnostics-graphs-modal.lp"^' \
  -e '/<\/table>/i       <td><div data-toggle="modal" data-remote="modals/diagnostics-graphs-modal.lp" data-id="diagnostics-graphs-modal"><img href="#" rel="tooltip" data-original-title="GRAPHS" src="/img/light/Bar-Charts-1-WF.png" alt="graphs"></div></td></tr>\\' \
  -i /www/cards/009_diagnostics.lp
 
-echo [$SCRIPT]: Add Diagnostics Graphs tabs
+echo -e "[$SCRIPT]: Add Diagnostics Graphs tabs"
 sed \
  -e '/xdsl-modal/i       \    {"diagnostics-graphs-modal.lp", T"Graphs"},'  \
  -i /www/snippets/tabs-diagnostics.lp
 
-echo [$SCRIPT]: Add missing chart library to Diagnostics Graphs
+echo -e "[$SCRIPT]: Add missing chart library to Diagnostics Graphs"
 sed \
  -e '/modal-body/i html[#html + 1] = [[<script src="/js/chart-min.js" ></script>]]'  \
  -i /www/docroot/modals/diagnostics-graphs-modal.lp
 
-echo [$SCRIPT]: Fix Diagnostics CPU chart
+echo -e "[$SCRIPT]: Fix Diagnostics CPU chart"
 sed \
  -e 's/"sys.graph.cpu"/"sys.graph.cpu."/'  \
  -i /www/snippets/graph-cpu.lp
 
 if [ "$MINIFY" = y ]; then
-  echo [$SCRIPT]: Pre-minify fixes
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/snippets/graph-cpu.lp"
+  echo -e "[$SCRIPT]: Pre-minify fixes"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/snippets/graph-cpu.lp"
   sed \
     -e 's/\(var gets = {}\)\(\\\)/\1;\2/' \
     -i /www/snippets/graph-cpu.lp

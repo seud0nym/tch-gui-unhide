@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Add CUPS urls to Printer Sharing
+echo -e "[$SCRIPT]: Add CUPS urls to Printer Sharing"
 sed \
   -e '/uci.network.interface.@lan.ipaddr/a\  cups_printers = "rpc.gui.cups.printers",' \
   -e '/createSwitch/a\ html[#html+1] = "<\/fieldset>"' \

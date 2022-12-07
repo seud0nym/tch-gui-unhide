@@ -66,7 +66,7 @@ sh update-sha256.sh
 cd - >/dev/null
 
 echo "${GREEN}Building /tmp/themes.b64...${NC}"
-echo "echo [\$SCRIPT]: Deploy theme files" > /tmp/themes.b64
+echo "echo -e \"\${GREY}BLD/069:\${NC} Deploy theme files\"" > /tmp/themes.b64
 echo "echo '$(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -cf - -C themes . | bzip2 --best | base64)' | base64 -d | bzcat | tar -xf - -C /" >> /tmp/themes.b64
 echo "" >> /tmp/themes.b64
 
@@ -122,7 +122,7 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
   TARGET=../tch-gui-unhide-$MAJOR
   echo "${GREEN}Writing $TARGET...${NC}"
   echo "#!/bin/sh" > $TARGET
-  echo "echo 000@\$(date +%H:%M:%S): Built for firmware version $MAJOR - ${PRERELEASE}Release $DATE_VERSION" >> $TARGET
+  echo "echo -e \"\\033[90mBLD/125:\\033[0m Built for firmware version $MAJOR - ${PRERELEASE}Release $DATE_VERSION\"" >> $TARGET
   echo "RELEASE='$FULL_VERSION'" >> $TARGET
 
   for s in $(find common $MAJOR -type f -a ! -name .do-not-delete ! -name .include -printf '%f/%h\n' | cat - $MAJOR/.include 2>/dev/null | grep -v '^#' | sort)
@@ -134,7 +134,7 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
     if [ $FILENAME = "055-Additional" ]; then
       if [ $DIRECTORY = "common" ]; then
         [ -n "$DEBUG" ] && echo " - Compressing and appending /tmp/tch-gui-unhide/$MAJOR"
-        echo "echo BLD@\$(date +%H:%M:%S): Deploying modified GUI code" >> $TARGET
+        echo "echo -e \"\${GREY}BLD/137:\${NC} Deploying modified GUI code\"" >> $TARGET
         echo "echo '$(tar --owner=root --group=root -cf - -C /tmp/tch-gui-unhide/$MAJOR . | bzip2 --best | base64)' | base64 -d | bzcat | tar -xf - -C /" >> $TARGET
         echo >> $TARGET
       fi
@@ -142,7 +142,7 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
       if [ $FILENAME = "610-Themes" ]; then
         if [ $DIRECTORY = "common" ]; then
           [ -n "$DEBUG" ] && echo " - Appending /tmp/themes.b64"
-          sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" /tmp/themes.b64 >> $TARGET
+          cat /tmp/themes.b64 >> $TARGET
         fi
       elif [ $FILENAME = "800-Minify" ]; then
         [ -n "$DEBUG" ] && echo " - Adding version to copyright and auto-refreshing cache"
@@ -150,12 +150,12 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
         echo "  MKTING_NAME=\$(uci get version.@version[0].marketing_name)" >> $TARGET
         echo "  MKTING_VERSION=\$(uci get version.@version[0].marketing_version)" >> $TARGET
         echo "  CUSTOM_VERSION=\$(uci get version.@version[0].version | cut -d- -f1)\$(uci get versioncusto.override.fwversion_suffix)" >> $TARGET
-        echo "  echo BLD@\$(date +%H:%M:%S): Adding version details to copyright" >> $TARGET
+        echo "  echo -e \"\${GREY}BLD/153:\${NC} Adding version details to copyright\"" >> $TARGET
         echo "  for l in \$(grep -l -r 'current_year); ngx.print(' /www 2>/dev/null)" >> $TARGET
         echo "  do" >> $TARGET
         echo "    sed -e \"s/\(current_year); ngx.print('\)/\\\1 \[tch-gui-unhide ${PRERELEASE}Release $DATE_VERSION for Firmware \$CUSTOM_VERSION (\$MKTING_NAME)\]/\" -i \$l" >> $TARGET
         echo "  done" >> $TARGET
-        echo "  echo BLD@\$(date +%H:%M:%S): Auto-refreshing browser cache" >> $TARGET
+        echo "  echo -e \"\${GREY}BLD/158:\${NC} Auto-refreshing browser cache\"" >> $TARGET
         echo "  for l in \$(grep -lrE \"['\\\"][^'\\\"]+\.(cs|j)s['\\\"]\" /www/cards /www/docroot /www/snippets | grep -v -E '.js$|.sh$|.json$' 2>/dev/null)" >> $TARGET
         echo "  do" >> $TARGET
         echo "    sed -e \"s/\\(\\.css\\)\\(['\\\"]\\)/\\\1?\${MKTING_VERSION}_$FULL_VERSION\\\2/g\" -e \"s/\\(\\.js\\)\\(['\\\"]\\)/\\\1?\${MKTING_VERSION}_$FULL_VERSION\\\2/g\" -i \$l" >> $TARGET
@@ -164,7 +164,14 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
         echo >> $TARGET
       fi
       [ -n "$DEBUG" ] && echo " - Appending $DIRECTORY/$FILENAME"
-      sed -e "s/\[\$SCRIPT\]/$SEQUENCE@\$(date +%H:%M:%S)/" -e 's/\r$//' "$DIRECTORY/$FILENAME" >> $TARGET
+      sed -e 's/\r$//' "$DIRECTORY/$FILENAME" | awk -v SEQUENCE=$SEQUENCE -e '
+        /\[\$SCRIPT\]/ {
+          gsub(/\[\$SCRIPT\]:/,sprintf("${GREY}%s/%03d:${NC}",SEQUENCE,NR));
+        }
+        /^[[:blank:]]*$/ {
+          next;
+        }
+        1' "$DIRECTORY/$FILENAME" >> $TARGET
     fi
   done
   [ -n "$PRERELEASE" ] && sed -e 's/^\(DEBUG=\)n/\1y/' -i $TARGET

@@ -1,9 +1,9 @@
 ipv4DNSServers="$(find_file ipv4-DNS-Servers)"
 if [ -n "$ipv4DNSServers" ]; then
-  echo [$SCRIPT]: Adding custom IPv4 DNS Servers from $ipv4DNSServers
+  echo -e "[$SCRIPT]: Adding custom IPv4 DNS Servers from $ipv4DNSServers"
   sed -e 's/\r//g' "$ipv4DNSServers" | sort | while read -r host ip; do
     if [ -n "$ip" ]; then
-      [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Adding $host ($ip) to /www/lua/dns_servers_helper.lua"
+      [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Adding $host ($ip) to /www/lua/dns_servers_helper.lua"
       sed -e "/ipv4-DNS-Servers/i\    {\"$ip\", T\"$host ($ip)\"}," -i /www/lua/dns_servers_helper.lua
     fi
   done
@@ -11,17 +11,17 @@ fi
 
 ipv6DNSServers="$(find_file ipv6-DNS-Servers)"
 if [ -n "$ipv6DNSServers" ]; then
-  echo [$SCRIPT]: Adding custom IPv6 DNS Servers from $ipv6DNSServers
+  echo -e "[$SCRIPT]: Adding custom IPv6 DNS Servers from $ipv6DNSServers"
   sed -e 's/\r//g' "$ipv6DNSServers" | sort | while read -r host ip; do
     if [ -n "$ip" ]; then
       ipv6=$(echo $ip  | tr ':' '-')
-      [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Adding $host ($ip) to /www/lua/dns_servers_helper.lua"
+      [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Adding $host ($ip) to /www/lua/dns_servers_helper.lua"
       sed -e "/ipv6-DNS-Servers/i\    {\"$ipv6\", T\"$host ($ip)\"}," -i /www/lua/dns_servers_helper.lua
     fi
   done
 fi
 
-echo [$SCRIPT]: Allow custom DNS entries
+echo -e "[$SCRIPT]: Allow custom DNS entries"
 sed \
   -e 's/"addnhosts", "bogusnxdomain"/"addnhosts", "address", "bogusnxdomain"/' \
   -i /usr/share/transformer/mappings/uci/dhcp.map
@@ -30,19 +30,19 @@ sed \
 WAN_DNS="$(uci -q get network.wan.dns)"
 WAN6_DNS="$(uci -q get network.wan6.dns)"
 if [ -z "$(uci -q get dhcp.main.server)" -a \( -n "$WAN_DNS" -o -n "$WAN6_DNS" \) ]; then
-  echo [$SCRIPT]: Migrating custom DNS servers from network interfaces to dnsmasq
+  echo -e "[$SCRIPT]: Migrating custom DNS servers from network interfaces to dnsmasq"
   for DNS_SERVER in $WAN6_DNS $WAN_DNS; do
-    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Adding $DNS_SERVER"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Adding $DNS_SERVER"
     uci add_list dhcp.main.server="$DNS_SERVER"
     SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
   done
   uci commit dhcp
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Removing network interface DNS servers"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Removing network interface DNS servers"
   uci -q delete network.wan.dns
   uci -q delete network.wan6.dns
   uci commit network
   SRV_network=$(( $SRV_network + 2 ))
 else
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: No custom DNS servers on network interfaces or already migrated to dnsmasq"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: No custom DNS servers on network interfaces or already migrated to dnsmasq"
 fi
 

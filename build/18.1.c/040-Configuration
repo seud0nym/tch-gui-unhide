@@ -1,24 +1,24 @@
 # Package repository for Homeware 18 moved 31/03/2021 (Quick fix in case de-telstra not run)
 if [ $(grep -c 'www.macoers.com/repository' /etc/opkg/customfeeds.conf) -gt 0 ]; then
-  echo [$SCRIPT]: Fixing opkg repository
+  echo -e "[$SCRIPT]: Fixing opkg repository"
   sed -e 's|www.macoers.com/repository|repository.macoers.com|' -i /etc/opkg/customfeeds.conf
 fi
 
 if grep -q "sh -c 'opkg update 2>&1 | logger -t rpc.gui.opkg -p user.info'" /etc/crontabs/root; then
-  echo [$SCRIPT]: Fixing opkg update cron job
+  echo -e "[$SCRIPT]: Fixing opkg update cron job"
   sed -e "s/\(sh -c '\)\(opkg update 2>&1 | logger -t rpc.gui.opkg -p user.info\)\('\)/\2/" -i /etc/crontabs/root
   SRV_cron=$(( $SRV_cron + 1 ))
 fi
 
 for f in /etc/config/iperf /etc/init.d/iperf; do
   if grep -q '\benable\b' $f; then
-    echo [$SCRIPT]: Fixing iperf enabled configuration in $f
+    echo -e "[$SCRIPT]: Fixing iperf enabled configuration in $f"
     sed -e 's/\benable\b/enabled/' -i "$f"
   fi
 done
 IPERF_ENABLED=$(uci -q get iperf.iperf.enable)
 if [ -n "$IPERF_ENABLED" ]; then
-  echo [$SCRIPT]: Fixing iperf enabled configuration
+  echo -e "[$SCRIPT]: Fixing iperf enabled configuration"
   [ -z "$(uci -q get iperf.iperf.enabled)" ] && uci -q set iperf.iperf.enabled="$IPERF_ENABLED"
   uci -q delete iperf.iperf.enable
   uci -q commit iperf

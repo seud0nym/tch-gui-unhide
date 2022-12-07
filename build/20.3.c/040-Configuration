@@ -1,5 +1,5 @@
 if [ $(grep -c 'seud0nym/openwrt-wireguard-go' /etc/opkg/customfeeds.conf) -eq 0 ]; then
-  echo [$SCRIPT]: Adding WireGuard opkg repository
+  echo -e "[$SCRIPT]: Adding WireGuard opkg repository"
   echo 'src/gz wg_go https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/repository/arm_cortex-a9/base' >> /etc/opkg/customfeeds.conf
 fi
 

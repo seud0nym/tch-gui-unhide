@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Adding QoS System Shapers
+echo -e "[$SCRIPT]: Adding QoS System Shapers"
 sed \
   -e '/ui_helper.createHeader/i\
 local queue_columns = {\
@@ -96,7 +96,7 @@ end\
 ' \
   -i /www/docroot/modals/qos-queue-modal.lp
 
-echo [$SCRIPT]: Adding Device IP Interface Classification Rules
+echo -e "[$SCRIPT]: Adding Device IP Interface Classification Rules"
 sed \
   -e '/^local info_box/i\
 local device_shaper_columns = {\

@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Add missing icons on Diagnostics card and change default tab to Traffic Monitor
+echo -e "[$SCRIPT]: Add missing icons on Diagnostics card and change default tab to Traffic Monitor"
 sed \
  -e 's^"Diagnostics", "modals/diagnostics-xdsl-modal.lp"^"Diagnostics", "modals/diagnostics-traffic-modal.lp"^' \
  -e 's^\(<td><div data-toggle="modal" data-remote="modals/diagnostics-xdsl\)^<td><div data-toggle="modal" data-remote="modals/diagnostics-traffic-modal.lp" data-id="diagnostics-traffic-modal"><img href="#" rel="tooltip" data-original-title="TRAFFIC" src="/img/light/Profit-01-WF.png" alt="traffic"></div></td>\\\n\1^' \
@@ -9,7 +9,7 @@ sed \
  -e 's| cellspacing="10%" cellpadding="10%" ||' \
  -i /www/cards/009_diagnostics.lp
 
-echo [$SCRIPT]: Rename Diagnostics tabs and add Connections and Traffic Monitor tabs
+echo -e "[$SCRIPT]: Rename Diagnostics tabs and add Connections and Traffic Monitor tabs"
 sed \
  -e 's/"Connection"/"Connection Check"/' \
  -e 's/Log viewer/Log Viewer/' \
@@ -25,19 +25,19 @@ sed \
  -e 's/"Management"/"Diagnostics"/' \
  -i /www/docroot/modals/log-connections-modal.lp
 
-echo [$SCRIPT]: Fix headings on Diagnostics tabs
+echo -e "[$SCRIPT]: Fix headings on Diagnostics tabs"
 for m in $(grep -L 'createHeader(T"Diagnostics"' /www/docroot/modals/diagnostics-*)
 do
     sed -e 's/\(createHeader(\)\([T]*\)\("Diagnostics\)\([^"]*\)\("\)/\1T\3\5/' -i $m
 done
 
 if [ "$MINIFY" = y ]; then
-  echo [$SCRIPT]: Pre-minify fixes
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/diagnostics-ping-modal.lp"
+  echo -e "[$SCRIPT]: Pre-minify fixes"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/diagnostics-ping-modal.lp"
   sed \
     -e "s/\(ipv6MaxSize); ngx.print('\)\(\\\\\)/\1;\2/" \
     -i /www/docroot/modals/diagnostics-ping-modal.lp
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/diagnostics-tcpdump-modal.lp"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/diagnostics-tcpdump-modal.lp"
   sed \
     -e "s/\(ngx.print('\"\)\(\\\\\)/\1;\2/" \
     -e 's/\("0")\)\(\\\)/\1;\2/' \

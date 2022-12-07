@@ -1,5 +1,5 @@
 if [ -e /usr/share/transformer/mappings/uci/iperf.map -a ! -e /etc/config/iperf -a ! -e /etc/init.d/iperf ]; then
-  echo [$SCRIPT]: Removing unused iperf transformer mapping
+  echo -e "[$SCRIPT]: Removing unused iperf transformer mapping"
   rm /usr/share/transformer/mappings/uci/iperf.map
 fi
 

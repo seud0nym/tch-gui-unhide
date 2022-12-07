@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Fix SMS transformer mappings
+echo -e "[$SCRIPT]: Fix SMS transformer mappings"
 sed \
   -e 's/^function sms\./local function /' \
   -i /usr/share/transformer/mappings/rpc/mobiled.sms.map
@@ -9,18 +9,18 @@ sed \
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
 if grep -q 'set_voip_iface(x, mobileiface4, mobileiface6, true)' /usr/lib/lua/wansensingfw/failoverhelper.lua; then
-  echo [$SCRIPT]: Remove telstra.hybrid warning
+  echo -e "[$SCRIPT]: Remove telstra.hybrid warning"
   sed -e '/<strong>telstra.hybrid/d' -i /www/docroot/modals/lte-modal.lp
 fi
 
-echo [$SCRIPT]: Fix WAN Sensing States on Auto-Failover tab
+echo -e "[$SCRIPT]: Fix WAN Sensing States on Auto-Failover tab"
 sed \
   -e 's/@\.//' \
   -i /www/docroot/modals/lte-autofailover.lp
 
 if [ "$MINIFY" = y ]; then
-  echo [$SCRIPT]: Pre-minify fixes
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Fixing /www/docroot/modals/lte-sms.lp"
+  echo -e "[$SCRIPT]: Pre-minify fixes"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/lte-sms.lp"
   sed \
     -e 's/\()\)\(\\\)/\1;\2/' \
     -i /www/docroot/modals/lte-sms.lp

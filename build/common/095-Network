@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Fix bug in relay setup card
+echo -e "[$SCRIPT]: Fix bug in relay setup card"
 sed \
   -e '/getExactContent/a \ ' \
   -e '/getExactContent/a local server_addr = proxy.get\("uci.dhcp.relay.@relay.server_addr"\)' \
@@ -6,13 +6,13 @@ sed \
   -e 's/\r//' \
   -i /www/cards/018_relaysetup.lp
 
-echo [$SCRIPT]: Add forceprefix to transformer mapping for network interface
+echo -e "[$SCRIPT]: Add forceprefix to transformer mapping for network interface"
 sed \
   -e 's/"reqprefix", "noslaaconly"/"reqprefix", "forceprefix", "noslaaconly"/' \
   -i /usr/share/transformer/mappings/uci/network.map
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
-echo [$SCRIPT]: Populate interface configuration in bridgedmode_helper
+echo -e "[$SCRIPT]: Populate interface configuration in bridgedmode_helper"
 for ifname in $(grep -rhE "uci *set *network\.(ppp|ipoe|wan|eth4|atm_8_35|ptm0|Guest).*=interface" /rom/etc/uci-defaults/ | cut -d. -f2 | cut -d= -f1); do
   ifcfg=$(grep -rhE "uci *set *network\.$ifname\." /rom/etc/uci-defaults/ | cut -d' ' -f3- | awk -v ifname="$ifname" 'BEGIN{ifcfg=ifname "={";} {split($0,l,"=")split(l[1],o,".");gsub("'"'"'","",l[2]);ifcfg=ifcfg "[\"uci.network.interface.@" ifname "." o[3] "\"]=\"" l[2] "\",";} END{print ifcfg "},";}')
   sed \
@@ -22,7 +22,7 @@ for ifname in $(grep -rhE "uci *set *network\.(ppp|ipoe|wan|eth4|atm_8_35|ptm0|G
 done
 
 if [ "$(uci -q get network.config.wan_mode)" = "bridge" -a -z "$(uci -q get network.lan6)" ]; then
-  echo [$SCRIPT]: Creating missing lan6 interface 
+  echo -e "[$SCRIPT]: Creating missing lan6 interface "
   uci set network.lan6=interface
   uci set network.lan6.defaultreqopts='0'
   uci set network.lan6.forceprefix='0'

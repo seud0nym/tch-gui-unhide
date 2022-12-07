@@ -1,6 +1,6 @@
 grep -q swshaper /usr/share/transformer/mappings/uci/qos.map
 if [ $? -eq 1 ]; then
-  echo [$SCRIPT]: Configure transformer for QoS shaping
+  echo -e "[$SCRIPT]: Configure transformer for QoS shaping"
   sed \
     -e 's/"force_pcp" }/"force_pcp", "swshaper" }/' \
     -e '$a \\' \

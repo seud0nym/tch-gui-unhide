@@ -1,4 +1,4 @@
-echo [$SCRIPT]: Fix WoL configuration
+echo -e "[$SCRIPT]: Fix WoL configuration"
 for f in /www/cards/007_wanservices.lp /www/docroot/modals/wanservices-wol-modal.lp /www/lua/wanservicescard_helper.lua /www/snippets/tabs-wanservices.lp; do
   sed \
     -e 's|/lib/functions/firewall-wol.sh|/etc/init.d/wol|' \

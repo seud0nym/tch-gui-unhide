@@ -7,21 +7,21 @@ check_pwr_setting() {
     if [ -z "$(uci -q get power.$section.$option)" ]; then
       pwrctl show | grep "$text" | grep -q DISABLED
       value=$?
-      [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - power.$section.$option=$value"
+      [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - power.$section.$option=$value"
       uci set power.$section.$option="$value"
       SRV_power=$(( $SRV_power + 1 ))
     fi
   else
     local field="$option"
     [ "$section" = "cpu" -a "$option" = "wait" ] && field="cpuwait"
-    [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - pwrctl config --$option is not valid: removing from GUI"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - pwrctl config --$option is not valid: removing from GUI"
     sed -e "/uci\.power\.$section\.$option/d" -e "/^if content\.$field ==/,/^end/d" -e "/createSimpleLight(content\.$field/d" -i /www/cards/020_eco.lp
     sed -e "/$option/d" -i /www/docroot/modals/eco-modal.lp
     sed -e "s/,\"$option\"//" -e "s/\"$option\",//" -i /usr/share/transformer/mappings/uci/power.map
   fi
 }
 
-echo [$SCRIPT]: Checking power saving settings...
+echo -e "[$SCRIPT]: Checking power saving settings..."
 if [ -z "$(uci -q get power.cpu)" ];then
   uci set power.cpu='cpu'
 fi

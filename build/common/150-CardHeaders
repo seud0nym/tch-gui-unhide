@@ -1,11 +1,11 @@
-echo [$SCRIPT]: Add cogs to card headers
+echo -e "[$SCRIPT]: Add cogs to card headers"
 for f in $(grep -l createCardHeaderNoIcon /www/cards/*)
 do
-  [ -n "$VERBOSE" ] && echo "[$SCRIPT]: - Updating $f"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Updating $f"
   sed -e 's/createCardHeaderNoIcon/createCardHeader/' -i $f
 done
 
-echo [$SCRIPT]: Fix mobile signal placement
+echo -e "[$SCRIPT]: Fix mobile signal placement"
 sed \
  -e '/^<\/script>/i var div = document.querySelector("#mobiletab").querySelector(".header-title");\\' \
  -e '/^<\/script>/i var signal = document.querySelector("#signal-strength-indicator-small");\\' \
