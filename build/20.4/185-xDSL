@@ -1,0 +1,35 @@
+echo -e "[$SCRIPT]: Fixing xDSL card and modal"
+sed -e 's|/etc/config/xdsl|/etc/config/dsl|' -i /www/cards/093_xdsl.lp
+for f in /www/cards/093_xdsl.lp /www/docroot/modals/xdsl-low-modal.lp; do
+  sed -e 's/uci\.xdsl\.xdsl\./uci.dsl.dsl./' -i $f
+done
+sed \
+  -e '/uci.dsl.dsl.@dsl0.maxaggrdatarate/i\  dsl0_profile_8a = "uci.dsl.dsl.@dsl0.profile_8a",' \
+  -e '/uci.dsl.dsl.@dsl0.maxaggrdatarate/i\  dsl0_profile_8b = "uci.dsl.dsl.@dsl0.profile_8b",' \
+  -e '/uci.dsl.dsl.@dsl0.maxaggrdatarate/i\  dsl0_profile_8c = "uci.dsl.dsl.@dsl0.profile_8c",' \
+  -e '/uci.dsl.dsl.@dsl0.maxaggrdatarate/i\  dsl0_profile_12a = "uci.dsl.dsl.@dsl0.profile_12a",' \
+  -e '/uci.dsl.dsl.@dsl0.maxaggrdatarate/i\  dsl0_profile_12b = "uci.dsl.dsl.@dsl0.profile_12b",' \
+  -e '/uci.dsl.dsl.@dsl0.maxaggrdatarate/i\  dsl0_profile_17a = "uci.dsl.dsl.@dsl0.profile_17a",' \
+  -e '/dsl0_maxaggrdatarate = vOPN/i\  dsl0_profile_8a = vB,' \
+  -e '/dsl0_maxaggrdatarate = vOPN/i\  dsl0_profile_8b = vB,' \
+  -e '/dsl0_maxaggrdatarate = vOPN/i\  dsl0_profile_8c = vB,' \
+  -e '/dsl0_maxaggrdatarate = vOPN/i\  dsl0_profile_12a = vB,' \
+  -e '/dsl0_maxaggrdatarate = vOPN/i\  dsl0_profile_12b = vB,' \
+  -e '/dsl0_maxaggrdatarate = vOPN/i\  dsl0_profile_17a = vB,' \
+  -e '/T"Profiles"/i\          ui_helper.createSwitch(T"VDSL2 Profile 8a","dsl0_profile_8a",driver_content["dsl0_profile_8a"],help_msg["dsl0_profile_8a"]),' \
+  -e '/T"Profiles"/i\          ui_helper.createSwitch(T"VDSL2 Profile 8b","dsl0_profile_8b",driver_content["dsl0_profile_8b"],help_msg["dsl0_profile_8b"]),' \
+  -e '/T"Profiles"/i\          ui_helper.createSwitch(T"VDSL2 Profile 8c","dsl0_profile_8c",driver_content["dsl0_profile_8c"],help_msg["dsl0_profile_8c"]),' \
+  -e '/T"Profiles"/i\          ui_helper.createSwitch(T"VDSL2 Profile 12a","dsl0_profile_12a",driver_content["dsl0_profile_12a"],help_msg["dsl0_profile_12a"]),' \
+  -e '/T"Profiles"/i\          ui_helper.createSwitch(T"VDSL2 Profile 12b","dsl0_profile_12b",driver_content["dsl0_profile_12b"],help_msg["dsl0_profile_12b"]),' \
+  -e '/T"Profiles"/i\          ui_helper.createSwitch(T"VDSL2 Profile 17a","dsl0_profile_17a",driver_content["dsl0_profile_17a"],help_msg["dsl0_profile_17a"]),' \
+  -e '/_sra/d' \
+  -e '/_bitswap/d' \
+  -e '/_handshake_switch_timeout/d' \
+  -e '/^local profiles_content/,/^end/d' \
+  -e '/T"Profiles"/d' \
+  -e '/^local modes_content/,/^end/d' \
+  -e '/table.sort(modes_content,/,/^end/d' \
+  -e '/name="modes"/,/div>/d' \
+  -e '/T"Modes"/,/div>/d' \
+  -i /www/docroot/modals/xdsl-low-modal.lp
+

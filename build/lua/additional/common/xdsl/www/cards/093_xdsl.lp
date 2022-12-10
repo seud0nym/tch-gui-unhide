@@ -26,7 +26,6 @@ if session:hasAccess(modalPath) and lfs.attributes("/etc/config/xdsl", "mode") =
       dsl0_enabled = "uci.xdsl.xdsl.@dsl0.enabled",
       line_status = "sys.class.xdsl.@line0.Status",
       xdsl_status = "rpc.xdsl.status",
-      xdsl_version = "rpc.xdslctl.DslFirmware",
       dslam_chipset = "rpc.xdslctl.DslamChipset",
       dslam_version = "rpc.xdslctl.DslamVersion",
     }
@@ -56,24 +55,22 @@ if session:hasAccess(modalPath) and lfs.attributes("/etc/config/xdsl", "mode") =
     <div class="span3">\
       <div class="smallcard">\
         ',ui_helper.createCardHeader(T"xDSL Config",modalPath),'\
-          <div class="content card_bg" data-bg-text="&#xf0ad;">',
-            ui_helper.createSimpleLight(enabled,enabled_state_map[enabled]),
-            ui_helper.createSimpleLight(xdsl_status,format(T"xDSL Status: %s",content.xdsl_status)),
-            ui_helper.createSimpleLight(line_status,format(T"Line Status: %s",content.line_status)),'\
-            <p class="subinfos">',
-              format(T"Datapump Version"..": <strong style='letter-spacing:-1px;font-size:12px;'>%s</strong>",content.xdsl_version),'\
-              <br/>')
-              if content.dslam_chipset ~= "" then
-                ngx.print(
-                  format(T"DSLAM Chipset: <strong style='letter-spacing:-1px;font-size:12px;'>%s</strong>",content.dslam_chipset),
-                  '<br/>',
-                  format(T"DSLAM Version: <strong style='letter-spacing:-1px;font-size:12px;'>%s</strong>",content.dslam_version)
-                )
-              end
-              ngx.print('\
-            </p>\
-          </div>\
+        <div class="content card_bg" data-bg-text="&#xf0ad;">',
+          ui_helper.createSimpleLight(enabled,enabled_state_map[enabled]),
+          ui_helper.createSimpleLight(xdsl_status,format(T"xDSL Status: %s",content.xdsl_status)),
+          ui_helper.createSimpleLight(line_status,format(T"Line Status: %s",content.line_status)))
+          if content.dslam_chipset ~= "" then
+            ngx.print('\
+              <p class="subinfos">',
+              format(T"DSLAM Chipset: <strong style='letter-spacing:-1px;font-size:12px;'>%s</strong>",content.dslam_chipset),
+              '<br/>',
+              format(T"DSLAM Version: <strong style='letter-spacing:-1px;font-size:12px;'>%s</strong>",content.dslam_version),
+              '</p>\
+            ')
+          end
+          ngx.print('\
         </div>\
+      </div>\
     </div>\
     ')
   end

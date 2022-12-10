@@ -372,24 +372,24 @@ local function xdslctlDslamInfo(itype)
 	return result
 end
 
-local function xdslctlVersion(type)
+local function xdslctlVersion()
 	local cmd = "xdslctl --version 2>&1"
-	local firm_ver, kmod_ver
+	local firm_ver
 	local version_info = call_popen(cmd)
 
 	for line in version_info:lines() do
 		if line:match("ADSL PHY") then
-			firm_ver, kmod_ver = line:match("%a+ %a+: %a+ %a+ %- (%w+)%.(%w+)")
+			firm_ver = line:match("%a+ %a+: %a+ %a+ %- (.+)")
 		end
 	end
 	version_info:close()
 
-	return firm_ver..'.'..kmod_ver
+	return firm_ver
 end
 
 local function get(_,paramName,_)
 	if paramName == "DslFirmware" then
-		return xdslctlVersion(paramName)
+		return xdslctlVersion()
 	end
 
 	-- Check cache at every get
