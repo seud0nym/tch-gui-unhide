@@ -181,65 +181,69 @@ ngx.print(
     ui_helper.createMessages(message_helper.popMessages()),'\
     <fieldset>\
       <style>.form-horizontal .control-label { width: 180px;} .form-horizontal .controls { margin-left: 200px; }</style>\
-      <form class="form-horizontal" method="post" action="modals/xdsl-low-modal.lp">',
-        ui_helper.createLight(T"Status",nil,state_map[untaint(content.dsl0_enabled)],{light = {class = light_map[untaint(content.dsl0_enabled)]}}),
-        ui_helper.createSwitch(T"Enabled","dsl0_enabled",driver_content["dsl0_enabled"],help_msg["dsl0_enabled"]),
-        ui_helper.createLabel(T"DSL Connection Status",T(content.dsl0_status),span5))
-        if (content.dsl0_status == "Up") then
-          ngx.print(ui_helper.createLabel(T"DSL Mode",content.dsl0_mode .. " (" .. content.dsl0_linkencapsulation .. ")",span5))
-          if (content.dsl0_profile ~= "Not Found") then
-            ngx.print(ui_helper.createLabel(T"VDSL Profile",content.dsl0_profile,span5))
+      <form class="form-horizontal" method="post" action="modals/xdsl-low-modal.lp">\
+        <div class="span4">',
+          ui_helper.createLight(T"Status",nil,state_map[untaint(content.dsl0_enabled)],{light = {class = light_map[untaint(content.dsl0_enabled)]}}),
+          ui_helper.createSwitch(T"Enabled","dsl0_enabled",driver_content["dsl0_enabled"],help_msg["dsl0_enabled"]),
+          ui_helper.createLabel(T"DSL Connection Status",T(content.dsl0_status),span5))
+          if (content.dsl0_status == "Up") then
+            ngx.print(ui_helper.createLabel(T"DSL Mode",content.dsl0_mode .. " (" .. content.dsl0_linkencapsulation .. ")",span5))
+            if (content.dsl0_profile ~= "Not Found") then
+              ngx.print(ui_helper.createLabel(T"VDSL Profile",content.dsl0_profile,span5))
+            end
+            if (content.dsl0_port ~= "") then
+              ngx.print(ui_helper.createLabel(T"VDSL DSLAM Port",content.dsl0_port,span5))
+            end
+            if (content.dslam_serial ~= "") then
+              ngx.print(ui_helper.createLabel(T"VDSL DSLAM Serial",content.dslam_serial,span5))
+            end
+            ngx.print(ui_helper.createLabel(T"DSLAM Chipset",content.dslam_chipset,span5))
+            if content.dslam_version_raw:sub(0,2) == "0x" then
+              ngx.print(ui_helper.createLabel(T"DSLAM Firmware",format("%s ( %s )",content.dslam_version,content.dslam_version_raw),span5))
+            elseif content.dslam_version_raw == "" then
+              ngx.print(ui_helper.createLabel(T"DSLAM Firmware",T"Can't recover DSLAM version.",span5))
+            else
+              ngx.print(ui_helper.createLabel(T"DSLAM Firmware",format(T"Invalid version,can't convert. Raw value: %s",content.dslam_version_raw),span5))
+            end
           end
-          if (content.dsl0_port ~= "") then
-            ngx.print(ui_helper.createLabel(T"VDSL DSLAM Port",content.dsl0_port,span5))
-          end
-          if (content.dslam_serial ~= "") then
-            ngx.print(ui_helper.createLabel(T"VDSL DSLAM Serial",content.dslam_serial,span5))
-          end
-          ngx.print(ui_helper.createLabel(T"DSLAM Chipset",content.dslam_chipset,span5))
-          if content.dslam_version_raw:sub(0,2) == "0x" then
-            ngx.print(ui_helper.createLabel(T"DSLAM Firmware",format("%s ( %s )",content.dslam_version,content.dslam_version_raw),span5))
-          elseif content.dslam_version_raw == "" then
-            ngx.print(ui_helper.createLabel(T"DSLAM Firmware",T"Can't recover DSLAM version.",span5))
-          else
-            ngx.print(ui_helper.createLabel(T"DSLAM Firmware",format(T"Invalid version,can't convert. Raw value: %s",content.dslam_version_raw),span5))
-          end
-        end
-        ngx.print(
-          ui_helper.createLabel(T"Datapump Version",content.dsl0_xdsl_FirmwareVersion,span5),
-          ui_helper.createSwitch(T"SRA","dsl0_sra",driver_content["dsl0_sra"],help_msg["dsl0_sra"]),
-          ui_helper.createSwitch(T"Bitswap","dsl0_bitswap",driver_content["dsl0_bitswap"],help_msg["dsl0_bitswap"]),
-          ui_helper.createLabel(T"EOC Vendor ID",content.dsl0_eoc_vendor_id,span5),
-          ui_helper.createLabel(T"EOC Serial Number",content.dsl0_eoc_serial_number,span5),
-          [[<div class="control-group"><label class="control-label">]],T"Modes",[[</label>]],
-            [[<div class="controls"><select multiple class="form-control" name="modes">]])
-              for i = 1,#all_modes do
-                local selected = ""
-                for _,w in pairs(modes_content) do
-                  if all_modes[i] == w.value then
-                    selected = "selected"
+          ngx.print(
+            ui_helper.createLabel(T"Datapump Version",content.dsl0_xdsl_FirmwareVersion,span5),
+            ui_helper.createSwitch(T"SRA","dsl0_sra",driver_content["dsl0_sra"],help_msg["dsl0_sra"]),
+            ui_helper.createSwitch(T"Bitswap","dsl0_bitswap",driver_content["dsl0_bitswap"],help_msg["dsl0_bitswap"]),
+            ui_helper.createLabel(T"EOC Vendor ID",content.dsl0_eoc_vendor_id,span5),
+            ui_helper.createLabel(T"EOC Serial Number",content.dsl0_eoc_serial_number,span5),
+            [[<div class="control-group"><label class="control-label">]],T"Modes",[[</label>]],
+              [[<div class="controls"><select multiple class="form-control" name="modes">]])
+                for i = 1,#all_modes do
+                  local selected = ""
+                  for _,w in pairs(modes_content) do
+                    if all_modes[i] == w.value then
+                      selected = "selected"
+                    end
                   end
+                  ngx.print(format('<option name="%s" %s>%s</option>',all_modes[i],selected,all_modes[i]))
                 end
-                ngx.print(format('<option name="%s" %s>%s</option>',all_modes[i],selected,all_modes[i]))
-              end
-              ngx.print([[</select>]],
+                ngx.print([[</select>]],
+              [[</div>]],
             [[</div>]],
+            ui_helper.createInputText(T"Max Downstream Data Rate","dsl0_maxdsdatarate",driver_content["dsl0_maxdsdatarate"],datarate_attr,content["dsl0_maxdsdatarate"]),
+            ui_helper.createInputText(T"Max Upstream Data Rate","dsl0_maxusdatarate",driver_content["dsl0_maxusdatarate"],datarate_attr,content["dsl0_maxusdatarate"]),
+            ui_helper.createInputText(T"Max Aggregate Data Rate","dsl0_maxaggrdatarate",driver_content["dsl0_maxaggrdatarate"],datarate_attr,content["dsl0_maxaggrdatarate"]),
+            ui_helper.createLabel(T"Profiles",profile_list or "",span5),
           [[</div>]],
-          ui_helper.createInputText(T"Max Downstream Data Rate","dsl0_maxdsdatarate",driver_content["dsl0_maxdsdatarate"],datarate_attr,content["dsl0_maxdsdatarate"]),
-          ui_helper.createInputText(T"Max Upstream Data Rate","dsl0_maxusdatarate",driver_content["dsl0_maxusdatarate"],datarate_attr,content["dsl0_maxusdatarate"]),
-          ui_helper.createInputText(T"Max Aggregate Data Rate","dsl0_maxaggrdatarate",driver_content["dsl0_maxaggrdatarate"],datarate_attr,content["dsl0_maxaggrdatarate"]),
-          ui_helper.createLabel(T"Profiles",profile_list or "",span5),
-          ui_helper.createLabel(T"HS Switch Timeout",content.dsl0_handshake_switch_timeout,span5),
-          ui_helper.createLabel(T"Demod Cap Value",content.dsl0_demod_cap_value,span5),
-          ui_helper.createLabel(T"Demod Cap Mask",content.dsl0_demod_cap_mask,span5),
-          ui_helper.createLabel(T"2nd Demod Cap Value",content.dsl0_demod_cap2_value,span5),
-          ui_helper.createLabel(T"2nd Demod Cap Mask",content.dsl0_demod_cap2_mask,span5),
-          ui_helper.createLabel(T"Aux Features Value",content.dsl0_aux_features_value,span5),
-          ui_helper.createLabel(T"Aux Features Mask",content.dsl0_aux_features_mask,span5),
-          ui_helper.createLabel(T"VDSL Flags Value",content.dsl0_vdsl_cfg_flags_value,span5),
-          ui_helper.createLabel(T"VDSL Flags Mask",content.dsl0_vdsl_cfg_flags_mask,span5),
-          ui_helper.createLabel(T"Phy Extra Value",content.dsl0_xdsl_cfg1_value,span5),
-          ui_helper.createLabel(T"Phy Extra Mask",content.dsl0_xdsl_cfg1_mask,span5),'\
+          [[<div class="span4">]],
+            ui_helper.createLabel(T"HS Switch Timeout",content.dsl0_handshake_switch_timeout,span5),
+            ui_helper.createLabel(T"Demod Cap Value",content.dsl0_demod_cap_value,span5),
+            ui_helper.createLabel(T"Demod Cap Mask",content.dsl0_demod_cap_mask,span5),
+            ui_helper.createLabel(T"2nd Demod Cap Value",content.dsl0_demod_cap2_value,span5),
+            ui_helper.createLabel(T"2nd Demod Cap Mask",content.dsl0_demod_cap2_mask,span5),
+            ui_helper.createLabel(T"Aux Features Value",content.dsl0_aux_features_value,span5),
+            ui_helper.createLabel(T"Aux Features Mask",content.dsl0_aux_features_mask,span5),
+            ui_helper.createLabel(T"VDSL Flags Value",content.dsl0_vdsl_cfg_flags_value,span5),
+            ui_helper.createLabel(T"VDSL Flags Mask",content.dsl0_vdsl_cfg_flags_mask,span5),
+            ui_helper.createLabel(T"Phy Extra Value",content.dsl0_xdsl_cfg1_value,span5),
+            ui_helper.createLabel(T"Phy Extra Mask",content.dsl0_xdsl_cfg1_mask,span5),'\
+        </div>\
       </form>\
     </fieldset>\
   </div>',
