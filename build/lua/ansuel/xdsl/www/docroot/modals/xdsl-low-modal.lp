@@ -177,10 +177,10 @@ local datarate_attr = {
 
 ngx.print(
   ui_helper.createHeader(T"xDSL Details",false,false),'\
+  <style>.modal-body{overflow-x:hidden;} .form-horizontal .control-label{width:180px;} .form-horizontal .controls{margin-left:200px;}</style>\
   <div class="modal-body update">',
     ui_helper.createMessages(message_helper.popMessages()),'\
     <fieldset>\
-      <style>.form-horizontal .control-label { width: 180px;} .form-horizontal .controls { margin-left: 200px; }</style>\
       <form class="form-horizontal" method="post" action="modals/xdsl-low-modal.lp">\
         <div class="span4">',
           ui_helper.createLight(T"Status",nil,state_map[untaint(content.dsl0_enabled)],{light = {class = light_map[untaint(content.dsl0_enabled)]}}),
