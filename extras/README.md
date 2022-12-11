@@ -31,7 +31,8 @@ The version of adblock in the standard 17.2 repository is incompatible with this
 #### Post-Installation Configuration
 - Enable DNS Hijacking on the Hijacking tab under DNS (leave DNS Server Address blank) 
     - If you chose to NOT do this, then under Local Network you must select the DNS server from the list that matches your local IP address
-- Configure your preferred DNS Servers as Custom DNS Servers on the DNS Configuration tab
+- Configure your preferred upstream DNS Servers (e.g. 8.8.8.8, 1.1.1.1, 9.9.9.9, etc.) as Custom DNS Servers on the DNS Configuration tab
+    - Otherwise you can leave Custom DNS Servers empty and use your ISP supplied DNS Servers via Auto-Discovery
 #### Removal Instructions
 1. Delete `tch-gui-unhide-xtra.adblock`
 2. Remove adblock and dependencies: `opkg remove adblock uclient-fetch`
