@@ -10,7 +10,7 @@ installed version.
 Usage: $0 [options]
 
 Options:
- -C  Adds or removes the scheduled monthly cron job
+ -C  Adds or removes the scheduled weekly cron job
  -U  Download the latest version of $SCRIPT from GitHub
 
 EOH
@@ -58,9 +58,8 @@ if [ $CRON = Y ]; then
   else
     mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
     hh=$(awk 'BEGIN{srand();print int(rand()*3)+2;}')
-    dd=$(awk 'BEGIN{srand();print int(rand()*28);}')
-    echo "$mm $hh $dd * * $(cd $(dirname $0); pwd)/$SCRIPT" >> /etc/crontabs/root
-    echo "[AdGuard-Home-Update] AdGuard Home update has been scheduled to execute at $hh:$(printf '%02d' $mm)am on day $dd of each month."
+    echo "$mm $hh * * 5 $(cd $(dirname $0); pwd)/$SCRIPT" >> /etc/crontabs/root
+    echo "[AdGuard-Home-Update] AdGuard Home update has been scheduled to execute every Saturday at $hh:$(printf '%02d' $mm)am."
   fi
   /etc/init.d/cron reload
   exit
