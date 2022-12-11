@@ -329,15 +329,13 @@ ngx.print('\
   html[#html+1] = '<fieldset id="mmpbx-global-tab">'
   html[#html+1] =     '<legend>'..T"Global Information"..'</legend>'
   html[#html+1] =     ui_helper.createSwitch(T"Enabled","mmpbx_enabled",content["mmpbx_enabled"])
-  if content["mmpbx_enabled"] == "1" then
-    if cfg["wansensing_enabled"] == "1" and mobile_devices > 0 then
-      html[#html+1] =     ui_helper.createSwitch(T"Voice on 4G Failover","voiceonfailover",content["voiceonfailover"])
-    end
-    html[#html+1] = '<fieldset>'
-    html[#html+1] = '<legend>'..T"SIP Network"..'</legend>'
-    html[#html+1] =  ui_helper.createTable(sipnet_columns,sipnet_data,sipnet_options,nil,sipnet_helpmsg)
-    html[#html+1] = '</fieldset>'
+  if cfg["wansensing_enabled"] == "1" and mobile_devices > 0 then
+    html[#html+1] =     ui_helper.createSwitch(T"Voice on 4G Failover","voiceonfailover",content["voiceonfailover"])
   end
+  html[#html+1] = '<fieldset>'
+  html[#html+1] = '<legend>'..T"SIP Network"..'</legend>'
+  html[#html+1] =  ui_helper.createTable(sipnet_columns,sipnet_data,sipnet_options,nil,sipnet_helpmsg)
+  html[#html+1] = '</fieldset>'
   ngx.print (html)
 
   ngx.print('\
