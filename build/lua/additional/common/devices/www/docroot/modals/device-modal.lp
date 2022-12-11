@@ -9,12 +9,11 @@ local content_helper = require("web.content_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local ui_helper = require("web.ui_helper")
-local lfs = require("lfs")
 local splitter = require("split")
 local string,ngx,os = string,ngx,os
 local tonumber = tonumber
 local concat,sort = table.concat,table.sort
-local find,format,match,lower = string.find,string.format,string.match,string.lower
+local find,format,gmatch,match,lower = string.find,string.format,string.gmatch,string.match,string.lower
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
@@ -230,23 +229,16 @@ end
 
 local mac_vendor = {}
 if getargs.cache and getargs.cache == "clear" then
-  os.remove("/tmp/mac.cache")
+  proxy.set("rpc.gui.mac.clear_cache","1")
 else
-  local attr = lfs.attributes("/tmp/mac.cache")
-  if attr and attr.mode == "file" then
-    if attr.modification + 86400 < ngx.now() then
-      os.execute("sed -e '/NO COMPANY/d' -i /tmp/mac.cache")
-    end
-    local file = io.open("/tmp/mac.cache","r")
-    if file then
-      local pattern = "([%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]) (.*)"
-      for line in file:lines() do
-        local mac,name = match(line,pattern)
-        if mac and name and name ~= "" then
-          mac_vendor[mac] = name
-        end
+  local file = proxy.get("rpc.gui.mac.cached")
+  if file then
+    local pattern = "([%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]) (.*)"
+    for line in gmatch(untaint(file[1].value),"(.*)\n") do
+      local mac,name = match(line,pattern)
+      if mac and name and name ~= "" then
+        mac_vendor[mac] = name
       end
-      file:close()
     end
   end
 end

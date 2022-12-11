@@ -1,0 +1,118 @@
+local lfs = require("lfs")
+local logger = require("tch.logger")
+local log = logger.new("rpc.gui.mac",7)
+local format,match = string.format,string.match
+
+local mac_pattern = "[%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]"
+local name_pattern = mac_pattern.." (.*)"
+
+local GUI_MAC_ = {
+  objectType = {
+    name = "rpc.gui.mac.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      find = {
+        access = "readWrite",
+        type = "string"
+      },
+      vendor = {
+        access = "readOnly",
+        type = "string"
+      },
+      clear_cache = {
+        access = "readWrite",
+        type = "boolean"
+      },
+      cached = {
+        access = "readOnly",
+        type = "string"
+      },
+    }
+  }
+}
+
+local mac
+
+GUI_MAC_.get = {
+  find = function()
+    return mac or ""
+  end,
+  vendor = function()
+    local vendor,message
+    if mac then
+      local result
+      local grep = io.popen(format("grep %s /tmp/mac.cache 2>/dev/null",mac))
+      if grep then
+        result = grep:read("*a")
+        grep:close()
+      end
+      if result and result ~= "" then
+        vendor = match(result,name_pattern)
+      else
+        local cmd = format("curl -fksm 2 https://api.maclookup.app/v2/macs/%s/company/name",mac)
+        local curl = io.popen(cmd)
+        if curl then
+          result = curl:read("*a")
+          curl:close()
+        end
+        if result and result ~= "" then
+          vendor = result
+          local cache,errmsg = io.open("/tmp/mac.cache","a")
+          if not cache or errmsg then
+            log:error("Failed to open /tmp/mac.cache: %s",errmsg)
+          else
+            cache:write(mac," ",vendor,"\n")
+            cache:close()
+          end
+        else
+          message = "No vendor match found for MAC "..mac
+        end
+      end
+      mac = nil
+    else
+      message = "No MAC address set?"
+    end
+    return vendor,message
+  end,
+  clear_cache = function()
+    return "0"
+  end,
+  cached = function()
+    local attr = lfs.attributes("/tmp/mac.cache")
+    if attr and attr.mode == "file" then
+      if attr.modification + 86400 < os.time() then
+        os.execute("sed -e '/NO COMPANY/d' -i /tmp/mac.cache")
+      end
+      local file = io.open("/tmp/mac.cache","r")
+      if file then
+        local all = file:read("*a")
+        file:close()
+        return all
+      end
+    end
+    return ""
+  end,
+}
+
+GUI_MAC_.set = {
+  find = function(_,_,value,_)
+    mac = match(value,mac_pattern)
+    if mac then
+      return true
+    end
+    return nil,"Invalid MAC Address: "..value
+  end,
+  clear_cache = function(_,_,value,_)
+    if value == "0" then
+      return true
+    elseif value == "1" then
+      os.remove("/tmp/mac.cache")
+      return true
+    end
+    return nil,"clear_cache value must be 1 or 0"
+  end,
+}
+
+register(GUI_MAC_)
