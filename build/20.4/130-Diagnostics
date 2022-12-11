@@ -1,0 +1,20 @@
+echo -e "[$SCRIPT]: Add missing icons on Diagnostics card and change default tab to Traffic Monitor"
+sed \
+ -e 's^"Diagnostics", "modals/diagnostics-xdsl-modal.lp"^"Diagnostics", "modals/diagnostics-graphs-modal.lp"^' \
+ -e '/<\/table>/i       <td><div data-toggle="modal" data-remote="modals/diagnostics-graphs-modal.lp" data-id="diagnostics-graphs-modal"><img href="#" rel="tooltip" data-original-title="GRAPHS" src="/img/light/Bar-Charts-1-WF.png" alt="graphs"></div></td></tr>\\' \
+ -i /www/cards/009_diagnostics.lp
+
+echo -e "[$SCRIPT]: Fix Diagnostics Graphs tab name"
+sed \
+ -e 's/Graphing/Graphs/'  \
+ -i /www/snippets/tabs-diagnostics.lp
+
+if [ "$MINIFY" = y ]; then
+  echo -e "[$SCRIPT]: Pre-minify fixes"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/snippets/graph-cpu.lp"
+  sed \
+    -e 's/\(var dataCreation = true\)/\1;/' \
+    -e 's/\(var gets = {}\)/\1;/' \
+    -i /www/snippets/graph-cpu.lp
+fi
+
