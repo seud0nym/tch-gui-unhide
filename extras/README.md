@@ -29,10 +29,9 @@ The version of adblock in the standard 17.2 repository is incompatible with this
 #### Installation
 `./tch-gui-unhide -x adblock`
 #### Post-Installation Configuration
-- Configure the IPv4 Primary DNS Server under Local Network to the local device (depending on your version of tch-gui-unhide, this will be "RSP/ISP DNS Servers", "Custom WAN DNS Servers", or the device variant (e.g. "DJA0230" or "DJA0231"))
-- Leave the IPV4 Secondary DNS Server as blank
-- Configure your preferred DNS Servers under Internet Access
-- Enable DNS Intercept under Firewall (leave DNS Server Address blank)
+- Enable DNS Hijacking on the Hijacking tab under DNS (leave DNS Server Address blank) 
+    - If you chose to NOT do this, then under Local Network you must select the DNS server from the list that matches your local IP address
+- Configure your preferred DNS Servers as Custom DNS Servers on the DNS Configuration tab
 #### Removal Instructions
 1. Delete `tch-gui-unhide-xtra.adblock`
 2. Remove adblock and dependencies: `opkg remove adblock uclient-fetch`
