@@ -11,6 +11,7 @@ sed \
   -e '/require("web.lte-utils")/a local devices = tonumber(result.DeviceNumberOfEntries)' \
   -e '/require("web.lte-utils")/a if devices and devices > 0 then' \
   -e '$ a end' \
+  -e 's/height: 24px;/height: 17px;/' \
   -i $LTE_CARD
 
 echo -e "[$SCRIPT]: Show Mobile Only Mode status on Mobile card"
@@ -29,7 +30,7 @@ sed \
   -e "/\"content\"/a ngx.print('\\\\" \
   -i $LTE_CARD
 
-echo -e "[$SCRIPT]: Hide Mobile Only Mode on Mobile Configuration screen is WAN Sensing disabled"
+echo -e "[$SCRIPT]: Hide Mobile Only Mode on Mobile Configuration screen if WAN Sensing disabled"
 sed \
   -e '/getExactContent(content_wansensing)/i\p.mapParams.wsenable = "uci.wansensing.global.enable"' \
   -e '/Mobile Only Mode/i if page.content.wsenable == "1" then' \
