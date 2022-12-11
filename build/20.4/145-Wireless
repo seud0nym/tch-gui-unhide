@@ -3,3 +3,18 @@ sed \
   -e "s/RADIO'S/RADIOS/" \
   -i /www/docroot/modals/wireless-radio.lp
 
+if [ "$MINIFY" = y ]; then
+  echo -e "[$SCRIPT]: Pre-minify fixes"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/wireless-modal.lp"
+  sed \
+    -e 's/\(function loadACLList\)/;\1/' \
+    -e 's/\(function get_status_acl\)/;\1/' \
+    -e 's/\(var curap = aplists\[ap\]\)/\1;/' \
+    -e 's/\(var apVal = ap_list\[ap\]\)/\1;/' \
+    -e 's/\(var params = {}\)/\1;/' \
+    -e 's/\(var wpapsk_id_exists = \$("#"+wpapsk)\)/\1;/' \
+    -e 's/\(var wpa3_id_exists = \$("#"+wpa3)\)/\1;/' \
+    -e 's/\(var wep_id_exists = \$("#"+wep)\)/\1;/' \
+    -e 's/\(var credPwd_id_exists =\$("#"+credPwd)\)/\1;/' \
+    -i /www/docroot/modals/wireless-modal.lp
+fi
