@@ -82,10 +82,19 @@ apply_chart_card_visibiity() {
           echo -e "[$SCRIPT]: Showing summary chart card"
           uci -q set web.card_Charts.hide='0'
           ;;
-      i)  echo -e "[$SCRIPT]: Showing individual chart cards"
-          for CHART in CPU RAM WANDown WANUp; do
-            uci -q set web.card_${CHART}.hide='0'
-          done
+      i)  if [ "$(uci -q get network.config.wan_mode)" = "bridge" ]; then
+            echo -e "[$SCRIPT]: Showing CPU and RAM chart cards"
+            uci -q set web.card_CPU.hide='0'
+            uci -q set web.card_RAM.hide='0'
+            echo -e "[$SCRIPT]: Hiding WAN chart cards in bridge mode"
+            uci -q set web.card_WANDown.hide='1'
+            uci -q set web.card_WANUp.hide='1'
+          else
+            echo -e "[$SCRIPT]: Showing individual chart cards"
+            for CHART in CPU RAM WANDown WANUp; do
+              uci -q set web.card_${CHART}.hide='0'
+            done
+          fi
           echo -e "[$SCRIPT]: Hiding summary chart card"
           uci -q set web.card_Charts.hide='1'
           ;;
