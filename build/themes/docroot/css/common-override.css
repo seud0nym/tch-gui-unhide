@@ -21,7 +21,7 @@
 .simple-desc.helper-card{display:inline-block;font-size:smaller;letter-spacing:-1px;vertical-align:unset;}
 .smallcard .content{font-size:14px;height:125px;line-height:20px !important;}
 .smallcard .subinfos{font-size:14px;margin-top:1px;margin-bottom:0px;line-height:17px;}
-.span3{width:270px;}
+.span3{width:270px;} .row>div.span3{height:217px;}
 .ssid-status{margin-left:18px;margin-top:2px;padding-top:0px;line-height:12px;height:15px;}
 .ssid-status>.light{margin-top:1px;}
 .status-icon{color:var(--RGB_STATUS_ICON);}
