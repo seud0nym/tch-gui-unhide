@@ -8,7 +8,7 @@ local sipprofile_rpc_path = "rpc.mmpbx.sip_profile.@"
 local profile_rpc_path = "rpc.mmpbx.profile.@"
 local profilestats_rpc_path = "rpc.mmpbx.profilestatistics.@"
 
-local modal_link='class="modal-link" data-toggle="modal" data-remote="modals/mmpbx-profile-modal.lp" data-id="mmpbx-profile-modal"'
+local modal_link = 'class="modal-link" data-toggle="modal" data-remote="modals/mmpbx-profile-modal.lp" data-id="mmpbx-profile-modal"'
 
 local function spairs(t,order)
   -- collect the keys
@@ -44,6 +44,11 @@ local function toNumberOrZero(data)
   return value
 end
 
+local status = {
+  ["0"] = T"Telephony disabled",
+  ["1"] = T"Telephony enabled",
+}
+
 local M = {}
 
 function M.getTelephonyCardHTML(mmpbx_state)
@@ -59,6 +64,11 @@ function M.getTelephonyCardHTML(mmpbx_state)
   end
 
   local html = {}
+
+  html[#html+1] = '<span class="modal-link" data-toggle="modal" data-remote="modals/mmpbx-global-modal.lp" data-id="mmpbx-profile-modal">'
+---@diagnostic disable-next-line: undefined-field
+  html[#html+1] = ui_helper.createSimpleLight(mmpbx_state,status[string.untaint(mmpbx_state)])
+  html[#html+1] = '</span>'
 
   local disabled = 0
   for name,value in spairs(sipprofile_info) do
