@@ -195,12 +195,12 @@ configure_dnmasq() {
   fi
 
   echo -e "${GREEN}[$SCRIPT] Configuring IPv4 WAN DNS...${NC}"
-  uci set network.wan.peerdns="$PEER_DNS"
+  uci -q set network.wan.peerdns="$PEER_DNS"
   uci -q delete network.wan.dns
 
   if [ -n "$IPv6" ]; then
     echo -e "${GREEN}[$SCRIPT] Configuring IPv6 WAN DNS...${NC}"
-    uci set network.wan6.peerdns="$PEER_DNS"
+    uci -q set network.wan6.peerdns="$PEER_DNS"
   fi
 
   echo -e "${GREEN}[$SCRIPT] Applying network changes...${NC}"
@@ -534,14 +534,14 @@ DHCP_SETTINGS=$(lua -e '
     return bit.tobit((b1*16777216) + (b2*65536) + (b3*256) + b4)
   end
   values = proxy.get(
-    "uci.network.interface.@lan.ipaddr",
-    "uci.network.interface.@lan.netmask",
+    "rpc.network.interface.@lan.ipaddr",
+    "rpc.network.interface.@lan.ipmask",
     "uci.dhcp.dhcp.@lan.start",
     "uci.dhcp.dhcp.@lan.limit",
     "rpc.network.interface.@lan.ip6prefix_assignment",
     "uci.dhcp.dhcp.@lan.leasetime"
   )
-  netmask = ipv42num(values[2].value)
+  netmask = values[2].value
   network = bit.band(ipv42num(values[1].value), netmask)
   ipmax = bit.bor(network, bit.bnot(netmask)) - 1
   ipstart = bit.bor(network, bit.band(tonumber(values[3].value), bit.bnot(netmask)))
@@ -562,7 +562,7 @@ DHCP_SETTINGS=$(lua -e '
   elseif precision == "m" then
     time = time * 60
   end
-  print(values[1].value,values[2].value,num2ipv4(ipstart),num2ipv4(ipend),time,ipv6start)
+  print(values[1].value,num2ipv4(netmask),num2ipv4(ipstart),num2ipv4(ipend),time,ipv6start)
 ')
 shift $#
 set -- $DHCP_SETTINGS
