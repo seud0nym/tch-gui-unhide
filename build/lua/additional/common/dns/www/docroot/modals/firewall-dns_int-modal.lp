@@ -214,8 +214,12 @@ if dns_int then
               proxySet(path["Intercept-DNSv6"].."destIP","")
               local ula = proxy.get("rpc.network.interface.@lan.ipv6uniquelocaladdr")
               if ula and ula[1].value ~= "" then
+                local v = untaint(ula[1].value)
+                if v:find("/") then
+                  v = string.match(v,"(.+)/%d+")
+                end
                 local idx = proxy.add(lan_dns_path)
-                proxySet(lan_dns_path.."@"..idx..".value",untaint(ula[1].value))
+                proxySet(lan_dns_path.."@"..idx..".value",v)
               end
               dest_ipv6 = ""
             end
