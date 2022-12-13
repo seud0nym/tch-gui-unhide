@@ -29,10 +29,13 @@ options:
                       currently defined in dnsmasq can be loaded into AdGuard Home.
  -d                Do NOT enable the AdGuard Home DHCP server.
                       This will continue to use dnsmasq for DHCP, at the expense
-                      of some additional RAM.
+                      of some additional RAM. (See also -k)
  -e                Install AdGuard Home on USB rather than INTERNAL storage.
                       This is the default if the local filesystem is jffs2, because 
                       AdGuard Home is INCOMPATIBLE with jffs2.
+ -k                Keep dnsmasq as the primary DNS Server on port 53 and use 
+                      AdGuard Home as the only upstream DNS Server.
+                      Implies the -d option.
  -i                Install AdGuard Home on INTERNAL storage rather than USB.
                       This is the default if the local filesystem is NOT jffs2. If
                       the local filesystem is jffs, then this option will create 
@@ -83,7 +86,9 @@ PWD_HASH="$DFLT_HASH"
 CA_CERT=Y
 DEL_AGH=Y
 AGH_DHCP=true
+AGH_PORT=53
 AGH_VER=""
+KEEP_DNSMASQ=N
 DOWNLOAD=Y
 HIJACKING=Y
 SCHEDULED=Y
@@ -104,12 +109,13 @@ else
   QUERYLOG_INTERVAL=24h
 fi
 
-while getopts :deih:n:p:rsuv:x: option; do
+while getopts :deih:kn:p:rsuv:x: option; do
  case "${option}" in
   d)  AGH_DHCP=false;;
   e)  EXTERNAL=Y;QUERYLOG_INTERVAL=2160h;;
   i)  EXTERNAL=N;QUERYLOG_INTERVAL=24h;;
   h)  PWD_HASH="$OPTARG";;
+  k)  KEEP_DNSMASQ=Y;AGH_DHCP=false;AGH_PORT=53535;;
   n)  USERNAME="$OPTARG";;
   p)  PASSWORD="$OPTARG";;
   r)  REMOVE=Y;DEL_AGH=Y;;
@@ -178,7 +184,12 @@ configure_dnmasq() {
       DNS_PORT="0"
       DHCP_SERVER="disabled"
     else
-      DNS_PORT="53835"
+      if [ $KEEP_DNSMASQ = N ]; then
+        DNS_PORT="53835"
+      else
+        LOCAL_USE="1"
+        DNS_PORT="53"
+      fi
       DHCP_SERVER="server"
     fi
   fi
@@ -205,6 +216,14 @@ configure_dnmasq() {
     if [ -n "$(uci -q get dhcp.@dnsmasq[$i])" ]; then
       uci -q set dhcp.@dnsmasq[$i].localuse="$LOCAL_USE"
       uci -q set dhcp.@dnsmasq[$i].port="$DNS_PORT"
+      if [ "$DNSMASQ" = "enable" ]; then
+        uci -q delete dhcp.@dnsmasq[$i].cachesize
+        uci -q del_list dhcp.@dnsmasq[$i].server="127.0.0.1#$AGH_PORT"
+      elif [ $KEEP_DNSMASQ = Y ]; then
+        uci -q set dhcp.@dnsmasq[$i].cachesize='0'
+        uci -q delete dhcp.@dnsmasq[$i].server
+        uci -q add_list dhcp.@dnsmasq[$i].server="127.0.0.1#$AGH_PORT"
+      fi
     fi
   done
   uci commit dhcp
@@ -578,7 +597,7 @@ web_session_ttl: 720
 dns:
   bind_hosts:
     - 0.0.0.0
-  port: 53
+  port: $AGH_PORT
   statistics_interval: 1
   querylog_enabled: false
   querylog_file_enabled: true

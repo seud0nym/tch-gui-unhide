@@ -43,7 +43,9 @@ However, if you wish or need to use Guest Wi-Fi, or if you just want to continue
 
 ## Telephony (mmpbx) will not use AdGuard Home for DNS Resolution
 
-The mmpbxd daemon refuses to resolve IP addresses through AdGuard Home. It will only work with with dnsmasq. If you have both a VoIP provider configured in Telephony and wish to use AdGuard Home, then the only work-around is to enter an IP address instead of a domain address in the Primary Registrar field.
+The mmpbxd daemon refuses to resolve IP addresses directly through AdGuard Home. It will only work with with dnsmasq. If you have both a VoIP provider configured in Telephony and wish to use AdGuard Home, then there are two possible work-arounds. Either:
+- enter an IP address instead of a domain address in the SIP Network Primary Registrar field on the Telephony Global tab; OR
+- specify the `-k` option when running the setup script. This will keep dnsmasq as the DNS Server, but all DNS queries will be resolved by AdGuard Home.
 
 ## Free RAM Requirements
 The forum post starts by saying that devices require 100MB RAM free. A subsequent post indicates around 30MB.
@@ -136,6 +138,9 @@ The following optional configuration parameters may be specified **after** the d
 - -d
   - Specifies that you do NOT want to enable the AdGuard Home DHCP server.
   - This will continue to use dnsmasq for DHCP, at the expense of some additional RAM.
+- -k
+  - Specifies that you do want to keep dnsmasq as the primary DNS Server, but AdGuard Home will be used to resolve the DNS queries.
+  - This will come at the expense of some additional RAM, but allows you to run mmpbx VoIP Telephony and to configure DNS Rebind Protection.
 
 # Post-Installation
 When the script completes, you will be able to access AdGuard Home in your browser at http://[router ip address]:8008
