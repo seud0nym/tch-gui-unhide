@@ -240,8 +240,10 @@ configure_dnmasq() {
       /etc/init.d/dnsmasq disable
       /etc/init.d/dnsmasq stop
       echo -e "[$SCRIPT] dnsmasq disabled and stopped${NC}"
-    else
+    elif [ $KEEP_DNSMASQ = N ]; then
       echo -e "[$SCRIPT] dnsmasq DNS server disabled${NC}"
+    else
+      echo -e "[$SCRIPT] dnsmasq restarted${NC}"
     fi
     echo -e "${GREEN}[$SCRIPT] Freeing port 443...${NC}"
     sed -e 's/\( [^#]\)\(listen *443 ssl;\)/  #\2/' -i /etc/nginx/nginx.conf
