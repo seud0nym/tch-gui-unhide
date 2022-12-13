@@ -16,7 +16,6 @@
 .header .btn{margin-left:5px;}
 .iptables-head{font-size:smaller;font-variant:small-caps;}
 .iptables-head th:nth-child(n+1):nth-child(-n+2){text-align:right;}
-.loading{bottom:-400px !important;}
 .simple-desc{display:block;padding-top:2px;}
 .simple-desc.helper-card{display:inline-block;font-size:smaller;letter-spacing:-1px;vertical-align:unset;}
 .smallcard .content{font-size:14px;height:125px;line-height:20px !important;}
