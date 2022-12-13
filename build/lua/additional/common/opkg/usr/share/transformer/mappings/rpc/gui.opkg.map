@@ -2,7 +2,7 @@ local lfs = require("lfs")
 local uci_helper = mapper("ucihelper")
 local logger = require("tch.logger")
 local log = logger.new("rpc.gui.opkg",7)
-local gsub,find,format,match,sub,tolower = string.gsub,string.find,string.format,string.match,string.sub,string.lower
+local gsub,find,match,sub,tolower = string.gsub,string.find,string.match,string.sub,string.lower
 local popen = io.popen
 
 local system_pkg = {}
@@ -283,10 +283,6 @@ local GUI_OPKG_ = {
         access = "readWrite",
         type = "boolean"
       },
-      scheduled_update = {
-        access = "readWrite",
-        type = "boolean"
-      },
       update = {
         access = "readWrite",
         type = "boolean"
@@ -320,19 +316,6 @@ local function feeds_configured()
   return "0"
 end
 
-local function update_scheduled()
-  local status = "0"
-  local cmd = popen("sed -e '/^#/d' /etc/crontabs/root | grep 'opkg update' | wc -l","r")
-  if cmd then
-    status = cmd:read("*n")
-    cmd:close()
-  end
-  if status > 0 then
-    return "1"
-  end
-  return "0"
-end
-
 GUI_OPKG_.get = {
   feeds_configured = function ()
     return feeds_configured()
@@ -350,9 +333,6 @@ GUI_OPKG_.get = {
       return "1"
     end
     return "0"
-  end,
-  scheduled_update = function()
-    return update_scheduled()
   end,
   update = function()
     return "0"
@@ -447,25 +427,6 @@ GUI_OPKG_.set = {
         sed -e '/BoLaMN/d' -e '/macoers/d' -i /etc/opkg/customfeeds.conf;\
         sed -e '/opkg update/d' -i /etc/crontabs/root;\
         /etc/init.d/cron restart;")
-    elseif value ~= "0" and value ~= "1" then
-      return nil,"Value must be 0 or 1"
-    end
-    return true
-  end,
-  scheduled_update = function(_,_,value,_)
-    if value == "1" and update_scheduled() == "0" then
-      math.randomseed(os.time())
-      local m,h,d = math.random(0,59),math.random(5),math.random(7)
-      local crontab = io.open("/etc/crontabs/root","a")
-      if crontab then
-        crontab:write(format("%s %s * * %s opkg update 2>&1 | logger -t rpc.gui.opkg -p user.info\n",m,h,d))
-        crontab:close()
-        os.execute("/etc/init.d/cron restart")
-      else
-        return nil,"Failed to open /etc/crontabs/root"
-      end
-    elseif value == "0" and update_scheduled() == "1" then
-      os.execute("sed -e '/opkg update/d' -i /etc/crontabs/root && /etc/init.d/cron restart")
     elseif value ~= "0" and value ~= "1" then
       return nil,"Value must be 0 or 1"
     end

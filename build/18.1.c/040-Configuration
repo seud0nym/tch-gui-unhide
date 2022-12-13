@@ -4,9 +4,9 @@ if [ $(grep -c 'www.macoers.com/repository' /etc/opkg/customfeeds.conf) -gt 0 ];
   sed -e 's|www.macoers.com/repository|repository.macoers.com|' -i /etc/opkg/customfeeds.conf
 fi
 
-if grep -q "sh -c 'opkg update 2>&1 | logger -t rpc.gui.opkg -p user.info'" /etc/crontabs/root; then
-  echo -e "[$SCRIPT]: Fixing opkg update cron job"
-  sed -e "s/\(sh -c '\)\(opkg update 2>&1 | logger -t rpc.gui.opkg -p user.info\)\('\)/\2/" -i /etc/crontabs/root
+if grep -q "opkg update" /etc/crontabs/root; then
+  echo -e "[$SCRIPT]: Removing opkg update cron job by request of repository owner because of abuse by some users"
+  sed -e '/opkg update/d' -i /etc/crontabs/root
   SRV_cron=$(( $SRV_cron + 1 ))
 fi
 

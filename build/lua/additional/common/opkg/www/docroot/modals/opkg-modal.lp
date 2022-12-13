@@ -19,12 +19,10 @@ lp.setpath("/www/snippets/")
 
 local mapParams = {
   feeds = "rpc.gui.opkg.feeds_configured",
-  scheduled = "rpc.gui.opkg.scheduled_update",
   run_update = "rpc.gui.opkg.update",
 }
 local mapValid = {
   feeds = vB,
-  scheduled = vB,
   run_update = gVCS,
 }
 local content = post_helper.handleQuery(mapParams,mapValid)
@@ -44,25 +42,13 @@ else
   last_update = T(os.date("%d/%m/%Y %H:%M:%S",tonumber(opkg_data["last_update"])))
 end
 
-ngx.print('\
-\
-');  ngx.print( ui_helper.createHeader(T"Packages",false,true,nil)); ngx.print('\
+ngx.print(ui_helper.createHeader(T"Packages",false,true,nil),'\
 <div class="modal-body update">\
-');  lp.include("tabs-opkg.lp"); ngx.print('\
+'); lp.include("tabs-opkg.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/opkg-modal.lp">\
-    ');  ngx.print(ui_helper.createMessages(message_helper.popMessages())); ngx.print('\
-    <fieldset><legend>'); ngx.print( T"Configuration" ); ngx.print('</legend> \
+    ',ui_helper.createMessages(message_helper.popMessages()),'\
+    <fieldset><legend>',T"Configuration",'</legend> \
       ');
-      local switch_class_enable = {
-        input = {
-          class = "monitor-changes",
-        }
-      }
-      local switch_class_monitor = {
-        group = {
-          class = "monitor-feeds monitor-1 monitor-hidden-feeds",
-        },
-      }
       local opkg_last_update_attr = {
         span = {
           id = "opkg_last_update",
@@ -79,23 +65,20 @@ ngx.print('\
       }
 
       local html = {}
-      html[#html+1] = ui_helper.createSwitch(T"Custom Feeds","feeds",content["feeds"],switch_class_enable)
+      html[#html+1] = ui_helper.createSwitch(T"Custom Feeds","feeds",content["feeds"])
       html[#html+1] = ui_helper.createLabel(T"Last Update",last_update,opkg_last_update_attr)
       if content["feeds"] == "1" then
-        html[#html+1] = ui_helper.createSwitch(T"Scheduled Update","scheduled",content["scheduled"],switch_class_monitor)
         html[#html+1] = ui_helper.createCheckboxSwitch(T"Update Now","run_update",content["run_update"])
       else
-        html[#html+1] = ui_helper.createSimpleInputHidden("scheduled",content["scheduled"])
         html[#html+1] = ui_helper.createSimpleInputHidden("run_update","_DUMMY_")
       end
       html[#html+1] = ui_helper.createLabel(T"Log Messages",untaint(opkg_data["log"]),opkg_log_attr)
-      ngx.print(html)
-      ngx.print('\
+      ngx.print(html,'\
     </fieldset>\
   </form>\
   <div class="loading-wrapper hide"><img src="/img/spinner.gif" /></div>\
 </div>\
-');  ngx.print(ui_helper.createFooter())   ngx.print('\
+',ui_helper.createFooter(),'\
 <script>\
   var opkgLogFuncID;\
   function updateAcmeLog(){\
