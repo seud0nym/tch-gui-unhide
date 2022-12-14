@@ -85,6 +85,13 @@ local function validateHostID(value,_,_)
   return true
 end
 
+local function validateHint(value,_,_)
+  if value ~= "" and (#value > 4 or not value:match("^[%x]+$")) then
+    return nil, T"A hint can only contain 1 to 4 hexadecimal digits."
+  end
+  return true
+end
+
 local sleases_mac_attr = { class="span2",maxlength="17",id="lease_mac",style="width:115px" }
 
 -- Static Leases
@@ -337,6 +344,7 @@ local mapParams = {
   localdevmask = "uci.network.interface.@"..cur_intf..".netmask",
   slaacState = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".ra",
   ip6assign = "uci.network.interface.@" .. cur_intf .. ".ip6assign",
+  ip6hint = "uci.network.interface.@" .. cur_intf .. ".ip6hint",
   ula_prefix = "uci.network.globals.ula_prefix",
   proto = "uci.network.interface.@lan.proto",
 }
@@ -530,6 +538,7 @@ local mapValid = {
   dns_v6_pri = validateDNSv6,
   dns_v6_sec = validateDNSv6,
   ip6assign = gOV(gVNIR(48,64)),
+  ip6hint = gOV(validateHint),
   leaseTime = ethernet_helper.validateLeaseTime,
   localdomain = vNES,
   localgw = gOV(vSIIP4),
@@ -938,7 +947,14 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
                 group = { class = "monitor-localIPv6 monitor-1 monitor-hidden-localIPv6", },
                 select = { style = "width:100px", }
               }
-              ngx.print(ui_helper.createInputSelect(T"IPv6 Prefix Size<span class='icon-question-sign' title='Delegate a prefix of the given length to this interface'></span>","ip6assign",req_prefix_map,content["ip6assign"],number_attr,helpmsg["ip6assign"]))
+              local hex_attr = {
+                group = { class = "monitor-localIPv6 monitor-1 monitor-hidden-localIPv6", },
+                input = { style = "width:80px", }
+              }
+              ngx.print(
+                ui_helper.createInputSelect(T"IPv6 Prefix Size<span class='icon-question-sign' title='Delegate a prefix of the given length to this interface'></span>","ip6assign",req_prefix_map,content["ip6assign"],number_attr,helpmsg["ip6assign"]),
+                ui_helper.createInputText(T"IPv6 Subprefix Hint<span class='icon-question-sign' title='Subprefix ID to be used if available'></span>","ip6hint",content["ip6hint"],hex_attr,helpmsg["ip6hint"])
+              )
 
               if cur_dhcp_intf == "lan" then
                 local info_attr = {
