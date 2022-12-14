@@ -7,12 +7,10 @@ local untaint = string.untaint
 local params = ngx.req.get_uri_args()
 local mac = untaint(match(params.mac,"[%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]"))
 if mac then
-  proxy.set("rpc.gui.mac.find",mac)
-  local vendor = proxy.get("rpc.gui.mac.vendor")
-
+  local _,vendor = proxy.set("rpc.gui.mac.find",mac)
   if vendor then
     local data = {
-      name = vendor[1].value,
+      name = match(vendor[1].errmsg,"set%(%) failed: (.*)"),
     }
 
     local buffer = {}

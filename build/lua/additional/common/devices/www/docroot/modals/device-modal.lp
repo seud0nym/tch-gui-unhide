@@ -234,8 +234,8 @@ else
   local file = proxy.get("rpc.gui.mac.cached")
   if file then
     local pattern = "([%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]:[%x][%x]) (.*)"
-    for line in gmatch(untaint(file[1].value),"(.*)\n") do
-      local mac,name = match(line,pattern)
+    for line in gmatch(file[1].value,"([^\n]*)\n") do
+      local mac,name = match(untaint(line),pattern)
       if mac and name and name ~= "" then
         mac_vendor[mac] = name
       end
@@ -276,7 +276,7 @@ local devices_filter = function(data)
     data["IPv6"] = concat(addresses,"<br>")
   end
   local mac = untaint(data["MACAddress"])
-  data["MACAddress"] = format("%s<i class='macvendor'>%s</i>",mac,mac_vendor[mac] or "")
+  data["MACAddress"] = format("<span class='maccell' id='%s'><span class='macaddress'>%s</span><i class='macvendor'>%s</i><span>",mac:gsub(":",""),mac,mac_vendor[mac] or "")
   return true
 end
 
@@ -331,17 +331,17 @@ ngx.print(ui_helper.createHeader(T"Devices",false,true,interval),'\
 </div>',
 ui_helper.createFooter(),'\
 <script>\
-$("#devices>tbody>tr>td:nth-child(5)").each(function(index,cell){\
-  var i=($(cell).children(".macvendor"));\
-  if ($(i).text() =="") {\
-    var mac=$(cell).text();\
+$("#devices .maccell").each(function(index,cell){\
+  var vendor=$("#"+cell.id+" .macvendor");\
+  if (vendor.text() === ""){\
+    var mac=$("#"+cell.id+" .macaddress").text();\
     $.post("/ajax/vendor.lua?mac="+mac,[tch.elementCSRFtoken()],function(data){\
-      $(i).text(data["name"]);\
+      vendor.text(data["name"]);\
     },"json")\
     .fail(function(response){\
-      $(i).text("Vendor lookup failed :-(");\
+      vendor.text("Vendor lookup failed :-(");\
     });\
-  }\
+  };\
 });\
 var hdrs = document.getElementsByTagName("th");\
 for(var i=0;i<hdrs.length;i++){\

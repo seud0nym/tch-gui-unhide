@@ -17,10 +17,6 @@ local GUI_MAC_ = {
         access = "readWrite",
         type = "string"
       },
-      vendor = {
-        access = "readOnly",
-        type = "string"
-      },
       clear_cache = {
         access = "readWrite",
         type = "boolean"
@@ -33,48 +29,9 @@ local GUI_MAC_ = {
   }
 }
 
-local mac
-
 GUI_MAC_.get = {
   find = function()
-    return mac or ""
-  end,
-  vendor = function()
-    local vendor,message
-    if mac then
-      local result
-      local grep = io.popen(format("grep %s /tmp/mac.cache 2>/dev/null",mac))
-      if grep then
-        result = grep:read("*a")
-        grep:close()
-      end
-      if result and result ~= "" then
-        vendor = match(result,name_pattern)
-      else
-        local cmd = format("curl -fksm 2 https://api.maclookup.app/v2/macs/%s/company/name",mac)
-        local curl = io.popen(cmd)
-        if curl then
-          result = curl:read("*a")
-          curl:close()
-        end
-        if result and result ~= "" then
-          vendor = result
-          local cache,errmsg = io.open("/tmp/mac.cache","a")
-          if not cache or errmsg then
-            log:error("Failed to open /tmp/mac.cache: %s",errmsg)
-          else
-            cache:write(mac," ",vendor,"\n")
-            cache:close()
-          end
-        else
-          message = "No vendor match found for MAC "..mac
-        end
-      end
-      mac = nil
-    else
-      message = "No MAC address set?"
-    end
-    return vendor,message
+    return ""
   end,
   clear_cache = function()
     return "0"
@@ -98,9 +55,39 @@ GUI_MAC_.get = {
 
 GUI_MAC_.set = {
   find = function(_,_,value,_)
-    mac = match(value,mac_pattern)
+    local mac = match(value,mac_pattern)
     if mac then
-      return true
+      local vendor
+      local result
+      local grep = io.popen(format("grep '%s' /tmp/mac.cache 2>/dev/null",mac))
+      if grep then
+        result = grep:read("*l")
+        grep:close()
+      end
+      if result and result ~= "" then
+        vendor = match(result,name_pattern)
+      else
+        local cmd = format("curl -fksm 2 https://api.maclookup.app/v2/macs/%s/company/name",mac)
+        local curl = io.popen(cmd)
+        if curl then
+          result = curl:read("*a")
+          curl:close()
+        end
+        if result and result ~= "" then
+          vendor = result
+          local cache,errmsg = io.open("/tmp/mac.cache","a")
+          if not cache or errmsg then
+            log:error("Failed to open /tmp/mac.cache: %s",errmsg)
+          else
+            cache:write(mac," ",vendor,"\n")
+            cache:close()
+          end
+        end
+      end
+      if vendor then
+        return nil,vendor
+      end
+      return nil,"Vendor lookup failed :-("
     end
     return nil,"Invalid MAC Address: "..value
   end,
