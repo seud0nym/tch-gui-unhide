@@ -1023,7 +1023,14 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
                   ngx.print(ui_helper.createSwitch(T"Log DHCPv6 Requests","dhcplogv6",content["dhcplogv6"],switchDHCPv6Log))
                 end
                 if dns_int_ipv6_ok and not helpmsg["dns_v6_pri"] and not helpmsg["dns_v6_sec"]  then
-                  ngx.print(ui_helper.createLabel(T"IPv6 DNS Server<span class='icon-question-sign' title='IPv6 DNS Hijacking enabled'></span>",gsub(untaint(content["dns_v6_pri"]),"-",":"),hijacked_label))
+                  local dns_v6_pri = gsub(untaint(content["dns_v6_pri"]),"-",":")
+                  if dns_v6_pri == "::1" then
+                    local dhcp_dns_v6 = proxy.get("uci.dhcp.dhcp.@lan.dns.@1.value")
+                    if dhcp_dns_v6 then
+                      dns_v6_pri = dhcp_dns_v6[1].value
+                    end
+                  end
+                  ngx.print(ui_helper.createLabel(T"IPv6 DNS Server<span class='icon-question-sign' title='IPv6 DNS Hijacking enabled'></span>",dns_v6_pri,hijacked_label))
                   ngx.print(ui_helper.createSimpleInputHidden("dns_v6_pri",content["dns_v6_pri"]))
                   ngx.print(ui_helper.createSimpleInputHidden("dns_v6_sec",""))
                 else
