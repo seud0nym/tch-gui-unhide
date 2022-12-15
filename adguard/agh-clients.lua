@@ -72,8 +72,12 @@ function process(target)
           }
         end
         for _,id in pairs(client.ids) do
-          clients[hostname].ids[#clients[hostname].ids+1] = id
-          ids[id] = hostname
+          raw = execute(string.format('curl -su "%s" "http://%s/control/querylog?limit=1&search=%s"', credentials, address, id))
+          local querylog = json.decode(raw or {})
+          if #querylog.data > 0 then
+            clients[hostname].ids[#clients[hostname].ids+1] = id
+            ids[id] = hostname
+          end
         end
       end
     end
@@ -104,7 +108,6 @@ function process(target)
         hostname = string.sub(hostname,1,-3)
       end
       delete[hostname] = false
-      ids[mac] = hostname
       for _,ipv4 in pairs(host.ipv4) do
         ids[ipv4.address] = hostname
       end
