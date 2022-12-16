@@ -771,6 +771,24 @@ if [ "$(uci -q get dropbear.afg)" = "dropbear" ]; then
   exec_uci commit dropbear
   SRV_dropbear=$(( $SRV_dropbear + 1 ))
 fi
+if [ ! -x /etc/rc.d/S99dropbear-ipv6 ]; then
+  echo "[$SCRIPT]: Adding init script to ensure dropbear listening on IPv6 ULA (if enabled)"
+  cat <<"EoS99" > /etc/rc.d/S99ula-dropbear
+#!/bin/sh
+[ "$(uci -q get network.lan.ipv6)" = "1" ] || exit 0
+ULA_PREFIX="$(uci -q get network.globals.ula_prefix)"
+[ -n "$ULA_PREFIX" ] || exit 0
+ULA=${ULA_PREFIX%%/*}
+if ip -f inet6 -o a show dev br-lan scope global permanent | grep -q "$ULA"; then
+  if ! netstat -tlpn 2>/dev/null | grep dropbear | grep -q "$ULA"; then
+    echo "dropbear not listening on ULA $ULA - restarting..."
+    /etc/init.d/dropbear restart
+  fi
+fi
+exit 0
+EoS99
+  chmod +x /etc/rc.d/S99ula-dropbear
+fi
 
 # RTFD protection
 if [ ! -e /rom/etc/rtfd_persistent_filelist.conf -a ! -e /etc/rtfd_persistent_filelist.conf ]; then
