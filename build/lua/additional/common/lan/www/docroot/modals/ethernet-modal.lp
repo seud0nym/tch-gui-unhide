@@ -568,18 +568,6 @@ if ngx.var.request_method == "POST" then
     bridged.configure(ngx.req.get_post_args(0)["action"])
   end
 
-  if content["localdomain"] then
-    local local_path = dnsmasq_path.."local"
-    local localValue = untaint(proxy.get(local_path)[1].value)
-    local localName = format("/%s/",content["localdomain"])
-    local domainName = session:retrieve("old_domain")
-    session:store("old_domain",(content["localdomain"]))
-    if (content["localdomain"] ~= domainName or localValue ~= localName) and not next(helpmsg) then
-      proxySet(local_path,localName)
-      proxy.apply()
-    end
-  end
-
   if isBridgedMode then
     local proto = session:retrieve("old_proto")
     session:store("old_proto",(content["proto"]))
