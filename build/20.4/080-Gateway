@@ -3,3 +3,8 @@ sed \
   -e 's/max-height:105px;position:absolute;top:-5px;/max-height:67.5px/' \
   -e "/gettext.textdomain('webui-telstra')/,/');/d" \
   -i /www/docroot/gateway.lp
+
+echo -e "[$SCRIPT]: Remove gateway.lp from auto-refresh on background update failure"
+sed \
+  -e 's|href="/gateway.lp?r=|href="/?r=|' \
+  -i /www/docroot/js/001_gateway.js
