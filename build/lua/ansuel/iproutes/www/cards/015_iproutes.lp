@@ -13,11 +13,20 @@ if session:hasAccess(modalPath) then
   local bridge_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/bridge-grouping-modal.lp" data-id="bridge-grouping-modal"'
   local routes_modal_link = format('class="modal-link" data-toggle="modal" data-remote="%s" data-id="routes-modal"',modalPath)
 
-  local dyn_count = proxy.getPN("sys.class.iproutes.",true)
-  dyn_count = dyn_count and #dyn_count or 0
+  local function getRouteCount(path)
+    local pn = proxy.getPN(path,true)
+    return pn and #pn or 0
+  end
 
-  local ipv4_count = proxy.getPN("uci.network.route.",true)
-  ipv4_count = ipv4_count and #ipv4_count or 0
+  local ipv4_dynamic = getRouteCount("sys.class.iproutes.")
+  local ipv4_static = getRouteCount("uci.network.route.")
+
+  local lan_ipv6 = proxy.get("uci.network.interface.@lan.ipv6")[1].value == "1"
+  local ipv6_dynamic,ipv6_static
+  if lan_ipv6 then
+    ipv6_dynamic = getRouteCount("sys.class.ip6routes.")
+    ipv6_static = getRouteCount("uci.network.route6.")
+  end
 
   local bridge_count = 0
   for _,v in pairs(proxy.getPN("uci.network.interface.",true)) do
@@ -30,32 +39,33 @@ if session:hasAccess(modalPath) then
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ');  ngx.print( ui_helper.createCardHeader(T"IP Routing",modalPath) ); ngx.print('\
+    ',ui_helper.createCardHeader(T"IP Routing",modalPath),'\
     <div class="content card_bg" data-bg-text="&#xf018;">\
       <span class="simple-desc">\
-        <i href="#">&nbsp</i>\
-        ');
-        ngx.print(format(N('<strong %s>%d</strong><span %s> IPv4 Route</span>','<strong %s>%d</strong><span %s> IPv4 Routes</span>',dyn_count),routes_modal_link,dyn_count,routes_modal_link))
+      <i href="#">&nbsp</i>',format(N('<strong %s>%d</strong><span %s> IPv4 Dynamic Route</span>','<strong %s>%d</strong><span %s> IPv4 Dynamic Routes</span>',ipv4_dynamic),routes_modal_link,ipv4_dynamic,routes_modal_link),'\
+      </span>')
+      if lan_ipv6 then
         ngx.print('\
-      </span>\
       <span class="simple-desc">\
-        <i href="#">&nbsp</i>\
-        ');
-        ngx.print(format(N('<strong %s>%d</strong><span %s> IPv4 Static Route</span>','<strong %s>%d</strong><span %s> IPv4 Static Routes</span>',ipv4_count),routes_modal_link,ipv4_count,routes_modal_link))
-        ngx.print('\
-      </span>\
-      ');
+      <i href="#">&nbsp</i>',format(N('<strong %s>%d</strong><span %s> IPv6 Dynamic Route</span>','<strong %s>%d</strong><span %s> IPv6 Dynamic Routes</span>',ipv6_dynamic),routes_modal_link,ipv6_dynamic,routes_modal_link),'\
+      </span>')
+      end
       ngx.print('\
       <span class="simple-desc">\
-        <i href="#">&nbsp</i>\
-        ');
-        ngx.print(format(N('<strong %s>%d</strong><span %s> Layer 2 Bridge</span>','<strong %s>%d</strong><span %s> Layer 2 Bridges</span>',bridge_count),bridge_modal_link,bridge_count,bridge_modal_link))
+      <i href="#">&nbsp</i>',format(N('<strong %s>%d</strong><span %s> IPv4 Static Route</span>','<strong %s>%d</strong><span %s> IPv4 Static Routes</span>',ipv4_static),routes_modal_link,ipv4_static,routes_modal_link),'\
+      </span>')
+      if lan_ipv6 then
         ngx.print('\
+      <span class="simple-desc">\
+      <i href="#">&nbsp</i>',format(N('<strong %s>%d</strong><span %s> IPv6 Static Route</span>','<strong %s>%d</strong><span %s> IPv6 Static Routes</span>',ipv6_static),routes_modal_link,ipv6_static,routes_modal_link),'\
+      </span>')
+      end
+      ngx.print('\
+      <span class="simple-desc">\
+        <i href="#">&nbsp</i>',format(N('<strong %s>%d</strong><span %s> Layer 2 Bridge</span>','<strong %s>%d</strong><span %s> Layer 2 Bridges</span>',bridge_count),bridge_modal_link,bridge_count,bridge_modal_link),'\
       </span>\
     </div>\
   </div>\
 </div>\
 ');
 end
-ngx.print('\
-');
