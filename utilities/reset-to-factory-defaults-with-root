@@ -222,14 +222,14 @@ while getopts :bcdD:ef:h:iI:kl:np:svyU-: option; do
       esac;;
   b)  __BKUP="Y";;
   c)  __CWMP="Y";;
-  d)  __CWMP_DNS="$__CWMP_DNS fwstore.bdms.telstra.net";;
-  D)  __CWMP_DNS="$__CWMP_DNS $OPTARG";;
+  d)  echo "$__CWMP_DNS" | grep -q "\bfwstore.bdms.telstra.net\b" || __CWMP_DNS="$__CWMP_DNS fwstore.bdms.telstra.net";;
+  D)  echo "$__CWMP_DNS" | grep -q "\b${OPTARG}\b" || __CWMP_DNS="$__CWMP_DNS $OPTARG";;
   e)  __NOEXEC="Y";;
   f)  echo "$OPTARG" | grep -qE '\.(pkgtb|rbi|bin)$' && FIRMWARE="${OPTARG}" || { echo -e "${RED}ERROR:    Firmware file names must end with .rbi or .bin!${NC}"; exit 2; };;
   h)  __HOSTNAME="$OPTARG";;
   i)  __IPADDR="$LAN_IP_NOW";;
   I)  if echo "${OPTARG}" | grep -qE "$VALID_IPv4_PATTERN"; then
-        __IPADDR="${OPTARG}"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y"
+        __IPADDR="${OPTARG}"
       else
         echo -e "${RED}ERROR:    Invalid IP address: $OPTARG${NC}"
         exit
@@ -471,17 +471,20 @@ if [ -n "$FIRMWARE" ]; then
   fi
 fi
 
+NOW_C_CLASS="$(echo $LAN_IP_NOW | cut -d. -f1-3)"
+CFG_C_CLASS="$(echo $__IPADDR | cut -d. -f1-3)"
+NOW_C_CLASS_ESCAPED="$(echo $NOW_C_CLASS | sed -e 's/\./\\./g')"
+
 if [ -n "$__IPADDR" ]; then
-  IPPREFIX="$(echo $__IPADDR | cut -d. -f1-3)"
   for GUESTIP in $(uci show network | grep "network\.Guest.*ipaddr=" | cut -d"'" -f2 | cut -d. -f1-3 | sort -u);do
-    if [ "$IPPREFIX" = "$GUESTIP" ]; then
+    if [ "$CFG_C_CLASS" = "$GUESTIP" ]; then
       echo -e "${RED}ABORTING: $__IPADDR conflicts with the Guest IP address range!${NC}"
       exit
     fi
   done
   echo -e "NOTE:     IP address will be set to '${GREEN}$__IPADDR${NC}'"
   LAN_CFG="uci set network.lan.ipaddr='$__IPADDR'"
-  if [ $RESTORE_CONFIG = N -a "$__IPADDR" = "$LAN_IP_NOW" ]; then
+  if [ $RESTORE_CONFIG = N ]; then
     if [ $__NO_ULA = N ]; then
       IP6ASSIGN="$(uci -q get network.lan.ip6assign)"
       if [ -n "$IP6ASSIGN" ]; then
@@ -497,7 +500,12 @@ if [ -n "$__IPADDR" ]; then
     if [ $__NO_LEASES = N ]; then
       LEASES="$(uci show dhcp | awk -F= -e '$1~/^dhcp\.[^.]*$/ && $2!~/^host$/{KEY="";} /=host$/{print "uci set " $0;KEY=$1;next;} {if(KEY!="" && index($0,KEY)!=0) print "uci set " $0;}0')"
       if [ -n "$LEASES" ]; then
-        echo -e "NOTE:     Static leases will be '${GREEN}restored${NC}'"
+        if [ "$NOW_C_CLASS" = "$CFG_C_CLASS" ]; then
+          echo -e "NOTE:     Static leases will be '${GREEN}restored${NC}'"
+        else
+          echo -e "NOTE:     Static leases will be '${GREEN}restored${NC}' with new class C range '${GREEN}${CFG_C_CLASS}${NC}'"
+          LEASES="$(echo "$LEASES" | sed -e "s/$NOW_C_CLASS_ESCAPED/$CFG_C_CLASS/")"
+        fi
         LAN_CFG="$LAN_CFG"$'\n'"$LEASES"
       fi
       if [ -n "$(uci -q show user_friendly_name)" ]; then
@@ -509,7 +517,12 @@ if [ -n "$__IPADDR" ]; then
     if [ $__NO_FWD = N ]; then
       FORWARDS="$(uci show firewall | awk -F= -e '$1~/^firewall\.[^.]*$/ && $2!~/^(userredirect|pinholerule)$/{KEY="";} /=(userredirect|pinholerule)$/{print "uci set " $0;KEY=$1;next;} /proto=/{if(KEY!="" && index($1,KEY)!=0) print "uci add_list " $0;next;} $0!~/_key/{if(KEY!="" && index($0,KEY)!=0) print "uci set " $0;}0')"
       if [ -n "$FORWARDS" ]; then
-        echo -e "NOTE:     Port forwarding rules will be '${GREEN}restored${NC}'"
+        if [ "$NOW_C_CLASS" = "$CFG_C_CLASS" ]; then
+          echo -e "NOTE:     Port forwarding rules will be '${GREEN}restored${NC}'"
+        else
+          echo -e "NOTE:     Port forwarding rules will be '${GREEN}restored${NC}' with new class C range '${GREEN}${CFG_C_CLASS}${NC}'"
+          FORWARDS="$(echo "$FORWARDS" | sed -e "s/$NOW_C_CLASS_ESCAPED/$CFG_C_CLASS/")"
+        fi
         LAN_CFG="$LAN_CFG"$'\n'"$FORWARDS"
       fi
     fi
