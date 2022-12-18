@@ -294,7 +294,7 @@ elif [ "$BATCH" = "M" ]; then
   exit
 fi
 
-if grep -q '@media screen and (min-width:1200px) and (max-width:1499px){' /www/docroot/css/responsive.css; then
+if grep -q 'min-width:1500px' /www/docroot/css/responsive.css; then
   ACROSS=5
 else
   ACROSS=4
