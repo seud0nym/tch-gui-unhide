@@ -348,6 +348,12 @@ show_default() {
   fi
 }
 
+save_defaults() {
+  set | grep '^__' > .defaults.de-telstra
+  echo -e "[$SCRIPT]: \e[1;32mDefaults saved\e[0m"
+  exit
+}
+
 if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y -o $__YES = n ]; then
   [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ] && show_default "ka" "Keep Telstra AIR enabled" $__AIR
   show_default "kc" "Keep CWMP installed" $__CWMP
@@ -385,14 +391,11 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y -o $__YES = n ]; then
   [ $ARMv7 -eq 1 ] && show_default "o"  "Configure opkg" $__OPKG
   [ $ARMv7 -eq 1 ] && show_default "O"  " - opkg repository" $__REPO
   [ $SHOW_DEFAULTS = y ] && exit
-  if [ $SAVE_DEFAULTS = y ]; then
-    set | grep '^__' > .defaults.de-telstra
-    echo -e "[$SCRIPT]: \e[1;32mDefaults saved\e[0m"
-    exit
-  fi
+  [ $SAVE_DEFAULTS = y ] && save_defaults
   [ $RESTART_SERVICES = n ] && echo -e "[$SCRIPT]: \e[0;33mServices will NOT be restarted after configuration applied!\e[0m"
   echo -en "[$SCRIPT]: \e[1;32mApply changes? Enter y to confirm otherwise just [Enter] to exit: \e[0m"
   read
+  [ "$REPLY" = "s" ] && save_defaults
   [ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
 fi
 
