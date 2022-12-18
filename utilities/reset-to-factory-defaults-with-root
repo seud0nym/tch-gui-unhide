@@ -500,6 +500,11 @@ if [ -n "$__IPADDR" ]; then
         echo -e "NOTE:     Static leases will be '${GREEN}restored${NC}'"
         LAN_CFG="$LAN_CFG"$'\n'"$LEASES"
       fi
+      if [ -n "$(uci -q show user_friendly_name)" ]; then
+        UFN="echo '$(cat /etc/config/user_friendly_name | gzip | base64 | tr -d "$IFS")' | base64 -d | gunzip > /etc/config/user_friendly_name"
+        echo -e "NOTE:     User Friendly Names will be '${GREEN}restored${NC}'"
+        LAN_CFG="$LAN_CFG"$'\n'"$UFN"
+      fi
     fi
     if [ $__NO_FWD = N ]; then
       FORWARDS="$(uci show firewall | awk -F= -e '$1~/^firewall\.[^.]*$/ && $2!~/^(userredirect|pinholerule)$/{KEY="";} /=(userredirect|pinholerule)$/{print "uci set " $0;KEY=$1;next;} /proto=/{if(KEY!="" && index($1,KEY)!=0) print "uci add_list " $0;next;} $0!~/_key/{if(KEY!="" && index($0,KEY)!=0) print "uci set " $0;}0')"
