@@ -492,7 +492,7 @@ if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" -o -e /etc/init.d/cwmpd -o
     fi
     PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE conf-cwmpd cwmpd"
   else
-    echo [$SCRIPT]: - OVERRIDE! CWMP NOT Disabled
+    echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! CWMP NOT Disabled${NC}"
   fi
 else
   echo [$SCRIPT]: - CWMP already Disabled
@@ -535,7 +535,7 @@ else
     fi
     PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE libbcmairiq conf-airiq autoreset-tch tls-thor-map wifi-doctor-agent conf-wifi-doctor-agent tr143"
   else
-    echo [$SCRIPT]: - OVERRIDE! Telstra monitoring NOT Disabled
+    echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! Telstra monitoring NOT Disabled${NC}"
   fi
 fi
 
@@ -566,7 +566,7 @@ if [ "$__MONITORING" = 'n' ]; then
     echo [$SCRIPT]: - bulkdata cron job already removed
   fi
 else
-  echo [$SCRIPT]: - OVERRIDE! Telstra logging and data collection NOT Removed
+  echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! Telstra logging and data collection NOT Removed${NC}"
 fi
 
 # Telstra AIR
@@ -630,7 +630,7 @@ if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
       exec_uci commit wireless
       PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE hotspotd webui-fon"
     else
-      echo [$SCRIPT]: - OVERRIDE! Telstra AIR NOT Removed
+      echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! Telstra AIR NOT Removed${NC}"
     fi
   fi
 
@@ -676,7 +676,7 @@ if [ "$__NTP" = 'n' ]; then
     exec_uci commit system
   fi
 else
-  echo [$SCRIPT]: - OVERRIDE! Telstra NTP servers NOT Removed
+  echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! Telstra NTP servers NOT Removed${NC}"
 fi
 
 # USB noexec
@@ -696,7 +696,7 @@ if [ $(uci -q show mountd | grep -E 'mountd\.(ext[2-4]|fat|hfsplus(journal)*|ntf
       exec_uci commit mountd
     fi
   else
-    echo [$SCRIPT]: - OVERRIDE! noexec on ext2/3/4, fat, hfsplus, hfsplusjournal and ntfs mounts NOT Disabled
+    echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! noexec on ext2/3/4, fat, hfsplus, hfsplusjournal and ntfs mounts NOT Disabled${NC}"
   fi
 else
   echo [$SCRIPT]: - noexec on ext2/3/4, fat, hfsplus, hfsplusjournal and ntfs mounts already Disabled
@@ -709,7 +709,7 @@ if grep -q 'set_voip_iface(x, mobileiface4, mobileiface6)' /usr/lib/lua/wansensi
     sed -e 's/\(set_voip_iface(x, mobileiface4, mobileiface6\)\()\)/\1, true\2/' -i /usr/lib/lua/wansensingfw/failoverhelper.lua
     SRV_wansensing=$(( $SRV_wansensing + 1 ))
   else
-    echo [$SCRIPT]: - OVERRIDE! Telstra APN check NOT removed
+    echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! Telstra APN check NOT removed${NC}"
   fi
 else
   echo [$SCRIPT]: - Telstra APN check already removed
@@ -729,16 +729,16 @@ if [ -f authorized_keys ]; then
       echo [$SCRIPT]: - /etc/dropbear/authorized_keys already replaced
     fi
   else
-    echo [$SCRIPT]: - OVERRIDE! Existing public keys in /etc/dropbear/authorized_keys NOT removed
+    echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! Existing public keys in /etc/dropbear/authorized_keys NOT removed${NC}"
     grep -q "$(head -n 1 authorized_keys)" /etc/dropbear/authorized_keys
     if [ $? -eq 1 ]; then
-      echo [$SCRIPT]: - OVERRIDE! First key in authorized_keys not found in /etc/dropbear/authorized_keys - Appending entire file
+      echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! First key in authorized_keys not found in /etc/dropbear/authorized_keys - Appending entire file${NC}"
       cat authorized_keys >> /etc/dropbear/authorized_keys
       chmod 600 /etc/dropbear/authorized_keys
       chown root:root /etc/dropbear/authorized_keys
       SRV_dropbear=$(( $SRV_dropbear + 1 ))
     else
-      echo [$SCRIPT]: - OVERRIDE! First key in authorized_keys found in /etc/dropbear/authorized_keys - Assuming all keys already added
+      echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! First key in authorized_keys found in /etc/dropbear/authorized_keys - Assuming all keys already added${NC}"
     fi
   fi
 else
@@ -750,7 +750,7 @@ else
       echo > /etc/dropbear/authorized_keys
     fi
   else
-    echo [$SCRIPT]: - OVERRIDE! Public keys not removed from /etc/dropbear/authorized_keys
+    echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! Public keys not removed from /etc/dropbear/authorized_keys${NC}"
   fi
 fi
 if [ "$(uci -q get dropbear.lan.enable)" = '1'  -a "$(uci -q get dropbear.lan.enable)" = '1' -a "$(uci -q get dropbear.lan.PasswordAuth)" = 'on' -a "$(uci -q get dropbear.lan.RootPasswordAuth)" = 'on' -a "$(uci -q get dropbear.lan.RootLogin)" = '1'  -a "$(uci -q get dropbear.wan.RootLogin)" = '1' ]; then
@@ -837,7 +837,7 @@ else
     exec_uci commit qos
     SRV_qos=$(( $SRV_qos + 3 ))
   else
-    echo [$SCRIPT]: OVERRIDE! Telstra QoS VoWiFi reclassify rules not removed
+    echo -e "[$SCRIPT]: ${ORANGE}OVERRIDE! Telstra QoS VoWiFi reclassify rules not removed${NC}"
   fi
 fi
 
