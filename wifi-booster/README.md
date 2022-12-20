@@ -1,5 +1,7 @@
 # Using a Telstra Technicolor Smart Modem as a "Wi-Fi Booster"
-The Telstra Smart Modems (Gen 1.1 DJA0230, Gen 2 DJA0231 and Gen 3 CobraXh) implement the EasyMesh standard and can act as the base controller for the Telstra Smart Wi-Fi Booster product, to extend Wi-Fi coverage throughout a home. The devices themselves, however, can also act as a "Wi-Fi Booster". Using these devices as a "Booster" also has the added advantage of making additional LAN ports available at the site of the "Booster" device.
+The Telstra Smart Modems (Gen 1.1 DJA0230 and Gen 2 DJA0231) implement the EasyMesh standard and can act as the base controller for the Telstra Smart Wi-Fi Booster product, to extend Wi-Fi coverage throughout a home. The devices themselves, however, can also act as a "Wi-Fi Booster". Using these devices as a "Booster" also has the added advantage of making additional LAN ports available at the site of the "Booster" device.
+
+The Telstra Smart Modem Gen 3 (CobraXh) has a different EasyMesh implementation to the earlier generation devices, and it does _not_ work as a "Booster" device.
 
 EasyMesh has two components:
 - Controller
@@ -8,9 +10,9 @@ EasyMesh has two components:
 - Agent
     - Enabled on both the "booster" AND primary devices, to handle device registration, device hand-over between agents, etc.
 
-Using a Smart modem as a "Booster" device requires a wired back-haul, either through a direct ethernet connection or via Ethernet-Over-Power adapters.
+You can mix Gen 1.1 (DJA0230) and Gen 2 (DJA0231) devices, either as controller or booster. Gen 3 (CobraXh) devices _cannot_ be used as either a controller or booster in conjunction with any generation (Gen 1/2/3) device.
 
-The WiFi6 capability of the Smart Modem Gen 3, and its later EasyMesh implementation, mean that you cannot mix Gen 3 controllers and/or boosters with the previous generation (WiFi5) devices. You _can_ use Gen 1.1 (DJA0230) and Gen 2 (DJA0231) devices together, either as controller or booster.
+Using a Smart modem as a "Booster" device requires a wired back-haul, either through a direct ethernet connection or via Ethernet-Over-Power adapters.
 
 **NOTE : It is *strongly* recommended that you remove any configuration changes that you may have made to the device before commencing.**
 
