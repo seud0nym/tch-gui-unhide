@@ -39,3 +39,5 @@ if [ "$LAN_HELP" != "$WAN_HELP" ]; then
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 
+echo -e "[$SCRIPT]: Fix helper path in Port Forwarding modal"
+sed -e 's/uci.firewall.helper/uci.firewall_helpers.helper/' -i /www/docroot/modals/firewall-port-forwarding-modal.lp

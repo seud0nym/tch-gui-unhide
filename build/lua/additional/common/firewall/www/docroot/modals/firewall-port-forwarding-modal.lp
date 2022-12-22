@@ -10,6 +10,7 @@ local post_helper = require("web.post_helper")
 local message_helper = require("web.uimessage_helper")
 local content_helper = require("web.content_helper")
 local portslist = require("portslist_helper")
+local wanservices = require("webui_core.wanservices")
 local uinetwork = require("web.uinetwork_helper")
 local fwrules_helper = require("firewall-rules_helper")
 
@@ -19,20 +20,35 @@ local pairs,string = pairs,string
 local untaint = string.untaint
 local table,ipairs,tonumber,format,match = table,ipairs,tonumber,string.format,string.match
 
-local del_pfw_index = nil
-
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
+local ipdetails = {
+  gw = "uci.network.interface.@lan.ipaddr",
+  netmask = "uci.network.interface.@lan.netmask"
+}
+content_helper.getExactContent(ipdetails)
+
+local gVIES = post_helper.getValidateInEnumSelect
+local vB = post_helper.validateBoolean
+local vSIPR = post_helper.validateStringIsPortRange
+local gVSIDIP = post_helper.getValidateStringIsDeviceIPv4
+local vSIIP6 = post_helper.validateStringIsIPv6
+local vSIDIP = gVSIDIP(ipdetails.gw,ipdetails.netmask)
+local gAV = post_helper.getAndValidation
+local gOrV = post_helper.getOrValidation
+local vQTN = post_helper.validateQTN
+
+local isPortAndProtoReserved, reserved_ports = wanservices.isPortAndProtoReserved()
+
+local del_pfw_index = nil
 if ngx.var.request_method == "POST" then
   local content = ngx.req.get_post_args()
-  local action = content.action
-  if action == "SAVE" or action == "TABLE-ADD" or action == "TABLE-MODIFY" or action == "TABLE-DELETE"  then
-    proxy.set("rpc.gui.firewall.clearCache","1")
-  end
-
-  if action == "TABLE-DELETE" and content.tableid == "portforwarding" then
+  if content.action == "TABLE-DELETE" and content.tableid == "portforwarding" then
     del_pfw_index = tonumber(content.index)
+  end
+  if content.action == "SAVE" or content.action == "TABLE-ADD" or content.action == "TABLE-MODIFY" or content.action == "TABLE-DELETE"  then
+    proxy.set("rpc.gui.firewall.clearCache","1")
   end
 end
 
@@ -43,52 +59,14 @@ local function table_removekey(table,key)
   return element
 end
 
-local wan_app = {}
--- Retrieve all wan-services sections in system config
-local servicesTable = proxy.getPN("uci.system.wan-service.",true)
-if servicesTable then
-  for _,service in ipairs(servicesTable) do
-    local port = match(service.path,"uci%.system%.wan%-service%.@([^%.]+)%.")
-    if port then
-      wan_app[#wan_app + 1 ] = port
-    end
-  end
-end
-
-local wan_ports ={}
--- Retrieve the list of ports in all wan-services section
-for _,app in ipairs(wan_app) do
-  local wan_port_path = "uci.system.wan-service.@"..app..".ports"
-  wan_ports[#wan_ports + 1 ] = proxy.get(wan_port_path)
-end
-
-local reserved_ports = {}
-for _,wanPort in ipairs(wan_ports) do
-  for port in wanPort[1].value:gmatch("%w+") do
-    reserved_ports [#reserved_ports +1] = port
-  end
-end
-
 --Remove the ports configured in system.wan-service in allowed_portlist
 local allowed_portlist = portslist
-for _,wanPort in ipairs(reserved_ports) do
+for wanPort,_ in pairs(reserved_ports) do
   for i,j in pairs(allowed_portlist) do
     if wanPort and (tonumber(wanPort) == tonumber(j)) then
       table_removekey(allowed_portlist,i)
     end
   end
-end
-
--- Function to check the port are reserved or not while adding the port mapping rule.
-local function allowed_ports()
- return function(ports,_,_)
-  for _,wanPort in ipairs(reserved_ports) do
-    if wanPort and (wanPort == ports) then
-      return nil,T"Ports already Reserved"
-    end
-    end
-    return true
- end
 end
 
 local knownapps = require("pfwd_helper")
@@ -177,6 +155,61 @@ local pfw_columns = {
  },
 }
 
+-- UPnP forwarding rules
+local upnp_columns = {
+  {
+    header = T"Protocol",
+    name = "protocol",
+    param = "proto",
+    default = "tcp",
+    type = "select",
+    values = {
+      { "tcp", "TCP"},
+      { "udp", "UDP"},
+      { "tcpudp", "TCP+UDP"}
+    },
+    attr = { select = { class="span2" } },
+  },
+  {
+    header = T"WAN port",
+    name = "wanport",
+    param = "src_dport",
+    type = "text",
+    attr = { input = { class="span1", maxlength="5" } },
+  },
+  {
+    header = T"LAN port",
+    name = "lanport",
+    param = "dest_port",
+    type = "text",
+    attr = { input = { class="span1", maxlength="5" } },
+  },
+  {
+    header = T"Destination",
+    name = "destinationip",
+    param = "dest_ip",
+    type = "text",
+    attr = { input = { class="span2", maxlength="15"} },
+  },
+  {
+    header = T"Description",
+    name = "description",
+    param = "description",
+    type = "text",
+    attr = { input = { class="span2", maxlength="15"} },
+  },
+}
+
+local upnp_options = {
+    canEdit = false,
+    canAdd = false,
+    canDelete = false,
+    tableid = "upnpportforwarding",
+    basepath = "sys.upnp.redirect.",
+}
+
+local upnp_data = post_helper.handleTableQuery(upnp_columns, upnp_options, nil, nil, nil)
+
 local del_pfw_data
 
 local function globalValid(data)
@@ -184,6 +217,18 @@ local function globalValid(data)
   local udp = {}
   local p1,p2
   local err,msg
+
+  -- Adding UPnP ports if any, to avoid duplicate ports in ipv4 pfw
+  if #upnp_data ~= nil then
+    for i,v in ipairs(upnp_data) do
+      if v[1] == "TCP" or v[1] == "TCP+UDP" then
+        tcp[#tcp+1] = { start = tonumber(v[2]), ["end"] = tonumber(v[3]), index = i }
+      end
+      if v[1] == "UDP" or v[1] == "TCP+UDP" then
+        udp[#udp+1] = { start = tonumber(v[2]), ["end"] = tonumber(v[3]), index = i }
+      end
+    end
+  end
 
   if del_pfw_index ~= nil then
     del_pfw_data = content_helper.loadTableData("rpc.network.firewall.portforward.",pfw_columns,nil,"name")
@@ -236,35 +281,86 @@ local function getValidateName(value)
  return true
 end
 
+-- check if protocols duplicate
+local function isProtocolDuplicate(protocol_1, protocol_2)
+  local protoMap  = {
+    tcp    = {"tcp"},
+    udp    = {"udp"},
+    tcpudp = {"tcp", "udp"},
+    icmpv6 = {"icmpv6"},
+    all    = {"all"},
+  }
+  local port_1_val = protoMap[untaint(protocol_1)]
+  local port_2_val = protoMap[untaint(protocol_2)]
+  for _, proto_1 in ipairs(port_1_val) do
+    for _, proto_2 in ipairs(port_2_val) do
+      if proto_1 == proto_2 then
+        -- return true since protocols duplicate
+        return true
+      end
+    end
+  end
+  return false
+end
+
+-- check if ports overlap (or equal)
+local function isPortsOverlap(port_1, port_2)
+  local port_1_splitted = { port_1:match(portrange_pattern) }
+  local port_2_splitted = { port_2:match(portrange_pattern) }
+  -- split range
+  local port_1_start = #port_1_splitted == 2 and tonumber(port_1_splitted[1]) or tonumber(port_1)
+  local port_1_end   = #port_1_splitted == 2 and tonumber(port_1_splitted[2]) or port_1_start
+  local port_2_start = #port_2_splitted == 2 and tonumber(port_2_splitted[1]) or tonumber(port_2)
+  local port_2_end   = #port_2_splitted == 2 and tonumber(port_2_splitted[2]) or port_2_start
+  -- return true if overlap
+  return math.max(port_1_start, port_2_start) <= math.min(port_1_end, port_2_end)
+end
+
+-- check if ipv6 destinations same
+local function isIpv6DestinationsSame(destination_1, destination_2)
+  for dest_1 in destination_1:gmatch("([^%s]+)") do
+    for dest_2 in destination_2:gmatch("([^%s]+)") do
+      if dest_1 == dest_2 then
+        return true
+      end
+    end
+  end
+  return false
+end
+
+-- check if ipv6 forward rules duplicate
+local function rulesDuplicateCheck(object)
+  for row = 1, #object do
+    for n = row+1, #object do
+      if object[n][3] ~= "icmpv6" and object[n][3] ~= "all" and object[row][3] ~= "icmpv6" and object[row][3] ~= "all" then
+        if isIpv6DestinationsSame(object[row][5], object[n][5]) and
+          isPortsOverlap(object[row][4], object[n][4]) and
+          isProtocolDuplicate(object[row][3], object[n][3]) then
+          return nil, {wanport = T"duplicate value"}
+        end
+      else
+        if isIpv6DestinationsSame(object[row][5], object[n][5]) and object[row][3] == object[n][3]  then
+          return nil, {protocol = T"duplicate value"}
+        end
+      end
+    end
+  end
+  return true
+end
+
 local protocolList = {
    { "tcp","TCP"},
    { "udp","UDP"},
    { "tcpudp","TCP+UDP"}
 }
 
--- Retrieve GW IP + netmask for use by validation function
-local ipdetails = {
-  gw = "uci.network.interface.@lan.ipaddr",
-  netmask = "uci.network.interface.@lan.netmask"
-}
-content_helper.getExactContent(ipdetails)
--- Shortcuts to validation helpers to make lines shorter
-local gVIES = post_helper.getValidateInEnumSelect
-local vB = post_helper.validateBoolean
-local vSIPR = post_helper.validateStringIsPortRange
-local gVSIDIP = post_helper.getValidateStringIsDeviceIPv4
-local vSIIP6 = post_helper.validateStringIsIPv6
-local vSIDIP = gVSIDIP(ipdetails.gw,ipdetails.netmask)
-local gAV = post_helper.getAndValidation
-local vQTN = post_helper.validateQTN
-
 local pfw_valid = {
    enabled = vB,
    name = getValidateName,
    lanport = vSIPR,
-   wanport = gAV(vSIPR,allowed_ports()),
+    wanport = gAV(vSIPR,isPortAndProtoReserved),
    destinationip = gAV(vSIDIP,vQTN),
-   protocol = gVIES(protocolList),
+    protocol = gAV(gVIES(protocolList),isPortAndProtoReserved)
 }
 -- ip handleTableQuery parameter filter callback to only show ipv4 port forwardings...
 -- and only user created rules
@@ -443,12 +539,16 @@ local pfw_v6_options = {
   createMsg = T"Add IPv6 forwarding rule",
   sorted = "name",
   newList = knownapps,
+  valid = rulesDuplicateCheck
 }
 -- ipv6 handleTableQuery parameter filter callback to only show ipv6 rules...
 -- and only user created rules
 -- return true if entry should be displayed
 local function pfw_v6_filter(data)
-  if (data.target == "ACCEPT" and data.src == "wan" and data.dest == "lan" and data.family == "ipv6") then
+    if (data.target == "ACCEPT" and
+        data.src == "wan" and
+        data.dest == "lan" and
+        data.family == "ipv6") then
     return true
   end
   return false
@@ -460,13 +560,19 @@ local pfw_v6_defaultObject = {
   dest = "lan",
   family = "ipv6",
 }
+local function validateIPv6Port(_, data)
+  if data.protocol == "icmpv6" or data.protocol == "all" then
+    return true
+  end
+  return false
+end
 -- ipv6 handleTableQuery parameter to check validity of new entry values
 -- every editable column needs a validity check function
 local pfw_v6_valid = {
   enabled_v6 = vB,
   name = getValidateName,
   protocol = gVIES(protocolList_v6),
-  wanport = vSIPR,
+  wanport = gOrV(validateIPv6Port, gAV(vSIPR,isPortAndProtoReserved)),
   dest_ip_v6 = vSIIP6,
 }
 -- ipv6 pull in all the data for the display
@@ -539,4 +645,23 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
     </fieldset>\
   </form>\
 </div>\
+<script>\
+(function() {\
+  var protocol = $("#protocol").val();\
+  if (protocol == "icmpv6" || protocol == "all"){\
+    $("#wanportInput").attr("readonly", "readonly");\
+  }\
+  $("#protocol").change(function(){\
+    if (($(this).val() == "icmpv6") || ($(this).val() == "all")){\
+      $("#wanport").attr("disabled", "disabled");\
+      $("#wanportInput").attr("readonly", "readonly");\
+      $("#wanportInput").val(\'\');\
+    }\
+    else {\
+      $("#wanport").removeAttr("disabled");\
+      $("#wanportInput").removeAttr("readonly");\
+    }\
+  });\
+}());\
+</script>\
 ');  ngx.print(ui_helper.createFooter());
