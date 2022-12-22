@@ -331,6 +331,8 @@ ngx.print('\
   html[#html+1] =     ui_helper.createSwitch(T"Enabled","mmpbx_enabled",content["mmpbx_enabled"])
   if cfg["wansensing_enabled"] == "1" and mobile_devices > 0 then
     html[#html+1] =     ui_helper.createSwitch(T"Voice on 4G Failover","voiceonfailover",content["voiceonfailover"])
+  else
+    html[#html + 1] =   ui_helper.createSimpleInputHidden("voiceonfailover",content["voiceonfailover"])
   end
   html[#html+1] = '<fieldset>'
   html[#html+1] = '<legend>'..T"SIP Network"..'</legend>'
