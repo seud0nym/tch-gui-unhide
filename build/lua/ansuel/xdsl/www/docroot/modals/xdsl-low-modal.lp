@@ -182,7 +182,7 @@ ngx.print(
     ui_helper.createMessages(message_helper.popMessages()),'\
     <fieldset>\
       <form class="form-horizontal" method="post" action="modals/xdsl-low-modal.lp">\
-        <div class="span4">',
+        <div class="span4" style="width:60%">',
           ui_helper.createLight(T"Status",nil,state_map[untaint(content.dsl0_enabled)],{light = {class = light_map[untaint(content.dsl0_enabled)]}}),
           ui_helper.createSwitch(T"Enabled","dsl0_enabled",driver_content["dsl0_enabled"],help_msg["dsl0_enabled"]),
           ui_helper.createLabel(T"DSL Connection Status",T(content.dsl0_status),span5))
