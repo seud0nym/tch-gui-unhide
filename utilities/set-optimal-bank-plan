@@ -81,20 +81,22 @@ if [ "$REPLY" = "y" -o "$REPLY" = "Y" ]; then
       [ -z "$PASSIVE_VERSION" ] && PASSIVE_VERSION=$(uci get env.var.friendly_sw_version_passivebank)
       echo -e "${GREEN}==> Active  = ${ACTIVE_VERSION}${NC}"
       echo -e "${GREEN}==> Passive = ${PASSIVE_VERSION}${NC}"
+      echo -e "${ORANGE}Making a temporary copy of the overlay for the booted firmware...${NC}"
+      cp -rf /overlay/$(cat /proc/banktable/booted) /tmp/bank_overlay_backup
+      echo -e "${ORANGE}Cleaning up jffs2 space by removing any existing old overlays...${NC}"
+      rm -rf /overlay/*
+      echo -e "${ORANGE}Using the previously made temp copy as overlay for bank_2...${NC}"
+      cp -rf /tmp/bank_overlay_backup /overlay/bank_2
     else
       echo -e "${RED}==> ABORTING: Verification of bank copy FAILED!${NC}"
       echo "$HASHES"
       exit 2
     fi
   else
-    echo -e "${GREEN}==> Already booted from bank_2 - Firmware copy not required${NC}"
+    echo -e "${GREEN}==> Already booted from bank_2 - Firmware copy ${ORANGE}NOT REQUIRED${NC}"
+    echo -e "${ORANGE}Cleaning up jffs2 space by removing any existing old bank_1 overlay...${NC}"
+    rm -rf /overlay/bank_1
   fi
-  echo -e "${ORANGE}Making a temporary copy of the overlay for the booted firmware...${NC}"
-  cp -rf /overlay/$(cat /proc/banktable/booted) /tmp/bank_overlay_backup
-  echo -e "${ORANGE}Cleaning up jffs2 space by removing any existing old overlays...${NC}"
-  rm -rf /overlay/*
-  echo -e "${ORANGE}Using the previously made temp copy as overlay for bank_2...${NC}"
-  cp -rf /tmp/bank_overlay_backup /overlay/bank_2
   echo -e "${ORANGE}Activating bank_1...${NC}"
   echo bank_1 > /proc/banktable/active
   echo -e "${ORANGE}Making sure changes are synced to flash memory...${NC}"
