@@ -451,7 +451,7 @@ backupDevice() {
 
 if [ -z "$(which ubinfo)" ]; then
   # Fix incorrect names from previous versions
-  rm -f $(ls $TARGET/$VARIANT-mtd2-rootfs_data-*.img.* | grep -v $VERSION)
+  rm -f $(ls $TARGET/$VARIANT-mtd2-rootfs_data-*.img.* 2>/dev/null | grep -v $VERSION)
   for f in $(ls $TARGET/$VARIANT-mtd2-rootfs_data-$VERSION* 2>/dev/null); do
     mv "$f" "$(echo $f | sed -e "s/-$VERSION//")"
   done
