@@ -1,4 +1,5 @@
 var funcID;
+var waitingForGatewayStatusResponse = false;
 function secondsToTime(uptime) {
   var d = Math.floor(uptime / 86400);
   var h = Math.floor(uptime / 3600) % 24;
@@ -10,6 +11,11 @@ function secondsToTime(uptime) {
   return dDisplay + hDisplay + mDisplay + s + " sec";
 }
 function updateGatewayCard(){
+  if (waitingForGatewayStatusResponse){
+    console.log("waitingForGatewayStatusResponse");
+    return;
+  }
+  waitingForGatewayStatusResponse = true;
   $.post("/ajax/gateway-status.lua",[tch.elementCSRFtoken()],function(data){
     var ram_free = Number(data["ram_free"]);
     var ram_total = Number(data["ram_total"]);
@@ -40,6 +46,13 @@ function updateGatewayCard(){
   },"json")
   .fail(function(response){
     if(response.status==403||response.status==404){clearInterval(funcID);window.location.href="/gateway.lp?r="+Date.now();}
+  })
+  .always(function() {
+    waitingForGatewayStatusResponse = false;
   });
 }
-$().ready(function(){setTimeout(updateGatewayCard,0);funcID=setInterval(updateGatewayCard,1000);addRegisteredInterval(funcID);});
+$().ready(function(){
+  setTimeout(updateGatewayCard,0);
+  funcID=setInterval(updateGatewayCard,1000);
+  addRegisteredInterval(funcID);
+});

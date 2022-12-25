@@ -49,10 +49,10 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    '); ngx.print(ui_helper.createCardHeader(T"Telephony",modalPath)); ngx.print('\
+    ',ui_helper.createCardHeader(T"Telephony",modalPath),'\
     <div class="content">\
       <div id="telephony-card-content">\
-      '); ngx.print(html); ngx.print('\
+      ',html,'\
       </div>\
       ');
         if disabled ~= 0 then
@@ -69,20 +69,7 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
     </div>\
   </div>\
 </div>\
-<script>\
-'); if mmpbx_state == "1" then ngx.print('\
-  var tFuncID;\
-  function updateTelephonyCard(){\
-    $.post("/ajax/telephony-status.lua",[tch.elementCSRFtoken()],function(data){\
-      $("#telephony-card-content").html(data["html"]);\
-    },"json")\
-    .fail(function(response){\
-      if(response.status==403||response.status==404){clearInterval(tFuncID);}\
-    });\
-  }\
-  $().ready(function(){tFuncID=setInterval(updateTelephonyCard,3000);addRegisteredInterval(tFuncID);});\
-'); end; ngx.print('\
-</script>\
 ');
-  end
+  if mmpbx_state == "1" then ngx.print('<script src="/js/008_telephony.js"></script>'); end;
+end
 

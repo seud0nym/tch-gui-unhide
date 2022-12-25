@@ -1,5 +1,7 @@
 var bbFuncID;
 var tpFuncID;
+var waitingForBroadbandStatusResponse = false;
+var waitingForThroughputResponse = false;
 function broadbandCardIcon(status){
   switch(status){
     case "up":
@@ -15,15 +17,28 @@ function broadbandCardIcon(status){
   }
 }
 function updateBroadbandCard(){
+  if (waitingForBroadbandStatusResponse){
+    console.log("waitingForBroadbandStatusResponse");
+    return;
+  }
+  waitingForBroadbandStatusResponse = true;
   $.post("/ajax/broadband-status.lua",[tch.elementCSRFtoken()],function(data){
     $("#broadband-card-content").html(data["html"]);
     $("#broadband-card .content").removeClass("mirror").attr("data-bg-text",broadbandCardIcon(data["status"]));
   },"json")
   .fail(function(response){
     if(response.status==403||response.status==404){clearInterval(bbFuncID);}
+  })
+  .always(function() {
+    waitingForBroadbandStatusResponse = false;
   });
 }
 function updateThroughput(){
+  if (waitingForThroughputResponse){
+    console.log("waitingForThroughputResponse");
+    return;
+  }
+  waitingForThroughputResponse = true;
   $.post("/ajax/network-throughput.lua",[tch.elementCSRFtoken()],function(data){
     $("#broadband-card-throughput .throughput span").html(data["wan"]);
     $("#lan-card-throughput .throughput span").html(data["lan"]);
@@ -44,10 +59,13 @@ function updateThroughput(){
   },"json")
   .fail(function(response){
     if(response.status==403||response.status==404){clearInterval(tpFuncID);}
+  })
+  .always(function() {
+    waitingForThroughputResponse = false;
   });
 }
-setTimeout(updateBroadbandCard,0);
 $().ready(function(){
+  setTimeout(updateBroadbandCard,0);
   if (window.autoRefreshEnabled) {
     bbFuncID=setInterval(updateBroadbandCard,15000);
     addRegisteredInterval(bbFuncID);

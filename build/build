@@ -153,7 +153,7 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
         echo "  echo -e \"\${GREY}BLD/153:\${NC} Adding version details to copyright\"" >> $TARGET
         echo "  for l in \$(grep -l -r 'current_year); ngx.print(' /www 2>/dev/null)" >> $TARGET
         echo "  do" >> $TARGET
-        echo "    sed -e \"s|\(current_year); ngx.print('\)|\\\1 \[tch-gui-unhide ${PRERELEASE}Release $DATE_VERSION for Firmware \$CUSTOM_VERSION (\$MKTING_NAME)\] <a href=\\\"https://www.paypal.com/donate/?business=LJL59SZGJNWJA\&no_recurring=0\&item_name=Thank+you+for+supporting+the+development+of+tch-gui-unhide%21\&currency_code=AUD\\\" target=\\\"_blank\\\"><img src=\\\"/img/coffee-cup-icon.png\\\" alt=\\\"Sponsor\\\" title=\\\"Buy me a coffee\\\"></a>|\" -i \$l" >> $TARGET
+        echo "    sed -e \"s|\(current_year); ngx.print('\)|\\\1 \[tch-gui-unhide ${PRERELEASE}Release $DATE_VERSION for Firmware \$CUSTOM_VERSION (\$MKTING_NAME)\] <a href=\\\"https://www.paypal.me/seud0nym\\\" target=\\\"_blank\\\"><img src=\\\"/img/coffee-cup-icon.png\\\" alt=\\\"Sponsor\\\" title=\\\"Buy me a coffee\\\"></a>|\" -i \$l" >> $TARGET
         echo "  done" >> $TARGET
         echo "  echo -e \"\${GREY}BLD/158:\${NC} Auto-refreshing browser cache\"" >> $TARGET
         echo "  for l in \$(grep -lrE \"['\\\"][^'\\\"]+\.(cs|j)s['\\\"]\" /www/cards /www/docroot /www/snippets | grep -v -E '.js$|.sh$|.json$' 2>/dev/null)" >> $TARGET
