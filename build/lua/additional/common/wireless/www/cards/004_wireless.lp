@@ -4,6 +4,9 @@
 gettext.textdomain('webui-core')
 
 local ui_helper = require("web.ui_helper")
+local ssid_helper = require("ssid_helper")
+
+local html = ssid_helper.getWiFiCardHTML()
 
 local session = ngx.ctx.session
 local modalPath = nil
@@ -14,9 +17,9 @@ end
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ');  ngx.print(ui_helper.createCardHeader(T"Wi-Fi",modalPath)); ngx.print('\
+    ',ui_helper.createCardHeader(T"Wi-Fi",modalPath),'\
     <div id="wifi-card-content" class="content card_bg" data-bg-text="&#xf09e;">\
-      ');  ngx.print(ui_helper.createSimpleLight("3","Getting Wi-Fi status...")); ngx.print('\
+      ',html,'\
     </div>\
   </div>\
 </div>\

@@ -1,11 +1,13 @@
 var multiapFuncID;
 var waitingForBoosterStatusResponse = false;
+var updateBoosterCardSkipped = 0;
 function updateBoosterCard(){
-  if (waitingForBoosterStatusResponse){
-    console.log("waitingForBoosterStatusResponse");
+  if((updateBoosterCardSkipped < 2 && window.activeXHR.length > 2) || waitingForBoosterStatusResponse){
+    updateBoosterCardSkipped ++;
     return;
   }
   waitingForBoosterStatusResponse = true;
+  updateBoosterCardSkipped = 0;
   $.post("/ajax/booster-status.lua",[tch.elementCSRFtoken()],function(data){
     $("#booster-card-content").html(data["html"]);
   },"json")

@@ -1,5 +1,6 @@
 var funcID;
 var waitingForGatewayStatusResponse = false;
+var updateGatewayCardSkipped = 0
 function secondsToTime(uptime) {
   var d = Math.floor(uptime / 86400);
   var h = Math.floor(uptime / 3600) % 24;
@@ -11,11 +12,12 @@ function secondsToTime(uptime) {
   return dDisplay + hDisplay + mDisplay + s + " sec";
 }
 function updateGatewayCard(){
-  if (waitingForGatewayStatusResponse){
-    console.log("waitingForGatewayStatusResponse");
+  if((updateGatewayCardSkipped < 5 && window.activeXHR.length > 2) || waitingForGatewayStatusResponse){
+    updateGatewayCardSkipped ++;
     return;
   }
   waitingForGatewayStatusResponse = true;
+  updateGatewayCardSkipped = 0;
   $.post("/ajax/gateway-status.lua",[tch.elementCSRFtoken()],function(data){
     var ram_free = Number(data["ram_free"]);
     var ram_total = Number(data["ram_total"]);
@@ -52,7 +54,6 @@ function updateGatewayCard(){
   });
 }
 $().ready(function(){
-  setTimeout(updateGatewayCard,0);
   funcID=setInterval(updateGatewayCard,1000);
   addRegisteredInterval(funcID);
 });

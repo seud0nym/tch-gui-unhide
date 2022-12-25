@@ -1,11 +1,13 @@
 var ssidFuncID;
 var waitingForSSIDStatusResponse = false;
+var updateWirelessCardSkipped = 0;
 function updateWirelessCard(){
-  if (waitingForSSIDStatusResponse){
-    console.log("waitingForSSIDStatusResponse");
+  if((updateWirelessCardSkipped < 2 && window.activeXHR.length > 2) || waitingForSSIDStatusResponse){
+    updateWirelessCardSkipped ++;
     return;
   }
   waitingForSSIDStatusResponse = true;
+  updateWirelessCardSkipped = 0;
   $.post("/ajax/ssid-status.lua",[tch.elementCSRFtoken()],function(data){
     $("#wifi-card-content").html(data["html"]);
   },"json")
@@ -17,7 +19,6 @@ function updateWirelessCard(){
   });
 }
 $().ready(function(){
-  setTimeout(updateWirelessCard,0);
   ssidFuncID=setInterval(updateWirelessCard,19000);
   addRegisteredInterval(ssidFuncID);
 });

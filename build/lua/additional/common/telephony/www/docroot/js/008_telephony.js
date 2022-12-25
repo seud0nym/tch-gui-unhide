@@ -1,11 +1,13 @@
 var tFuncID;
 var waitingForTelephonyStatusResponse = false;
+var updateTelephonyCardSkipped = 0;
 function updateTelephonyCard(){
-  if (waitingForTelephonyStatusResponse){
-    console.log("waitingForTelephonyStatusResponse");
+  if((updateTelephonyCardSkipped < 2 && window.activeXHR.length > 2) || waitingForTelephonyStatusResponse){
+    updateTelephonyCardSkipped ++;
     return;
   }
   waitingForTelephonyStatusResponse = true;
+  updateTelephonyCardSkipped = 0;
   $.post("/ajax/telephony-status.lua",[tch.elementCSRFtoken()],function(data){
     $("#telephony-card-content").html(data["html"]);
   },"json")

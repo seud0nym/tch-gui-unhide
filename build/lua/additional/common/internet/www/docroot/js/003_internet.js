@@ -1,11 +1,13 @@
 var iFuncID;
 var waitingForInternetStatusResponse = false;
+var updateInternetCardSkipped = 0;
 function updateInternetCard(){
-  if (waitingForInternetStatusResponse){
-    console.log("waitingForInternetStatusResponse");
+  if((updateInternetCardSkipped < 2 && window.activeXHR.length > 2) || waitingForInternetStatusResponse){
+    updateInternetCardSkipped ++;
     return;
   }
   waitingForInternetStatusResponse = true;
+  updateInternetCardSkipped = 0;
   $.post("/ajax/internet-status.lua",[tch.elementCSRFtoken()],function(data){
     $("#internet-card-content").html(data["html"]);
   },"json")
@@ -17,7 +19,6 @@ function updateInternetCard(){
   });
 }
 $().ready(function(){
-  setTimeout(updateInternetCard,0);
   iFuncID=setInterval(updateInternetCard,20000);
   addRegisteredInterval(iFuncID);
 });

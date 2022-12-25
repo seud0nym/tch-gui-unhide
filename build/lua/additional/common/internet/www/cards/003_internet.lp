@@ -18,6 +18,9 @@ end
 
 if mode_active ~= "bridge" then
   local ui_helper = require("web.ui_helper")
+  local ich = require("internetcard_helper")
+
+  local html = ich.getInternetCardHTML(mode_active)
 
   local modalPath = nil
   local session = ngx.ctx.session
@@ -28,10 +31,10 @@ if mode_active ~= "bridge" then
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ');  ngx.print(ui_helper.createCardHeader(T"Internet Access",modalPath)); ngx.print('\
+    ',ui_helper.createCardHeader(T"Internet Access",modalPath),'\
     <div class="content card_bg" data-bg-text="&#xf0ac;">\
       <div id="internet-card-content">\
-        '); ngx.print(ui_helper.createSimpleLight("3","Checking connection status...")); ngx.print('\
+        ',html,'\
       </div>\
     </div>\
   </div>\

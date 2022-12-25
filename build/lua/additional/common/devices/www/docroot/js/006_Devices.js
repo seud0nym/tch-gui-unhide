@@ -1,11 +1,13 @@
 var dFuncID;
 var waitingForDeviceStatusResponse = false;
+var updateDevicesCardSkipped = 0;
 function updateDevicesCard(){
-  if (waitingForDeviceStatusResponse){
-    console.log("waitingForDeviceStatusResponse");
+  if((updateDevicesCardSkipped < 4 && window.activeXHR.length > 2) || waitingForDeviceStatusResponse){
+    updateDevicesCardSkipped ++;
     return;
   }
   waitingForDeviceStatusResponse = true;
+  updateDevicesCardSkipped = 0;
   $.post("/ajax/devices-status.lua",[tch.elementCSRFtoken()],function(data){
     $("#devices-card-content").html(data["html"]);
   },"json")

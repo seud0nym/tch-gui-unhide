@@ -5,5 +5,4 @@ sed \
   -i /www/docroot/ajax/gateway-status.lua
 sed \
   -e 's/Sensor Temperatures/CPU Temperature/' \
-  -e 's/00° 00°/00°/' \
   -i /www/cards/001_gateway.lp
