@@ -783,7 +783,7 @@ end
 local dns_int_ipv4_ok = dns_int_ipv4 and content["dns_v4_pri"] == dns_int_ipv4_dest_ip
 local dns_int_ipv6_ok = dns_int_ipv6 and (dns_int_ipv6_dest_ip == content["dns_v6_pri"] or find(dns_int_ipv6_dest_ip:gsub(":","-"),untaint(content["dns_v6_pri"]),1,true))
 
-ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
+ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
    <div class="modal-body update">\
      <form class="form-horizontal" method="post" action="',ngx.var.request_uri,'">\
      ');
