@@ -1,7 +1,11 @@
 else # THEME_ONLY = y
+  echo -e "[$SCRIPT]: ${GREEN}Applying theme changes to tch-gui-unhide release ${ORANGE}$INSTALLED_RELEASE${GREEN} using release ${ORANGE}$RELEASE${NC}"
+  echo -e "[$SCRIPT]: Attempting to acquire lock on $LOCK..."
+  lock $LOCK
+
   echo -e "[$SCRIPT]: Restoring CSS files to apply theme change"
   cp -p $RESTORE_BASE/www/docroot/css/gw.css $RESTORE_BASE/www/docroot/css/gw-telstra.css $RESTORE_BASE/www/docroot/css/responsive.css /www/docroot/css/
-fi # End of if [ THEME_ONLY = n ]
+fi # End of if [ $THEME_ONLY = n ] (002-Parameter-Processing)
 
 echo -e "[$SCRIPT]: Adding or updating card background icons"
 sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf012;"/' -i $(ls /www/cards/*_lte.lp)

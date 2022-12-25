@@ -1,3 +1,4 @@
+ABORT=n
 CUSTOM_LOGO=y
 DEBUG=n
 VERBOSE=""
@@ -95,7 +96,7 @@ exit
 while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
  case "${option}" in
    -) case "${OPTARG}" in
-        abort) exit;;
+        abort) ABORT=y;;
         debug) [ $DEBUG = y ] && DEBUG=n || DEBUG=y;;
         no-service-restart) RESTART_SERVICES=n;;
         reboot) REBOOT=y;;
@@ -191,7 +192,17 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
         *) echo -e "[$SCRIPT]: ${RED}ERROR!${NC} Unknown chart card option - $OPTARG"; exit 2;;
       esac;;
    L) CUSTOM_LOGO=n;;
-   T) THEME_ONLY=y;;
+   T) if [ -z "$INSTALLED_RELEASE" ]; then
+        echo -e "[$SCRIPT]: ${RED}ERROR!${NC} Cannot apply theme changes: tch-gui-unhide not installed"
+        exit 2
+      else
+        if [ "$INSTALLED_RELEASE" = "$RELEASE" ]; then
+          THEME_ONLY=y
+        else
+          echo -e "[$SCRIPT]: ${RED}ERROR!${NC} Cannot apply theme changes: tch-gui-unhide version mis-match (installed=${ORANGE}$INSTALLED_RELEASE${NC} this=${ORANGE}$RELEASE${NC})"
+          exit 2
+        fi
+      fi;;
    V) LATEST_RELEASE=$(curl -m 1 -q -s -k -L -r0-9 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/VERSION.txt)
       echo -e "[$SCRIPT]: This Release       $RELEASE"
       if [ -z "$INSTALLED_RELEASE" ]; then
@@ -239,15 +250,14 @@ unlock() {
     echo -e "[$SCRIPT]: Ctrl-C caught...performing clean up"
   fi
 
-  echo -e "[$SCRIPT]: Releasing lock on $LOCK..."
-  lock -u $LOCK
-  [ -f $LOCK ] && rm $LOCK
+  if [ -e $LOCK ]; then
+    echo -e "[$SCRIPT]: Releasing lock on $LOCK..."
+    lock -u $LOCK
+    [ -f $LOCK ] && rm $LOCK
+  fi
 
   [ "$1" = "normally" ] && exit || exit 2
 }
 trap "unlock" 2
-
-echo -e "[$SCRIPT]: Attempting to acquire lock on $LOCK..."
-lock $LOCK
 
 if [ $THEME_ONLY = n ]; then

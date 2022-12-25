@@ -74,10 +74,15 @@ show_setting() {
   echo -e "$_ABL${NC}"
 }
 
-if [ -z "$INSTALLED_RELEASE" ]; then
-  echo -e "[$SCRIPT]: ${GREEN}Installing tch-gui-unhide release ${ORANGE}$RELEASE${NC}"
+if [ $ABORT = n ]; then
+  if [ -z "$INSTALLED_RELEASE" ]; then
+    echo -e "[$SCRIPT]: ${GREEN}Installing tch-gui-unhide release ${ORANGE}$RELEASE${NC}"
+  else
+    echo -e "[$SCRIPT]: ${GREEN}Replacing tch-gui-unhide release ${ORANGE}$INSTALLED_RELEASE${GREEN} with ${ORANGE}$RELEASE${NC}"
+  fi
 else
-  echo -e "[$SCRIPT]: ${GREEN}Replacing tch-gui-unhide release ${ORANGE}$INSTALLED_RELEASE${GREEN} with ${ORANGE}$RELEASE${NC}"
+  echo -e "[$SCRIPT]: Installed tch-gui-unhide release: ${ORANGE}$INSTALLED_RELEASE${NC}"
+  echo -e "[$SCRIPT]: Installer tch-gui-unhide release: ${ORANGE}$RELEASE${NC}"
 fi
 
 echo -e "[$SCRIPT]: ${CYAN}Theme Options${NC}"
@@ -124,7 +129,10 @@ if [ "$REBOOT" = y ]; then
   echo -e "[$SCRIPT]: ${RED}WARNING! System will be REBOOTED after installation!!${NC}"
 fi
 
-if [ $YES = y ]; then
+if [ $ABORT = y ]; then
+  echo -e "[$SCRIPT]: Installation aborted as requested"
+  unlock normally
+elif [ $YES = y ]; then
   REPLY=y
 else
   echo -en "[$SCRIPT]: ${GREEN}If you wish to proceed, enter y otherwise just press [Enter] to stop:${NC} "
@@ -137,6 +145,9 @@ if [ "$REPLY" == "x" ]; then
 elif [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
   unlock normally
 fi
+
+echo -e "[$SCRIPT]: Attempting to acquire lock on $LOCK..."
+lock $LOCK
 
 echo -e "[$SCRIPT]: IMPORTANT NOTE - You can restore changed GUI files to their original state by running: ${GREEN}$0 -r${NC}"
 
