@@ -1,6 +1,6 @@
 var ssidFuncID;
 var waitingForSSIDStatusResponse = false;
-var updateWirelessCardSkipped = 0;
+var updateWirelessCardSkipped = 2;
 function updateWirelessCard(){
   if((updateWirelessCardSkipped < 2 && window.activeXHR.length > 2) || waitingForSSIDStatusResponse){
     updateWirelessCardSkipped ++;

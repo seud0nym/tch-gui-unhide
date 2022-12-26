@@ -1,6 +1,6 @@
 var dFuncID;
 var waitingForDeviceStatusResponse = false;
-var updateDevicesCardSkipped = 0;
+var updateDevicesCardSkipped = 3;
 function updateDevicesCard(){
   if((updateDevicesCardSkipped < 4 && window.activeXHR.length > 2) || waitingForDeviceStatusResponse){
     updateDevicesCardSkipped ++;

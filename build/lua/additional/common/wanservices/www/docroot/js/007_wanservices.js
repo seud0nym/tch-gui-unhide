@@ -1,6 +1,6 @@
 var wanservicesFuncID;
 var waitingForWanServicesStatusResponse = false;
-var updateWANServicesCardSkipped = 0;
+var updateWANServicesCardSkipped = 2;
 function updateWANServicesCard(){
   if((updateWANServicesCardSkipped < 2 && window.activeXHR.length > 2) || waitingForWanServicesStatusResponse){
     updateWANServicesCardSkipped ++;

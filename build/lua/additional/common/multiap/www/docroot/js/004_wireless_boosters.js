@@ -1,6 +1,6 @@
 var multiapFuncID;
 var waitingForBoosterStatusResponse = false;
-var updateBoosterCardSkipped = 0;
+var updateBoosterCardSkipped = 2;
 function updateBoosterCard(){
   if((updateBoosterCardSkipped < 2 && window.activeXHR.length > 2) || waitingForBoosterStatusResponse){
     updateBoosterCardSkipped ++;

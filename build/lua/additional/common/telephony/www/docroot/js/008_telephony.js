@@ -1,6 +1,6 @@
 var tFuncID;
 var waitingForTelephonyStatusResponse = false;
-var updateTelephonyCardSkipped = 0;
+var updateTelephonyCardSkipped = 2;
 function updateTelephonyCard(){
   if((updateTelephonyCardSkipped < 2 && window.activeXHR.length > 2) || waitingForTelephonyStatusResponse){
     updateTelephonyCardSkipped ++;
@@ -19,6 +19,6 @@ function updateTelephonyCard(){
   });
 }
 $().ready(function(){
-  tFuncID=setInterval(updateTelephonyCard,3000);
+  tFuncID=setInterval(updateTelephonyCard,7000);
   addRegisteredInterval(tFuncID);
 });

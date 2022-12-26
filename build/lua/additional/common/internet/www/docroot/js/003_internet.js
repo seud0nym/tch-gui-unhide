@@ -1,6 +1,6 @@
 var iFuncID;
 var waitingForInternetStatusResponse = false;
-var updateInternetCardSkipped = 0;
+var updateInternetCardSkipped = 2;
 function updateInternetCard(){
   if((updateInternetCardSkipped < 2 && window.activeXHR.length > 2) || waitingForInternetStatusResponse){
     updateInternetCardSkipped ++;

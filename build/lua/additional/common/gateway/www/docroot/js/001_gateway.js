@@ -1,6 +1,6 @@
 var funcID;
 var waitingForGatewayStatusResponse = false;
-var updateGatewayCardSkipped = 0
+var updateGatewayCardSkipped = 3
 function secondsToTime(uptime) {
   var d = Math.floor(uptime / 86400);
   var h = Math.floor(uptime / 3600) % 24;
