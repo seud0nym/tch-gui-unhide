@@ -1,8 +1,8 @@
-echo -e "[$SCRIPT]: Update gateway card and status ajax with CPU temperature monitor"
+echo -e "[$SCRIPT]: Update gateway card with CPU temperature monitor"
 sed \
-  -e 's|\(^local temp1_input = {\)|\1"/sys/power/bpcm/cpu_temp"|' \
+  -e 's|\(local temp1_input = {\)|\1"/sys/power/bpcm/cpu_temp"|' \
   -e 's|readfile(f,"number",floor) / 1000|match(readfile(f),"cpu_temp: ([%d%.]*)")|' \
-  -i /www/docroot/ajax/gateway-status.lua
+  -i /www/lua/gatewaycard_helper.lua
 sed \
   -e 's/Sensor Temperatures/CPU Temperature/' \
   -i /www/cards/001_gateway.lp
