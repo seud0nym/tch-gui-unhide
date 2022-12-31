@@ -1,3 +1,15 @@
+2022.12.31
+==========
+* tch-gui-unhide: Fixed validation failed error when changing Telephony state and WAN Sensing disabled
+* tch-gui-unhide: Fixed column widths on xDSL details
+* tch-gui-unhide: Added the latest Port Forwarding validation rules
+* tch-gui-unhide: Skip background card update if a response is already pending (to try and reduce web GUI CPU load)
+* tch-gui-unhide: Various changes to the cards dashboard to try and improve perceived performance
+* tch-gui-unhide: Acquire installation lock after confirming installation parameters (not before)
+* tch-gui-unhide: Ensure installed and installer version match before applying theme-only changes
+* mtd-backup: Fixed "No such file or directory" message
+* set-optimal-bank-plan: Improved processing when already booted to bank_2
+
 2022.12.21
 ==========
 * tch-gui-unhide: Added DNS Rebind Protection configuration
