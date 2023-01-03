@@ -35,9 +35,9 @@ local function proxySet(path,value)
 end
 
 local function importInterface(new_if_name,content)
-  new_if_name = gsub(new_if_name,"-","_")
-  if not vUN(new_if_name) then
-    message_helper.pushMessage(T(format("Failed to import %s: Name contains invalid characters",new_if_name)),"error")
+  local name_valid,name_invalid = vUN(new_if_name)
+  if not name_valid then
+    message_helper.pushMessage(T(format("Failed to import %s: Name contains invalid characters (%s)",new_if_name,name_invalid)),"error")
   else
     if proxy.get(format("uci.wireguard.@%s.enabled",new_if_name)) then
       message_helper.pushMessage(T(format("Failed to import %s: Interface already exists",new_if_name)),"error")
@@ -332,7 +332,12 @@ if ngx.var.request_method == "POST" then
             if type(args["genpsk"]) == "table" then
               for _,checked in pairs(args["genpsk"]) do
                 if checked == "_TRUE_" then
-                  new_peer.preshared_key = wireguard_helper.genpsk()
+                  local psk,psk_failed = wireguard_helper.genpsk()
+                  if not psk then
+                    message_helper.pushMessage(T(psk_failed),"error")
+                  else
+                    new_peer.preshared_key = psk
+                  end
                   break
                 end
               end
