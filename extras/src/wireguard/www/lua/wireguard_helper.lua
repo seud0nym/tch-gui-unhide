@@ -271,7 +271,9 @@ function M.receiveFile(filename,match)
     err_msg = "internal error"
   end
 
-  file:close()
+  if file then
+    file:close()
+  end
 
   return result,err_code,err_msg
 end
