@@ -2826,6 +2826,12 @@ if [ "$__MONITORING" = 'n' ]; then
   else
     echo [$SCRIPT]: - bulkdata cron job already removed
   fi
+  if [ -e /etc/hotplug.d/ntp/20-bulkdata ]; then
+    echo [$SCRIPT]: - Removing bulkdata NTP hotplug
+    rm /etc/hotplug.d/ntp/20-bulkdata
+  else
+    echo [$SCRIPT]: - bulkdata NTP hotplug already removed
+  fi
 else
   echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! Telstra logging and data collection NOT Removed${NC}"
 fi
