@@ -507,13 +507,12 @@ if not new_peer then
   refresh_seconds = 15
 end
 
-ngx.print('\
-');  ngx.print(ui_helper.createHeader("WireGuard",false,true,refresh_seconds)); ngx.print('\
+ngx.print(ui_helper.createHeader("WireGuard",false,true,refresh_seconds),'\
 <div class="modal-body update">\
   <div class="span2">\
     <ul class="nav nav-list">\
       <li class="nav-header">Server</li>\
-      <li class="'..active..'"><a id="wg0" href="#" data-remote="modals/wireguard-modal.lp?intf=wg0">wg0'..wg0_on..'</a></li>\
+      <li class="',active,'"><a id="wg0" href="#" data-remote="modals/wireguard-modal.lp?intf=wg0">wg0',wg0_on,'</a></li>\
     </ul>\
     <ul class="nav nav-list">\
       <li class="nav-header">Client Interfaces</li>\
@@ -546,7 +545,7 @@ ngx.print('\
   #server>tbody>tr>td:nth-child(n+7):nth-child(-n+8){text-align:right;}\
   </style>\
   <div class="span9">\
-    <form class="form-horizontal" method="post" action="modals/wireguard-modal.lp?intf='); ngx.print(curintf); ngx.print('">\
+    <form class="form-horizontal" method="post" action="modals/wireguard-modal.lp?intf=',curintf,'">\
       ');
       local legend = T"VPN Server [wg0]"
       local enabled_label = T"Server Enabled"
@@ -604,13 +603,12 @@ ngx.print('\
       html[#html+1] = "<fieldset id='add-interface' class='hide'><legend>Add Interface</legend>"
       html[#html+1] = "<div id='interfaces-to-add'></div>"
       html[#html+1] = "</fieldset>"
-      ngx.print(html)
-      ngx.print('\
+      ngx.print(html,'\
     </form>\
   </div>\
   <div class="loading-wrapper hide"><img src="/img/spinner.gif" /></div>\
 </div>\
-'); ngx.print(ui_helper.createFooter()); ngx.print('\
+',ui_helper.createFooter(),'\
 <script src="/js/jszip.min.js"></script>\
 <script>\
 $("#save-config").on("click",function(){\
@@ -631,7 +629,7 @@ let target = $("#interfaces-to-add");\
 $("#config-file").on("change",function(evt) {\
   target.html("");\
   function addNewInterface(filename,content) {\
-    let name = filename.replace(/^.+\\//,"").replace(/\\.[^/.]+$/,"");\
+    let name = filename.replace(/^\\/.+/,"").replace(/\\.[^/.]+$/,"").replace(/-/,"_");\
     let group = $("<div>",{\
       "class" : "control-group"\
     });\

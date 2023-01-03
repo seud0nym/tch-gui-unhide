@@ -1140,9 +1140,9 @@ local function proxySet(path,value)
 end
 
 local function importInterface(new_if_name,content)
-  new_if_name = gsub(new_if_name,"-","_")
-  if not vUN(new_if_name) then
-    message_helper.pushMessage(T(format("Failed to import %s: Name contains invalid characters",new_if_name)),"error")
+  local name_valid,name_invalid = vUN(new_if_name)
+  if not name_valid then
+    message_helper.pushMessage(T(format("Failed to import %s: Name contains invalid characters (%s)",new_if_name,name_invalid)),"error")
   else
     if proxy.get(format("uci.wireguard.@%s.enabled",new_if_name)) then
       message_helper.pushMessage(T(format("Failed to import %s: Interface already exists",new_if_name)),"error")
@@ -1437,7 +1437,12 @@ if ngx.var.request_method == "POST" then
             if type(args["genpsk"]) == "table" then
               for _,checked in pairs(args["genpsk"]) do
                 if checked == "_TRUE_" then
-                  new_peer.preshared_key = wireguard_helper.genpsk()
+                  local psk,psk_failed = wireguard_helper.genpsk()
+                  if not psk then
+                    message_helper.pushMessage(T(psk_failed),"error")
+                  else
+                    new_peer.preshared_key = psk
+                  end
                   break
                 end
               end
@@ -1607,13 +1612,12 @@ if not new_peer then
   refresh_seconds = 15
 end
 
-ngx.print('\
-');  ngx.print(ui_helper.createHeader("WireGuard",false,true,refresh_seconds)); ngx.print('\
+ngx.print(ui_helper.createHeader("WireGuard",false,true,refresh_seconds),'\
 <div class="modal-body update">\
   <div class="span2">\
     <ul class="nav nav-list">\
       <li class="nav-header">Server</li>\
-      <li class="'..active..'"><a id="wg0" href="#" data-remote="modals/wireguard-modal.lp?intf=wg0">wg0'..wg0_on..'</a></li>\
+      <li class="',active,'"><a id="wg0" href="#" data-remote="modals/wireguard-modal.lp?intf=wg0">wg0',wg0_on,'</a></li>\
     </ul>\
     <ul class="nav nav-list">\
       <li class="nav-header">Client Interfaces</li>\
@@ -1646,7 +1650,7 @@ ngx.print('\
   #server>tbody>tr>td:nth-child(n+7):nth-child(-n+8){text-align:right;}\
   </style>\
   <div class="span9">\
-    <form class="form-horizontal" method="post" action="modals/wireguard-modal.lp?intf='); ngx.print(curintf); ngx.print('">\
+    <form class="form-horizontal" method="post" action="modals/wireguard-modal.lp?intf=',curintf,'">\
       ');
       local legend = T"VPN Server [wg0]"
       local enabled_label = T"Server Enabled"
@@ -1704,13 +1708,12 @@ ngx.print('\
       html[#html+1] = "<fieldset id='add-interface' class='hide'><legend>Add Interface</legend>"
       html[#html+1] = "<div id='interfaces-to-add'></div>"
       html[#html+1] = "</fieldset>"
-      ngx.print(html)
-      ngx.print('\
+      ngx.print(html,'\
     </form>\
   </div>\
   <div class="loading-wrapper hide"><img src="/img/spinner.gif" /></div>\
 </div>\
-'); ngx.print(ui_helper.createFooter()); ngx.print('\
+',ui_helper.createFooter(),'\
 <script src="/js/jszip.min.js"></script>\
 <script>\
 $("#save-config").on("click",function(){\
@@ -1731,7 +1734,7 @@ let target = $("#interfaces-to-add");\
 $("#config-file").on("change",function(evt) {\
   target.html("");\
   function addNewInterface(filename,content) {\
-    let name = filename.replace(/^.+\\//,"").replace(/\\.[^/.]+$/,"");\
+    let name = filename.replace(/^\\/.+/,"").replace(/\\.[^/.]+$/,"").replace(/-/,"_");\
     let group = $("<div>",{\
       "class" : "control-group"\
     });\
@@ -2075,7 +2078,9 @@ function M.receiveFile(filename,match)
     err_msg = "internal error"
   end
 
-  file:close()
+  if file then
+    file:close()
+  end
 
   return result,err_code,err_msg
 end
