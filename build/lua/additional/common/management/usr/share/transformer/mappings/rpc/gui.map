@@ -6,11 +6,21 @@ local release_version_cmd = format("%s -r0-9 -m2 --connect-timeout 1 https://raw
 local current_version = "" -- Set by build script
 local current_version_date = match(current_version,"(%d%d%d%d%.%d%d%.%d%d)@.*")
 local ignored_release_version_file = "/etc/tch-gui-unhide.ignored_release"
+local marketing_version = "" -- Set by build script
 
 local release_version = {
   date = nil,
   lastRetrieved = nil,
 }
+
+local function checkForUpgradeProcess()
+  local pgrep,procs = popen(format("pgrep -f 'tch-gui-unhide-%s'",marketing_version),"r"),""
+  if pgrep then
+    procs = pgrep:read("*a")
+    pgrep:close()
+  end
+  return procs
+end
 
 local function getIgnoredReleaseVersionDate()
   local version = ""
@@ -97,6 +107,10 @@ local GUI_ = {
         access = "readWrite",
         type = "string"
       },
+      UpdateRunningProcessID = {
+        access = "readOnly",
+        type = "string"
+      },
     }
   }
 }
@@ -123,6 +137,7 @@ GUI_.get = {
   UpdateNow = function()
     return ""
   end,
+  UpdateRunningProcessID = checkForUpgradeProcess
 }
 
 GUI_.set = {
@@ -141,15 +156,14 @@ GUI_.set = {
     end
   end,
   UpdateNow = function(_,_,value,_)
-    local pgrep,procs = popen(format("pgrep -f 'tch-gui-unhide-%s'",value),"r"),nil
-    if pgrep then
-      procs = pgrep:read("*a")
-      pgrep:close()
+    if value ~= marketing_version then
+      return nil,"Firmware version mismatch? Upgrade for "..value.." requested, but "..marketing_version.." installed!"
     end
+    local procs = checkForUpgradeProcess()
     if procs ~= "" then
-      return nil,"Upgrade already running?<br>"..procs
+      return nil,"Upgrade aborted! Already running ( Process ID = "..procs..")"
     end
-    local okay,response_code = download(format("https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/%s.tar.gz",value),"tch-gui-unhide.tar.gz")
+    local okay,response_code = download(format("https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/%s.tar.gz",marketing_version),"tch-gui-unhide.tar.gz")
     if okay then
       okay,response_code = download("https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/src/.extras",".extras")
       if okay then
@@ -171,10 +185,10 @@ GUI_.set = {
         os.execute(format("logger -t tch-gui-unhide -p user.warn Download of extras list FAILED (Response code=%s)",response_code))
       end
       -- build/common/890-Utilities-Upgrade has a dependency on the following command string!
-      os.execute(format("cd /tmp; tar -xzf tch-gui-unhide.tar.gz; rm .extras tch-gui-unhide.tar.gz; sh ./tch-gui-unhide -y 2>&1 | logger -t tch-gui-unhide -p user.info",value))
+      os.execute(format("cd /tmp; tar -xzf tch-gui-unhide.tar.gz; rm .extras tch-gui-unhide.tar.gz; sh ./tch-gui-unhide -y 2>&1 | logger -t tch-gui-unhide -p user.info",marketing_version))
       return true
     end
-    return nil,format("Download of https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/%s.tar.gz FAILED (Response code=%s)",value,response_code)
+    return nil,format("Download of https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/%s.tar.gz FAILED (Response code=%s)",marketing_version,response_code)
   end,
 }
 

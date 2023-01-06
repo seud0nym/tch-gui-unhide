@@ -111,7 +111,10 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
   tar --exclude COPYRIGHT --exclude COPYRIGHT_Lua51 -cf - -C lua/minifier/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
 
   echo "${GREEN}Updating rpc.gui.UnhideVersion...${NC}"
-  sed -e "s/current_version = \"\"/current_version = \"$FULL_VERSION\"/" -i /tmp/tch-gui-unhide/$MAJOR/usr/share/transformer/mappings/rpc/gui.map
+  sed \
+    -e "s/\(^local current_version = \)\(\"\"\)/\1\"$FULL_VERSION\"/" \
+    -e "s/\(^local marketing_version = \)\(\"\"\)/\1\"$MAJOR\"/" \
+    -i /tmp/tch-gui-unhide/$MAJOR/usr/share/transformer/mappings/rpc/gui.map
 
   echo "${GREEN}Fixing file and directory attributes...${NC}"
   find /tmp/tch-gui-unhide/$MAJOR/ -type f \( -name '*.ca' -o -name '*.map' -o -name '*.lp' -o -name '*.lua' -o -name '*.js' \) -exec chmod 644 {} \;
