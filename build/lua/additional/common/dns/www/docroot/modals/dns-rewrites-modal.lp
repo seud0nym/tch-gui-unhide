@@ -6,6 +6,7 @@ local dns_helper = require("dns_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local ui_helper = require("web.ui_helper")
+local tolower = string.lower
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
@@ -51,6 +52,9 @@ local rewrites_options = {
   createMsg = T"Add DNS rewrite",
   tableid = "rewrites",
   basepath = dnsmasq_path.."address.@.",
+  sorted = function(a,b)
+    return tolower(a.value) < tolower(b.value)
+  end
 }
 local function rewrites_filter(data)
   if data.value then
