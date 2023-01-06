@@ -1,0 +1,8 @@
+if ! grep -q 'firewall\.userredirect' /usr/share/transformer/commitapply/uci_firewall.ca; then
+  echo -e "[$SCRIPT]: Restart firewall after port forward change"
+  sed \
+    -e '1a\^firewall%.userredirect /etc/init.d/firewall restart ;' \
+    -i /usr/share/transformer/commitapply/uci_firewall.ca
+  SRV_transformer=$(( $SRV_transformer + 1 ))
+fi
+
