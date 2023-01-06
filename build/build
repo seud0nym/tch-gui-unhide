@@ -67,7 +67,7 @@ cd - >/dev/null
 
 echo "${GREEN}Building /tmp/themes.b64...${NC}"
 echo "echo -e \"\${GREY}BLD/069:\${NC} Deploy theme files\"" > /tmp/themes.b64
-echo "echo '$(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -cf - -C themes . | bzip2 --best | base64)' | base64 -d | bzcat | tar -xf - -C /" >> /tmp/themes.b64
+echo "echo '$(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -cf - -C themes . | bzip2 --best | base64 -w0)' | base64 -d | bzcat | tar -xf - -C /" >> /tmp/themes.b64
 echo "" >> /tmp/themes.b64
 
 for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
@@ -135,7 +135,7 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
       if [ $DIRECTORY = "common" ]; then
         [ -n "$DEBUG" ] && echo " - Compressing and appending /tmp/tch-gui-unhide/$MAJOR"
         echo "echo -e \"\${GREY}BLD/137:\${NC} Deploying modified GUI code\"" >> $TARGET
-        echo "echo '$(tar --owner=root --group=root -cf - -C /tmp/tch-gui-unhide/$MAJOR . | bzip2 --best | base64)' | base64 -d | bzcat | tar -xf - -C /" >> $TARGET
+        echo "echo '$(tar --owner=root --group=root -cf - -C /tmp/tch-gui-unhide/$MAJOR . | bzip2 --best | base64 -w0)' | base64 -d | bzcat | tar -xf - -C /" >> $TARGET
         echo >> $TARGET
       fi
     else
