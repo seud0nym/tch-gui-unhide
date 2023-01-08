@@ -234,11 +234,24 @@ NOTE:
 These scripts are not automatically downloaded, as they are not applicable to the standard installation.
 
 ## agh-clients.lua
-This script extracts the hosts and IP addresses known to the router and updates the client list in an AdGuard Home installation. It's primary purpose is to correctly resolve IPv6 addresses to their internal LAN host names.
+This script extracts the hosts and IP addresses known to the router and updates the client list in an AdGuard Home installation. It's primary purpose is to correctly resolve IPv6 addresses to their internal LAN host names when using dnsmasq for DHCP. It should not be necessary if you ar using AdGuard Home for DHCP.
 
 The script requires 2 parameters for each server to be updated: the address:port of the AdGuard Home server and the AdGuard Home username:password. You can update multiple AdGuardHome servers by repeating the address and credentials for each server 
 
 It is designed to be run as a scheduled cron task every few minutes. For example, the following cron task added to `/etc/crontabs/root` will update 2 different AdGuard Home servers (running independently on IP addresses 192.168.0.123 and 192.168.0.234) every 6 minutes:
 ```
 */6 * * * * /usr/bin/lua /mnt/usb/USB-A1/agh-clients.lua 192.168.0.123:8008 root:agh-admin 192.168.0.234:8008 root:agh-backup
+```
+
+### Recommendation
+Running `agh-clients.lua` regularly will resolve a lot of IPv6 addresses. However, some addresses (particularly those created by SLAAC) may still remain unresolved. Installing and running [ip6neigh](https://github.com/AndreBL/ip6neigh) will fix the remaining issues. Configure `ip6neigh` with the following options:
+```
+        option dad_snoop        '1'
+        option lla_label        '0'
+        option ula_label        '0'
+        option wula_label       '0'
+        option gua_label        '0'
+        option unrouted_label   '0'
+        option tmp_label        '0'
+        option man_label        '0'
 ```
