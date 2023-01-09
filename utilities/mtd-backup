@@ -90,7 +90,7 @@ PATH_ONLY=N
 RECALC_SHA=Y
 YES=N
 
-while getopts :cd:elosvy0CPU- option; do
+while getopts :cd:elosvy0CPU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in no-drop-cache) FLUSH=N;; *) usage;; esac;;
   C)  CRON=Y;;
