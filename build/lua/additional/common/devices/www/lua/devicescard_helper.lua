@@ -5,12 +5,14 @@ local format = string.format
 local tonumber = tonumber
 
 local device_modal_link = 'class="modal-link" data-toggle="modal" data-remote="modals/device-modal.lp" data-id="device-modal"'
+local all_devices_modal_link = 'class="modal-link" data-toggle="modal" data-remote="modals/device-modal.lp?connected=All" data-id="device-modal"'
 
 local M = {}
 
 function M.getDevicesCardHTML(all)
   local devices_data = {
-    numWireless = "sys.hosts.ActiveWirelessNumberOfEntries",
+    numWireless = "sys.hosts.WirelessNumberOfEntries",
+    activeWireless = "sys.hosts.ActiveWirelessNumberOfEntries",
     numEthernet = "sys.hosts.ActiveEthernetNumberOfEntries",
   }
   content_helper.getExactContent(devices_data)
@@ -31,8 +33,9 @@ function M.getDevicesCardHTML(all)
   end
 
   local nEth = tonumber(devices_data["numEthernet"]) or 0
-  local nWiFi = tonumber(devices_data["numWireless"]) or 0
-  if multiap and nAgtDevices > 0 and nEth > 0 then
+  local nWiFi = tonumber(devices_data["activeWireless"]) or 0
+  local iWiFi = (tonumber(devices_data["numWireless"]) or 0) - nWiFi
+  if multiap and nAgtDevices > 0 and nEth > nAgtDevices then
     nEth = nEth - nAgtDevices
   end
 
@@ -46,7 +49,11 @@ function M.getDevicesCardHTML(all)
   html[#html+1] = '</span>'
   html[#html+1] = '<span class="simple-desc">'
   html[#html+1] = '<i class="icon-wifi status-icon"></i>'
-  html[#html+1] = format(N('<strong %s>%d Wi-Fi device</strong> connected','<strong %s>%d Wi-Fi devices</strong> connected',nWiFi),device_modal_link,nWiFi)
+  html[#html+1] = format(N('<strong %s>%d Wi-Fi device</strong> active','<strong %s>%d Wi-Fi devices</strong> active',nWiFi),device_modal_link,nWiFi)
+  html[#html+1] = '</span>'
+  html[#html+1] = '<span class="simple-desc">'
+  html[#html+1] = '<i class="icon-wifi" style="color:grey"></i>'
+  html[#html+1] = format(N('<strong %s>%d Wi-Fi device</strong> inactive','<strong %s>%d Wi-Fi devices</strong> inactive',iWiFi),all_devices_modal_link,iWiFi)
   html[#html+1] = '</span>'
   if all and multiap then
     html[#html+1] = '<span class="simple-desc">'
