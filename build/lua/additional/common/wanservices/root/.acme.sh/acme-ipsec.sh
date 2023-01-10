@@ -5,12 +5,6 @@ then
   echo "ERROR! This script is intended for devices with Telstra firmware. Exiting"
   exit 1
 fi
-cat /proc/cpuinfo | grep -q 'ARMv7 Processor rev 1 (v7l)'
-if [ $? -ne 0 ]
-then
-  echo "ERROR! This script is intended for ARMv7 devices. Exiting"
-  exit 1
-fi
 
 # Inspired by https://gist.github.com/t413/3e616611299b22b17b08baa517d2d02c
 
