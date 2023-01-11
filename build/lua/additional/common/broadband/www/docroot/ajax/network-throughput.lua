@@ -6,13 +6,6 @@ local tonumber = tonumber
 local format = string.format
 local TGU_MbPS = ngx.shared.TGU_MbPS
 
-local wan_intf = "wan"
-local wwan = { ipaddr = "rpc.network.interface.@wwan.ipaddr", ip6addr = "rpc.network.interface.@wwan.ip6addr", }
-content_helper.getExactContent(wwan)
-if wwan.ipaddr:len() ~= 0 or wwan.ip6addr:len() ~= 0 then
-  wan_intf = "wwan"
-end
-
 local wan_data = {
   lan_rx = "rpc.network.interface.@lan.rx_bytes",
   lan_tx = "rpc.network.interface.@lan.tx_bytes",
@@ -45,7 +38,7 @@ for key,value in pairs(wan_data) do
   end
 end
 
-local tx_mbps,rx_mbps = TGU_MbPS:get(wan_intf.."_tx_mbps") or 0,TGU_MbPS:get(wan_intf.."_rx_mbps") or 0
+local tx_mbps,rx_mbps = (TGU_MbPS:get("wan_tx_mbps") or 0) + (TGU_MbPS:get("wwan_tx_mbps") or 0),(TGU_MbPS:get("wan_rx_mbps") or 0) + (TGU_MbPS:get("wwan_rx_mbps") or 0)
 
 local data = {
   wan = format("%.2f Mb/s <b>&uarr;</b><br>%.2f Mb/s <b>&darr;</b></span>",tx_mbps,rx_mbps),
