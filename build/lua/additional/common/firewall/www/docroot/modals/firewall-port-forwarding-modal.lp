@@ -222,10 +222,10 @@ local function globalValid(data)
   if #upnp_data ~= nil then
     for i,v in ipairs(upnp_data) do
       if v[1] == "TCP" or v[1] == "TCP+UDP" then
-        tcp[#tcp+1] = { start = tonumber(v[2]), ["end"] = tonumber(v[3]), index = i }
+        tcp[#tcp+1] = { start = tonumber(v[2]), ["end"] = tonumber(v[2]), index = i }
       end
       if v[1] == "UDP" or v[1] == "TCP+UDP" then
-        udp[#udp+1] = { start = tonumber(v[2]), ["end"] = tonumber(v[3]), index = i }
+        udp[#udp+1] = { start = tonumber(v[2]), ["end"] = tonumber(v[2]), index = i }
       end
     end
   end
