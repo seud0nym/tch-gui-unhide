@@ -1,3 +1,19 @@
+2023.01.11
+==========
+* tch-gui-unhide: Fixed bad argument error when reading CPU temperature on FW 20.4
+* tch-gui-unhide: Fixed port forwarding on FW 20.4 by restarting firewall after port forward change (rather than just reloading)
+* tch-gui-unhide: Fixed "Some parameters failed validation" error on System Extras on FW 20.4
+* tch-gui-unhide: Fixed incorrect validation errors when adding Port Forwards if UPnP entries exist that have different WAN and LAN ports (#129)
+* tch-gui-unhide: Added inactive Wi-Fi clients count to Devices card
+* tch-gui-unhide: Sort DNS Rewrites by domain name
+* tch-gui-unhide: Check for running upgrade process before starting GUI upgrade (#126)
+* tch-gui-unhide: WAN throughput charts should show combined WAN and WWAN throughput if Permanent WWAN enabled (#128)
+* tch-gui-unhide: New Port Forwarding validation rules not working on FW 17.2 and 18.1.c
+* tch-gui-unhide-xtra.wireguard: Wireguard client configuration import broken when minification enabled (#127)
+* de-telstra: Re-worked opkg configuration to remove requirement for internet connection when running
+* de-telstra: Now removes an NTP hotplug script that re-enabled bulkdata upload when time synced
+* mtd-backup: Fixed bug that caused --no-drop-cache to be not recognised as a valid option
+
 2022.12.31
 ==========
 * tch-gui-unhide: Fixed validation failed error when changing Telephony state and WAN Sensing disabled
