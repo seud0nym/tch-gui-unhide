@@ -297,7 +297,7 @@ config_wifi_technicolor() {
   echo -e "${GREEN}INFO${NC}:     Adding network ${ORANGE}$network${NC} to QoS Classify/Reclassify rules..."
   exec_uci add_list qos.reclassify_1.srcif="${network}"
   exec_uci add_list qos.classify_4.srcif="${network}"
-  exec_uci add_list qos.classify_4_1.srcif="${network}"
+  [ -n "$(uci -q get qos.classify_4_1)" ] && exec_uci add_list qos.classify_4_1.srcif="${network}"
 
   echo -e "${GREEN}INFO${NC}:     Restoring SSID ${ORANGE}$ssid${NC} Wi-Fi interface (${ifname})..."
   exec_uci set wireless.${ifname}=wifi-iface
@@ -444,7 +444,11 @@ else
 fi
 
 echo -e "${GREEN}INFO${NC}:     Commiting configuration changes..."
-uci commit
+for config in $(uci changes | cut -d. -f1 | sed -e 's/^-//' | sort -u); do
+  exec_uci commit $config
+done
+echo -e "${GREEN}INFO${NC}:     Synchronizing cached writes to persistent storage..."
+sync
 
 if [ "$__REBOOT" = "Y" ]; then
   echo -e "${ORANGE}INFO:     Rebooting...${NC}"
