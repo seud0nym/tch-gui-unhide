@@ -104,7 +104,7 @@ __REBOOT="Y"
 __VERBOSE="-q"
 __YES="n"
 
-while getopts :12envyU: option; do
+while getopts :12envyU option; do
  case "${option}" in
   2)  [ $__BAND = "2.4GHz/5GHz" ] && __BAND="2.4GHz" || abort "-2 and -5 are mutually exclusive. You cannot specify both.";;
   5)  [ $__BAND = "2.4GHz/5GHz" ] && __BAND="5GHz" || abort "-2 and -5 are mutually exclusive. You cannot specify both.";;
