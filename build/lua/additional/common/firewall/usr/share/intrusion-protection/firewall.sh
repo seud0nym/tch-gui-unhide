@@ -10,7 +10,7 @@ if [ "$enabled" = "0" ]; then
   iptables -nL zone_wan_input | grep -q Intrusion_Protection && iptables -D zone_wan_input -j Intrusion_Protection
   iptables -nL zone_wan_forward | grep -q Intrusion_Protection && iptables -D zone_wan_forward -j Intrusion_Protection
   iptables -nL | grep -q "Chain Intrusion_Protection" && { iptables -F Intrusion_Protection; iptables -X Intrusion_Protection; }
-  exit
+  exit 0
 fi
 
 iptables -nL | grep -q "Chain Intrusion_Protection" || iptables -N Intrusion_Protection
