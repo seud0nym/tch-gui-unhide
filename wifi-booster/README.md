@@ -96,17 +96,18 @@ On the primary device, you must manually configure the following items:
 2. Disable the Back-haul SSID, unless you have a "real" Telstra Smart Wi-Fi Booster. It is only used for wireless back-haul, and these scripts configure wired back-haul only.
 
 ### Booster Device (Agent) SSIDs Not Updated
-If the booster device does not acquire the either or both of the SSIDs, disable and then re-enable the Agent on the booster device. This normally resolves the issue within a minute.
+If the booster device does not acquire either or both of the SSIDs, disable and then re-enable the Agent on the booster device. This normally resolves the issue within a minute.
 
 ### Notes
 1. After running the script, you can move the cable from the LAN port to the WAN port if you wish. This is not mandatory, as when the device is running in bridged mode, all 5 ports are effectively LAN ports.
 2. A reboot is recommended after running the script. (The script will automatically reboot the device unless you specify otherwise.)
-3. You should see the booster device registered on the primary device within 1 minute (or even faster with Gen 3 devices). 
+3. You should see the booster device registered on the primary device within 1 minute. 
+4. If the booster device does not report that 3 SSIDs have been synced and/or the controller doesn't recognise the booster, try disabling the Agent on the booster device, save, wait a minute or two, then re-enable.
 
 # How to download and execute the script
 Execute this command on your device via a PuTTY session or equivalent (an active WAN/Internet connection is required):
 ```
-curl -skLo bridged-booster https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/wifi-booster/bridged-booster
+curl -kLO https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/wifi-booster/bridged-booster
 ```
 
 Alternatively, download the script manually and load it up to your device using WinSCP or equivalent.
