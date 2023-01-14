@@ -440,6 +440,12 @@ else
     config_network_and_firewall "Guest1"      "192.168.2.126" "255.255.255.128" "1" "1"   "125" "$wl"
     config_wifi_technicolor     "Guest1"      "$wl" "radio_2G" "$ap" "r0_s1" "Guest1"
   fi
+  if [ $(uci -q show network | grep -E '\.Guest.*=interface' | wc -l) -eq 0 -a "$(uci -q get wireless.wl1_1)" = "wifi-iface" -a -z "$(uci -q get wireless.wl1_2)" ]; then
+    echo -e "${GREEN}INFO${NC}:     Renaming wireless interface ${ORANGE}wl1_1${NC} to ${ORANGE}wl1_2${NC}..."
+    ap=$(uci -q show wireless | grep "iface='wl1_1'" | cut -d. -f1-2)
+    exec_uci rename wireless.wl1_1='wl1_2'
+    exec_uci set $ap.iface='wl1_2'
+  fi
   if echo "$__BAND" | grep -q "5GHz"; then
     wl="$(find_next wl1_)"
     ap="$(find_next ap)"
