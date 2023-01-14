@@ -47,6 +47,9 @@ The mmpbxd daemon refuses to resolve IP addresses directly through AdGuard Home.
 - enter an IP address instead of a domain address in the SIP Network Primary Registrar field on the Telephony Global tab; OR
 - specify the `-k` option when running the setup script. This will keep dnsmasq as the DNS Server, but all DNS queries will be resolved by AdGuard Home.
 
+Alternatively, you can use the scripts developed by @SmartBoy84 to periodically reconfigure mmpbxd with the correct address. They can be found here:
+https://github.com/SmartBoy84/TelephonyPatch
+
 ## Free RAM Requirements
 The forum post starts by saying that devices require 100MB RAM free. A subsequent post indicates around 30MB.
 
