@@ -12,8 +12,9 @@ local M = {}
 function M.getDevicesCardHTML(all)
   local devices_data = {
     numWireless = "sys.hosts.WirelessNumberOfEntries",
+    numEthernet = "sys.hosts.EthernetNumberOfEntries",
     activeWireless = "sys.hosts.ActiveWirelessNumberOfEntries",
-    numEthernet = "sys.hosts.ActiveEthernetNumberOfEntries",
+    activeEthernet = "sys.hosts.ActiveEthernetNumberOfEntries",
   }
   content_helper.getExactContent(devices_data)
 
@@ -33,10 +34,11 @@ function M.getDevicesCardHTML(all)
   end
 
   local nEth = tonumber(devices_data["numEthernet"]) or 0
-  local nWiFi = tonumber(devices_data["activeWireless"]) or 0
-  local iWiFi = (tonumber(devices_data["numWireless"]) or 0) - nWiFi
+  local activeEth = tonumber(devices_data["activeEthernet"]) or 0
+  local activeWiFi = tonumber(devices_data["activeWireless"]) or 0
+  local inactive = ((tonumber(devices_data["numWireless"]) or 0) - activeWiFi) + (nEth - activeEth)
   if multiap and nAgtDevices > 0 and nEth > nAgtDevices then
-    nEth = nEth - nAgtDevices
+    activeEth = nEth - nAgtDevices
   end
 
   local bwstats_enabled = proxy.get("rpc.gui.bwstats.enabled")
@@ -45,15 +47,15 @@ function M.getDevicesCardHTML(all)
 
   html[#html+1] = '<span class="simple-desc">'
   html[#html+1] = '<i class="icon-link status-icon"></i>'
-  html[#html+1] = format(N('<strong %s>%d ethernet device</strong> connected','<strong %s>%d ethernet devices</strong> connected',nEth),device_modal_link,nEth)
+  html[#html+1] = format(N('<strong %s>%d ethernet device</strong> connected','<strong %s>%d ethernet devices</strong> connected',activeEth),device_modal_link,activeEth)
   html[#html+1] = '</span>'
   html[#html+1] = '<span class="simple-desc">'
   html[#html+1] = '<i class="icon-wifi status-icon"></i>'
-  html[#html+1] = format(N('<strong %s>%d Wi-Fi device</strong> active','<strong %s>%d Wi-Fi devices</strong> active',nWiFi),device_modal_link,nWiFi)
+  html[#html+1] = format(N('<strong %s>%d Wi-Fi device</strong> active','<strong %s>%d Wi-Fi devices</strong> active',activeWiFi),device_modal_link,activeWiFi)
   html[#html+1] = '</span>'
   html[#html+1] = '<span class="simple-desc">'
   html[#html+1] = '<i class="icon-wifi" style="color:grey"></i>'
-  html[#html+1] = format(N('<strong %s>%d Wi-Fi device</strong> inactive','<strong %s>%d Wi-Fi devices</strong> inactive',iWiFi),all_devices_modal_link,iWiFi)
+  html[#html+1] = format(N('<strong %s>%d device</strong> inactive','<strong %s>%d devices</strong> inactive',inactive),all_devices_modal_link,inactive)
   html[#html+1] = '</span>'
   if all and multiap then
     html[#html+1] = '<span class="simple-desc">'
