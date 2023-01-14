@@ -212,6 +212,11 @@ config_network_and_firewall() {
   echo -e "${GREEN}INFO${NC}:     Restoring Firewall Zone for network ${ORANGE}$network${NC}..."
   exec_uci add firewall zone
   exec_uci set firewall.@zone[-1].name="${network}"
+  exec_uci set firewall.@zone[-1].input='DROP'
+  exec_uci set firewall.@zone[-1].output='ACCEPT'
+  exec_uci set firewall.@zone[-1].forward='REJECT'
+  exec_uci set firewall.@zone[-1].mtu_fix='1'
+  exec_uci set firewall.@zone[-1].wan='0'
   exec_uci add_list firewall.@zone[-1].network="${network}"
 
   echo -e "${GREEN}INFO${NC}:     Restoring WAN forwarding for network ${ORANGE}$network${NC}..."
