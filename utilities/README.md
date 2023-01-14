@@ -5,6 +5,7 @@ A collection of utility scripts for your Technicolor router. Most of the names a
 - [dumaos](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos)
 - [guest-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#guest-restore)
 - [hijack-dns](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#hijack-dns)
+- [move-lan-port-to-own-network](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#move-lan-port-to-own-network)
 - [mtd-backup](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-backup)
 - [mtd-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-restore)
 - [overlay-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#overlay-restore)
@@ -163,8 +164,7 @@ Options:
  -5   Do NOT restore the 5GHz Guest Wi-Fi SSID
  -e   Enable Guest Wi-Fi
         (Default is to leave Guest Wi-Fi disabled)
- -n   Do NOT reboot.
-        (This is NOT recommended)
+ -r   Reboot after applying configuration
  -v   Show verbose messages
  -y   Bypass the confirmation prompt (answers "y")
  -U   Download the latest version of guest-restore from GitHub
@@ -206,6 +206,45 @@ _NOTE_: **tch-gui-unhide releases starting with 2021.08.18 allow you to enable a
 
 ## intercept-dns
 *The intercept-dns script has been renamed to [hijack-dns](#hijack-dns) to avoid confusion with the intercept daemon.*
+
+## move-lan-port-to-own-network
+Moves a LAN port from the LAN bridge to its own network.
+```
+Usage: ./move-lan-port-to-own-network [options]
+
+Options:
+ -p 2|3|4     Specifies the LAN port to be moved to its own network. Use of LAN
+                port 1 is not supported. When used in conjunction with -R, 
+                specifies the port to be moved back to the LAN bridge. If not 
+                specified, defaults to '4'.
+ -n name      The interface name of the network. This is the name that will 
+                appear in the Local Network screen to manage the network. If not
+                specified, defaults to 'Port'+port number.
+ -i n.n.n.n   Specifies the IP address to be assigned to the LAN port. Cannot be
+                in an existing IP range used by other networks (e.g. LAN. Guest).
+                If not specified, defaults to '192.168.3.1'.
+ -m n.n.n.n   Specifies the subnet mask to be applied to the new network. If not 
+                specified, defaults to '255.255.255.0'.
+                NOTE: Only 255.255.255.0 is currently supported.
+ -6 n         Specifies the IPv6 hint to be assigned to the new network. Use 'n' 
+                to disable IPv6 on this network. If not specified, defaults to 
+                the next available hint.
+ -d domain    The domain name to use for the new network. If not specified, 
+                defaults to 'modem'.
+ -h hostname  The host name to be associated with the IP address. If not 
+                specified, defaults to the same as the LAN hostname.
+ -f g|g5|l|c  Add the new network into the specified firewall zone:
+                  g  = Guest
+                  g5 = 5GHz Guest (same as g on FW 20.4)
+                  l  = LAN
+                  c  = Create new firewall zone
+                If not specified, defaults to g (Guest), unless it does not exist,
+                in which case it will be assigned to the l (LAN) zone.
+ -R           Restore the LAN port to the LAN bridge.
+ -v           Show verbose messages
+ -y           Bypass the confirmation prompt (answers "y")
+ -U           Download the latest version of move-lan-port-to-own-network from GitHub
+```
 
 ## mtd-backup
 Backs up mtd or ubifs device partitions to an attached USB device or SSHFS attached filesystem. Only unchanged partitions are backed up after the first execution.
