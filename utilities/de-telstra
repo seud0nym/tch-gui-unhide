@@ -3406,8 +3406,8 @@ if [ "$__WPS" = "u" ]; then
 else
   if [ $(uci -q show wireless | grep '=wifi-ap' | wc -l) -eq 0 ]; then
     for path in $(transformer-cli get rpc.X_AIRTIES_Obj.MultiAPController.SSIDProfile.| grep 'SSID \[string\] = ' | grep -vE '= ($|Guest|BH-)' | cut -d. -f1-5); do
-      ssid="$(transformer-cli get ${path}.SSID | cut -d= -f2 | xargs)"
-      [ "$(transformer-cli get ${path}.WPS | cut -d= -f2 | xargs)" = true ] && wps_state=1 || wps_state=0
+      ssid="$(transformer-cli get ${path}.SSID | cut -d= -f2 | sed -e 's/^ *//')"
+      [ "$(transformer-cli get ${path}.WPS | cut -d= -f2 | sed -e 's/^ *//')" = true ] && wps_state=1 || wps_state=0
       if [ "$wps_state" = "$__WPS" ]; then
         echo [$SCRIPT]: WPS State unchanged on SSID $ssid \[$(status2text $__WPS)\]
       else
