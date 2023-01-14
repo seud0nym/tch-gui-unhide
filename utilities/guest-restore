@@ -25,8 +25,7 @@ Options:
  -5   Do NOT restore the 5GHz Guest Wi-Fi SSID
  -e   Enable Guest Wi-Fi
         (Default is to leave Guest Wi-Fi disabled)
- -n   Do NOT reboot.
-        (This is NOT recommended)
+ -r   Reboot after applying configuration
  -v   Show verbose messages
  -y   Bypass the confirmation prompt (answers "y")
  -U   Download the latest version of $SCRIPT from GitHub
@@ -66,10 +65,12 @@ exec_uci() {
 }
 
 revert() {
-  echo -e "${ORANGE}INFO${NC}:     Clearing any outstanding UCI settings..."
-  for config in $(uci changes | cut -d. -f1 | sed -e 's/^-//' | sort -u); do
-    exec_uci revert $config
-  done
+  if [ -n "$(uci changes)" ]; then
+    echo -e "${ORANGE}INFO${NC}:     Clearing any outstanding UCI settings..."
+    for config in $(uci changes | cut -d. -f1 | sed -e 's/^-//' | sort -u); do
+      exec_uci revert $config
+    done
+  fi
 }
 
 abort() {
@@ -100,16 +101,16 @@ upgrade() {
 
 __BAND="2.4GHz/5GHz"
 __ENABLED="0"
-__REBOOT="Y"
+__REBOOT="n"
 __VERBOSE="-q"
 __YES="n"
 
-while getopts :12envyU option; do
+while getopts :12ervyU option; do
  case "${option}" in
   2)  [ $__BAND = "2.4GHz/5GHz" ] && __BAND="2.4GHz" || abort "-2 and -5 are mutually exclusive. You cannot specify both.";;
   5)  [ $__BAND = "2.4GHz/5GHz" ] && __BAND="5GHz" || abort "-2 and -5 are mutually exclusive. You cannot specify both.";;
   e)  __ENABLED="1";;
-  n)  __REBOOT="N";;
+  r)  __REBOOT="y";;
   v)  __VERBOSE="";;
   y)  __YES="y";;
   U)  upgrade;;
@@ -119,7 +120,7 @@ done
 
 echo -e "NOTE:     Guest Wi-Fi to be restored: ${GREEN}$__BAND${NC}..."
 [ $__ENABLED = 0 ] && echo -e "NOTE:     Guest Wi-Fi will ${ORANGE}NOT${NC} be enabled" || echo -e "NOTE:     Guest Wi-Fi ${GREEN}WILL${NC} be enabled"
-[ $__REBOOT = Y ] && echo -e "${ORANGE}WARNING:  Device will be rebooted!${NC}" || echo -e "NOTE:     Device will ${RED}NOT${NC} be rebooted (NOT RECOMMENDED)"
+[ $__REBOOT = Y ] && echo -e "${ORANGE}WARNING:  Device will be rebooted!${NC}" || echo -e "NOTE:     Device will ${ORANGE}NOT${NC} be rebooted"
 
 if [ $__YES = n ]; then
   echo -n -e "${GREEN}ACTION:   Enter y to continue, or anything else to abort: ${NC}"
@@ -381,10 +382,10 @@ config_wifi_airties() {
 }
 
 restart_services() {
+  echo -e "${NC}APPLYING: Network configuration${GREY}"  && /etc/init.d/network reload
   echo -e "${NC}APPLYING: Wireless configuration${GREY}"
   [ -e /etc/init.d/hostapd ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; }
   [ -e /etc/init.d/hostapd ] || { ubus call wireless reload  && ubus send config "{'reload':'wireless'}"; }
-  echo -e "${NC}APPLYING: Network configuration${GREY}"  && /etc/init.d/network reload
   [ -e /etc/config/mesh_broker ] && echo -e "${NC}APPLYING: Mesh Broker configuration${GREY}" && /etc/init.d/mesh-broker restart
   [ -e /etc/config/multiap ]     && echo -e "${NC}APPLYING: MultiAP configuration${GREY}"     && { /etc/init.d/multiap_controller restart; /etc/init.d/multiap_agent restart; /etc/init.d/multiap_vendorextensions restart; }
   echo -e "${NC}APPLYING: DHCP configuration${GREY}"     && /etc/init.d/dnsmasq reload
@@ -461,20 +462,20 @@ done
 echo -e "${GREEN}INFO${NC}:     Synchronizing cached writes to persistent storage..."
 sync
 
-if [ "$__REBOOT" = "Y" ]; then
+if [ "$__REBOOT" = "y" ]; then
   echo -e "${ORANGE}INFO:     Rebooting...${NC}"
   if [ -e /proc/sysrq-trigger ]; then
     sleep 1
+    echo -e "${GREEN}INFO:     Done!${NC}"
     echo 1 > /proc/sys/kernel/sysrq
     echo b > /proc/sysrq-trigger
   else
     reboot
+    echo -e "${GREEN}INFO:     Done!${NC}"
   fi
   sleep 10
 else
   echo -e "${GREEN}INFO${NC}:     Restarting services to apply changes..."
   [ -z "$__VERBOSE" ] && restart_services || restart_services > /dev/null 2>&1
-
-  echo -e "${ORANGE}ACTION:   You really should power cycle the device now!${NC}"
   echo -e "${GREEN}INFO:     Done!${NC}"
 fi
