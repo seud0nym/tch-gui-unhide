@@ -1,6 +1,6 @@
 echo -e "[$SCRIPT]: Allow DHCP logging"
 sed \
-  -e 's/"localise_queries", "logqueries"/"localise_queries", "logdhcp", "logqueries"/' \
+  -e 's/"localise_queries", "logqueries"/"localise_queries", "logdhcp", "quietdhcp", "logqueries"/' \
   -e '$ a\ \
 -- uci.dhcp.odhcpd.{i}\
 local dhcp_odhcpd = {\

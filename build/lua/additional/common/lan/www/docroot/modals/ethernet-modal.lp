@@ -332,6 +332,7 @@ local mapParams = {
   dhcpIgnore = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".ignore",
   dhcpLimit = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".limit",
   dhcplog = dnsmasq_path.."logdhcp",
+  dhcpquiet = dnsmasq_path.."quietdhcp",
   dhcplogv6 = "uci.dhcp.odhcpd.@odhcpd.loglevel",
   dhcpStart = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".start",
   dhcpv4State = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcpv4",
@@ -530,6 +531,7 @@ local mapValid = {
   dhcpIgnore = ethernet_helper.validateDHCPIgnore,
   dhcpLimit = ethernet_helper.validateDHCPLimit(cur_intf,cur_dhcp_intf,local_dev_ip),
   dhcplog = gOV(vB),
+  dhcpquiet = gOV(vB),
   dhcplogv6 = gOV(gVNIR(6,7)),
   dhcpStart = ethernet_helper.validateDHCPStart(cur_intf,cur_dhcp_intf,local_dev_ip),
   dhcpv4State = ethernet_helper.validateDHCPState(),
@@ -709,6 +711,9 @@ if content["localIPv6"] and content["localIPv6"] == "" then
 end
 if content["dhcplog"] and content["dhcplog"] == "" then
   content["dhcplog"] = "0"
+end
+if content["dhcpquiet"] and content["dhcpquiet"] == "" then
+  content["dhcpquiet"] = "0"
 end
 if content["dhcplogv6"] and content["dhcplogv6"] == "" then
   content["dhcplogv6"] = "6"
@@ -990,13 +995,20 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                     off = "6"
                   }
                 }
+                local switchDHCPv4Log = {
+                  values = {
+                    on = "0",
+                    off = "1"
+                  }
+                }
                 ngx.print(
                   ui_helper.createSwitch(T"DHCPv4 Server","dhcpv4State",content["dhcpv4State"],switchDHCP),
                   ui_helper.createLabel(T"Network Address",network,advanced),
                   ui_helper.createInputText(T"DHCP Start Address","dhcpStartAddress",ipstart,advanced,helpmsg["dhcpStart"]),
                   ui_helper.createInputText(T"DHCP End Address","dhcpEndAddress",ipend,advanced,helpmsg["dhcpLimit"]),
                   ui_helper.createInputText(T"Lease Time","leaseTime",content["leaseTime"],advanced,helpmsg["leaseTime"]),
-                  ui_helper.createSwitch(T"Log DHCP Requests","dhcplog",content["dhcplog"])
+                  ui_helper.createSwitch(T"Standard DHCP Logging","dhcpquiet",content["dhcpquiet"],switchDHCPv4Log),
+                  ui_helper.createSwitch(T"Extra DHCP Logging","dhcplog",content["dhcplog"])
                 )
                 local ntpServerEnabled = proxy.get("uci.system.ntp.enable_server")
                 if ntpServerEnabled and ntpServerEnabled[1].value == "1" then
