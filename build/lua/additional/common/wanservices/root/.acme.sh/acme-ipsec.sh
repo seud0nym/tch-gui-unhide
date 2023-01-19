@@ -243,7 +243,7 @@ else
       if [ "$HOMEWARE" -eq 17 -o "$HOMEWARE" -eq 18 -o "$HOMEWARE" -eq 20 ]
       then
         _log user.info "Configuring opkg for Homeware $HOMEWARE..."
-        echo "dest root">/etc/opkg.conf
+        echo "dest root /">/etc/opkg.conf
         echo "dest ram /tmp">>/etc/opkg.conf
         echo "lists_dir ext /var/opkg-lists">>/etc/opkg.conf
         echo "option overlay_root /overlay">>/etc/opkg.conf

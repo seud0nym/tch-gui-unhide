@@ -381,7 +381,7 @@ GUI_OPKG_.set = {
         return nil, "Unsupported architecture"
       end
       os.execute("rm /etc/opkg.conf;\
-        echo 'dest root'>/etc/opkg.conf;\
+        echo 'dest root /'>/etc/opkg.conf;\
         echo 'dest ram /tmp'>>/etc/opkg.conf;\
         echo 'lists_dir ext /var/opkg-lists'>>/etc/opkg.conf;\
         echo 'option overlay_root /overlay'>>/etc/opkg.conf;\

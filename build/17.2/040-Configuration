@@ -1,0 +1,6 @@
+# Missing path on opkg "dest root" directive in de-telstra, acme-ipsec.sh and gui.opkg.map
+if grep -q '^dest root$' /etc/opkg.conf; then
+  echo -e "[$SCRIPT]: Fixing opkg 'dest root' directive"
+  sed -e 's|^dest root$|& /|' -i /etc/opkg.conf
+fi
+

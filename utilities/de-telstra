@@ -3751,7 +3751,7 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
       if [ "$HOMEWARE" -ge 17 -a "$HOMEWARE" -le 20 ]; then
         echo [$SCRIPT]: Configuring opkg architectures...
         rm /etc/opkg.conf
-        echo 'dest root'>/etc/opkg.conf
+        echo 'dest root /'>/etc/opkg.conf
         echo 'dest ram /tmp'>>/etc/opkg.conf
         echo 'lists_dir ext /var/opkg-lists'>>/etc/opkg.conf
         echo 'option overlay_root /overlay'>>/etc/opkg.conf

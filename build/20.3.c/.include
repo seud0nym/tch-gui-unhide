@@ -1,4 +1,5 @@
 # Lines in this file must be specified in the format <filename>/<dirname relative to build dir>
+040-Configuration/17.2
 040-Configuration/18.1.c
 065-MultiAP/18.1.c
 066-QoS/18.1.c
