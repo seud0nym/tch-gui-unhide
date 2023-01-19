@@ -1,8 +1,21 @@
-echo -e "[$SCRIPT]: Update gateway card with hardware temperature monitors"
+echo -e "[$SCRIPT]: Searching for hardware temperature monitors..."
 elements=""
 for m in $(find /sys/devices/ -name temp1_input); do
   elements="$elements\"$m\","
 done
-sed \
-  -e "s|\(local temp1_input = {\)|\1$elements|" \
-  -i /www/lua/gatewaycard_helper.lua
+if [ -n "$elements" ]; then
+  echo -e "[$SCRIPT]: Update gateway card with hardware temperature monitors"
+  sed -e "s|\(local temp1_input = {\)|\1$elements|" -i /www/lua/gatewaycard_helper.lua
+else
+  echo -e "[$SCRIPT]: No temperature monitors found - removing from gateway card"
+  sed \
+    -e "/local temp1_input/,/end/d" \
+    -e "/temps = /d"
+    -i /www/lua/gatewaycard_helper.lua
+  sed \
+    -e "/Sensor Temperatures:/d"
+    -i /www/cards/001_gateway.lp
+  sed \
+    -e "/#gateway-card-temps/d"
+    -i /www/docroot/js/001_gateway.js
+fi
