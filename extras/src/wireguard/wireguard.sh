@@ -144,7 +144,7 @@ HLP
   if ! grep -q 'numVPNClient' /www/lua/devicescard_helper.lua; then
     sed \
       -e '/ActiveEthernetNumberOfEntries/a\    numVPNClient = "rpc.gui.wireguard.server_active_peers",' \
-      -e '/local nWiFi/a\  local nVPN = tonumber(devices_data["numVPNClient"]) or 0' \
+      -e '/local nEth/a\  local nVPN = tonumber(devices_data["numVPNClient"]) or 0' \
       -e "/WireGuard/a\  html[#html+1] = '<span class=\"simple-desc\">'\
     html[#html+1] = '<i class=\"icon-cloud status-icon\"></i>'\
     html[#html+1] = format(N('<strong %1\$s>%2\$d WireGuard peer</strong> connected','<strong %1\$s>%2\$d WireGuard peers</strong> connected',nVPN),'class=\"modal-link\" data-toggle=\"modal\" data-remote=\"modals/wireguard-modal.lp\" data-id=\"wireguard-modal\"',nVPN)\
