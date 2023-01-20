@@ -717,6 +717,8 @@ if content["dhcpquiet"] and content["dhcpquiet"] == "" then
 end
 if content["dhcplogv6"] and content["dhcplogv6"] == "" then
   content["dhcplogv6"] = "6"
+elseif tonumber(content["dhcplogv6"]) < 4 then
+  content["dhcplogv6"] = "4"
 end
 
 local ipstart,ipend,network
@@ -989,12 +991,6 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                     off = "disabled"
                   }
                 }
-                local switchDHCPv6Log = {
-                  values = {
-                    on = "7",
-                    off = "6"
-                  }
-                }
                 local switchDHCPv4Log = {
                   values = {
                     on = "0",
@@ -1008,7 +1004,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                   ui_helper.createInputText(T"DHCP End Address","dhcpEndAddress",ipend,advanced,helpmsg["dhcpLimit"]),
                   ui_helper.createInputText(T"Lease Time","leaseTime",content["leaseTime"],advanced,helpmsg["leaseTime"]),
                   ui_helper.createSwitch(T"Standard DHCP Logging","dhcpquiet",content["dhcpquiet"],switchDHCPv4Log),
-                  ui_helper.createSwitch(T"Extra DHCP Logging","dhcplog",content["dhcplog"])
+                  ui_helper.createSwitch(T"Detailed DHCP Logging","dhcplog",content["dhcplog"])
                 )
                 local ntpServerEnabled = proxy.get("uci.system.ntp.enable_server")
                 if ntpServerEnabled and ntpServerEnabled[1].value == "1" then
@@ -1036,7 +1032,16 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                   ui_helper.createSwitch(T"SLAAC + RA<span class='icon-question-sign' title='IPv6 Stateless Address Auto-Configuration + Router Advertisement'></span>","slaacState",content["slaacState"],switchDHCP)
                 )
                 if cur_dhcp_intf == "lan" then
-                  ngx.print(ui_helper.createSwitch(T"Log DHCPv6 Requests","dhcplogv6",content["dhcplogv6"],switchDHCPv6Log))
+                  local select_attr = {
+                    select = { class = "span2", }
+                  }
+                  local dhcpv6LogLevel = {
+                    {"4",T"Warnings and Errors only"},
+                    {"5",T"Minimal"},
+                    {"6",T"Standard"},
+                    {"7",T"Detailed"},
+                  }
+                  ngx.print(ui_helper.createInputSelect(T"DHCPv6 Logging","dhcplogv6",dhcpv6LogLevel,content["dhcplogv6"],select_attr,helpmsg["dhcplogv6"]))
                 end
                 if dns_int_ipv6_ok and not helpmsg["dns_v6_pri"] and not helpmsg["dns_v6_sec"]  then
                   local dns_v6_pri = gsub(untaint(content["dns_v6_pri"]),"-",":")
