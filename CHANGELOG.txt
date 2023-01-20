@@ -15,6 +15,7 @@
 * tch-gui-unhide: WAN throughput charts should show combined WAN and WWAN throughput if Permanent WWAN enabled (#128)
 * tch-gui-unhide: New Port Forwarding validation rules not working on FW 17.2 and 18.1.c
 * tch-gui-unhide-xtra.wireguard: Wireguard client configuration import broken when minification enabled (#127)
+* tch-gui-unhide-xtra.wireguard: Devices card broken after commit 7dc6ded (#133)
 * de-telstra: Re-worked opkg configuration to remove requirement for internet connection when running
 * de-telstra: Now removes an NTP hotplug script that re-enabled bulkdata upload when time synced
 * de-telstra: Telstra AIR firewall and QoS rules were not being removed in FW 20.3.c and 20.4
