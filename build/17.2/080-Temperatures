@@ -8,14 +8,7 @@ if [ -n "$elements" ]; then
   sed -e "s|\(local temp1_input = {\)|\1$elements|" -i /www/lua/gatewaycard_helper.lua
 else
   echo -e "[$SCRIPT]: No temperature monitors found - removing from gateway card"
-  sed \
-    -e "/local temp1_input/,/end/d" \
-    -e "/temps = /d"
-    -i /www/lua/gatewaycard_helper.lua
-  sed \
-    -e "/Sensor Temperatures:/d"
-    -i /www/cards/001_gateway.lp
-  sed \
-    -e "/#gateway-card-temps/d"
-    -i /www/docroot/js/001_gateway.js
+  sed -e "/local temp1_input/,/end/d" -e "/temps = /d" -i /www/lua/gatewaycard_helper.lua
+  sed -e "/Sensor Temperatures:/d" -i /www/cards/001_gateway.lp
+  sed -e "/#gateway-card-temps/d" -i /www/docroot/js/001_gateway.js
 fi
