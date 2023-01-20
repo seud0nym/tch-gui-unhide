@@ -1,10 +1,15 @@
-2023.01.11
+2023.01.20
 ==========
 * tch-gui-unhide: Fixed bad argument error when reading CPU temperature on FW 20.4
 * tch-gui-unhide: Fixed port forwarding on FW 20.4 by restarting firewall after port forward change (rather than just reloading)
 * tch-gui-unhide: Fixed "Some parameters failed validation" error on System Extras on FW 20.4
 * tch-gui-unhide: Fixed incorrect validation errors when adding Port Forwards if UPnP entries exist that have different WAN and LAN ports (#129)
-* tch-gui-unhide: Added inactive Wi-Fi clients count to Devices card
+* tch-gui-unhide: Fixed missing path on opkg "dest root" directive
+* tch-gui-unhide: Fixed missing CPU Usage when background refresh disabled (#132)
+* tch-gui-unhide: Removed Sensor Temperatures from Gateway card if no hardware temperature monitors found (#132)
+* tch-gui-unhide: Allow Devices card in Bridged mode
+* tch-gui-unhide: Added inactive devices count to Devices card
+* tch-gui-unhide: Added more control over DHCP logging
 * tch-gui-unhide: Sort DNS Rewrites by domain name
 * tch-gui-unhide: Check for running upgrade process before starting GUI upgrade (#126)
 * tch-gui-unhide: WAN throughput charts should show combined WAN and WWAN throughput if Permanent WWAN enabled (#128)
@@ -12,6 +17,17 @@
 * tch-gui-unhide-xtra.wireguard: Wireguard client configuration import broken when minification enabled (#127)
 * de-telstra: Re-worked opkg configuration to remove requirement for internet connection when running
 * de-telstra: Now removes an NTP hotplug script that re-enabled bulkdata upload when time synced
+* de-telstra: Telstra AIR firewall and QoS rules were not being removed in FW 20.3.c and 20.4
+* de-telstra: Fixed "xargs: unmatched single quote" error when SSID contain single quote
+* de-telstra: Fixed missing path on opkg "dest root" directive
+* guest-restore: Failed to restore correctly on any firmware before 20.3.c.0432
+* guest-restore: Update option (-U) incorrectly failed when no argument provided
+* guest-restore: Configuration lists incorrectly applied as options could break transformer service
+* guest-restore: Firewall zones were missing default actions
+* guest-restore: Moved MultiAP backhaul interface back to wl_2 as per default configuration
+* guest-restore: Reboot on completion is now optional
+* guest-restore: Abort if Guest network interfaces already exist
+* move-lan-port-to-own-network: New script to move a LAN port from the LAN bridge to its own network
 * mtd-backup: Fixed bug that caused --no-drop-cache to be not recognised as a valid option
 
 2022.12.31
@@ -47,12 +63,12 @@
 * tch-gui-unhide: Fixed clicking on SSID to show Wi-Fi QR Code not working on FW 20.4
 * tch-gui-unhide: Fixed Device Bandwidth Monitor not correctly enabled
 * tch-gui-unhide: Allow Telephony Global configuration even when mmpbx disabled
-* tch-gui-unhide: When specifying show individual Chart cards (-Ci option) WAN UP/Down cards not shown if device is in bridged mode
-* tch-gui-unhide: WAN Sensing status incorrectly shown on Broadband card in bridged mode
+* tch-gui-unhide: When specifying show individual Chart cards (-Ci option) WAN UP/Down cards not shown if device is in Bridged mode
+* tch-gui-unhide: WAN Sensing status incorrectly shown on Broadband card in Bridged mode
 * tch-gui-unhide: Removed scheduled update of opkg package lists at the request of repository owner, because some users were changing the schedule to daily updates and abusing the system
 * tch-gui-unhide: Removed incorrect dhcp.main.local configuration on change of Local Domain Name on Local Network screen (#107)
 * tch-gui-unhide: Old handling for different Mobile card sequencing between 17.2 and later firmware removed and simplified as could cause duplicate Mobile cards (#119)
-* tch-gui-unhide: Errors are no longer silently ignored when setting LAN configuration options in bridged mode (#113)
+* tch-gui-unhide: Errors are no longer silently ignored when setting LAN configuration options in Bridged mode (#113)
 * tch-gui-unhide: Improved display of selected options before installation
 * tch-gui-unhide: Install messages now have line numbers in addition to install script to facilitate error resolution
 * tch-gui-unhide: Updated tproxy-go executables with architecture specific versions (v2022.10.29-2-gb3ecf44)
@@ -115,7 +131,7 @@
 
 2022.10.06
 ==========
-* tch-gui-unhide: Fixed Local Network and Broadband screens were showing error message '{ "success":false, "message":"Unknown Network Mode: SAVE?" }' when saving any change (except when changing between routed mode and bridged mode)
+* tch-gui-unhide: Fixed Local Network and Broadband screens were showing error message '{ "success":false, "message":"Unknown Network Mode: SAVE?" }' when saving any change (except when changing between routed mode and Bridged mode)
 
 2022.10.04
 ==========
@@ -138,7 +154,7 @@
 * tch-gui-unhide: Fixed bug where utilities were always copied to USB during GUI upgrade, even if they didn't exist before
 * tch-gui-unhide: Fixed bug where Cancel/Save buttons were not replaced with Close button after successfully updating Broadband configuration
 * tch-gui-unhide: Fixed layout issues and missing status for Mobile Only Mode on Mobile card
-* tch-gui-unhide: Fixed LAN IPv6 in bridged mode
+* tch-gui-unhide: Fixed LAN IPv6 in Bridged mode
 * tch-gui-unhide: Fixed IPv6 DNS Server display on Local Network card when DNS hijacking enabled
 * tch-gui-unhide: Added Permanent WWAN switch to Broadband Configuration (when enabled, Mobile Internet will be permanently connected at a lower priority so that normal traffic will pass through the WAN connection, but if that fails, traffic will be routed immediately through the WWAN connection) NOTE: Should not be used with Telstra Backup SIM - it will probably get disabled (Thanks to @UncleSam1966 for original code)
 * tch-gui-unhide: Added separate tabs for Fixed and Mobile Broadband Usage
@@ -166,7 +182,7 @@
 2022.07.28
 ==========
 * tch-gui-unhide: Fixed hanging install when making CWMP username/password optional
-* tch-gui-unhide: Fixed bridge mode default gateway validation error (#106)
+* tch-gui-unhide: Fixed Bridged mode default gateway validation error (#106)
 * tch-gui-unhide: Removed incorrect dhcp.main.local configuration added by de-telstra (#107)
 * tch-gui-unhide: When upgrading via the GUI, any updated extras scripts will replace existing versions found in /root or the root directory of an attached USB device
 * tch-gui-unhide: Fixed text on update screen specifying that updated utilities will replace existing versions found in /root or the root directory of an attached USB device
@@ -212,9 +228,9 @@
 * tch-gui-unhide: Added serial number to Gateway (device) card header
 * tch-gui-unhide: Added QoS System Shapers (FW 20.3.c)
 * tch-gui-unhide: Added new -b option to enable (the default) or disable background refresh of the dashboard screen cards
-* tch-gui-unhide: Added mode indicator to LAN card when bridged
+* tch-gui-unhide: Added mode indicator to LAN card when Bridged
 * tch-gui-unhide: Updated URL for ca-bundle and ca-certificates packages from 21.02 to 22.03
-* tch-gui-unhide: Set Broadband card icon to Exchange when device is in bridged mode
+* tch-gui-unhide: Set Broadband card icon to Exchange when device is in Bridged mode
 * de-telstra: Updated URL for ca-bundle and ca-certificates packages from 21.02 to 22.03
 * update-ca-certificates: Updated URL for ca-bundle and ca-certificates packages from 21.02 to 22.03
 
@@ -230,12 +246,12 @@
 * tch-gui-unhide: Added service status to Internet Access card and troubleshooting steps if connection down 
 * tch-gui-unhide: Added line and xDSL status to xDSL card
 * tch-gui-unhide: Allowed UPnP leases to be cleared (#81)
-* tch-gui-unhide: xDSL card is now visible in bridge mode (#87)
+* tch-gui-unhide: xDSL card is now visible in Bridged mode (#87)
 * tch-gui-unhide: Broadband card background icon automatically changes to reflect current connection status: Down=Warning-Sign Connecting=Spinner(Static) Up=Tick Disabled=Ban-Circle
 * tch-gui-unhide: Fixed power saving options check on FW 20.3.c
 * tch-gui-unhide: Fixed bug where the router was incorrectly added as secondary IPv6 DNS server when IPv6 DNS Hijacking enabled and any change saved on Local Network screen
 * tch-gui-unhide: Fixed bug where the show Chart card options (-Ci/-Cs) were ignored on a clean install
-* tch-gui-unhide: Fixed bugs in switching between bridged and routed modes (#87)
+* tch-gui-unhide: Fixed bugs in switching between Bridged and routed modes (#87)
 * tch-gui-unhide: Improved logging system check (FW 20.3.c only)
 * tch-gui-unhide: Improved CWMP card
 * tch-gui-unhide: MultiAP GUI files no longer included in FW 17.2 script
@@ -327,9 +343,9 @@
 * tch-gui-unhide: DNS hijacking IP Sets are now restored on firewall reload as well as restart
 * tch-gui-unhide: De-duplicated DNS Server lists to separate module to improve performance
 * tch-gui-unhide: Moved DNS Hijacking to DNS card
-* tch-gui-unhide: Moved bridged mode DNS Servers from Local Network card to DNS card
+* tch-gui-unhide: Moved Bridged mode DNS Servers from Local Network card to DNS card
 * tch-gui-unhide: Split DNS card into multiple tabs and added the ability to enable/disable the intercept daemon
-* tch-gui-unhide: DNS card now visible in bridged mode
+* tch-gui-unhide: DNS card now visible in Bridged mode
 * tch-gui-unhide: Fixed error when adding and deleting file sharing users when file sharing disabled (FW 20.3.c)
 * tch-gui-unhide: /etc/init.d/power was incorrectly replaced on FW 20.3.c
 * tch-gui-unhide: Fixed opkg download failures on FW 18.1.c by applying the full wget package during opkg configuration (#56)
@@ -344,10 +360,10 @@
 * tch-gui-unhide: Fixed 'Save' and 'Cancel' buttons not being replaced with 'Close' when saving WAN Sensing state change
 * tch-gui-unhide: Fixed WAN Sensing Auto-Failover changes not being correctly applied
 * tch-gui-unhide: Fixed WAN Sensing Auto-Failover tab on FW 17.2
-* tch-gui-unhide: Do not show SSH WAN on the System Extras card in bridged mode
-* tch-gui-unhide: Removed IPv6 ULA from Local Network when in bridged mode
-* tch-gui-unhide: Configured DNS Servers now shown on Local Network card when in bridged mode
-* tch-gui-unhide: Removed local domain name from Local Network card when in bridged mode
+* tch-gui-unhide: Do not show SSH WAN on the System Extras card in Bridged mode
+* tch-gui-unhide: Removed IPv6 ULA from Local Network when in Bridged mode
+* tch-gui-unhide: Configured DNS Servers now shown on Local Network card when in Bridged mode
+* tch-gui-unhide: Removed local domain name from Local Network card when in Bridged mode
 * tch-gui-unhide: Sorted new static lease drop down list by MAC, and added Hostname/IP address
 * tch-gui-unhide: Fixed bug that showed summary Chart card after updating tch-gui-unhide even if it was previously hidden
 * tch-gui-unhide: Fixed bug that prevented the loading spinner from displaying on card links created by an Ajax request
@@ -389,7 +405,7 @@
 * tch-gui-unhide: Added new experimental option (-m) to reduce GUI code size by approximately 21% to try and improve performance
 * tch-gui-unhide: Reworked cards that took a relatively long time to render and changed them to background load their status displays to improve perceived performance
 * tch-gui-unhide: Fixed broken acme-ipsec.sh
-* tch-gui-unhide: Fixed bridged mode detection on booster device
+* tch-gui-unhide: Fixed Bridged mode detection on booster device
 * tch-gui-unhide: Fixed bug that prevented changing of SIP Network Interface
 * tch-gui-unhide: Removed option to create multiple SIP Networks (because support for multiple SIP Networks is broken: https://hack-technicolor.readthedocs.io/en/stable/Unlock/#unlocking-the-option-to-setup-a-second-sip-network)
 * tch-gui-unhide: NOTE: There are de-telstra changes, so manual download and upgrade after re-running de-telstra is recommended!
@@ -650,7 +666,7 @@
 2021.05.15
 ==========
 * tch-gui-unhide: Fixed detection of custom browser tab titles
-* tch-gui-unhide: Fixed bug in QoS card when in bridged mode
+* tch-gui-unhide: Fixed bug in QoS card when in Bridged mode
 * tch-gui-unhide: Fixed 'Some parameters failed validation' error on Local Network screen when WAN IPv6 not enabled
 * tch-gui-unhide: Scroll last changed init script into view on refresh
 * tch-gui-unhide: Added help icon to Wireless Output Power Adjustment (#25)
@@ -660,8 +676,8 @@
 ==========
 * tch-gui-unhide: Fixed Local Network card showed incorrect IPv6 prefix
 * tch-gui-unhide: Fixed DHCP range validation errors when changing LAN IP address
-* tch-gui-unhide: Fixed GUI failing to display and various other issues when in bridged mode
-* tch-gui-unhide: Removed ability to set the tch-nginx-gui version of bridged mode through Broadband screen and Internet Access
+* tch-gui-unhide: Fixed GUI failing to display and various other issues when in Bridged mode
+* tch-gui-unhide: Removed ability to set the tch-nginx-gui version of Bridged mode through Broadband screen and Internet Access
 * tch-gui-unhide: Fixed VLAN detection when manually changing Broadband connection mode
 * tch-gui-unhide: When configuring VLAN, set IPv6 (wan6) interface as well as IPv4 (wan) interface
 * tch-gui-unhide: Set IPv6 (wan6) interface as well as IPv4 (wan) interface when manually changing Broadband connection mode
@@ -794,7 +810,7 @@
 * tch-gui-unhide: Fixed bug that caused Telephony card to crash when no call statistics recorded [#18]
 * tch-gui-unhide: Added button to indicate when a new version is available
 * tch-gui-unhide: Added tch-gui-unhide release version to landing page (18.1.c only)
-* tch-gui-unhide: Allow setup of wan connection when in bridge mode (https://github.com/Ansuel/tch-nginx-gui/commit/1903e3578b8557076c8b4681d8078c20c996a7d4)
+* tch-gui-unhide: Allow setup of wan connection when in Bridged mode (https://github.com/Ansuel/tch-nginx-gui/commit/1903e3578b8557076c8b4681d8078c20c996a7d4)
 * tch-gui-unhide: Ensure wan6 auto, proto and ifname settings match wan on save
 
 2020.12.29
@@ -1002,7 +1018,7 @@
 * tch-gui-unhide: Added upload/download stats to Broadband card 
 * tch-gui-unhide: Fixed positioning of signal indicator on Mobile card
 * tch-gui-unhide: Fixed hard-coded QoS vDSL WAN interface - now uses current defined WAN interface, or card hidden if no current WAN interface
-* tch-gui-unhide: Fixed Internet card bug and bridge detection
+* tch-gui-unhide: Fixed Internet card bug and Bridged mode detection
 * tch-gui-unhide: Fixed "invalid exact path uci.network.interface.@wan.host_uniq" message when using PPoE
 * tch-gui-unhide: Fixed "invalid instance" message when broadband mode configured as ADSL2+
 * tch-gui-unhide: Fixed allowed role in broadband mode configuration imported from Ansuel GUI
@@ -1016,7 +1032,7 @@
 * tch-gui-unhide: Added support for custom ipv6-DNS-Servers
 * tch-gui-unhide: Added switch to enable/disable DHCPv6 Server
 * tch-gui-unhide: Enabled device host map and sort device list by host name
-* tch-gui-unhide: Enabled cards in Bridge Mode
+* tch-gui-unhide: Enabled cards in Bridged Mode
 * tch-gui-unhide: Added QoS state to card
 * tch-gui-unhide: Added support for 17.2.0468 FW
 
