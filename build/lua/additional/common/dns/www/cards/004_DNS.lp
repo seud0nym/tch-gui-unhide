@@ -15,8 +15,8 @@ end
 if session:hasAccess(modalPath) then
   ngx.print('\
   <div class="span3">\
-    <div class="smallcard">\
-      ');  ngx.print( ui_helper.createCardHeader(T"DNS",modalPath) ); ngx.print('\
+    <div class="smallcard">',
+      ui_helper.createCardHeader(T"DNS",modalPath,nil,nil,{icon={class="icon-search"}}),'\
       <div class="content card_bg mirror" data-bg-text="&#xf002">\
         <div id="dns-card-content">\
           <span class="simple-desc">Getting DNS Status...</span>\

@@ -25,7 +25,7 @@ if session:hasAccess("/modals/tod-modal.lp") then
   ngx.print('\
   <div class="span3">\
     <div class="smallcard">\
-      ',ui_helper.createCardHeader(T"Time of Day","/modals/tod-modal.lp"),'\
+      ',ui_helper.createCardHeader(T"Time of Day","/modals/tod-modal.lp",nil,nil,{icon={class="icon-time"}}),'\
       <div class="content card_bg" data-bg-text="&#xf017;">\
         <div class="divtable">\
           <span class="simple-desc">',

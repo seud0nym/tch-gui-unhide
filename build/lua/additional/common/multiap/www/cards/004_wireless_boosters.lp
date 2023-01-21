@@ -29,8 +29,8 @@ if content.agent_enabled and content.agent_enabled ~= "" and content.controller_
 
   ngx.print('\
 <div class="span3">\
-  <div class="smallcard">\
-      '); ngx.print( ui_helper.createCardHeader(T"Wi-Fi Boosters","/modals/wireless-boosters-modal.lp") ); ngx.print('\
+  <div class="smallcard">',
+    ui_helper.createCardHeader(T"Wi-Fi Boosters","/modals/wireless-boosters-modal.lp",nil,nil,{icon={class="icon-sitemap"}}),'\
     <div id="booster-card-content" class="content card_bg" data-bg-text="&#xf0e8;">\
       <div>\
       ')

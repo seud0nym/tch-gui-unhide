@@ -54,19 +54,15 @@ if session:hasAccess(modalPath) then
 
   ngx.print('\
   <div class="span3">\
-    <div class="smallcard">\
-      '); ngx.print(ui_helper.createCardHeader(T"NAT Helpers",modalPath)); ngx.print('\
+    <div class="smallcard">',
+      ui_helper.createCardHeader(T"NAT Helpers",modalPath,nil,nil,{icon={class="icon-exchange"}}),'\
       <div class="content card_bg" data-bg-text="&#xf0ec;">\
         <div style="display:flex;flex-direction:row;">\
           <div style="padding-right:3px">\
-            ');
-            ngx.print(htmlLeft);
-            ngx.print('\
+            ',htmlLeft,'\
           </div>\
           <div>\
-            ');
-            ngx.print(htmlRight);
-            ngx.print('\
+            ',htmlRight,'\
           </div>\
         </div>\
       </div>\
@@ -74,5 +70,3 @@ if session:hasAccess(modalPath) then
   </div>\
 ');
 end
-ngx.print('\
-');

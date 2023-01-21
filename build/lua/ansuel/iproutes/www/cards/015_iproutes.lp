@@ -39,8 +39,8 @@ if session:hasAccess(modalPath) then
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ',ui_helper.createCardHeader(T"IP Routing",modalPath),'\
-    <div class="content card_bg" data-bg-text="&#xf018;">\
+    ',ui_helper.createCardHeader(T"IP Routing",modalPath,nil,nil,{icon={class="icon-random"}}),'\
+    <div class="content card_bg" data-bg-text="&#xf074;">\
       <span class="simple-desc">\
       <i href="#">&nbsp</i>',format(N('<strong %s>%d</strong><span %s> IPv4 Dynamic Route</span>','<strong %s>%d</strong><span %s> IPv4 Dynamic Routes</span>',ipv4_dynamic),routes_modal_link,ipv4_dynamic,routes_modal_link),'\
       </span>')

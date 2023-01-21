@@ -48,8 +48,8 @@ if session:hasAccess("/modals/firewall-modal.lp") then
 
   ngx.print('\
 <div class="span3">\
-  <div class="smallcard">\
-    ');  ngx.print( ui_helper.createCardHeader(T"Firewall","modals/firewall-modal.lp") ); ngx.print('\
+  <div class="smallcard">',
+    ui_helper.createCardHeader(T"Firewall","modals/firewall-modal.lp",nil,nil,{icon={class="icon-shield"}}),'\
     <div class="content card_bg" data-bg-text="&#xf132;">\
     ');
     local fw_status = format("Default Incoming Policy: <strong>%s</strong>",fw_incoming_policy)

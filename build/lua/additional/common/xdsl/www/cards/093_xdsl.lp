@@ -54,7 +54,7 @@ if session:hasAccess(modalPath) and lfs.attributes("/etc/config/xdsl", "mode") =
     ngx.print('\
     <div class="span3">\
       <div class="smallcard">\
-        ',ui_helper.createCardHeader(T"xDSL Config",modalPath),'\
+        ',ui_helper.createCardHeader(T"xDSL Config",modalPath,nil,nil,{icon={class="icon-wrench"}}),'\
         <div class="content card_bg" data-bg-text="&#xf0ad;">',
           ui_helper.createSimpleLight(enabled,enabled_state_map[enabled]),
           ui_helper.createSimpleLight(xdsl_status,format(T"xDSL Status: %s",content.xdsl_status)),

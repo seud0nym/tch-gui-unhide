@@ -8,28 +8,24 @@ else # THEME_ONLY = y
 fi # End of if [ $THEME_ONLY = n ] (002-Parameter-Processing)
 
 echo -e "[$SCRIPT]: Adding or updating card background icons"
-sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf012;"/' -i $(ls /www/cards/*_lte.lp)
-sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf129;"/' -i $(ls /www/cards/*_gateway.lp)
-sed -e 's/class="content"/class="content card_bg mirror" data-bg-text="\&#xf0c1;"/' -i $(ls /www/cards/*_broadband.lp)
-sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0ac;"/' -i $(ls /www/cards/*_internet.lp)
-sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf09e;"/' -i $(ls /www/cards/*_wireless.lp)
-sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf015;"/' -i $(ls /www/cards/*_LAN.lp)
-sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf109;"/' -i $(ls /www/cards/*_Devices.lp)
-sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0c2;"/' -i $(ls /www/cards/*_wanservices.lp)
-sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf132;"/' -i $(ls /www/cards/*_firewall.lp)
-sed -e 's/class="content"/class="content card_bg mirror" data-bg-text="\&#xf095;"/' -i $(ls /www/cards/*_telephony.lp)
-sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf188;"/' -i $(ls /www/cards/*_diagnostics.lp)
-sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf0c0;"/' -i $(ls /www/cards/*_usermgr.lp)
 sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf115;"/' -i $(ls /www/cards/*_contentsharing.lp)
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf188;"/' -i $(ls /www/cards/*_diagnostics.lp)
+[ -f /www/cards/*_fon.lp ] && sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf143;"/' -i $(ls /www/cards/*_fon.lp)
+sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf012;"/' -i $(ls /www/cards/*_lte.lp)
+[ -f /www/cards/*_nfc.lp ] && sed -e 's/class="content"/class="content card_bg mirror" data-bg-text="\&#xf0b2;"/' -i $(ls /www/cards/*_nfc.lp)
 sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf02f;"/' -i $(ls /www/cards/*_printersharing.lp)
 sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf023;"/' -i $(ls /www/cards/*_parental.lp)
-sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf074;"/' -i $(ls /www/cards/*_iproutes.lp)
-sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf017;"/' -i $(ls /www/cards/*_tod.lp)
 sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf079;"/' -i $(ls /www/cards/*_relaysetup.lp)
-[ -f /www/cards/*_cwmpconf.lp ] && sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf019;"/' -i $(ls /www/cards/*_cwmpconf.lp)
-[ -f /www/cards/*_natalghelper.lp ] && sed -e 's/xf0ad/xf0ec;"/' -i $(ls /www/cards/*_natalghelper.lp)
-[ -f /www/cards/*_nfc.lp ] && sed -e 's/class="content"/class="content card_bg mirror" data-bg-text="\&#xf0b2;"/' -i $(ls /www/cards/*_nfc.lp)
-[ -f /www/cards/*_fon.lp ] && sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf143;"/' -i $(ls /www/cards/*_fon.lp)
+
+echo -e "[$SCRIPT]: Updating card header icons"
+sed -e 's/\(T"Content Sharing", modalPath, nil, nil\))/\1,{icon={class="icon-folder-open-alt"}})/' -i $(ls /www/cards/*_contentsharing.lp)
+sed -e 's|\("modals/diagnostics-.*modal.lp"\))|\1,nil,nil,{icon={class="icon-bug"}})|' -i $(ls /www/cards/*_diagnostics.lp)
+[ -f /www/cards/*_fon.lp ] && sed -e 's/\(T"Telstra Air", modalPath, nil, nil\))/,{icon={class="icon-rss-sign"}})/' -i $(ls /www/cards/*_fon.lp)
+sed -e 's/\(params.card_title, modalPath\))/\1,nil,nil,{icon={class="icon-signal"}})/' -i $(ls /www/cards/*_lte.lp)
+[ -f /www/cards/*_nfc.lp ] && sed -e 's/\(T"NFC", modalPath, nil, nil\))/\1,{icon={class="icon-fullscreen"}})/' -i $(ls /www/cards/*_nfc.lp)
+sed -e 's/\(T"Printer Sharing", modalPath\))/\1,nil,nil,{icon={class="icon-print"}})/' -i $(ls /www/cards/*_printersharing.lp)
+sed -e 's/\(T"Parental Controls", modalPath, switchName, nil\))/\1,{icon={class="icon-lock"}})/' -i $(ls /www/cards/*_parental.lp)
+sed -e 's|\(T"Relay Setup", "modals/relay-modal.lp"\))|\1,nil,nil,{icon={class="icon-retweet"}})|' -i $(ls /www/cards/*_relaysetup.lp)
 
 echo -e "[$SCRIPT]: Fix some responsive span widths"
 sed \

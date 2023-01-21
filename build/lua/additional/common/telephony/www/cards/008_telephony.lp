@@ -49,8 +49,8 @@ if session:hasAccess("/modals/mmpbx-info-modal.lp") then
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ',ui_helper.createCardHeader(T"Telephony",modalPath),'\
-    <div class="content">\
+    ',ui_helper.createCardHeader(T"Telephony",modalPath,nil,nil,{icon={class="icon-phone"}}),'\
+    <div class="content card_bg mirror" data-bg-text="&#xf095;">\
       <div id="telephony-card-content">\
       ',html,'\
       </div>\

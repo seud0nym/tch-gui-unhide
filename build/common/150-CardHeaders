@@ -1,4 +1,4 @@
-echo -e "[$SCRIPT]: Add cogs to card headers"
+echo -e "[$SCRIPT]: Add icons to card headers"
 for f in $(grep -l createCardHeaderNoIcon /www/cards/*)
 do
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Updating $f"

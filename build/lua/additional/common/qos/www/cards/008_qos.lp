@@ -39,8 +39,8 @@ local status = {
 
 ngx.print('\
 <div class="span3">\
-  <div class="smallcard">\
-  '); ngx.print( ui_helper.createCardHeader(T"QoS",modal_link) ); ngx.print('\
+  <div class="smallcard">',
+    ui_helper.createCardHeader(T"QoS",modal_link,nil,nil,{icon={class="icon-plane"}}),'\
     <div class="content card_bg" data-bg-text="&#xf072;">\
       <div class="divtable">\
       ');

@@ -40,19 +40,18 @@ end
 
 ngx.print('\
 <div class="span3">\
-  <div class="smallcard">\
-    ');  ngx.print(ui_helper.createCardHeader(T"Packages",modalPath)); ngx.print('\
-    <div class="content card_bg mirror" data-bg-text="&#xf06b;">\
-      ');
-      ngx.print(ui_helper.createSimpleLight(opkg_data["configured"],opkg_text["configured"]))
+  <div class="smallcard">',
+    ui_helper.createCardHeader(T"Packages",modalPath,nil,nil,{icon={class="icon-gift"}}),'\
+    <div class="content card_bg mirror" data-bg-text="&#xf06b;">',
+      ui_helper.createSimpleLight(opkg_data["configured"],opkg_text["configured"]))
       if opkg_data["configured"] ~= "0" then
         ngx.print('\
-          <span class="simple-desc"><i class="icon-calendar status-icon"></i> Last Update: <strong>'); ngx.print(opkg_text["last_update"]); ngx.print('</strong></span>\
+          <span class="simple-desc"><i class="icon-calendar status-icon"></i> Last Update: <strong>',opkg_text["last_update"],'</strong></span>\
         ')
       end
       ngx.print('\
-        <span class="simple-desc"><i class="icon-shield status-icon"></i> '); ngx.print(opkg_text["system_installed"]); ngx.print('</span>\
-        <span class="simple-desc"><i class="icon-user status-icon"></i> '); ngx.print(opkg_text["user_installed"]); ngx.print('</span>\
+        <span class="simple-desc"><i class="icon-shield status-icon"></i> ',opkg_text["system_installed"],'</span>\
+        <span class="simple-desc"><i class="icon-user status-icon"></i> ',opkg_text["user_installed"],'</span>\
       ')
       if opkg_data["user_upgradable"] ~= "0" then
         local user_upgradable = tonumber(opkg_data["user_upgradable"])

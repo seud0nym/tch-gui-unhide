@@ -1,7 +1,8 @@
 if [ -f /etc/init.d/cwmpd ]; then
   echo -e "[$SCRIPT]: Improving CWMP card"
   sed \
-    -e 's/switchName, content[^)]*)/nil, nil)/' \
+    -e 's/switchName, content[^)]*)/nil,nil,{icon={class="icon-download-alt"}})/' \
+    -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf019;"/' \
     -e 's/ id *=[^"]*"[^"]*"//g' \
     -e '/local switchName/d' \
     -e '/acs_url/d' \

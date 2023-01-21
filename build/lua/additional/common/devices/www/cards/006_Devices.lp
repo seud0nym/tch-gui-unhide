@@ -10,7 +10,7 @@ if session:hasAccess("/modals/device-modal.lp") then
 <div class="span3">\
   <style>.icon-wifi:before{content:"\\f09e";}</style>\
   <div class="smallcard">\
-    ',ui_helper.createCardHeaderNoIcon(T"Devices","modals/device-modal.lp"),'\
+    ',ui_helper.createCardHeaderNoIcon(T"Devices","modals/device-modal.lp",nil,nil,{icon={class="icon-laptop"}}),'\
     <div class="content card_bg" data-bg-text="&#xf109;">\
       <div id="devices-card-content">',
         dch.getDevicesCardHTML(false),'\

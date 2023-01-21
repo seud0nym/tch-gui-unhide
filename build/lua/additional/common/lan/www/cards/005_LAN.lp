@@ -94,7 +94,7 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ',ui_helper.createCardHeader(T"Local Network","modals/ethernet-modal.lp"),'\
+    ',ui_helper.createCardHeader(T"Local Network","modals/ethernet-modal.lp",nil,nil,{icon={class="icon-home"}}),'\
     <div class="content card_bg" data-bg-text="&#xf015;">\
       ');
       if isBridgedMode then

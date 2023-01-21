@@ -54,19 +54,15 @@ end
 
 ngx.print('\
 <div class="span3">\
-  <div class="smallcard">\
-    ');  ngx.print( ui_helper.createCardHeader(T"Eco Settings",modalPath,nil,nil) ); ngx.print('\
+  <div class="smallcard">',
+    ui_helper.createCardHeader(T"Eco Settings",modalPath,nil,nil,{icon={class="icon-leaf"}}),'\
     <div class="content card_bg" data-bg-text="&#xf06c;">\
-      <div class="divtable">\
-        ');
-        local html = {}
-        html[#html+1] = ui_helper.createSimpleLight(content.apd,content.apd_text)
-        html[#html+1] = ui_helper.createSimpleLight(content.dgm,content.dgm_text)
-        html[#html+1] = ui_helper.createSimpleLight(content.eee,content.eee_text)
-        html[#html+1] = ui_helper.createSimpleLight(content.net,content.net_text)
-        html[#html+1] = ui_helper.createSimpleLight(content.phy,content.phy_text)
-        ngx.print(html)
-        ngx.print('\
+      <div class="divtable">',
+        ui_helper.createSimpleLight(content.apd,content.apd_text),
+        ui_helper.createSimpleLight(content.dgm,content.dgm_text),
+        ui_helper.createSimpleLight(content.eee,content.eee_text),
+        ui_helper.createSimpleLight(content.net,content.net_text),
+        ui_helper.createSimpleLight(content.phy,content.phy_text),'\
       </div>\
     </div>\
   </div>\

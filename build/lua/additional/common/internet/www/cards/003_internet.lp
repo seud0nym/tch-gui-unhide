@@ -31,7 +31,7 @@ if mode_active ~= "bridge" then
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ',ui_helper.createCardHeader(T"Internet Access",modalPath),'\
+    ',ui_helper.createCardHeader(T"Internet Access",modalPath,nil,nil,{icon={class="icon-globe"}}),'\
     <div class="content card_bg" data-bg-text="&#xf0ac;">\
       <div id="internet-card-content">\
         ',html,'\

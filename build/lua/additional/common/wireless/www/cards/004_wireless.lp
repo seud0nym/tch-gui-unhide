@@ -17,7 +17,7 @@ end
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ',ui_helper.createCardHeader(T"Wi-Fi",modalPath),'\
+    ',ui_helper.createCardHeader(T"Wi-Fi",modalPath,nil,nil,{icon={class="icon-rss"}}),'\
     <div id="wifi-card-content" class="content card_bg" data-bg-text="&#xf09e;">\
       ',html,'\
     </div>\

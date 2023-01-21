@@ -63,8 +63,8 @@ end
 
 ngx.print('\
 <div class="span3" id="broadband-card">\
-  <div class="smallcard">\
-    ');  ngx.print( ui_helper.createCardHeader(T"Broadband",modalPath,nil,nil,nil) ); ngx.print('\
+  <div class="smallcard">',
+    ui_helper.createCardHeader(T"Broadband",modalPath,nil,nil,{icon={class="icon-link"}}),'\
     <div id="broadband-card-throughput"><div class="throughput"><span title="Raw throughput including protocol overhead"></span></div></div>\
     <div class="content card_bg mirror" data-bg-text="&#xf0c1;">\
       ');

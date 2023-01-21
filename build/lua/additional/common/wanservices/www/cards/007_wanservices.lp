@@ -10,7 +10,7 @@ local html = wanservicescard_helper.getWANServicesCardHTML()
 ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-    ',ui_helper.createCardHeader(T"WAN Services","modals/wanservices-ddns-modal.lp"),'\
+    ',ui_helper.createCardHeader(T"WAN Services","modals/wanservices-ddns-modal.lp",nil,nil,{icon={class="icon-cloud"}}),'\
     <div id="wanservices-card-content" class="content card_bg" data-bg-text="&#xf0c2;">\
     ',html,'\
     </div>\
