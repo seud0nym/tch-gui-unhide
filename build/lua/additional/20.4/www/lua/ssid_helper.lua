@@ -61,7 +61,7 @@ local function fetch_by_intf(paramindex)
     sortby = "zzzz"
     isguest = "1"
   end
-  return radio,ssid,ishidden,isguest,state,sortby,wps_state
+  return radio,ssid,ishidden,isguest,state,sortby,wps_state,paramindex
 end
 
 function M.isMultiAPEnabled()
