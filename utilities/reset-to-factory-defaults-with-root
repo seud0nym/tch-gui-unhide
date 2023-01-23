@@ -540,7 +540,7 @@ if [ -n "$__CWMP_DNS" ]; then
   for domain in $__CWMP_DNS; do
     echo -e "NOTE:     DNS will be configured to ${ORANGE}disable${NC} CWMP firmware downloads from ${GREEN}${domain}${NC}"
     [ -n "$DNSMASQ_CFG" ] && DNSMASQ_CFG="${DNSMASQ_CFG}"$'\n'
-    DNSMASQ_CFG="${DNSMASQ_CFG}uci add_list dhcp.main.address='/$domain/127.0.0.1'"$'\n'"uci add_list dhcp.main.address='/$domain/::1'"
+    DNSMASQ_CFG="${DNSMASQ_CFG}uci add_list dhcp.main.address='/$domain/0.0.0.0'"$'\n'"uci add_list dhcp.main.address='/$domain/::'"
   done
 fi
 
