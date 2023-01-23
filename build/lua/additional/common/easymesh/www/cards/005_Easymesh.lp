@@ -114,7 +114,7 @@ end
 ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
-   ',ui_helper.createCardHeaderNoIcon(T"Wi-Fi Boosters","/modals/easymesh-modal.lp"),'\
+   ',ui_helper.createCardHeaderNoIcon(T"Wi-Fi Boosters","/modals/easymesh-modal.lp",nil,nil,{icon={class="icon-sitemap"}}),'\
     <div class="content card_bg" data-bg-text="&#xf0e8;">',
       ui_helper.createSimpleLight(easymesh_state,T(format("EasyMesh Role: %s",easymesh_role))),
       ui_helper.createSimpleLight(content.broker,T(format("EasyMesh Broker %s",state_map(content.broker)))),
