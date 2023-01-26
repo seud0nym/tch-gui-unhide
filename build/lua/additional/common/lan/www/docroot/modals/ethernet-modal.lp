@@ -1114,6 +1114,8 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
           <input type="hidden" name="isAdvanced" id="isAdvanced" value="0">\
         </form>\
    </div>\
+<script src="/js/modal-busy.js"></script>\
+',ui_helper.createFooter(),'\
 <script type="text/javascript">\
 function rand(max){return Math.floor(Math.random()*max);}\
 function rand16() {return rand(2**16).toString(16);}\
@@ -1194,7 +1196,6 @@ $("#btn-dhcp-reset").click(function(){\
   $("#confilictipchange-msg").show();\
   '); end ngx.print('\
 </script>\
-',ui_helper.createFooter(),'\
 <script src="/js/srp-min.js"></script>\
 <script src="/js/bridgedmode.js"></script>\
 <script>\
