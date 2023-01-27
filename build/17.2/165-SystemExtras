@@ -1,0 +1,5 @@
+echo -e "[$SCRIPT]: Add AllowedClientIPs to dropbear transformer mapping"
+sed \
+  -e 's/"Interface"$/&, "AllowedClientIPs"/' \
+  -i /usr/share/transformer/mappings/uci/dropbear.map
+
