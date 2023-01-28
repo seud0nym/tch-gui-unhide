@@ -2,5 +2,5 @@ echo -e "[$SCRIPT]: Remove switch bank button from System Extras"
 sed \
   -e '/createAlertBlock(T"Root access/,/createAlertBlock(T"Switching bank/d' \
   -e '/#btn-system-switchover/,/});/d' \
-  -i /www/docroot/modals/system-modal.lp
+  -i /www/docroot/modals/system-reboot-modal.lp
 
