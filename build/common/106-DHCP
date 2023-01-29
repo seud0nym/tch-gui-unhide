@@ -29,6 +29,12 @@ local dhcp_tag = {\
 mapper("uci_1to1").registerNamedMultiMap(dhcp_tag)' \
   -i /usr/share/transformer/mappings/uci/dhcp.map
 
+echo -e "[$SCRIPT]: Add key for editing Vendor Classes and Boot records"
+sed \
+  -e 's/"filename", "networkid",/"_key", &/' \
+  -e 's/"vendorclass", "networkid",/"_key", &/' \
+  -i /usr/share/transformer/mappings/uci/dhcp.map
+
 tags=$(awk -e 'BEGIN{n="n";y="y";t="";o=n;}/^config tag/{t=$3;o=n;}/dhcp_option/{if(t!=""&&$1=="option"){o=y;}}/^\s*$/{if(o==y){printf t;}t="";o=n;}' /etc/config/dhcp | tr "'" " ")
 if [ -n "$tags" ]; then
   for tag in $tags; do

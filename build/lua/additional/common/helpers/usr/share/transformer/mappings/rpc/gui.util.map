@@ -1,0 +1,84 @@
+local dkjson = require('dkjson')
+local lfs = require("lfs")
+
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
+
+local function fix_tmp_permissions()
+  return os.execute("chmod 01777 /tmp")
+end
+
+local GUI_UTIL_ = {
+  objectType = {
+    name = "rpc.gui.util.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      fixtmp = {
+        access = "readWrite",
+        type = "string"
+      },
+      move = {
+        access = "readWrite",
+        type = "string"
+      },
+      nobody_dir = {
+        access = "readWrite",
+        type = "string"
+      },
+    }
+  }
+}
+
+GUI_UTIL_.get = {
+  fixtmp = fix_tmp_permissions,
+  move = "",
+  nobody_dir = "",
+}
+
+GUI_UTIL_.set = {
+  fixtmp = fix_tmp_permissions,
+  move = function(_,_,value,_)
+    ---@diagnostic disable-next-line: undefined-field
+    local op,errmsg = dkjson.decode(untaint(value))
+    if not op then
+      return nil,errmsg
+    end
+    if not op.source then
+      return nil, "Key 'source' not found in JSON"
+    end
+    if not op.target then
+      return nil, "Key 'target' not found in JSON"
+    end
+    return os.rename(op.source, op.target)
+  end,
+  nobody_dir = function(_,_,path,_)
+    local attributes = lfs.attributes(path)
+    if not attributes then
+      local retval,errmsg = lfs.mkdir(path)
+      if not retval then
+        return retval,errmsg
+      end
+      attributes = lfs.attributes(path)
+    end
+    if attributes.mode ~= "directory" then
+      return nil,"Not a directory"
+    end
+    if attributes.uid ~= 65534 or attributes.gid ~= 65534 then
+      local retval,errmsg = os.execute("chown nobody:nogroup "..path)
+      if not retval then
+        return retval,errmsg
+      end
+    end
+    if attributes.permissions ~= "rwxr-xr-x" then
+      local retval,errmsg = os.execute("chmod 0755 "..path)
+      if not retval then
+        return retval,errmsg
+      end
+    end
+    return true
+  end,
+}
+
+register(GUI_UTIL_)

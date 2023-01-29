@@ -8,6 +8,7 @@ local format,len,sub = string.format,string.len,string.sub
 local items = {
   {"system-reboot-modal.lp",T"Advanced Reboot"},
   {"system-ssh-modal.lp",T"SSH"},
+  {"system-tftp-modal.lp",T"TFTP Server"},
   {"system-syslog-modal.lp",T"syslog"},
 }
 

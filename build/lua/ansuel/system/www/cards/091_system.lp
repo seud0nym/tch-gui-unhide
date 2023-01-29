@@ -57,10 +57,13 @@ if session:hasAccess(modalPath) then
           end
         end
       end
+      html[#html+1] = makeLight(proxy.get("uci.dhcp.dnsmasq.@main.enable_tftp"),"0","TFTP Server","tftp")
       local syslog = proxy.get("uci.system.system.@system[0].log_ip","uci.system.system.@system[0].log_filter_ip")
       if syslog then
-        if (syslog[1].value ~= "" or syslog[2].value ~= "") then
-          html[#html+1] = makeLight("1","0","syslog","syslog")
+        if syslog[1].value ~= "" then
+          html[#html+1] = makeLight("1","0",format("syslog (%s)",syslog[1].value),"syslog")
+        elseif syslog[2].value ~= "" then
+          html[#html+1] = makeLight("1","0",format("syslog (%s)",syslog[2].value),"syslog")
         else
           html[#html+1] = makeLight("0","0","syslog","syslog")
         end
