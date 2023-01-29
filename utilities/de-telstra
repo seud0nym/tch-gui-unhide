@@ -3012,7 +3012,7 @@ if [ "$(uci -q get dropbear.afg)" = "dropbear" ]; then
   exec_uci commit dropbear
   SRV_dropbear=$(( $SRV_dropbear + 1 ))
 fi
-if [ ! -x /etc/rc.d/S99dropbear-ipv6 ]; then
+if [ ! -x /etc/rc.d/S99ula-dropbear ]; then
   echo "[$SCRIPT]: Adding init script to ensure dropbear listening on IPv6 ULA (if enabled)"
   cat <<"EoS99" > /etc/rc.d/S99ula-dropbear
 #!/bin/sh
