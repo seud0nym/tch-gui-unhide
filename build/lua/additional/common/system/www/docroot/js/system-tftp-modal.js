@@ -36,3 +36,8 @@ $(".upload-firmware").click(function() {
   });
   return false;
 });
+$("[name ='filename']").change(function () {
+  if ((this.value) == ":remote;") {
+    $(this).replaceWith($('<input/>',{'type':'text','name':this.name,'class':this.className}));
+  }
+});
