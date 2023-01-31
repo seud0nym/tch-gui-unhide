@@ -25,7 +25,6 @@ local board_names = {
   {"VBNT-J",T"VBNT-J : DJN2130 Frontier Gateway"},
   {"VBNT-V",T"VBNT-V : DJA0230 Smart Modem Gen 1"},
   {"VCNT-A",T"VCNT-A : DJA0231 Smart Modem Gen 2"},
-  {"VCNT-8",T"VCNT-8 : CobraXh Smart Modem Gen 3"},
 }
 
 local current_directory = untaint(proxy.get("uci.dhcp.dnsmasq.@main.tftp_root")[1].value)
@@ -276,7 +275,7 @@ local vendorclass_data,vendorclass_helpmsg = post_helper.handleTableQuery(vendor
 --region boot
 local boot_columns = {
   {
-    header = T"Network ID <span class='icon-question-sign' title='The Network ID for Technicolor devices is the board name (e.g. VCNT-A, VBNT-V). Turn on detailed DHCP logging to determine the correct Network ID from the tags or vendor-class fields.'></span>",
+    header = T"Network ID <span class='icon-question-sign' title='The Network ID for most Technicolor devices is the board name (e.g. VCNT-A), except for VCNT-8 which has neither a Vendor Class or unique Tag. Turn on detailed DHCP logging to determine the correct Network ID from the Tags or Vendor Class fields.'></span>",
     name = "networkid",
     param = "networkid",
     type = "text",
