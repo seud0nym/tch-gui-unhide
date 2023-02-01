@@ -12,7 +12,7 @@ if [ $DEBUG = y ]; then
     -e '/lp.include(v)/a\          log:notice("Card %s loaded in %.4f sec",v,gettime()-started)' \
     -i /www/docroot/gateway.lp
 
-  echo -e "[$SCRIPT]: Log validation errors "
+  echo -e "[$SCRIPT]: Log validation errors"
   for f in $(grep -rl '[[:alnum:]_]* *, *[[:alnum:]_]* *= *[[:alnum:]_]*\.handleQuery' /www/docroot/); do
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Updating $f"
     awk -e '/[[:alnum:]_]* *, *[[:alnum:]_]* *= *[[:alnum:]_]*\.handleQuery/ {
@@ -24,5 +24,27 @@ if [ $DEBUG = y ]; then
     }
     1' "$f" > /tmp/tch-gui-unhide.debug.handleQuery && mv /tmp/tch-gui-unhide.debug.handleQuery "$f"
   done
-fi
+
+  echo -e "[$SCRIPT]: Log messages when error occurs saving changes"
+  sed \
+    -e 's/success = content_helper.setObject/success, helpmsg = content_helper.setObject/' \
+    -e 's/success = content_helper.addNewObject/success, helpmsg = content_helper.addNewObject/' \
+    -e '/^[ \t]*applyOnSuccess/i\
+if helpmsg then\
+  if type(helpmsg) == "table" then\
+    for i,t in pairs(helpmsg) do\
+      if type(t) == "table" then\
+        for k,v in pairs(t) do\
+          ngx.log(ngx.ALERT,string.format("ERROR: index=%s key=%s msg=%s",i,k,v))\
+        end\
+      else\
+        ngx.log(ngx.ALERT,string.format("ERROR: key=%s msg=%s",i,t))\
+      end\
+    end\
+  else\
+    ngx.log(ngx.ALERT,string.format("ERROR: helpmsg=%s",helpmsg))\
+  end\
+end' \
+    -i /usr/lib/lua/web/post_helper.lua
+  fi
 
