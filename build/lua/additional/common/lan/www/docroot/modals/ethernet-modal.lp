@@ -212,7 +212,13 @@ local tags_columns = {
     param = "paramindex",
     type = "text",
     attr = { input = { class="span1" } },
-    unique = true,
+  },
+  {
+    header = T"Network ID",
+    name = "tags_networkid",
+    param = "networkid",
+    type = "text",
+    attr = { input = { class="span1" } },
   },
   {
     header = T"IPv4 Primary DNS",
@@ -233,6 +239,7 @@ local tags_columns = {
     name = "dhcp_option",
     param = "dhcp_option",
     type = "hidden",
+    readonly = true,
   },
 }
 
@@ -250,7 +257,7 @@ end
 
 local tags_valid = {
   tags_name = ethernet_helper.validateTagName,
-  tags_dns1 = vSIIP4,
+  tags_dns1 = gOV(vSIIP4),
   tags_dns2 = gOV(vSIIP4),
 }
 
@@ -259,15 +266,24 @@ local tags_options = {
   basepath = "uci.dhcp.tag.@.",
   createMsg = T"Add Tag",
   addNamedObject = true,
-  canEdit = false,
+  canEdit = true,
+  valid = ethernet_helper.validateTags,
   onAdd = ethernet_helper.onAddTag,
+  onModify = ethernet_helper.onModifyTag,
   sorted = ethernet_helper.sort_tags,
 }
 
+if ngx.var.request_method == "POST" then
+  local post_data = ngx.req.get_post_args(0)
+  if post_data.tableid == "tags" and post_data.action == "TABLE-EDIT" then
+    tags_columns[1].readonly = true
+  end
+end
+
 local tags_data,tags_helpmsg = post_helper.handleTableQuery(tags_columns,tags_options,tags_filter,nil,tags_valid)
 for i,row in pairs(tags_data) do
-  tags_data[i][2] = match(row[4],"^6,([^,]+)") or ""
-  tags_data[i][3] = match(row[4],"^6,[^,]+,(.+)") or ""
+  tags_data[i][3] = match(row[5],"^6,([^,]+)") or ""
+  tags_data[i][4] = match(row[5],"^6,[^,]+,(.+)") or ""
 end
 
 local inUseFlag = false
@@ -1116,96 +1132,25 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
    </div>\
 <script src="/js/modal-busy.js"></script>\
 ',ui_helper.createFooter(),'\
-<script type="text/javascript">\
-function rand(max){return Math.floor(Math.random()*max);}\
-function rand16() {return rand(2**16).toString(16);}\
- $(function() {\
-    var gen_ula_span = document.createElement("SPAN");\
-    gen_ula_span.setAttribute("id","random_ula_prefix");\
-    gen_ula_span.setAttribute("class","btn icon-random");\
-    gen_ula_span.setAttribute("style","padding:5px 3px 8px 3px;");\
-    gen_ula_span.setAttribute("title","Click to generate a random ULA prefix");\
-    $("#ula_prefix").after(gen_ula_span);\
-    $("#random_ula_prefix").click(function(){var i=$("#ula_prefix");i.val((parseInt("fd00",16)+rand(2**8)).toString(16)+":"+rand16()+":"+rand16()+"::/48");var e=jQuery.Event("keydown");e.which=e.keyCode=13;i.trigger(e);});\
-    var iPv6StateOnlyChanged = 0;\
-    $("input,select").on("change",function(){\
-       if(this.id == "localIPv6" && iPv6StateOnlyChanged == 0)\
-         iPv6StateOnlyChanged = 1;\
-       else\
-         iPv6StateOnlyChanged = 2;\
-    });\
-    //Override the save button click event to update the IPv6 state alone.\
-    $("#save-config").click(function(){\
-         if(iPv6StateOnlyChanged == 1){\
-          var params = [];\
-          params.push({\
-            name : "action",\
-            value : "SAVE"\
-          },\
-          {\
-            name : "iPv6StateOnlyChanged",\
-            value : "yes"\
-          },\
-          {\
-            name : "localIPv6",\
-            value : $("#localIPv6").val()\
-          },tch.elementCSRFtoken());\
-          var target = $(".modal form").attr("action");\
-          tch.showProgress("Wait...");\
-          $.post(target,params,function(response){\
-            //The following block of code used to display the success/error message and manage the footer.\
-            $(".alert").remove();\
-            $("form").prepend(response);\
-            $("#modal-changes").attr("style","display:none");\
-            $("#modal-no-change").attr("style","display:block");\
-            iPv6StateOnlyChanged = 0;\
-            tch.removeProgress();\
-          });\
-          return false;\
-         }\
-     });\
-    $("#save-config").click(function(){\
-      if($("#Hide_Advanced_id").is(":visible"))\
-        $("#isAdvanced").val("1");\
-      else\
-        $("#isAdvanced").val("0");\
-    });\
-});\
-$("[name =\'sleases_mac\'],[name =\'dns_v4_pri\'],[name =\'ipv4_dns_sec\'],[name =\'dns_v6_pri\'],[name =\'dns_v6_sec\'],[name =\'tags_dns1\'],[name =\'tags_dns2\']").change(function () {\
-  if ((this.value) == "custom") {\
-    $(this).replaceWith($(\'<input/>\',{\'type\':\'text\',\'name\':this.name,\'class\':this.className}));\
-  }\
-});\
-$("#sleases>tbody>tr:not(.line-edit)>td:nth-child(1)").each(function(){\
-  $(this).text(function(i,content){\
-    return content.split(" ")[0];\
-  });\
-});\
-'); if dhcpDefaultExist then ngx.print('\
-$("#btn-dhcp-reset").click(function(){\
-  '); for k,v in pairs(dhcpDefaultExist) do ngx.print('\
-    $("#'); ngx.print(k); ngx.print('").val("'); ngx.print(v); ngx.print('");\
-  '); end ngx.print('\
-  $("#localIPv6").prev().removeClass("switcherOn").closest(".switch").removeClass("switchOn");\
-  $("#dhcpState").prev().addClass("switcherOn").closest(".switch").addClass("switchOn");\
-  $("#modal-changes").show();\
-  $("#modal-no-change").hide();\
-});\
-'); end ngx.print('\
-  '); if inUseFlag == true then ngx.print('\
-  $("#confilictipchange-msg").show();\
-  '); end ngx.print('\
+<script src="/js/ethernet-modal.js"></script>\
+<script type="text/javascript">')
+if inUseFlag == true then
+  ngx.print('$("#confilictipchange-msg").show();');
+end
+if dhcpDefaultExist then
+  ngx.print('\
+  $("#btn-dhcp-reset").click(function(){\
+    '); for k,v in pairs(dhcpDefaultExist) do ngx.print('\
+      $("#'); ngx.print(k); ngx.print('").val("'); ngx.print(v); ngx.print('");\
+    '); end ngx.print('\
+    $("#localIPv6").prev().removeClass("switcherOn").closest(".switch").removeClass("switchOn");\
+    $("#dhcpState").prev().addClass("switcherOn").closest(".switch").addClass("switchOn");\
+    $("#modal-changes").show();\
+    $("#modal-no-change").hide();\
+  });');
+end
+ngx.print('\
 </script>\
 <script src="/js/srp-min.js"></script>\
 <script src="/js/bridgedmode.js"></script>\
-<script>\
-(function() {\
-  $(\'input[name="localdevIP"]\').keydown(function(){\
-    var msg = $("#lanipchange-msg");\
-    var msg_dst = $(this);\
-    msg_dst.after(msg);\
-    msg.removeClass("hide");\
-  });\
-}());\
-</script>\
 ');

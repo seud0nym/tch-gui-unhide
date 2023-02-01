@@ -212,12 +212,45 @@ function M.onAddTag(index,added)
       message_helper.pushMessage(T(string.format("Failed to add DHCP option to Tag %s: %s",index,errmsg)),"error")
     else
       local success,errors = proxy.set("uci.dhcp.tag.@"..index..".dhcp_option.@"..key..".value",value)
-      if success then
-        proxy.apply()
-      else
+      if not success then
         for _,err in ipairs(errors) do
           message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
         end
+      end
+    end
+  end
+end
+
+function M.onModifyTag(index,changed)
+  local value = ""
+  if changed.tags_dns1 ~= "" then
+    value = "6,"..changed.tags_dns1
+    if changed.tags_dns2 ~= "" then
+      value = value..","..changed.tags_dns2
+    end
+  end
+  ngx.log(ngx.ALERT,format("value=%s",value))
+  local existing = proxy.get("uci.dhcp.tag.@"..index..".dhcp_option.@1.")
+  local key,errmsg
+  if existing then
+    ngx.log(ngx.ALERT,format("existing[1].value=%s",untaint(existing[1].value)))
+    key = "1"
+  else
+    ngx.log(ngx.ALERT,"no existing record found - adding")
+    key,errmsg = proxy.add("uci.dhcp.tag.@"..index..".dhcp_option.")
+    if errmsg then
+      message_helper.pushMessage(T(string.format("Failed to add DHCP option to Tag %s: %s",index,errmsg)),"error")
+      return
+    end
+  end
+  ngx.log(ngx.ALERT,format("key=%s",key))
+  if not existing or existing[1].value ~= value then
+    local success,errors = proxy.set("uci.dhcp.tag.@"..index..".dhcp_option.@"..key..".value",value)
+    if success then
+      proxy.apply()
+    else
+      for _,err in ipairs(errors) do
+        message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
       end
     end
   end
@@ -487,6 +520,23 @@ end
 function M.validateTagName(value,_,_)
   if not value:match("^[%w]+$") then
     return nil,"must not be empty and must only contain alphanumeric characters"
+  end
+  return true
+end
+
+function M.validateTags(data)
+  local existing = proxy.getPN("uci.dhcp.tag.",true)
+ngx.log(ngx.ALERT,format("#data=%d #existing=%d",#data,#existing))
+  if #data == #existing+1 then
+    local new = data[#data][1]
+    ngx.log(ngx.ALERT,format("new=%s",untaint(new)))
+    for _,tag in ipairs(existing) do
+      local name = match(untaint(tag.path),"^uci%.dhcp%.tag%.@([^%.]+)%.")
+      ngx.log(ngx.ALERT,format("new=%s name=%s",untaint(new),name))
+      if name == new then
+        return nil,{ tags_name = T"A tag with this name already exists" }
+      end
+    end
   end
   return true
 end
