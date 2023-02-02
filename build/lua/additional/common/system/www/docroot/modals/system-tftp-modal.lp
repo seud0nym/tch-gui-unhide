@@ -19,13 +19,29 @@ local vB = post_helper.validateBoolean
 local vNES = post_helper.validateNonEmptyString
 local vSIIPv4 = post_helper.validateStringIsIPv4
 
-local board_names = {
+local known_ids = {
   {"VANT-F",T"VANT-F : TG799vac Gateway Max"},
   {"VANT-Y",T"VANT-Y : TG800vac Gateway Max 2"},
   {"VBNT-J",T"VBNT-J : DJN2130 Frontier Gateway"},
   {"VBNT-V",T"VBNT-V : DJA0230 Smart Modem Gen 1"},
   {"VCNT-A",T"VCNT-A : DJA0231 Smart Modem Gen 2"},
+  {"VCNT-8",T"VCNT-8 : CobraXh Smart Modem Gen 3"},
 }
+for _,v in ipairs(proxy.getPN("uci.dhcp.tag.",true)) do
+  local networkid = untaint(proxy.get(v.path.."networkid")[1].value)
+  if networkid ~= "" then
+    local added = false
+    for i = 1,#known_ids,1 do
+      if networkid == known_ids[i][1] then
+        added = true
+        break
+      end
+    end
+    if not added then
+      known_ids[#known_ids+1] = { networkid, T(networkid.." : "..match(v.path,"^uci%.dhcp%.tag%.@([^%.]+)%.")) }
+    end
+  end
+end
 
 local current_directory = untaint(proxy.get("uci.dhcp.dnsmasq.@main.tftp_root")[1].value)
 if current_directory ~= "" and sub(current_directory,-1,-1) ~= "/" then
@@ -66,7 +82,7 @@ local function receive_file(search)
   local discard = false
   while true do
     local token,data,err = form:read()
-    if not token then
+    if not token or not data then
       return false,2,"Read failed: "..err
     end
     if token == "header" then
@@ -115,7 +131,7 @@ end
 
 local function add_boot(filename)
   local upper_filename = toupper(filename)
-  for _,b in ipairs(board_names) do
+  for _,b in ipairs(known_ids) do
     local boardname = b[1]
     if find(upper_filename,boardname,1,true) then
       local boot = proxy.getPN("uci.dhcp.boot.",true)
@@ -230,6 +246,7 @@ local mapValid = {
   end,
 }
 local content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
+if not helpmsg then helpmsg = {} end
 if content.enabled ~= "1" then
   content.enabled = "0"
 end
@@ -293,47 +310,42 @@ local boot_columns = {
     name = "serveraddress",
     param = "serveraddress",
     type = "text",
-    attr = { input = { class="span2",maxlength="15" },autocomplete=hosts_ac },
+    attr = { input = { class="span2",maxlength="15",placeholder="Leave blank for Gateway" },autocomplete=hosts_ac },
   },
   {
     header = T"Server Name",
     name = "servername",
     param = "servername",
     type = "text",
-    attr = { input = { class="span2",maxlength="15" } },
+    attr = { input = { class="span2",placeholder="Leave blank for Gateway" } },
   },
 }
-if current_directory ~= "" then
-  local files = {}
-  for filename in lfs.dir(current_directory) do
-    if filename ~= "." and filename ~= ".." then
-      files[#files+1] = { filename, T(filename) }
-    end
-  end
-  table.sort(files,function(a,b)
-    return a[1] < b[1]
-  end)
-  files[#files+1] = { ":remote;", T("(Other File on Server Address)") }
-  if ngx.var.request_method == "POST" then
-    local args = ngx.req.get_post_args()
-    if args.filename then
-      files[#files] = { args.filename, T(args.filename) }
-    end
-  end
-  boot_columns[2]["type"] = "select"
-  boot_columns[2]["values"] = files
-  boot_columns[3]["attr"]["input"]["placeholder"] = "Leave blank for Gateway"
-  boot_columns[4]["attr"]["input"]["placeholder"] = "Leave blank for Gateway"
-end
 if ngx.var.request_method == "POST" then
   local args = ngx.req.get_post_args()
-  if args.action == "TABLE-NEW-LIST" then
-    if args.listid == "1" then
+  if args.tableid == "boot" and args.action == "TABLE-ADD" or args.action == "TABLE-EDIT" or args.action == "TABLE-MODIFY" or args.action == "TABLE-NEW" or args.action == "TABLE-NEW-LIST" then
+    if args.tableid == "boot" and args.action == "TABLE-NEW-LIST" and args.listid == "1" then
       for _,v in ipairs(vendorclass_data) do
-        board_names[#board_names+1] = { v[2], T(v[1]) }
+        known_ids[#known_ids+1] = { v[2], T(v[1]) }
       end
       boot_columns[1]["type"] = "select"
-      boot_columns[1]["values"] = board_names
+      boot_columns[1]["values"] = known_ids
+    end
+    if current_directory ~= "" then
+      local files = {}
+      for filename in lfs.dir(current_directory) do
+        if filename ~= "." and filename ~= ".." then
+          files[#files+1] = { filename, T(filename) }
+        end
+      end
+      table.sort(files,function(a,b)
+        return a[1] < b[1]
+      end)
+      files[#files+1] = { ":remote;", T("(Other File on Server Address)") }
+      if args.filename then
+        files[#files] = { args.filename, T(args.filename) }
+      end
+      boot_columns[2]["type"] = "select"
+      boot_columns[2]["values"] = files
     end
   end
 end
@@ -383,7 +395,14 @@ local boot_options = {
     add_record("uci.dhcp.boot.",values,key)
   end,
 }
-local boot_data,boot_helpmsg = post_helper.handleTableQuery(boot_columns,boot_options,nil,nil,boot_valid)
+local boot_filter = function(data)
+  local filename = untaint(data.filename)
+  if find(filename,"VCNT-8",1,true) then
+    data.filename = T(filename.."&nbsp;<span class='icon-warning-sign' title='VCNT-8 BOOTP process requires the file to be named the 4 hex octets of the IP address followed by .img (e.g. if the static IP lease is 192.168.0.254, then the file must be named C0A80FE.img).'></span>")
+  end
+  return true
+end
+local boot_data,boot_helpmsg = post_helper.handleTableQuery(boot_columns,boot_options,boot_filter,nil,boot_valid)
 --endregion boot
 
 --region attributes
