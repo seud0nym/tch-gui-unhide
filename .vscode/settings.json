@@ -55,6 +55,8 @@
         "includable",
         "iperf",
         "jffs",
+        "lanipchange",
+        "localdev",
         "logread",
         "lotagent",
         "minidlna",
@@ -84,6 +86,7 @@
         "RTFD",
         "RTSP",
         "SLAAC",
+        "sleases",
         "SNMP",
         "SSHFS",
         "ssid",
@@ -118,13 +121,13 @@
     ],
     "Lua.runtime.version": "Lua 5.1",
     "Lua.workspace.library": [
-        "C:\\Users\\Stephen\\Box\\Technicolor\\Extracted\\vcnt-a_20.3.c.0329-MR19-RB\\usr\\lib\\lua\\web",
+        "/mnt/d/Technicolor/Extracted/20.3.c.0432-MR21.1-RA_vbnt-v/usr/lib/lua/web",
         "${3rd}/OpenResty/library"
     ],
     "Lua.runtime.path": [
         "?.lua",
         "?/init.lua",
-        "C:\\Users\\Stephen\\Box\\Technicolor\\Extracted\\vcnt-a_20.3.c.0329-MR19-RB\\usr\\lib\\lua\\web"
+        "/mnt/d/Technicolor/Extracted/20.3.c.0432-MR21.1-RA_vbnt-v/usr/lib/lua/web"
     ],
     "Lua.diagnostics.severity": {
         "unused-local": "Information"

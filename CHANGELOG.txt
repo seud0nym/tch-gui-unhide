@@ -1,4 +1,4 @@
-2023.01.20
+2023.02.02
 ==========
 * tch-gui-unhide: Fixed bad argument error when reading CPU temperature on FW 20.4
 * tch-gui-unhide: Fixed port forwarding on FW 20.4 by restarting firewall after port forward change (rather than just reloading)
@@ -6,6 +6,7 @@
 * tch-gui-unhide: Fixed incorrect validation errors when adding Port Forwards if UPnP entries exist that have different WAN and LAN ports (#129)
 * tch-gui-unhide: Fixed missing path on opkg "dest root" directive
 * tch-gui-unhide: Fixed missing CPU Usage when background refresh disabled (#132)
+* tch-gui-unhide: Fixed clicking on SSID to show Wi-Fi QR Code was still not always working on FW 20.4
 * tch-gui-unhide: Removed Sensor Temperatures from Gateway card if no hardware temperature monitors found (#132)
 * tch-gui-unhide: Allow Devices card in Bridged mode
 * tch-gui-unhide: Added inactive devices count to Devices card
@@ -14,6 +15,14 @@
 * tch-gui-unhide: Check for running upgrade process before starting GUI upgrade (#126)
 * tch-gui-unhide: WAN throughput charts should show combined WAN and WWAN throughput if Permanent WWAN enabled (#128)
 * tch-gui-unhide: New Port Forwarding validation rules not working on FW 17.2 and 18.1.c
+* tch-gui-unhide: Replaced cogs icon with card icon in card headers
+* tch-gui-unhide: Added wait spinner to screens that are slow to save (e.g. Local Network)
+* tch-gui-unhide: Added WAN allowed client IP to FW 17.2 dropbear transformer mapping
+* tch-gui-unhide: Added ability to select WAN or WWAN for external SSH access (#136)
+* tch-gui-unhide: Added ability to enable and configure the TFTP Server
+* tch-gui-unhide: Added Network ID to Custom DHCP Options
+* tch-gui-unhide: Added ability to edit Custom DHCP Options (previously could only delete and re-add with changed details)
+* tch-gui-unhide: Split System Extras into separate tabs
 * tch-gui-unhide-xtra.wireguard: Wireguard client configuration import broken when minification enabled (#127)
 * tch-gui-unhide-xtra.wireguard: Devices card broken after commit 7dc6ded (#133)
 * de-telstra: Re-worked opkg configuration to remove requirement for internet connection when running
@@ -30,6 +39,7 @@
 * guest-restore: Abort if Guest network interfaces already exist
 * move-lan-port-to-own-network: New script to move a LAN port from the LAN bridge to its own network
 * mtd-backup: Fixed bug that caused --no-drop-cache to be not recognised as a valid option
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Changed DNS rewrites for firmware download blocking to normal ad-blocking responses (0.0.0.0 and ::)
 
 2022.12.31
 ==========
