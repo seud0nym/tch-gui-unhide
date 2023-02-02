@@ -207,7 +207,7 @@ function M.onLeaseChange(index,data)
     else
       local networkid = "";
       for octet in gmatch(untaint(data.sleases_ip),"%d+") do
-        networkid = networkid..format("%X",octet)
+        networkid = networkid..format("%02X",octet)
       end
       tag = gsub(untaint(data.sleases_name),"%-","_")
       local key,errmsg = proxy.add("uci.dhcp.tag.",tag)

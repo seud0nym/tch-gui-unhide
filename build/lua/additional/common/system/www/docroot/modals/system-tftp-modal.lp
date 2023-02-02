@@ -398,7 +398,7 @@ local boot_options = {
 local boot_filter = function(data)
   local filename = untaint(data.filename)
   if find(filename,"VCNT-8",1,true) then
-    data.filename = T(filename.."&nbsp;<span class='icon-warning-sign' title='VCNT-8 BOOTP process requires the file to be named the 4 hex octets of the IP address followed by .img (e.g. if the static IP lease is 192.168.0.254, then the file must be named C0A80FE.img).'></span>")
+    data.filename = T(filename.."&nbsp;<span class='icon-warning-sign' title='VCNT-8 BOOTP process requires the file to be named the 4 hex octets of the IP address followed by .img (e.g. if the static IP lease is 192.168.0.254, then the file must be named C0A800FE.img).'></span>")
   end
   return true
 end
