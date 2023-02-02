@@ -61,36 +61,11 @@ local gOV = post_helper.getOptionalValidation
 local gVIES = post_helper.getValidateInEnumSelect
 local gVNIR = post_helper.getValidateNumberInRange
 local vNES = post_helper.validateNonEmptyString
-local vSIDN = post_helper.validateStringIsDomainName
 local vSIIP = post_helper.validateStringIsIP
 local vSIIP4 = post_helper.validateStringIsIPv4
 local vSIIP6 = post_helper.validateStringIsIPv6
 
 local content,helpmsg
-
-local function validateDUID(value,object,_)
-  if value ~= "" and (#value < 20 or #value > 28 or not value:match("^[%x]+$")) then
-    return nil, T"A Client DUID can only contain 28 hexadecimal digits."
-  end
-  if value == "" and object["hostid"] ~= "" then
-    return nil, T"A Client DUID is required when setting the IPv6 Host ID."
-  end
-  return true
-end
-
-local function validateHostID(value,_,_)
-  if value ~= "" and (#value > 8 or not value:match("^[%x]+$")) then
-    return nil, T"A Host ID can only contain 1 to 8 hexadecimal digits."
-  end
-  return true
-end
-
-local function validateHint(value,_,_)
-  if value ~= "" and (#value > 4 or not value:match("^[%x]+$")) then
-    return nil, T"A hint can only contain 1 to 4 hexadecimal digits."
-  end
-  return true
-end
 
 local sleases_mac_attr = { class="span2",maxlength="17",id="lease_mac",style="width:115px" }
 
@@ -120,21 +95,21 @@ local sleases_columns = {
     attr = { input = { class="span2",maxlength="15",style="width:110px" },autocomplete = hosts_ac },
   },
   {
-    header = T"Client DUID&nbsp;<span class='icon-question-sign' title='DHCP Unique Identifier as 28 hexadecimal digits is required to assign the IPv6 Host ID.'></span>" ,
+    header = T"Client<br>DUID&nbsp;<span class='icon-question-sign' title='DHCP Unique Identifier as 28 hexadecimal digits is required to assign the IPv6 Host ID.'></span>" ,
     name = "sleases_duid",
     param = "duid",
     type = "text",
     attr = { input = { class="span2",maxlength="28",minlength="20",style="width:210px" } },
   },
   {
-    header = T"IPv6 Host ID" ,
+    header = T"IPv6<br>Host ID" ,
     name = "sleases_hostid",
     param = "hostid",
     type = "text",
     attr = { input = { class="span2",maxlength="8",style="width:60px" } },
   },
   {
-    header = T"Custom DHCP Options Tag",
+    header = T"Custom DHCP<br>Options Tag",
     name = "sleases_tag",
     param = "tag",
     type = "select",
@@ -142,7 +117,7 @@ local sleases_columns = {
     values = tags,
   },
   {
-    header = T"Add to DNS&nbsp;<span class='icon-question-sign' title='Add static forward and reverse DNS entries for this host, so that the host name resolves even when lease is not active.'></span>",
+    header = T"Add to<br>DNS&nbsp;<span class='icon-question-sign' title='Add static forward and reverse DNS entries for this host, so that the host name resolves even when lease is not active.'></span>",
     name = "sleases_dns",
     param = "dns",
     type = "switch",
@@ -154,16 +129,15 @@ local sleases_columns = {
     param = "owner",
     type = "hidden",
     readonly = true,
-    attr = { },
   },
 }
 
 local sleases_valid = {
-  sleases_name = gAV(ethernet_helper.validateStaticLeaseName,vSIDN),
+  sleases_name = ethernet_helper.validateStaticLeaseName,
   sleases_mac = gAV(ethernet_helper.validateStaticLeaseMAC,vQTN),
   sleases_ip = gOV(gAV(ethernet_helper.validateStaticLeaseIP(cur_intf),vQTN)),
-  sleases_hostid = validateHostID,
-  slease_duid = validateDUID,
+  sleases_hostid = ethernet_helper.validateHostID,
+  slease_duid = ethernet_helper.validateDUID,
 }
 
 local sleases_options = {
@@ -172,6 +146,8 @@ local sleases_options = {
   createMsg = T"Add Static Lease",
   objectName = post_helper.getRandomKey(),
   addNamedObject = true,
+  onAdd = ethernet_helper.onLeaseChange,
+  onModify = ethernet_helper.onLeaseChange,
   sorted = ethernet_helper.sort_static_leases,
 }
 
@@ -268,8 +244,8 @@ local tags_options = {
   addNamedObject = true,
   canEdit = true,
   valid = ethernet_helper.validateTags,
-  onAdd = ethernet_helper.onAddTag,
-  onModify = ethernet_helper.onModifyTag,
+  onAdd = ethernet_helper.onTagAdd,
+  onModify = ethernet_helper.onTagModify,
   sorted = ethernet_helper.sort_tags,
 }
 
@@ -556,7 +532,7 @@ local mapValid = {
   dns_v6_pri = validateDNSv6,
   dns_v6_sec = validateDNSv6,
   ip6assign = gOV(gVNIR(48,64)),
-  ip6hint = gOV(validateHint),
+  ip6hint = gOV(ethernet_helper.validateHint),
   leaseTime = ethernet_helper.validateLeaseTime,
   localdomain = vNES,
   localgw = gOV(vSIIP4),
@@ -570,6 +546,7 @@ local mapValid = {
 }
 
 content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
+if not helpmsg then helpmsg = {} end
 
 local function proxySet(p,v)
   local success,errors = proxy.set(p,v)

@@ -8,9 +8,9 @@ local uinetwork = require("web.uinetwork_helper")
 local hosts_ac = uinetwork.getAutocompleteHostsList()
 local tostring = tostring
 local pairs,string,ipairs,ngx = pairs,string,ipairs,ngx
-local find,format,match,toupper = string.find,string.format,string.match,string.upper
+local find,format,gmatch,gsub,match,toupper = string.find,string.format,string.gmatch,string.gsub,string.match,string.upper
 ---@diagnostic disable-next-line: undefined-field
-local untaint = string.untaint
+local istainted,untaint = string.istainted,string.untaint
 
 local ipv42num = post_helper.ipv42num
 local vB = post_helper.validateBoolean
@@ -113,6 +113,7 @@ function M.get_dhcp_tags()
     local name = match(tag.path,"uci%.dhcp%.tag%.@([^%.]+)%.")
     tags[#tags+1] = { name,T(name) }
   end
+  tags[#tags+1] = { ":custom;",T("(Add Custom Network ID)") }
   return tags
 end
 
@@ -198,7 +199,41 @@ function M.get_lan_ula()
   return split(format("%s",ula[1].value),"&")[1] or ""
 end
 
-function M.onAddTag(index,added)
+function M.onLeaseChange(index,data)
+  if data.sleases_tag == ":custom;" then
+    local tag = ""
+    if data.sleases_ip == "" or data.sleases_name == "" then
+      message_helper.pushMessage(T("Host Name and IP Address required to create custom Network ID"),"error")
+    else
+      local networkid = "";
+      for octet in gmatch(untaint(data.sleases_ip),"%d+") do
+        networkid = networkid..format("%X",octet)
+      end
+      tag = gsub(untaint(data.sleases_name),"%-","_")
+      local key,errmsg = proxy.add("uci.dhcp.tag.",tag)
+      if errmsg then
+        message_helper.pushMessage(T(format("Failed to create Tag %s for custom Network ID: %s",tag,errmsg)),"error")
+      else
+        local success,errors = proxy.set("uci.dhcp.tag.@"..key..".networkid",networkid)
+        if not success then
+          for _,err in ipairs(errors) do
+            message_helper.pushMessage(T(format("Failed to set %s to '%s': %s (%s)",err.path,networkid,err.errmsg,err.errcode)),"error")
+          end
+        end
+      end
+    end
+    data.sleases_tag = tag
+    local success,errors = proxy.set("uci.dhcp.host.@"..index..".tag",tag)
+    if not success then
+      for _,err in ipairs(errors) do
+        message_helper.pushMessage(T(format("Failed to set %s to '%s': %s (%s)",err.path,tag,err.errmsg,err.errcode)),"error")
+      end
+    end
+    proxy.apply()
+  end
+end
+
+function M.onTagAdd(index,added)
   local value = ""
   if added.tags_dns1 ~= "" then
     value = "6,"..added.tags_dns1
@@ -209,19 +244,19 @@ function M.onAddTag(index,added)
   if value ~= "" then
     local key,errmsg = proxy.add("uci.dhcp.tag.@"..index..".dhcp_option.")
     if errmsg then
-      message_helper.pushMessage(T(string.format("Failed to add DHCP option to Tag %s: %s",index,errmsg)),"error")
+      message_helper.pushMessage(T(format("Failed to add DHCP option to Tag %s: %s",index,errmsg)),"error")
     else
       local success,errors = proxy.set("uci.dhcp.tag.@"..index..".dhcp_option.@"..key..".value",value)
       if not success then
         for _,err in ipairs(errors) do
-          message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
+          message_helper.pushMessage(T(format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
         end
       end
     end
   end
 end
 
-function M.onModifyTag(index,changed)
+function M.onTagModify(index,changed)
   local value = ""
   if changed.tags_dns1 ~= "" then
     value = "6,"..changed.tags_dns1
@@ -239,7 +274,7 @@ function M.onModifyTag(index,changed)
     ngx.log(ngx.ALERT,"no existing record found - adding")
     key,errmsg = proxy.add("uci.dhcp.tag.@"..index..".dhcp_option.")
     if errmsg then
-      message_helper.pushMessage(T(string.format("Failed to add DHCP option to Tag %s: %s",index,errmsg)),"error")
+      message_helper.pushMessage(T(format("Failed to add DHCP option to Tag %s: %s",index,errmsg)),"error")
       return
     end
   end
@@ -250,7 +285,7 @@ function M.onModifyTag(index,changed)
       proxy.apply()
     else
       for _,err in ipairs(errors) do
-        message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
+        message_helper.pushMessage(T(format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
       end
     end
   end
@@ -380,6 +415,16 @@ function M.validateDHCPState()
   return gVIES(dhcpStateSelect)
 end
 
+function M.validateDUID(value,object,_)
+  if value ~= "" and (#value < 20 or #value > 28 or not value:match("^[%x]+$")) then
+    return nil, T"A Client DUID can only contain 28 hexadecimal digits."
+  end
+  if value == "" and object["hostid"] ~= "" then
+    return nil, T"A Client DUID is required when setting the IPv6 Host ID."
+  end
+  return true
+end
+
 function M.validateGatewayIP(curintf,all_intfs,lan_intfs)
   -- This function will validate the Modem IP Address and check for
   -- Valid IP Format,Limited Broadcast Address,Public IP Range,Multicast Address Range
@@ -431,6 +476,20 @@ function M.validateGatewayIP(curintf,all_intfs,lan_intfs)
       return nil,T"Public IP Range should not be used"
     end
   end
+end
+
+function M.validateHostID(value,_,_)
+  if value ~= "" and (#value > 8 or not value:match("^[%x]+$")) then
+    return nil, T"A Host ID can only contain 1 to 8 hexadecimal digits."
+  end
+  return true
+end
+
+function M.validateHint(value,_,_)
+  if value ~= "" and (#value > 4 or not value:match("^[%x]+$")) then
+    return nil, T"A hint can only contain 1 to 4 hexadecimal digits."
+  end
+  return true
 end
 
 function M.validateIPv6(curintf,wireless_radio,pppDev,pppIntf)
@@ -485,7 +544,7 @@ function M.validateStaticLeaseIP(curintf)
     for _,host in pairs(proxy.getPN("uci.dhcp.host.",true)) do
       local existing = proxy.get(host.path.."ip", host.path.."mac")
       if value == existing[1].value and object.sleases_mac ~= existing[2].value then
-        return nil,"IP already in use for MAC "..untaint(existing[2].value)
+        return nil,T("IP already in use for MAC "..untaint(existing[2].value))
       end
     end
     local contentdata = {
@@ -511,15 +570,27 @@ function M.validateStaticLeaseMAC(value,object,key)
 end
 
 function M.validateStaticLeaseName(value,_,_)
-  if (value:find("^ReservedStatic") ~= nil) then
-    return nil,T"Cannot use reserved names as static lease name"
+  if type(value) ~= "string" and not istainted(value) then
+    return nil, T"not a string?"
+  end
+  if #value == 0 then
+    return nil, T"cannot be empty"
+  end
+  if find(value,"^ReservedStatic") then
+    return nil,T"cannot use reserved names as static lease name"
+  end
+  if #value > 255 then
+    return nil, T"too long"
+  end
+  if not match(value, "^[a-zA-Z0-9%-]+$") then
+    return nil, T"contains invalid characters"
   end
   return true
 end
 
 function M.validateTagName(value,_,_)
   if not value:match("^[%w]+$") then
-    return nil,"must not be empty and must only contain alphanumeric characters"
+    return nil,T"must not be empty and must only contain alphanumeric characters"
   end
   return true
 end
