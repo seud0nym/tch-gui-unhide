@@ -14,7 +14,7 @@ local release_version = {
 }
 
 local function checkForUpgradeProcess()
-  local pgrep,procs = popen(format("pgrep -f 'tch-gui-unhide-%s'",marketing_version),"r"),""
+  local pgrep,procs = popen(format("pgrep -fl 'tch-gui-unhide-%s'|grep -v pgrep",marketing_version),"r"),""
   if pgrep then
     procs = pgrep:read("*a")
     pgrep:close()
