@@ -1,0 +1,87 @@
+#!/usr/bin/lua
+
+CHAR = string.char
+FORMAT = string.format
+MATCH = string.match
+SUB = string.sub
+
+TREE = {}
+PROCS = {}
+
+BOTTOM = "└─ "
+MIDDLE = "├─ "
+SIDE = "│  "
+
+ELLIPSIS = "…"
+
+ESC = CHAR(27)..'[%dm'
+CYAN = FORMAT(ESC,36)
+GREEN = FORMAT(ESC,32)
+RED = FORMAT(ESC,31)
+RESET = FORMAT(ESC,0)
+
+function PrintProcess(pid,depth)
+  local p = PROCS[pid]
+
+  --region tree
+  local s = ""
+  if depth > 0 then
+    if p.last then
+      s = BOTTOM
+    else
+      s = MIDDLE
+    end
+  end
+  local a = PROCS[p.ppid]
+  for _ = (depth-1),2,-1 do
+    if a.last then
+      s = "   "..s
+    else
+      s = SIDE..s
+    end
+    a = PROCS[a.ppid]
+  end
+  if depth > 1 then
+    s = SIDE..s
+  end
+  --endregion tree
+
+  local cmd = p.command
+  if (#s+#cmd) > 118 then
+    cmd = SUB(cmd,1,118-#s)..RESET..ELLIPSIS
+  end
+
+  print(FORMAT("%5d %-8s %4s %5d %4s %s%s%s%s",p.pid,p.user,p.stat,p.vsz,p.cpu_pct,s,GREEN,cmd,RESET))
+
+  local c = TREE[pid]
+  if c then
+    for i = 1,#c,1 do
+      PROCS[c[i]].last = (i == #c)
+      PrintProcess(c[i],depth+1)
+    end
+  end
+end
+
+TOP,FAILURE = io.popen("top -bn1")
+if TOP then
+  for _ = 1,4,1 do
+    TOP:read("*l")
+  end
+
+  for line in TOP:lines() do
+    local pid,ppid,user,stat,vsz,vsz_pct,cpu_pct,command = MATCH(line,"^%s*(%d+)%s+(%d+)%s+(%S+)%s+(%S+)%s+(%d+)%s(%s*%d+%%)%s(%s*%d+%%)%s+(.+)$")
+    if pid then
+      if not TREE[ppid] then
+        TREE[ppid] = {}
+      end
+      TREE[ppid][#TREE[ppid]+1] = pid
+      PROCS[pid] = { pid = pid, ppid = ppid, user = user, stat = stat, vsz = vsz, vsz_pct = vsz_pct, cpu_pct = cpu_pct, command = command, }
+    end
+  end
+  TOP:close()
+
+  print(CYAN.."  PID USER     STAT   VSZ %CPU COMMAND"..RESET)
+  PrintProcess("1",0)
+else
+  print(RED..FAILURE..RESET)
+end

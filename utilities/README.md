@@ -9,6 +9,7 @@ A collection of utility scripts for your Technicolor router. Most of the names a
 - [mtd-backup](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-backup)
 - [mtd-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-restore)
 - [overlay-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#overlay-restore)
+- [ptree](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#ptree)
 - [reboot-on-coredump](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#reboot-on-coredump)
 - [reset-to-factory-defaults-with-root](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#reset-to-factory-defaults-with-root)
 - [safe-firmware-upgrade](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#safe-firmware-upgrade)
@@ -334,6 +335,12 @@ Options:
 Parameters:
  filename      The filename containing the /overlay tar backup. If not specified, defaults to: 
                   /mnt/usb/FIRST USB DEVICE/backups/VARIANT-SERIAL-VERSION-overlay-files-backup.tgz
+```
+
+## ptree
+Similar to the `ps` command, but shows child processes in a tree-like structure.
+```
+Usage: ./ptree
 ```
 
 ## reboot-on-coredump
