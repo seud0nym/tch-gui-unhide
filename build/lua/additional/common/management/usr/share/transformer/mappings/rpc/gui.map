@@ -185,7 +185,7 @@ GUI_.set = {
         os.execute(format("logger -t tch-gui-unhide -p user.warn Download of extras list FAILED (Response code=%s)",response_code))
       end
       -- build/common/890-Utilities-Upgrade has a dependency on the following command string!
-      os.execute(format("cd /tmp; tar -xzf tch-gui-unhide.tar.gz; rm .extras tch-gui-unhide.tar.gz; sh ./tch-gui-unhide -y 2>&1 | logger -t tch-gui-unhide -p user.info",marketing_version))
+      os.execute(format("cd /tmp && tar -xzf tch-gui-unhide.tar.gz && sh ./tch-gui-unhide -y 2>&1|logger -t tch-gui-unhide -p user.info &",marketing_version))
       return true
     end
     return nil,format("Download of https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/%s.tar.gz FAILED (Response code=%s)",marketing_version,response_code)
