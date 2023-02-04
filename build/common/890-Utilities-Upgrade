@@ -1,11 +1,11 @@
+if [ "$FW_BASE" = "17.2" -a -f transformer-cli -a ! -f /usr/bin/transformer-cli ]; then
+  echo -e "[$SCRIPT]: Adding transformer-cli to command path"
+  cp transformer-cli /usr/bin/transformer-cli
+  chmod 755 /usr/bin/transformer-cli
+fi
+
 # Command string executed in build/lua/additional/common/management/usr/share/transformer/mappings/rpc/gui.map
 if [ "$(pwd)" = "/tmp" -a -n "$(pgrep -f './tch-gui-unhide -y')" -a -n "$(pgrep -f 'logger -t tch-gui-unhide -p user.info')" ]; then
-  if [ "$FW_BASE" = "17.2" -a -f transformer-cli -a ! -f /usr/bin/transformer-cli ]; then
-    echo [$SCRIPT]: Adding transformer-cli to command path
-    cp transformer-cli /usr/bin/transformer-cli
-    chmod 755 /usr/bin/transformer-cli
-  fi
-
   __COPYTO=""
   [ -e /root/tch-gui-unhide-$FW_BASE -o -e /root/de-telstra ] && __COPYTO="$__COPYTO /root"
   __MOUNT_PATH=$(uci -q get mountd.mountd.path)
@@ -18,7 +18,7 @@ if [ "$(pwd)" = "/tmp" -a -n "$(pgrep -f './tch-gui-unhide -y')" -a -n "$(pgrep 
   unset __MOUNT_PATH __USB
 
   if [ -n "$__COPYTO" ]; then
-    echo [$SCRIPT]: GUI upgrade detected - Copying updated utilities and extras scripts
+    echo -e "[$SCRIPT]: Copying updated utilities and extras scripts"
     for __FILE in $(grep -l '^EOH$' $(find . -maxdepth 1 -type f -perm 755) | sort) $(find . -maxdepth 1 -name 'tch-gui-unhide-xtra.*'); do
       for __DIR in $__COPYTO; do
         __TARGET="$__DIR/$(basename $__FILE)"
