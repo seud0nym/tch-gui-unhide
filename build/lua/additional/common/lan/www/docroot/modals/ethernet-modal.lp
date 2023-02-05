@@ -696,21 +696,21 @@ if helpmsg["dhcpLimit"] then
     end
 end
 
-if content["dhcpv4State"] and content["dhcpv4State"] == "" then
+if not content["dhcpv4State"] or content["dhcpv4State"] == "" then
   content["dhcpv4State"] = "server"
 end
-if content["localIPv6"] and content["localIPv6"] == "" then
+if not content["localIPv6"] or content["localIPv6"] == "" then
   content["localIPv6"] = "1"
 end
-if content["dhcplog"] and content["dhcplog"] == "" then
+if not content["dhcplog"] or content["dhcplog"] == "" then
   content["dhcplog"] = "0"
 end
-if content["dhcpquiet"] and content["dhcpquiet"] == "" then
+if not content["dhcpquiet"] or content["dhcpquiet"] == "" then
   content["dhcpquiet"] = "0"
 end
-if content["dhcplogv6"] and content["dhcplogv6"] == "" then
+if not content["dhcplogv6"] or content["dhcplogv6"] == "" then
   content["dhcplogv6"] = "6"
-elseif tonumber(content["dhcplogv6"]) < 4 then
+elseif (tonumber(content["dhcplogv6"]) or 0) < 4 then
   content["dhcplogv6"] = "4"
 end
 
