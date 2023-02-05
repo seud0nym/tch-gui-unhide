@@ -64,7 +64,7 @@ local cron_columns = {
     attr = { input = { class="span1"} },
   },
   { --[5]
-    header = T"Weekday",
+    header = T"Weekday<span class='icon-question-sign' title='0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat'></span>",
     name = "weekday",
     param = "weekday",
     type = "text",
