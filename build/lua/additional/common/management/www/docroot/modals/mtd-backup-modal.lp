@@ -62,16 +62,15 @@ if usbpath then
   end
 
   for file in lfs.dir(usbpath) do
-    if file ~= "." and file ~= ".." and file ~= "README!" then
-      local attributes = lfs.attributes(usbpath.."/"..file)
+    local attributes = lfs.attributes(usbpath.."/"..file)
+    if attributes.mode == "file" then
       local basename = match(file,"(.*%.img)%.gz")
       if basename then
-        images[#images + 1] = { file,os.date("%Y/%m/%d %H:%M:%S",attributes.modification),comma_value(attributes.size),checksum[basename],}
+        images[#images + 1] = { file,os.date("%Y/%m/%d %H:%M:%S",attributes.modification),comma_value(attributes.size),checksum[basename], }
         space_used = space_used + attributes.size
       else
-        basename = match(file,"(.*%.img)%.sha256")
-        if not basename then
-          backups[#backups + 1] = { file,os.date("%Y/%m/%d %H:%M:%S",attributes.modification),comma_value(attributes.size),}
+        if find(file,"%-config%.gz$") or find(file,"%-env$") or find(file,"%-overlay%-files%-backup%.tgz$") then
+          backups[#backups + 1] = { file,os.date("%Y/%m/%d %H:%M:%S",attributes.modification),comma_value(attributes.size), }
           space_used = space_used + attributes.size
         end
       end
@@ -130,21 +129,15 @@ local backup_options = {
   tableid = "backuptable",
 }
 
-  ngx.print('\
-');  ngx.print(ui_helper.createHeader(T"Management",false,true) ); ngx.print('\
+local lp = require("web.lp")
+lp.setpath("/www/snippets/")
+
+ngx.print(ui_helper.createHeader(T"Management",false,true),'\
 <div class="modal-body update">\
-');
-  local lp = require("web.lp")
-  lp.setpath("/www/snippets/")
-  lp.include("tabs-management.lp")
-  ngx.print('\
-');
--- dummy form so that refresh button knows which page to reload,keep it
-ngx.print('\
-<style>#mtdbackup table th:nth-child(3),#mtdbackup table td:nth-child(3){text-align:right;}</style>\
+'); lp.include("tabs-management.lp"); ngx.print('\
 <form class="form-horizontal" method="post" action="modals/mtd-backup-modal.lp" id="mtdbackup">\
   <fieldset>\
-    <legend>');  ngx.print( T"Status" ); ngx.print('</legend>')
+    <legend>',T"Status",'</legend>')
     ngx.print(ui_helper.createLabel(T"Backup Enabled",status))
     if usbpath then
       local span_attr = {
@@ -165,16 +158,13 @@ ngx.print('\
     ngx.print('\
   </fieldset>\
   <fieldset>\
-    <legend>');  ngx.print( T"MTD Images" ); ngx.print('</legend>')
-    ngx.print(ui_helper.createTable(image_columns,images,image_options))
-    ngx.print('\
+    <legend>',T"MTD Images",'</legend>',
+      ui_helper.createTable(image_columns,images,image_options),'\
   </fieldset>\
   <fieldset>\
-    <legend>');  ngx.print( T"Configuration Backups" ); ngx.print('</legend>')
-    ngx.print(ui_helper.createTable(backup_columns,backups,backup_options))
-    ngx.print('\
+    <legend>',T"Configuration Backups",'</legend>',
+      ui_helper.createTable(backup_columns,backups,backup_options),'\
   </fieldset>\
 </form>\
 </div>\
-');  ngx.print(ui_helper.createFooter() ); ngx.print('\
-');
+',ui_helper.createFooter())

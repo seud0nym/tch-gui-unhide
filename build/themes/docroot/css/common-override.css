@@ -51,6 +51,7 @@
 #internet-card-content>div>ol>li{line-height:14px;font-size:9px;}
 #mobiletab .content .card-label{font-size:14px;}
 #mobiletab .subinfos div{line-height: 20px;}
+#mtdbackup table th:nth-child(3),#mtdbackup table td:nth-child(3){text-align:right;}
 #opkgs>tbody>tr>td:nth-child(1){white-space:nowrap;}
 #opkgs>tbody>tr>td:nth-child(n+3):nth-child(-n+4){text-overflow:ellipsis;overflow:hidden;white-space:nowrap;max-width:100px;}
 #opkgs>tbody>tr>td:nth-child(n+3):nth-child(-n+4):hover{text-overflow:clip;white-space:normal;word-break:break-all;}
