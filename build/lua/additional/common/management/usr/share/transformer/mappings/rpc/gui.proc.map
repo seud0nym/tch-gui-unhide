@@ -1,5 +1,6 @@
+local format,match = string.format,string.match
+local bottom,middle,side,spacer = "└─ ","├─ ","│  ","   "
 local procTable = {}
-local cmd = "/usr/bin/top -b -n 1"
 
 local GUI_PROC_ = {
   objectType = {
@@ -72,6 +73,10 @@ local GUI_PROC_i_ = {
         access = "readOnly",
         type = "unsignedInt",
       },
+      depth_indicator = {
+        access = "readOnly",
+        type = "string",
+      },
       command = {
         access = "readOnly",
         type = "string",
@@ -82,61 +87,117 @@ local GUI_PROC_i_ = {
 
 GUI_PROC_i_.entries = function(_)
   local k = #procTable
-  for i=0,k do procTable[i]=nil end
+  for i=0,k do
+    procTable[i]=nil
+  end
   k = 0
-
 
   local rss = {}
   local status = io.popen("grep ^VmRSS /proc/[0-9]*/status",'r')
-  for proc in status:lines() do
-    local pid,vmrss = proc:match("^/proc/(%d+)/status:VmRSS:%s+(%d+) kB$")
-    if tonumber(pid) then
-      rss[pid] = vmrss
-    end
-  end
-  status:close()
-
-  local total = nil
-  local top = io.popen(cmd,'r')
-  for proc in top:lines() do
-    if not proc:find(cmd,1,true) then
-      local pid,ppid,user,stat,vsz,vszpct,cpu = proc:match("([0-9]+) +([0-9]+) +([^ ]+) +(....) +([0-9]+[m]*) +([0-9]+)%% +([0-9]+)%%")
+  if status then
+    for proc in status:lines() do
+      local pid,vmrss = proc:match("^/proc/(%d+)/status:VmRSS:%s+(%d+) kB$")
       if tonumber(pid) then
-        k = k + 1
-        procTable[string.format("%03d",k)] = {
-          process = pid,
-          parent = ppid,
-          user = user,
-          state = stat,
-          resident_set_size = rss[pid] or "",
-          resident_set_percent = tostring(math.modf((rss[pid] or 0)*100/total)),
-          virtual_memory_size = vsz,
-          virtual_memory_percent = vszpct,
-          cpu = cpu,
-          command = proc:sub(43),
-        }
-      elseif not total then
-        local used,free = proc:match("^Mem:%s+(%d+)K used,%s+(%d+)K free")
-        if used and free then
-          total = tonumber(used) + tonumber(free)
-        end
+        rss[pid] = vmrss
+      end
+    end
+    status:close()
+  end
+
+  local tree = {}
+  local procs = {}
+  local keys = {}
+  local total = 0
+
+  local function add_proc(pid,depth)
+    local p = procs[pid]
+
+    --region tree
+    local s = ""
+    if depth > 0 then
+      if p.last then
+        s = bottom
+      else
+        s = middle
+      end
+    end
+    local a = procs[p.ppid]
+    for _ = (depth-1),2,-1 do
+      if a.last then
+        s = spacer..s
+      else
+        s = side..s
+      end
+      a = procs[a.ppid]
+    end
+    if depth > 1 then
+      s = side..s
+    end
+    --endregion tree
+
+    k = k + 1
+    local key = format("%03d",k)
+    procTable[key] = {
+      process = p.pid,
+      parent = p.ppid,
+      user = p.user,
+      state = p.stat,
+      resident_set_size = rss[pid] or "",
+      resident_set_percent = tostring(math.modf((rss[pid] or 0)*100/total)).."%",
+      virtual_memory_size = p.vsz,
+      virtual_memory_percent = p.vsz_pct,
+      cpu = p.cpu_pct,
+      depth_indicator = s,
+      command = p.command,
+    }
+    keys[#keys+1] = key
+
+    local c = tree[pid]
+    if c then
+      for i = 1,#c,1 do
+        procs[c[i]].last = (i == #c)
+        add_proc(c[i],depth+1)
       end
     end
   end
-  top:close()
 
-  local res = {}
-  for proc in pairs(procTable) do
-    res[#res+1] = proc
+  local top = io.popen("/usr/bin/top -b -n 1",'r')
+  if top then
+    local mem = top:read("*l")
+    local used,free = match(mem,"^Mem:%s+(%d+)K used,%s+(%d+)K free")
+    if used and free then
+      total = tonumber(used) + tonumber(free)
+    end
+
+    for _ = 1,3,1 do
+      top:read("*l")
+    end
+
+    for line in top:lines() do
+      local pid,ppid,user,stat,vsz,vsz_pct,cpu_pct,command = match(line,"^%s*(%d+)%s+(%d+)%s+(%S+)%s+(%S+)%s+(%d+)%s(%s*%d+%%)%s(%s*%d+%%)%s+(.+)$")
+      if pid and pid ~= "2" and ppid ~= "2" then
+        if not tree[ppid] then
+          tree[ppid] = {}
+        end
+        tree[ppid][#tree[ppid]+1] = pid
+        procs[pid] = { pid = pid, ppid = ppid, user = user, stat = stat, vsz = vsz, vsz_pct = vsz_pct, cpu_pct = cpu_pct, command = command, }
+      end
+    end
+    top:close()
   end
-  return res
+
+  add_proc("1",0)
+
+  return keys
 end
 
 GUI_PROC_i_.get = function(_,param,key)
   local value = procTable[key][param]
   if not value then
-    if (param == "user" or param == "state" or param == "command") then
+    if param == "user" or param == "state" or param == "command" or param == "depth_indicator" then
       value = ""
+    elseif param == "cpu" or param == "virtual_memory_percent" or param == "resident_set_percent" then
+      value = "0%"
     else
       value = "0"
     end

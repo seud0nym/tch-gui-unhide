@@ -5,6 +5,8 @@ gettext.textdomain('webui-core')
 
 local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
+---@diagnostic disable-next-line: undefined-field
+local gsub,untaint = string.gsub,string.untaint
 
 local proc_columns = {
   {
@@ -67,8 +69,13 @@ local proc_columns = {
     param = "command",
     type = "text",
   },
+  {
+    header = "",
+    name = "depth_indicator",
+    param = "depth_indicator",
+    type = "hidden",
+  },
 }
-
 local proc_options = {
   canEdit = false,
   canAdd = false,
@@ -76,63 +83,30 @@ local proc_options = {
   tableid = "proctable",
   basepath = "rpc.gui.proc.processes.",
 }
+local function proc_filter(data)
+  data.command = gsub(untaint(data.depth_indicator)," ","&emsp;")..untaint(data.command)
+  return true
+end
+local proc_data,proc_helpmsg = post_helper.handleTableQuery(proc_columns,proc_options,proc_filter,nil,nil)
 
-local proc_data,proc_helpmsg = post_helper.handleTableQuery(proc_columns,proc_options,nil,nil,nil)
+local lp = require("web.lp")
+lp.setpath("/www/snippets/")
 
-  ngx.print('\
-');  ngx.print(ui_helper.createHeader(T"Management",false,true,10) ); ngx.print('\
+ngx.print(ui_helper.createHeader(T"Management",false,true,10),'\
 <div class="modal-body update">\
-');
-  local lp = require("web.lp")
-  lp.setpath("/www/snippets/")
-  lp.include("tabs-management.lp")
-  ngx.print('\
-');
--- dummy form so that refresh button knows which page to reload,keep it
-ngx.print('\
+'); lp.include("tabs-management.lp"); ngx.print('\
 <form class="form-horizontal" method="post" action="modals/system-proc-modal.lp">\
-  <fieldset id="system-proc-tab">\
-    <legend>');  ngx.print( T"Processes" ); ngx.print('</legend>')
-    local html = {}
-    html[#html+1] = "<div class='control-group'><label class='control-label'>Filter</label><div class='controls'>"
-    html[#html+1] = "<input data-type='search' name='Filter' class='edit-input span3 no-save' placeholder='Search For Processes...' id='searchInput' type='text'>"
-    html[#html+1] = "</div></div>"
-    ngx.print(html)
-    ngx.print(ui_helper.createTable(proc_columns,proc_data,proc_options,nil,proc_helpmsg))
-    ngx.print('\
-  </fieldset>\
+  <fieldset>\
+    <legend>',T"Processes",'</legend>\
+    <div class="control-group"><label class="control-label">',T"Filter",'</label>\
+      <div class="controls">\
+        <input data-type="search" name="Filter" class="edit-input span3 no-save" placeholder="Search For Processes..." id="searchInput" type="text">\
+      </div>\
+    </div>\
+  </fieldset>',
+  ui_helper.createTable(proc_columns,proc_data,proc_options,nil,proc_helpmsg),'\
 </form>\
 </div>\
-');  ngx.print(ui_helper.createFooter() ); ngx.print('\
-<script>\
-  (function() {\
-    $("#searchInput").keyup(function () {\
-      var data = this.value.toUpperCase().split(" ");\
-      var jo = $("#proctable tbody").find("tr");\
-      if (this.value == "") {\
-          jo.show();\
-          return;\
-      }\
-      jo.hide();\
-      jo.filter(function (i,v) {\
-          var $t = $(this);\
-          for (var d = 0; d < data.length; ++d) {\
-              if ($t.text().toUpperCase().indexOf(data[d]) > -1) {\
-                  return true;\
-              }\
-          }\
-          return false;\
-      })\
-      .show();\
-    }).focus(function () {\
-      this.value = "";\
-      $(this).css({\
-          "color": "black"\
-      });\
-      $(this).unbind(\'focus\');\
-    }).css({\
-      "color": "#C0C0C0"\
-    });\
-  }());\
-</script>\
+',ui_helper.createFooter(),'\
+<script src="/js/system-proc-modal.js"></script>\
 ');
