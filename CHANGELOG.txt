@@ -1,3 +1,11 @@
+2023.02.08
+==========
+* tch-gui-unhide: Fixed broken Telstra Air card after 2023.02.02 applied
+* tch-gui-unhide: Fixed GUI upgrade always reporting that an upgrade was already in progress (#126)
+* tch-gui-unhide: Fixed incorrect defaults logic which broke the Local Network screen (#137)
+* tch-gui-unhide: Fixed non-backup files showing in Backup file lists
+* tch-gui-unhide: Process Viewer now lists processes in tree layout so that you can see the relationship between parent and child processes
+
 2023.02.02
 ==========
 * tch-gui-unhide: Fixed bad argument error when reading CPU temperature on FW 20.4

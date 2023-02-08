@@ -77,6 +77,7 @@
         "peerdns",
         "pkgtb",
         "PPTP",
+        "proc",
         "proto",
         "pwrctl",
         "rate",
