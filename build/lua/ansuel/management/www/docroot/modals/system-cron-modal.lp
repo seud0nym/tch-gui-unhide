@@ -130,33 +130,28 @@ end
 
 local cron_data,cron_helpmsg = post_helper.handleTableQuery(cron_columns,cron_options,nil,nil,cron_valid)
 
-  ngx.print('\
-');  ngx.print(ui_helper.createHeader(T"Management",false,true) ); ngx.print('\
+local alert_warn = {
+  alert = {
+    class = "alert alert-warn"
+  },
+}
+
+local lp = require("web.lp")
+lp.setpath("/www/snippets/")
+
+ngx.print(ui_helper.createHeader(T"Management",false,true),'\
 <div class="modal-body update">\
-');
-  local lp = require("web.lp")
-  lp.setpath("/www/snippets/")
-  lp.include("tabs-management.lp")
-  ngx.print('\
-');
--- dummy form so that refresh button knows which page to reload,keep it
-  ngx.print('\
+'); lp.include("tabs-management.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/system-cron-modal.lp">\
+    <fieldset>\
+      <legend>',T"Scheduled Tasks",'</legend>',
+      ui_helper.createMessages(message_helper.popMessages()),
+      ui_helper.createAlertBlock(T"WARNING: When you click the <i class='icon-remove-sign icon-large'/> button,the scheduled task will be deleted IMMEDIATELY!",alert_warn),
+      ui_helper.createTable(cron_columns,cron_data,cron_options,nil,cron_helpmsg),'\
+    </fieldset>\
   </form>\
-  '); ngx.print(ui_helper.createMessages(message_helper.popMessages())); ngx.print('\
-  <fieldset id="system-cron-tab">\
-    <legend>');  ngx.print( T"Scheduled Tasks" ); ngx.print('</legend>')
-    local alert_warn = {
-      alert = {
-        class = "alert alert-warn"
-      },
-    }
-    ngx.print(ui_helper.createAlertBlock(T"WARNING: When you click the <i class='icon-remove-sign icon-large'/> button,the scheduled task will be deleted IMMEDIATELY!",alert_warn))
-    ngx.print(ui_helper.createTable(cron_columns,cron_data,cron_options,nil,cron_helpmsg))
-    ngx.print('\
-  </fieldset>\
 </div>\
-');  ngx.print(ui_helper.createFooter() ); ngx.print('\
+',ui_helper.createFooter(),'\
 <script>\
 $("#crontable td:contains(/usr/bin/thermalProtection)").siblings(":last").children(".btn-table-edit,.btn-table-delete").hide(); \
 $("#crontable td:contains(/sbin/trafficmon.lua)").siblings(":last").children(".btn-table-delete").hide(); \

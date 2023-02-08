@@ -142,42 +142,37 @@ end
 
 local init_data = post_helper.handleTableQuery(init_columns,init_options,init_filter)
 
-  ngx.print('\
-');  ngx.print(ui_helper.createHeader(T"Management",false,true) ); ngx.print('\
+local alert_warn = {
+	alert = {
+		class = "alert alert-warn"
+	},
+}
+
+local lp = require("web.lp")
+lp.setpath("/www/snippets/")
+
+ngx.print(ui_helper.createHeader(T"Management",false,true),'\
 <div class="modal-body update">\
-');
-  local lp = require("web.lp")
-  lp.setpath("/www/snippets/")
-  lp.include("tabs-management.lp")
-  ngx.print('\
-');
--- dummy form so that refresh button knows which page to reload,keep it
-  ngx.print('\
-  <form class="form-horizontal" method="post" action="modals/system-init-modal.lp?sort=');  ngx.print(sortcol); ngx.print('">\
-  <fieldset id="system-init-tab">\
-	<legend>');  ngx.print( T"Init Management" ); ngx.print('</legend>')
-	local alert_warn = {
-		alert = {
-			class = "alert alert-warn"
-		},
-	}
-	ngx.print(ui_helper.createAlertBlock(T"Do NOT randomly disable or restart Init Processes. Some are crucial for the correct booting of the device.",alert_warn))
-    local html = {}
-    html[#html+1] = "<div class='control-group'><label class='control-label'>Filter</label><div class='controls'>"
-    html[#html+1] = "<input data-type='search' name='Filter' class='edit-input span3 no-save' placeholder='Search For Services...' id='searchInput' type='text'>"
-    html[#html+1] = "</div></div>"
-    ngx.print(html)
-	ngx.print(ui_helper.createTable(init_columns,init_data,init_options))
-	ngx.print('\
-  </fieldset>\
+'); lp.include("tabs-management.lp"); ngx.print('\
+  <form class="form-horizontal" method="post" action="modals/system-init-modal.lp?sort=',sortcol,'">\
+    <fieldset>\
+      <legend>',T"Service Init Management",'</legend>',
+      ui_helper.createAlertBlock(T"Do NOT randomly disable or restart Init Processes. Some are crucial for the correct booting of the device.",alert_warn),'\
+      <div class="control-group">\
+        <label class="control-label">',T"Filter",'</label>\
+        <div class="controls">\
+          <input data-type="search" name="Filter" class="edit-input span3 no-save" placeholder="Search For Services..." id="searchInput" type="text">\
+        </div>\
+      </div>',
+      ui_helper.createTable(init_columns,init_data,init_options),'\
+    </fieldset>\
   </form>\
-  </div>\
-  <script>\
-  ')
-  if scrollto then
-    ngx.print('$("',scrollto,'")[0].scrollIntoView();')
-  end
-  ngx.print('\
+</div>\
+<script>')
+if scrollto then
+  ngx.print('$("',scrollto,'")[0].scrollIntoView();')
+end
+ngx.print('\
   var hdrs = document.getElementsByTagName("th");\
   for(var i=0;i<hdrs.length;i++){\
     var text=hdrs[i].innerText;\
@@ -262,5 +257,4 @@ local init_data = post_helper.handleTableQuery(init_columns,init_options,init_fi
     });\
   }());\
   </script>\
-');  ngx.print(ui_helper.createFooter() ); ngx.print('\
-');
+',ui_helper.createFooter())
