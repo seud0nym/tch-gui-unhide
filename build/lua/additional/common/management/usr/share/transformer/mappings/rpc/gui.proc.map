@@ -174,7 +174,7 @@ GUI_PROC_i_.entries = function(_)
     end
 
     for line in top:lines() do
-      local pid,ppid,user,stat,vsz,vsz_pct,cpu_pct,command = match(line,"^%s*(%d+)%s+(%d+)%s+(%S+)%s+(%S+)%s+(%d+)%s(%s*%d+%%)%s(%s*%d+%%)%s+(.+)$")
+      local pid,ppid,user,stat,vsz,vsz_pct,cpu_pct,command = match(line,"^%s*(%d+)%s+(%d+)%s+(%S+)%s+(%S+)%s+([m%d]+)%s(%s*%d+%%)%s(%s*%d+%%)%s+(.+)$")
       if pid and pid ~= "2" and ppid ~= "2" then
         if not tree[ppid] then
           tree[ppid] = {}
