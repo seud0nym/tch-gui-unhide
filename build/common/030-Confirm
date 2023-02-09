@@ -39,6 +39,12 @@ show_setting() {
           telstramodern) _VAL="m"; _ABL="Telstra Modern";;
           telstra)       _VAL="t"; _ABL="Telstra Classic";;
         esac;;
+    v)  _VAL="$3"
+        case "$3" in
+          n) _ABL="Disabled";;
+          p) _ABL="Enabled (inc. pre-releases)";;
+          y) _ABL="Enabled (stable releases only)";;
+        esac;;
     C)  _VAL="$3"
         case "$3" in
           n) _ABL="Disabled";;
@@ -59,7 +65,7 @@ show_setting() {
          case "$3" in
           y|V) _ABL="Enabled";;
           /*)  _ABL="$3";;
-          *)    _ABL="Disabled";;
+          *)   _ABL="Disabled";;
         esac;;
     *)  case "$3" in
           y|true)  _VAL="y";  _ABL="Enabled";;

@@ -41,23 +41,26 @@ Optional parameters:
  -T               Apply theme ONLY - bypass all other processing
  Control Options:
  -b y|n           Enable (y) or Disable (n) background updating of dashboard cards 
-                   (Default is current setting or (y) for first time installs)
+                    (Default is current setting or (y) for first time installs)
  -p y|n           Use decrypted text (y) or masked password (n) field for SIP Profile passwords
-                   (Default is current setting i.e (n) by default)
- -v y|n           Enable (y) check for new releases and show 'Update Available' button in GUI, or Disable (n)
-                   (Default is current setting or (y) for first time installs)
+                    (Default is current setting i.e (n) by default)
+ -v y|p|n         Enable or disable check for new releases and 'Update Available' button in GUI
+                    y=Enabled for stable releases only
+                    p=Enabled for stable and pre-releases
+                    n=Disabled
+                    (Default is current setting or (y) for first time installs)
  -x <feature>     Download the specified tch-gui-unhide-xtra.<feature> script.
                    Specify -x<feature> multiple times to download multiple scripts
                    NOTE: This does NOT download or install the feature pre-requisites!
                          You must do that BEFORE running this script!
  -X               Download the latest version of any existing extra feature scripts.
  -m y|n           Minify (y) GUI Lua code (EXPERIMENTAL!!)
-                   (Default is current setting or (n) for first time installs)
+                    (Default is current setting or (n) for first time installs)
  Configuration Options:
  -d y|n           Enable (y) or Disable (n) Default user (i.e. GUI access without password)
-                   (Default is current setting)
+                    (Default is current setting)
  -f y|n           Enable (y) or Disable (n) firmware upgrade in the web GUI
-                   (Default is current setting)
+                    (Default is current setting)
  Update Options:
  -u               Check for and download any changes to this script (may be newer than latest release version)
                     When specifying the -u option, it must be the ONLY parameter specifed.
@@ -184,7 +187,10 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
         esac
       fi
       exit;;
-   v) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then UPDATE_BTN=y; else UPDATE_BTN=n; fi;;
+   v) case "${OPTARG}" in
+        y|p|n) UPDATE_BTN="$OPTARG";;
+        *) echo -e "[$SCRIPT]: ${RED}ERROR!${NC} Unknown version check option - $OPTARG"; exit 2;;
+      esac;;
    y) YES=y;;
    x) XTRAS="${XTRAS} ${OPTARG}";;
    C) case "${OPTARG}" in

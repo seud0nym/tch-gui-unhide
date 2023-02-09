@@ -1,15 +1,18 @@
 local find,format,match = string.find,string.format,string.match
 local popen = io.popen
 local ping_cmd = "ping -q -c 1 -w 1 8.8.8.8"
-local curl_cmd = "curl -qskL"
-local release_version_cmd = format("%s -r0-9 -m2 --connect-timeout 1 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/VERSION.txt",curl_cmd)
+local curl_cmd = "curl -qskLm5 --connect-timeout 2"
+local release_version_cmd = format("%s -r0-9 https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/VERSION.txt",curl_cmd)
+local prerelease_version_cmd = format("%s https://api.github.com/repos/seud0nym/tch-gui-unhide/releases?per_page=1 | jsonfilter -e '$[0].name' -e '$[0].prerelease' | xargs",curl_cmd)
 local current_version = "" -- Set by build script
 local current_version_date = match(current_version,"(%d%d%d%d%.%d%d%.%d%d)@.*")
 local ignored_release_version_file = "/etc/tch-gui-unhide.ignored_release"
 local marketing_version = "" -- Set by build script
+local inc_pre = "n" -- Set by 080-Gateway
 
 local release_version = {
   date = nil,
+  stable = nil,
   lastRetrieved = nil,
 }
 
@@ -32,22 +35,32 @@ local function getIgnoredReleaseVersionDate()
   return version
 end
 
-local function getReleaseVersionDate()
+local function getLatestReleaseVersion()
   local time = os.time()
 
-  if release_version.lastRetrieved and ( time - release_version.lastRetrieved ) < 600 then
+  if release_version.lastRetrieved and ( time - release_version.lastRetrieved ) < 900 then
     return release_version.date
   end
 
   local ping = popen(ping_cmd,"r")
   if ping then
     if find(ping:read("*a") or "", "1 packets transmitted, 1 packets received") then
-      local curl = popen(release_version_cmd,"r")
+      local curl
+      if inc_pre == "n" then
+        curl = popen(release_version_cmd,"r")
+      else
+        curl = popen(prerelease_version_cmd,"r")
+      end
       if curl then
-        local v = match(curl:read() or "","^%d%d%d%d%.%d%d%.%d%d$")
+        local v,pre = match(curl:read() or "","^(%d%d%d%d%.%d%d%.%d%d) *(%a*)")
         curl:close()
         if v then
           release_version.date = v
+          if pre == "true" then
+            release_version.stable = "0"
+          else
+            release_version.stable = "1"
+          end
         end
       end
     end
@@ -56,7 +69,7 @@ local function getReleaseVersionDate()
 
   release_version.lastRetrieved = time
 
-  return release_version.date
+  return release_version.date, release_version.stable
 end
 
 local function download(path,filename)
@@ -95,6 +108,14 @@ local GUI_ = {
         access = "readWrite",
         type = "boolean"
       },
+      UnhideLatestRelease = {
+        access = "readOnly",
+        type = "string"
+      },
+      UnhideLatestReleaseIsStable = {
+        access = "readOnly",
+        type = "boolean"
+      },
       UnhideVersion = {
         access = "readOnly",
         type = "string"
@@ -117,18 +138,27 @@ local GUI_ = {
 
 GUI_.get = {
   IgnoreCurrentRelease = function()
-    if getReleaseVersionDate() == getIgnoredReleaseVersionDate() then
+    local latest_version_date = getLatestReleaseVersion()
+    if latest_version_date == getIgnoredReleaseVersionDate() then
       return "1"
     else
       return "0"
     end
   end,
+  UnhideLatestRelease = function()
+    local latest_version_date = getLatestReleaseVersion()
+    return latest_version_date or "Unknown?"
+  end,
+  UnhideLatestReleaseIsStable = function()
+    local _,stable = getLatestReleaseVersion()
+    return stable or ""
+  end,
   UnhideVersion = function()
     return current_version
   end,
   UpdateAvailable = function()
-    local release_version_date = getReleaseVersionDate()
-    if release_version_date and release_version_date > current_version_date and release_version_date ~= getIgnoredReleaseVersionDate() then
+    local latest_version_date = getLatestReleaseVersion()
+    if latest_version_date and latest_version_date > current_version_date and latest_version_date ~= getIgnoredReleaseVersionDate() then
       return "1"
     else
       return "0"
@@ -145,7 +175,7 @@ GUI_.set = {
     local file,err_msg = io.open(ignored_release_version_file,"w")
     if file then
       if value == "1" then
-        file:write(getReleaseVersionDate())
+        file:write(getLatestReleaseVersion())
       else
         file:write("")
       end
@@ -163,7 +193,8 @@ GUI_.set = {
     if procs ~= "" then
       return nil,"Upgrade aborted! Already running ( Process ID = "..procs..")"
     end
-    local okay,response_code = download(format("https://github.com/seud0nym/tch-gui-unhide/releases/latest/download/%s.tar.gz",marketing_version),"tch-gui-unhide.tar.gz")
+    local latest_version_date = getLatestReleaseVersion()
+    local okay,response_code = download(format("https://github.com/seud0nym/tch-gui-unhide/releases/download/%s/%s.tar.gz",latest_version_date,marketing_version),"tch-gui-unhide.tar.gz")
     if okay then
       okay,response_code = download("https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/src/.extras",".extras")
       if okay then

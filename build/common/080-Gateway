@@ -92,15 +92,20 @@ if [ "$MINIFY" = y ]; then
     -i /www/docroot/modals/gateway-modal.lp
 fi
 
-if [ "$UPDATE_BTN" = y ]; then
+if [ "$UPDATE_BTN" != n ]; then
   echo -e "[$SCRIPT]: Add update available button"
   grep -q isBridgedMode /www/docroot/gateway.lp && INSERT_BEFORE="isBridgedMode" || INSERT_BEFORE="session:isdefaultuser"
   sed \
     -e '/uci.version.version.@version\[0\].timestamp/a\    updatable = "rpc.gui.UpdateAvailable",' \
+    -e '/uci.version.version.@version\[0\].timestamp/a\    stable = "rpc.gui.UnhideLatestReleaseIsStable",' \
     -e "/$INSERT_BEFORE/i\        if cui.updatable == \"1\" then" \
     -e "/$INSERT_BEFORE/i\          html[#html + 1] = '<div data-toggle=\"modal\" class=\"btn\" data-remote=\"/modals/tch-gui-unhide-update-modal.lp\" data-id=\"tch-gui-unhide-update-modal\">'" \
     -e "/$INSERT_BEFORE/i\          html[#html + 1] = '<i class=\"icon-info-sign orange\"></i>&nbsp;'" \
-    -e "/$INSERT_BEFORE/i\          html[#html + 1] = T\"Update Available\"" \
+    -e "/$INSERT_BEFORE/i\          if cui.stable == \"1\" then" \
+    -e "/$INSERT_BEFORE/i\            html[#html + 1] = T\"Update Available\"" \
+    -e "/$INSERT_BEFORE/i\          else" \
+    -e "/$INSERT_BEFORE/i\            html[#html + 1] = T\"Pre-release Available\"" \
+    -e "/$INSERT_BEFORE/i\          end" \
     -e "/$INSERT_BEFORE/i\          html[#html + 1] = '</div>'" \
     -e "/$INSERT_BEFORE/i\        end" \
     -e '/local getargs/a\if getargs and getargs.ignore_update then' \
@@ -108,6 +113,9 @@ if [ "$UPDATE_BTN" = y ]; then
     -e '/local getargs/a\  proxy.set("rpc.gui.IgnoreCurrentRelease", getargs.ignore_update)' \
     -e '/local getargs/a\end' \
     -i /www/docroot/gateway.lp
+  if [ "$UPDATE_BTN" = p ]; then
+    sed -e 's/\(local *inc_pre *= *\)"."/\1"y"/' -i /usr/share/transformer/mappings/rpc/gui.map
+  fi
 else
   echo -e "[$SCRIPT]: Update available button will NOT be shown in GUI"
 fi

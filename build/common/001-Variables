@@ -93,7 +93,11 @@ else
 fi
 
 if grep -q 'rpc.gui.UpdateAvailable' /www/docroot/gateway.lp; then
-  UPDATE_BTN=y
+  if grep -q '^local inc_pre = "n"' /usr/share/transformer/mappings/rpc/gui.map; then
+    UPDATE_BTN=y
+  else
+    UPDATE_BTN=p
+  fi
 elif grep -q 'tch-gui-unhide' /www/docroot/gateway.lp; then
   UPDATE_BTN=n
 else
