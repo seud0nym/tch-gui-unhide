@@ -3,6 +3,9 @@ show_setting() {
   local _OPT="-$2"
   local _VAL
   local _ABL
+  local _ST
+  local _NC=$(printf "$NC")
+  local _W
 
   case "$2" in
     c)  _ABL="$3"; _VAL="$(echo $3 | cut -c1)";;
@@ -11,18 +14,18 @@ show_setting() {
                 admin) _VAL="y"; _ABL="Enabled";;
                 *)     _VAL="n"; _ABL="Disabled";;
               esac;;
-          n)  _OPT=""; _ABL="Unchanged";;
+          n)  _ABL="Unchanged"; _ST="$(printf '\033[9m')";;
         esac;;
     f)  case "$3" in
           y)  case "$DFLT_USR" in
                 1) _VAL="y"; _ABL="Enabled";;
                 0) _VAL="n"; _ABL="Disabled";;
               esac;;
-          n)  _OPT=""; _ABL="Unchanged";;
+          n)  _ABL="Unchanged"; _ST="$(printf '\033[9m')";;
         esac;;
     h)  _ABL="$3"
         case "$3" in
-          "")            _VAL=""; _OPT=""; _ABL="$VARIANT";;
+          "")            _ABL="$(printf "$ORANGE")Unchanged"; _ST="$(printf '\033[9m')";;
           $VARIANT-$MAC) _VAL="s";;
           $VARIANT)      _VAL="d";;
           $HOSTNAME)     _VAL="h";;
@@ -31,6 +34,10 @@ show_setting() {
     i)  case "$3" in
           visible) _VAL="y"; _ABL="Visible";;
           hidden)  _VAL="n"; _ABL="Hidden";;
+        esac;;
+    m)  case "$3" in
+          y) _ST="$(printf "$ORANGE")"; _ABL="${_ST}Enabled";;
+          n) _ABL="Disabled";;
         esac;;
     t)  case "$3" in
           classic)       _VAL="c"; _ABL="Classic";;
@@ -51,21 +58,30 @@ show_setting() {
           s) _ABL="Summary only";;
           i) _ABL="Individual charts";;
         esac;;
-    L) _VAL=""
-        case "$3" in
-          y) _ABL="Enabled"; _OPT="";;
+    L)  case "$3" in
+          y) _ABL="Enabled"; _ST="$(printf '\033[9m')";;
           n) _ABL="Disabled";;
         esac;;
-    CFG) _VAL=""; _OPT=""
+    CFG) _OPT=""
         case "$3" in
           y) _ABL="Enabled";;
           n) _ABL="Already Fixed";;
         esac;;
-    OPT) _VAL=""; _OPT=""
-         case "$3" in
-          y|V) _ABL="Enabled";;
-          /*)  _ABL="$3";;
-          *)   _ABL="Disabled";;
+    -verbose|-debug|-restore-base)
+        case "$3" in
+          y|V) _ABL="Enabled"; _VAL="";;
+          /*)  _ABL="$3"; _OPT="$_OPT=$3";;
+          *)   _ABL="Disabled"; _VAL=""; _ST="$(printf '\033[9m')";;
+        esac;;
+    -reboot) _VAL=""
+        case "$3" in
+          y) _ST="$(printf "$RED")"; _ABL="${_ST}Enabled";;
+          n) _ST="$(printf '\033[9m')"; _ABL="Disabled";;
+        esac;;
+    -no-service-restart) _VAL=""
+        case "$3" in
+          n) _ST="$(printf "$ORANGE")"; _ABL="${_ST}Enabled";;
+          y) _ABL="Disabled"; _VAL=""; _ST="$(printf '\033[9m')";;
         esac;;
     *)  case "$3" in
           y|true)  _VAL="y";  _ABL="Enabled";;
@@ -74,10 +90,8 @@ show_setting() {
         esac;;
   esac
 
-  [ "$2" = m -a "$_ABL" = Enabled ] && echo -en "$ORANGE"
-  echo $1 | grep -qi reboot && [ "$_ABL" = Enabled ] && echo -en "$RED"
-  printf "[$SCRIPT]:  %-35s %-2s%-10s" "$_TXT" "$_OPT" "$_VAL" 
-  echo -e "$_ABL${NC}"
+  _W=$(( 20 + ${#_ST} + ${#_NC} ))
+  printf "[$SCRIPT]:  %-35s %-${_W}s %s\n" "$_TXT" "$_ST$_OPT$_VAL$_NC" "$_ABL$_NC"
 }
 
 if [ $ABORT = n ]; then
@@ -114,11 +128,11 @@ echo -e "[$SCRIPT]: ${CYAN}Configuration Options${NC}"
   show_setting "Default User"                         "d" "$FIX_DFLT_USR"
   show_setting "Firmware Upgrade in GUI"              "f" "$FIX_FW_UPGRD"
 echo -e "[$SCRIPT]: ${CYAN}Installation Options${NC}"
-  show_setting "Verbose messages"                     "OPT" "$VERBOSE"
-  show_setting "Debugging"                            "OPT" "$DEBUG"
-  show_setting "Restore from base directory"          "OPT" "$RESTORE_BASE"
-  show_setting "Restart services"                     "OPT" "$RESTART_SERVICES"
-  show_setting "Reboot after install"                 "OPT" "$REBOOT"
+  show_setting "Verbose messages"                     "-verbose" "$VERBOSE"
+  show_setting "Debugging"                            "-debug" "$DEBUG"
+  show_setting "Restore from base directory"          "-restore-base" "$RESTORE_BASE"
+  show_setting "Restart services"                     "-no-service-restart" "$RESTART_SERVICES"
+  show_setting "Reboot after install"                 "-reboot" "$REBOOT"
 echo -e "[$SCRIPT]: ${CYAN}Configuration Changes${NC}"
   show_setting "Fix LAN SSH access"                   "CFG" "$FIX_SSH"
   show_setting "Allow GUI config export/import"       "CFG" "$FIX_CFG_PORT"
