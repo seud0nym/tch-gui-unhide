@@ -51,7 +51,7 @@ function PrintProcess(pid,depth)
     cmd = SUB(cmd,1,118-#s)..RESET..ELLIPSIS
   end
 
-  print(FORMAT("%5d %-8s %4s %5d %4s %s%s%s%s",p.pid,p.user,p.stat,p.vsz,p.cpu_pct,s,GREEN,cmd,RESET))
+  print(FORMAT("%5d %-8s %4s %5s %4s %s%s%s%s",p.pid,p.user,p.stat,p.vsz,p.cpu_pct,s,GREEN,cmd,RESET))
 
   local c = TREE[pid]
   if c then
@@ -69,7 +69,7 @@ if TOP then
   end
 
   for line in TOP:lines() do
-    local pid,ppid,user,stat,vsz,vsz_pct,cpu_pct,command = MATCH(line,"^%s*(%d+)%s+(%d+)%s+(%S+)%s+(%S+)%s+(%d+)%s(%s*%d+%%)%s(%s*%d+%%)%s+(.+)$")
+    local pid,ppid,user,stat,vsz,vsz_pct,cpu_pct,command = MATCH(line,"^%s*(%d+)%s+(%d+)%s+(%S+)%s+(%S+)%s+([m%d]+)%s(%s*%d+%%)%s(%s*%d+%%)%s+(.+)$")
     if pid then
       if not TREE[ppid] then
         TREE[ppid] = {}
