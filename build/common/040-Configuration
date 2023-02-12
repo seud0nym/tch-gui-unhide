@@ -56,25 +56,34 @@ if [ $FIX_PARENT_BLK = y ]; then
   SRV_nginx=$(( $SRV_nginx + 2 ))
 fi
 
-grep -q -E "lua_shared_dict *TGU_Config" /etc/nginx/nginx.conf
-if [ $? -eq 1 ]; then
+if ! grep -qE "lua_shared_dict *TGU_Config" /etc/nginx/nginx.conf; then
   echo -e "[$SCRIPT]: Creating shared dictionary for configuration"
   sed -e '/^http/a\    lua_shared_dict TGU_Config 10m;' -i /etc/nginx/nginx.conf
   SRV_nginx=$(( $SRV_nginx + 1 ))
 fi
 
-grep -q -E "lua_shared_dict *TGU_CPU" /etc/nginx/nginx.conf
-if [ $? -eq 1 ]; then
+if ! grep -qE "lua_shared_dict *TGU_CPU" /etc/nginx/nginx.conf; then
   echo -e "[$SCRIPT]: Creating shared dictionary for CPU calculations"
   sed -e '/^http/a\    lua_shared_dict TGU_CPU 10m;' -i /etc/nginx/nginx.conf
   SRV_nginx=$(( $SRV_nginx + 1 ))
 fi
 
-grep -q -E "lua_shared_dict *TGU_MbPS" /etc/nginx/nginx.conf
-if [ $? -eq 1 ]; then
+if ! grep -qE "lua_shared_dict *TGU_MbPS" /etc/nginx/nginx.conf; then
   echo -e "[$SCRIPT]: Creating shared dictionary for throughput calculations"
   sed -e '/^http/a\    lua_shared_dict TGU_MbPS 10m;' -i /etc/nginx/nginx.conf
   SRV_nginx=$(( $SRV_nginx + 1 ))
+fi
+
+if grep -qF "$START_PAGE" /etc/nginx/nginx.conf; then
+  echo -e "[$SCRIPT]: Default start page is already '$START_PAGE'"
+elif [ $START_PAGE = "gateway.lp" ]; then
+  echo -e "[$SCRIPT]: Changing default start page to '$START_PAGE'"
+  sed -e "s/\bhome\.lp\b/gateway.lp/" -i /etc/nginx/nginx.conf
+elif [ $START_PAGE = "home.lp" ]; then
+  echo -e "[$SCRIPT]: Changing default start page to '$START_PAGE'"
+  sed -e "s/\bgateway\.lp\b/home.lp/" -i /etc/nginx/nginx.conf
+else
+  echo -e "[$SCRIPT]: ${RED}ERROR! Unknown start page '$START_PAGE'????"
 fi
 
 echo -e "[$SCRIPT]: Preserving password files and SSH configuration to prevent root loss on RTFD"

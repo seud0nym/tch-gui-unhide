@@ -44,6 +44,10 @@ Optional parameters:
                     (Default is current setting or (y) for first time installs)
  -p y|n           Use decrypted text (y) or masked password (n) field for SIP Profile passwords
                     (Default is current setting i.e (n) by default)
+ -s a|b           Configure the start page after login:
+                    a=Advanced Dashboard
+                    b=Basic Home Page (Ignored if stock GUI only has Advanced mode)
+                    (Default is current setting)
  -v y|p|n         Enable or disable check for new releases and 'Update Available' button in GUI
                     y=Enabled for stable releases only
                     p=Enabled for stable and pre-releases
@@ -96,7 +100,7 @@ exit
 
 [ "/$1/" = "/-?/" -o "/$1/" = "/--help/" -o \( "/$1/" = "/-W/" -a \( "/$2/" = "/-?/" -o "/$2/" = "/--help/" \) \) ] && usage
 
-while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
+while getopts :a:b:c:d:f:h:i:l:m:p:rs:t:uv:x:yC:LTVWX-: option; do
  case "${option}" in
    -) case "${OPTARG}" in
         abort) ABORT=y;;
@@ -133,6 +137,11 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rt:uv:x:yC:LTVWX-: option; do
    m) case "${OPTARG}" in y|Y) MINIFY=y;; n|N) MINIFY=n;; *) echo -e "[$SCRIPT]: ${RED}ERROR!${NC} -m valid options are y or n"; exit 2;; esac;;
    p) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then SIP_PWDS=y; else SIP_PWDS=n; fi;;
    r) RESTORE=y;;
+   s) case "${OPTARG}" in 
+        a|A)  START_PAGE="gateway.lp";; 
+        b|B)  grep -qF 'home.lp' /rom/etc/nginx/nginx.conf && START_PAGE="home.lp" || { echo -e "[$SCRIPT]: ${RED}ERROR!${NC} -sb is invalid: No basic start page available"; exit 2; };; 
+        *)    echo -e "[$SCRIPT]: ${RED}ERROR!${NC} -s valid options are a or b"; exit 2;; 
+      esac;;
    t) case "${OPTARG}" in
         c) THEME=classic; COLOR=blue; KEEPLP=n;;
         l) THEME=light; COLOR=monochrome; KEEPLP=n;;

@@ -39,6 +39,11 @@ show_setting() {
           y) _ST="$(printf "$ORANGE")"; _ABL="${_ST}Enabled";;
           n) _ABL="Disabled";;
         esac;;
+    s)  _ABL="$3"
+        case "$3" in
+          home.lp)    _VAL="b";;
+          gateway.lp) _VAL="a";;
+        esac;;
     t)  case "$3" in
           classic)       _VAL="c"; _ABL="Classic";;
           light)         _VAL="l"; _ABL="Light";;
@@ -119,6 +124,7 @@ fi
 echo -e "[$SCRIPT]: ${CYAN}Control Options${NC}"
   show_setting "Background updating of cards"         "b" "$BG_RFRSH"
   show_setting "Decrypt SIP Profile passswords"       "p" "$SIP_PWDS"
+  show_setting "Start page after login"               "s" "$START_PAGE"
   show_setting "Show 'Update Available' button"       "v" "$UPDATE_BTN"
 for x in $XTRAS; do
   show_setting "Download extra feature script"        "x" "$x"

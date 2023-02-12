@@ -139,6 +139,12 @@ else
   fi
 fi
 
+if grep -qF 'home.lp' /etc/nginx/nginx.conf; then
+  START_PAGE="home.lp"
+else
+  START_PAGE="gateway.lp"
+fi
+
 # Keep count of changes so we know whether to restart services
 SRV_cron=0
 SRV_dnsmasq=0
