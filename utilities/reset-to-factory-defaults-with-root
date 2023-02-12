@@ -76,6 +76,8 @@ Options:
  -l n.n.n.n:port  Configure logging to a remote syslog server on the specified
                     IP address and port. The port is optional and defaults to
                     514 if not specified.
+ -m               Keep existing mobile profiles and linked WWAN profile.
+                    Ignored if no mobile profiles found.
  -n               Do NOT reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
@@ -166,6 +168,7 @@ $HOSTNAME_CFG
 $SYSLOG_CFG
 $NOEXEC_CFG
 $KEYS_CFG
+$MOBILED_CFG
 $RESTORE_CFG
 exit 0
 END
@@ -178,6 +181,7 @@ set_defaults() {
   __HOSTNAME=""
   __IPADDR=""
   __KEYS=""
+  __MOBILED=""
   __NOEXEC=""
   __ROOTPWD="root"
   __REBOOT="Y"
@@ -208,7 +212,7 @@ LEASES=""
 
 VALID_IPv4_PATTERN="([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
 
-while getopts :bcdD:ef:h:iI:kl:np:svyU-: option; do
+while getopts :bcdD:ef:h:iI:kl:mnp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
         i)              RESTORE_IPADDR="Y";;
@@ -246,6 +250,7 @@ while getopts :bcdD:ef:h:iI:kl:np:svyU-: option; do
         echo -e "${RED}ERROR:    Invalid IP address for syslog: $__SYSLOG_IP${NC}"
         exit
       fi;;
+  m)  __MOBILED="Y";;
   n)  __REBOOT="N";;
   p)  __ROOTPWD="${OPTARG}";;
   s)  if [ "$ACTIVE" = "$BOOTED" ]; then
@@ -501,9 +506,9 @@ if [ -n "$__IPADDR" ]; then
       LEASES="$(uci show dhcp | awk -F= -e '$1~/^dhcp\.[^.]*$/ && $2!~/^host$/{KEY="";} /=host$/{print "uci set " $0;KEY=$1;next;} {if(KEY!="" && index($0,KEY)!=0) print "uci set " $0;}0')"
       if [ -n "$LEASES" ]; then
         if [ "$NOW_C_CLASS" = "$CFG_C_CLASS" ]; then
-          echo -e "NOTE:     Static leases will be '${GREEN}restored${NC}'"
+          echo -e "NOTE:     Static leases will be ${GREEN}restored${NC}"
         else
-          echo -e "NOTE:     Static leases will be '${GREEN}restored${NC}' with new class C range '${GREEN}${CFG_C_CLASS}${NC}'"
+          echo -e "NOTE:     Static leases will be ${GREEN}restored${NC} with new class C range '${GREEN}${CFG_C_CLASS}${NC}'"
           LEASES="$(echo "$LEASES" | sed -e "s/$NOW_C_CLASS_ESCAPED/$CFG_C_CLASS/")"
         fi
         LAN_CFG="$LAN_CFG"$'\n'"$LEASES"
@@ -561,10 +566,19 @@ elif [ "${VERSION%%.*}" = "20" ]; then
 fi
 
 if [ -n "$__KEYS" ]; then
-  echo -e "NOTE:     SSH keys will be ${GREEN}restored${NC} after reset: ${GREEN}$(ls /etc/dropbear | xargs)${NC}"
+  echo -e "NOTE:     SSH keys will be ${GREEN}restored${NC}: ${GREEN}$(ls /etc/dropbear | xargs)${NC}"
   KEYS_CFG="echo '$(tar -czf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
 else
-  echo -e "${ORANGE}WARNING:  SSH keys will ${RED}NOT${ORANGE} be restored after reset!${NC}"
+  echo -e "${ORANGE}WARNING:  SSH keys will ${RED}NOT${ORANGE} be restored!${NC}"
+fi
+
+if uci -q get mobiled.@profile[0] > /dev/null; then
+  if [ -n "$__MOBILED" ]; then
+    echo -e "NOTE:     Mobile profiles will be ${GREEN}restored${NC}"
+    MOBILED_CFG="while uci -q get mobiled.@profile[0]; do uci delete mobiled.@profile[0]; done"$'\n'"$(uci show mobiled|grep @profile|sed -e 's|^\([^[]*\)\[[0-9]*\]=profile|uci add mobiled profile>/dev/null|' -e 's/^\([^[]*\)\[[0-9]*\]/uci set \1[-1]/')"$'\n'"uci set network.wwan.profile='$(uci -q get network.wwan.profile)'"
+  else
+    echo -e "${ORANGE}WARNING:  Mobile profiles will ${RED}NOT${ORANGE} be restored!${NC}"
+  fi
 fi
 
 if [ -n "$__SYSLOG_IP" ]; then

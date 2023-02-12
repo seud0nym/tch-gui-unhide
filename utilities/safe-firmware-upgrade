@@ -66,6 +66,8 @@ Options:
  -l n.n.n.n:port  Configure logging to a remote syslog server on the specified
                     IP address and port. The port is optional and defaults to
                     514 if not specified.
+ -m               Keep existing mobile profiles and linked WWAN profile.
+                    Ignored if no mobile profiles found.
  -n               Do NOT reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
@@ -141,19 +143,19 @@ YES="N"
 SAVE_DEFAULTS="N"
 RESTORE_CONFIG="N"
 
-while getopts :bcdD:eh:iI:knp:svyU-: option; do
+while getopts :bcdD:eh:iI:kmnp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
         i|no-forwards|no-leases|no-ula) OPTIONS="$OPTIONS --${OPTARG}";;
         restore-config) RESTORE_CONFIG="Y";;
-        save-defaults)  SAVE_DEFAULTS="Y";;
-        no-defaults)    OPTIONS="--no-defaults";;
-        *)              usage;;
+        save-defaults) SAVE_DEFAULTS="Y";;
+        no-defaults) OPTIONS="--no-defaults";;
+        *) usage;;
       esac;;
-  b|c|d|e|i|k|n|s|v|y)  OPTIONS="$OPTIONS -${option}";;
-  D|h|I|l|p)            OPTIONS="$OPTIONS -${option} ${OPTARG}";;
-  U)  download reset-to-factory-defaults-with-root; download $SCRIPT; exit;;
-  *)  usage;;
+  b|c|d|e|i|k|m|n|s|v|y) OPTIONS="$OPTIONS -${option}";;
+  D|h|I|l|p) OPTIONS="$OPTIONS -${option} ${OPTARG}";;
+  U) download reset-to-factory-defaults-with-root; download $SCRIPT; exit;;
+  *) usage;;
  esac
 done
 shift $((OPTIND-1))

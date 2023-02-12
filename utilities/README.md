@@ -392,6 +392,8 @@ Options:
  -l n.n.n.n:port  Configure logging to a remote syslog server on the specified
                     IP address and port. The port is optional and defaults to
                     514 if not specified.
+ -m               Keep existing mobile profiles and linked profile.
+                    Ignored if no mobile profiles found.
  -n               Do NOT reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
@@ -478,6 +480,8 @@ Options:
  -l n.n.n.n:port  Configure logging to a remote syslog server on the specified
                     IP address and port. The port is optional and defaults to
                     514 if not specified.
+ -m               Keep existing mobile profiles and linked WWAN profile.
+                    Ignored if no mobile profiles found.
  -n               Do NOT reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
