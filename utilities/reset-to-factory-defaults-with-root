@@ -76,7 +76,8 @@ Options:
  -l n.n.n.n:port  Configure logging to a remote syslog server on the specified
                     IP address and port. The port is optional and defaults to
                     514 if not specified.
- -m               Keep existing mobile profiles and linked WWAN profile.
+ -m               Keep existing mobile operators and profiles, and linked 
+                    WWAN profile.
                     Ignored if no mobile profiles found.
  -n               Do NOT reboot.
  -p password      Set the password after reset and reboot. If not specified,
@@ -559,10 +560,10 @@ if [ -n "$__HOSTNAME" ]; then
 fi
 
 if [ -n "$__NOEXEC" ]; then
-  echo -e "NOTE:     Any 'noexec' flags will be ${ORANGE}removed${NC} from USB filesystem mounts after reset"
+  echo -e "NOTE:     Any 'noexec' flags will be ${ORANGE}removed${NC} from USB filesystem mounts"
   NOEXEC_CFG="sed -e 's/noexec,//' -e 's/,noexec//' -i /etc/config/mountd"
 elif [ "${VERSION%%.*}" = "20" ]; then
-  echo -e "${ORANGE}WARNING:  'noexec' flags will ${RED}NOT${ORANGE} be removed from USB filesystem mounts after reset!${NC}"
+  echo -e "${ORANGE}WARNING:  'noexec' flags will ${RED}NOT${ORANGE} be removed from USB filesystem mounts!${NC}"
 fi
 
 if [ -n "$__KEYS" ]; then
@@ -574,10 +575,15 @@ fi
 
 if uci -q get mobiled.@profile[0] > /dev/null; then
   if [ -n "$__MOBILED" ]; then
-    echo -e "NOTE:     Mobile profiles will be ${GREEN}restored${NC}"
-    MOBILED_CFG="while uci -q get mobiled.@profile[0]; do uci delete mobiled.@profile[0]; done"$'\n'"$(uci show mobiled|grep @profile|sed -e 's|^\([^[]*\)\[[0-9]*\]=profile|uci add mobiled profile>/dev/null|' -e 's/^\([^[]*\)\[[0-9]*\]/uci set \1[-1]/')"$'\n'"uci set network.wwan.profile='$(uci -q get network.wwan.profile)'"
+    echo -e "NOTE:     Mobile profiles and operators will be ${GREEN}restored${NC}"
+    MOBILED_CFG="while uci -q get mobiled.@profile[0]; do uci delete mobiled.@profile[0]; done"$'\n'"while uci -q get mobiled.@operator[0]; do uci delete mobiled.@operator[0]; done"
+    MOBILED_CFG="$MOBILED_CFG"$'\n'"$(uci show mobiled|grep @profile|sed -e 's|^\([^[]*\)\[[0-9]*\]=profile|uci add mobiled profile|' -e 's/^\([^[]*\)\[[0-9]*\]/uci set \1[-1]/')"
+    MOBILED_CFG="$MOBILED_CFG"$'\n'"uci set network.wwan.profile='$(uci -q get network.wwan.profile)'"
+    MOBILED_CFG="$MOBILED_CFG"$'\n'"$(uci show mobiled|grep @operator|sed -e 's|^\([^[]*\)\[[0-9]*\]=operator|uci add mobiled operator|' -e 's/^\([^[]*\)\[[0-9]*\]/uci set \1[-1]/')"
+    MOBILED_CFG="$MOBILED_CFG"$'\n'"uci set mobiled.@device[0].mcc='$(uci -q get mobiled.@device[0].mcc)'"
+    MOBILED_CFG="$MOBILED_CFG"$'\n'"uci set mobiled.@device[0].mnc='$(uci -q get mobiled.@device[0].mnc)'"
   else
-    echo -e "${ORANGE}WARNING:  Mobile profiles will ${RED}NOT${ORANGE} be restored!${NC}"
+    echo -e "${ORANGE}WARNING:  Mobile profiles and operators will ${RED}NOT${ORANGE} be restored!${NC}"
   fi
 fi
 
