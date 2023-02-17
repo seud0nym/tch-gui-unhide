@@ -8,7 +8,7 @@ local uinetwork = require("web.uinetwork_helper")
 local hosts_ac = uinetwork.getAutocompleteHostsList()
 local tostring = tostring
 local pairs,string,ipairs,ngx = pairs,string,ipairs,ngx
-local find,format,gmatch,gsub,match,toupper = string.find,string.format,string.gmatch,string.gsub,string.match,string.upper
+local find,format,gmatch,gsub,match,sub,tolower,toupper = string.find,string.format,string.gmatch,string.gsub,string.match,string.sub,string.lower,string.upper
 ---@diagnostic disable-next-line: undefined-field
 local istainted,untaint = string.istainted,string.untaint
 
@@ -416,7 +416,7 @@ function M.validateDHCPState()
 end
 
 function M.validateDUID(value,object,_)
-  if value ~= "" and (#value < 20 or #value > 28 or not value:match("^[%x]+$")) then
+  if value ~= "" and (#value < 20 or #value > 28 or not match(value,"^[%x]+$")) then
     return nil, T"A Client DUID can only contain 28 hexadecimal digits."
   end
   if value == "" and object["hostid"] ~= "" then
@@ -479,14 +479,14 @@ function M.validateGatewayIP(curintf,all_intfs,lan_intfs)
 end
 
 function M.validateHostID(value,_,_)
-  if value ~= "" and (#value > 8 or not value:match("^[%x]+$")) then
+  if value ~= "" and (#value > 8 or not match(value,"^[%x]+$")) then
     return nil, T"A Host ID can only contain 1 to 8 hexadecimal digits."
   end
   return true
 end
 
 function M.validateHint(value,_,_)
-  if value ~= "" and (#value > 4 or not value:match("^[%x]+$")) then
+  if value ~= "" and (#value > 4 or not match(value,"^[%x]+$")) then
     return nil, T"A hint can only contain 1 to 4 hexadecimal digits."
   end
   return true
@@ -559,11 +559,11 @@ end
 function M.validateStaticLeaseMAC(value,object,key)
   local r1,r2 = vSIM(value)
   if r1 then
-    if string.lower(value) == "ff:ff:ff:ff:ff:ff" then
+    if tolower(value) == "ff:ff:ff:ff:ff:ff" then
       return nil,T"The requested MAC Address can't be the broadcast MAC"
     else
-      value = value:match("^%x%x%-%x%x%-%x%x%-%x%x%-%x%x%-%x%x$") and value:gsub("-",":") or value
-      object[key] = string.lower(value)
+      value = match(value,"^%x%x%-%x%x%-%x%x%-%x%x%-%x%x%-%x%x$") and value:gsub("-",":") or value
+      object[key] = tolower(value)
     end
   end
   return r1,r2
@@ -589,7 +589,7 @@ function M.validateStaticLeaseName(value,_,_)
 end
 
 function M.validateTagName(value,_,_)
-  if not value:match("^[%w]+$") then
+  if not match(value,"^[%w_]+$") then
     return nil,T"must not be empty and must only contain alphanumeric characters"
   end
   return true
@@ -614,7 +614,7 @@ end
 
 function M.validateULAPrefix(value, object, key)
   local valid, msg = vIAS6(value, object, key)
-  if valid and value ~= "" and (string.sub(string.lower(value),1,2) ~= "fd" or string.sub(value,-3,-1) ~= "/48") then
+  if valid and value ~= "" and (sub(tolower(value),1,2) ~= "fd" or sub(value,-3,-1) ~= "/48") then
     return nil, "ULA Prefix must be within the prefix fd::/7, with a range of /48"
   end
   return valid, msg
