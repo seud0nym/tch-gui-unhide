@@ -3079,16 +3079,19 @@ else
   fi
 fi
 
+
 # Host Name
 CURRENT_HOSTNAME="$(uci -q get system.@system[0].hostname)"
 if [ "$__HOST" = "u" ]; then
   echo [$SCRIPT]: Host name unchanged \[$CURRENT_HOSTNAME\]
+  FQDN="$CURRENT_HOSTNAME"
 else
   case $__HOST in
   d) HOSTNAME=$VARIANT;;
   s) HOSTNAME=$VARIANT-$MAC_HEX;;
   *) HOSTNAME=$__HOST;;
   esac
+  FQDN="$HOSTNAME"
   uci -q get dhcp.main.hostname | grep -q "$HOSTNAME"
   if [ $? -eq 0 -a "$(uci -q get system.@system[0].hostname)" = "$HOSTNAME" ]; then
     echo [$SCRIPT]: Host name is already $HOSTNAME
@@ -3153,7 +3156,9 @@ fi
 DOMAIN_NOW="$(uci -q get dhcp.main.domain)"
 if [ "$__DOMAIN" = "u" -o "$DOMAIN_NOW" = "$__DOMAIN" ]; then
   echo [$SCRIPT]: Domain name unchanged \[$DOMAIN_NOW\]
+  FQDN="${FQDN}.$DOMAIN_NOW"
 else
+  FQDN="${FQDN}.$__DOMAIN"
   echo [$SCRIPT]: Setting the domain to $__DOMAIN
   exec_uci set dhcp.main.domain="$__DOMAIN"
   exec_uci commit dhcp
@@ -3164,6 +3169,24 @@ if [ -n "$LOCAL_NOW" -a $(grep -E "$(echo $LOCAL_NOW | sed -e 's|/\([^/]*\)/|\\.
   echo [$SCRIPT]: Removing incorrect dhcp.main.local configuration
   exec_uci delete dhcp.main.local
   uci commit dhcp
+  SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
+fi
+
+FQDN="$(echo $FQDN | tr '[A-Z]' '[a-z]')"
+REDIRECT_URL_NOW="$(grep -o 'http://[^"]*' /etc/nginx/nginx.conf)"
+if [ "$REDIRECT_URL_NOW" = "http://$FQDN" ]; then
+  echo [$SCRIPT]: Redirect URL unchanged \[$REDIRECT_URL_NOW\]
+else
+  echo [$SCRIPT]: Setting the Redirect URL to http://$FQDN
+  sed -e "s|$REDIRECT_URL_NOW|http://$FQDN|" -i /etc/nginx/nginx.conf
+  SRV_nginx=$(( $SRV_nginx + 1 ))
+fi
+
+if uci -q get dhcp.main.hostname | grep -q "\b$(echo $FQDN | sed -e 's/\./\\./')\b"; then
+  echo [$SCRIPT]: FQDN already added as hostname \[$FQDN\]
+else
+  echo [$SCRIPT]: Adding FQDN $FQDN as hostname
+  exec_uci add_list dhcp.main.hostname="$FQDN"
   SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
 fi
 
