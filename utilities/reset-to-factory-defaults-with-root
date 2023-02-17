@@ -568,7 +568,7 @@ fi
 
 if [ -n "$__KEYS" ]; then
   echo -e "NOTE:     SSH keys will be ${GREEN}restored${NC}: ${GREEN}$(ls /etc/dropbear | xargs)${NC}"
-  KEYS_CFG="echo '$(tar -czf - -C / etc/dropbear | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
+  KEYS_CFG="echo '$(tar -czf - -C / etc/dropbear root/.ssh | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
 else
   echo -e "${ORANGE}WARNING:  SSH keys will ${RED}NOT${ORANGE} be restored!${NC}"
 fi
