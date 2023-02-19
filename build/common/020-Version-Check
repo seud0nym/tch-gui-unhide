@@ -11,8 +11,6 @@ toComparableVersion() {
   fi
   printf "%02d%02d%03d%04d" $major $minor $subminor $revision
 }
-VERSION=$(uci get version.@version[0].version | cut -d- -f1)
-FW_BASE=$(uci get version.@version[0].marketing_version)
 COMPVER=$(toComparableVersion $(echo $VERSION | tr '.' ' '))
 
 if [ "$FW_BASE" = "$TARGET_VERSION" ]; then

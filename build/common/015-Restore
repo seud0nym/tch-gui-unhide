@@ -1,5 +1,13 @@
 if [ $RESTORE = y ]; then
+  XTRAS_REMOVE=Y
+  for s in $(ls tch-gui-unhide-xtra.* 2>/dev/null); do
+    chmod +x $s
+    echo -en "[$SCRIPT]: Executing extra feature script for $(echo $s | cut -d. -f2-):"
+    . ./$s
+  done
+
   restore_www V
+
   for f in /etc/tch-gui-unhide.ignored_release /etc/tch-gui-unhide.theme /etc/hotplug.d/iface/10-bqos /etc/init.d/bqos /usr/sbin/bqos /etc/hotplug.d/iface/60-add-IPv6-DNS-intercept-exceptions /etc/hotplug.d/iface/70-WAN-LEDs;do
     if [ -f "$f" ]; then
       if [ "$(dirname $f)" = "/etc/init.d" ]; then
