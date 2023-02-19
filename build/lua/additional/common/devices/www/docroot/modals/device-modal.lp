@@ -3,6 +3,7 @@
 -- Enable localization
 gettext.textdomain('webui-core')
 
+local dkjson = require('dkjson')
 local proxy = require("datamodel")
 local common = require("common_helper")
 local content_helper = require("web.content_helper")
@@ -31,9 +32,35 @@ if multiap then
       local staInfo = proxy.get(staPath)
       local staList = content_helper.convertResultToObject(staPath,staInfo)
       for _,sta_v in ipairs(staList) do
-        local staMAC = string.lower(sta_v.MACAddress)
+        local staMAC = lower(untaint(sta_v.MACAddress))
         local wifiBand = sta_v.BSSID == BSSID2GHz and " - 2.4GHz" or " - 5GHz"
         agentSTA[staMAC] = agentname..wifiBand
+      end
+    end
+  end
+end
+
+for _,p in ipairs(proxy.getPN("uci.dhcp.host.",true)) do
+  local path = p.path
+  local tag = proxy.get(path.."tag")[1].value
+  if tag ~= "" then
+    local ap = match(untaint(tag),"^AP_([%w_]+)$")
+    if ap then
+      local ipv4 = proxy.get(path.."ip")
+      if ipv4 and ipv4[1].value ~= "" then
+        local cmd = format("curl -qsklm1 --connect-timeout 1 http://%s:59595",ipv4[1].value)
+        local curl = io.popen(cmd)
+        if curl then
+          local json = curl:read("*a")
+          local devices = dkjson.decode(json)
+          curl:close()
+          ap = gsub(ap,"_"," ")
+          for _,v in ipairs(devices) do
+            agentSTA[untaint(v.mac)] = format("%s - %s",ap,v.radio)
+          end
+        else
+          ngx.log(ngx.ERR,cmd)
+        end
       end
     end
   end
@@ -55,16 +82,16 @@ local function getInterfaceType(data)
     local key = untaint(data.Radio)
     local radio = radios[key]
     if radio then
-      return "Wireless - "..radio
+      return "Gateway - "..radio
     else
-      return "Wireless - "..key
+      return "Gateway - "..key
     end
   elseif match(data.L2Interface,"^wl0") then
-    return "Wireless - 2.4GHz"
+    return "Gateway - 2.4GHz"
   elseif match(data.L2Interface,"^wl1") then
-    return "Wireless - 5GHz"
+    return "Gateway - 5GHz"
   elseif match(data.L2Interface,"eth*") then
-    local agentWiFiBand = agentSTA[data.MACAddress]
+    local agentWiFiBand = agentSTA[untaint(data.MACAddress)]
     if agentWiFiBand then
       return agentWiFiBand
     else
@@ -77,7 +104,7 @@ local function getInterfaceType(data)
   elseif match(data.L2Interface,"moca*") then
     return "MoCA"
   elseif match(data.L2Interface,"^wds%d+") then
-    return "Wireless"
+    return "Gateway"
   else
     return data.L2Interface
   end

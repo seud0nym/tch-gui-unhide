@@ -1,7 +1,10 @@
+local dkjson = require('dkjson')
 local proxy = require("datamodel")
 local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
-local format = string.format
+local format,match = string.format,string.match
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 local tonumber = tonumber
 
 local device_modal_link = 'class="modal-link" data-toggle="modal" data-remote="modals/device-modal.lp" data-id="device-modal"'
@@ -33,12 +36,40 @@ function M.getDevicesCardHTML(all)
     end
   end
 
+  local nAPDevices = 0
+  if all then
+    for _,p in ipairs(proxy.getPN("uci.dhcp.host.",true)) do
+      local path = p.path
+      local tag = proxy.get(path.."tag")[1].value
+      if tag ~= "" then
+        local ap = match(untaint(tag),"^AP_([%w_]+)$")
+        if ap then
+          local ipv4 = proxy.get(path.."ip")
+          if ipv4 and ipv4[1].value ~= "" then
+            local curl = io.popen(format("curl -qsklm1 --connect-timeout 1 http://%s:59595",ipv4[1].value))
+            if curl then
+              local json = curl:read("*a")
+              local devices = dkjson.decode(json)
+              curl:close()
+              nAPDevices = nAPDevices + #devices
+            else
+              ngx.log(ngx.ERR,format("curl -qsklm1 --connect-timeout 1 http://%s:59595",ipv4[1].value))
+            end
+          end
+        end
+      end
+    end
+  end
+
   local nEth = tonumber(devices_data["numEthernet"]) or 0
   local activeEth = tonumber(devices_data["activeEthernet"]) or 0
   local activeWiFi = tonumber(devices_data["activeWireless"]) or 0
   local inactive = ((tonumber(devices_data["numWireless"]) or 0) - activeWiFi) + (nEth - activeEth)
-  if multiap and nAgtDevices > 0 and nEth > nAgtDevices then
-    activeEth = nEth - nAgtDevices
+  if nAgtDevices > 0 and activeEth > nAgtDevices then
+    activeEth = activeEth - nAgtDevices
+  end
+  if nAPDevices > 0 and activeEth > nAPDevices then
+    activeEth = activeEth - nAPDevices
   end
 
   local bwstats_enabled = proxy.get("rpc.gui.bwstats.enabled")
@@ -53,17 +84,25 @@ function M.getDevicesCardHTML(all)
   html[#html+1] = '<i class="icon-wifi status-icon"></i>'
   html[#html+1] = format(N('<strong %s>%d Wi-Fi device</strong> active','<strong %s>%d Wi-Fi devices</strong> active',activeWiFi),device_modal_link,activeWiFi)
   html[#html+1] = '</span>'
-  html[#html+1] = '<span class="simple-desc">'
-  html[#html+1] = '<i class="icon-wifi" style="color:grey"></i>'
-  html[#html+1] = format(N('<strong %s>%d device</strong> inactive','<strong %s>%d devices</strong> inactive',inactive),all_devices_modal_link,inactive)
-  html[#html+1] = '</span>'
-  if all and multiap then
-    html[#html+1] = '<span class="simple-desc">'
-    html[#html+1] = '<i class="icon-sitemap status-icon"></i>'
-    html[#html+1] = format(N('<strong %s>%d Wi-Fi device</strong> booster connected','<strong %s>%d Wi-Fi devices</strong> booster connected',nAgtDevices),device_modal_link,nAgtDevices)
-    html[#html+1] = '</span>'
+  if all then
+    if multiap then
+      html[#html+1] = '<span class="simple-desc">'
+      html[#html+1] = '<i class="icon-sitemap status-icon"></i>'
+      html[#html+1] = format(N('<strong %s>%d Wi-Fi device</strong> booster connected','<strong %s>%d Wi-Fi devices</strong> booster connected',nAgtDevices),device_modal_link,nAgtDevices)
+      html[#html+1] = '</span>'
+    end
+    if nAPDevices > 0 then
+      html[#html+1] = '<span class="simple-desc">'
+      html[#html+1] = '<i class="icon-sitemap status-icon"></i>'
+      html[#html+1] = format(N('<strong %s>%d Wi-Fi device</strong> AP connected','<strong %s>%d Wi-Fi devices</strong> AP connected',nAPDevices),device_modal_link,nAPDevices)
+      html[#html+1] = '</span>'
+    end
   end
   -- Do NOT remove this comment! Insert WireGuard peer count here
+  html[#html+1] = '<span class="simple-desc">'
+  html[#html+1] = '<i class="icon-eye-close" style="color:grey"></i>'
+  html[#html+1] = format(N('<strong %s>%d device</strong> inactive','<strong %s>%d devices</strong> inactive',inactive),all_devices_modal_link,inactive)
+  html[#html+1] = '</span>'
   if bwstats_enabled then
     local bwstats_template = '<span class="modal-link" data-toggle="modal" data-remote="modals/device-bwstats-modal.lp" data-id="device-bwstats-modal">Bandwidth Monitor %s</span>'
     if bwstats_enabled[1].value == "1" then

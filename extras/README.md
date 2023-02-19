@@ -1,6 +1,6 @@
 # Extras
 
-This is where extra functionality scripts can be found. These are not incorporated in the main tch-gui-unhide code line, because they rely on additional packages being installed.
+This is where extra functionality scripts can be found. These are not incorporated in the main tch-gui-unhide code line, because they rely on additional packages being installed or some other manual intervention.
 
 Extras scripts that rely on packages to be installed require `opkg` to be configured correctly on your device. See **opkg Configuration** [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#opkg-Configuration).
 
@@ -78,7 +78,7 @@ Install SAMBA v3.6 using the `opkg` command (see **opkg Configuration** [`below`
 #### Installation
 `./tch-gui-unhide -x samba36-server`
 #### Removal Instructions
-1. Do **not** delete tch-gui-unhide-xtra.samba36-server
+1. Do **not** delete `tch-gui-unhide-xtra.samba36-server`
 2. Remove samba36-server: `opkg remove samba36-server`
 3. Re-run `tch-gui-unhide` to correctly restore the default version of SAMBA on the device and remove the GUI changes, the custom configuration and the additional transformer mappings
 4. Now you can delete `tch-gui-unhide-xtra.samba36-server`
@@ -106,6 +106,20 @@ If you have a static IP address and a domain name assigned by your ISP, the doma
 2. Uninstall openwrt-wireguard-go: `wg --uninstall`
 3. Re-run `tch-gui-unhide` to remove the GUI changes, custom configuration and firewall script
 4. Now you can delete `tch-gui-unhide-xtra.wireguard`
+
+## tch-gui-unhide-xtra.wlassoclist
+Can be installed on a Technicolor device acting as a wireless Access Point to enable the main router to correctly report devices connected via Wi-Fi, rather than showing them as Ethernet connections.
+#### Firmware Applicability
+All
+#### Prerequisites
+Each Access Point device with the `wlassoclist` extra script installed must have a static lease defined on the main router, and the lease must be assigned a Custom DHCP Options Tag that starts with `AP_` followed by a descriptive name for the Access Point (e.g. `AP_Living_Room` or `AP_Study` or `AP_DJA0230`). The Custom DHCP Options Tag does _not_ need to have any of the other fields defined. It is the name that is important.
+#### Installation
+`./tch-gui-unhide -x wlassoclist`
+#### Removal Instructions
+1. Do **not** delete `tch-gui-unhide-xtra.wlassoclist`
+2. Run `tch-gui-unhide -r` to fully remove tch-gui-unhide
+3. Now you can delete `tch-gui-unhide-xtra.wlassoclist`
+3. Re-install `tch-gui-unhide` if required
 
 # How to download and execute these scripts
 

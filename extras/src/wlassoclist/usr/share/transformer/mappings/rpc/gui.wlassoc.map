@@ -1,0 +1,55 @@
+local json = require('dkjson')
+local popen = io.popen
+
+local ifnames = {}
+
+local link = popen("ip -o link show up | grep -o 'wl[^:]*'","r")
+if link then
+  for ifname in link:lines() do
+    ifnames[ifname] = ""
+  end
+  link:close()
+end
+
+for ifname in pairs(ifnames) do
+  local status = popen("wl -i "..ifname.." status | grep -o '[0-9.]*GHz'","r")
+  if status then
+    ifnames[ifname] = status:read("*l")
+    status:close()
+  end
+end
+
+local WLASSOC_ = {
+  objectType = {
+    name = 'rpc.gui.wlassoc.',
+    access = 'readOnly',
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      list = {
+        access = "readOnly",
+        type = "string",
+      },
+    }
+  }
+}
+
+WLASSOC_.get = {
+  list = function()
+    local data = {}
+    for ifname,radio in pairs(ifnames) do
+      if radio ~= "" then
+        local assoclist = popen("wl -i "..ifname.." assoclist | cut -d' ' -f2")
+        if assoclist then
+          for l in assoclist:lines() do
+            data[#data+1] = { mac = string.lower(l), radio = radio }
+          end
+          assoclist:close()
+        end
+      end
+    end
+    return json.encode(data)
+  end
+}
+
+register(WLASSOC_)
