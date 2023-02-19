@@ -1,17 +1,17 @@
 if [ -n "$XTRAS" ]; then
   for x in $XTRAS; do
-    echo -e [$SCRIPT]:  Attempting to download tch-gui-unhide-xtra.${x}...
+    echo -e "[$SCRIPT]:  Attempting to download tch-gui-unhide-xtra.${x}..."
     curl -skLO https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.${x}
     if [ "$(cat tch-gui-unhide-xtra.${x})" = "404: Not Found" ]; then
       rm tch-gui-unhide-xtra.${x}
-      echo -e [$SCRIPT]:  ERROR - tch-gui-unhide-xtra.${x} not found?
+      echo -e "[$SCRIPT]:  ERROR - tch-gui-unhide-xtra.${x} not found?"
     fi
   done
 fi
 
 for s in $(ls tch-gui-unhide-xtra.* 2>/dev/null); do
   chmod +x $s
-  echo -en [$SCRIPT]: Executing extra feature script for $(echo $s | cut -d. -f2-):
+  echo -en "[$SCRIPT]: Executing extra feature script for $(echo $s | cut -d. -f2-):"
   . ./$s
 done
 
