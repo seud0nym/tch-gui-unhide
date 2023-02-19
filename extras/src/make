@@ -9,7 +9,7 @@ do
   if [ -f "$source" ]; then
     target="../tch-gui-unhide-xtra.$d"
     if [ ! -f "$d/.skip" ]; then
-      echo "tch-gui-unhide-xtra.$d" >> .extras
+      [ ! -f "$d/.manual" ] && echo "tch-gui-unhide-xtra.$d" >> .extras
       if [ "$1" = "$d" -o ":$1" = ":-all" -o ! -e $target -o $(find $d -newer $target -type f 2>/dev/null | wc -l) -gt 0 ]; then
         echo Creating $target...
         cp "$source" "$target"
