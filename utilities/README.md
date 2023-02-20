@@ -5,6 +5,7 @@ A collection of utility scripts for your Technicolor router. Most of the names a
 - [dumaos](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos)
 - [guest-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#guest-restore)
 - [hijack-dns](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#hijack-dns)
+- [log-check](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#log-check)
 - [move-lan-port-to-own-network](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#move-lan-port-to-own-network)
 - [mtd-backup](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-backup)
 - [mtd-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-restore)
@@ -207,6 +208,15 @@ _NOTE_: **tch-gui-unhide releases starting with 2021.08.18 allow you to enable a
 
 ## intercept-dns
 *The intercept-dns script has been renamed to [hijack-dns](#hijack-dns) to avoid confusion with the intercept daemon.*
+
+## log-check
+Checks that the logging RAM buffer and disk-based messages log are both being written correctly.
+```
+Usage: ./log-check [options]
+
+Options:
+ -C    Adds or removes the scheduled hourly cron job
+```
 
 ## move-lan-port-to-own-network
 Moves a LAN port from the LAN bridge to its own network.
