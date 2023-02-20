@@ -17,27 +17,29 @@ local function checkCron()
   end
 
   local f = io.open(cronfile,"r")
-  for line in f:lines() do
-    if line ~= "" then
-      local enabled,minute,hour,day,month,weekday,command = line:match("([# ]*)([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) (.*)")
-      if enabled:gsub("%s","") == "#" then
-        enabled = "0"
-      else
-        active = active + 1
-        enabled = "1"
+  if f then
+    for line in f:lines() do
+      if line ~= "" then
+        local enabled,minute,hour,day,month,weekday,command = line:match("([# ]*)([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) (.*)")
+        if enabled:gsub("%s","") == "#" then
+          enabled = "0"
+        else
+          active = active + 1
+          enabled = "1"
+        end
+        res[#res+1] = {
+          enabled = enabled,
+          minute = minute,
+          hour = hour,
+          day = day,
+          month = month,
+          weekday = weekday,
+          command = command,
+        }
       end
-      res[#res+1] = {
-        enabled = enabled,
-        minute = minute,
-        hour = hour,
-        day = day,
-        month = month,
-        weekday = weekday,
-        command = command,
-      }
     end
+    f:close()
   end
-  f:close()
 
   cron_cache.active = tostring(active)
   cron_cache.tbl = res
@@ -102,13 +104,17 @@ GUI_CRON_.set = {
   writecrontab = function(_,_,value,_)
     if value == "1" then
       local cronTbl = checkCron()
-      local f = io.open(cronfile,"w+")
-      for _,l in pairs(cronTbl) do
-        writeLine(f,l)
+      local f,errmsg = io.open(cronfile,"w+")
+      if f then
+        for _,l in pairs(cronTbl) do
+          writeLine(f,l)
+        end
+        f:close()
+        os.execute("/etc/init.d/cron restart")
+        cron_cache.reload = true
+      else
+        return nil, errmsg
       end
-      f:close()
-      os.execute("/etc/init.d/cron restart")
-      cron_cache.reload = true
     end
     return true
   end
@@ -220,9 +226,13 @@ GUI_CRON_i_.add = function(_)
     command = "echo ID_RULE "..index,
   }
 
-  local f = io.open(cronfile,"a")
-  writeLine(f,line)
-  f:close()
+  local f,errmsg = io.open(cronfile,"a")
+  if f then
+    writeLine(f,line)
+    f:close()
+  else
+    return nil,errmsg
+  end
 
   cron_cache.reload = true
 
@@ -234,12 +244,16 @@ GUI_CRON_i_.delete = function(_,key)
 
   cron_cache.tbl[tonumber(key)] = nil
 
-  local f = io.open(cronfile,"w+")
-  for _,line in pairs(cron_cache.tbl) do
-    writeLine(f,line)
+  local f,errmsg = io.open(cronfile,"w+")
+  if f then
+    for _,line in pairs(cron_cache.tbl) do
+      writeLine(f,line)
+    end
+    f:close()
+    os.execute("/etc/init.d/cron restart")
+  else
+    return nil,errmsg
   end
-  f:close()
-  os.execute("/etc/init.d/cron restart")
 
   cron_cache.reload = true
 
