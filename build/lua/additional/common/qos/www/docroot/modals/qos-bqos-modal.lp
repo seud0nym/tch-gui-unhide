@@ -53,6 +53,9 @@ end
 if content["bqos_r2q"] == "" then
   content["bqos_r2q"] = "35"
 end
+if not helpmsg then
+  helpmsg = {}
+end
 
 local bqos_devices_editable = content["bqos_enabled"] == "1"
 
@@ -208,7 +211,7 @@ ngx.print(ui_helper.createHeader(T"QoS",false)); ngx.print('\
       <legend>'); ngx.print(T"Bandwidth Shaping"); ngx.print('</legend>\
       ')
       ngx.print(
-        ui_helper.createAlertBlock(T"Bandwidth shaping will cause <B>ALL</B> traffic between LAN clients and the Gateway to be limited to the specified Global Download/Upload rates, so should not be used if the Gateway is being for services such as <B>File Sharing</B>. Traffic <I>between</I> LAN clients is unaffected and will still run at normal LAN speeds.<BR>Bandwidth shaping can also increase CPU utilisation, and may not be suitable for connections above 100Mbit/s.",warn_box),
+        ui_helper.createAlertBlock(T"Bandwidth shaping will cause <B>ALL</B> traffic between LAN clients and the Gateway to be limited to the specified Global Download/Upload rates, so should not be used if the Gateway is being used for services such as <B>File Sharing</B>. Traffic <I>between</I> LAN clients is unaffected and will still run at normal LAN speeds.<BR>Bandwidth shaping can also increase CPU utilisation, and may not be suitable for connections above 100Mbit/s.",warn_box),
         ui_helper.createSwitch(T"Enabled","bqos_enabled",content["bqos_enabled"],nil,helpmsg["bqos_enabled"]),
         ui_helper.createInputText(T"Global Download Mbit/s","bqos_download",content["bqos_download"],rate_attr,helpmsg["bqos_download"]),
         ui_helper.createInputText(T"Global Upload Mbit/s","bqos_upload",content["bqos_upload"],rate_attr,helpmsg["bqos_upload"]),
