@@ -32,6 +32,7 @@ local function makeLight(setting,default,prefix,modal)
     end
     return ui_helper.createSimpleLight(value,T(format('<span class="modal-link" data-toggle="modal" data-remote="/modals/system-%s-modal.lp" data-id="routes-modal">%s</span> %s',modal,prefix,state_map[value])))
   end
+  return nil
 end
 
 if session:hasAccess(modalPath) then
