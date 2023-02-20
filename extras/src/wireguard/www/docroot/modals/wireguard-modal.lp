@@ -259,10 +259,13 @@ end
 
 local config,helpmsg
 if deleting then
-  config,helpmsg = mapParams,{}
+  config = mapParams
   content_helper.getExactContent(config)
 else
   config,helpmsg = post_helper.handleQuery(mapParams,mapValid)
+end
+if not helpmsg then
+  helpmsg = {}
 end
 
 if config.enabled ~= "0" then
@@ -606,18 +609,11 @@ ngx.print(ui_helper.createHeader("WireGuard",false,true,refresh_seconds),'\
       ngx.print(html,'\
     </form>\
   </div>\
-  <div class="loading-wrapper hide"><img src="/img/spinner.gif" /></div>\
 </div>\
+<script src="/js/modal-busy.js"></script>\
 ',ui_helper.createFooter(),'\
 <script src="/js/jszip.min.js"></script>\
 <script>\
-$("#save-config").on("click",function(){\
-  let busy_msg = $(".loading-wrapper");\
-  busy_msg.removeClass("hide");\
-  busy_msg[0].scrollIntoView();\
-  $(".modal-body").scrollLeft(0);\
-  return true;\
-});\
 const observer = new MutationObserver(function(mutations) {\
   $("#conf-import").hide();\
 });\

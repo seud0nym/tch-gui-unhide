@@ -76,8 +76,8 @@ ngx.print(ui_helper.createHeader(T"Packages",false,true,nil),'\
       ngx.print(html,'\
     </fieldset>\
   </form>\
-  <div class="loading-wrapper hide"><img src="/img/spinner.gif" /></div>\
 </div>\
+<script src="/js/modal-busy.js"></script>\
 ',ui_helper.createFooter(),'\
 <script>\
   var opkgLogFuncID;\
@@ -93,13 +93,6 @@ ngx.print(ui_helper.createHeader(T"Packages",false,true,nil),'\
     }\
   }\
   updateAcmeLog();\
-  $("#save-config").on("click",function(){\
-    var busy_msg = $(".loading-wrapper");\
-    busy_msg.removeClass("hide");\
-    busy_msg[0].scrollIntoView();\
-    $(".modal-body").scrollLeft(0);\
-    return true;\
-  });\
   $().ready(function(){opkgLogFuncID=setInterval(updateAcmeLog,2000);});\
 </script>\
 ');

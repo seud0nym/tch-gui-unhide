@@ -344,8 +344,9 @@ ngx.print(ui_helper.createHeader(T"Devices",false,true,interval),'\
       ui_helper.createTable(devices_columns,devices_data,devices_options,nil,devices_helpmsg),'\
     </fieldset>\
   </form>\
-</div>',
-ui_helper.createFooter(),'\
+</div>\
+<script src="/js/modal-busy.js"></script>\
+',ui_helper.createFooter(),'\
 <script src="/js/device-modal.js"></script>\
 <script>\
 var hdrs = document.getElementsByTagName("th");\

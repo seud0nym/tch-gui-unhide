@@ -1,0 +1,14 @@
+echo -e "[$SCRIPT]: Add wait spinner on WiFi modal save"
+sed \
+   -e '/); *ngx.print(ui_helper.createFooter/i\<script src="/js/modal-busy.js"></script>\\' \
+   -e '/\(<% *ngx.print(ui_helper.createFooter\|class="modal-footer"\)/i\<script src="/js/modal-busy.js"></script>' \
+   -i /www/docroot/modals/wireless-modal.lp
+
+echo -e "[$SCRIPT]: Add wait spinner on other modal save"
+for f in $(grep -l "'); *ngx.print(ui_helper.createFooter\|',ui_helper.createFooter" /www/docroot/modals/*); do
+  if ! grep -q 'modal-busy\.js\|spinner\.gif\|spinner-green\.gif' $f; then
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Modifying $f"
+    sed -e '/); *ngx.print(ui_helper.createFooter/i\<script src="/js/modal-busy.js"></script>\\' -i $f
+  fi
+done
+
