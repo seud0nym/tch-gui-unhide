@@ -30,7 +30,7 @@ local function makeLight(setting,default,prefix,modal)
     if value == "" then
       value = default
     end
-    return ui_helper.createSimpleLight(value,T(format('<span class="modal-link" data-toggle="modal" data-remote="/modals/system-%s-modal.lp" data-id="routes-modal">%s</span> %s',modal,prefix,state_map[value])))
+    return ui_helper.createSimpleLight(value,T(format('<span class="modal-link" data-toggle="modal" data-remote="/modals/system-%s-modal.lp" data-id="%s-modal">%s</span> %s',modal,modal,prefix,state_map[value])))
   end
   return nil
 end
@@ -57,6 +57,14 @@ if session:hasAccess(modalPath) then
             html[#html+1] = makeLight(ssh_wan,"1","SSH WAN","ssh")
           end
         end
+      end
+      local authorized_keys = proxy.get("rpc.gui.ssh.authorized_keysNumberOfEntries")
+      if authorized_keys then
+        local keys = authorized_keys[1].value
+        html[#html+1] = '<span class="simple-desc"><i>&nbsp</i>'
+        html[#html+1] = '<i class="icon-key status-icon"></i>'
+        html[#html+1] = format('<strong>%d</strong><span class="modal-link" data-toggle="modal" data-remote="/modals/system-ssh-modal.lp" data-id="ssh-modal"> SSH Authorized %s</span>',keys,N('Key','Keys',tonumber(keys)))
+        html[#html+1] = '</span>'
       end
       html[#html+1] = makeLight(proxy.get("uci.dhcp.dnsmasq.@main.enable_tftp"),"0","TFTP Server","tftp")
       local syslog = proxy.get("uci.system.system.@system[0].log_ip","uci.system.system.@system[0].log_filter_ip")

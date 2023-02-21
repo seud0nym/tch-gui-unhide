@@ -36,6 +36,8 @@ local ssh_params = {
   ssh_lan_enable = "uci.dropbear.dropbear.@lan.enable",
   ssh_lan_pwd_auth = "uci.dropbear.dropbear.@lan.PasswordAuth",
   ssh_lan_root_pwd_auth = "uci.dropbear.dropbear.@lan.RootPasswordAuth",
+  server_public_key = "rpc.gui.ssh.server_public_key",
+  server_fingerprint = "rpc.gui.ssh.server_fingerprint",
 }
 local ssh_valid = {
   ssh_lan_enable = vB,
@@ -78,6 +80,9 @@ for k,v in pairs(ssh_data) do
       ssh_data[k] = "on"
     end
   end
+end
+if not ssh_helpmsg then
+  ssh_helpmsg = {}
 end
 
 local function apply_firewall_rules(ifname,vars)
@@ -131,6 +136,35 @@ if not isBridgedMode and ngx.var.request_method == "POST" then
   end
 end
 
+local function validate_authorized_key(value,object,key)
+  if match(untaint(value),"^(ssh%-rsa)%s+([%w%+%/]+)%s*(.*)$") then
+    return true
+  end
+  return nil,"Invalid authorized_keys format or keytype field not 'ssh-rsa'"
+end
+local authorized_keys_columns = {
+  {
+    header = T"Authorized Key",
+    name = "authorized_key",
+    param = "authorized_key",
+    type = "text",
+    attr = { input = { class="span7" } },
+  },
+}
+local authorized_keys_valid = {
+  authorized_key = validate_authorized_key,
+}
+local authorized_keys_options = {
+  canEdit = false,
+  canAdd = true,
+  canDelete = true,
+  tableid = "authorized_keys",
+  basepath = "rpc.gui.ssh.authorized_keys.@.",
+  createMsg = T"Add Authorized Key",
+}
+local authorized_keys_data,authorized_keys_helpmsg = post_helper.handleTableQuery(authorized_keys_columns,authorized_keys_options,nil,nil,authorized_keys_valid)
+
+
 local switch_class_enable = {
   input = {
     class = "monitor-changes",
@@ -139,6 +173,12 @@ local switch_class_enable = {
 local ssh_lan_input = {
   group = {
     class ="monitor-ssh_lan_enable monitor-1",
+  },
+}
+local ssh_keys = {
+  span = {
+    class = "span7",
+    style = "word-break: break-all;"
   },
 }
 
@@ -152,6 +192,11 @@ ngx.print(
   ui_helper.createMessages(message_helper.popMessages()),'\
   <form class="form-horizontal" method="post" action="modals/system-ssh-modal.lp">\
     <fieldset>\
+      <legend>',T"SSH Server Key",'</legend>\
+        <fieldset>',
+          ui_helper.createLabel(T"Fingerprint",ssh_data["server_fingerprint"],ssh_keys),
+          ui_helper.createLabel(T"Public Key",ssh_data["server_public_key"],ssh_keys),'\
+        </fieldset>\
       <legend>',T"SSH Access",'</legend>\
         <fieldset><legend><small>',T"LAN Access",'</small></legend>',
           ui_helper.createSwitch(T"SSH LAN Enabled","ssh_lan_enable",ssh_data["ssh_lan_enable"],switch_class_enable),
@@ -213,6 +258,10 @@ if not isBridgedMode then
       </fieldset>')
 end
 ngx.print('\
+    </fieldset>\
+    <style>#authorized_keys>thead{display:none;} #authorized_keys>tbody>tr>td:nth-child(1){word-break:break-all;}</style>\
+    <fieldset><legend>',T"SSH Authorized Keys",'</legend>',
+      ui_helper.createTable(authorized_keys_columns,authorized_keys_data,authorized_keys_options,nil,authorized_keys_helpmsg),'\
     </fieldset>\
   </form>\
 </div>\

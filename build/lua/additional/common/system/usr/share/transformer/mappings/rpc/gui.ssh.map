@@ -1,0 +1,219 @@
+
+local lfs = require("lfs")
+local popen = io.popen
+local format,match = string.format,string.match
+
+local authorized_keys = "/etc/dropbear/authorized_keys"
+local private_key = "/root/.ssh/id_dropbear"
+
+local map = {
+  server_public_key = nil,
+  server_fingerprint = nil,
+  client_public_key = nil,
+  client_fingerprint = nil,
+  authorized_keys = nil,
+  time_check = nil,-- time authorized_keys was refreshed
+  refresh = nil,-- line to refresh in the file
+  reload = nil -- force reload
+}
+
+local function read_dropbearkey_output(fd,prefix)
+  local public_key = format("%s_public_key",prefix)
+  local fingerprint = format("%s_fingerprint",prefix)
+  fd:read("*l") -- ignore "Public key portion is:"
+  map[public_key] = fd:read("*l")
+  map[fingerprint] = match(fd:read("*l"),"^Fingerprint:%s*%S*%s*(.+)")
+  fd:close()
+end
+
+local function cachePublicKeyAndFingerprint(file,prefix)
+  local cmd = format("/usr/bin/dropbearkey -f %s -y",file)
+  local result,errmsg = popen(cmd,"r")
+  if result then
+    read_dropbearkey_output(result,prefix)
+    return true
+  end
+  return nil,errmsg
+end
+
+local function check_authorized_keys()
+  local res = {}
+  local time = os.time()
+  if map.authorized_keys and not map.reload and ( time - map.time_check ) < 60 then
+    return map.authorized_keys
+  end
+  local f = io.open(authorized_keys,"r")
+  if f then
+    for line in f:lines() do
+      res[#res+1] = { authorized_key = line, }
+    end
+    f:close()
+  end
+  map.authorized_keys = res
+  map.time_check = time
+  map.refresh = nil
+  map.reload = nil
+  return res
+end
+
+local function write_authorized_keys(keys)
+  local f,errmsg = io.open(authorized_keys,"w+")
+  if f then
+    for _,line in pairs(keys) do
+      f:write(line.authorized_key or "")
+      f:write("\n")
+    end
+    f:close()
+    os.execute("chmod 600 "..authorized_keys)
+    map.reload = true
+    return true
+  end
+  return nil, errmsg
+end
+
+cachePublicKeyAndFingerprint("/etc/dropbear/dropbear_rsa_host_key","server")
+
+local GUI_SSH_ = {
+  objectType = {
+    name = "rpc.gui.ssh.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      server_public_key = {
+        access = "readOnly",
+        type = "string"
+      },
+      server_fingerprint = {
+        access = "readOnly",
+        type = "string"
+      },
+      create_client_private_key = {
+        access = "readWrite",
+        type = "boolean"
+      },
+      client_public_key = {
+        access = "readOnly",
+        type = "string"
+      },
+      client_fingerprint = {
+        access = "readOnly",
+        type = "string"
+      },
+    }
+  }
+}
+
+GUI_SSH_.get = function(_,param,_)
+  if param == "create_client_private_key" then
+    if lfs.attributes(private_key,"mode") then
+      return "1"
+    end
+    return "0"
+  elseif map[param] then
+    return map[param] or ""
+  elseif param == "client_public_key" or param == "client_fingerprint" then
+    if lfs.attributes(private_key,"mode") then
+      local result,errmsg = cachePublicKeyAndFingerprint(private_key,"client")
+      if result then
+        return map[param] or ""
+      else
+        return nil,errmsg
+      end
+    else
+      return ""
+    end
+  end
+end
+
+GUI_SSH_.set = {
+  create_client_private_key = function(_,_,value,_)
+    if value == "1" then
+      if lfs.attributes(private_key,"mode") then
+        return nil,"Private key already exists"
+      end
+      if lfs.attributes("/root/.ssh","mode") ~= "directory" then
+        os.execute("rm -f /root/.ssh; mkdir -m 700 /root/.ssh")
+      end
+      local result,errmsg = popen("/usr/bin/dropbearkey -t rsa -f /root/.ssh/id_dropbear -s 2048","r")
+      if result then
+        read_dropbearkey_output(result,"client")
+        return true
+      end
+      return nil,errmsg
+    end
+    return true
+  end,
+}
+
+register(GUI_SSH_)
+
+local GUI_SSH_i_ = {
+  objectType = {
+    name = "rpc.gui.ssh.authorized_keys.@.",
+    access = "readWrite",
+    numEntriesParameter = "authorized_keysNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      authorized_key = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_SSH_i_.entries = function(_)
+  local res = {}
+  for key in pairs(check_authorized_keys()) do
+    res[#res+1] = tostring(key)
+  end
+  return res
+end
+
+GUI_SSH_i_.get = function(_,param,key)
+  return check_authorized_keys()[tonumber(key)][param] or ""
+end
+
+GUI_SSH_i_.set = function(_,param,value,key)
+  if param ~= "authorized_key" then
+    return nil,"Unknown parameter: "..param
+  else
+    if value == "" or match(value,"^(ssh%-rsa)%s+([%w%+%/]+)%s*(.*)$") then
+      check_authorized_keys()
+      map.authorized_keys[tonumber(key)][param] = value
+      if not map.refresh then
+        map.refresh = key
+      end
+      return true
+    end
+    return nil,"Invalid authorized_keys format or keytype field not 'ssh-rsa'"
+  end
+end
+
+GUI_SSH_i_.add = function(_)
+  local tbl = check_authorized_keys()
+  tbl[#tbl + 1] = { authorized_key = ""}
+  map.reload = true
+  local result,errmsg = write_authorized_keys(tbl)
+  if result then
+    return tostring(#tbl)
+  end
+  return result,errmsg
+end
+
+GUI_SSH_i_.delete = function(_,key)
+  local keys = check_authorized_keys()
+  keys[tonumber(key)] = nil
+  map.reload = true
+  return write_authorized_keys(keys)
+end
+
+GUI_SSH_i_.commit = function()
+  local result,errmsg = write_authorized_keys(check_authorized_keys())
+  map.reload = true
+  return result,errmsg
+end
+
+register(GUI_SSH_i_)
