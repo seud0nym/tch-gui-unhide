@@ -56,10 +56,12 @@ for _,p in ipairs(proxy.getPN("uci.dhcp.host.",true)) do
           local json = curl:read("*a")
           local devices = dkjson.decode(json)
           curl:close()
-          ap = gsub(ap,"_"," ")
-          for _,v in ipairs(devices) do
-            agentSTA[untaint(v.mac)] = format("%s - %s",ap,v.radio)
-            remoteSTAs = remoteSTAs + 1
+          if devices then
+            ap = gsub(ap,"_"," ")
+            for _,v in ipairs(devices) do
+              agentSTA[untaint(v.mac)] = format("%s - %s",ap,v.radio)
+              remoteSTAs = remoteSTAs + 1
+            end
           end
         else
           ngx.log(ngx.ERR,cmd)
