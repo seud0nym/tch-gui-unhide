@@ -21,6 +21,7 @@ local untaint = string.untaint
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
+local remoteSTAs = 0
 local agentSTA = {}
 local multiap = proxy.getPN("Device.Services.X_TELSTRA_MultiAP.Agent.",true)
 if multiap then
@@ -35,6 +36,7 @@ if multiap then
         local staMAC = lower(untaint(sta_v.MACAddress))
         local wifiBand = sta_v.BSSID == BSSID2GHz and " - 2.4GHz" or " - 5GHz"
         agentSTA[staMAC] = agentname..wifiBand
+        remoteSTAs = remoteSTAs + 1
       end
     end
   end
@@ -57,6 +59,7 @@ for _,p in ipairs(proxy.getPN("uci.dhcp.host.",true)) do
           ap = gsub(ap,"_"," ")
           for _,v in ipairs(devices) do
             agentSTA[untaint(v.mac)] = format("%s - %s",ap,v.radio)
+            remoteSTAs = remoteSTAs + 1
           end
         else
           ngx.log(ngx.ERR,cmd)
@@ -77,26 +80,31 @@ for _,v in ipairs(proxy.getPN("rpc.wireless.radio.", true)) do
   end
 end
 
+local wifi_prefix = "Wireless"
+if remoteSTAs > 0 then
+  wifi_prefix = "Gateway"
+end
+
 local function getInterfaceType(data)
   if data.Radio and data.Radio ~= "" then
     local key = untaint(data.Radio)
     local radio = radios[key]
     if radio then
-      return "Gateway - "..radio
+      return wifi_prefix.." - "..radio
     else
-      return "Gateway - "..key
+      return wifi_prefix.." - "..key
     end
   elseif match(data.L2Interface,"^wl0") then
-    return "Gateway - 2.4GHz"
+    return wifi_prefix.." - 2.4GHz"
   elseif match(data.L2Interface,"^wl1") then
-    return "Gateway - 5GHz"
+    return wifi_prefix.." - 5GHz"
   elseif match(data.L2Interface,"eth*") then
     local agentWiFiBand = agentSTA[untaint(data.MACAddress)]
     if agentWiFiBand then
       return agentWiFiBand
     else
       if data.Port and data.Port ~= "" then
-        return format("Ethernet - %s",data.Port)
+        return "Ethernet - "..data.Port
       else
         return "Ethernet"
       end
@@ -104,7 +112,7 @@ local function getInterfaceType(data)
   elseif match(data.L2Interface,"moca*") then
     return "MoCA"
   elseif match(data.L2Interface,"^wds%d+") then
-    return "Gateway"
+    return wifi_prefix
   else
     return data.L2Interface
   end
