@@ -108,11 +108,11 @@ If you have a static IP address and a domain name assigned by your ISP, the doma
 4. Now you can delete `tch-gui-unhide-xtra.wireguard`
 
 ## tch-gui-unhide-xtra.wlassoclist
-Can be installed on a Technicolor device acting as a wireless Access Point to enable the main router to correctly report devices connected via Wi-Fi, rather than showing them as Ethernet connections.
+Can be installed on a Technicolor device acting as a wireless Access Point to enable the main Technicolor router (running tch-gui-unhide) to query it and correctly report devices connected via Wi-Fi, rather than showing them as Ethernet connections.
 #### Firmware Applicability
 All
 #### Prerequisites
-Each Access Point device with the `wlassoclist` extra script installed must have a static lease defined on the main router, and the lease must be assigned a Custom DHCP Options Tag that starts with `AP_` followed by a descriptive name for the Access Point (e.g. `AP_Living_Room` or `AP_Study` or `AP_DJA0230`). The Custom DHCP Options Tag does _not_ need to have any of the other fields defined. It is the name that is important.
+Each Access Point device with the `wlassoclist` extra script installed must have a static lease defined on the main router, and the lease must be assigned a Custom DHCP Options Tag that starts with `AP_` followed by a descriptive name for the Access Point (e.g. `AP_Living_Room` or `AP_Study` or `AP_DJA0230`). The Custom DHCP Options Tag does _not_ need to have any of the other fields defined (it is the name that is important).
 #### Installation
 `./tch-gui-unhide -x wlassoclist`
 #### Removal Instructions

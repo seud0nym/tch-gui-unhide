@@ -48,6 +48,10 @@ Correctly configures OpenWRT SAMBA 3.6 on firmware 17.2 and 18.1.c to provide SM
 
 Creates a GUI interface for configuring the Wireguard VPN on firmware 20.3.
 
+#### [tch-gui-unhide-xtra.wlassoclist](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtraswlassoclist)
+
+Can be installed on a Technicolor device acting as a wireless Access Point to enable the main Technicolor router (running tch-gui-unhide) to query it and correctly report devices connected via Wi-Fi, rather than showing them as Ethernet connections.
+
 ## Extended Capabilities
 
 Using the additional scripts found in sub-folders of this repository, you can configure your device with these extended capabilities:

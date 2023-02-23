@@ -1,10 +1,25 @@
-2023.02.08
+2023.02.23
 ==========
 * tch-gui-unhide: Fixed broken Telstra Air card after 2023.02.02 applied
 * tch-gui-unhide: Fixed GUI upgrade always reporting that an upgrade was already in progress (#126)
 * tch-gui-unhide: Fixed incorrect defaults logic which broke the Local Network screen (#137)
 * tch-gui-unhide: Fixed non-backup files showing in Backup file lists
+* tch-gui-unhide: Fixed device interface display on pre-20 FW and various other minor Devices list display issues
+* tch-gui-unhide: Fixed validation to allow underscore in Custom DHCP option Tag names
+* tch-gui-unhide: Added new -s option to configure the starting page as either the Advanced dashboard (-sa) or the Basic home screen (-sb) (#139)
+* tch-gui-unhide: Added server SSH public key and fingerprint to SSH tab
+* tch-gui-unhide: Added count of SSH authorized keys to System Extras card
+* tch-gui-unhide: Added ability to add and delete SSH authorized keys
+* tch-gui-unhide: Extended wait spinner on slow screens to table add/delete/modify actions
+* tch-gui-unhide: 'Upgrade Available' button can now optionally be used to install pre-releases (use the -vp option when manually installing)
 * tch-gui-unhide: Process Viewer now lists processes in tree layout so that you can see the relationship between parent and child processes
+* tch-gui-unhide-xtra.wireguard: Upgraded JSZip to v3.10.1
+* tch-gui-unhide-xtra.wlassoclist: New extras script that can be installed on a Technicolor device acting as a wireless Access Point to enable the main Technicolor router (running tch-gui-unhide) to query it and correctly report devices connected via Wi-Fi, rather than showing them as Ethernet connections
+* de-telstra: Added FQDN of device as known hostname for verification by session manager hostRefersToUs function
+* de-telstra: Fixed forced redirects to http://mymodem.modem or http://mygateway.gateway that fail after changing the hostname and/or domain
+* log-check: Reintroduced script that can be run hourly to check that the logging RAM buffer and disk-based messages log are both being written correctly
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Added new -m option to restore mobile operators and profiles, and linked WWAN profile (#140)
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: The -k option now also preserves any private keys and/or known_hosts file found in /root/.ssh/
 
 2023.02.02
 ==========

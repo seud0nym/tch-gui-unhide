@@ -29,7 +29,8 @@ Optional parameters:
                    (Default is current setting, or 4 for first time installs)
  -h d|s|n|"txt"   Set the browser tabs title (Default is current setting)
                    (d)=$VARIANT (s)=$VARIANT-$MAC (n)=$HOSTNAME ("txt")=Specified "txt"
- -l y|n           Keep the Telstra landing page (y) or de-brand the landing page (n)
+ -l y|n           Keep the Telstra landing page (y) or de-brand the landing page (n) (applicable to 
+                    Smart Modem Gen 2 and later only)
                     (Default is current setting, or (n) if no theme has been applied)
  -C n|s|i         Keep or remove chart cards
                     n=No Chart Cards will be available
