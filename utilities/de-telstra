@@ -2985,7 +2985,7 @@ else
       echo [$SCRIPT]: - All public keys already removed from /etc/dropbear/authorized_keys
     else
       echo [$SCRIPT]: - Removing all public keys from /etc/dropbear/authorized_keys
-      echo > /etc/dropbear/authorized_keys
+      echo -n > /etc/dropbear/authorized_keys
     fi
   else
     echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! Public keys not removed from /etc/dropbear/authorized_keys${NC}"
