@@ -45,7 +45,9 @@ local function check_authorized_keys()
   local f = io.open(authorized_keys,"r")
   if f then
     for line in f:lines() do
-      res[#res+1] = { authorized_key = line, }
+      if match(line,"^%s*(.-)%s*$") ~= "" then
+        res[#res+1] = { authorized_key = line, }
+      end
     end
     f:close()
   end
