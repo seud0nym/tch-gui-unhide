@@ -432,7 +432,7 @@ exec_uci() {
   shift
   local arguments="$*"
   local path="$(echo "$arguments" | cut -d= -f1)"
-  local value="$(echo "$arguments" | cut -d= -f2)"
+  local value="$(echo "$arguments" | cut -d= -f2-)"
   local retval
 
   if [ "$path" = "$value" ]; then
@@ -2917,15 +2917,18 @@ else
   echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! Telstra NTP servers NOT Removed${NC}"
 fi
 
+# Fix for bug introduced in commit ec5edb5 that caused "Too many levels of symbolic links" error
+if ! uci -q show mountd | grep 'options' | cut -d= -f2- | grep -q '='; then
+  echo -e "[$SCRIPT]: - ${ORANGE}Fixing 'Too many levels of symbolic links' error${NC}"
+  cp -p /rom/etc/config/mountd /etc/config/mountd
+fi
 # USB noexec
-if [ $(uci -q show mountd | grep -E 'mountd\.(ext[2-4]|fat|hfsplus(journal)*|ntfs)\.options=.*noexec.*' | wc -l) -gt 0 ]; then
+if uci -q show mountd | grep -qE 'mountd\.(ext[2-4]|fat|hfsplus(journal)*|ntfs)\.options=.*noexec.*'; then
   if [ "$__NOEXEC" = 'n' ]; then
-    for fs in ext2 ext3 ext4 fat hfsplus hfsplusjournal ntfs
-    do
+    for fs in ext2 ext3 ext4 fat hfsplus hfsplusjournal ntfs; do
       FS_OPT=$(uci -q get mountd.$fs.options)
-      echo $FS_OPT | grep -q noexec
-      if [ $? -eq 0 ]; then
-        exec_uci set mountd.$fs.options="$(echo $FS_OPT | sed -e 's/noexec,//' -e 's/,noexec//')"
+      if echo "$FS_OPT" | grep -q noexec; then
+        exec_uci set mountd.$fs.options="$(echo "$FS_OPT" | sed -e 's/noexec,//' -e 's/,noexec//')"
         SRV_mountd=$(( $SRV_mountd + 1 ))
         echo [$SCRIPT]: - noexec on $fs mounts Disabled
       fi
