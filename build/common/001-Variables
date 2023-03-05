@@ -76,7 +76,7 @@ if [ -z "$THEME" ]; then
   ICONS="$(grep '.card_bg:after{visibility:' /www/docroot/css/gw.css | cut -d: -f3 | cut -d\; -f1)"
 fi
 
-if grep -q 'rpc.gui.pwd.@' /www/docroot/modals/mmpbx-profile-modal.lp; then
+if grep -q 'rpc.gui.pwd.@' /www/docroot/modals/mmpbx-profile-modal.lp 2>/dev/null; then
   SIP_PWDS=y
 else
   SIP_PWDS=n
