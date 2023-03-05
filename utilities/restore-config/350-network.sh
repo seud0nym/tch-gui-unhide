@@ -1,13 +1,28 @@
 #!/bin/sh
 
-log I "Restoring network configuration..."
 LAN_IP_ADDR="$(uci get network.lan.ipaddr)"
 LAN_IP_MASK="$(uci get network.lan.netmask)"
 
-for cfg in dhcp network wireless user_friendly_name; do
+if uci -q get mobiled.@profile[0] > /dev/null; then
+  log I "Restoring mobile operators and profiles..."
+  uci_copy mobiled profile
+  uci_copy mobiled operator
+  uci_set mobiled.@device[0].mcc
+  uci_set mobiled.@device[0].mnc
+  uci -q commit mobiled
+fi
+
+log I "Restoring network configuration..."
+for cfg in dhcp network user_friendly_name; do
   uci -q revert $cfg
   restore_file /etc/config/$cfg
 done
+
+if [ "$DEVICE_VERSION" = "$BACKUP_VERSION" -o \( "$DEVICE_VERSION_NUMBER" -le 2004000 -a "$BACKUP_VERSION_NUMBER" -le 2004000 \) ]; then
+  log I "Restoring wireless configuration..."
+  uci -q revert wireless
+  restore_file /etc/config/wireless
+fi
 
 log I "Configuring intercept daemon..."
 uci -q revert intercept
@@ -21,8 +36,14 @@ if [ $TEST_MODE = y ]; then
   uci -q commit ddns
 
   log W "TEST MODE: Disabling Wi-Fi..."
-  uci set wireless.radio_2G.state='0'
-  uci set wireless.radio_5G.state='0'
+
+  if [ -n "$(uci -q get wireless.radio_2G.state)" ]; then
+    uci set wireless.radio_2G.state='0'
+    uci set wireless.radio_5G.state='0'
+  elif [ -n "$(uci -q get wireless.radio0.state)" ]; then
+    uci set wireless.radio0.state='0'
+    uci set wireless.radio1.state='0'
+  fi
   uci -q commit wireless
 
   if [ -z "$IPADDR" ]; then
@@ -46,3 +67,16 @@ uci_set wansensing.global.autofailover
 uci_set wansensing.global.voiceonfailover
 uci_set wansensing.global.autofailovermaxwait
 uci -q commit wansensing
+
+log I "Configuring Multicast Snooping..."
+uci -q revert mcastsnooping
+uci_set mcastsnooping.lan.igmp_snooping
+uci_set mcastsnooping.lan.mcast_flooding
+uci_set mcastsnooping.lan.mld_snooping
+uci_set mcastsnooping.lan.mcast6_flooding
+uci -q commit mcastsnooping
+
+if [ -f $BANK2/usr/bin/ip6neigh-setup ]; then
+  log I "Restoring ip6neigh..."
+  $BANK2/usr/bin/ip6neigh-setup install
+fi

@@ -428,9 +428,6 @@ Options:
  -U               Download the latest version of the script from GitHub.
                     Do NOT specify any other parameters or options if doing a 
                     version upgrade.
- ```
- The following options are only applicable to firmware versions 17.2, 18.1.c and 20.3.c:
- ```
  --restore-config Runs the restore-config.sh script after reboot if it is found
                     in the USB backups directory. Output will be written to the 
                     system log. --restore-config should be the LAST option
@@ -513,9 +510,6 @@ Options:
  -U               Download the latest version of the script from GitHub.
                     Do NOT specify any other parameters or options if doing a
                     version upgrade.
- ```
- The following options are only applicable to firmware versions 17.2, 18.1.c and 20.3.c:
- ```
  --restore-config Runs the restore-config.sh script after reboot if it is found
                     in the USB backups directory. Output will be written to the 
                     system log. --restore-config should be the LAST option

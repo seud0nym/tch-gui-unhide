@@ -51,6 +51,28 @@ log() {
   [ \( "$flag" != "D" -a "$flag" != "V" \) -o \( "$flag" = "D" -a $DEBUG = y \) -o \( "$flag" = "V" -a $VERBOSE = y \) ] && echo -e "${level}  ${colour}$*\033[0m"
 }
 
+comparable_version() {
+  local result=""
+  local portion
+  local number
+  local count=0
+  for portion in $(echo $1 | tr '.' ' '); do
+    count=$((count+1))
+    if echo $portion | grep -q [0-9]; then
+      number=$(( $portion + 0 ))
+      if [ ${#number} -le 2 ]; then
+        result="${result}$(printf "%02d" "$number")"
+      else
+        result="${result}$(printf "%04d" "$number")"
+      fi
+    else
+      result="${result}$(echo -n $portion | hexdump -e '1/1 "%03d"')"
+    fi
+  done
+  [ $count -lt 3 ] && result="${result}000"
+  echo $result
+}
+
 config2yn() {
   local path="$1"
   case "$($UCI -q get $path)" in
@@ -83,14 +105,18 @@ find_scripts() {
   local c f
   local MOUNT_PATH
 
-  log D "Searching for de-telstra and tch-gui-unhide-${DEVICE_VERSION}"
+  log D "Searching for update-ca-certificates, de-telstra and tch-gui-unhide-${DEVICE_VERSION}"
   MOUNT_PATH=$(uci -q get mountd.mountd.path)
   log V " ++ Searching /tmp/ ${MOUNT_PATH}"
-  f=$(find /tmp/ $BANK2 $MOUNT_PATH -follow -name de-telstra -o -name tch-gui-unhide-$DEVICE_VERSION 2>/dev/null | grep -vE 'mvfs|^/tmp/run' | xargs)
+  f=$(find /tmp/ $BANK2 $MOUNT_PATH -follow -name update-ca-certificates -o -name de-telstra -o -name tch-gui-unhide-$DEVICE_VERSION 2>/dev/null | grep -vE 'mvfs|^/tmp/run' | xargs)
   log V " == Found ${f}"
   [ -n "$f" ] && SCRIPT_DIR="$(dirname $(ls -t $f 2>/dev/null | head -n 1) 2>/dev/null)"
   [ -z "$SCRIPT_DIR" ] && SCRIPT_DIR=/tmp
   log V " >> Latest modified time is in ${SCRIPT_DIR}"
+  if [ ! -e "$SCRIPT_DIR/update-ca-certificates" ]; then
+    log W "Could not locate up-to-date update-ca-certificates. Downloading..."
+    download https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/update-ca-certificates $SCRIPT_DIR
+  fi
   if [ ! -e "$SCRIPT_DIR/de-telstra" -o $(grep no-service-restart "$SCRIPT_DIR/de-telstra" 2>/dev/null | wc -l) -eq 0 ]; then
     log W "Could not locate up-to-date de-telstra. Downloading..."
     download https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/de-telstra $SCRIPT_DIR
@@ -100,9 +126,10 @@ find_scripts() {
     download https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/tch-gui-unhide-$DEVICE_VERSION $SCRIPT_DIR
   fi
 
+  [ ! -e $SCRIPT_DIR/update-ca-certificates ] && { log E "$SCRIPT_DIR/update-ca-certificates was not found???"; unlock normally; }
   [ ! -e $SCRIPT_DIR/de-telstra ] && { log E "$SCRIPT_DIR/de-telstra was not found???"; unlock normally; }
   [ ! -e $SCRIPT_DIR/tch-gui-unhide-$DEVICE_VERSION ] && { log E "$SCRIPT_DIR/tch-gui-unhide-$DEVICE_VERSION was not found???"; unlock normally; }
-  log I "Found de-telstra and tch-gui-unhide-$DEVICE_VERSION in $SCRIPT_DIR"
+  log I "Found update-ca-certificates, de-telstra and tch-gui-unhide-$DEVICE_VERSION in $SCRIPT_DIR"
 
   log D "Searching for tch-gui-unhide customisation files"
   for c in authorized_keys ipv4-DNS-Servers ipv6-DNS-Servers; do
@@ -160,21 +187,29 @@ restore_directory() {
 }
 
 restore_overlay_to_tmp() {
+  local bank="$(tar -tzf $OVERLAY | grep /usr/share/transformer/mappings/rpc/gui.map | grep -om1 '/bank_[12]' || echo /bank_2)"
+
+  BASE="/tmp/.restore-config"
+  BANK2="$BASE$bank"
+  PREFIX_LENGTH=$(( ${#BANK2} + 1 ))
+  UCI="uci -c $BANK2/etc/config"
+
   rm -rf $BASE
   mkdir $BASE
 
-  echo './bank_2/etc/' >> $BASE/.include
-  echo './bank_2/root/' >> $BASE/.include
-  echo './bank_2/usr/lib/lua/wansensingfw/failoverhelper.lua' >> $BASE/.include
-  echo './bank_2/usr/lib/opkg/info/' >> $BASE/.include
-  echo './bank_2/usr/share/transformer/mappings/rpc/gui.map' >> $BASE/.include
-  echo './bank_2/www/' >> $BASE/.include
+  echo ".$bank/etc/" >> $BASE/.include
+  echo ".$bank/root/" >> $BASE/.include
+  echo ".$bank/usr/lib/lua/wansensingfw/failoverhelper.lua" >> $BASE/.include
+  echo ".$bank/usr/lib/opkg/info/" >> $BASE/.include
+  echo ".$bank/usr/share/transformer/mappings/rpc/gui.map" >> $BASE/.include
+  echo ".$bank/www/" >> $BASE/.include
+  tar -tzf $OVERLAY | grep "\.$bank/usr/bin/ip6neigh-setup" >> $BASE/.include
 
-  echo './bank_2/root/*.core.gz' >> $BASE/.exclude
-  echo './bank_2/root/log/*' > $BASE/.exclude
+  echo ".$bank/root/log/*" >> $BASE/.exclude
+  echo ".$bank/root/*.core.gz" >> $BASE/.exclude
 
-  tar -tzvf $OVERLAY | grep '\./bank_2/usr/lib/opkg/info/' | grep '\.control$' > $BASE/.packages
-  opkg list-installed > $BASE/.installed
+  tar -tvzf $OVERLAY | grep "\.$bank/usr/lib/opkg/info/" | grep '\.control$' >> $BASE/.packages
+  opkg list-installed >> $BASE/.installed
 
   log D "Restoring required files from $OVERLAY to $BASE.."
   tar -xzf $OVERLAY -C $BASE -T $BASE/.include -X $BASE/.exclude
@@ -184,6 +219,7 @@ restore_overlay_to_tmp() {
   BACKUP_VERSION=$($UCI -q get version.@version[0].marketing_version)
   BACKUP_VARIANT=$($UCI -q get env.var.variant_friendly_name | sed -e 's/TLS//')
   BACKUP_SERIAL=$($UCI get env.var.serial)
+  BACKUP_VERSION_NUMBER=$(comparable_version $BACKUP_VERSION)
 }
 
 run_script() {
@@ -336,6 +372,7 @@ shift $((OPTIND-1))
 DEVICE_VERSION=$(uci -q get version.@version[0].marketing_version)
 DEVICE_VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 DEVICE_SERIAL=$(uci get env.var.serial)
+DEVICE_VERSION_NUMBER=$(comparable_version $DEVICE_VERSION)
 
 if [ $# -gt 1 ]; then
     log E "Maximum of 1 parameter (excluding options) expected. Found $*"
@@ -388,15 +425,6 @@ if [ $YES = n ]; then
     exit
   fi
 fi
-
-BASE="/tmp/.restore-config"
-BANK2="$BASE/bank_2"
-PREFIX_LENGTH=$(( ${#BANK2} + 1 ))
-UCI="uci -c $BANK2/etc/config"
-
-DEVICE_VERSION=$(uci -q get version.@version[0].marketing_version)
-DEVICE_VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
-DEVICE_SERIAL=$(uci get env.var.serial)
 
 for EXTENSION in $(ls $SOURCE_DIR/[0]*.sh | grep -v '000-core.sh' | sort); do
   log D "Importing $EXTENSION"

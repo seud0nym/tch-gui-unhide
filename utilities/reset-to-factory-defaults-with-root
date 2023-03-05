@@ -102,8 +102,6 @@ Options:
  -U               Download the latest version of $SCRIPT from GitHub.
                     Do NOT specify any other parameters or options if doing
                     a version upgrade.
-EOH
-[ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" -o "$VERSION" = "20.3.c" ] && cat <<EOH
  --restore-config Runs the restore-config.sh script after reboot if it is found
                     in the USB backups directory. Output will be written to the 
                     system log. --restore-config should be the LAST option
@@ -138,6 +136,28 @@ upgrade() {
     echo -e "${RED}ERROR:    Unknown response code $RESPONSE_CODE${NC}"
   fi
   exit
+}
+
+comparable_version() {
+  local result=""
+  local portion
+  local number
+  local count=0
+  for portion in $(echo $1 | tr '.' ' '); do
+    count=$((count+1))
+    if echo $portion | grep -q [0-9]; then
+      number=$(( $portion + 0 ))
+      if [ ${#number} -le 2 ]; then
+        result="${result}$(printf "%02d" "$number")"
+      else
+        result="${result}$(printf "%04d" "$number")"
+      fi
+    else
+      result="${result}$(echo -n $portion | hexdump -e '1/1 "%03d"')"
+    fi
+  done
+  [ $count -lt 3 ] && result="${result}000"
+  echo $result
 }
 
 rtfd_script() {
@@ -230,7 +250,7 @@ while getopts :bcdD:ef:h:iI:kl:mnp:svyU-: option; do
   d)  echo "$__CWMP_DNS" | grep -q "\bfwstore.bdms.telstra.net\b" || __CWMP_DNS="$__CWMP_DNS fwstore.bdms.telstra.net";;
   D)  echo "$__CWMP_DNS" | grep -q "\b${OPTARG}\b" || __CWMP_DNS="$__CWMP_DNS $OPTARG";;
   e)  __NOEXEC="Y";;
-  f)  echo "$OPTARG" | grep -qE '\.(pkgtb|rbi|bin)$' && FIRMWARE="${OPTARG}" || { echo -e "${RED}ERROR:    Firmware file names must end with .rbi or .bin!${NC}"; exit 2; };;
+  f)  echo "$OPTARG" | grep -qE '\.(pkgtb|rbi|bin)$' && FIRMWARE="${OPTARG}" || { echo -e "${RED}ERROR:    Firmware file names must end with .pkgtb or .rbi or .bin!${NC}"; exit 2; };;
   h)  __HOSTNAME="$OPTARG";;
   i)  __IPADDR="$LAN_IP_NOW";;
   I)  if echo "${OPTARG}" | grep -qE "$VALID_IPv4_PATTERN"; then
@@ -276,11 +296,6 @@ echo -e "${GREY}INFO:     Not Booted partition = $NOT_BOOTED${NC}"
 echo -e "${GREY}INFO:     /overlay filesystem  = $OVERLAY_FS${NC}"
 echo -e "${GREY}INFO:     /rom filesystem      = $ROM_FS${NC}"
 echo -e "${GREY}INFO:     USB symbolic link    = $USB${NC}"
-
-if [ $RESTORE_CONFIG = Y -a ! \( "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" -o "$VERSION" = "20.3.c" \) ]; then
-  echo -e "${RED}ABORTING: Configuration restore is not supported on firmware $VERSION!!${NC}"
-  exit 2
-fi
 
 if [ $SAVE_DEFAULTS = Y ]; then
   set | grep '^__' > .defaults.$SCRIPT
@@ -336,18 +351,36 @@ if [ $RESTORE_CONFIG = Y ]; then
     if [ ! -e "${RESTORE_OPTIONS%-overlay-files-backup.tgz}-config.gz" ]; then
       echo -e "${RED}ABORTING: $RESTORE_OPTIONS found, but ${RESTORE_OPTIONS%-overlay-files-backup.tgz}-config.gz does not exist!${NC}"
     fi
-    OVERLAY_BACKUP="$(basename $RESTORE_OPTIONS | cut -d- -f1-3) ($(ls -l $RESTORE_OPTIONS | tr -s ' ' | cut -d' ' -f6-8))"
-    if [ "$RESTORE_IPADDR" = "Y" ]; then
-      RESTORE_OPTIONS="-i $__IPADDR $RESTORE_OPTIONS"
+    if [ -z "$FIRMWARE" ]; then
+      DEVICE_VERSION="$VERSION"
+    else
+      DEVICE_VERSION=$(echo $FIRMWARE | grep -o '[1-2][078]\.[0-9]\(.c\)*')
+      if [-z "$DEVICE_VERSION" ]; then
+        echo -e "${RED}ABORTING: Unable to determine firmware version from filename: $FIRMWARE${NC}"
+        echo -e "${RED}          Cannot determine if configuration restore is possible!${NC}"
+        exit
+      fi
     fi
-    RESPONSE_CODE=$(curl -kLsI -m 5 -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/restore-config/.sha256)
-    if [ "$RESPONSE_CODE" != 200 ]; then
-      case "$RESPONSE_CODE" in
-        404) echo -e "${RED}ERROR:    https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/restore-config/.sha256 NOT FOUND???${NC}";;
-        000) echo -e "${RED}ERROR:    No Internet connection???${NC}";;
-        *)   echo -e "${RED}ERROR:    Unknown response code $RESPONSE_CODE when checking Internet connectivity???${NC}";;
-      esac
-      echo -e "${RED}ABORTING: Configuration restore would fail!${NC}"
+    DEVICE_VERSION_NUMBER="$(comparable_version $DEVICE_VERSION)"
+    BACKUP_VERSION="$(tar -Ozxf $RESTORE_OPTIONS ./bank_2/etc/banner | grep ^Release: | grep -o '(.*)' | tr -d '()')"
+    BACKUP_VERSION_NUMBER="$(comparable_version $BACKUP_VERSION)"
+    if [ "$VERSION" = "$BACKUP_VERSION" -o \( "$DEVICE_VERSION_NUMBER" -le 2004000 -a "$BACKUP_VERSION_NUMBER" -le 2004000 \) ]; then
+      OVERLAY_BACKUP="$(basename $RESTORE_OPTIONS | cut -d- -f1-3) ($(ls -l $RESTORE_OPTIONS | tr -s ' ' | cut -d' ' -f6-8))"
+      if [ "$RESTORE_IPADDR" = "Y" ]; then
+        RESTORE_OPTIONS="-i $__IPADDR $RESTORE_OPTIONS"
+      fi
+      RESPONSE_CODE=$(curl -kLsI -m 5 -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/restore-config/.sha256)
+      if [ "$RESPONSE_CODE" != 200 ]; then
+        case "$RESPONSE_CODE" in
+          404) echo -e "${RED}ERROR:    https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/restore-config/.sha256 NOT FOUND???${NC}";;
+          000) echo -e "${RED}ERROR:    No Internet connection???${NC}";;
+          *)   echo -e "${RED}ERROR:    Unknown response code $RESPONSE_CODE when checking Internet connectivity???${NC}";;
+        esac
+        echo -e "${RED}ABORTING: Configuration restore would fail!${NC}"
+        exit
+      fi
+    else
+      echo -e "${RED}ABORTING: Unable to restore configuration from $BACKUP_VERSION to $DEVICE_VERSION!${NC}"
       exit
     fi
   fi
@@ -512,6 +545,8 @@ if [ -n "$__IPADDR" ]; then
           echo -e "NOTE:     Static leases will be ${GREEN}restored${NC} with new class C range '${GREEN}${CFG_C_CLASS}${NC}'"
           LEASES="$(echo "$LEASES" | sed -e "s/$NOW_C_CLASS_ESCAPED/$CFG_C_CLASS/")"
         fi
+        TAGS="$(uci show dhcp | awk -F= -e '$1~/^dhcp\.[^.]*$/ && $2!~/^tag$/{KEY="";} /=tag$/{print "uci set " $0;KEY=$1;next;} /dhcp_option=/{if(KEY!="" && index($0,KEY)!=0) print "uci add_list " $0;next;} {if(KEY!="" && index($0,KEY)!=0) print "uci set " $0;}0')"
+        [ -n "$TAGS" ] && LAN_CFG="$LAN_CFG"$'\n'"$TAGS"
         LAN_CFG="$LAN_CFG"$'\n'"$LEASES"
       fi
       if [ -n "$(uci -q show user_friendly_name)" ]; then
@@ -568,7 +603,9 @@ fi
 
 if [ -n "$__KEYS" ]; then
   echo -e "NOTE:     SSH keys will be ${GREEN}restored${NC}: ${GREEN}$(ls /etc/dropbear | xargs)${NC}"
-  KEYS_CFG="echo '$(tar -czf - -C / etc/dropbear root/.ssh | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
+  SSH_DIRS="etc/dropbear"
+  [ -d /root/.ssh ] && SSH_DIRS="${SSH_DIRS} root/.ssh"
+  KEYS_CFG="echo '$(tar -czf - -C / $SSH_DIRS | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
 else
   echo -e "${ORANGE}WARNING:  SSH keys will ${RED}NOT${ORANGE} be restored!${NC}"
 fi
