@@ -79,6 +79,9 @@ local syslog_data,syslog_helpmsg = post_helper.handleQuery(syslog_params,syslog_
 if syslog_data.syslog_port == "" then
   syslog_data.syslog_port = "514"
 end
+if not syslog_helpmsg then
+  syslog_helpmsg = {}
+end
 
 local switch_class_enable = {
   input = {
