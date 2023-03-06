@@ -202,7 +202,7 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rs:t:uv:x:yC:LTVWX-: option; do
         *) echo -e "[$SCRIPT]: ${RED}ERROR!${NC} Unknown version check option - $OPTARG"; exit 2;;
       esac;;
    y) YES=y;;
-   x) XTRAS="${XTRAS} ${OPTARG}";;
+   x) XTRAS="${XTRAS} $(echo ${OPTARG} | sed -e 's/tch-gui-unhide-xtra\.//')";;
    C) case "${OPTARG}" in
         n|s|i) CHART_CARDS="$OPTARG";;
         *) echo -e "[$SCRIPT]: ${RED}ERROR!${NC} Unknown chart card option - $OPTARG"; exit 2;;
