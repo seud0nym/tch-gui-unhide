@@ -108,7 +108,7 @@ If you have a static IP address and a domain name assigned by your ISP, the doma
 4. Now you can delete `tch-gui-unhide-xtra.wireguard`
 
 ## tch-gui-unhide-xtra.wlassoclist
-Can be installed on a Technicolor device acting as a wireless Access Point to enable the main Technicolor router (running tch-gui-unhide) to query it and correctly report devices connected via Wi-Fi, rather than showing them as Ethernet connections.
+Can be installed on a Technicolor device acting as a Wi-Fi Access Point (via a wired Ethernet connection) to enable the main Technicolor router (running tch-gui-unhide) to query it and correctly report devices connected via Wi-Fi, rather than showing them as Ethernet connections.
 #### Firmware Applicability
 All
 #### Prerequisites
