@@ -1,6 +1,7 @@
 ABORT=n
 CUSTOM_LOGO=y
 DEBUG=n
+DROP_CACHE=y
 VERBOSE=""
 REBOOT=n
 RESTORE=n
@@ -106,6 +107,7 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rs:t:uv:x:yC:LTVWX-: option; do
    -) case "${OPTARG}" in
         abort) ABORT=y;;
         debug) [ $DEBUG = y ] && DEBUG=n || DEBUG=y;;
+        no-drop-cache) DROP_CACHE=n;;
         no-service-restart) RESTART_SERVICES=n;;
         reboot) REBOOT=y;;
         restore-base*) RESTORE_BASE="${OPTARG#restore-base=}"; [ -n "$RESTORE_BASE" -a -d "$RESTORE_BASE/www" ] || { echo -e "[$SCRIPT]: ${RED}ERROR!${NC} Could not find www directory (--$OPTARG)"; exit 2; };;

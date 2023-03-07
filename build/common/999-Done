@@ -1,6 +1,10 @@
-echo -e "[$SCRIPT]: Clearing page cache..."
-sync
-echo 1 > /proc/sys/vm/drop_caches
+if [ "$DROP_CACHE" = "y" ]; then
+  echo -e "[$SCRIPT]: Clearing page cache..."
+  sync
+  echo 1 > /proc/sys/vm/drop_caches
+else
+  echo -e "[$SCRIPT]: SKIPPED clearing page cache"
+fi
 
 if [ "$THEME_ONLY" = y ]; then
   echo -e "[$SCRIPT]: ${GREEN}Theme change for tch-gui-unhide Release $RELEASE applied!!!${NC}"
