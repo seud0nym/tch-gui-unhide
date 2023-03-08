@@ -83,7 +83,7 @@ show_setting() {
           y) _ST="$(printf "$RED")"; _ABL="${_ST}Enabled";;
           n) _ST="$(printf '\033[9m')"; _ABL="Disabled";;
         esac;;
-    -no-service-restart) _VAL=""
+    -no-service-restart|-no-drop-cache) _VAL=""
         case "$3" in
           n) _ST="$(printf "$ORANGE")"; _ABL="${_ST}Enabled";;
           y) _ABL="Disabled"; _VAL=""; _ST="$(printf '\033[9m')";;
