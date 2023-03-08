@@ -3,18 +3,6 @@ local floor,ipairs,match = math.floor,ipairs,string.match
 local ngx = ngx
 local TGU_CPU = ngx.shared.TGU_CPU
 
-local MemTotal
-
-local function getMemInfo(field)
-  local kB
-  local meminfo = io.popen("grep '"..field..":' /proc/meminfo")
-  if meminfo then
-    kB = match(meminfo:read(),"[^:]+%s+(%d+).*")
-    meminfo:close()
-  end
-  return tonumber(kB)
-end
-
 local M = {}
 
 function M.getGatewayCardData()
@@ -54,8 +42,14 @@ function M.getGatewayCardData()
     df:close()
   end
 
-  if not MemTotal then
-    MemTotal = getMemInfo("MemTotal")
+  local mem = {}
+  local meminfo = io.popen("grep '^Mem' /proc/meminfo")
+  if meminfo then
+    for line in meminfo:lines() do
+      local field, kB = match(line,"^Mem([^:]+):%s+(%d+)")
+      mem[field] = tonumber(kB)
+     end
+    meminfo:close()
   end
 
   local disk_total,disk_free = match(overlay,"%S+%s+(%S+)%s+%S+%s+(%S+).*")
@@ -67,8 +61,9 @@ function M.getGatewayCardData()
 
   return {
     cpu = cpu_usage,
-    ram_free = getMemInfo("MemFree") or 0,
-    ram_total = MemTotal or 0,
+    ram_free = mem.Free or 0,
+    ram_avail = mem.Available or 0,
+    ram_total = mem.Total or 0,
     disk_free = disk_free or "?",
     disk_total = disk_total or "?",
     uptime = tonumber(readfile("/proc/uptime","number",floor)),

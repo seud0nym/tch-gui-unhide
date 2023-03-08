@@ -11,15 +11,15 @@ var cpu_config = {\
     labels: [60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1],\
     datasets: [{\
       borderWidth: 1,\
-      borderColor: "rgb('); ngx.print(rgb); ngx.print(')",\
-      backgroundColor: "rgb('); ngx.print(rgb); ngx.print(',0.25)",\
+      borderColor: "rgb(',rgb,')",\
+      backgroundColor: "rgb(',rgb,',0.25)",\
       data: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\
       fill: true,\
       pointRadius: 0\
     }]\
   },\
   options: {\
-    responsive: true,\
+    events: [],\
     maintainAspectRatio: false,\
     legend: {\
       display: false\
