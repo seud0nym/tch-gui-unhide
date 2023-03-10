@@ -79,4 +79,5 @@ uci -q commit mcastsnooping
 if [ -f $BANK2/usr/bin/ip6neigh-setup ]; then
   log I "Restoring ip6neigh..."
   $BANK2/usr/bin/ip6neigh-setup install
+  restore_file /etc/config/ip6neigh
 fi
