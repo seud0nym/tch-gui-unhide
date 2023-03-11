@@ -136,6 +136,10 @@ local tod_options = {
   addNamedObject  = true,
 }
 
+local function tod_filter(data)
+  return data.script == "wifitodscript"
+end
+
 local function getWifiTodListFromIndex(index)
   if not index then
     return nil
@@ -337,7 +341,7 @@ local function getApSelected(index)
   return table.concat(wifi_list),wifi_selected
 end
 
-local tod_data,tod_index = content_helper.loadTableData(tod_options.basepath,tod_columns)
+local tod_data,tod_index = content_helper.loadTableData(tod_options.basepath,tod_columns,tod_filter)
 local newlist_index = {}
 local dnd_val = 0
 for  i , v in ipairs(action_list) do
