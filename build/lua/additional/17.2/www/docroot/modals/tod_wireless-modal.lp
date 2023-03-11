@@ -409,6 +409,8 @@ end
 
 session:store("timer_data",timer_data)
 
+local modal="/modals/tod_wireless-modal.lp"
+
 ngx.print('\
 ');  ngx.print(ui_helper.createHeader(T"Time of Day") ); ngx.print('\
 ');  ngx.print(ui_helper.createMessages(message_helper.popMessages()) ); ngx.print('\
@@ -418,11 +420,12 @@ local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 if ngx.var.args == "tod" then
   lp.include("tabs-tod.lp")
+  modal = modal.."?tod"
 else
   lp.include("tabs-wireless.lp")
 end
 ngx.print('\
-  <form class="form-horizontal" method="post" action="/modals/tod_wireless-modal.lp">\
+  <form class="form-horizontal" method="post" action="',modal,'">\
     <legend>');  ngx.print( T"Wireless Access Control" ); ngx.print('</legend>\
     ');  ngx.print(ui_helper.createTable(tod_columns,tod_data,tod_options,nil,nil)); ngx.print('\
     ');  if ngx.var.request_method == "POST" and (ngx.req.get_post_args().action == "TABLE-NEW" or ngx.req.get_post_args().action == "TABLE-EDIT") then  ngx.print('\
