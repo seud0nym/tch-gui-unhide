@@ -3344,7 +3344,7 @@ else
   fi
 fi
 if [ "$(uci -q get mmpbxmobilenet.VoLTE)" = "profile" ]; then
-  if [ "$(uci -q get mmpbxmobilenet.VoLTE.enabled)" = "1" ]; then
+  if [ "$(uci -q get mmpbxmobilenet.VoLTE.enabled)" = "1" -a "$(uci -q get mobiled_device_specific.@device[0].ims_pdn_autobringup)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].activated)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].autoconnect)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].optional)" = "1" ]; then
     echo [$SCRIPT]: VoLTE already Enabled
   else
     echo [$SCRIPT]: Enabling VoLTE backup voice service and SMS reception
