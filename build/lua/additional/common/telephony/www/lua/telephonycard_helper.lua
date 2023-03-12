@@ -113,7 +113,7 @@ function M.getTelephonyCardHTML(mmpbx_state)
   local sipprofile_content = content_helper.getMatchedContent(sipprofile_uci_path)
   local sipprofile_info = {}
   for _,v in pairs(sipprofile_content) do
-    local name = string.match (v.path,"@([^%.]+)")
+    local name = match(v.path,"@([^%.]+)")
     if v.display_name ~= nil and v.display_name ~= "" then
       sipprofile_info[name] = v.display_name
     else
@@ -153,7 +153,7 @@ function M.getTelephonyCardHTML(mmpbx_state)
             end
           end
           html[#html+1] = format('<span %s>',modal_link)
-          if todvoicednd_info[name] then
+          if todvoicednd_info[name] or todvoicednd_info["All"] then
             html[#html+1] = ui_helper.createSimpleLight("3",format("%s registered <sup style='font-size:xx-small;'>(Do Not Disturb)</sup>",value))
           else
             html[#html+1] = ui_helper.createSimpleLight("1",T(value.." registered"))
