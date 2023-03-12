@@ -1,7 +1,9 @@
 local proxy = require ("datamodel")
 local ui_helper = require ("web.ui_helper")
 local content_helper = require ("web.content_helper")
-local format = string.format
+local find,format,match = string.find,string.format,string.match
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 local sipprofile_uci_path = "uci.mmpbxrvsipnet.profile."
 local sipprofile_rpc_path = "rpc.mmpbx.sip_profile.@"
@@ -44,6 +46,11 @@ local function toNumberOrZero(data)
   return value
 end
 
+local function toMinutes(time)
+  local h,m = match(untaint(time),"(%d+):(%d+)")
+  return ((tonumber(h) or 0) * 60) + (tonumber(m) or 0)
+end
+
 local status = {
   ["0"] = T"Telephony disabled",
   ["1"] = T"Telephony enabled",
@@ -52,6 +59,57 @@ local status = {
 local M = {}
 
 function M.getTelephonyCardHTML(mmpbx_state)
+  local html = {}
+
+  html[#html+1] = '<span class="modal-link" data-toggle="modal" data-remote="modals/mmpbx-global-modal.lp" data-id="mmpbx-profile-modal">'
+  html[#html+1] = ui_helper.createSimpleLight(mmpbx_state,status[untaint(mmpbx_state)])
+  html[#html+1] = '</span>'
+
+  local todvoicednd_content = proxy.get("uci.tod.todvoicednd.enabled","uci.tod.todvoicednd.ringing")
+  local todvoicednd_info = {}
+  html[#html+1] = '<span class="modal-link" data-toggle="modal" data-remote="modals/tod_dnd-modal.lp" data-id="tod_dnd-modal">'
+  if todvoicednd_content and todvoicednd_content[1].value == "1" then
+    local state = "enabled"
+    local ringing = untaint(todvoicednd_content[2].value)
+    local today = os.date("%a")
+    local now = toMinutes(os.date("%H:%M"))
+    for _,p in ipairs(proxy.get("uci.tod.voicednd.")) do 
+      local key = match(untaint(p.path),"^uci%.tod%.voicednd%.@voicednd([^%.]+)%.profile")
+      if key then
+        local profile = untaint(p.value)
+        local timers = proxy.get("uci.tod.timer.@timer"..key..".")
+        if timers then
+          local v = {}
+          for _,t in ipairs(timers) do
+            v[untaint(t.param)] = t.value
+          end
+          if v.enabled ~= "0" then
+            local start_days,start_time = match(untaint(v.start_time),"([^:]*):([%d:]*)")
+            local stop_days,stop_time = match(untaint(v.stop_time),"([^:]*):([%d:]*)")
+            local start = toMinutes(start_time)
+            local stop = toMinutes(stop_time)
+            local active = find(start_days,today,0,true) and find(stop_days,today,0,true) and now >= start and now <= stop
+            local dnd = (ringing == "off" and active) or (ringing == "on" and not active)
+            if not todvoicednd_info[profile] then
+              todvoicednd_info[profile] = dnd
+            else
+              todvoicednd_info[profile] = todvoicednd_info[profile] or dnd
+            end
+            if dnd then
+              state = "active"
+            elseif state == "enabled" then
+              state = "inactive"
+            end
+          end
+        end
+      end
+    end
+    html[#html+1] = ui_helper.createSimpleLight("1",T("Do Not Disturb "..state))
+  else
+    html[#html+1] = ui_helper.createSimpleLight("0",T"Do Not Disturb disabled")
+  end
+  html[#html+1] = '</span>'
+
   local sipprofile_content = content_helper.getMatchedContent(sipprofile_uci_path)
   local sipprofile_info = {}
   for _,v in pairs(sipprofile_content) do
@@ -62,13 +120,6 @@ function M.getTelephonyCardHTML(mmpbx_state)
       sipprofile_info[name] = v.uri
     end
   end
-
-  local html = {}
-
-  html[#html+1] = '<span class="modal-link" data-toggle="modal" data-remote="modals/mmpbx-global-modal.lp" data-id="mmpbx-profile-modal">'
----@diagnostic disable-next-line: undefined-field
-  html[#html+1] = ui_helper.createSimpleLight(mmpbx_state,status[string.untaint(mmpbx_state)])
-  html[#html+1] = '</span>'
 
   local disabled = 0
   for name,value in spairs(sipprofile_info) do
@@ -102,7 +153,11 @@ function M.getTelephonyCardHTML(mmpbx_state)
             end
           end
           html[#html+1] = format('<span %s>',modal_link)
-          html[#html+1] = ui_helper.createSimpleLight("1",value..T" registered")
+          if todvoicednd_info[name] then
+            html[#html+1] = ui_helper.createSimpleLight("3",format("%s registered <sup style='font-size:xx-small;'>(Do Not Disturb)</sup>",value))
+          else
+            html[#html+1] = ui_helper.createSimpleLight("1",T(value.." registered"))
+          end
           html[#html+1] = '</span>'
           html[#html+1] = format('<p class="subinfos modal-link" data-toggle="modal" data-remote="/modals/mmpbx-log-modal.lp" data-id="mmpbx-log-modal">Calls: %s <small>IN</small> %s <small>MISSED</small> %s <small>OUT</small></p>',callsIn,callsMissed,callsOut)
         elseif state[1].value == "Registering" then
