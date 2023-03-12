@@ -7,6 +7,7 @@ sed \
   -e '/T"Service"/a \    {"mmpbx-dialplan-modal.lp", T"Dial Plans"},' \
   -e '/T"Service"/a \    {"mmpbx-statistics-modal.lp", T"Statistics"},' \
   -e '/T"Service"/a \    {"mmpbx-contacts-modal.lp", T"Phone Book"},' \
+  -e '/T"Service"/a \    {"tod_dnd-modal.lp", T"Do Not Disturb"},' \
   -i /www/snippets/tabs-voice.lp
 
 echo -e "[$SCRIPT]: Display Telephony tabs even when mmpbx disabled"
@@ -28,8 +29,7 @@ if [ $SIP_PWDS = y ]; then
   -i /www/docroot/modals/mmpbx-profile-modal.lp
 fi
 
-if [ "$(uci -q show mmpbxbrcmfxsdev | grep '=device' | wc -l)" -eq 1 ]
-then
+if [ "$(uci -q show mmpbxbrcmfxsdev | grep '=device' | wc -l)" -eq 1 ]; then
   echo -e "[$SCRIPT]: Remove extra FXS device from Telephony Codecs tab"
   sed -e '/fxs2/d' -e '/FXS2/d' -i /www/docroot/modals/mmpbx-codec-modal.lp
 fi
@@ -40,6 +40,16 @@ sed \
   -e 's/modify", "remove/modify", "insert", "remove/' \
   -i /usr/share/transformer/mappings/uci/mmpbx.map
 SRV_transformer=$(( $SRV_transformer + 1 ))
+
+echo -e "[$SCRIPT]: Provision the Do Not Disturb service"
+for p in $(uci show mmpbx | grep "service.*\.type='DND'" | cut -d. -f 1-2); do 
+  if [ "$(uci -q get $p.provisioned)" != "1" ]; then
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Provisioning $p"
+    uci set $p.provisioned='1'
+    SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
+  fi
+done
+[ $SRV_mmpbxd -gt 0 ] && uci commit mmpbx
 
 if [ "$MINIFY" = y ]; then
   echo -e "[$SCRIPT]: Pre-minify fixes"

@@ -5,6 +5,7 @@ local ipairs,string = ipairs,string
 local items = {
   {"tod-modal.lp",T"Device Control"},
   {"tod_wireless-modal.lp",T"Wireless Control"},
+  {"tod_dnd-modal.lp",T"Do Not Disturb Control"},
 }
 
 local tabs = {}
@@ -27,9 +28,4 @@ for _,v in ipairs(tabs) do
 
   html[#html+1] = string.format('<li class="%s"><a id ="%s" href="#" data-remote="/modals/%s?tod">%s</a></li>',active,v[2],v[1],v[2])
 end
-ngx.print('<ul class="nav nav-tabs">\
-');
-ngx.print(html)
-ngx.print('\
-</ul>\
-');
+ngx.print('<ul class="nav nav-tabs">',html,'</ul>');

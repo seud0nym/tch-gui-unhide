@@ -153,6 +153,7 @@ SRV_dnsmasq=0
 SRV_dropbear=0
 SRV_firewall=0
 SRV_iperf=0
+SRV_mmpbxd=0
 SRV_network=0
 SRV_nginx=0
 SRV_power=0
@@ -187,6 +188,7 @@ apply_service_changes() {
     restart dropbear $SRV_dropbear
     restart system $SRV_system
     restart iperf $SRV_iperf
+    restart mmpbxd $SRV_mmpbxd
     restart nginx $SRV_nginx
     restart firewall $SRV_firewall
     restart network $SRV_network reload
