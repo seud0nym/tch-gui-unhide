@@ -7,3 +7,7 @@ sed \
 echo -e "[$SCRIPT]: Set correct VoLTE transformer mapping"
 sed -e 's/Device.Services.X_TELSTRA_VOLTE.Enable/Device.Services.VoiceService.1.X_TELSTRA_VOLTE.Enable/' -i /www/docroot/modals/mmpbx-volte-modal.lp
 sed -e 's/Device.Services.X_TELSTRA_VOLTE.Enable/Device.Services.VoiceService.1.X_TELSTRA_VOLTE.Enable/' -i /www/lua/telephonycard_helper.lua
+
+echo -e "[$SCRIPT]: Set correct DECT transformer mapping"
+sed -e 's/mmpbxbrcmdectdev/mmpbxdectdev/' -i /usr/share/transformer/mappings/rpc/mmpbx.incomingmap.map
+sed -e 's/mmpbxbrcmdectdev/mmpbxdectdev/' -i /usr/share/transformer/mappings/rpc/mmpbx.outgoingmap.map
