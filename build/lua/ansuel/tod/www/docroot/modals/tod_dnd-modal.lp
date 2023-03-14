@@ -50,7 +50,7 @@ for _,v in pairs(profileNumber) do
     if v.display_name == "" or v.display_name == v.uri then
       number = v.uri
     else
-      number = format("%s (%s)",v.display_name,v.uri)
+      number = v.display_name
     end
     profileName[#profileName+1] = { name,number }
   end

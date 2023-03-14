@@ -58,7 +58,7 @@ local get_from_uci = uci_helper.get_from_uci
 local set_on_uci = uci_helper.set_on_uci
 local delete_on_uci = uci_helper.delete_on_uci
 local table_remove = table.remove
-local find,format = string.find,string.format
+local find = string.find
 local mobile_keys = {}
 
 local function get_profile_idx(profiles,profile)
@@ -274,16 +274,15 @@ mmpbx_incoming_map.get = function(_,param,key)
     end
     sipnet_binding.sectionname = key
     sipnet_binding.option = "display_name"
-    local display_name,errmsg = get_from_uci(sipnet_binding)
+    local display_name,display_name_error = get_from_uci(sipnet_binding)
     if not display_name then
-      return display_name,errmsg
+      return nil,display_name_error
+    end
+    if display_name ~= "" then
+      return display_name
     end
     sipnet_binding.option = "uri"
-    local uri = get_from_uci(sipnet_binding)
-    if display_name == "" or display_name == uri then
-      return uri
-    end
-    return format("%s (%s)",display_name,uri)
+    return get_from_uci(sipnet_binding)
   else
     local devices = {}
     mmpbx_binding.sectionname = "incoming_map"
