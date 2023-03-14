@@ -47,7 +47,7 @@ for _,v in pairs(profileNumber) do
     profileCount = profileCount + 1
     local name = sub(v.paramindex,2)
     local number
-    if v.display_name == "" then
+    if v.display_name == "" or v.display_name == v.uri then
       number = v.uri
     else
       number = format("%s (%s)",v.display_name,v.uri)

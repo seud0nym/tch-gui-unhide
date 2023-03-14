@@ -51,6 +51,20 @@ for p in $(uci show mmpbx | grep "service.*\.type='DND'" | cut -d. -f 1-2); do
 done
 [ $SRV_mmpbxd -gt 0 ] && uci commit mmpbx
 
+echo -e "[$SCRIPT]: Restore SIP incoming/outgoing RPC transformer mappings"
+cp -p /rom/usr/share/transformer/mappings/rpc/mmpbx.incomingmap.map /usr/share/transformer/mappings/rpc/mmpbx.sip_incomingmap.map
+cp -p /rom/usr/share/transformer/mappings/rpc/mmpbx.outgoingmap.map /usr/share/transformer/mappings/rpc/mmpbx.sip_outgoingmap.map
+
+echo -e "[$SCRIPT]: Update Incoming/Outgoing Map modal with new transformer mappings"
+sed \
+  -e 's/rpc\.mmpbx\.sip_incomingmap\./rpc.mmpbx.incomingmap./' \
+  -e 's/rpc\.mmpbx\.sip_outgoingmap\./rpc.mmpbx.outgoingmap./' \
+  -e 's/match(profilepattern)/& or "0"/' \
+  -i /www/docroot/modals/mmpbx-inoutgoingmap-modal.lp
+
+echo -e "[$SCRIPT]: Replace NA in Call Log with VoLTE"
+sed -e 's/"NA"/"VoLTE"/' -i /www/docroot/modals/mmpbx-log-modal.lp
+
 if [ "$MINIFY" = y ]; then
   echo -e "[$SCRIPT]: Pre-minify fixes"
   for f in /www/docroot/modals/mmpbx-info-modal.lp /www/docroot/modals/mmpbx-profile-modal.lp; do
