@@ -9,12 +9,13 @@ local items = {
   ["OK"] = {"1", T"Fixed Broadband online",},
   ["OK_LTE"] = {"1", T"Mobile Broadband online"},
   ["OK_BOTH"] = {"1", T"Fixed + Mobile Broadband online"},
-  ["OFF"] = {"2", T"Broadband Service disabled",},
-  ["E_NO_PRE"] = {"4", T"Broadband Service down", "<ol><li>Check that your Telephone or Ethernet cable is firmly connected to the correct port, the Filter on the Telephone socket or the Ethernet socket on the wall.</li><li>Check that your username is correct and re-enter your password <a aria-label='Page redirection for Internet Access Modal' href=/gateway.lp?openmodal=internet-modal.lp>here</a>.</li><li>Restart.</li></ol>",},
-  ["E_PPP_DSL"] = {"4", T"Broadband Service down", "<ol><li>Check that your Telephone cable is firmly connected to the correct port or the Filter on the telephone socket on the wall.</li><li>Check that your username is correct and re-enter your password <a aria-label='Page redirection for Internet Access Modal' href=/gateway.lp?openmodal=internet-modal.lp>here</a>.</li><li>Restart.</li></ol>",},
-  ["E_PPP_ETH"] = {"4", T"Broadband Service down", "<ol><li>Check that your Ethernet cable is firmly connected to the correct port or the Ethernet socket on the wall.</li><li>Check that your username is correct and re-enter your password <a aria-label='Page redirection for Internet Access Modal' href=/gateway.lp?openmodal=internet-modal.lp>here</a>.</li><li>Restart.</li></ol>",},
-  ["E_DHCP_DSL"] = {"4", T"Broadband Service down", "<ol><li>Check that your Telephone cable is firmly connected to the correct port or the Filter on the telephone socket on the wall.</li><li>Restart.</li></ol>",},
-  ["E_DHCP_ETH"] = {"4", T"Broadband Service down", "<ol><li>Check that your Ethernet cable is firmly connected to the correct port or the Ethernet socket on the wall.</li><li>Restart.</li></ol>",},
+  ["OFF"] = {"2", T"Fixed Broadband Service disabled",},
+  ["E_NO_PRE"] = {"4", T"Fixed Broadband Service down", "<ol><li>Check that your Telephone or Ethernet cable is firmly connected to the correct port, the Filter on the Telephone socket or the Ethernet socket on the wall.</li><li>Check that your username is correct and re-enter your password <a aria-label='Page redirection for Internet Access Modal' href=/gateway.lp?openmodal=internet-modal.lp>here</a>.</li><li>Restart.</li></ol>",},
+  ["E_PPP_DSL"] = {"4", T"Fixed Broadband Service down", "<ol><li>Check that your Telephone cable is firmly connected to the correct port or the Filter on the telephone socket on the wall.</li><li>Check that your username is correct and re-enter your password <a aria-label='Page redirection for Internet Access Modal' href=/gateway.lp?openmodal=internet-modal.lp>here</a>.</li><li>Restart.</li></ol>",},
+  ["E_PPP_ETH"] = {"4", T"Fixed Broadband Service down", "<ol><li>Check that your Ethernet cable is firmly connected to the correct port or the Ethernet socket on the wall.</li><li>Check that your username is correct and re-enter your password <a aria-label='Page redirection for Internet Access Modal' href=/gateway.lp?openmodal=internet-modal.lp>here</a>.</li><li>Restart.</li></ol>",},
+  ["E_DHCP_DSL"] = {"4", T"Fixed Broadband Service down", "<ol><li>Check that your Telephone cable is firmly connected to the correct port or the Filter on the telephone socket on the wall.</li><li>Restart.</li></ol>",},
+  ["E_DHCP_ETH"] = {"4", T"Fixed Broadband Service down", "<ol><li>Check that your Ethernet cable is firmly connected to the correct port or the Ethernet socket on the wall.</li><li>Restart.</li></ol>",},
+  ["E_LTE"] = {"4", T"Mobile Broadband Service down", "<ol><li>Check that your SIM card is installed and firmly seated.</li><li>Restart.</li></ol>",},
 }
 
 local M = {}
@@ -38,6 +39,7 @@ function M.getInternetCardHTML(mode_active)
   local mobile = false
   if ws_content.primarywanmode == "MOBILE" then
     mobile = true
+    msg_key = "E_LTE"
   end
 
   local html = {""}
