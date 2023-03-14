@@ -45,7 +45,15 @@ if plans_content then
     local name = path:match("uci.mmpbx.dial_plan.@dial_plan_(%w+)%.")
     if #plans == 0 or name ~= plans[#plans][1] then
       if not inTableAction or (inTableAction and name == plan_name) then
-        plans[#plans + 1] = { name,T(name:upper()) }
+        local description
+        if name == "generic" then
+          description = "SIP"
+        elseif name == "mobile" then
+          description = "VoLTE"
+        else
+          description = name:upper()
+        end
+        plans[#plans + 1] = { name,T(description) }
       end
       plan_details[name] = {}
     end
@@ -193,7 +201,7 @@ ngx.print('\
             class ="monitor-changes no-save",
           },
         }
-        ngx.print(ui_helper.createInputSelect(T"Dial Plan Name","dial_plan",plans,plan_name,plan_attributes))
+        ngx.print(ui_helper.createInputSelect(T"Dial Plan","dial_plan",plans,plan_name,plan_attributes))
         ngx.print('\
     </fieldset>\
     <fieldset id="dial_plan_config">\
