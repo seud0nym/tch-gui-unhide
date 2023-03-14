@@ -8,68 +8,37 @@ end
 -- Enable localization
 gettext.textdomain('webui-voice')
 
-local proxy = require ("datamodel")
 local ui_helper = require ("web.ui_helper")
 local content_helper = require ("web.content_helper")
 local tch = require("telephonycard_helper")
 
-local format = string.format
-
 local session = ngx.ctx.session
 if session:hasAccess("/modals/mmpbx-info-modal.lp") then
-  local mmpbx_state = proxy.get("uci.mmpbx.mmpbx.@global.enabled")
-  if mmpbx_state then
-    mmpbx_state = mmpbx_state[1].value
-  else
-    mmpbx_state = "0"
+  local mmpbx = {
+    state = "uci.mmpbx.mmpbx.@global.enabled"
+  }
+  content_helper.getExactContent(mmpbx)
+  if not mmpbx.state or mmpbx.state == "" then
+    mmpbx.state = "0"
   end
 
   local modalPath
-  if mmpbx_state == "0" and session:hasAccess("/modals/mmpbx-global-modal.lp") then
+  if mmpbx.state == "0" and session:hasAccess("/modals/mmpbx-global-modal.lp") then
     modalPath = "/modals/mmpbx-global-modal.lp"
   else
     modalPath = "/modals/mmpbx-info-modal.lp"
   end
 
-  local dect = {
-    state = "rpc.mmpbx.dectemission.state",
-  }
-  content_helper.getExactContent(dect)
-
-  local emission_info
-  if dect.state then
-    if dect.state == "1" then
-      emission_info = T"DECT Emission Mode enabled"
-    elseif dect.state == "0" then
-      emission_info = T"DECT Emission Mode disabled"
-    end
-  end
-
-  local html,disabled = tch.getTelephonyCardHTML(mmpbx_state)
+  local html = tch.getTelephonyCardHTML(mmpbx.state)
   ngx.print('\
 <div class="span3">\
   <div class="smallcard">\
     ',ui_helper.createCardHeader(T"Telephony",modalPath,nil,nil,{icon={class="icon-phone"}}),'\
     <div class="content card_bg mirror" data-bg-text="&#xf095;">\
-      <div id="telephony-card-content">\
-      ',html,'\
-      </div>\
-      ');
-        if disabled ~= 0 then
-          ngx.print('<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-profile-modal.lp" data-id="mmpbx-profile-modal">')
-          ngx.print(ui_helper.createSimpleLight("0",format(N('%d disabled profile','%d disabled profiles',disabled),disabled)))
-          ngx.print('</span>')
-        end
-        if emission_info then
-          ngx.print('<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-dect-modal.lp" data-id="mmpbx-dect-modal">')
-          ngx.print(ui_helper.createSimpleLight(dect.state,emission_info))
-          ngx.print('</span>')
-        end
-        ngx.print('\
+      <div id="telephony-card-content">',html,'</div>\
     </div>\
   </div>\
-</div>\
-');
-  if mmpbx_state == "1" then ngx.print('<script src="/js/008_telephony.js"></script>'); end;
+</div>');
+  if mmpbx.state == "1" then ngx.print('<script src="/js/008_telephony.js"></script>'); end;
 end
 

@@ -4,3 +4,6 @@ sed \
   -e '/if not table_created then/a\if not serviceNames[k] then serviceNames[k] = T(k) end' \
   -i /www/docroot/modals/mmpbx-service-modal.lp
 
+echo -e "[$SCRIPT]: Set correct VoLTE transformer mapping"
+sed -e 's/Device.Services.X_TELSTRA_VOLTE.Enable/Device.Services.VoiceService.1.X_TELSTRA_VOLTE.Enable/' -i /www/docroot/modals/mmpbx-volte-modal.lp
+sed -e 's/Device.Services.X_TELSTRA_VOLTE.Enable/Device.Services.VoiceService.1.X_TELSTRA_VOLTE.Enable/' -i /www/lua/telephonycard_helper.lua
