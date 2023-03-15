@@ -124,10 +124,10 @@ if pgrep /usr/sbin/tproxy-go > /dev/null; then
   /etc/init.d/tproxy stop
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
-if grep -q 'model.*:.*ARMv7' /proc/cpuinfo; then
+if grep -q ':.*ARMv7' /proc/cpuinfo; then
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Extracting /tmp/tproxy-go.armv5.bz2 to /usr/sbin/tproxy-go"
   bzcat /tmp/tproxy-go.armv5.bz2 > /usr/sbin/tproxy-go
-elif grep -q 'model.*:.*Broadcom BMIPS4350' /proc/cpuinfo; then
+elif grep -q ':.*Broadcom BMIPS4350' /proc/cpuinfo; then
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Extracting /tmp/tproxy-go.mips.bz2 to /usr/sbin/tproxy-go"
   bzcat /tmp/tproxy-go.mips.bz2 > /usr/sbin/tproxy-go
 elif grep -q 'BCM63144' /proc/socinfo; then
