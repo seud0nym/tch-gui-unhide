@@ -51,6 +51,14 @@ function M.getGatewayCardData()
      end
     meminfo:close()
   end
+  if not mem.Available then
+    -- https://unix.stackexchange.com/a/261252
+    meminfo = io.popen("awk -v low=$(grep low /proc/zoneinfo | awk '{k+=$2}END{print k;}') '{a[$1]=$2;} END{print a[\"MemFree:\"]+a[\"Active(file):\"]+a[\"Inactive(file):\"]+a[\"SReclaimable:\"]-(12*low);}' /proc/meminfo")
+    if meminfo then
+      mem.Available = meminfo:read("*n")
+      meminfo:close()
+    end
+  end
 
   local disk_total,disk_free = match(overlay,"%S+%s+(%S+)%s+%S+%s+(%S+).*")
   local temp1_input = {}
