@@ -21,21 +21,23 @@ local function checkCron()
     for line in f:lines() do
       if line ~= "" then
         local enabled,minute,hour,day,month,weekday,command = line:match("([# ]*)([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) ([0-9-%*-%--%/,]+) (.*)")
-        if enabled:gsub("%s","") == "#" then
-          enabled = "0"
-        else
-          active = active + 1
-          enabled = "1"
+        if enabled then
+          if enabled:gsub("%s","") == "#" then
+            enabled = "0"
+          else
+            active = active + 1
+            enabled = "1"
+          end
+          res[#res+1] = {
+            enabled = enabled,
+            minute = minute,
+            hour = hour,
+            day = day,
+            month = month,
+            weekday = weekday,
+            command = command,
+          }
         end
-        res[#res+1] = {
-          enabled = enabled,
-          minute = minute,
-          hour = hour,
-          day = day,
-          month = month,
-          weekday = weekday,
-          command = command,
-        }
       end
     end
     f:close()
