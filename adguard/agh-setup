@@ -512,43 +512,18 @@ fi
 
 echo -e "${GREEN}[$SCRIPT] Extracting IP addresses from current configuration...${NC}"
 DHCP_SETTINGS=$(lua -e '
-  require("web.taint")
-  bit = require("bit")
   proxy = require("datamodel")
-  posix = require("tch.posix")
-  function num2ipv4(ip)
-    local ret = bit.band(ip, 255)
-    ip = bit.rshift(ip,8)
-    for i=1,3 do
-      ret = bit.band(ip,255) .. "." .. ret
-      ip = bit.rshift(ip,8)
-    end
-    return ret
-  end
-  function ipv42num(ipstr)
-    local ip = posix.inet_pton(posix.AF_INET, ipstr)
-    if not ip then
-      return nil
-    end
-    local b1, b2, b3, b4 = ip:byte(1,4)
-    return bit.tobit((b1*16777216) + (b2*65536) + (b3*256) + b4)
-  end
   values = proxy.get(
-    "rpc.network.interface.@lan.ipaddr",
-    "rpc.network.interface.@lan.ipmask",
+    "uci.network.interface.@lan.ipaddr",
+    "uci.network.interface.@lan.netmask",
     "uci.dhcp.dhcp.@lan.start",
     "uci.dhcp.dhcp.@lan.limit",
     "rpc.network.interface.@lan.ip6prefix_assignment",
     "uci.dhcp.dhcp.@lan.leasetime"
   )
-  netmask = values[2].value
-  network = bit.band(ipv42num(values[1].value), netmask)
-  ipmax = bit.bor(network, bit.bnot(netmask)) - 1
-  ipstart = bit.bor(network, bit.band(tonumber(values[3].value), bit.bnot(netmask)))
-  ipend = ipstart + tonumber(values[4].value) - 1
-  if ipend > ipmax then
-    ipend = ipmax
-  end
+  prefix = string.match(values[1].value,"^(%d+%.%d+%.%d+%.)")
+  ipstart = prefix..values[3].value
+  ipend = prefix..values[4].value
   ipv6start = string.match(values[5].value or "", "(.*)/(%d+)") or ""
   time,precision = string.match(values[6].value, "^(%d+)([wdhms])$")
   if not precision then
@@ -562,7 +537,7 @@ DHCP_SETTINGS=$(lua -e '
   elseif precision == "m" then
     time = time * 60
   end
-  print(values[1].value,num2ipv4(netmask),num2ipv4(ipstart),num2ipv4(ipend),time,ipv6start)
+  print(values[1].value,values[2].value,ipstart,ipend,time,ipv6start)
 ')
 shift $#
 set -- $DHCP_SETTINGS
