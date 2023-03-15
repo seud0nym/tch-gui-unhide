@@ -444,7 +444,7 @@ exec_uci() {
     uci $__VERBOSE ${command} ${path}="$value"
     retval=$?
   fi
-  if [ "$retval" != "0" -a "$command" != "delete" ]; then
+  if [ "$retval" != "0" -a "$command" != "delete" -a "$command" != "del_list" ]; then
     echo -e "[$SCRIPT]: ${ORANGE}WARNING - failed to execute${NC} uci $__VERBOSE ${command} $arguments"
   fi
   return $retval
