@@ -50,10 +50,11 @@ function M.getTelephonyCardHTML(mmpbx_state)
   local sipprofile_info = {}
   for _,v in pairs(sipprofile_content) do
     local name = match(v.path,"@([^%.]+)")
+    sipprofile_info[name] = { uri = untaint(v.uri) }
     if v.display_name ~= nil and v.display_name ~= "" then
-      sipprofile_info[name] = v.display_name
+      sipprofile_info[name].display_name = v.display_name
     else
-      sipprofile_info[name] = v.uri
+      sipprofile_info[name].display_name = v.uri
     end
   end
 
@@ -92,7 +93,8 @@ function M.getTelephonyCardHTML(mmpbx_state)
             if dnd then
               todvoicednd_text = "active"
             elseif todvoicednd_text == "enabled" then
-              todvoicednd_text = "inactive"
+              todvoicednd_state = "0"
+              todvoicednd_text = "enabled (inactive)"
             end
           end
         end
@@ -126,42 +128,41 @@ function M.getTelephonyCardHTML(mmpbx_state)
   end
 
   local profiles = 0
-
-  for name,value in spairs(sipprofile_info) do
-    local details = proxy.get("rpc.mmpbx.sip_profile.@"..name..".enabled","rpc.mmpbx.profile.@"..name..".sipRegisterState","rpc.mmpbx.profile.@"..name..".uri")
+  for name,p in spairs(sipprofile_info) do
+    local details = proxy.get("rpc.mmpbx.sip_profile.@"..name..".enabled")
     if details and details[1].value == "1" then
       profiles = profiles + 1
-      local state = details[2].value
+      local state = proxy.get("rpc.mmpbx.profile.@"..name..".sipRegisterState")
       if state then
-        if state == "Registered" then
-          local uri_stats = stats[untaint(details[3].value)] or { i = 0, m = 0, o = 0 }
+        if state[1].value == "Registered" then
+          local uri_stats = stats[p.uri] or { i = 0, m = 0, o = 0 }
           local callsMissed = uri_stats.m
           local callsIn = uri_stats.i - callsMissed
           local callsOut = uri_stats.o
           temp[#temp+1] = format('<span %s>',modal_link)
           if todvoicednd_info[name] or todvoicednd_info["All"] then
-            temp[#temp+1] = ui_helper.createSimpleLight("3",format("%s registered <sup style='font-size:xx-small;'>(Do Not Disturb)</sup>",value))
+            temp[#temp+1] = ui_helper.createSimpleLight("3",format("%s registered <sup style='font-size:xx-small;'>(Do Not Disturb)</sup>",p.display_name))
           else
-            temp[#temp+1] = ui_helper.createSimpleLight("1",T(value.." registered"))
+            temp[#temp+1] = ui_helper.createSimpleLight("1",T(p.display_name.." registered"))
           end
           temp[#temp+1] = '</span>'
           temp[#temp+1] = format(stats_fmt,callsIn,callsMissed,callsOut)
-        elseif state == "Registering" then
+        elseif state[1].value == "Registering" then
           temp[#temp+1] = format('<span %s>',modal_link)
-          temp[#temp+1] = ui_helper.createSimpleLight("2",value..T" registering")
+          temp[#temp+1] = ui_helper.createSimpleLight("2",p.display_name..T" registering")
           temp[#temp+1] = '</span>'
         else
           temp[#temp+1] = format('<span %s>',modal_link)
           if mmpbx_state == "1" then
-            temp[#temp+1] = ui_helper.createSimpleLight("4",value..T" unregistered")
+            temp[#temp+1] = ui_helper.createSimpleLight("4",p.display_name..T" unregistered")
           else
-            temp[#temp+1] = ui_helper.createSimpleLight("0",value..T" unregistered")
+            temp[#temp+1] = ui_helper.createSimpleLight("0",p.display_name..T" unregistered")
           end
           temp[#temp+1] = '</span>'
         end
       else
         temp[#temp+1] = format('<span %s>',modal_link)
-        temp[#temp+1] = ui_helper.createSimpleLight("0",value..T" unregistered")
+        temp[#temp+1] = ui_helper.createSimpleLight("0",p.display_name..T" unregistered")
         temp[#temp+1] = '</span>'
       end
     end
@@ -182,18 +183,22 @@ function M.getTelephonyCardHTML(mmpbx_state)
     local showStats = true
     profiles = profiles + 1
     temp[#temp+1] = '<span class="modal-link" data-toggle="modal" data-remote="/modals/mmpbx-volte-modal.lp" data-id="mmpbx-volte-modal">'
-    if volte.registration_status == "registered" then
-      temp[#temp+1] = ui_helper.createSimpleLight("1",T"VoLTE working normally")
-    elseif volte.cs_emergency == "true" or volte.volte_emergency == "true" then
-      temp[#temp+1] = ui_helper.createSimpleLight("2",T"VoLTE emergency calls only")
+    if mmpbx_state == "1" then
+      if volte.registration_status == "registered" then
+        temp[#temp+1] = ui_helper.createSimpleLight("1",T"VoLTE working normally")
+      elseif volte.cs_emergency == "true" or volte.volte_emergency == "true" then
+        temp[#temp+1] = ui_helper.createSimpleLight("2",T"VoLTE emergency calls only")
+      else
+        temp[#temp+1] = ui_helper.createSimpleLight("4",T"VoLTE not connected")
+        showStats = false
+      end
     else
-      temp[#temp+1] = ui_helper.createSimpleLight("4",T"VoLTE not connected")
-      showStats = false
+      temp[#temp+1] = ui_helper.createSimpleLight("0",T"VoLTE unavailable")
     end
+    temp[#temp+1] = '</span>'
     if showStats then
       temp[#temp+1] = format(stats_fmt,callsIn,callsMissed,callsOut)
     end
-    temp[#temp+1] = '</span>'
   end
 
   local html = {}
