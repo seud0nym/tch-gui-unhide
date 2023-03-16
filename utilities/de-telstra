@@ -3343,22 +3343,25 @@ else
     echo [$SCRIPT]: Telephony Disabled
   fi
 fi
-if [ "$(uci -q get mmpbxmobilenet.VoLTE)" = "profile" ]; then
-  if [ "$(uci -q get mmpbxmobilenet.VoLTE.enabled)" = "1" -a "$(uci -q get mobiled_device_specific.@device[0].ims_pdn_autobringup)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].activated)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].autoconnect)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].optional)" = "1" ]; then
-    echo [$SCRIPT]: VoLTE already Enabled
-  else
-    echo [$SCRIPT]: Enabling VoLTE backup voice service and SMS reception
+# VoLTE
+if [ "$(uci -q get mobiled_device_specific.@device[0].ims_pdn_autobringup)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].activated)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].autoconnect)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].optional)" = "1" ]; then
+  echo [$SCRIPT]: VoLTE capability already Enabled
+else
+  echo [$SCRIPT]: Enabling VoLTE voice service and SMS reception
+  if [ "$(uci -q get mmpbxmobilenet.VoLTE)" = "profile" ]; then
     exec_uci set mmpbxmobilenet.VoLTE.enabled='1'
-    exec_uci commit mmpbxmobilenet
-    SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
-    exec_uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
-    exec_uci set mobiled_sessions.@session[0].activated='1'
-    exec_uci set mobiled_sessions.@session[0].autoconnect='1'
-    exec_uci set mobiled_sessions.@session[0].optional='1'
-    exec_uci commit mobiled_device_specific
-    exec_uci commit mobiled_sessions
-    SRV_mobiled=$(( $SRV_mobiled + 1 ))
+  elif [ "$(uci -q get mmpbxmobilenet.mobile_profile_0)" = "profile" ]; then
+    exec_uci set mmpbxmobilenet.mobile_profile_0.enabled='1'
   fi
+  exec_uci commit mmpbxmobilenet
+  SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
+  exec_uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
+  exec_uci set mobiled_sessions.@session[0].activated='1'
+  exec_uci set mobiled_sessions.@session[0].autoconnect='1'
+  exec_uci set mobiled_sessions.@session[0].optional='1'
+  exec_uci commit mobiled_device_specific
+  exec_uci commit mobiled_sessions
+  SRV_mobiled=$(( $SRV_mobiled + 1 ))
 fi
 
 # DECT
