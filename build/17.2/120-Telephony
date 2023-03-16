@@ -1,11 +1,97 @@
-echo -e "[$SCRIPT]: Fix default Telephony tab"
-# Default telephony tab is DECT!!!
-sed \
- -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/a \    if mmpbx_state == "1" then' \
- -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/a \        modalPath = "\/modals\/mmpbx-info-modal.lp"' \
- -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/a \    else' \
- -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/a \        modalPath = "\/modals\/mmpbx-global-modal.lp"' \
- -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/a \    end' \
- -e '/modalPath = "\/modals\/mmpbx-dect-modal.lp"/d' \
- -i /www/cards/008_telephony.lp
+echo -e "[$SCRIPT]: Create Services.X_TELSTRA_VOLTE.map if it does not exist"
+[ ! -e /usr/share/transformer/mappings/bbf/Services.X_TELSTRA_VOLTE.map ] && cat <<"VOLTE" >/usr/share/transformer/mappings/bbf/Services.X_TELSTRA_VOLTE.map
+-- Manually generated
 
+local lfs = require("lfs")
+if lfs.attributes("/etc/config/mmpbxmobilenet", "mode") ~= "file" then
+    return
+end
+
+local Multi_Services_X_TELSTRA_VOLTE_ = {
+  objectType = {
+    name = "#ROOT.Services.X_TELSTRA_VOLTE.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      Enable = {
+        access = "readWrite",
+        type = "boolean",
+        default = "0",
+      },
+      ActiveCall = {
+        access = "readOnly",
+        type = "boolean",
+        default = "0",
+      },
+    }
+  }
+}
+
+local mapper = mapper
+local uci_helper = mapper("ucihelper")
+local binding = { config = "mmpbxmobilenet", sectionname="profile" }
+local configChanged = false
+local conn = mapper("ubus").connect()
+local table, type = table, type
+
+Multi_Services_X_TELSTRA_VOLTE_.get = {
+  Enable = function(mapping, param, key)
+    local enabled = "0"
+    uci_helper.foreach_on_uci(binding, function(s)
+      if s["enabled"] == "1" then
+        enabled = "1"
+        return false -- break
+      end
+    end)
+    return enabled
+  end,
+  ActiveCall = function(config, name)
+    local calls_lte = conn:call("mobiled.voice", "call_info", {})
+    if type(calls_lte) == "table" then
+      for _,v in pairs(calls_lte) do
+        for _,v2 in pairs(v) do
+          if v2.call_state ~= nil then
+            return "1"
+          end
+        end
+      end
+    end
+    return "0"
+  end,
+}
+
+Multi_Services_X_TELSTRA_VOLTE_.set = {
+  Enable = function(mapping, param, value, key)
+    local _binding = { config = "mmpbxmobilenet", option = "enabled"}
+    uci_helper.foreach_on_uci(binding, function(s)
+      _binding.sectionname = s[".name"]
+      if s["enabled"] ~= value then
+        uci_helper.set_on_uci(_binding, value, commitapply)
+        configChanged = true
+      end
+    end)
+  end,
+}
+
+Multi_Services_X_TELSTRA_VOLTE_.commit = function()
+  if configChanged then
+    uci_helper.commit(binding)
+  end
+  configChanged = false
+end
+
+Multi_Services_X_TELSTRA_VOLTE_.revert = function()
+  if configChanged then
+    uci_helper.revert(binding)
+  end
+  configChanged = false
+end
+
+local duplicator = mapper("multiroot").duplicate
+local duplicates = duplicator(Multi_Services_X_TELSTRA_VOLTE_, "#ROOT", {"InternetGatewayDevice", "Device"})
+for _, dupli in ipairs(duplicates) do
+  register(dupli)
+end
+
+VOLTE
