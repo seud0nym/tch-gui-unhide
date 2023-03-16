@@ -209,12 +209,18 @@ function M.getTelephonyCardHTML(mmpbx_state)
     html[#html+1] = '</span>'
   end
 
-  if #html == 0 then
-    html = temp
-  else
-    for i = 1,#temp do
-      html[#html+1] = temp[i]
+  if profiles > 0 then
+    if #html == 0 then
+      html = temp
+    else
+      for i = 1,#temp do
+        html[#html+1] = temp[i]
+      end
     end
+  elseif mmpbx_state == "1" then
+    html[#html+1] = format('<span %s>',modal_link)
+    html[#html+1] = ui_helper.createSimpleLight("2",T"No SIP profiles or VoLTE enabled")
+    html[#html+1] = '</span>'
   end
 
   if profiles < 4 then
@@ -223,6 +229,7 @@ function M.getTelephonyCardHTML(mmpbx_state)
     html[#html+1] = '</span>'
   end
 
+  --region DECT (Do not remove this comment - used by 120-Telephony)
   if profiles < 5 then
     local dect = {
       state = "rpc.mmpbx.dectemission.state",
@@ -238,6 +245,7 @@ function M.getTelephonyCardHTML(mmpbx_state)
       html[#html+1] = '</span>'
     end
   end
+  --endregion (Do not remove this comment - used by 120-Telephony)
 
   return html
 end
