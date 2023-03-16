@@ -1,21 +1,3 @@
-echo -e "[$SCRIPT]: Show the hidden Telephony tabs and fix default tab"
-sed \
-  -e 's/\(--\)\( *{"mmpbx-service-modal.lp\)/  \2/' \
-  -e '/mmpbx-contacts/d' \
-  -e '/T"Service"/i \    {"mmpbx-inoutgoingmap-modal.lp", T"In\/Outgoing Map"},' \
-  -e '/T"Service"/a \    {"mmpbx-codec-modal.lp", T"Codecs"},' \
-  -e '/T"Service"/a \    {"mmpbx-dialplan-modal.lp", T"Dial Plans"},' \
-  -e '/T"Service"/a \    {"mmpbx-statistics-modal.lp", T"Statistics"},' \
-  -e '/T"Service"/a \    {"mmpbx-contacts-modal.lp", T"Phone Book"},' \
-  -e '/T"Service"/a \    {"tod_dnd-modal.lp", T"Do Not Disturb"},' \
-  -i /www/snippets/tabs-voice.lp
-
-echo -e "[$SCRIPT]: Display Telephony tabs even when mmpbx disabled"
-sed \
- -e '/if mmpbx_state == "1" then/d' \
- -e '/elseif session:hasAccess/,/end/d' \
- -i /www/snippets/tabs-voice.lp
-
 if [ $SIP_PWDS = y ]; then
   echo -e "[$SCRIPT]: Always display decrypted SIP passwords"
   sed \
@@ -32,6 +14,12 @@ fi
 if [ "$(uci -q show mmpbxbrcmfxsdev | grep '=device' | wc -l)" -eq 1 ]; then
   echo -e "[$SCRIPT]: Remove extra FXS device from Telephony Codecs tab"
   sed -e '/fxs2/d' -e '/FXS2/d' -i /www/docroot/modals/mmpbx-codec-modal.lp
+fi
+
+if [ "$(uci -q get mmpbx.dectemission)" != "dectemission" ]; then
+  echo -e "[$SCRIPT]: Remove DECT Tab and card info"
+  sed -e '/mmpbx-dect-modal.lp/d' -i /www/snippets/tabs-voice.lp
+  sed -e '/--region DECT/,/--endregion/d' -i /www/lua/telephonycard_helper.lua
 fi
 
 echo -e "[$SCRIPT]: Add missing insert option on dial plan entries"
@@ -59,7 +47,7 @@ echo -e "[$SCRIPT]: Update Incoming/Outgoing Map modal with new transformer mapp
 sed \
   -e 's/rpc\.mmpbx\.sip_incomingmap\./rpc.mmpbx.incomingmap./' \
   -e 's/rpc\.mmpbx\.sip_outgoingmap\./rpc.mmpbx.outgoingmap./' \
-  -e 's/match(profilepattern)/& or "0"/' \
+  -e 's/match(profilepattern)/& or "-1"/' \
   -i /www/docroot/modals/mmpbx-inoutgoingmap-modal.lp
 
 echo -e "[$SCRIPT]: Replace NA in Call Log with VoLTE"
