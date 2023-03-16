@@ -270,6 +270,9 @@ end
 mmpbx_incoming_map.get = function(_,param,key)
   if param == "PhoneNumber" then
     if mobile_keys[key] then
+      if key == "mobile_profile_0" then
+        return "VoLTE"
+      end
       return key
     end
     sipnet_binding.sectionname = key
