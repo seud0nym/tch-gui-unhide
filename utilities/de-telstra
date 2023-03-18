@@ -115,7 +115,8 @@ Options:
  -q u|y|n            * NFC:                     u=unchanged y=Enable n=Disable
  -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
  -s u|b|d|n            WAN Supervision:         u=unchanged b=BFD d=DNS n=Disable
- -t u|y|n              Telephony:               u=unchanged y=Enable n=Disable
+ -t u|y|n|m            Telephony:               u=unchanged y=Enable n=Disable
+                                                m=Enable w/o services (ex. HOLD + DND)
  -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
  -w u|y|n              WPS:                     u=unchanged y=Enable n=Disable
                          (on non-Guest and non-Backhaul SSIDs)
@@ -193,6 +194,7 @@ set_defaults() {
   __LED_LOG='u'
   __LITE='n'
   __MMPBX='u'
+  __MMPBX_SRV='p'
   __MULTIAP_AGT='u'
   __MULTIAP_BKH='u'
   __MULTIAP_CTL='u'
@@ -258,7 +260,7 @@ while getopts :a:b:c:d:e:f:g:h:i:k:l:m:n:op:q:r:s:t:u:w:yAF:GI:MO:RSU-: option; 
   q)  case "${OPTARG}" in y) __NFC='1';; n) __NFC='0';; u) __NFC='u';; *) echo 'ERROR: -q valid options are y, n, or u'; exit 1;; esac;;
   r)  case "${OPTARG}" in y) __PRNTR='1';; n) __PRNTR='0';; u) __PRNTR='u';; *) echo 'ERROR: -r valid options are y, n, or u'; exit 1;; esac;;
   s)  case "${OPTARG}" in b|B) __SUPERVISION='BFD';; d|D) __SUPERVISION='DNS';; n) __SUPERVISION='Disabled';; u) __SUPERVISION='u';; *) echo 'ERROR: -s valid options are b, d, n, or u'; exit 1;; esac;;
-  t)  case "${OPTARG}" in y) __MMPBX='1';; n) __MMPBX='0';; u) __MMPBX='u';; *) echo 'ERROR: -t valid options are y, n, or u'; exit 1;; esac;;
+  t)  case "${OPTARG}" in m) __MMPBX='1'; __MMPBX_SRV='d';; y) __MMPBX='1'; __MMPBX_SRV='p';; n) __MMPBX='0';; u) __MMPBX='u';; *) echo 'ERROR: -t valid options are m, y, n, or u'; exit 1;; esac;;
   u)  case "${OPTARG}" in y) __UPNP='1';; n) __UPNP='0';; u) __UPNP='u';; *) echo 'ERROR: -u valid options are y, n, or u'; exit 1;; esac;;
   w)  case "${OPTARG}" in y) __WPS='1';; n) __WPS='0';; u) __WPS='u';; *) echo 'ERROR: -w valid options are y, n, or u'; exit 1;; esac;;
   y)  __YES='y';;
@@ -314,6 +316,7 @@ show_default() {
        ;;
     y) _DFLT=Yes;;
     n) _DFLT=No;;
+    m) _DFLT="De-provisioned";;
     d) _DFLT="System Default";;
     *) if [ "$1" = "h" ]; then
         case "$3" in
@@ -382,6 +385,7 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y -o $__YES = n ]; then
   show_default "r"  "Printer Sharing" $__PRNTR
   [ $SRV_supervision -ge 0 ] && show_default "s"  "WAN Supervision" $__SUPERVISION
   show_default "t"  "Telephony" $__MMPBX
+  [ $__MMPBX = "1" -a "$__MMPBX_SRV" = "d" ] && show_default "t"  "Telephony Services" "m"
   show_default "u"  "UPnP" $__UPNP
   show_default "w"  "WPS" $__WPS
   show_default "F"  "RTFD root protection" $__ROOT_PROTECT
@@ -3329,8 +3333,26 @@ elif [ "$SAMBA_NOW" = "0" -a \( "$SAMBA_PS" = "1" -o "$SAMBA_FS" = "1" \) ]; the
 fi
 
 # Telephony
+if [ "$__MMPBX_SRV" = "d" ]; then
+  for s in $(uci show mmpbx | grep =service | grep -v 'hold\|dnd' | cut -d= -f1); do
+    n="$(uci -q get $s.type)"
+    if [ "$(uci -q get $s.provisioned)" = "1" ]; then
+      echo [$SCRIPT]: Telephony $n service de-provisioned
+      exec_uci set $s.provisioned='0'
+      SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
+    fi
+    if [ "$(uci -q get $s.activated)" = "1" ]; then
+      echo [$SCRIPT]: Telephony $n service deactivated
+      exec_uci set $s.activated='0'
+      SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
+    fi
+  done
+  if [ $SRV_mmpbxd -gt 0 ]; then
+    exec_uci commit mmpbx
+  fi
+fi
 MMPBX_NOW="$(uci -q get mmpbx.global.enabled)"
-if [ "$__MMPBX" = "u" -o "$MMPBX_NOW" = "$__MMPBX" ]; then
+if [ "$__MMPBX" = "u" -o "$MMPBX_NOW" = "$__MMPBX"  ]; then
   echo [$SCRIPT]: Telephony unchanged \[$(status2text $MMPBX_NOW)\]
 else
   exec_uci set mmpbx.global.enabled="$__MMPBX"
