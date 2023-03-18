@@ -111,7 +111,7 @@ Options:
  -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
  -s u|b|d|n            WAN Supervision:         u=unchanged b=BFD d=DNS n=Disable
  -t u|y|n|m            Telephony:               u=unchanged y=Enable n=Disable
-                                                m=Enable w/o services (ex. HOLD + DND)
+                                                m=Enable w/o services (ex. DND/HOLD/MWI)
  -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
  -w u|y|n              WPS:                     u=unchanged y=Enable n=Disable
                          (on non-Guest and non-Backhaul SSIDs)
