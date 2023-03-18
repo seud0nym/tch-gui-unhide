@@ -67,7 +67,7 @@ cd - >/dev/null
 
 echo "${GREEN}Building /tmp/themes.b64...${NC}"
 echo "echo -e \"\${GREY}BLD/069:\${NC} Deploy theme files\"" > /tmp/themes.b64
-echo "echo '$(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -cf - -C themes . | bzip2 --best | base64 -w0)' | base64 -d | bzcat | tar -xf - -C /" >> /tmp/themes.b64
+echo "echo '$(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -cf - -C ../src/themes . | bzip2 --best | base64 -w0)' | base64 -d | bzcat | tar -xf - -C /" >> /tmp/themes.b64
 echo "" >> /tmp/themes.b64
 
 for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
@@ -80,35 +80,31 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
   mkdir -p /tmp/tch-gui-unhide/$MAJOR
   SOURCE=055-Additional
   for d in $(echo | cat common/$SOURCE - $MAJOR/$SOURCE 2>/dev/null | sort -u); do
-    if [ -d lua/ansuel/$d ]; then
-      [ -n "$DEBUG" ] && echo Copying lua/ansuel/$d to /tmp/tch-gui-unhide/$MAJOR/
-      tar --exclude README.md -cf - -C lua/ansuel/$d/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
-    fi
-    if [ -d lua/additional/common/$d ]; then
-      [ -n "$DEBUG" ] && echo Copying lua/additional/common/$d to /tmp/tch-gui-unhide/$MAJOR/
-      tar --exclude README.md -cf - -C lua/additional/common/$d/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
+    if [ -d ../src/common/$d ]; then
+      [ -n "$DEBUG" ] && echo Copying ../src/common/$d to /tmp/tch-gui-unhide/$MAJOR/
+      tar --exclude README.md -cf - -C ../src/common/$d/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
     fi
   done
-  if [ -d lua/additional/$MAJOR ]; then
-    [ -n "$DEBUG" ] && echo Copying lua/additional/$MAJOR to /tmp/tch-gui-unhide/$MAJOR/
-    tar --exclude README.md --exclude .include -cf - -C lua/additional/$MAJOR/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
+  if [ -d ../src/$MAJOR ]; then
+    [ -n "$DEBUG" ] && echo Copying ../src/$MAJOR to /tmp/tch-gui-unhide/$MAJOR/
+    tar --exclude README.md --exclude .include -cf - -C ../src/$MAJOR/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
   fi
-  if [ -e lua/additional/$MAJOR/.include ]; then
-    for f in $(cat lua/additional/$MAJOR/.include | grep -v '^#'); do
+  if [ -e ../src/$MAJOR/.include ]; then
+    for f in $(cat ../src/$MAJOR/.include | grep -v '^#'); do
       p="$(echo $f | tr : ' ')"
       [ -n "$DEBUG" ] && echo Copying $p to /tmp/tch-gui-unhide/$MAJOR/
       tar --exclude README.md --transform='s/^\.\.\/[^\/]*//' -cf - -C $p | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
     done
   fi
-  if [ -e lua/additional/$MAJOR/.exclude ]; then
-    for f in $(cat lua/additional/$MAJOR/.exclude | grep -v '^#'); do
+  if [ -e ../src/$MAJOR/.exclude ]; then
+    for f in $(cat ../src/$MAJOR/.exclude | grep -v '^#'); do
       if [ -e "/tmp/tch-gui-unhide/$MAJOR/$f" ]; then
         [ -n "$DEBUG" ] && echo Deleting $f from /tmp/tch-gui-unhide/$MAJOR/
         rm "/tmp/tch-gui-unhide/$MAJOR/$f"
       fi
     done
   fi
-  tar --exclude COPYRIGHT --exclude COPYRIGHT_Lua51 -cf - -C lua/minifier/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
+  tar --exclude COPYRIGHT --exclude COPYRIGHT_Lua51 -cf - -C ../src/minifier/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/$MAJOR/
 
   echo "${GREEN}Updating rpc.gui.UnhideVersion...${NC}"
   sed \

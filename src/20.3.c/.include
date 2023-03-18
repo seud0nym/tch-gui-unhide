@@ -1,0 +1,3 @@
+# Lines in this file must be specified in the format <source dirname relative to build dir>:<target filepath> e.g. ../src/17.2/:www/docroot/js/chart-min.js
+../src/17.2/:www/lua/parental_helper.lua
+../src/17.2/:tmp/tproxy-go.armv5.bz2

@@ -45,40 +45,38 @@ Modals are the pop-up screens displayed when the card is clicked
 
 The nginx worker process runs as the `nobody` user, and therefore has no access to anything that requires root access. The transformer service and its associated mappings allows the Lua code running in nginx to make privileged system calls.
 
-## Code Structure
+## Directory Structure
+
+### Build Scripts
 
 The [build](https://github.com/seud0nym/tch-gui-unhide/tree/master/build) directory contains the following directories:
 
 - [common](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/common)
     - This directory contains the shell script snippets that are common to all firmware versions.
-    - The file [055-Additional](https://github.com/seud0nym/tch-gui-unhide/blob/master/build/common/055-Additional) is a special file that does not contain shell code. This file lists the directories under the [lua/additional/common](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/lua/additional/common) directory that are to be included for all firmware targets.
+    - The file [055-Additional](https://github.com/seud0nym/tch-gui-unhide/blob/master/build/common/055-Additional) is a special file that does not contain shell code. This file lists the directories under the [src/common](https://github.com/seud0nym/tch-gui-unhide/tree/master/src/common) directory that are to be included for all firmware targets.
 - [17.2](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/17.2), [18.1.c](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/18.1.c), [20.3.c](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/20.3.c) and [20.4](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/20.4)
     - These directories contain the shell script snippets that are specific to a firmware version.
-    - Each of these directories may also contain a `055-Additional` file that lists the directories under the [lua/additional/common](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/lua/additional/common) directory that are to be included for the specific firmware target.
-- [themes](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/themes)
-    - This directory contains the CSS files, images and icons that make up the themes. It also contains the Lua code that is included in the stock code to apply the themes.
-- [lua](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/lua)
-    - This directory contains files that will replace existing files or be added to the target firmware. The majority of the files contain Lua code, but there are some other file types like configuration files included in the structure. The directories immediately below the lua directory are:
-        - [additional](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/lua/additional)
-            - All additional and replacement code developed specifically for `tch-gui-unhide`. This directory contains a structure similar to the shell script snippets directories:
-                - [common](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/lua/additional/common)
-                    - This directory contains the code that is common to all firmware versions.
-                    - Code is separated into directories that deal with a single feature (usually related to a specific card).
-                - [17.2](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/lua/additional/17.2), [18.1.c](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/lua/additional/18.1.c), [20.3.c](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/lua/additional/20.3.c) and [20.4](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/lua/additional/20.4)
-                    - These directories contain the code that is specific to a firmware version.
-                    - The directories can optionally contain either or both of the following build control files:
-                        - `.exclude`
-                            - Contains a list of _absolute_ file paths (in relation to the target firmware) that are to be _excluded_ when building the installer for this firmware version.
-                        - `.include`
-                            - Contains a list of files from other firmware-specific directories that are to be _included_ when building the installer for this firmware version.
-                            - Lines in this file must be specified in the format \<_source dirname relative to build dir_\>:\<_target filepath_\> e.g. `lua/additional/17.2/:www/docroot/js/chart-min.js`
+    - Each of these directories may also contain a `055-Additional` file that lists the directories under the [src/common](https://github.com/seud0nym/tch-gui-unhide/tree/master/src/common) directory that are to be included for the specific firmware target.
+
+### Source Code
+
+The [src](https://github.com/seud0nym/tch-gui-unhide/tree/master/src) directory contains files that will replace existing files or be added to the target firmware. The majority of the files contain Lua code, but there are some other file types like configuration files included in the structure. The directories immediately below the lua directory are:
+- [common](https://github.com/seud0nym/tch-gui-unhide/tree/master/src/common)
+    - This directory contains the code that is common to all firmware versions.
+    - Code is separated into directories that deal with a single feature (usually related to a specific card).
+- [17.2](https://github.com/seud0nym/tch-gui-unhide/tree/master/src/17.2), [18.1.c](https://github.com/seud0nym/tch-gui-unhide/tree/master/src/18.1.c), [20.3.c](https://github.com/seud0nym/tch-gui-unhide/tree/master/src/20.3.c) and [20.4](https://github.com/seud0nym/tch-gui-unhide/tree/master/src/20.4)
+    - These directories contain the code that is specific to a firmware version.
+    - The directories can optionally contain either or both of the following build control files:
+        - `.exclude`
+            - Contains a list of _absolute_ file paths (in relation to the target firmware) that are to be _excluded_ when building the installer for this firmware version.
+        - `.include`
+            - Contains a list of files from other firmware-specific directories that are to be _included_ when building the installer for this firmware version.
+            - Lines in this file must be specified in the format \<_source dirname relative to build dir_\>:\<_target filepath_\> e.g. `../src/17.2/:www/docroot/js/chart-min.js`
             - Feature and firmware directories contain the directory structure for deployment on the target firmware.
-        - [ansuel](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/lua/ansuel)
-            - All code that was originally developed for [tch-nginx-gui](https://github.com/Ansuel/tch-nginx-gui) that was imported and then modified to work with `tch-gui-unhide`.
-            - Code is separated into directories that deal with a single feature (usually related to a specific card).
-            - Feature directories contain the directory structure for deployment on the target firmware.
-        - [minifier](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/lua/minifier)
-            - A copy of [LuaSrcDiet](https://github.com/jirutka/luasrcdiet) that is temporarily deployed to the target device to minimise the Lua codebase when `tch-gui-unhide` is invoked with the `-my` option. Once the code has been minified, this code is deleted from the target device.
+- [minifier](https://github.com/seud0nym/tch-gui-unhide/tree/master/src/minifier)
+    - A copy of [LuaSrcDiet](https://github.com/jirutka/luasrcdiet) that is temporarily deployed to the target device to minimise the Lua codebase when `tch-gui-unhide` is invoked with the `-my` option. Once the code has been minified, this code is deleted from the target device.
+- [themes](https://github.com/seud0nym/tch-gui-unhide/tree/master/src/themes)
+    - This directory contains the CSS files, images and icons that make up the themes. It also contains the Lua code that is included in the stock code to apply the themes.
 
 ## Building Releases
 
@@ -101,7 +99,7 @@ target          One or more firmware versions for which the installer is to be b
                   in the build directory that starts with a number (e.g. 18.1.c)
 ```
 
-The build process basically involves concatenating the individual script snippets into a single script, except for the `055-Additional` files. The contents of these files, plus the directives in the `.exclude` and `.include` files are resolved into a single tar file that is then base64 encoded and embedded in the installer script. When executed, the installer script unpacks the tar file into the firmware directories. The contents of the [themes](https://github.com/seud0nym/tch-gui-unhide/tree/master/build/themes) directory are handled in the same way for deployment on the target device.
+The build process basically involves concatenating the individual script snippets into a single script, except for the `055-Additional` files. The contents of these files, plus the directives in the `.exclude` and `.include` files are resolved into a single tar file that is then base64 encoded and embedded in the installer script. When executed, the installer script unpacks the tar file into the firmware directories. The contents of the [themes](https://github.com/seud0nym/tch-gui-unhide/tree/master/src/themes) directory are handled in the same way for deployment on the target device.
 
 The output of the [build](https://github.com/seud0nym/tch-gui-unhide/blob/master/build/build) script is to update the firmware specific `tch-gui-unhide-\<version\>` files in the root directory of the project.
 

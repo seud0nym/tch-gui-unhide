@@ -1,0 +1,3 @@
+# Lines in this file must be specified in the format <source dirname relative to build dir>:<target filepath> e.g. ../src/17.2/:www/docroot/js/chart-min.js
+../src/20.3.c/:www/cards/092_natalghelper.lp
+../src/20.3.c/:www/docroot/modals/nat-alg-helper-modal.lp
