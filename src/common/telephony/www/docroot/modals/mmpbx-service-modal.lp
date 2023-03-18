@@ -768,7 +768,8 @@ ngx.print(ui_helper.createHeader(T"Telephony",false,true),'\
   <form class="form-horizontal" method="post" action="',uri,'">\
   ',ui_helper.createMessages(message_helper.popMessages()),'\
    <fieldset>\
-      <legend>',T"Config VOIP Services",'</legend>',
+      <legend>',T"Configure VOIP Services",'</legend>',
+        ui_helper.createAlertBlock(T"Some Services may not work, even when provisioned and activated!",{ alert = { class = "alert-info", style = "text-align:center" } }),
         html,'\
     </fieldset>\
   </form>\
