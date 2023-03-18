@@ -1,17 +1,11 @@
 echo -e "[$SCRIPT]: Enable various things that only the guest role was allowed to do or see"
-for f in $(ls /www/docroot/modals/gateway-modal.lp /www/docroot/modals/internet-modal.lp /www/docroot/modals/wireless-modal.lp /www/snippets/tabs-diagnostics.lp /www/snippets/tabs-voice.lp)
-do
+for f in /www/docroot/modals/gateway-modal.lp /www/docroot/modals/wireless-modal.lp /www/snippets/tabs-diagnostics.lp; do
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing $f"
   sed -e 's/\(if [^ ]*role[^=]*==[^"]*"\)\(guest\)\("\)/\1admin\3/g' -i $f
 done
-sed \
-  -e 's/if role ~= "admin"/if role == "admin"/' \
-  -e 's/if w\["provisioned"\] == "1"/if role == "admin" or w\["provisioned"\] == "1"/' \
-  -i /www/docroot/modals/mmpbx-service-modal.lp
 
 echo -e "[$SCRIPT]: Enable various cards that the default user was not allowed to see"
-for f in $(grep -l -r "and not session:isdefaultuser" /www/cards)
-do
+for f in $(grep -l -r "and not session:isdefaultuser" /www/cards); do
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing $f"
   sed -e 's/ and not session:isdefaultuser()//' -i $f
 done
