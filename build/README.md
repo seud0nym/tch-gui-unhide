@@ -152,15 +152,15 @@ done
 if [ ! -z "$IPS" ]; then
   for ip in $IPS; do
     started=$(date +%r)
-    fw=$(ssh root@$ip 'uci -q get version.@version[0].marketing_version' 2> >(grep -v 'Warning: Permanently added'))
-    if echo "$fw" | grep -q "No route to host"; then
+    fw=$(ssh -o ConnectTimeout=5 root@$ip 'uci -q get version.@version[0].marketing_version' 2> >(grep -v 'Warning: Permanently added'))
+    if echo "$fw" | grep -q "No route to host\|Connection timed out"; then
       echo $fw
       continue
     fi
     echo $ip Target firmware is $fw
 
     if [ ! -z "$fw" ]; then 
-      if [ -n "$BUILD_DATE" -o ! -f ../tch-gui-unhide-$fw -o $(find ../build -newer ../tch-gui-unhide-$fw -type f ! -name deploy -a ! -name build-release -a ! -name README.md ! -name .source | wc -l) -gt 0 -o \( -z "$PRERELEASE" -a $(grep -c 'tch-gui-unhide Pre-Release [0-9.]* for Firmware' ../tch-gui-unhide-$fw) -ne 0 \) -o \( -n "$PRERELEASE" -a $(grep -c 'tch-gui-unhide Release [0-9.]* for Firmware' ../tch-gui-unhide-$fw) -ne 0 \) ]; then
+      if [ -n "$BUILD_DATE" -o ! -f ../tch-gui-unhide-$fw -o $(find ../build ../src -newer ../tch-gui-unhide-$fw -type f ! -name deploy -a ! -name build-release -a ! -name README.md ! -name .source | wc -l) -gt 0 -o \( -z "$PRERELEASE" -a $(grep -c 'tch-gui-unhide Pre-Release [0-9.]* for Firmware' ../tch-gui-unhide-$fw) -ne 0 \) -o \( -n "$PRERELEASE" -a $(grep -c 'tch-gui-unhide Release [0-9.]* for Firmware' ../tch-gui-unhide-$fw) -ne 0 \) ]; then
         sh ./build $PRERELEASE $BUILD_DATE $fw
       else
         cd ../extras/src
