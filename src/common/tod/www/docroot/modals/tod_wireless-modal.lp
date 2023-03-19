@@ -190,17 +190,20 @@ local function onAdd(success,content,onModify)
   content.mode = content.mode == "on" and "1" or "0"
 
   if onModify then
-    local ap_path
-    for _,v in pairs(proxy.getPN(tod_wifitod_path.."@"..wifitod_id..".ap.",true)) do
-      ap_path = proxy.get(v.path.."value")
-      tod_wifi_mode = proxy.get(tod_ap_path.."@"..ap_path[1].value..".state")
-      proxy.del(tod_ap_path.."@"..ap_path[1].value)
+    local tod_wifitod = proxy.getPN(tod_wifitod_path.."@"..wifitod_id..".ap.",true)
+    if tod_wifitod then
+      for _,v in pairs(tod_wifitod) do
+        local ap_path = proxy.get(v.path.."value")
+        tod_wifi_mode = proxy.get(tod_ap_path.."@"..ap_path[1].value..".state")
+        proxy.del(tod_ap_path.."@"..ap_path[1].value)
+      end
     end
-
     if tod_wifi_mode and content.mode ~= tod_wifi_mode[1].value then
-      local tod_action_activeTimers = format("%s@action%s.activedaytime.",tod_action_path,index)
-      for _,v in pairs(proxy.getPN(tod_action_activeTimers,true)) do
-        proxy.del(v.path)
+      local tod_action_activeTimers = proxy.getPN(format("%s@action%s.activedaytime.",tod_action_path,index),true)
+      if tod_action_activeTimers then
+        for _,v in pairs(tod_action_activeTimers) do
+          proxy.del(v.path)
+        end
       end
     end
     proxy.del(tod_wifitod_path.."@"..wifitod_id..".")
