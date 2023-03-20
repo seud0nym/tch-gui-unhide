@@ -17,7 +17,7 @@ local GUI_UTIL_ = {
     parameters = {
       fixtmp = {
         access = "readWrite",
-        type = "string"
+        type = "boolean"
       },
       move = {
         access = "readWrite",
@@ -32,13 +32,19 @@ local GUI_UTIL_ = {
 }
 
 GUI_UTIL_.get = {
-  fixtmp = fix_tmp_permissions,
+  fixtmp = "0",
   move = "",
   nobody_dir = "",
 }
 
 GUI_UTIL_.set = {
-  fixtmp = fix_tmp_permissions,
+  fixtmp = function(_,_,value,_)
+    if value == "1" then
+      fix_tmp_permissions()
+      return true
+    end
+    return nil,"Can only specify value of 1"
+  end,
   move = function(_,_,value,_)
     ---@diagnostic disable-next-line: undefined-field
     local op,errmsg = dkjson.decode(untaint(value))
