@@ -89,8 +89,8 @@ show_setting() {
           y) _ABL="Disabled"; _VAL=""; _ST="$(printf '\033[9m')";;
         esac;;
     *)  case "$3" in
-          y|true)  _VAL="y";  _ABL="Enabled";;
-          n|false) _VAL="n";  _ABL="Disabled";;
+          y|true|1)  _VAL="y";  _ABL="Enabled";;
+          n|false|0) _VAL="n";  _ABL="Disabled";;
           *)       _VAL="$3"; _ABL="$3";
         esac;;
   esac

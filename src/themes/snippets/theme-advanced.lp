@@ -10,9 +10,9 @@ local favicon = '<link href="/img/%sfavicon.ico" rel="shortcut icon" type="image
 local stylesheet = '<link href="/css/%s%s" rel="stylesheet">'
 
 local settings = {
-  THEME = "rpc.gui.theme.THEME",
-  COLOR = "rpc.gui.theme.COLOR",
-  ICONS = "rpc.gui.theme.ICONS",
+  THEME = "uci.tch_gui_unhide.theme.name",
+  COLOR = "uci.tch_gui_unhide.theme.colour",
+  ICONS = "uci.tch_gui_unhide.theme.icons",
 }
 content_helper.getExactContent(settings)
 

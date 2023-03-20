@@ -41,10 +41,40 @@ TITLE="$(grep -o 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut
 BG_RFRSH="$(grep -o 'window.autoRefreshEnabled=[^;]*;' /www/docroot/gateway.lp | cut -d= -f2 | cut -d';' -f1)"
 [ -z "$BG_RFRSH" ] && BG_RFRSH="true"
 
+make_tch_gui_unhide_config() {
+  if [ ! -f /etc/config/tch_gui_unhide ]; then
+    touch /etc/config/tch_gui_unhide
+    uci add tch_gui_unhide theme
+    uci rename tch_gui_unhide.@theme[0]='theme'
+    uci add tch_gui_unhide release
+    uci rename tch_gui_unhide.@release[0]='release'
+    if [ -f /etc/tch-gui-unhide.ignored_release ]; then
+      uci set tch_gui_unhide.release.ignored="$(cat /etc/tch-gui-unhide.ignored_release)"
+    else
+      uci set tch_gui_unhide.release.ignored=''
+    fi
+  fi
+}
+
 [ -f /usr/tch-gui-unhide.theme ] && mv /usr/tch-gui-unhide.theme /etc/tch-gui-unhide.theme
-[ -f /etc/tch-gui-unhide.theme ] && source /etc/tch-gui-unhide.theme
+if [ -f /etc/tch-gui-unhide.theme ]; then
+  source /etc/tch-gui-unhide.theme
+  make_tch_gui_unhide_config
+  uci set tch_gui_unhide.theme.name="$THEME"
+  uci set tch_gui_unhide.theme.colour="$COLOR"
+  uci set tch_gui_unhide.theme.icons="$ICONS"
+  [ "$KEEPLP" = "y" ] && KEEPLP='1' || KEEPLP='0'
+  uci set tch_gui_unhide.theme.keep_landing_page="$KEEPLP"
+  uci commit tch_gui_unhide
+  rm -f /etc/tch-gui-unhide.theme
+else
+  THEME="$(uci -q get tch_gui_unhide.theme.name)"
+  COLOR="$(uci -q get tch_gui_unhide.theme.colour)"
+  ICONS="$(uci -q get tch_gui_unhide.theme.icons)"
+  KEEPLP="$(uci -q get tch_gui_unhide.theme.keep_landing_page)"
+fi
 if [ -z "$THEME" ]; then
-  KEEPLP=n
+  KEEPLP='0'
   grep -q 'body{background-color:#353c42;' /www/docroot/css/gw.css
   if [ $? -eq 0 ]; then
     THEME=night
@@ -56,11 +86,10 @@ if [ -z "$THEME" ]; then
       THEME=telstra
       grep -q 'body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color' /www/docroot/css/gw-telstra.css
       if [ $? -eq 1 -a -f /www/snippets/tabs-home.lp ]; then
-        grep -q 'T"Boost Your Wi-Fi"' /www/snippets/tabs-home.lp
-        if [ $? -eq 1 ]; then
-          KEEPLP=y
+        if grep -q 'T"Boost Your Wi-Fi"' /www/snippets/tabs-home.lp; then
+          KEEPLP='1'
         else
-          KEEPLP=n
+          KEEPLP='0'
         fi
       fi
     fi

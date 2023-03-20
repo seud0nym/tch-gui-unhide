@@ -2,7 +2,7 @@ echo -e "[$SCRIPT]: Fixing card background image"
 sed \
   -e '$ a .card_bg:after{font-size:110px;bottom:-5px;z-index:-20;}' \
   -i /www/docroot/css/gw.css
-if [ -f /www/docroot/landingpage.lp -a "$KEEPLP" = "n" ];then
+if [ -f /www/docroot/landingpage.lp -a "$KEEPLP" = "0" ];then
   [ $COMPVER -lt 20040000428 ] && LP_TXT_COLOUR=808080 || LP_TXT_COLOUR=545454
   echo -e "[$SCRIPT]: Theming and de-branding landing page"
   sed \

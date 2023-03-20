@@ -4,7 +4,7 @@ log I "Restoring subset of GUI files..."
 find /www/cards/ /www/docroot/modals/ -maxdepth 1 -type f -exec rm {} \;
 restore_directory /www/cards -maxdepth 1
 restore_directory /www/docroot/modals -maxdepth 1
-restore_file /www/docroot/gateway.lp /www/docroot/css/gw-telstra.css /www/docroot/css/gw.css /www/docroot/css/responsive.css /usr/share/transformer/mappings/rpc/gui.map /etc/tch-gui-unhide.theme 
+restore_file /www/docroot/gateway.lp /www/docroot/css/gw-telstra.css /www/docroot/css/gw.css /www/docroot/css/responsive.css /usr/share/transformer/mappings/rpc/gui.map /etc/tch-gui-unhide.theme /etc/config/tch_gui_unhide
 
 log I "Restoring GUI configuration..."
 uci -q revert web

@@ -8,10 +8,10 @@ local favicon = '<link href="/img/%sfavicon.ico" rel="shortcut icon" type="image
 local stylesheet = '<link href="/css/%s%s" rel="stylesheet">'
 
 local settings = {
-  THEME = "rpc.gui.theme.THEME",
-  COLOR = "rpc.gui.theme.COLOR",
-  ICONS = "rpc.gui.theme.ICONS",
-  KEEPLP = "rpc.gui.theme.KEEPLP",
+  THEME = "uci.tch_gui_unhide.theme.name",
+  COLOR = "uci.tch_gui_unhide.theme.colour",
+  ICONS = "uci.tch_gui_unhide.theme.icons",
+  KEEPLP = "uci.tch_gui_unhide.theme.keep_landing_page",
 }
 content_helper.getExactContent(settings)
 
@@ -42,7 +42,7 @@ else
   html[#html+1] = format(stylesheet,settings["THEME"],"/basic-override.css")
 end
 
-if settings["KEEPLP"] == "y" then
+if settings["KEEPLP"] == "1" then
   if settings["THEME"] == "night" then
     html[#html+1] = "<style>"
     html[#html+1] = "body.landingpage{color:#3B3B3B;background-color:#F8F8F8;background-image:-moz-linear-gradient(top,#f4f4f4 0%, #dadada 100%);background-image:-webkit-gradient(linear, left top, left bottom, color-stop(0%, #f4f4f4), color-stop(100%, #dadada));background-image:-webkit-linear-gradient(top, #f4f4f4 0%, #dadada 100%);background-image:-ms-linear-gradient(top, #f4f4f4 0%, #dadada 100%);background-image:-o-linear-gradient(top, #f4f4f4 0%, #dadada 100%);filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#F4F4F4', endColorstr='#DADADA', GradientType=1);background-image:linear-gradient(top, #f4f4f4 0%, #dadada 100%);}"

@@ -136,7 +136,7 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rs:t:uv:x:yC:LTVWX-: option; do
         *) TITLE="$OPTARG";;
       esac;;
    i) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then ICONS=visible; else ICONS=hidden; fi;;
-   l) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then KEEPLP=y; else KEEPLP=n; fi;;
+   l) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then KEEPLP='1'; else KEEPLP='0'; fi;;
    m) case "${OPTARG}" in y|Y) MINIFY=y;; n|N) MINIFY=n;; *) echo -e "[$SCRIPT]: ${RED}ERROR!${NC} -m valid options are y or n"; exit 2;; esac;;
    p) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then SIP_PWDS=y; else SIP_PWDS=n; fi;;
    r) RESTORE=y;;
@@ -146,11 +146,11 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rs:t:uv:x:yC:LTVWX-: option; do
         *)    echo -e "[$SCRIPT]: ${RED}ERROR!${NC} -s valid options are a or b"; exit 2;; 
       esac;;
    t) case "${OPTARG}" in
-        c) THEME=classic; COLOR=blue; KEEPLP=n;;
-        l) THEME=light; COLOR=monochrome; KEEPLP=n;;
-        m) THEME=telstramodern; COLOR=blue; KEEPLP=y;;
-        n) THEME=night; COLOR=blue; KEEPLP=n;;
-        t) THEME=telstra; COLOR=blue; KEEPLP=y;;
+        c) THEME=classic; COLOR=blue; KEEPLP='0';;
+        l) THEME=light; COLOR=monochrome; KEEPLP='0';;
+        m) THEME=telstramodern; COLOR=blue; KEEPLP='1';;
+        n) THEME=night; COLOR=blue; KEEPLP='0';;
+        t) THEME=telstra; COLOR=blue; KEEPLP='1';;
         *) echo -e "[$SCRIPT]: ${RED}ERROR!${NC} Unknown theme option - $OPTARG"; exit 2;;
       esac;;
    u) RESULT=$(curl -m 5 -s -k -L -I https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/$FILENAME | sed 's/\r//')

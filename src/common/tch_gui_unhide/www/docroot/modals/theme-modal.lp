@@ -17,12 +17,12 @@ local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
 local gVIES = post_helper.getValidateInEnumSelect
-local vB =post_helper.validateBoolean
+local vB = post_helper.validateBoolean
 
 local mapParams = {
-  theme_name = "rpc.gui.theme.THEME",
-  theme_colour = "rpc.gui.theme.COLOR",
-  card_icons = "rpc.gui.theme.ICONS",
+  theme_name = "uci.tch_gui_unhide.theme.name",
+  theme_colour = "uci.tch_gui_unhide.theme.colour",
+  card_icons = "uci.tch_gui_unhide.theme.icons",
 }
 local mapValid = {
   theme_name = gVIES(modal_helper.theme_names),
@@ -42,6 +42,9 @@ for _,v in ipairs(proxy.getPN("uci.web.card.",true)) do
 end
 
 local theme_settings,helpmsg = post_helper.handleQuery(mapParams,mapValid)
+if not helpmsg then
+  helpmsg = {}
+end
 
 table.sort(cards,function(a,b)
   if a[4] == b[4] then
@@ -78,15 +81,15 @@ if ngx.var.request_method == "POST" then
         local night_time = tonumber(night.hh) * 60 + tonumber(night.mm)
         if light_time <= night_time then
           if now >= light_time and now <= night_time then
-            proxy.set("rpc.gui.theme.THEME","light")
+            proxy.set("uci.tch_gui_unhide.theme.name","light")
           else
-            proxy.set("rpc.gui.theme.THEME","night")
+            proxy.set("uci.tch_gui_unhide.theme.name","night")
           end
         else
           if now >= night_time and now <= light_time then
-            proxy.set("rpc.gui.theme.THEME","night")
+            proxy.set("uci.tch_gui_unhide.theme.name","night")
           else
-            proxy.set("rpc.gui.theme.THEME","light")
+            proxy.set("uci.tch_gui_unhide.theme.name","light")
           end
         end
       end

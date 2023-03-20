@@ -1,3 +1,4 @@
+local uci_helper = mapper("ucihelper")
 local find,format,match = string.find,string.format,string.match
 local popen = io.popen
 local ping_cmd = "ping -q -c 1 -w 1 8.8.8.8"
@@ -6,7 +7,7 @@ local release_version_cmd = format("%s -r0-9 https://raw.githubusercontent.com/s
 local prerelease_version_cmd = format("%s https://api.github.com/repos/seud0nym/tch-gui-unhide/releases?per_page=1 | jsonfilter -e '$[0].name' -e '$[0].prerelease' | xargs",curl_cmd)
 local current_version = "" -- Set by build script
 local current_version_date = match(current_version,"(%d%d%d%d%.%d%d%.%d%d)@.*")
-local ignored_release_version_file = "/etc/tch-gui-unhide.ignored_release"
+local ignored_release_version_binding = {config="tch_gui_unhide",sectionname="release",option="ignored"}
 local marketing_version = "" -- Set by build script
 local inc_pre = "n" -- Set by 080-Gateway
 
@@ -17,7 +18,7 @@ local release_version = {
 }
 
 local function checkForUpgradeProcess()
-  local pgrep,procs = popen(format("pgrep -fl 'tch-gui-unhide-%s'|grep -v pgrep",marketing_version),"r"),""
+  local pgrep,procs = popen(format("ps|grep -F tch-gui-unhide-%s|grep -vF 'grep -F tch-gui-unhide'",marketing_version),"r"),""
   if pgrep then
     procs = pgrep:read("*a")
     pgrep:close()
@@ -26,20 +27,14 @@ local function checkForUpgradeProcess()
 end
 
 local function getIgnoredReleaseVersionDate()
-  local version = ""
-  local file = io.open(ignored_release_version_file,"r")
-  if file then
-    version = file:read()
-    file:close()
-  end
-  return version
+  return uci_helper.get_from_uci(ignored_release_version_binding)
 end
 
 local function getLatestReleaseVersion()
   local time = os.time()
 
   if release_version.lastRetrieved and ( time - release_version.lastRetrieved ) < 900 then
-    return release_version.date
+    return release_version.date,release_version.stable
   end
 
   local ping = popen(ping_cmd,"r")
@@ -69,7 +64,7 @@ local function getLatestReleaseVersion()
 
   release_version.lastRetrieved = time
 
-  return release_version.date, release_version.stable
+  return release_version.date,release_version.stable
 end
 
 local function download(path,filename)
@@ -151,7 +146,7 @@ GUI_.get = {
   end,
   UnhideLatestReleaseIsStable = function()
     local _,stable = getLatestReleaseVersion()
-    return stable or ""
+    return stable or "0"
   end,
   UnhideVersion = function()
     return current_version
@@ -172,18 +167,12 @@ GUI_.get = {
 
 GUI_.set = {
   IgnoreCurrentRelease = function(_,_,value,_)
-    local file,err_msg = io.open(ignored_release_version_file,"w")
-    if file then
-      if value == "1" then
-        file:write(getLatestReleaseVersion())
-      else
-        file:write("")
-      end
-      file:close()
-      return true
+    if value == "1" then
+      uci_helper.set_on_uci(ignored_release_version_binding,getLatestReleaseVersion())
     else
-      return nil,"Failed to persist ignored release version: " .. err_msg,"error"
+      uci_helper.set_on_uci(ignored_release_version_binding,'')
     end
+    return uci_helper.commit(ignored_release_version_binding)
   end,
   UpdateNow = function(_,_,value,_)
     if value ~= marketing_version then
