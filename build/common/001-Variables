@@ -44,9 +44,9 @@ BG_RFRSH="$(grep -o 'window.autoRefreshEnabled=[^;]*;' /www/docroot/gateway.lp |
 make_tch_gui_unhide_config() {
   if [ ! -f /etc/config/tch_gui_unhide ]; then
     touch /etc/config/tch_gui_unhide
-    uci add tch_gui_unhide theme
+    uci add tch_gui_unhide theme >/dev/null
     uci rename tch_gui_unhide.@theme[0]='theme'
-    uci add tch_gui_unhide release
+    uci add tch_gui_unhide release >/dev/null
     uci rename tch_gui_unhide.@release[0]='release'
     if [ -f /etc/tch-gui-unhide.ignored_release ]; then
       uci set tch_gui_unhide.release.ignored="$(cat /etc/tch-gui-unhide.ignored_release)"
