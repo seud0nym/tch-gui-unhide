@@ -29,7 +29,7 @@ if session:hasAccess("/modals/tod-modal.lp") then
         <div class="divtable">\
           <span class="simple-desc">\
             <i class="icon-laptop status-icon"></i>',
-            format("<strong class='modal-link' data-toggle='modal' data-remote='/modals/tod-modal.lp' data-id='tod-modal'>%d Access Control</strong> %s defined",rulecount_host,N("rule","rules",rulecount_host)),'\
+            format("<strong class='modal-link' data-toggle='modal' data-remote='/modals/tod-modal.lp' data-id='tod-modal'>%d Device Access</strong> %s defined",rulecount_host,N("rule","rules",rulecount_host)),'\
           </span>')
           if session:hasAccess("/modals/tod_wireless-modal.lp") then ngx.print('\
             <span class="simple-desc">\

@@ -1,6 +1,6 @@
 echo -e "[$SCRIPT]: Fix Time of Day tabs"
 sed \
-  -e 's/T"Time of day access control"/T"Device Access Control"/' \
+  -e 's/T"Time of day access control"/T"Device Access"/' \
   -e 's/Create New Rule/Add New Rule/' \
   -e "/update\">\\\/a ');" \
   -e '/update">\\/a local lp = require("web.lp")' \

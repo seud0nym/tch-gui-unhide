@@ -3,9 +3,9 @@ gettext.textdomain('webui-core')
 local ipairs,string = ipairs,string
 
 local items = {
-  {"tod-modal.lp",T"Device Control"},
+  {"tod-modal.lp",T"Device Access"},
   {"tod_wireless-modal.lp",T"Wireless Control"},
-  {"tod_dnd-modal.lp",T"Do Not Disturb Control"},
+  {"tod_dnd-modal.lp",T"Do Not Disturb"},
 }
 
 local tabs = {}

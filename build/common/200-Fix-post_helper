@@ -1,5 +1,4 @@
-grep -q '^function M.getRandomKey' /usr/lib/lua/web/post_helper.lua
-if [ $? -eq 1 ];then
+if ! grep -q '^function M.getRandomKey' /usr/lib/lua/web/post_helper.lua; then
   echo -e "[$SCRIPT]: Add missing getRandomKey post_helper function"
   sed -e '/^return M$/i\
 --Generate random key for new rule\
@@ -16,8 +15,7 @@ function M.getRandomKey()\
 end\' -i /usr/lib/lua/web/post_helper.lua
 fi
 
-grep -q '^function M.validateStringIsIPv4' /usr/lib/lua/web/post_helper.lua
-if [ $? -eq 1 ];then
+if ! grep -q '^function M.validateStringIsIPv4' /usr/lib/lua/web/post_helper.lua; then
   echo -e "[$SCRIPT]: Add missing validateStringIsIPv4 post_helper function"
   sed -e '/^return M$/i\
 -- Validate the given IP address is a valid IPv4 address.\
@@ -37,8 +35,7 @@ function M.validateStringIsIPv4(ip)\
 end\' -i /usr/lib/lua/web/post_helper.lua
 fi
 
-grep -q '^function M.validateStringIsIPv6' /usr/lib/lua/web/post_helper.lua
-if [ $? -eq 1 ];then
+if ! grep -q '^function M.validateStringIsIPv6' /usr/lib/lua/web/post_helper.lua; then
   echo -e "[$SCRIPT]: Add missing validateStringIsIPv6 post_helper function"
   sed -e '/^return M$/i\
 --- This function returns a validator that will check that the provided value is an IPv6 address\
@@ -54,8 +51,7 @@ function M.validateStringIsIPv6(value)\
 end\' -i /usr/lib/lua/web/post_helper.lua
 fi
 
-grep -q '^function M.reservedIPValidation' /usr/lib/lua/web/post_helper.lua
-if [ $? -eq 1 ];then
+if ! grep -q '^function M.reservedIPValidation' /usr/lib/lua/web/post_helper.lua; then
   echo -e "[$SCRIPT]: Add missing reservedIPValidation post_helper function"
   sed -e '/^return M$/i\
 -- Validate the given IP address is not in the Reserved IP list.\
@@ -78,8 +74,7 @@ function M.reservedIPValidation(ip)\
 end\' -i /usr/lib/lua/web/post_helper.lua
 fi
 
-grep -q '^function M.validateDMZ' /usr/lib/lua/web/post_helper.lua
-if [ $? -eq 1 ];then
+if ! grep -q '^function M.validateDMZ' /usr/lib/lua/web/post_helper.lua; then
   echo -e "[$SCRIPT]: Add missing validateDMZ post_helper function"
   sed -e '/^return M$/i\
 --- Validator that will check whether the given IP address is in Network Range.\
@@ -109,8 +104,7 @@ function M.validateDMZ(value, object)\
 end\' -i /usr/lib/lua/web/post_helper.lua
 fi
 
-grep -q '^function M.validateLXC' /usr/lib/lua/web/post_helper.lua
-if [ $? -eq 1 ];then
+if ! grep -q '^function M.validateLXC' /usr/lib/lua/web/post_helper.lua; then
   echo -e "[$SCRIPT]: Add missing validateLXC post_helper function"
   sed -e '/^return M$/i\
 --- Validate the given IP/MAC is LXC''s IP/MAC\
@@ -144,6 +138,35 @@ function M.validateLXC(value)\
 end\' -i /usr/lib/lua/web/post_helper.lua
 fi
 
+if ! grep -q '^function M.validateTime' /usr/lib/lua/web/post_helper.lua; then
+  echo -e "[$SCRIPT]: Add missing validateTime post_helper function"
+  sed -e '/^return M$/i\
+-- Checks whether the received 'value' is in HH:MM format\
+-- @function [parent=#post_helper] validateTime\
+-- @param value\
+-- @treturn #boolean true if valid nil+msg if invalid\
+-- @error Error message\
+function M.validateTime(value)\
+  if not value then\
+    return nil, T"Invalid input"\
+  end\
+  local time_pattern = "^(%d+):(%d+)$"\
+  local hour, min = value:match(time_pattern)\
+  if min then\
+    hour = tonumber(hour)\
+    min = tonumber(min)\
+    if hour < 0 or 23 < hour then\
+      return nil, T"Invalid hour, must be between 0 and 23"\
+    end\
+    if min < 0 or 59 < min then\
+      return nil, T"Invalid minutes, must be between 0 and 59"\
+    end\
+    return true\
+  end\
+  return nil, T"Invalid time (must be hh:mm)"\
+end\' -i /usr/lib/lua/web/post_helper.lua
+fi
+
 echo -e "[$SCRIPT]: Add specific error messages when table edits fail"
 sed \
   -e '/success = content_helper.setObject/a\                                if not success then\
@@ -154,4 +177,3 @@ sed \
                                 end' \
   -e 's/success = content_helper.setObject/success,msg = content_helper.setObject/' \
   -i /usr/lib/lua/web/post_helper.lua
-
