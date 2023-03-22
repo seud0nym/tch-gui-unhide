@@ -356,7 +356,10 @@ end
 local function onDelete(success)
   local index = success:match("voicednd(.+)")
   proxy.set(format("uci.tod.action.@action%s.timers.@1.value",index),"")
+  proxy.set(format("uci.tod.voicednd.@voicednd%s.profile.@1.value",index),"")
   proxy.del(format("uci.tod.timer.@timer%s.",index))
+  proxy.del(format("uci.tod.action.@action%s.",index))
+  proxy.del(format("uci.tod.voicednd.@voicednd%s.",index))
   proxy.apply()
   return true
 end
