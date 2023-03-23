@@ -1,3 +1,33 @@
+2023.03.23
+==========
+* tch-gui-unhide: Fixed bug that incorrectly showed Update Available as Pre-Release Available
+* tch-gui-unhide: Fixed incorrect error message on Internet card when configured for Mobile Only Mode
+* tch-gui-unhide: Fixed incorrect SIM IPv6 details on Internet card
+* tch-gui-unhide: Fixed incorrect tabs shown when saving Wireless Time of Day screen
+* tch-gui-unhide: Fixed bugs in bwstats.sh
+* tch-gui-unhide: Fixed WWAN IPv6 default route metric when running Permanent WWAN
+* tch-gui-unhide: Ignore empty lines in authorized keys file (#143)
+* tch-gui-unhide: Ignore invalid entries in crontab
+* tch-gui-unhide: Moved persistent configuration into a standard file (/etc/config/tch_gui_unhide)
+* tch-gui-unhide: Automatically strip the 'tch-gui-unhide-xtra.' prefix if specified on the -x option
+* tch-gui-unhide: RAM chart now optionally shows either RAM free and RAM available, and clicking the RAM free card text will toggle the display to RAM available (and vice-versa), plus used percentage will toggle to reflect available RAM
+* tch-gui-unhide: Imported and modified voice Do Not Disturb Time of Day tab from tch-nginx-gui
+* tch-gui-unhide: Added Do Not Disturb status to Telephony card, and show when Do No Disturb is active on a profile
+* tch-gui-unhide: Added Dect Emission State enable/disable button to FW 17.2
+* tch-gui-unhide: Added switch to enable/disable VOLTE
+* tch-gui-unhide: Added VoLTE status and call statistics to Telephony card (if enabled)
+* tch-gui-unhide: Added VoLTE to Incoming/Outgoing Map to assign the mobile profile to Phones/Handsets
+* tch-gui-unhide: Fixed Dial Plan names (GENERIC is now SIP and MOBILE is now VoLTE)
+* tch-gui-unhide: Telephony Service tab now shows service descriptions (rather than acronyms) and services can now be provisioned or de-provisioned
+* tch-gui-unhide: KNOWN ISSUE: Sometimes the content of Telephony Dial Plan and Services tabs will not update when the drop-down list of dial plans/services at the top is changed
+* de-telstra: Fixed writing an empty line into authorized keys file when removing default keys (#143)
+* de-telstra: Fixed and added repair code for bug that caused "Too many levels of symbolic links" error when attempting to access USB directory
+* de-telstra: New -tm option to enable Telephony but also de-provision all unused services (except DND/HOLD/MWI)
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Fixed Custom DHCP Options Tags not restored with static leases
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Fixed "root/.ssh does not exist" error
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: --restore-config option can now restore FW 20.4 configuration from FW 20.4 (only) backup
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: --restore-config option now restores mobile operators/profiles, multicast snooping configuration, and ip6neigh (if installed)
+
 2023.02.23
 ==========
 * tch-gui-unhide: Fixed broken Telstra Air card after 2023.02.02 applied
@@ -14,7 +44,7 @@
 * tch-gui-unhide: 'Upgrade Available' button can now optionally be used to install pre-releases (use the -vp option when manually installing)
 * tch-gui-unhide: Process Viewer now lists processes in tree layout so that you can see the relationship between parent and child processes
 * tch-gui-unhide-xtra.wireguard: Upgraded JSZip to v3.10.1
-* tch-gui-unhide-xtra.wlassoclist: New extras script that can be installed on a Technicolor device acting as a wireless Access Point to enable the main Technicolor router (running tch-gui-unhide) to query it and correctly report devices connected via Wi-Fi, rather than showing them as Ethernet connections
+* tch-gui-unhide-xtra.wlassoclist: New extras script that can be installed on a Technicolor device acting as a Wi-Fi Access Point (via a wired Ethernet connection) to enable the main Technicolor router (running tch-gui-unhide) to query it and correctly report devices connected via Wi-Fi, rather than showing them as Ethernet connections
 * de-telstra: Added FQDN of device as known hostname for verification by session manager hostRefersToUs function
 * de-telstra: Fixed forced redirects to http://mymodem.modem or http://mygateway.gateway that fail after changing the hostname and/or domain
 * log-check: Reintroduced script that can be run hourly to check that the logging RAM buffer and disk-based messages log are both being written correctly
