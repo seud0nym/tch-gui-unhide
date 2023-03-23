@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# Only when the IPv6 mobile interface is up
+[ "$ACTION" = ifup -a "$DEVICE" = wwan0 -a "$INTERFACE" = wwan_6 ] || exit 0
+# Only if WAN Sensing is disabled and not Mobile Only Mode
+[ "$(uci -q get wansensing.global.enable)" = 0 -a "$(uci -q get wansensing.global.primarywanmode)" != MOBILE ] || exit 0
+
+DEFAULT_ROUTE="$(ip -6 route show default dev $DEVICE | cut -d' ' -f1-5)"
+[ -z "$DEFAULT_ROUTE" ] && exit 0
+
+ip -6 route del $DEFAULT_ROUTE
+ip -6 route add $DEFAULT_ROUTE dev $DEVICE proto static metric 2048
+exit 0
