@@ -7,6 +7,7 @@ local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 local dyntab_helper = require("web.dyntab_helper")
 local post_helper = require("web.post_helper")
+local lte_utils = require("web.lte-utils")
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
@@ -30,7 +31,7 @@ local mapValid = {
 	wsens = post_helper.validateBoolean,
 }
 
-local result = require("web.lte-utils").getContent("rpc.mobiled.DeviceNumberOfEntries")
+local result = lte_utils.getContent("rpc.mobiled.DeviceNumberOfEntries")
 local devices = tonumber(result.DeviceNumberOfEntries)
 if devices and devices > 0 then
   mapParam["wwan_enabled"] = "uci.network.interface.@wwan.enabled"
@@ -120,19 +121,13 @@ if not tabdata.current.ajax then
           html[#html + 1] = ui_helper.createButton("",T"Apply Connection Mode","icon-cog",mode_button)
           html[#html + 1] = ui_helper.createAlertBlock(T"You should apply the Connection Mode after disabling WAN Sensing, even if the required mode is already selected!",warn_box)
           if devices and devices > 0 then
-            local pdptype
-            local profiles = require("web.content_helper").getMatchedContent("uci.mobiled.profile.")
-            for _,profile in ipairs(profiles) do
-              if profile.id == content.wwan_profile then
-                pdptype = profile.pdptype
-                break
-              end
-            end
+            result = lte_utils.getContent("rpc.mobiled.device.@1.network.serving_system.network_desc")
+            ---@diagnostic disable-next-line: undefined-field
+            local network,provider = string.match(string.untaint(result.network_desc),"(%S+)%s*(.*)")
             html[#html + 1] = "<fieldset class='monitor-wsens monitor-0 monitor-hide-wsens'><legend>"..T"Permanent WWAN".."</legend>"
             html[#html + 1] = ui_helper.createAlertBlock(T"When enabled, Mobile Internet will be permanently connected at a lower priority so that normal traffic will pass through the WAN connection, but if that fails, traffic will be routed immediately through the WWAN connection.",info_box)
-            html[#html + 1] = ui_helper.createAlertBlock(T"Permanent WWAN is <B>NOT</B> recommended with the Telstra Backup SIM. Your SIM will be disabled by Telstra.",warn_box)
-            if pdptype and pdptype ~= "ipv4" then
-              html[#html + 1] = ui_helper.createAlertBlock(T"Mobile should be configured with an IPv4 <i>only</i> profile, as IPv6 cannot be configured for a lower priority, and normal IPv6 traffic may pass over the WWAN connection, even if the WAN connection is active.",warn_box)
+            if not network or (network == "Telstra" and (not provider or provider == "Telstra")) then
+              html[#html + 1] = ui_helper.createAlertBlock(T"Permanent WWAN is <B>NOT</B> recommended with the Telstra Backup SIM. Your SIM will be disabled by Telstra.",warn_box)
             end
             html[#html + 1] = ui_helper.createSwitch(T"Enabled","wwan_enabled",content["wwan_enabled"])
             html[#html + 1] = ui_helper.createSimpleInputHidden("wwan_metric",content["wwan_metric"])
