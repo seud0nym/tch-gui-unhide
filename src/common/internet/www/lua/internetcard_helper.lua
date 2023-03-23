@@ -254,8 +254,8 @@ function M.getInternetCardHTML(mode_active)
     local content_mobile = {
       ipaddr = "rpc.network.interface.@wwan.ipaddr",
       ip6addr = "rpc.network.interface.@wwan.ip6addr",
-      ipv6uniqueglobaladdr = "rpc.network.interface.@wan6.ipv6uniqueglobaladdr",
-      ipv6uniquelocaladdr = "rpc.network.interface.@wan6.ipv6uniquelocaladdr",
+      ipv6uniqueglobaladdr = "rpc.network.interface.@wwan.ipv6uniqueglobaladdr",
+      ipv6uniquelocaladdr = "rpc.network.interface.@wwan.ipv6uniquelocaladdr",
       wan6_prefix = "rpc.network.interface.@wwan.ip6prefix",
       rx_bytes = "rpc.network.interface.@wwan.rx_bytes",
       tx_bytes = "rpc.network.interface.@wwan.tx_bytes",
