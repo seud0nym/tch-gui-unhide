@@ -10,11 +10,11 @@
 * tch-gui-unhide: Ignore invalid entries in crontab
 * tch-gui-unhide: Moved persistent configuration into a standard file (/etc/config/tch_gui_unhide)
 * tch-gui-unhide: Automatically strip the 'tch-gui-unhide-xtra.' prefix if specified on the -x option
-* tch-gui-unhide: RAM chart now optionally shows either RAM free and RAM available, and clicking the RAM free card text will toggle the display to RAM available (and vice-versa), plus used percentage will toggle to reflect available RAM
+* tch-gui-unhide: RAM chart now optionally shows either RAM free or RAM available, and clicking the RAM free card text will toggle the display to RAM available (and vice-versa), plus used percentage will toggle to reflect available RAM
 * tch-gui-unhide: Imported and modified voice Do Not Disturb Time of Day tab from tch-nginx-gui
 * tch-gui-unhide: Added Do Not Disturb status to Telephony card, and show when Do No Disturb is active on a profile
 * tch-gui-unhide: Added Dect Emission State enable/disable button to FW 17.2
-* tch-gui-unhide: Added switch to enable/disable VOLTE
+* tch-gui-unhide: Added switch to enable/disable VoLTE
 * tch-gui-unhide: Added VoLTE status and call statistics to Telephony card (if enabled)
 * tch-gui-unhide: Added VoLTE to Incoming/Outgoing Map to assign the mobile profile to Phones/Handsets
 * tch-gui-unhide: Fixed Dial Plan names (GENERIC is now SIP and MOBILE is now VoLTE)
