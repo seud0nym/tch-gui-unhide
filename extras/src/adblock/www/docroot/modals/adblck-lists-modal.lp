@@ -11,12 +11,14 @@ local proxy = require("datamodel")
 
 local qry_result = "<style>.whitelist_cb{margin-bottom:5px}</style>"
 if ngx.req.get_method() == "POST" then
-  local format, untaint = string.format, string.untaint
+  local format = string.format
+  ---@diagnostic disable-next-line: undefined-field
+  local untaint = string.untaint
   local args = ngx.req.get_post_args()
 
   local query = untaint(args.check_filtered)
   if query and query ~= "" then
-    local _,result,host = proxy.set("rpc.gui.adblock.query", query)
+    local _,result = proxy.set("rpc.gui.adblock.query", query)
     for host in string.gmatch(untaint(result[1]["errmsg"])," %+ (%S+)") do
       qry_result = format("%s<br><input type='checkbox' class='whitelist_cb' name='wl_host' value='%s' title='Tick to whitelist %s'>%s",qry_result,host,host,host)
     end
@@ -24,14 +26,12 @@ if ngx.req.get_method() == "POST" then
 
   local whitelist = untaint(args.wl_host)
   if whitelist then
-    local host
     if type(whitelist) == "string" or type(whitelist) == "userdata" then
       whitelist = { whitelist }
     end
     for _,host in pairs(whitelist) do
       local key, errors = proxy.add("rpc.gui.adblock.whitelist.")
       if not key then
-        local err
         for _,err in ipairs(errors) do
           message_helper.pushMessage(T(string.format("Failed to add %s to whitelist: %s (%s)",host,err.errmsg,err.errcode)), "error")
         end
@@ -41,7 +41,6 @@ if ngx.req.get_method() == "POST" then
         if result then
           message_helper.pushMessage(T("Added "..host.." to whitelist"), "success")
         else
-          local err
           for _,err in ipairs(errors) do
             message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,host,err.errmsg,err.errcode)), "error")
           end

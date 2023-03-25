@@ -16,10 +16,13 @@ local adblock_cache = {
 }
 
 local function adblockIsRunning()
-  local cmd = io.popen("/usr/bin/pgrep adblock | wc -l", "r")
-  local procs = cmd:read("*n")
-  cmd:close()
-  return (procs ~= 0)
+  local cmd,errmsg = io.popen("/usr/bin/pgrep adblock | wc -l","r")
+  if cmd then
+    local procs = cmd:read("*n")
+    cmd:close()
+    return (procs ~= 0)
+  end
+  return nil,errmsg
 end
 
 local function getRuntimeStatusFilename()
@@ -31,13 +34,19 @@ local function getRuntimeStatusFilename()
 end
 
 local function getRuntimeStatusJSON()
-  local f = io.open(getRuntimeStatusFilename(),"r")
-  local j = f:read("*a")
-  f:close()
-  return j
+  local f,errmsg = io.open(getRuntimeStatusFilename(),"r")
+  if f then
+    local j = f:read("*a")
+    f:close()
+    return j
+  end
+  return nil,errmsg
 end
 
 local function getAdblockCachedValue(param,level)
+  if param == "query" then
+    return ""
+  end
   local rtfile = getRuntimeStatusFilename()
   local modified = lfs.attributes(rtfile,"modification")
   if modified then
@@ -68,9 +77,6 @@ local function getAdblockCachedValue(param,level)
     adblock_cache["version"] = "unknown"
     adblock_cache["overall_domains"] = "unknown"
     adblock_cache["last_rundate"] = "unknown"
-  end
-  if param == "query" then
-    return ""
   end
   return adblock_cache[param]
 end
@@ -106,19 +112,22 @@ local GUI_ADBLOCK_ = {
   }
 }
 
-GUI_ADBLOCK_.get = function(mapping,param,key)
+GUI_ADBLOCK_.get = function(_,param,_)
   return getAdblockCachedValue(param,1)
 end
 
 GUI_ADBLOCK_.set = {
-  query = function(mapping,param,value,key)
+  query = function(_,_,value,_)
     if value == "" then
       return false
     end
-    local cmd = io.popen("/etc/init.d/adblock query " .. value, "r")
-    local result = cmd:read("*a")
-    cmd:close()
-    return nil, result
+    local cmd,errmsg = io.popen("/etc/init.d/adblock query "..value,"r")
+    if cmd then
+      local result = cmd:read("*a")
+      cmd:close()
+      return nil,result
+    end
+    return nil,errmsg
   end,
 }
 
@@ -131,7 +140,6 @@ local function readList(list)
   local hosts,keys = {},{}
   local f,errmsg = io.open(format(filepattern,list))
   if f then
-    local host
     for host in f:lines() do
       local index = #hosts+1
       hosts[index] = host
@@ -152,9 +160,9 @@ local function readList(list)
 end
 
 local function writeList(list,hosts)
-  local f,errmsg,k,v = io.open(format(filepattern,list),"w+")
+  local f,errmsg = io.open(format(filepattern,list),"w+")
   if f then
-    for k,v in pairs(hosts) do
+    for _,v in pairs(hosts) do
       if v then
         f:write(v)
         f:write("\n")
@@ -169,8 +177,11 @@ local function writeList(list,hosts)
 end
 
 local function listEntries(list)
-  local _,keys = readList(list)
-  return keys
+  local _,keys,errmsg = readList(list)
+  if keys then
+    return keys
+  end
+  return nil,errmsg
 end
 
 local function addToList(list)
@@ -193,10 +204,13 @@ end
 
 local function getListValue(list,param,key)
   if param == "host" then
-    local hosts = readList(list)
-    return hosts[tonumber(key)] or ""
+    local hosts,_,errmsg = readList(list)
+    if hosts then
+      return hosts[tonumber(key)] or ""
+    end
+    return nil,errmsg
   else
-    return nil,"Invalid param " .. param
+    return nil,"Invalid param: "..param
   end
 end
 
@@ -209,7 +223,7 @@ local function setListValue(list,param,value,key)
     end
     return nil,errmsg
   else
-    return nil,"Invalid param " .. param
+    return nil,"Invalid param: "..param
   end
 end
 
@@ -229,23 +243,23 @@ local GUI_ADBLOCK_BLACKLIST_i_ = {
   }
 }
 
-GUI_ADBLOCK_BLACKLIST_i_.entries = function(mapping)
+GUI_ADBLOCK_BLACKLIST_i_.entries = function(_)
   return listEntries("black")
 end
 
-GUI_ADBLOCK_BLACKLIST_i_.add = function(mapping)
+GUI_ADBLOCK_BLACKLIST_i_.add = function(_)
   return addToList("black")
 end
 
-GUI_ADBLOCK_BLACKLIST_i_.delete = function(mapping,key)
+GUI_ADBLOCK_BLACKLIST_i_.delete = function(_,key)
   return deleteFromList("black",key)
 end
 
-GUI_ADBLOCK_BLACKLIST_i_.get = function(mapping,param,key)
+GUI_ADBLOCK_BLACKLIST_i_.get = function(_,param,key)
   return getListValue("black",param,key)
 end
 
-GUI_ADBLOCK_BLACKLIST_i_.set = function(mapping,param,value,key)
+GUI_ADBLOCK_BLACKLIST_i_.set = function(_,param,value,key)
   return setListValue("black",param,value,key)
 end
 
@@ -267,23 +281,23 @@ local GUI_ADBLOCK_WHITELIST_i_ = {
   }
 }
 
-GUI_ADBLOCK_WHITELIST_i_.entries = function(mapping)
+GUI_ADBLOCK_WHITELIST_i_.entries = function(_)
   return listEntries("white")
 end
 
-GUI_ADBLOCK_WHITELIST_i_.add = function(mapping)
+GUI_ADBLOCK_WHITELIST_i_.add = function(_)
   return addToList("white")
 end
 
-GUI_ADBLOCK_WHITELIST_i_.delete = function(mapping,key)
+GUI_ADBLOCK_WHITELIST_i_.delete = function(_,key)
   return deleteFromList("white",key)
 end
 
-GUI_ADBLOCK_WHITELIST_i_.get = function(mapping,param,key)
+GUI_ADBLOCK_WHITELIST_i_.get = function(_,param,key)
   return getListValue("white",param,key)
 end
 
-GUI_ADBLOCK_WHITELIST_i_.set = function(mapping,param,value,key)
+GUI_ADBLOCK_WHITELIST_i_.set = function(_,param,value,key)
   return setListValue("white",param,value,key)
 end
 

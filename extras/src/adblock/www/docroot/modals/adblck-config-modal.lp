@@ -7,7 +7,6 @@ local post_helper = require("web.post_helper")
 local ui_helper = require("web.ui_helper")
 
 local vB = post_helper.validateBoolean
-local vNES = post_helper.validateNonEmptyString
 
 local mapParams = {
   adb_enabled = "uci.adblock.global.adb_enabled",
@@ -22,6 +21,9 @@ local mapValid = {
 }
 
 local config,helpmsg = post_helper.handleQuery(mapParams,mapValid)
+if not helpmsg then
+  helpmsg = {}
+end
 
 ngx.print('\
 ');  ngx.print(ui_helper.createHeader("Adblock",false,true) ); ngx.print('\
@@ -34,9 +36,9 @@ ngx.print('\
     ');
       local html = {}
       html[#html+1] = "<fieldset><legend>" .. T"Configuration" .. "</legend>"
-      html[#html+1] = ui_helper.createSwitch(T"Enable Adblock","adb_enabled",config["adb_enabled"])
-      html[#html+1] = ui_helper.createSwitch(T"Enable Backup","adb_backup",config["adb_backup"])
-      html[#html+1] = ui_helper.createSwitch(T"Enable Debugging","adb_debug",config["adb_debug"])
+      html[#html+1] = ui_helper.createSwitch(T"Enable Adblock","adb_enabled",config["adb_enabled"],nil,helpmsg["adb_enabled"])
+      html[#html+1] = ui_helper.createSwitch(T"Enable Backup","adb_backup",config["adb_backup"],nil,helpmsg["adb_backup"])
+      html[#html+1] = ui_helper.createSwitch(T"Enable Debugging","adb_debug",config["adb_debug"],nil,helpmsg["adb_debug"])
       html[#html+1] = "</fieldset>"
       ngx.print(html)
       ngx.print('\
