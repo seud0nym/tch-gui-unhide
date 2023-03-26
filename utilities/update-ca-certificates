@@ -34,7 +34,7 @@ upgrade() {
     echo "[$SCRIPT] ERROR! Not found on GitHub???"
   elif [ "$RESPONSE_CODE" = 000 ]
   then
-    echo "ERROR! No Internet connection???"
+    echo "[$SCRIPT] ERROR! No Internet connection???"
   else
     echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
   fi
@@ -42,13 +42,13 @@ upgrade() {
 }
 
 CRON=N
-CURL_OPT="-s"
+CURL_OPT="--connect-timeout 10 --fail --silent --insecure"
 LGGR_OPT=""
 
 while getopts :vCU option
 do
  case "${option}" in
-  v)  CURL_OPT=""; LGGR_OPT="-s";;
+  v)  CURL_OPT="$(echo -e "$CURL_OPT" | sed -e 's/--silent//')"; LGGR_OPT="-s";;
   C)  CRON=Y;;
   U)  upgrade;;
   *)  usage;;
@@ -77,8 +77,13 @@ if [ $CRON = Y ]; then
   exit
 fi
 
-SRC="https://downloads.openwrt.org/releases/packages-22.03/arm_cortex-a9/base"
-for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2); do
+OPENWRT_LATEST="$(curl $CURL_OPT -s https://downloads.openwrt.org/releases/ | grep -Eo '[0-9][0-9]\.[0-9.]+' | sort -ru | head -n1)"
+if [ -z "$OPENWRT_LATEST" ]; then
+    echo "[$SCRIPT] ERROR! Failed to determine latest OpenWrt release???"
+fi
+
+SRC="https://downloads.openwrt.org/releases/${OPENWRT_LATEST}/packages/arm_cortex-a9/base"
+for IPK in $(curl $CURL_OPT -s $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2); do
   logger $LGGR_OPT -t rpc.gui.opkg -p user.info Downloading $SRC/$IPK...
   curl $CURL_OPT -kL $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger $LGGR_OPT -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
 done
