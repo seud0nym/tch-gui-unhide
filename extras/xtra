@@ -7,7 +7,7 @@ NC='\033[0m' # No Color
 while getopts :arx option
 do
  case "${option}" in
-  a)  REAPPLY=Y;;
+  a)  XTRAS_REMOVE=Y; REAPPLY=Y;;
   r)  XTRAS_REMOVE=Y;;
   x)  set -x;;
   *)  echo "Usage: $0 [-x] [-r [-a]] [-c] <suffix>";
@@ -85,7 +85,6 @@ for f in $(grep 'cat *<<' tch-gui-unhide-xtra.$1 | grep -vE '>>|/js/' | grep -E 
           uci set web.$RULE.target=/$TYPE/$BASE
           uci set web.$RULE.normally_hidden='1'
           uci add_list web.$RULE.roles='admin'
-          uci add_list web.$RULE.roles='engineer'
           uci add_list web.ruleset_main.rules=$RULE
         fi;;
       card)
