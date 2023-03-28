@@ -7,36 +7,18 @@ Extras scripts that rely on packages to be installed require `opkg` to be config
 ## tch-gui-unhide-xtra.adblock
 Creates a GUI interface for the [`Adblock`](https://openwrt.org/packages/pkgdata/adblock) package that allows you to block ads at the router level.
 #### Firmware Applicability
-Should be applicable to all firmware versions supported by `tch-gui-unhide` (except 20.4 as there is no compatible repository for firmware 20.4 packages), as long as you install the firmware-specific prerequisites.
-#### Prerequisites 
-##### CA Certificates
-The System CA Certificates must be updated. You can do this either by (preferably) running the [`update-ca-certificates`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#update-ca-certificates) script, or by manually installing the CA certificates packages using `opkg install ca-certificates ca-bundle`. The `update-ca-certificates` script will install the latest available certificates (and gives you the option to schedule a regular job to update them), whereas the opkg packages may not contain the latest certificates.
-##### adblock
-Requires adblock version 3.5 to be installed using the `opkg` command (see **opkg Configuration** [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#opkg-Configuration)).
-Different firmware versions have different dependencies:
-###### Firmware 20.4
-Not applicable. There is no compatible repository for firmware 20.4 packages.
-###### Firmware 20.3.c
-`opkg install adblock uclient-fetch`
-###### Firmware 18.1.c
-`opkg install adblock uclient-fetch libustream-openssl`
-###### Firmware 17.2
-The version of adblock in the standard 17.2 repository is incompatible with this extra script, but you can manually download and install the Homeware 18 version on the 17.2 firmware:  
-`curl -k https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages/adblock_3.5.5-4_all.ipk -o/tmp/adblock_3.5.5-4_all.ipk`  
-`opkg install /tmp/adblock_3.5.5-4_all.ipk`  
-`uci set adblock.global.adb_fetchutil='curl'`  
-`uci commit adblock`
+Should be applicable to all firmware versions supported by `tch-gui-unhide`.
+#### Prerequisites
+Make sure you are in the directory in which the `tch-gui-unhide` script in installed, and then execute these commands to install the latest adblock package and all its required dependencies and configuration:  
+`curl -kLO https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/extras/tch-gui-unhide-xtra.adblock`  
+`sh tch-gui-unhide-xtra.adblock setup`
 #### Installation
 `./tch-gui-unhide -x adblock`
-#### Post-Installation Configuration
-- Enable DNS Hijacking on the Hijacking tab under DNS (leave DNS Server Address blank) 
-    - If you chose to NOT do this, then under Local Network you must select the DNS server from the list that matches your local IP address
-- Configure your preferred upstream DNS Servers (e.g. 8.8.8.8, 1.1.1.1, 9.9.9.9, etc.) as Custom DNS Servers on the DNS Configuration tab
-    - Otherwise you can leave Custom DNS Servers empty and use your ISP supplied DNS Servers via Auto-Discovery
+#### Upgrading an existing adblock installation
+`sh tch-gui-unhide-xtra.adblock setup`
 #### Removal Instructions
-1. Delete `tch-gui-unhide-xtra.adblock`
-2. Remove adblock and dependencies: `opkg remove adblock uclient-fetch`
-    - If you are on firmware 18.1.c, then also: `opkg remove libustream-openssl`
+1. Run: `sh tch-gui-unhide-xtra.adblock setup`
+2. Delete `tch-gui-unhide-xtra.adblock`
 3. Re-run `tch-gui-unhide` to remove the GUI changes, and the additional transformer mappings
 
 ## tch-gui-unhide-xtra.minidlna

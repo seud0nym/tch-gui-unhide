@@ -2,39 +2,29 @@ local dkjson = require("dkjson")
 local lfs = require("lfs")
 local uci_helper = mapper("ucihelper")
 local socket = require("socket")
+local format,match = string.format,string.match
+
 local adding = {
   black = nil,
   white = nil,
 }
 
-local adblock_cache = {
+local sources_cache = {
+  sources = {},
+  keys = {},
+  updated = 0
+}
+
+local status_cache = {
   status = "",
   version = "",
-  overall_domains = "",
+  blocked_domains = "",
   last_rundate = "",
   updated = 0,
 }
 
-local function adblockIsRunning()
-  local cmd,errmsg = io.popen("/usr/bin/pgrep adblock | wc -l","r")
-  if cmd then
-    local procs = cmd:read("*n")
-    cmd:close()
-    return (procs ~= 0)
-  end
-  return nil,errmsg
-end
-
-local function getRuntimeStatusFilename()
-  local rtfile = uci_helper.get_from_uci({config="adblock",sectionname="extra",option="adb_rtfile"})
-  if not rtfile or rtfile == "" then
-    rtfile = "/tmp/adb_runtime.json"
-  end
-  return rtfile
-end
-
 local function getRuntimeStatusJSON()
-  local f,errmsg = io.open(getRuntimeStatusFilename(),"r")
+  local f,errmsg = io.open("/tmp/adb_runtime.json","r")
   if f then
     local j = f:read("*a")
     f:close()
@@ -47,22 +37,30 @@ local function getAdblockCachedValue(param,level)
   if param == "query" then
     return ""
   end
-  local rtfile = getRuntimeStatusFilename()
+  local rtfile = "/tmp/adb_runtime.json"
+  if level > 5 then
+    return nil,"Failed to read "..rtfile
+  end
   local modified = lfs.attributes(rtfile,"modification")
   if modified then
-    if modified > adblock_cache.updated then
-      while (adblockIsRunning()) do
-        socket.sleep(2)
-      end
+    if modified > status_cache.updated then
       local j = getRuntimeStatusJSON()
       if j and j ~= "" then
         local json = dkjson.decode(j)
-        adblock_cache["status"] = json.data.adblock_status
-        adblock_cache["version"] = json.data.adblock_version
-        adblock_cache["overall_domains"] = json.data.overall_domains
-        adblock_cache["last_rundate"] = json.data.last_rundate
-        adblock_cache["updated"] = modified
+        local yr,mth,day,time = match(json.last_run,"(%d%d%d%d)%-(%d%d)%-(%d%d)T([^+]+)")
+        if time then
+          status_cache["status"] = json.adblock_status
+          status_cache["version"] = json.adblock_version
+          status_cache["blocked_domains"] = json.blocked_domains
+          status_cache["last_rundate"] = format("%s-%s-%s %s",day,mth,yr,time)
+          status_cache["updated"] = modified
+        else
+          status_cache["updated"] = 0
+          socket.sleep(2)
+          return getAdblockCachedValue(param,level+1)
+        end
       else
+        status_cache["updated"] = 0
         socket.sleep(2)
         return getAdblockCachedValue(param,level+1)
       end
@@ -70,20 +68,42 @@ local function getAdblockCachedValue(param,level)
   else
     local enabled = uci_helper.get_from_uci({config="adblock",sectionname="global",option="adb_enabled"})
     if enabled and enabled == "1" then
-      adblock_cache["status"] = "enabled"
+      status_cache["status"] = "enabled"
     else
-      adblock_cache["status"] = "disabled"
+      status_cache["status"] = "disabled"
     end
-    adblock_cache["version"] = "unknown"
-    adblock_cache["overall_domains"] = "unknown"
-    adblock_cache["last_rundate"] = "unknown"
+    status_cache["version"] = "unknown"
+    status_cache["blocked_domains"] = "unknown"
+    status_cache["last_rundate"] = "unknown"
   end
-  return adblock_cache[param]
+  return status_cache[param]
+end
+
+local function getAdblockSources()
+  local srcsfile = "/etc/adblock/adblock.sources.gz"
+  local modified = lfs.attributes(srcsfile,"modification")
+  if modified then
+    if modified > sources_cache.updated then
+      local f,errmsg = io.popen("zcat "..srcsfile,"r")
+      if not f then
+        return nil,nil,errmsg
+      end
+      local j = f:read("*a")
+      f:close()
+      sources_cache.keys = {}
+      sources_cache.sources = dkjson.decode(j) or {}
+      for k in pairs(sources_cache.sources) do
+        sources_cache.keys[#sources_cache.keys+1] = k
+      end
+      sources_cache.updated = modified
+    end
+  end
+  return sources_cache.sources,sources_cache.keys
 end
 
 local GUI_ADBLOCK_ = {
   objectType = {
-    name = "rpc.gui.adblock.",
+    name = "rpc.adblock.",
     access = "readOnly",
     minEntries = 1,
     maxEntries = 1,
@@ -96,13 +116,13 @@ local GUI_ADBLOCK_ = {
         access = "readOnly",
         type = "string"
       },
-      overall_domains = {
+      blocked_domains = {
         access = "readOnly",
-        type = "boolean"
+        type = "int"
       },
       last_rundate = {
         access = "readOnly",
-        type = "boolean"
+        type = "string"
       },
       query = {
         access = "readWrite",
@@ -133,7 +153,71 @@ GUI_ADBLOCK_.set = {
 
 register(GUI_ADBLOCK_)
 
-local format = string.format
+local GUI_ADBLOCK_SOURCES_i_ = {
+  objectType = {
+    name = "rpc.adblock.source.@.",
+    access = "readWrite",
+    numEntriesParameter = "SourceNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      url = {
+        access = "readWrite",
+        type = "string",
+      },
+      rule = {
+        access = "readWrite",
+        type = "string",
+      },
+      size = {
+        access = "readWrite",
+        type = "string",
+      },
+      focus = {
+        access = "readWrite",
+        type = "string",
+      },
+      descurl = {
+        access = "readWrite",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_ADBLOCK_SOURCES_i_.entries = function(_)
+  local _,keys,errmsg = getAdblockSources()
+  if keys then
+    return keys
+  end
+  return nil,errmsg
+end
+
+GUI_ADBLOCK_SOURCES_i_.add = function(_,_,_)
+  return nil,"add not supported"
+end
+
+GUI_ADBLOCK_SOURCES_i_.delete = function(_,_,_)
+  return nil,"delete not supported"
+end
+
+GUI_ADBLOCK_SOURCES_i_.get = function(_,param,key)
+  local sources,_,errmsg = getAdblockSources()
+  if sources then
+    if sources[key] then
+      return sources[key][param] or ""
+    end
+    return nil,"Invalid key: "..key
+  end
+  return nil,errmsg
+end
+
+GUI_ADBLOCK_SOURCES_i_.set = function(_,_,_)
+  return nil,"set not supported"
+end
+
+register(GUI_ADBLOCK_SOURCES_i_)
+
 local filepattern = "/etc/adblock/adblock.%slist"
 
 local function readList(list)
@@ -150,7 +234,7 @@ local function readList(list)
       if adding[list] == #keys then
         adding[list] = nil
       else
-        keys[#keys+1]=tostring(adding[list])
+        keys[#keys+1] = tostring(adding[list])
       end
     end
   else
@@ -229,7 +313,7 @@ end
 
 local GUI_ADBLOCK_BLACKLIST_i_ = {
   objectType = {
-    name = "rpc.gui.adblock.blacklist.@.",
+    name = "rpc.adblock.blacklist.@.",
     access = "readWrite",
     numEntriesParameter = "BlackListNumberOfEntries",
     minEntries = 0,
@@ -267,7 +351,7 @@ register(GUI_ADBLOCK_BLACKLIST_i_)
 
 local GUI_ADBLOCK_WHITELIST_i_ = {
   objectType = {
-    name = "rpc.gui.adblock.whitelist.@.",
+    name = "rpc.adblock.whitelist.@.",
     access = "readWrite",
     numEntriesParameter = "WhiteListNumberOfEntries",
     minEntries = 0,

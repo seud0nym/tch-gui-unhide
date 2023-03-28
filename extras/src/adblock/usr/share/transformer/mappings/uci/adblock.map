@@ -8,27 +8,16 @@ local adblock_global = {
   config = config_adblock,
   section = "global",
   type = "adblock",
-  options = { "adb_enabled" }
+  options = { -- https://github.com/openwrt/packages/tree/openwrt-22.03/net/adblock/files#adblock-config-options
+    "adb_enabled", "adb_srcarc", "adb_srcfile", "adb_dns", "adb_fetchutil", "adb_fetchparm", "adb_fetchinsecure",
+    "adb_trigger", "adb_triggerdelay", "adb_debug", "adb_nice", "adb_forcedns",
+    "adb_dnsdir", "adb_dnstimeout", "adb_dnsinstance", "adb_dnsflush", "adb_dnsallow", "adb_lookupdomain", "adb_portlist",
+    "adb_report", "adb_reportdir", "adb_repiface", "adb_replisten", "adb_repchunkcnt", "adb_repchunksize", "adb_represolve",
+    "adb_backup", "adb_backupdir", "adb_tmpbase",
+    "adb_safesearch", "adb_safesearchlist", "adb_safesearchmod",
+    "adb_mail", "adb_mailreceiver", "adb_mailsender", "adb_mailtopic", "adb_mailprofile", "adb_mailcnt",
+    "adb_jail", "adb_jaildir", },
+  lists = { "adb_sources" },
 }
 
 mapper("uci_1to1").registerSimpleMap(adblock_global)
-
--- uci.adblock.extra
-local adblock_extra = {
-  config = config_adblock,
-  section = "extra",
-  type = "adblock",
-  options = { "adb_debug","adb_forcesrt","adb_forcedns","adb_backup","adb_maxqueue" }
-}
-
-mapper("uci_1to1").registerSimpleMap(adblock_extra)
-
--- uci.adblock.source.{i}
-local adblock_source = {
-  config = config_adblock,
-  type = "source",
-  options = { "enabled","adb_src","adb_src_rset","adb_src_desc" },
-  lists = { "adb_src_cat" }
-}
-
-mapper("uci_1to1").registerNamedMultiMap(adblock_source)
