@@ -84,16 +84,26 @@ fi
 
 SRC="https://downloads.openwrt.org/releases/${OPENWRT_LATEST}/packages/arm_cortex-a9/base"
 for IPK in $(curl $CURL_OPT -s $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2); do
-  logger $LGGR_OPT -t rpc.gui.opkg -p user.info Downloading $SRC/$IPK...
-  curl $CURL_OPT -kL $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger $LGGR_OPT -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
+  PKG="$(echo $IPK | grep -Eo '^ca-[^_]+')"
+  VER="$(echo $IPK | grep -Eo '[0-9][0-9-]+')"
+  if [ "$(opkg list-installed | grep $PKG | cut -d- -f3- | xargs)" = "$VER" ]; then
+    logger $LGGR_OPT -t rpc.gui.opkg -p user.info $PKG is up to date: Version $VER already installed
+  else
+    logger $LGGR_OPT -t rpc.gui.opkg -p user.info Downloading $SRC/$IPK...
+    curl $CURL_OPT -kL $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger $LGGR_OPT -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
+  fi
 done
 
 logger $LGGR_OPT -t rpc.gui.opkg -p user.info Updating ca-certificates.crt from https://curl.se/ca/cacert.pem if changed...
 curl $CURL_OPT -kLz /etc/ssl/certs/ca-certificates.crt -o /etc/ssl/certs/ca-certificates.crt https://curl.se/ca/cacert.pem | logger $LGGR_OPT -t rpc.gui.opkg -p user.info
 
 if [ -z "$ENV" ]; then
+  logger $LGGR_OPT -t rpc.gui.opkg -p user.info Updating /etc/profile with SSL_CERT_FILE and CURL_CA_BUNDLE environment variables if required
+  grep -q CURL_CA_BUNDLE /etc/profile || echo "export CURL_CA_BUNDLE='/etc/ssl/certs/ca-certificates.crt'" >> /etc/profile
   grep -q SSL_CERT_FILE /etc/profile || echo "export SSL_CERT_FILE='/etc/ssl/cert.pem'" >> /etc/profile
 else
+  logger $LGGR_OPT -t rpc.gui.opkg -p user.info Updating $ENV with SSL_CERT_FILE and CURL_CA_BUNDLE environment variables if required
+  grep -q CURL_CA_BUNDLE $ENV || echo "export CURL_CA_BUNDLE='/etc/ssl/certs/ca-certificates.crt'" >> $ENV
   grep -q SSL_CERT_FILE $ENV || echo "SSL_CERT_FILE='/etc/ssl/cert.pem'" >> $ENV
 fi
 
