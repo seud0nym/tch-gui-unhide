@@ -231,16 +231,16 @@ Options:
                 specified, defaults to '4'.
  -n name      The interface name of the network. This is the name that will 
                 appear in the Local Network screen to manage the network. If not
-                specified, defaults to 'Port'+port number.
+                specified, defaults to 'port'+port number.
  -i n.n.n.n   Specifies the IP address to be assigned to the LAN port. Cannot be
                 in an existing IP range used by other networks (e.g. LAN. Guest).
                 If not specified, defaults to '192.168.3.1'.
  -m n.n.n.n   Specifies the subnet mask to be applied to the new network. If not 
-                specified, defaults to '255.255.255.0'.
+                specified, defaults to '255.255.255.0'. 
                 NOTE: Only 255.255.255.0 is currently supported.
- -6 n         Specifies the IPv6 hint to be assigned to the new network. Use 'n' 
-                to disable IPv6 on this network. If not specified, defaults to 
-                the next available hint.
+ -6 n|'N'     Specifies the IPv6 hint to be assigned to the new network. Use 'N' 
+                to disable IPv6 on this network. If -6 is not specified, it 
+                defaults to the next available hint.
  -d domain    The domain name to use for the new network. If not specified, 
                 defaults to 'modem'.
  -h hostname  The host name to be associated with the IP address. If not 
@@ -250,8 +250,7 @@ Options:
                   g5 = 5GHz Guest (same as g on FW 20.4)
                   l  = LAN
                   c  = Create new firewall zone
-                If not specified, defaults to g (Guest), unless it does not exist,
-                in which case it will be assigned to the l (LAN) zone.
+                If not specified, defaults to creating a new zone.
  -R           Restore the LAN port to the LAN bridge.
  -v           Show verbose messages
  -y           Bypass the confirmation prompt (answers "y")

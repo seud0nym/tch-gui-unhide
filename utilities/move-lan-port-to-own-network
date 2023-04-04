@@ -26,16 +26,16 @@ Options:
                 specified, defaults to '4'.
  -n name      The interface name of the network. This is the name that will 
                 appear in the Local Network screen to manage the network. If not
-                specified, defaults to 'Port'+port number.
+                specified, defaults to 'lan'+port number.
  -i n.n.n.n   Specifies the IP address to be assigned to the LAN port. Cannot be
                 in an existing IP range used by other networks (e.g. LAN. Guest).
                 If not specified, defaults to '192.168.3.1'.
  -m n.n.n.n   Specifies the subnet mask to be applied to the new network. If not 
                 specified, defaults to '255.255.255.0'. 
                 NOTE: Only 255.255.255.0 is currently supported.
- -6 n         Specifies the IPv6 hint to be assigned to the new network. Use 'n' 
-                to disable IPv6 on this network. If not specified, defaults to 
-                the next available hint.
+ -6 n|'N'     Specifies the IPv6 hint to be assigned to the new network. Use 'N' 
+                to disable IPv6 on this network. If -6 is not specified, it 
+                defaults to the next available hint.
  -d domain    The domain name to use for the new network. If not specified, 
                 defaults to 'modem'.
  -h hostname  The host name to be associated with the IP address. If not 
@@ -45,8 +45,7 @@ Options:
                   g5 = 5GHz Guest (same as g on FW 20.4)
                   l  = LAN
                   c  = Create new firewall zone
-                If not specified, defaults to g (Guest), unless it does not exist,
-                in which case it will be assigned to the l (LAN) zone.
+                If not specified, defaults to creating a new zone.
  -R           Restore the LAN port to the LAN bridge.
  -v           Show verbose messages
  -y           Bypass the confirmation prompt (answers "y")
@@ -82,6 +81,10 @@ exec_uci() {
     uci $__VERBOSE ${command} ${path} > /dev/null
     retval=$?
   else
+    if [ "$command" = "add_list" ]; then
+      [ -z "$__VERBOSE" ] && echo -e "${GREY}RUNNING:  uci del_list ${path}=\"$value\"${NC}"
+      uci -q del_list ${path}="$value"
+    fi
     [ -z "$__VERBOSE" ] && echo -e "${GREY}RUNNING:  uci ${command} ${path}=\"$value\"${NC}"
     uci $__VERBOSE ${command} ${path}="$value"
     retval=$?
@@ -133,11 +136,11 @@ find_zone() {
   
   local zone="$(uci show firewall | grep -m 1 -i "firewall\.@zone\[[0-9]*\].name='$name'" | cut -d[ -f2 | cut -d] -f1)"
   if [ -z "$zone" ]; then
-    local suffix = echo ${name##Guest}
+    local suffix="$(echo ${name##Guest})"
     [ "$suffix" = "1" -o "$suffix" = "1_5GHz" ] && zone="$(uci show firewall | grep -m 1 -i "firewall\.@zone\[[0-9]*\].name='Guest'" | cut -d[ -f2 | cut -d] -f1)"
   fi
   if [ -z "$zone" ]; then
-    local suffix = echo ${name##Guest}
+    local suffix="$(echo ${name##Guest})"
     [ "$suffix" = "1" -o "$suffix" = "1_5GHz" ] && zone="$(uci show firewall | grep -m 1 -i "firewall\.@zone\[[0-9]*\].name='Guest'" | cut -d[ -f2 | cut -d] -f1)"
   fi
   if [ -z "$zone" -a -n "$alt" ]; then
@@ -200,35 +203,36 @@ check_interface() {
 
 check_network() {
   local name="$1"
-  echo "$name" | grep -qE "[ -~\`!@#$%\^&\*()+={}\[\]|\\:\";'<>?,./\r\n]" && abort "Name '$name' is invalid - cannot contain special characters or spaces (except _)"
+  echo "$name" | grep -qE "^[A-Za-z0-9_]+$" || abort "Name '$name' is invalid - can only contain letters, numbers and _"
   [ -n "$(uci -q get network.${name})" ] && abort "Name '$name' is already in use!"
   [ -n "$(uci -q get network.${name})" ] && abort "Name '$name' is already in use (network)!"
   [ -n "$(uci -q get dhcp.${name})" ] && abort "Name '$name' is already in use (dhcp)!"
   [ -n "$(uci -q get dhcp.${name}_private)" ] && abort "Name '$name' is already in use (dhcp private)!"
   uci show firewall | grep -q "firewall.@zone\[[0-9]*\].name='$name'" && abort "Name '$name' is already in use (firewall zone)!"
+  return 0
 }
 
 check_restore() {
   __NAME="$(uci show network | grep "ifname='${__IF_NAME}'" | cut -d. -f2)"
   [ -z "$__NAME" ] && abort "No network found containing only ${ORANGE}Port $__LOGICAL_PORT${NC} (${__IF_NAME})"
   __IP_ADDR="$(uci -q get network.${__NAME}.ipaddr)"
-  [ -z "$__IP_ADDR" ] && abort "No IP Address found in ${ORANGE}Port$__LOGICAL_PORT${NC} network"
-  __ZONE="$(uci show firewall | grep "@zone\[[0-9]*\].network=.*'Port${__LOGICAL_PORT}'" | cut -d[ -f2 | cut -d] -f1)"
-  [ -z "$__ZONE" ] && abort "No firewall zone found containing ${ORANGE}Port $__LOGICAL_PORT${NC} network"
+  [ -z "$__IP_ADDR" ] && abort "No IP Address found in ${ORANGE}${__NAME}${NC} network"
+  __ZONE="$(uci show firewall | grep "@zone\[[0-9]*\].network=.*'${__NAME}'" | cut -d[ -f2 | cut -d] -f1)"
+  #[ -z "$__ZONE" ] && abort "No firewall zone found containing ${ORANGE}${__NAME}${NC} network"
   __CLASSGROUP="TO_LAN"
   return 0
 }
 
 __LOGICAL_PORT="4"
 __IF_NAME="eth3"
-__NAME="Port4"
+__NAME="lan4"
 __IP_ADDR="192.168.3.1"
 __IP_MASK="255.255.255.0"
 __IPv6="1"
 __IPv6_HINT="$(next_ip6hint)"
 __DOMAIN="modem"
 __HOSTNAME="$(uci -q get system.@system[0].hostname)"
-__ZONE="$(find_zone Guest1 lan)"
+__ZONE="-1"
 __CLASSGROUP="TO_WLAN"
 __VERBOSE="-q"
 __YES="n"
@@ -237,7 +241,7 @@ __RESTORE="n"
 while getopts :6:d:f:h:i:m:n:p:vyRU option; do
  case "${option}" in
   6)  case "${OPTARG}" in
-        n)  __IPv6="0"; __IPv6_HINT="$(next_ip6hint)";;
+        N)  __IPv6="0"; __IPv6_HINT="$(next_ip6hint)";;
         [0-9]*) check_ip6hint && { __IPv6="1"; __IPv6_HINT="${OPTARG}"; };;
         *)  usage "-6" "${OPTARG}";;
       esac;;
@@ -247,6 +251,7 @@ while getopts :6:d:f:h:i:m:n:p:vyRU option; do
         g)  __ZONE="$(find_zone Guest1)"; $__CLASSGROUP="TO_WLAN";;
         g5) __ZONE="$(find_zone Guest1_5GHz)"; $__CLASSGROUP="TO_WLAN";;
         l)  __ZONE="$(find_zone lan)"; $__CLASSGROUP="TO_LAN";;
+        n)  __ZONE="";;
         *)  usage "-z" "${OPTARG}";;
       esac;;
   h)  __HOSTNAME="${OPTARG}";;
@@ -258,7 +263,7 @@ while getopts :6:d:f:h:i:m:n:p:vyRU option; do
         2|3|4) __LOGICAL_PORT="${OPTARG}"; __IF_NAME="eth$(( $__LOGIAL_PORT - 1 ))";;
         *) usage "-p" "${OPTARG}";;
       esac
-      check_interface "Port$__LOGICAL_PORT" "$__IF_NAME";;
+      check_interface "lan$__LOGICAL_PORT" "$__IF_NAME";;
   v)  __VERBOSE="";;
   y)  __YES="y";;
   R)  check_restore && __RESTORE="y";;
@@ -270,16 +275,21 @@ done
 if [ $__RESTORE = y ]; then
   echo -e "NOTE:     LAN Port to be restored:     ${GREEN}$__LOGICAL_PORT${NC} ($__IF_NAME)"
   echo -e "NOTE:     Network Name to be deleted:  ${GREEN}$__NAME${NC}"
-  if [ "$(uci -q get firewall.@zone[$__ZONE].network | wc -w)" = 1 ]; then
+  if [ -z "$__ZONE" ]; then
+  echo -e "${ORANGE}WARNING:${NC}  Firewall Zone to be updated: ${ORANGE}NONE${NC}"
+  elif [ "$(uci -q get firewall.@zone[$__ZONE].network | wc -w)" = 1 ]; then
   echo -e "NOTE:     Firewall Zone to be deleted: ${GREEN}$(uci -q get firewall.@zone[$__ZONE].name)${NC}"
   else
   echo -e "NOTE:     Firewall Zone to be updated: ${GREEN}$(uci -q get firewall.@zone[$__ZONE].name)${NC}"
   fi
 else
+  uci get network.lan.ifname | grep -q "\b${__IF_NAME}\b" || abort "LAN network does not contain ${ORANGE}Port $__LOGICAL_PORT${NC} (${__IF_NAME})"
   echo -e "NOTE:     LAN Port to be moved:        ${GREEN}$__LOGICAL_PORT${NC} ($__IF_NAME)"
   echo -e "NOTE:     New Network Name:            ${GREEN}$__NAME${NC}"
   if [ "{$__ZONE}" = "{-1}" ]; then
   echo -e "NOTE:     Firewall Zone:               ${GREEN}* NEW *${NC}"
+  elif [ -z "$__ZONE" ]; then
+  echo -e "${ORANGE}WARNING:${NC}  Firewall Zone:               ${ORANGE}NONE${NC}"
   else
   echo -e "NOTE:     Firewall Zone:               ${GREEN}$(uci -q get firewall.@zone[$__ZONE].name)${NC}"
   fi
@@ -324,25 +334,27 @@ if [ $__RESTORE = y ]; then
   exec_uci delete network.${__NAME}
   
   echo -e "${GREEN}INFO${NC}:     Deleting DNSMASQ instance..."
-  exec_uci delete dhcp.${__NAME}_private
-  
-  echo -e "${GREEN}INFO${NC}:     Deleting DHCP instance..."
   exec_uci delete dhcp.${__NAME}
   
-  if [ "$(uci -q get firewall.@zone[$__ZONE].network | wc -w)" = 1 ]; then
-    echo -e "${GREEN}INFO${NC}:     Deleting Firewall Zone for network ${ORANGE}${__NAME}${NC}..."
-    exec_uci delete firewall.@zone[$__ZONE]
-    echo -e "${GREEN}INFO${NC}:     Deleting Firewall Rules for network ${ORANGE}${__NAME}${NC}..."
-    rule=$(uci -q show firewall | grep -m1 -E "'$__NAME'|'$__IP_ADDR'" | cut -d. -f1-2)
-    while [ -n "$rule" ]; do
-      exec_uci delete $rule
-      rule=$(uci -q show firewall | grep -m1 -E "'$__NAME'|'$__IP_ADDR'" | cut -d. -f1-2)
-    done
-  else
-    echo -e "${GREEN}INFO${NC}:     Removing network ${ORANGE}${__NAME}${NC} from Firewall zone ${ORANGE}$(uci -q get firewall.@zone[$__ZONE].name)${NC}..."
-    uci del_list firewall.@zone[${__ZONE}].network="${__NAME}"
-  fi
+  echo -e "${GREEN}INFO${NC}:     Deleting DHCP instance..."
+  exec_uci delete dhcp.${__NAME}_private
   
+  if [ -n "$__ZONE" ]; then
+    if [ "$(uci -q get firewall.@zone[$__ZONE].network | wc -w)" = 1 ]; then
+      echo -e "${GREEN}INFO${NC}:     Deleting Firewall Zone for network ${ORANGE}${__NAME}${NC}..."
+      exec_uci delete firewall.@zone[$__ZONE]
+      echo -e "${GREEN}INFO${NC}:     Deleting Firewall Rules for network ${ORANGE}${__NAME}${NC}..."
+      rule=$(uci -q show firewall | grep -m1 -E "'$__NAME'|'$__IP_ADDR'" | cut -d. -f1-2)
+      while [ -n "$rule" ]; do
+        exec_uci delete $rule
+        rule=$(uci -q show firewall | grep -m1 -E "'$__NAME'|'$__IP_ADDR'" | cut -d. -f1-2)
+      done
+    else
+      echo -e "${GREEN}INFO${NC}:     Removing network ${ORANGE}${__NAME}${NC} from Firewall zone ${ORANGE}$(uci -q get firewall.@zone[$__ZONE].name)${NC}..."
+      uci del_list firewall.@zone[${__ZONE}].network="${__NAME}"
+    fi
+  fi
+
   echo -e "${GREEN}INFO${NC}:     Removing network ${ORANGE}${__NAME}${NC} from parental controls LAN interfaces..."
   exec_uci del_list parental.general.lan_intf="${__NAME}"
 else
@@ -367,46 +379,49 @@ else
   fi
 
   echo -e "${GREEN}INFO${NC}:     Creating DNSMASQ instance..."
-  exec_uci set dhcp.${__NAME}_private=dnsmasq
-  exec_uci set dhcp.${__NAME}_private.disabled="0"
-  exec_uci set dhcp.${__NAME}_private.nonwildcard="1"
-  exec_uci set dhcp.${__NAME}_private.domainneeded="1"
-  exec_uci set dhcp.${__NAME}_private.boguspriv="1"
-  exec_uci set dhcp.${__NAME}_private.filterwin2k="0"
-  exec_uci set dhcp.${__NAME}_private.localise_queries="1"
-  exec_uci set dhcp.${__NAME}_private.rebind_protection="0"
-  exec_uci set dhcp.${__NAME}_private.rebind_localhost="1"
-  exec_uci set dhcp.${__NAME}_private.local="/lan/"
-  exec_uci set dhcp.${__NAME}_private.expandhosts="1"
-  exec_uci set dhcp.${__NAME}_private.nonegcache="0"
-  exec_uci set dhcp.${__NAME}_private.authoritative="1"
-  exec_uci set dhcp.${__NAME}_private.readethers="1"
-  exec_uci set dhcp.${__NAME}_private.leasefile="/tmp/dhcp.leases"
-  exec_uci set dhcp.${__NAME}_private.resolvfile="/tmp/resolv.conf.d/resolv.conf.auto"
-  exec_uci set dhcp.${__NAME}_private.strictorder="1"
-  exec_uci set dhcp.${__NAME}_private.dhcpscript="/lib/dnsmasq/dhcp-event.sh"
-  exec_uci set dhcp.${__NAME}_private.domain="${__DOMAIN}"
-  exec_uci set dhcp.${__NAME}_private.add_local_fqdn="0"
-  exec_uci add_list dhcp.${__NAME}_private.hostname="${__HOSTNAME}"
-  exec_uci add_list dhcp.${__NAME}_private.interface="${__NAME}"
-  exec_uci add_list dhcp.${__NAME}_private.notinterface="loopback"
+  exec_uci set dhcp.${__NAME}=dnsmasq
+  exec_uci set dhcp.${__NAME}.disabled="0"
+  exec_uci set dhcp.${__NAME}.nonwildcard="1"
+  exec_uci set dhcp.${__NAME}.domainneeded="1"
+  exec_uci set dhcp.${__NAME}.boguspriv="1"
+  exec_uci set dhcp.${__NAME}.filterwin2k="0"
+  exec_uci set dhcp.${__NAME}.localise_queries="1"
+  exec_uci set dhcp.${__NAME}.rebind_protection="0"
+  exec_uci set dhcp.${__NAME}.rebind_localhost="1"
+  exec_uci set dhcp.${__NAME}.local="/lan/"
+  exec_uci set dhcp.${__NAME}.expandhosts="1"
+  exec_uci set dhcp.${__NAME}.nonegcache="0"
+  exec_uci set dhcp.${__NAME}.authoritative="1"
+  exec_uci set dhcp.${__NAME}.readethers="1"
+  exec_uci set dhcp.${__NAME}.leasefile="/tmp/dhcp.leases"
+  exec_uci set dhcp.${__NAME}.resolvfile="/tmp/resolv.conf.d/resolv.conf.auto"
+  exec_uci set dhcp.${__NAME}.strictorder="1"
+  exec_uci set dhcp.${__NAME}.dhcpscript="/lib/dnsmasq/dhcp-event.sh"
+  exec_uci set dhcp.${__NAME}.domain="${__DOMAIN}"
+  exec_uci set dhcp.${__NAME}.add_local_fqdn="0"
+  uci -q delete dhcp.${__NAME}.hostname
+  uci -q delete dhcp.${__NAME}.interface
+  uci -q delete dhcp.${__NAME}.notinterface
+  exec_uci add_list dhcp.${__NAME}.hostname="${__HOSTNAME}"
+  exec_uci add_list dhcp.${__NAME}.interface="${__NAME}"
+  exec_uci add_list dhcp.${__NAME}.notinterface="loopback"
 
   echo -e "${GREEN}INFO${NC}:     Creating DHCP instance..."
-  exec_uci set dhcp.${__NAME}=dhcp
-  exec_uci set dhcp.${__NAME}.instance="${__NAME}_private"
-  exec_uci set dhcp.${__NAME}.interface="${__NAME}"
-  exec_uci set dhcp.${__NAME}.start="2"
-  exec_uci set dhcp.${__NAME}.limit="253"
-  exec_uci set dhcp.${__NAME}.leasetime="1d"
-  exec_uci set dhcp.${__NAME}.force="1"
-  exec_uci set dhcp.${__NAME}.dhcpv6="server"
-  exec_uci set dhcp.${__NAME}.ra="server"
-  exec_uci set dhcp.${__NAME}.ra_management="0"
-  exec_uci set dhcp.${__NAME}.ra_mininterval="200"
-  exec_uci set dhcp.${__NAME}.ra_maxinterval="600"
-  exec_uci set dhcp.${__NAME}.ra_lifetime="1800"
-  exec_uci set dhcp.${__NAME}.ra_hoplimit="64"
-  exec_uci set dhcp.${__NAME}.dhcpv4="server"
+  exec_uci set dhcp.${__NAME}_private=dhcp
+  exec_uci set dhcp.${__NAME}_private.instance="${__NAME}"
+  exec_uci set dhcp.${__NAME}_private.interface="${__NAME}"
+  exec_uci set dhcp.${__NAME}_private.start="2"
+  exec_uci set dhcp.${__NAME}_private.limit="253"
+  exec_uci set dhcp.${__NAME}_private.leasetime="1d"
+  exec_uci set dhcp.${__NAME}_private.force="1"
+  exec_uci set dhcp.${__NAME}_private.dhcpv6="server"
+  exec_uci set dhcp.${__NAME}_private.ra="server"
+  exec_uci set dhcp.${__NAME}_private.ra_management="0"
+  exec_uci set dhcp.${__NAME}_private.ra_mininterval="200"
+  exec_uci set dhcp.${__NAME}_private.ra_maxinterval="600"
+  exec_uci set dhcp.${__NAME}_private.ra_lifetime="1800"
+  exec_uci set dhcp.${__NAME}_private.ra_hoplimit="64"
+  exec_uci set dhcp.${__NAME}_private.dhcpv4="server"
 
   if [ "{$__ZONE}" = "{-1}" ]; then
     echo -e "${GREEN}INFO${NC}:     Creating Firewall Zone for network ${ORANGE}${__NAME}${NC}..."
@@ -414,9 +429,10 @@ else
     exec_uci set firewall.@zone[-1].name="${__NAME}"
     exec_uci set firewall.@zone[-1].input="DROP"
     exec_uci set firewall.@zone[-1].output="ACCEPT"
-    exec_uci set firewall.@zone[-1].forward="REJECT"
+    exec_uci set firewall.@zone[-1].forward="ACCEPT"
     exec_uci set firewall.@zone[-1].mtu_fix="1"
     exec_uci set firewall.@zone[-1].wan="0"
+    uci -q firewall.@zone[-1].network
     exec_uci add_list firewall.@zone[-1].network="${__NAME}"
 
     echo -e "${GREEN}INFO${NC}:     Creating WAN forwarding for network ${ORANGE}${__NAME}${NC}..."
@@ -483,7 +499,7 @@ else
     exec_uci set firewall.@rule[-1].limit="1000/sec"
     exec_uci set firewall.@rule[-1].family="ipv6"
     exec_uci set firewall.@rule[-1].target="ACCEPT"
-  else
+  elif [ -n "$__ZONE" ]; then
     echo -e "${GREEN}INFO${NC}:     Adding network ${ORANGE}${__NAME}${NC} to Firewall zone ${ORANGE}$(uci -q get firewall.@zone[$__ZONE].name)${NC}..."
     exec_uci add_list firewall.@zone[${__ZONE}].network="${__NAME}"
   fi
@@ -511,5 +527,9 @@ echo -e "${NC}APPLYING: QoS configuration${GREY}"
 [ -e /etc/init.d/qos ] && /etc/init.d/qos reload > /dev/null 2>&1
 [ -e /etc/init.d/qos_tch ] && /etc/init.d/qos_tch reload > /dev/null 2>&1
 echo -en "${NC}"
+
+echo -e "${GREEN}INFO${NC}:     Flushing arp table..."
+ip neigh flush dev br-lan
+ip neigh flush dev $__IF_NAME
 
 echo -e "${GREEN}INFO:     Done!${NC} :-)"
