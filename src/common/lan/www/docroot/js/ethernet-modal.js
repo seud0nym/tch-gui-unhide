@@ -55,12 +55,6 @@ function rand16() {
           return false;
          }
      });
-    $("#save-config").click(function(){
-      if($("#Hide_Advanced_id").is(":visible"))
-        $("#isAdvanced").val("1");
-      else
-        $("#isAdvanced").val("0");
-    });
 });
 $("[name='sleases_mac'],[name='dns_v4_pri'],[name='ipv4_dns_sec'],[name='dns_v6_pri'],[name='dns_v6_sec'],[name='tags_dns1'],[name='tags_dns2']").change(function () {
   if ((this.value) == "custom") {

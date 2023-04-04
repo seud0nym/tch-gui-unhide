@@ -1104,7 +1104,6 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
           ');
           end
           ngx.print('\
-          <input type="hidden" name="isAdvanced" id="isAdvanced" value="0">\
         </form>\
    </div>\
 <script src="/js/modal-busy.js"></script>\
