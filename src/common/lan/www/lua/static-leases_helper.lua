@@ -173,15 +173,18 @@ function M.validateStaticLeaseIP()
       end
     end
     for _,i in ipairs(proxy.getPN("uci.network.interface.",true)) do
-      if not (i.path == "uci.network.interface.@ppp." or i.path == "uci.network.interface.@wan." or i.path == "uci.network.interface.@ipoe." or i.path == "uci.network.interface.@wan6." or i.path == "uci.network.interface.@wwan." or i.path == "uci.network.interface.@loopback." ) then
-        local contentdata = {
+      local type = proxy.get(gsub(i.path,"^uci","rpc").."type")
+      if type and type[1].value == "lan" then
+        local iface = {
           localdevIP = i.path.."ipaddr",
           localdevmask = i.path.."netmask",
         }
-        content_helper.getExactContent(contentdata)
-        local result = sLIPV(value,contentdata)
-        if result then
-          return result
+        content_helper.getExactContent(iface)
+        if iface.localdevIP ~= "" and iface.netmask ~= "" and iface.localdevIP ~= "127.0.0.1" then
+          local result = sLIPV(value,iface)
+          if result then
+            return result
+          end
         end
       end
     end
