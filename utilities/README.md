@@ -231,7 +231,7 @@ Options:
                 specified, defaults to '4'.
  -n name      The interface name of the network. This is the name that will 
                 appear in the Local Network screen to manage the network. If not
-                specified, defaults to 'port'+port number.
+                specified, defaults to 'lan'+port number.
  -i n.n.n.n   Specifies the IP address to be assigned to the LAN port. Cannot be
                 in an existing IP range used by other networks (e.g. LAN. Guest).
                 If not specified, defaults to '192.168.3.1'.
@@ -252,9 +252,10 @@ Options:
                   c  = Create new firewall zone
                 If not specified, defaults to creating a new zone.
  -R           Restore the LAN port to the LAN bridge.
+ -r           Skip reboot (NOT recommended!)
  -v           Show verbose messages
  -y           Bypass the confirmation prompt (answers "y")
- -U           Download the latest version of move-lan-port-to-own-network from GitHub
+ -U           Download the latest version of $SCRIPT from GitHub
 ```
 
 ## mtd-backup
