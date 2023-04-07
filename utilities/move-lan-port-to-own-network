@@ -233,6 +233,14 @@ check_restore() {
   return 0
 }
 
+remove_vlans() {
+  local vlan="$(uci -q show network | grep -m1 '=switch_vlan' | cut -d= -f1)"
+  while [ -n "$vlan" ]; do
+    exec_uci delete $vlan
+    vlan="$(uci -q show network | grep -m1 '=switch_vlan' | cut -d= -f1)"
+  done
+}
+
 __PHYSICAL_PORT="3"
 __LOGICAL_PORT="$(( $__PHYSICAL_PORT + 1 ))"
 __IF_NAME="eth$__PHYSICAL_PORT"
@@ -255,7 +263,7 @@ save_config() {
     local when="$1"
     local filename="${SCRIPT_PATH}/mlpton-$(date +%Y%m%d%H%M%S)-${when}"
     uci show | grep '^\(dhcp\|firewall\|multiap\|network\|parental\|qos\)\.' | sort >>$filename
-    echo -e "${GREEN}INFO${NC}:     '$when' configuration saved to ${filename}${NC}"
+    echo -e "INFO:     '$when' configuration saved to ${filename}${NC}"
   fi
 }
 
@@ -350,32 +358,28 @@ fi
 save_config before
 
 if [ $__RESTORE = y ]; then
-  echo -e "${GREEN}INFO${NC}:     Adding ${ORANGE}Port $__LOGICAL_PORT${NC} ($__IF_NAME) to LAN bridge..."
+  echo -e "INFO:     Adding ${ORANGE}Port $__LOGICAL_PORT${NC} ($__IF_NAME) to LAN bridge..."
   if [ "$(uci get network.lan.ifname | wc -w)" -eq 3 ]; then
     exec_uci set network.lan.ifname='eth0 eth1 eth2 eth3'
 
-    echo -e "${GREEN}INFO${NC}:     Removing switch configuration..."
+    echo -e "INFO:     Removing switch configuration..."
     exec_uci delete network.bcmsw_ext
 
-    echo -e "${GREEN}INFO${NC}:     Removing switch devices..."
+    echo -e "INFO:     Removing switch devices..."
     for v in 1 10$__LOGICAL_PORT; do
       for p in 0 1 2 3; do
         exec_uci delete network.eth${p}_${v}
       done
     done
 
-    echo -e "${GREEN}INFO${NC}:     Removing VLANs..."
-    vlan="$(uci -q show network | grep -m1 '=switch_vlan' | cut -d= -f1)"
-    while [ -n "$vlan" ]; do
-      exec_uci delete $vlan
-      vlan="$(uci -q show network | grep -m1 '=switch_vlan' | cut -d= -f1)"
-    done
+    echo -e "INFO:     Removing VLANs..."
+    remove_vlans
   else
     exec_uci set network.lan.ifname="$(uci get network.lan.ifname | xargs echo "${__IF_NAME}_1" | tr ' ' "\n" | sort -u | xargs)"
   fi
 
   if [ -e /etc/config/multiap ]; then
-    echo -e "${GREEN}INFO${NC}:     Adding ${ORANGE}Port $__LOGICAL_PORT${NC} ($__IF_NAME) to MultiAP interfaces..."
+    echo -e "INFO:     Adding ${ORANGE}Port $__LOGICAL_PORT${NC} ($__IF_NAME) to MultiAP interfaces..."
     after=$(( $__LOGICAL_PORT - 2 ))
     while ! uci -q get multiap.al_entity.interfaces | grep -qE "\beth${after}\b"; do
       after="$(( $after - 1 ))"
@@ -385,38 +389,38 @@ if [ $__RESTORE = y ]; then
     exec_uci set multiap.al_entity.interfaces="$(uci -q get multiap.al_entity.interfaces | sed -e "s/\b\($after\)\b/\1,$__IF_NAME/")"
   fi
 
-  echo -e "${GREEN}INFO${NC}:     Deleting network ${ORANGE}${__NAME}${NC}..."
+  echo -e "INFO:     Deleting network ${ORANGE}${__NAME}${NC}..."
   exec_uci delete network.${__NAME}
   
-  echo -e "${GREEN}INFO${NC}:     Deleting DNSMASQ instance..."
+  echo -e "INFO:     Deleting DNSMASQ instance..."
   exec_uci delete dhcp.${__NAME}
   
-  echo -e "${GREEN}INFO${NC}:     Deleting DHCP instance..."
+  echo -e "INFO:     Deleting DHCP instance..."
   exec_uci delete dhcp.${__NAME}_private
   
   if [ -n "$__ZONE" ]; then
     for z in $__ZONE; do
       if [ "$(uci -q get firewall.@zone[$z].network | wc -w)" = 1 ]; then
-        echo -e "${GREEN}INFO${NC}:     Deleting Firewall Zone for network ${ORANGE}${__NAME}${NC}..."
+        echo -e "INFO:     Deleting Firewall Zone for network ${ORANGE}${__NAME}${NC}..."
         exec_uci delete firewall.@zone[$z]
-        echo -e "${GREEN}INFO${NC}:     Deleting Firewall Rules for network ${ORANGE}${__NAME}${NC}..."
+        echo -e "INFO:     Deleting Firewall Rules for network ${ORANGE}${__NAME}${NC}..."
         rule=$(uci -q show firewall | grep -m1 -E "'$__NAME'|'$__IP_ADDR'" | cut -d. -f1-2)
         while [ -n "$rule" ]; do
           exec_uci delete $rule
           rule=$(uci -q show firewall | grep -m1 -E "'$__NAME'|'$__IP_ADDR'" | cut -d. -f1-2)
         done
       else
-        echo -e "${GREEN}INFO${NC}:     Removing network ${ORANGE}${__NAME}${NC} from Firewall zone ${ORANGE}$(uci -q get firewall.@zone[$z].name)${NC}..."
+        echo -e "INFO:     Removing network ${ORANGE}${__NAME}${NC} from Firewall zone ${ORANGE}$(uci -q get firewall.@zone[$z].name)${NC}..."
         uci del_list firewall.@zone[${z}].network="${__NAME}"
       fi
     done
   fi
 
-  echo -e "${GREEN}INFO${NC}:     Removing network ${ORANGE}${__NAME}${NC} from parental controls LAN interfaces..."
+  echo -e "INFO:     Removing network ${ORANGE}${__NAME}${NC} from parental controls LAN interfaces..."
   exec_uci del_list parental.general.lan_intf="${__NAME}"
 else
   if [ "$(uci -q show network | grep '=switch$' | wc -l)" -lt 2 ]; then
-    echo -e "${GREEN}INFO${NC}:     Creating switch configuration..."
+    echo -e "INFO:     Creating switch configuration..."
     exec_uci set network.bcmsw_ext=switch
     exec_uci set network.bcmsw_ext.name='bcmsw_ext'
     exec_uci set network.bcmsw_ext.reset='1'
@@ -426,7 +430,7 @@ else
     exec_uci set network.bcmsw_ext.qosimppauseenable='0'
     exec_uci set network.bcmsw_ext.jumbo='0'
 
-    echo -e "${GREEN}INFO${NC}:     Creating switch devices..."
+    echo -e "INFO:     Creating switch devices..."
     for v in 1 10$__LOGICAL_PORT; do
       for p in 0 1 2 3; do
         exec_uci set network.eth${p}_${v}=device
@@ -437,20 +441,22 @@ else
       done
     done
 
-    echo -e "${GREEN}INFO${NC}:     Creating VLAN ID 1 (LAN)..."
-    exec_uci set network.vlan_1=switch_vlan
-    exec_uci set network.vlan_1.device='bcmsw_ext'
-    exec_uci set network.vlan_1.vlan='1'
-    exec_uci set network.vlan_1.ports="$(echo '0* 1* 2* 3* 8t' | sed -e "s/$__PHYSICAL_PORT\* //")"
+    remove_vlans
 
-    echo -e "${GREEN}INFO${NC}:     Creating VLAN ID 10${__LOGICAL_PORT} (${__IF_NAME}_10${__LOGICAL_PORT})..."
-    exec_uci set network.vlan_10${__LOGICAL_PORT}=switch_vlan
-    exec_uci set network.vlan_10${__LOGICAL_PORT}.device='bcmsw_ext'
-    exec_uci set network.vlan_10${__LOGICAL_PORT}.vlan="10${__LOGICAL_PORT}"
-    exec_uci set network.vlan_10${__LOGICAL_PORT}.ports="${__PHYSICAL_PORT}* 8t"
+    echo -e "INFO:     Creating VLAN ID 1 (LAN)..."
+    switch_vlan=$(uci add network switch_vlan)
+    exec_uci set network.${switch_vlan}.device='bcmsw_ext'
+    exec_uci set network.${switch_vlan}.vlan='1'
+    exec_uci set network.${switch_vlan}.ports="$(echo '0* 1* 2* 3* 8t' | sed -e "s/$__PHYSICAL_PORT\* //")"
+
+    echo -e "INFO:     Creating VLAN ID 10${__LOGICAL_PORT} (${__IF_NAME}_10${__LOGICAL_PORT})..."
+    switch_vlan=$(uci add network switch_vlan)
+    exec_uci set network.${switch_vlan}.device='bcmsw_ext'
+    exec_uci set network.${switch_vlan}.vlan="10${__LOGICAL_PORT}"
+    exec_uci set network.${switch_vlan}.ports="${__PHYSICAL_PORT}* 8t"
   fi
 
-  echo -e "${GREEN}INFO${NC}:     Creating network ${ORANGE}${__NAME}${NC} for ${ORANGE}Port $__LOGICAL_PORT${NC} ($__IF_NAME)..."
+  echo -e "INFO:     Creating network ${ORANGE}${__NAME}${NC} for ${ORANGE}Port $__LOGICAL_PORT${NC} ($__IF_NAME)..."
   exec_uci set network.${__NAME}=interface
   exec_uci set network.${__NAME}.proto="static"
   exec_uci set network.${__NAME}.ip6assign="64"
@@ -462,7 +468,7 @@ else
   exec_uci set network.${__NAME}.ipv6="$__IPv6"
   exec_uci set network.${__NAME}.ifname="${__IF_NAME}_10${__LOGICAL_PORT}"
 
-  echo -e "${GREEN}INFO${NC}:     Removing ${ORANGE}Port $__LOGICAL_PORT${NC} ($__IF_NAME) from LAN bridge..."
+  echo -e "INFO:     Removing ${ORANGE}Port $__LOGICAL_PORT${NC} ($__IF_NAME) from LAN bridge..."
   ifnames=""
   for ifname in $(uci -q get network.lan.ifname); do
     if ! echo "$ifname" | grep -q "^$__IF_NAME"; then
@@ -473,11 +479,11 @@ else
   exec_uci set network.lan.ifname="$(echo $ifnames | xargs)"
 
   if [ -e /etc/config/multiap ]; then
-    echo -e "${GREEN}INFO${NC}:     Removing ${ORANGE}Port $__LOGICAL_PORT${NC} ($__IF_NAME) from MultiAP interfaces..."
+    echo -e "INFO:     Removing ${ORANGE}Port $__LOGICAL_PORT${NC} ($__IF_NAME) from MultiAP interfaces..."
     exec_uci set multiap.al_entity.interfaces="$(uci -q get multiap.al_entity.interfaces | sed -e "s/\b${__IF_NAME}\b//g" -e 's/,,/,/')"
   fi
 
-  echo -e "${GREEN}INFO${NC}:     Creating DNSMASQ instance..."
+  echo -e "INFO:     Creating DNSMASQ instance..."
   exec_uci set dhcp.${__NAME}=dnsmasq
   exec_uci set dhcp.${__NAME}.disabled="0"
   exec_uci set dhcp.${__NAME}.nonwildcard="1"
@@ -505,7 +511,7 @@ else
   exec_uci add_list dhcp.${__NAME}.interface="${__NAME}"
   exec_uci add_list dhcp.${__NAME}.notinterface="loopback"
 
-  echo -e "${GREEN}INFO${NC}:     Creating DHCP instance..."
+  echo -e "INFO:     Creating DHCP instance..."
   exec_uci set dhcp.${__NAME}_private=dhcp
   exec_uci set dhcp.${__NAME}_private.instance="${__NAME}"
   exec_uci set dhcp.${__NAME}_private.interface="${__NAME}"
@@ -523,7 +529,7 @@ else
   exec_uci set dhcp.${__NAME}_private.dhcpv4="server"
 
   if [ "{$__ZONE}" = "{-1}" ]; then
-    echo -e "${GREEN}INFO${NC}:     Creating Firewall Zone for network ${ORANGE}${__NAME}${NC}..."
+    echo -e "INFO:     Creating Firewall Zone for network ${ORANGE}${__NAME}${NC}..."
     exec_uci add firewall zone
     exec_uci set firewall.@zone[-1].name="${__NAME}"
     exec_uci set firewall.@zone[-1].input="DROP"
@@ -534,12 +540,12 @@ else
     uci -q delete firewall.@zone[-1].network
     exec_uci add_list firewall.@zone[-1].network="${__NAME}"
 
-    echo -e "${GREEN}INFO${NC}:     Creating WAN forwarding for network ${ORANGE}${__NAME}${NC}..."
+    echo -e "INFO:     Creating WAN forwarding for network ${ORANGE}${__NAME}${NC}..."
     exec_uci add firewall forwarding
     exec_uci set firewall.@forwarding[-1].src="${__NAME}"
     exec_uci set firewall.@forwarding[-1].dest="wan"
 
-    echo -e "${GREEN}INFO${NC}:     Creating Firewall rules for ${ORANGE}${__NAME}${NC}..."
+    echo -e "INFO:     Creating Firewall rules for ${ORANGE}${__NAME}${NC}..."
     exec_uci add firewall rule
     exec_uci set firewall.@rule[-1].name="drop_lan_2_${__NAME}"
     exec_uci set firewall.@rule[-1].src="lan"
@@ -599,23 +605,23 @@ else
     exec_uci set firewall.@rule[-1].family="ipv6"
     exec_uci set firewall.@rule[-1].target="ACCEPT"
   elif [ -n "$__ZONE" ]; then
-    echo -e "${GREEN}INFO${NC}:     Adding network ${ORANGE}${__NAME}${NC} to Firewall zone ${ORANGE}$(uci -q get firewall.@zone[$__ZONE].name)${NC}..."
+    echo -e "INFO:     Adding network ${ORANGE}${__NAME}${NC} to Firewall zone ${ORANGE}$(uci -q get firewall.@zone[$__ZONE].name)${NC}..."
     exec_uci add_list firewall.@zone[${__ZONE}].network="${__NAME}"
   fi
 
-  echo -e "${GREEN}INFO${NC}:     Adding network ${ORANGE}${__NAME}${NC} to parental controls LAN interfaces..."
+  echo -e "INFO:     Adding network ${ORANGE}${__NAME}${NC} to parental controls LAN interfaces..."
   exec_uci add_list parental.general.lan_intf="${__NAME}"
 fi
 
-echo -e "${GREEN}INFO${NC}:     Applying QoS settings..."
+echo -e "INFO:     Applying QoS settings..."
 exec_uci set qos.${__IF_NAME}.classgroup="$__CLASSGROUP"
 
-echo -e "${GREEN}INFO${NC}:     Commiting configuration changes..."
+echo -e "INFO:     Commiting configuration changes..."
 for config in $(uci changes | cut -d. -f1 | sed -e 's/^-//' | sort -u); do
   exec_uci commit $config
 done
 save_config after
-echo -e "${GREEN}INFO${NC}:     Synchronizing cached writes to persistent storage..."
+echo -e "INFO:     Synchronizing cached writes to persistent storage..."
 sync
 
 if [ $__REBOOT = y ]; then
@@ -623,19 +629,19 @@ if [ $__REBOOT = y ]; then
   logread -f &
   reboot
 else
-  echo -e "${GREEN}INFO${NC}:     Flushing arp table..."
+  echo -e "INFO:     Flushing arp table...${GREY}"
   ip neigh flush dev br-lan
   ip neigh flush dev $__IF_NAME
 
-  echo -e "${GREEN}INFO${NC}:     Restarting services to apply changes..."
-  echo -e "${GREEN}APPLYING: Network configuration${GREY}"  && /etc/init.d/network restart
+  echo -e "${NC}INFO:     Restarting services to apply changes..."
+  echo -e "${NC}APPLYING: Network configuration${GREY}"  && /etc/init.d/network restart
   [ -e /etc/config/multiap ] && echo -e "${NC}APPLYING: MultiAP configuration${GREY}" && { /etc/init.d/multiap_controller restart; /etc/init.d/multiap_agent restart; /etc/init.d/multiap_vendorextensions restart; }
-  echo -e "${GREEN}APPLYING: DHCP configuration${GREY}"     && { /etc/init.d/dnsmasq restart; /etc/init.d/odhcpd restart; }
-  echo -e "${GREEN}APPLYING: QoS configuration${GREY}"
+  echo -e "${NC}APPLYING: DHCP configuration${GREY}"     && { /etc/init.d/dnsmasq restart; /etc/init.d/odhcpd restart; }
+  echo -e "${NC}APPLYING: QoS configuration${GREY}"
   [ -e /etc/init.d/qos ]                                 && /etc/init.d/qos restart
   [ -e /etc/init.d/qos_tch ]                             && /etc/init.d/qos_tch restart
-  echo -e "${GREEN}APPLYING: Firewall configuration${GREY}" && /etc/init.d/firewall restart
+  echo -e "${NC}APPLYING: Firewall configuration${GREY}" && /etc/init.d/firewall restart
   echo -en "${NC}"
 fi
 
-echo -e "${GREEN}INFO:     Done!${NC} :-)"
+echo -e "INFO:     ${GREEN}Done!${NC} :-)"
