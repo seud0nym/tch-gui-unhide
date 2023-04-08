@@ -61,7 +61,7 @@ if session:hasAccess(modalPath) then
       local authorized_keys = proxy.get("rpc.gui.ssh.authorized_keysNumberOfEntries")
       if authorized_keys then
         local keys = authorized_keys[1].value
-        html[#html+1] = '<span class="simple-desc"><i>&nbsp</i>'
+        html[#html+1] = '<span class="simple-desc">'
         html[#html+1] = '<i class="icon-key status-icon"></i>'
         html[#html+1] = format('<strong>%d</strong><span class="modal-link" data-toggle="modal" data-remote="/modals/system-ssh-modal.lp" data-id="ssh-modal"> SSH Authorized %s</span>',keys,N('Key','Keys',tonumber(keys)))
         html[#html+1] = '</span>'
