@@ -516,7 +516,7 @@ function M.handleTableQuery(fwrule_options,fwrule_defaultObject)
 
   if duplicatedErrMsg then
     for _,v in ipairs(fwrule_columns[16].subcolumns) do
-      if v.param ~= "enabled" and v.param ~= "name" and (not fwrule_helpmsg[v.name] or fwrule_helpmsg[v.name] == "") then
+      if v.param ~= "enabled" and v.param ~= "name" and (not fwrule_helpmsg or not fwrule_helpmsg[v.name] or fwrule_helpmsg[v.name] == "") then
         fwrule_helpmsg[v.name]= duplicatedErrMsg
       end
     end
