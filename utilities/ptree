@@ -1,7 +1,9 @@
 #!/usr/bin/lua
 
 CHAR = string.char
+FIND = string.find
 FORMAT = string.format
+GMATCH = string.gmatch
 MATCH = string.match
 SUB = string.sub
 
@@ -67,15 +69,42 @@ if TOP then
   for _ = 1,4,1 do
     TOP:read("*l")
   end
-
+  local PIDS = {}
   for line in TOP:lines() do
     local pid,ppid,user,stat,vsz,vsz_pct,cpu_pct,command = MATCH(line,"^%s*(%d+)%s+(%d+)%s+(%S+)%s+(%S+)%s+([m%d]+)%s(%s*%d+%%)%s(%s*%d+%%)%s+(.+)$")
     if pid then
-      if not TREE[ppid] then
-        TREE[ppid] = {}
+      PIDS[#PIDS+1] = { pid = pid, ppid = ppid, user = user, stat = stat, vsz = vsz, vsz_pct = vsz_pct, cpu_pct = cpu_pct, command = command, }
+    end
+  end
+
+  local function getbasename(command)
+    local cmd,basename
+    local at = FIND(command,"lua",nil,true)
+    if at and SUB(command,at-1,at-1) == "." then
+      at = FIND(command,"lua",at+1,true)
+    end
+    if at and SUB(command,at-1,at-1) ~= "." then
+      cmd = MATCH(SUB(command,at+1),"lua%s+(%S+)")
+    else
+      cmd = MATCH(command,"^%s*(%S+)")
+    end
+    for v in GMATCH(cmd or command,"[^/%s]+") do
+      basename = v
+    end
+    return basename or command
+  end
+
+  table.sort(PIDS, function (a,b)
+    return getbasename(a.command) < getbasename(b.command)
+  end)
+
+  for _,p in ipairs(PIDS) do
+    if p.pid then
+      if not TREE[p.ppid] then
+        TREE[p.ppid] = {}
       end
-      TREE[ppid][#TREE[ppid]+1] = pid
-      PROCS[pid] = { pid = pid, ppid = ppid, user = user, stat = stat, vsz = vsz, vsz_pct = vsz_pct, cpu_pct = cpu_pct, command = command, }
+      TREE[p.ppid][#TREE[p.ppid]+1] = p.pid
+      PROCS[p.pid] = p
     end
   end
   TOP:close()
