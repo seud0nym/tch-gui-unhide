@@ -67,6 +67,9 @@ if not isBridgedMode then
     dns_config["uci_wwan_peerdns"] = "1"
   end
 end
+if not dns_config_helpmsg then
+  dns_config_helpmsg = {}
+end
 
 local custom_dns_columns = {
   {
@@ -354,6 +357,7 @@ ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
     end
     ngx.print('\
   </form>\
+  <script src="/js/modal-busy.js"></script>\
 </div>\
 '); ngx.print(ui_helper.createFooter()); ngx.print('\
 ');

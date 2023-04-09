@@ -21,6 +21,9 @@ local mapValid = {
   spoofip = vSII,
 }
 local content,content_helpmsg = post_helper.handleQuery(mapParams,mapValid)
+if not content_helpmsg then
+  content_helpmsg = {}
+end
 
 ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
 <div class="modal-body update">\
@@ -43,6 +46,7 @@ ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
       ngx.print('\
     </fieldset>\
   </form>\
+  <script src="/js/modal-busy.js"></script>\
 </div>\
 '); ngx.print(ui_helper.createFooter()); ngx.print('\
 ');

@@ -77,5 +77,6 @@ ngx.print(ui_helper.createHeader(T"DNS",true,true),'\
         ui_helper.createTable(rewrites_columns,rewrites_data,rewrites_options,nil,rewrites_helpmsg),'\
     </fieldset>\
   </form>\
+  <script src="/js/modal-busy.js"></script>\
 </div>\
 ',ui_helper.createFooter())

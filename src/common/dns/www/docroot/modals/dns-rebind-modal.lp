@@ -27,6 +27,9 @@ local mapValid = {
   localhost = vB,
 }
 local content,content_helpmsg = post_helper.handleQuery(mapParams,mapValid)
+if not content_helpmsg then
+  content_helpmsg = {}
+end
 
 local domains_columns = {
   {
@@ -88,6 +91,7 @@ ngx.print(ui_helper.createHeader(T"DNS",true,true),'\
         ui_helper.createSwitch(T"Rebind localhost<span class='icon-question-sign' title='Allows upstream 127.0.0.0/8 responses (required for DNS based blacklist services).'></span>","localhost",content["localhost"],enabled_visible_attr,content_helpmsg["localhost"]),
         ui_helper.createTable(domains_columns,domains_data,domains_options,enabled_visible_attr,domains_helpmsg),'\
     </fieldset>\
+    <script src="/js/modal-busy.js"></script>\
   </form>\
 </div>\
 ',ui_helper.createFooter())

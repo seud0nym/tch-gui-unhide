@@ -151,7 +151,7 @@ if dns_int then
               proxySet(dns_int.."name","Redirect-DNS")
               proxySet(path["Masquerade-DNS"].."dest_ip",new_dest_ipv4)
               proxySet(path["Masquerade-DNS"].."enabled",new_enabledv4)
-              if vSIDIP(new_dest_ipv4) then
+              if vSIDIP and vSIDIP(new_dest_ipv4) then
                 proxySet("rpc.gui.firewall.dns_intercept.add_exception",new_dest_ipv4)
               end
               dest_ipv4 = new_dest_ipv4
@@ -256,6 +256,9 @@ local mapValid = {
   verbose = vB
 }
 local content,vhelpmsg = post_helper.handleQuery(mapParams,mapValid)
+if not vhelpmsg then
+  vhelpmsg = {}
+end
 
 local ipv4cols,ipv4excdata,ipv4opts,ipv4exchelpmsg
 if dns_int and enabledv4 == "1" then
@@ -400,6 +403,7 @@ ngx.print(ui_helper.createHeader(T"DNS",true,false))   ngx.print('\
     end
     ngx.print('\
   </form>\
+  <script src="/js/modal-busy.js"></script>\
 </div>\
 ');
 if dns_int then
