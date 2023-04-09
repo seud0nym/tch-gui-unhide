@@ -3,19 +3,16 @@
 -- Localization
 gettext.textdomain('webui-core')
 
+local content_helper = require("web.content_helper")
 local leases_helper = require("static-leases_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
-local ui_helper = require("web.ui_helper")
-
-local ngx = ngx
-
-local content_helper = require("web.content_helper")
 local proxy = require("datamodel")
-
+local ui_helper = require("web.ui_helper")
 local dns_list = require('dns_servers_helper').all()
 local hosts_ac = require("web.uinetwork_helper").getAutocompleteHostsList()
 
+local ngx = ngx
 local ipairs,pairs,string = ipairs,pairs,string
 local tonumber = tonumber
 local match = string.match
@@ -278,30 +275,30 @@ local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
 ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
-   <div class="modal-body update">\
-   ');  lp.include("tabs-lan.lp"); ngx.print('\
-     <form class="form-horizontal" method="post" action="',ngx.var.request_uri,'">\
-     ',ui_helper.createMessages(message_helper.popMessages()),'\
-        <fieldset>\
-          <legend>',T"Static Leases",'</legend>\
-          ');
-          if inUseFlag == true then
-            local confilictipchange_alert = {
-              alert = {
-                  class = "alert",
-                  id = "confilictipchange-msg"
-              }
-            }
-            ngx.print(ui_helper.createAlertBlock(T"The latest added/modified static lease is set to an IP that is already in use! Please perform a reboot to apply the changes.",confilictipchange_alert))
-          end
-          ngx.print(ui_helper.createTable(sleases_columns,sleases_data,sleases_options,nil,sleases_helpmsg),'\
-        </fieldset>\
-        <fieldset>\
-          <legend>',T"Custom DHCP Options",'</legend>\
-          ',ui_helper.createTable(tags_columns,tags_data,tags_options,nil,tags_helpmsg),'\
-        </fieldset>\
-      </form>\
-      <script src="/js/modal-busy.js"></script>\
-    </div>\
+<div class="modal-body update">\
+'); lp.include("tabs-lan.lp"); ngx.print('\
+  <form class="form-horizontal" method="post" action="',ngx.var.request_uri,'">\
+  ',ui_helper.createMessages(message_helper.popMessages()),'\
+    <fieldset>\
+      <legend>',T"Static Leases",'</legend>\
+      ');
+      if inUseFlag == true then
+        local confilictipchange_alert = {
+          alert = {
+              class = "alert",
+              id = "confilictipchange-msg"
+          }
+        }
+        ngx.print(ui_helper.createAlertBlock(T"The latest added/modified static lease is set to an IP that is already in use! Please perform a reboot to apply the changes.",confilictipchange_alert))
+      end
+      ngx.print(ui_helper.createTable(sleases_columns,sleases_data,sleases_options,nil,sleases_helpmsg),'\
+    </fieldset>\
+    <fieldset>\
+      <legend>',T"Custom DHCP Options",'</legend>\
+      ',ui_helper.createTable(tags_columns,tags_data,tags_options,nil,tags_helpmsg),'\
+    </fieldset>\
+  </form>\
+  <script src="/js/modal-busy.js"></script>\
+</div>\
 <script src="/js/ethernet-modal.js"></script>\
 ',ui_helper.createFooter())
