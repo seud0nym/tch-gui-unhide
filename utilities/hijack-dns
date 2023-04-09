@@ -273,10 +273,10 @@ while getopts :4:6:d:x:rU-: option; do
     4)  case "${OPTARG}" in y|Y) IPv4="y";; n|N) IPv4="n";; *) echo 'WARNING: -4 valid options are y or n'; usage;; esac;;
     6)  case "${OPTARG}" in y|Y) IPv6="y";; n|N) IPv6="n";; *) echo 'WARNING: -6 valid options are y or n'; usage;; esac;;
     d)  IP_TYPE="$(echo "$OPTARG" | grep -Eo '\.|:' | head -n 1)"
-        if [ "$IP_TYPE" = "." -a "$(ip -4 route get $OPTARG 2>/dev/null | grep "dev \b[^ ]*\b" | wc -l)" -ne 0 ]; then
+        if [ "$IP_TYPE" = "." -a "$(ip -4 route get $OPTARG 2>/dev/null | grep 'dev \(br-lan\|lo\)' | wc -l)" -ne 0 ]; then
           IPv4_DNS="$OPTARG"
           ip -4 route get $IPv4_DNS | grep -q br-lan && IPv4_EXC="$(echo $IPv4_EXC $IPv4_DNS | xargs)"
-        elif [ "$IP_TYPE" = ":" -a "$(ip -6 route get $OPTARG 2>/dev/null | grep "dev \b[^ ]*\b" | wc -l)" -ne 0 ]; then
+        elif [ "$IP_TYPE" = ":" -a "$(ip -6 route get $OPTARG 2>/dev/null | grep 'dev \(br-lan\|lo\)' | wc -l)" -ne 0 ]; then
           IPv6_DNS="$OPTARG"
           ip -6 route get $IPv6_DNS | grep -q br-lan && IPv6_EXC="$(echo $IPv6_EXC $(lua -e "proxy=require('datamodel') hosts=proxy.getPN('rpc.hosts.host.',true) if not hosts then hosts=proxy.getPN('sys.hosts.host.',true) end for _,v in ipairs(hosts) do addresses=proxy.get(v.path..'IPv6') if addresses and addresses[1].value:find('$IPv6_DNS') then print(addresses[1].value) break end end") | xargs)"
         else
@@ -284,9 +284,9 @@ while getopts :4:6:d:x:rU-: option; do
           exit
         fi;;
     x)  IP_TYPE="$(echo "$OPTARG" | grep -Eo '\.|:' | head -n 1)"
-        if [ "$(echo $IP_TYPE | tr -s '.')" = "." -a "$(ip -4 route get $OPTARG 2>/dev/null | grep "br-lan" | wc -l)" -ne 0 ]; then
+        if [ "$(echo $IP_TYPE | tr -s '.')" = "." -a "$(ip -4 route get $OPTARG 2>/dev/null | grep 'dev \(br-lan\|lo\)' | wc -l)" -ne 0 ]; then
           IPv4_EXC="$(echo $IPv4_EXC $OPTARG | xargs)"
-        elif [ "$(echo $IP_TYPE | tr -s ':')" = ":" -a "$(ip -6 route get $OPTARG 2>/dev/null | grep "br-lan" | wc -l)" -ne 0 ]; then
+        elif [ "$(echo $IP_TYPE | tr -s ':')" = ":" -a "$(ip -6 route get $OPTARG 2>/dev/null | grep 'dev \(br-lan\|lo\)' | wc -l)" -ne 0 ]; then
           IPv6_EXC="$(echo $IPv6_EXC $OPTARG | xargs)"
         else
           echo -e "[$SCRIPT]${RED} ERROR! IP Address specified to be excluded ($OPTARG) is not a valid local IPv4 or IPv6 address${NC}"
@@ -340,7 +340,7 @@ if [ $STATUS = "y" ]; then
     local found_dest_ip=0
     local state
 
-    members_def="$(ipset list $name 2>/dev/null | grep -vE '^Nam|^Typ|^Rev|^Hea|^Siz|^Ref|^Mem' | wc -l)"
+    members_def="$(ipset list $name 2>/dev/null | sed -e '1,/^Members:/d' | wc -l)"
     [ "$val" = "1" ] && members_ref="$(ipset list $name 2>/dev/null | grep '^Ref' | cut -d' ' -f2)"
 
     [ "$intercepting" = "1" -a $members_ref -eq 0 ] && { status "IPset $name References" "${RED}NOT REFERENCED${NC}"; okay=n; }
@@ -349,11 +349,20 @@ if [ $STATUS = "y" ]; then
     if [ "$check_members_in_lan" = "y" ]; then
       for ip in $members; do
         [ "$target_ip_local" = 0 -a "$ip" = "$target_ip" ] && found_dest_ip=1
-        if ! ip route get $ip | grep -q br-lan; then
+        if ! ip route get $ip | grep -q 'dev \(br-lan\|lo\)'; then
           status "IPset $name Member $ip" "${ORANGE}NOT LAN IP${NC}"
         fi
       done
-      [ -n "$target_ip" -a "$target_ip_local" = 0 -a $found_dest_ip = 0 ] && { status "IPset $name" "${RED}$target_ip NOT EXCLUDED${NC}"; okay=n; }
+      if [ -n "$target_ip" -a "$target_ip_local" = 0 -a $found_dest_ip = 0 ]; then
+        if ip -o a | grep -q "\b${target_ip}/"; then
+          status "IPset $name" "${GREEN}$target_ip NOT FOUND (DEVICE IP = OK)${NC}"
+        else
+          status "IPset $name" "${RED}$target_ip NOT EXCLUDED${NC}"
+          okay=n
+        fi
+      else
+        status "IPset $name" "${GREEN}$target_ip FOUND${NC}"
+      fi
     fi
   }
 
@@ -376,7 +385,7 @@ if [ $STATUS = "y" ]; then
   if [ "$dns_intv4" = "1" ]; then
     cfg="firewall.dns_int.dest_ip"
     dest_ip="$(uci -q get $cfg)"
-    [ -n "$dest_ip" ] && { ip route get $dest_ip | grep -q br-lan; dest_lan="$?"; } || dest_lan="0"
+    [ -n "$dest_ip" ] && { ip route get $dest_ip | grep -q  'dev \(br-lan\|lo\)'; dest_lan="$?"; } || dest_lan="0"
     [ "$dest_lan" = "0" ] && { [ -n "$dest_ip" ] && state="${GREEN}${dest_ip}${NC}" || state="${GREEN}${VARIANT}${NC}"; } || state="${ORANGE}${dest_ip} (NOT LAN IP?)${NC}"
     status "IPv4 DNS Redirected to" "$state"
     
@@ -468,7 +477,7 @@ if [ $STATUS = "y" ]; then
   if [ "$dns_intv6" = "1" ]; then
     cfg="tproxy.dnsv6.destIP"
     dest_ipv6="$(uci -q get $cfg)"
-    [ -n "$dest_ipv6" ] && { ip route get $dest_ipv6 | grep -q br-lan; dest_lanv6="$?"; } || dest_lanv6="0"
+    [ -n "$dest_ipv6" ] && { ip route get $dest_ipv6 | grep -q 'dev \(br-lan\|lo\)'; dest_lanv6="$?"; } || dest_lanv6="0"
     [ "$dest_lanv6" = "0" ] && { [ -n "$dest_ipv6" ] && state="${GREEN}${dest_ipv6}${NC}" || state="${GREEN}${VARIANT}${NC}"; } || state="${ORANGE}${dest_ipv6} (NOT LAN IP?)${NC}"
     status "IPv6 DNS Redirected to" "$state"
   fi
