@@ -1,3 +1,9 @@
+if ! grep -q 'date -k' /etc/crontabs/root; then
+  echo -e "[$SCRIPT]: Fix kernel time zone when daylight saving changes"
+  echo "1 3 * 4,10 0 /bin/date -k" >> /etc/crontabs/root
+  SRV_cron=$(( $SRV_cron + 1 ))
+fi
+
 echo -e "[$SCRIPT]: Fix Time of Day tabs"
 sed \
   -e 's/T"Time of day access control"/T"Device Access"/' \
