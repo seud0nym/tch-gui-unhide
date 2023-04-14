@@ -194,6 +194,7 @@ function M.getTelephonyCardHTML(mmpbx_state)
       end
     else
       temp[#temp+1] = ui_helper.createSimpleLight("0",T"VoLTE unavailable")
+      showStats = false
     end
     temp[#temp+1] = '</span>'
     if showStats then
