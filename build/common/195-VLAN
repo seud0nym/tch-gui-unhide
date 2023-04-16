@@ -1,0 +1,6 @@
+echo -e "[$SCRIPT]: Add missing options to transformer mapping for network switch"
+sed \
+  -e 's/"device", *"vlan", *"ports"$/&, "_key",/' \
+  -e 's/"qosimppauseenable"$/&, "name",/' \
+  -i /usr/share/transformer/mappings/uci/network.map
+SRV_transformer=$(( $SRV_transformer + 2 ))

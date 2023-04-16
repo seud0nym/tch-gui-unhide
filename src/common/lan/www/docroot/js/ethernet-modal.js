@@ -74,3 +74,7 @@ $("#sleases>tbody>tr:not(.line-edit)>td:nth-child(1)").each(function(){
     msg.removeClass("hide");
   });
 }());
+$(document).on("click",'.modal input[name="lanport"]',function(){
+  $("#modal-no-change").fadeOut(300);
+  $("#modal-changes").delay(350).fadeIn(300);
+});
