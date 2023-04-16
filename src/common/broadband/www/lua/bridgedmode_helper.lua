@@ -142,7 +142,7 @@ end
 function M.configBridgedMode()
   local success,errors = proxy.set({
     ["uci.wansensing.global.enable"] = "0",
-    ["uci.network.interface.@lan.ifname"] = "eth0 eth1 eth2 eth3 eth4 wl0 wl0_1 wl1 wl1_1 atm_8_35 ptm0",
+    ["uci.network.interface.@lan.ifname"] = "eth0 eth1 eth2 eth3 eth4 atm_8_35 ptm0",
     ["uci.network.config.wan_mode"] = "bridge",
     ["uci.dhcp.dhcp.@lan.ignore"] = "1",
   })
