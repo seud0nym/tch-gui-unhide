@@ -4,7 +4,7 @@
 gettext.textdomain('webui-core')
 
 local content_helper = require("web.content_helper")
-local leases_helper = require("static-leases_helper")
+local leases_helper = require("ethernet-static-leases_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
