@@ -37,7 +37,7 @@ test_optimal() {
     OPTIMAL=$(( $OPTIMAL + 1 ))
     [ $QUIET = N ] && echo -e "${GREEN} OK${NC}"
   else
-    [ $QUIET = N ] && echo -e "${RED} !! [Should be ${expected}]${NC}"
+    [ $QUIET = N ] && echo -e "${UNEXPECTED_CLR} !! Should be ${expected} !!${NC}"
   fi
 }
 
@@ -46,21 +46,40 @@ handle_content() {
   local content="$2"
   [ $QUIET = N ] && printf "$FMT" "$config" "$content"
   if [ "$config" = "active" ]; then
-    test_optimal "$content" bank_1
+    test_optimal "$content" "$ACTIVE_OPTIMAL"
   elif [ "$config" = "booted" ]; then
-    test_optimal "$content" bank_2
+    test_optimal "$content" "$BOOTED_OPTIMAL"
   else
     [ $QUIET = N ] && echo
   fi
 }
 
+set_optimal_bank_plan() {
+  echo
+  if [ -e set-optimal-bank-plan ]; then
+    echo "Run the following command:"
+  else
+    echo "Download https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/set-optimal-bank-plan"
+    echo "and then run the following command:"
+  fi
+  echo
+  echo -e "${GREEN} sh set-optimal-bank-plan${NC}"
+  echo
+}
+
 if [ -d /proc/banktable ]; then
   BANKTABLE=Y
+  ACTIVE_OPTIMAL="bank_1"
+  BOOTED_OPTIMAL="bank_2"
+  UNEXPECTED_CLR="$RED"
   for f in $(find /proc/banktable -type f | sort); do
     handle_content "$(basename $f)" "$(cat $f)"
   done
 else
   BANKTABLE=N
+  ACTIVE_OPTIMAL="bank_2"
+  BOOTED_OPTIMAL="bank_2"
+  UNEXPECTED_CLR="$ORANGE"
   for f in active:partition:active activeversion:tchversion:active booted:partition:booted bootedversion:version:booted inactive:partition:passive notbooted:partition:notbooted notbootedversion:version:notbooted passiveversion:tchversion:passive; do
     set -- $(echo $f | tr ':' ' ')
     CONTENT=$(bootmgr $2 $3 2>/dev/null | grep -v rd_metadata)
@@ -68,7 +87,7 @@ else
     [ "$1" = activeversion -a -z "$CONTENT" ] && CONTENT=$(uci -q get env.var.friendly_sw_version_activebank)
     [ "$1" = passiveversion -a -z "$CONTENT" ] && CONTENT=$(uci -q get env.var.friendly_sw_version_passivebank)
     [ -z "$CONTENT" ] && CONTENT="Unknown"
-    [ $QUIET = N ] && printf "${FMT}\n" "$1" "$CONTENT"
+    handle_content "$1" "$CONTENT"
   done
 fi
 
@@ -88,12 +107,8 @@ if [ $OPTIMAL -eq 2 ]; then
 else
   if [ $QUIET = N ]; then
     if [ $BANKTABLE = Y ]; then
-      echo -e " !! Bank Plan is ${RED}NOT OPTIMAL${NC} !!\n"
-      echo
-      echo "Run the following command:"
-      echo
-      echo -e "${ORANGE}  ./set-optimal-bank-plan${NC}"
-      echo
+      echo -e " !! Current Bank Plan is ${RED}NOT OPTIMAL${NC} !!\n"
+      set_optimal_bank_plan
       echo "or manually follow the instructions at:"
       echo "https://hack-technicolor.readthedocs.io/en/stable/Hacking/PostRoot/#bank-planning"
       echo
@@ -106,7 +121,11 @@ else
       echo "      the optimal bank plan after re-acquiring root."
       echo
     else
-      echo -e " !! Optimal Bank Plan can ${RED}NOT${NC} be applied to this device !!\n"
+      echo -e " !! Current Bank Plan is ${ORANGE}SUB-OPTIMAL${NC} !!\n"
+      echo
+      echo "It is strongly recommended that you always boot from bank 2 on this device, and"
+      echo "keep a rootable firmware in bank 1 for updating the bank 2 firmware."
+      set_optimal_bank_plan
     fi
   fi
   exit 1
