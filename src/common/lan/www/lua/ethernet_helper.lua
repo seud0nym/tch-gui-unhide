@@ -173,19 +173,6 @@ function M.validateByPass(_,_,_)
     return true
 end
 
-function M.validateDHCPIgnore(value,object,_)
-  local valid,msg = gOV(value)
-  if not valid then
-    return nil,msg
-  end
-  if object["dhcpv4State"] == "server" then
-    if object["dhcpIgnore"] == "1" then
-      object["dhcpIgnore"] = "0"
-    end
-  end
-  return true
-end
-
 -- Validation is done for the dhcpLimit for the particular subnet
 -- If different subnet mask is given other than 255.255.255.0,then the
 -- DHCP Range limit has to be calculated from the new subnet and the validation

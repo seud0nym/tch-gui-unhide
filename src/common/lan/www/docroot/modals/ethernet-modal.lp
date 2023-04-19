@@ -92,6 +92,7 @@ local mapParams = {
   proto = "uci.network.interface.@"..cur_intf..".proto",
   ifnames = "uci.network.interface.@"..cur_intf..".ifname",
   type = "uci.network.interface.@"..cur_intf..".type",
+  auto = "uci.network.interface.@"..cur_intf..".auto",
 }
 
 local function validateDNSv6(value,object,key)
@@ -285,7 +286,7 @@ local function validateType(value)
 end
 
 local mapValid = {
-  dhcpIgnore = ethernet_helper.validateDHCPIgnore,
+  dhcpIgnore = vB,
   dhcpLimit = ethernet_helper.validateDHCPLimit(cur_intf,cur_dhcp_intf,local_dev_ip),
   dhcplog = gOV(vB),
   dhcpquiet = gOV(vB),
@@ -309,6 +310,7 @@ local mapValid = {
   slaacState = ethernet_helper.validateDHCPState(),
   ifnames = validateInterfaceNames,
   type = validateType,
+  auto = vB,
 }
 
 if isBridgedMode and cur_intf == "lan" then
@@ -348,6 +350,10 @@ end
 
 local content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
 if not helpmsg then helpmsg = {} end
+
+if not content["auto"] or content["auto"] == "" then
+  content["auto"] = "1"
+end
 
 local function proxySet(p,v)
   local success,errors = proxy.set(p,v)
@@ -647,6 +653,13 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             input = { class = "span2" },
           }
           --endregion attributes
+          if cur_intf == "lan" then
+            ngx.print(ui_helper.createLabel(T"IPv4 Enabled on Boot",(content.auto == "1" and "On" or "Off"),switch_class_enable))
+            ngx.print(ui_helper.createSimpleInputHidden("auto",content["auto"]))
+          else
+            ngx.print(ui_helper.createSwitch(T"IPv4 Enabled on Boot","auto",content["auto"],switch_class_enable))
+          end
+          ngx.print([[<div class="monitor-auto monitor-1 monitor-hidden-auto">]])
           if isBridgedMode and cur_intf == "lan" then
             local cur_ip = proxy.get("rpc.network.interface.@lan.ipaddr","rpc.network.interface.@lan.ipmask","rpc.network.interface.@lan.nexthop")
             --region attributes
@@ -674,8 +687,9 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
           else
             ngx.print(ui_helper.createInputText(T"Local Domain Name","localdomain",content["localdomain"],advanced,helpmsg["localdomain"]))
           end
+          ngx.print([[</div>]])
 
-          ngx.print(ui_helper.createSwitch(T"IPv6 State","localIPv6",content["localIPv6"],switch_class_enable))
+          ngx.print(ui_helper.createSwitch(T"IPv6 Enabled on Boot","localIPv6",content["localIPv6"],switch_class_enable))
           if content["localIPv6"] == "1" then
             local ipv6addr
             if cur_intf == "lan" then
