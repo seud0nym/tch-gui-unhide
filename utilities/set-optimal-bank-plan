@@ -6,8 +6,12 @@ if [ "o$1" = "o-?" ]; then
 cat <<EOH
 Sets the optimal bank plan.
 
-Effectively the same as the procedure described in
+For devices with /proc/banktable, it is effectively the same as
 https://hack-technicolor.rtfd.io/en/stable/Hacking/PostRoot/#bank-planning.
+
+For devices that use bootmgr and ubi filesystems, the device will be set
+to boot the current firmware from bank 2, but the firmware in bank 1 will
+be retained.
 
 Usage: $0
 
@@ -20,96 +24,186 @@ ORANGE='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${ORANGE}Ensuring the banks match in size...${NC}"
-BANK_COUNT=$(grep -c bank_ /proc/mtd)
-if [ $BANK_COUNT -ne 2 ]; then
-  echo -e "${RED}==> ABORTING: Unexpected bank count - Expected 2 but found ${BANK_COUNT}!${NC}"
-  exit 2
-fi
-
-BANK1_SIZE="$(grep bank_1 /proc/mtd | cut -d' ' -f2)"
-BANK2_SIZE="$(grep bank_2 /proc/mtd | cut -d' ' -f2)"
-if [ "$BANK1_SIZE" != "$BANK2_SIZE" ]; then
-  echo -e "${RED}==> ABORTING: Bank 1 and Bank 2 are different sizes??${NC}"
-  echo " - Bank 1 = $BANK1_SIZE"
-  echo " - Bank 2 = $BANK2_SIZE"
-  exit 2
-else
-  echo -e "${GREEN}==> OKAY: Bank 1 = ${BANK1_SIZE} Bank 2 = ${BANK2_SIZE}${NC}"
-fi
+[ -d /proc/banktable ] && BANKTABLE=Y || BANKTABLE=N
 
 echo -e "${ORANGE}Checking active and booted banks...${NC}"
-ACTIVE="$(cat /proc/banktable/active 2>/dev/null)"
-BOOTED="$(cat /proc/banktable/booted 2>/dev/null)"
+if [ $BANKTABLE = Y ]; then
+  ACTIVE="$(cat /proc/banktable/active 2>/dev/null | cut -d_ -f2)"
+  BOOTED="$(cat /proc/banktable/booted 2>/dev/null | cut -d_ -f2)"
+else
+  ACTIVE="$(bootmgr partition active 2>/dev/null | grep -v rd_metadata)"
+  BOOTED="$(bootmgr partition booted 2>/dev/null | grep -v rd_metadata)"
+fi
 if [ -z "$ACTIVE" -o -z "$BOOTED" ]; then
   echo -e "${RED}==> ABORTING: Cannot determine active or booted bank!!${NC}"
   exit 2
-elif [ "$ACTIVE" = "bank_1" -a "$BOOTED" = "bank_2" ]; then
+elif [ \( "$ACTIVE" = "1" -o $BANKTABLE = N \) -a "$BOOTED" = "2" ]; then
+  echo -e "${GREEN}==> OKAY: Active = bank ${ACTIVE} Booted = bank ${BOOTED}${NC}"
   echo -e "${GREEN}==> EXITING: Bank Plan is already OPTIMAL!!${NC}"
   exit
 else
-  echo -e "${GREEN}==> OKAY: Active = ${ACTIVE} Booted = ${BOOTED}${NC}"
+  echo -e "${ORANGE}==> SUB-OPTIMAL: Active = bank ${ACTIVE} Booted = bank ${BOOTED}${NC}"
 fi
 
 echo -e "${ORANGE}Checking firmware versions...${NC}"
-ACTIVE_VERSION="$(cat /proc/banktable/activeversion 2>/dev/null)"
-PASSIVE_VERSION="$(cat /proc/banktable/passiveversion 2>/dev/null)"
-[ -z "$ACTIVE_VERSION" ] && ACTIVE_VERSION=$(uci get env.var.friendly_sw_version_activebank)
-[ -z "$PASSIVE_VERSION" ] && PASSIVE_VERSION=$(uci get env.var.friendly_sw_version_passivebank)
+if [ $BANKTABLE = Y ]; then
+  ACTIVE_VERSION="$(cat /proc/banktable/activeversion 2>/dev/null)"
+  PASSIVE_VERSION="$(cat /proc/banktable/passiveversion 2>/dev/null)"
+fi
+[ -z "$ACTIVE_VERSION" ] && ACTIVE_VERSION=$(uci -q get env.var.friendly_sw_version_activebank)
+[ -z "$PASSIVE_VERSION" ] && PASSIVE_VERSION=$(uci -q get env.var.friendly_sw_version_passivebank)
 
-if [ "$BOOTED" = "bank_2" -a "$ACTIVE_VERSION" = "Unknown" ]; then
-  echo -e "${RED}==> ABORTING: Firmware version in bank_1 is Unknown!!${NC}"
+if [ "$BOOTED" = "2" -a \( -z "$ACTIVE_VERSION" -o "$ACTIVE_VERSION" = "Unknown" \) ]; then
+  echo -e "${RED}==> ABORTING: Firmware version in bank 1 is Unknown!!${NC}"
   exit 2
 else
   echo -e "${GREEN}==> Active  = ${ACTIVE_VERSION}${NC}"
   echo -e "${GREEN}==> Passive = ${PASSIVE_VERSION}${NC}"
 fi
 
+echo -e "${ORANGE}Ensuring the banks match in size...${NC}"
+if [ $BANKTABLE = Y ]; then
+  BANK_COUNT=$(grep -c bank_ /proc/mtd)
+  if [ $BANK_COUNT -ne 2 ]; then
+    echo -e "${RED}==> ABORTING: Unexpected bank count - Expected 2 but found ${BANK_COUNT}!${NC}"
+    exit 2
+  fi
+  BANK1_SIZE="$(grep bank_1 /proc/mtd | cut -d' ' -f2)"
+  BANK2_SIZE="$(grep bank_2 /proc/mtd | cut -d' ' -f2)"
+  if [ "$BANK1_SIZE" != "$BANK2_SIZE" ]; then
+    echo -e "${RED}==> ABORTING: Bank 1 and Bank 2 are different sizes??${NC}"
+    echo " - Bank 1 = $BANK1_SIZE"
+    echo " - Bank 2 = $BANK2_SIZE"
+    exit 2
+  else
+    echo -e "${GREEN}==> OKAY: Bank 1 = ${BANK1_SIZE} Bank 2 = ${BANK2_SIZE}${NC}"
+  fi
+else
+  ROOTFS1_SIZE="$(grep '"rootfs1"' /proc/mtd | cut -d' ' -f2)"
+  ROOTFS2_SIZE="$(grep '"rootfs2"' /proc/mtd | cut -d' ' -f2)"
+  if [ "$ROOTFS1_SIZE" != "$ROOTFS2_SIZE" ]; then
+    echo -e "${RED}==> ABORTING: Bank 1 and Bank 2 root partitions are different sizes??${NC}"
+    echo " - rootfs1 = $ROOTFS1_SIZE"
+    echo " - rootfs2 = $ROOTFS2_SIZE"
+    exit 2
+  else
+    echo -e "${GREEN}==> OKAY: [ROOT] Bank 1 = ${ROOTFS1_SIZE} Bank 2 = ${ROOTFS2_SIZE}${NC}"
+  fi
+fi
+
+if [ $BANKTABLE = N ]; then
+  rm -f /tmp/ubi*
+  sync
+  TMP_AVAIL_BYTES=$(( $(df -k /tmp | tail -n1 | tr -s ' ' | cut -d' ' -f4) * 1024 ))
+  ROOTFS1_BYTES=$(printf "%d" 0x$ROOTFS1_SIZE)
+  if [ $TMP_AVAIL_BYTES -lt $ROOTFS1_BYTES ]; then
+    echo -e "${RED}==> ABORTING: Insufficient /tmp space to copy root partition${NC}"
+    echo " - rootfs1 = $ROOTFS1_BYTES bytes"
+    echo " - /tmp    = $TMP_AVAIL_BYTES bytes"
+    exit 2
+  fi
+fi
+
+clone_dev() {
+  local source="/dev/$1"
+  local tmpimg="/tmp/$1"
+  local target="/dev/$2"
+  local dd_err=$(mktemp)
+  local abort=n
+
+  echo -e "${ORANGE}Imaging bank 1 $3 partition into $tmpimg...${NC}"
+  if dd if=$source bs=1M 2>$dd_err >$tmpimg; then
+    echo -e "${ORANGE}Copying $tmpimg into bank 2 $3 partition...${NC}"
+    if ! ubiupdatevol $target $tmpimg; then
+      abort=y
+      echo -e "${RED}==> ABORTING: Update of $target failed!${NC}"
+    fi
+  else
+    abort=y
+    cat $dd_err
+    echo -e "${RED}==> ABORTING: Imaging of $source failed!${NC}"
+  fi
+  rm -f $tmpimg $dd_err
+  if [ $abort = y ]; then
+    exit 2
+  fi
+}
+
 echo -n "Enter y to attempt to set the optimal bank plan, or anything else to exit now: "
 read
 if [ "$REPLY" = "y" -o "$REPLY" = "Y" ]; then
-  if [ "$BOOTED" = "bank_1" ]; then
-    echo -e "${ORANGE}Copying bank_1 firmware into bank_2...${NC}"
-    mtd -e bank_2 write /dev/$(grep bank_1 /proc/mtd | cut -d: -f1) bank_2
-    echo -e "${ORANGE}Verifying firmware copy...${NC}"
-    HASHES=$(sha256sum $(grep bank_ /proc/mtd | cut -d: -f1 | xargs -n1 echo /dev | tr ' ' '/'))
-    if [ $(echo "$HASHES" | cut -d' ' -f1 | sort -u | wc -l) -eq 1 ]; then
+  if [ "$BOOTED" = "1" ]; then
+    REBOOT=Y
+    SUCCESS_COUNT=-1
+    if [ $BANKTABLE = Y ]; then
+      SUCCESS_COUNT=1
+      echo -e "${ORANGE}Copying bank 1 firmware into bank 2...${NC}"
+      mtd -e bank_2 write /dev/$(grep bank_1 /proc/mtd | cut -d: -f1) bank_2
+      echo -e "${ORANGE}Verifying firmware copy...${NC}"
+      HASHES=$(sha256sum $(grep bank_ /proc/mtd | cut -d: -f1 | xargs -n1 echo /dev | tr ' ' '/'))
+    elif [ $BANKTABLE = N ]; then
+      SUCCESS_COUNT=2
+      BOOTFS1_DEV="ubi0_$(ubinfo -d 0 -N bootfs1 | grep "Volume ID" | tr -s ' ' | cut -d' ' -f3)"
+      BOOTFS2_DEV="ubi0_$(ubinfo -d 0 -N bootfs2 | grep "Volume ID" | tr -s ' ' | cut -d' ' -f3)"
+      ROOTFS1_DEV="ubi0_$(ubinfo -d 0 -N rootfs1 | grep "Volume ID" | tr -s ' ' | cut -d' ' -f3)"
+      ROOTFS2_DEV="ubi0_$(ubinfo -d 0 -N rootfs2 | grep "Volume ID" | tr -s ' ' | cut -d' ' -f3)"
+      clone_dev $BOOTFS1_DEV $BOOTFS2_DEV boot
+      clone_dev $ROOTFS1_DEV $ROOTFS2_DEV root
+      echo -e "${ORANGE}Verifying firmware copy...${NC}"
+      HASHES=$(sha256sum /dev/$BOOTFS1_DEV /dev/$BOOTFS2_DEV /dev/$ROOTFS1_DEV /dev/$ROOTFS2_DEV)
+    fi
+    if [ $(echo "$HASHES" | cut -d' ' -f1 | sort -u | wc -l) -eq $SUCCESS_COUNT ]; then
       echo -e "${GREEN}==> Copy successful!${NC}"
-      ACTIVE_VERSION="$(cat /proc/banktable/activeversion 2>/dev/null)"
-      PASSIVE_VERSION="$(cat /proc/banktable/passiveversion 2>/dev/null)"
-      [ -z "$ACTIVE_VERSION" ] && ACTIVE_VERSION=$(uci get env.var.friendly_sw_version_activebank)
-      [ -z "$PASSIVE_VERSION" ] && PASSIVE_VERSION=$(uci get env.var.friendly_sw_version_passivebank)
-      echo -e "${GREEN}==> Active  = ${ACTIVE_VERSION}${NC}"
-      echo -e "${GREEN}==> Passive = ${PASSIVE_VERSION}${NC}"
-      echo -e "${ORANGE}Making a temporary copy of the overlay for the booted firmware...${NC}"
-      cp -rf /overlay/$(cat /proc/banktable/booted) /tmp/bank_overlay_backup
-      echo -e "${ORANGE}Cleaning up jffs2 space by removing any existing old overlays...${NC}"
+      echo -e "${ORANGE}Making a temporary copy of the bank 1 overlay for the booted firmware...${NC}"
+      tar -czf /tmp/bank_overlay_backup -C /overlay/bank_1 .
+      echo -e "${ORANGE}Cleaning up space by removing any existing old overlays...${NC}"
       rm -rf /overlay/*
-      echo -e "${ORANGE}Using the previously made temp copy as overlay for bank_2...${NC}"
-      cp -rf /tmp/bank_overlay_backup /overlay/bank_2
+      echo -e "${ORANGE}Using the previously made temp copy as overlay for bank 2...${NC}"
+      mkdir -p /overlay/bank_2
+      tar -xzf /tmp/bank_overlay_backup -C /overlay/bank_2 
     else
       echo -e "${RED}==> ABORTING: Verification of bank copy FAILED!${NC}"
       echo "$HASHES"
       exit 2
     fi
   else
-    echo -e "${GREEN}==> Already booted from bank_2 - Firmware copy ${ORANGE}NOT REQUIRED${NC}"
-    echo -e "${ORANGE}Cleaning up jffs2 space by removing any existing old bank_1 overlay...${NC}"
+    REBOOT=N
+    echo -e "${GREEN}==> Already booted from bank 2 - Firmware copy ${ORANGE}NOT REQUIRED${NC}"
+    echo -e "${ORANGE}Cleaning up space by removing any existing old bank 1 overlay...${NC}"
     rm -rf /overlay/bank_1
   fi
-  echo -e "${ORANGE}Activating bank_1...${NC}"
-  echo bank_1 > /proc/banktable/active
+
+  if [ $BANKTABLE = Y ]; then
+    echo -e "${ORANGE}Activating bank 1...${NC}"
+    echo bank_1 > /proc/banktable/active
+    echo -e "${ORANGE}Erasing firmware in bank_1...${NC}"
+    mtd erase bank_1
+  else
+    echo -e "${ORANGE}Switching to bank 2...${NC}"
+    bootmgr switch_over 2
+  fi
+
   echo -e "${ORANGE}Making sure changes are synced to flash memory...${NC}"
   sync
-  echo -e "${ORANGE}Erasing firmware in bank_1...${NC}"
-  mtd erase bank_1
-  echo -e "${GREEN}"
-  echo "################################################"
-  echo "# Operation Complete.                          #"
-  echo "#                                              #"
-  echo "# About to emulate system crash to hard reboot #"
-  echo "# for the new bank plan to take effect!        #"
-  echo "################################################"
-  echo -e "${NC}"
-  echo c > /proc/sysrq-trigger;
+  
+  if [ $REBOOT = Y ]; then
+    echo -e "${GREEN}"
+    echo "################################################"
+    echo "# Operation Complete.                          #"
+    echo "#                                              #"
+    if [ -e /proc/sysrq-trigger ]; then
+      echo "# About to emulate system crash to hard reboot #"
+      echo "# for the new bank plan to take effect!        #"
+      echo "################################################"
+      echo -e "${NC}"
+      echo c > /proc/sysrq-trigger;
+    else
+      echo "# Rebooting to apply new bank plan!            #"
+      echo "################################################"
+      echo -e "${NC}"
+      reboot
+    fi
+  else
+    echo -e "${GREEN}Done! No reboot required...${NC}"
+  fi
 fi
