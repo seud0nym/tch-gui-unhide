@@ -46,7 +46,7 @@ for major in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
     17.2)   exclude="dumaos";;
     18.1.c) exclude="transformer-cli";;
     20.3.c) exclude="transformer-cli";;
-    20.4)   exclude="set-optimal-bank-plan transformer-cli unpack-rbi";;
+    20.4)   exclude="move-lan-port-to-own-network transformer-cli unpack-rbi";;
     *)      exclude=""
   esac
   utils="$utilities"

@@ -9,7 +9,7 @@ local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local vlan_helper = require("ethernet-vlan_helper")
 
--- cpu_port and untagged_flag are updated by 195-VLAN
+-- cpu_port and untagged_flag are updated by 165-VLAN
 local cpu_port = "8t"
 local untagged_flag = "*"
 

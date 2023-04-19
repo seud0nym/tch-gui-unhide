@@ -1,0 +1,20 @@
+echo -e "[$SCRIPT]: Fixing VLAN CPU port and untagged indicator"
+sed \
+  -e 's/^local cpu_port = "8t"/local cpu_port = "5t"/' \
+  -e 's/^local untagged_flag = "\*"/local untagged_flag = ""/' \
+  -i /www/docroot/modals/ethernet-vlan-modal.lp
+
+echo -e "[$SCRIPT]: Removing VLAN configuration modal"
+sed -e '/ethernet-vlan-modal/d' -i /www/snippets/tabs-lan.lp
+
+echo -e "[$SCRIPT]: Removing VLAN status from LAN card"
+sed \
+  -e '/^local vlan/,/content_helper/d' \
+  -e '/if vlan.enabled/,/end/d' \
+  -e 's/max_show = 2/max_show = 3/' \
+  -e 's/max_show = 5/max_show = 6/' \
+  -i /www/cards/005_LAN.lp
+
+echo -e "[$SCRIPT]: Removing VLAN warning from LAN modal"
+sed -e '/if cur_intf ~= "lan" and unused > 0 then/,/end/d' -i /www/docroot/modals/ethernet-modal.lp
+

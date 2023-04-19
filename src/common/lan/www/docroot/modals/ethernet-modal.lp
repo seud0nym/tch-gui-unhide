@@ -819,7 +819,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             end
             ngx.print('\
           </table>')
-          if cur_intf ~= "lan" and unused > 0 then
+          if cur_intf ~= "lan" and unused > 0 then -- Removed in 20.4 by 165-VLAN
             ngx.print(ui_helper.createAlertBlock(T("You should enable VLANs to assign LAN ports to other interfaces!"),warn_attr))
           end
           --endregion LAN Ports
