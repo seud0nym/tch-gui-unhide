@@ -225,10 +225,9 @@ Moves a LAN port from the LAN bridge to its own network.
 Usage: ./move-lan-port-to-own-network [options]
 
 Options:
- -p 2|3|4     Specifies the LAN port to be moved to its own network. Use of LAN
-                port 1 is not supported. When used in conjunction with -R, 
-                specifies the port to be moved back to the LAN bridge. If not 
-                specified, defaults to '4'.
+ -p 1|2|3|4   Specifies the LAN port to be moved to its own network. When used
+                in conjunction with -R, specifies the port to be moved back to
+                the LAN bridge. If not specified, defaults to '4'.
  -n name      The interface name of the network. This is the name that will 
                 appear in the Local Network screen to manage the network. If not
                 specified, defaults to 'lan'+port number.
@@ -255,7 +254,7 @@ Options:
  -r           Skip reboot (NOT recommended!)
  -v           Show verbose messages
  -y           Bypass the confirmation prompt (answers "y")
- -U           Download the latest version of $SCRIPT from GitHub
+ -U           Download the latest version of move-lan-port-to-own-network from GitHub
 ```
 
 ## mtd-backup

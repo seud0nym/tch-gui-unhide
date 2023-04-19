@@ -5,6 +5,11 @@ if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]; then
   exit 1
 fi
 
+if [ ! -e /usr/bin/mdkshell ]; then
+  echo "ERROR! VLAN support missing. Exiting"
+  exit 1
+fi
+
 SCRIPT="$(basename $0)"
 SCRIPT_PATH="$(cd $(dirname $0); pwd)"
 
@@ -21,10 +26,9 @@ Moves a LAN port from the LAN bridge to its own network.
 Usage: $0 [options]
 
 Options:
- -p 2|3|4     Specifies the LAN port to be moved to its own network. Use of LAN
-                port 1 is not supported. When used in conjunction with -R, 
-                specifies the port to be moved back to the LAN bridge. If not 
-                specified, defaults to '4'.
+ -p 1|2|3|4   Specifies the LAN port to be moved to its own network. When used
+                in conjunction with -R, specifies the port to be moved back to
+                the LAN bridge. If not specified, defaults to '4'.
  -n name      The interface name of the network. This is the name that will 
                 appear in the Local Network screen to manage the network. If not
                 specified, defaults to 'lan'+port number.
@@ -219,7 +223,7 @@ check_restore() {
   __NAME=""
   for name in $(uci -q show network | grep '=interface' | cut -d= -f1); do
     ifname="$(uci -q get ${name}.ifname)"
-    if [ "$ifname" = "${__IF_NAME}" -o "$ifname" = "${__IF_NAME}_10${__LOGICAL_PORT}" ]; then
+    if [ "$ifname" = "${__IF_NAME}" -o "$ifname" = "${__IF_NAME}_10${__LOGICAL_PORT}" -o "$ifname" = "vlan_${__IF_NAME}_10${__LOGICAL_PORT}" ]; then
       __NAME="$(echo $name | cut -d. -f2)"
       break
     fi
@@ -231,14 +235,6 @@ check_restore() {
   #[ -z "$__ZONE" ] && abort "No firewall zone found containing ${ORANGE}${__NAME}${NC} network"
   __CLASSGROUP="TO_LAN"
   return 0
-}
-
-remove_vlans() {
-  local vlan="$(uci -q show network | grep -m1 '=switch_vlan' | cut -d= -f1)"
-  while [ -n "$vlan" ]; do
-    exec_uci delete $vlan
-    vlan="$(uci -q show network | grep -m1 '=switch_vlan' | cut -d= -f1)"
-  done
 }
 
 __PHYSICAL_PORT="3"
@@ -257,6 +253,25 @@ __VERBOSE="-q"
 __YES="n"
 __REBOOT="y"
 __RESTORE="n"
+
+__CPU_PORT="8t"
+__UNTAGGED="*"
+__DEFAULT_VLAN_STATE="0"
+
+if [ ! -e /usr/bin/mdkshell ]; then
+  __CPU_PORT="5t"
+  __UNTAGGED=""
+  __DEFAULT_VLAN_STATE="1"
+fi
+
+remove_vlans() {
+  echo -e "INFO:     Removing VLANs..."
+  local vlan="$(uci -q show network | grep -m1 "network.@switch_vlan\[[0-9]*\].device='bcmsw_ext'" | cut -d. -f1-2)"
+  while [ -n "$vlan" ]; do
+    exec_uci delete $vlan
+    vlan="$(uci -q show network | grep -m1 "network.@switch_vlan\[[0-9]*\].device='bcmsw_ext'" | cut -d. -f1-2)"
+  done
+}
 
 save_config() {
   if [ -z "$__VERBOSE" ]; then
@@ -289,7 +304,7 @@ while getopts :6:d:f:h:i:m:n:p:rvyRU option; do
   n)  check_network "${OPTARG}" && __NAME="${OPTARG}";;
   p)  [ $__RESTORE = n ] || abort "The -p option must be specified BEFORE -R!"
       case "${OPTARG}" in
-        2|3|4) __LOGICAL_PORT="${OPTARG}"; __PHYSICAL_PORT="$(( $__LOGICAL_PORT - 1 ))";  __IF_NAME="eth$__PHYSICAL_PORT";;
+        1|2|3|4) __LOGICAL_PORT="${OPTARG}"; __PHYSICAL_PORT="$(( $__LOGICAL_PORT - 1 ))";  __IF_NAME="eth$__PHYSICAL_PORT";;
         *) usage "-p" "${OPTARG}";;
       esac
       check_interface "lan$__LOGICAL_PORT" "$__IF_NAME";;
@@ -317,7 +332,7 @@ if [ $__RESTORE = y ]; then
     done
   fi
 else
-  uci get network.lan.ifname | grep -q "\b${__IF_NAME}\b" || abort "LAN network does not contain ${ORANGE}Port $__LOGICAL_PORT${NC} (${__IF_NAME})"
+  uci get network.lan.ifname | grep -q "\b\(vlan_\)*${__IF_NAME}\([_0-9]*\)\b" || abort "LAN network does not contain ${ORANGE}Port $__LOGICAL_PORT${NC} (${__IF_NAME})"
   echo -e "NOTE:     LAN Port to be moved:        ${GREEN}$__LOGICAL_PORT${NC} ($__IF_NAME)"
   echo -e "NOTE:     New Network Name:            ${GREEN}$__NAME${NC}"
   if [ "{$__ZONE}" = "{-1}" ]; then
@@ -363,19 +378,20 @@ if [ $__RESTORE = y ]; then
     exec_uci set network.lan.ifname='eth0 eth1 eth2 eth3'
 
     echo -e "INFO:     Removing switch configuration..."
-    exec_uci delete network.bcmsw_ext
+    switch="$(uci show network | grep "\.name='bcmsw_ext'" | cut -d. -f2)"
+    exec_uci delete network.$switch
 
     echo -e "INFO:     Removing switch devices..."
     for v in 1 10$__LOGICAL_PORT; do
       for p in 0 1 2 3; do
-        exec_uci delete network.eth${p}_${v}
+        [ "$(uci -q get network.eth${p}_${v})" = "device" ] && exec_uci delete network.eth${p}_${v}
+        [ "$(uci -q get network.vlan_eth${p}_${v})" = "device" ] && exec_uci delete network.vlan_eth${p}_${v}
       done
     done
 
-    echo -e "INFO:     Removing VLANs..."
     remove_vlans
   else
-    exec_uci set network.lan.ifname="$(uci get network.lan.ifname | xargs echo "${__IF_NAME}_1" | tr ' ' "\n" | sort -u | xargs)"
+    exec_uci set network.lan.ifname="$(uci get network.lan.ifname | xargs echo "vlan_${__IF_NAME}_1" | tr ' ' "\n" | sort -u | xargs)"
   fi
 
   if [ -e /etc/config/multiap ]; then
@@ -398,6 +414,15 @@ if [ $__RESTORE = y ]; then
   echo -e "INFO:     Deleting DHCP instance..."
   exec_uci delete dhcp.${__NAME}_private
   
+  echo -e "INFO:     Restoring QoS settings..."
+  if [ "$(uci -q get qos.${__IF_NAME})" = "device" ]; then
+    exec_uci set qos.${__IF_NAME}.classgroup="$__CLASSGROUP"
+  elif [ "$(uci -q get qos_tch.${__IF_NAME})" = "device" ]; then
+    exec_uci set qos_tch.${__IF_NAME}.classgroup="$__CLASSGROUP"
+  else
+    echo -e "${ORANGE}WARNING${NC}:  Unable to restore QoS settings??"
+  fi
+
   if [ -n "$__ZONE" ]; then
     for z in $__ZONE; do
       if [ "$(uci -q get firewall.@zone[$z].network | wc -w)" = 1 ]; then
@@ -419,42 +444,52 @@ if [ $__RESTORE = y ]; then
   echo -e "INFO:     Removing network ${ORANGE}${__NAME}${NC} from parental controls LAN interfaces..."
   exec_uci del_list parental.general.lan_intf="${__NAME}"
 else
-  if [ "$(uci -q show network | grep '=switch$' | wc -l)" -lt 2 ]; then
+  if [ -z "$(uci -q get network.bcmsw_ext)" ]; then
     echo -e "INFO:     Creating switch configuration..."
     exec_uci set network.bcmsw_ext=switch
     exec_uci set network.bcmsw_ext.name='bcmsw_ext'
-    exec_uci set network.bcmsw_ext.reset='1'
-    exec_uci set network.bcmsw_ext.enable_vlan='1'
     exec_uci set network.bcmsw_ext.unit='1'
     exec_uci set network.bcmsw_ext.type='bcmsw'
     exec_uci set network.bcmsw_ext.qosimppauseenable='0'
     exec_uci set network.bcmsw_ext.jumbo='0'
+  else
+    echo -e "INFO:     Updating switch configuration..."
+  fi
+  exec_uci set network.bcmsw_ext.reset='1'
+  exec_uci set network.bcmsw_ext.enable_vlan='1'
 
-    echo -e "INFO:     Creating switch devices..."
-    for v in 1 10$__LOGICAL_PORT; do
-      for p in 0 1 2 3; do
-        exec_uci set network.eth${p}_${v}=device
-        exec_uci set network.eth${p}_${v}.type="8021q"
-        exec_uci set network.eth${p}_${v}.name="eth${p}_${v}"
-        exec_uci set network.eth${p}_${v}.ifname="eth${p}"
-        exec_uci set network.eth${p}_${v}.vid="${v}"
-      done
+  echo -e "INFO:     Creating switch devices..."
+  for v in 1 10$__LOGICAL_PORT; do
+    for p in 0 1 2 3; do
+      [ "$(uci -q get network.eth${p}_${v})" = "device" ] && exec_uci delete network.eth${p}_${v}
+      if ! uci -q get network.vlan_eth${p}_${v} > /dev/null; then
+        exec_uci set network.vlan_eth${p}_${v}=device
+        exec_uci set network.vlan_eth${p}_${v}.type="8021q"
+        exec_uci set network.vlan_eth${p}_${v}.name="vlan_eth${p}_${v}"
+        exec_uci set network.vlan_eth${p}_${v}.ifname="eth${p}"
+        exec_uci set network.vlan_eth${p}_${v}.vid="${v}"
+      fi
     done
+  done
 
-    remove_vlans
+  remove_vlans
 
+  switch_vlan="$(uci show network | grep "\.vlan='1'" | cut -d. -f2)"
+  if [ -z "$switch_vlan" ]; then
     echo -e "INFO:     Creating VLAN ID 1 (LAN)..."
     switch_vlan=$(uci add network switch_vlan)
-    exec_uci set network.${switch_vlan}.device='bcmsw_ext'
+    exec_uci set network.${switch_vlan}.device="bcmsw_ext"
     exec_uci set network.${switch_vlan}.vlan='1'
-    exec_uci set network.${switch_vlan}.ports="$(echo '0* 1* 2* 3* 8t' | sed -e "s/$__PHYSICAL_PORT\* //")"
-
-    echo -e "INFO:     Creating VLAN ID 10${__LOGICAL_PORT} (${__IF_NAME}_10${__LOGICAL_PORT})..."
-    switch_vlan=$(uci add network switch_vlan)
-    exec_uci set network.${switch_vlan}.device='bcmsw_ext'
-    exec_uci set network.${switch_vlan}.vlan="10${__LOGICAL_PORT}"
-    exec_uci set network.${switch_vlan}.ports="${__PHYSICAL_PORT}* 8t"
+  else
+    echo -e "INFO:     Updating VLAN ID 1 (LAN)..."
   fi
+  exec_uci set network.${switch_vlan}.ports="$(echo "0$__UNTAGGED 1$__UNTAGGED 2$__UNTAGGED 3$__UNTAGGED $__CPU_PORT" | sed -e "s/$__PHYSICAL_PORT[$__UNTAGGED ]*//")"
+
+  echo -e "INFO:     Creating VLAN ID 10${__LOGICAL_PORT}..."
+  switch_vlan=$(uci add network switch_vlan)
+  exec_uci set network.${switch_vlan}.device="bcmsw_ext"
+  exec_uci set network.${switch_vlan}.vlan="10${__LOGICAL_PORT}"
+  exec_uci set network.${switch_vlan}.ports="${__PHYSICAL_PORT}${__UNTAGGED} ${__CPU_PORT}"
 
   echo -e "INFO:     Creating network ${ORANGE}${__NAME}${NC} for ${ORANGE}Port $__LOGICAL_PORT${NC} ($__IF_NAME)..."
   exec_uci set network.${__NAME}=interface
@@ -466,13 +501,13 @@ else
   exec_uci set network.${__NAME}.force_link="1"
   exec_uci set network.${__NAME}.rpfilter="1"
   exec_uci set network.${__NAME}.ipv6="$__IPv6"
-  exec_uci set network.${__NAME}.ifname="${__IF_NAME}_10${__LOGICAL_PORT}"
+  exec_uci set network.${__NAME}.ifname="vlan_${__IF_NAME}_10${__LOGICAL_PORT}"
 
   echo -e "INFO:     Removing ${ORANGE}Port $__LOGICAL_PORT${NC} ($__IF_NAME) from LAN bridge..."
   ifnames=""
   for ifname in $(uci -q get network.lan.ifname); do
     if ! echo "$ifname" | grep -q "^$__IF_NAME"; then
-      [ "${ifname}" = "${ifname}_1" ] || ifname="${ifname}_1"
+      [ "${ifname}" = "vlan_${ifname}_1" ] || ifname="vlan_${ifname}_1"
       ifnames="$ifnames $ifname"
     fi
   done
@@ -614,7 +649,13 @@ else
 fi
 
 echo -e "INFO:     Applying QoS settings..."
-exec_uci set qos.${__IF_NAME}.classgroup="$__CLASSGROUP"
+if [ "$(uci -q get qos.${__IF_NAME})" = "device" ]; then
+  exec_uci set qos.${__IF_NAME}.classgroup="$__CLASSGROUP"
+elif [ "$(uci -q get qos_tch.${__IF_NAME})" = "device" ]; then
+  exec_uci set qos_tch.${__IF_NAME}.classgroup="$__CLASSGROUP"
+else
+  echo -e "${ORANGE}WARNING${NC}:  Unable to apply QoS settings??"
+fi
 
 echo -e "INFO:     Commiting configuration changes..."
 for config in $(uci changes | cut -d. -f1 | sed -e 's/^-//' | sort -u); do
