@@ -26,6 +26,7 @@ local mapValid = {
 }
 
 local content,helpmsg = post_helper.handleQuery(mapParam,mapValid)
+if not helpmsg then helpmsg = {} end
 
 local ifs,ssid = require("qosdevice_helper").getNetworkDevices()
 table.sort(ifs)

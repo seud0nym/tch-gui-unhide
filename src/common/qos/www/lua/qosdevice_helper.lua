@@ -37,7 +37,6 @@ function M.getNetworkDevices()
         ifname = "wlan"
       end
       local wlname = proxy.get(v.path.."ssid")
-      local radio_name = proxy.get("rpc.wireless.ssid.@"..device..".radio")[1].value
       if ifs[device] then
         ifs[device] = ifs[device]..","..untaint(ifname)
       else
@@ -48,10 +47,11 @@ function M.getNetworkDevices()
       else
         wlname = device
       end
-      if radio_name == "radio_2G" then
-        ssid[device] = wlname.." (2.4G)"
-      else
-        ssid[device] = wlname.." (5G)"
+      local radio_name = untaint(proxy.get("rpc.wireless.ssid.@"..device..".radio")[1].value)
+
+      local radio_band = match(untaint(proxy.get("rpc.wireless.radio.@"..radio_name..".band")[1].value),"^([245%.]+G)Hz$")
+      if radio_band then
+        ssid[device] = wlname.." ("..radio_band..")"
       end
     end
   end
