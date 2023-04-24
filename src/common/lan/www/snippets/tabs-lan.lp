@@ -24,6 +24,9 @@ if dhcp then
 end
 
 local uri = ngx.var.uri
+if uri == "/modals/ethernet-add-interface-modal.lp" then
+  uri = "/modals/ethernet-modal.lp"
+end
 if ngx.var.args and string.len(ngx.var.args) > 0 then
   uri = uri.."?"..ngx.var.args
 end

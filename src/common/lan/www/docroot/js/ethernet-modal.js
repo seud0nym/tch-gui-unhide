@@ -66,15 +66,30 @@ $("#sleases>tbody>tr:not(.line-edit)>td:nth-child(1)").each(function(){
     return content.split(" ")[0];
   });
 });
-(function() {
-  $('input[name="localdevIP"]').keydown(function(){
-    var msg = $("#lanipchange-msg");
-    var msg_dst = $(this);
-    msg_dst.after(msg);
-    msg.removeClass("hide");
-  });
-}());
-$(document).on("click",'.modal input[name="lanport"]',function(){
+$('input[name="localdevIP"]').keydown(function(){
+  var msg = $("#lanipchange-msg");
+  var msg_dst = $(this);
+  msg_dst.after(msg);
+  msg.removeClass("hide");
+});
+$('.modal input[name="lanport"]').click(function(){
   $("#modal-no-change").fadeOut(300);
   $("#modal-changes").delay(350).fadeIn(300);
+});
+$('[id^="remove-interface-"]').click(function(evt){
+  var id = evt.currentTarget.id.split("-")[2]
+  if (confirm("Are you really, absolutely sure you want to remove the '"+id+"' interface?\n\nThis cannot be undone!")) {
+    showLoadingWrapper();
+    var t = $(".modal form"),e = t.serializeArray();
+    e.push({
+      name: "del_intf",
+      value: id
+    },{
+      name: "CSRFtoken",
+      value: $("meta[name=CSRFtoken]").attr("content")
+    });
+    tch.loadModal(t.attr("action"),e)
+  }
+  evt.preventDefault()
+  return false;
 });

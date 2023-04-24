@@ -16,6 +16,31 @@ local ui_helper = require("web.ui_helper")
 local vlan_helper = require("ethernet-vlan_helper")
 
 local ngx = ngx
+local session = ngx.ctx.session
+local ipairs,pairs,string = ipairs,pairs,string
+local tonumber,tostring = tonumber,tostring
+local find,format,gmatch,gsub,match = string.find,string.format,string.gmatch,string.gsub,string.match
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
+
+if ngx.var.request_method == "POST" then
+  local post_args = ngx.req.get_post_args(0)
+  if post_args.del_intf then
+    if post_args.del_intf == "lan" then
+      message_helper.pushMessage(T"Cannot remove the 'lan' LAN Interface!","error")
+    else
+      local errors,partial = require("ethernet-del-interface_helper").delete_interface(untaint(post_args.del_intf))
+      if errors == 0 then
+        message_helper.pushMessage(T(format("Successfully removed LAN Interface '%s'",post_args.del_intf)),"success")
+      elseif partial then
+        message_helper.pushMessage(T(format("Partially removed LAN Interface '%s' - Manually review network, dhcp and firewall configuration files!",post_args.del_intf)),"error")
+      end
+      ngx.print("<div class='loading-wrapper'><img src='/img/spinner.gif'/></div><script>tch.loadModal('/modals/ethernet-modal.lp?intf=lan');</script>")
+      ngx.exit(ngx.HTTP_OK)
+      end
+  end
+end
+
 local cur_intf,cur_dhcp_intf,all_intfs,lan_intfs,ppp_dev,ppp_intf,dnsmasq_path,wireless_radio = ethernet_helper.get_interfaces()
 local devices = vlan_helper.get_device_map()
 
@@ -34,13 +59,6 @@ end
 
 local dns_list = require('dns_servers_helper').all()
 local split = require("split").split
-
-local ipairs,pairs,string = ipairs,pairs,string
-local tonumber,tostring = tonumber,tostring
-local find,format,gmatch,gsub,match = string.find,string.format,string.gmatch,string.gsub,string.match
----@diagnostic disable-next-line: undefined-field
-local untaint = string.untaint
-local session = ngx.ctx.session
 
 local isBridgedMode = bridged.isBridgedMode()
 local lan_ula = ethernet_helper.get_lan_ula()
@@ -614,10 +632,15 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
           end
           if v.index ~= "loopback" then
             local url = "modals/ethernet-modal.lp?intf="..v.index
-            html[#html+1] = format('<li class="%s"><a id = "%s" href="#" data-remote="%s">%s</a></li>',active,v.index,url,v.name)
+            html[#html+1] = format('<li class="%s"><a id="%s" href="#" data-remote="%s">%s',active,v.index,url,v.name)
+            if v.index ~= "lan" and not match(v.index,"^Guest") and v.index ~= "fonopen" then
+              html[#html+1] = format('<i title="Remove interface %s" id="remove-interface-%s" class="icon-remove-sign" style="float:right;cursor:pointer;"></i>',v.name,v.index)
+            end
+            html[#html+1] = '</a></li>'
           end
         end
         ngx.print(html,'\
+        <li><a id="add_new_intf" href="#" data-remote="modals/ethernet-add-interface-modal.lp"><i><small>',T"Add...",'</small></i></a></li>\
       </ul>\
     </div>\
     <div class="span9">\

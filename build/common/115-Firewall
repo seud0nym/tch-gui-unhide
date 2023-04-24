@@ -56,10 +56,11 @@ if [ -n "$(uci -q get firewall.@defaults[0].tcp_syncookies)" ]; then
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 
-echo -e "[$SCRIPT]: Fix missing values on uci.firewall.include. and uci.firewall.ipset."
+echo -e "[$SCRIPT]: Add missing transformer mappings for firewall"
 sed \
   -e 's/"type", "family"/"type", "path", "family"/' \
-  -e 's/\("hashsize", "timeout",\)$/\1 "match",/' \
+  -e 's/"hashsize", "timeout",$/& "match",/' \
+  -e 's/"wan",$/& "_key"/' \
   -i /usr/share/transformer/mappings/uci/firewall.map
 
 echo -e "[$SCRIPT]: Add transformer mapping for uci.firewall.nat."
