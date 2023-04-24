@@ -121,7 +121,7 @@ function M.get_interfaces()
   local lan_intfs = {}
   local ppp_intf,ppp_dev
   for _,v in ipairs(all_intfs) do
-    if v.type == "lan" and v.name ~= "wg0" and v.proto ~= "wireguard" and (not find(v["ppp.ll_intf"],"wl") or wireless_radio[untaint(v["ppp.ll_intf"])]) then
+    if v.type ~= "wan" and v.paramindex ~= "ppp" and v.paramindex ~= "ipoe" and v.name ~= "wg0" and v.proto ~= "wireguard" and (not find(v["ppp.ll_intf"],"wl") or wireless_radio[untaint(v["ppp.ll_intf"])]) then
       if v.name and v.name ~= "" then
         lan_intfs[#lan_intfs + 1] = {name = v.name,index = v.paramindex}
       else
@@ -134,6 +134,14 @@ function M.get_interfaces()
       ppp_intf = v["ppp.ll_intf"]
     end
   end
+  table.sort(lan_intfs,function(a,b)
+    if a.name == "lan" then
+      return true
+    elseif b.name == "lan" then
+      return false
+    end
+    return tolower(a.name) < tolower(b.name)
+  end)
 
   local dhcp_intfs_path = "uci.dhcp.dhcp."
   local all_dhcp_intfs = content_helper.convertResultToObject(dhcp_intfs_path.."@.",proxy.get(dhcp_intfs_path))
