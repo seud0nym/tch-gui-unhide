@@ -14,11 +14,11 @@ local wanservices = require("webui_core.wanservices")
 local uinetwork = require("web.uinetwork_helper")
 local fwrules_helper = require("firewall-rules_helper")
 
-local hosts_ac,hosts_ac_v6 = uinetwork.getAutocompleteHostsList()
+local hosts_ac,hosts_ac_v6 = uinetwork.getAutocompleteHostsList(true)
 local pairs,string = pairs,string
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
-local table,ipairs,tonumber,format,match = table,ipairs,tonumber,string.format,string.match
+local table,ipairs,tonumber,format,gmatch,match = table,ipairs,tonumber,string.format,string.gmatch,string.match
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
@@ -560,7 +560,16 @@ local pfw_v6_defaultObject = {
   dest = "lan",
   family = "ipv6",
 }
-local function validateIPv6Port(_, data)
+local function validateIPv6Address(value)
+  for addr in gmatch(untaint(value),"(%S+)") do
+    local valid,errmsg = vSIIP6(addr)
+    if not valid then
+      return valid,addr..": "..errmsg
+    end
+  end
+  return true
+end
+local function validateIPv6Port(_,data)
   if data.protocol == "icmpv6" or data.protocol == "all" then
     return true
   end
@@ -573,7 +582,7 @@ local pfw_v6_valid = {
   name = getValidateName,
   protocol = gVIES(protocolList_v6),
   wanport = gOrV(validateIPv6Port, gAV(vSIPR,isPortAndProtoReserved)),
-  dest_ip_v6 = vSIIP6,
+  dest_ip_v6 = validateIPv6Address,
 }
 -- ipv6 pull in all the data for the display
 local pfw_v6_data,pfw_v6_helpmsg = post_helper.handleTableQuery(pfw_v6_columns,pfw_v6_options,pfw_v6_filter,pfw_v6_defaultObject,pfw_v6_valid)
