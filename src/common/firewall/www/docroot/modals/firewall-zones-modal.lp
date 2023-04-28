@@ -8,28 +8,18 @@ local lp = require("web.lp")
 local fw_rules_helper = require("firewall-rules_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
-local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
+local zones_helper = require("firewall-zones_helper")
 
 local concat = table.concat
-local gsub,match,tolower = string.gsub,string.match,string.lower
+local match,tolower = string.match,string.lower
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
 local vB = post_helper.validateBoolean
 local gVIC = post_helper.getValidateInCheckboxgroup
 local gVIES = post_helper.getValidateInEnumSelect
-local vNES = post_helper.validateNonEmptyString
 local gOV = post_helper.getOptionalValidation
-local function validateName(value)
-  local valid,errmsg = vNES(value)
-  if not valid then
-    return valid,errmsg
-  elseif not match(untaint(value),"[_%w]+") then
-    return nil,"Can only contain alphanumerics and underscores"
-  end
-  return true
-end
 
 local network_rpc_content = content_helper.getMatchedContent("rpc.network.interface.")
 local intfs = {}
@@ -192,7 +182,7 @@ end
 
 local zone_valid = {
   enabled = vB,
-  name = validateName,
+  name = zones_helper.validateName,
   input = gVIES(fw_rules_helper.fwrules_targets),
   forward = gVIES(fw_rules_helper.fwrules_targets),
   output = gVIES(fw_rules_helper.fwrules_targets),
@@ -211,54 +201,8 @@ local zone_options = {
   sorted = function(zone1,zone2)
     return tolower(zone1.name) < tolower(zone2.name)
   end,
-  onAdd = function(index,data)
-    local p ="uci.firewall.zone."
-    local key
-    if proxy.getPN(p..index..".",true) then -- key is param
-      return
-    elseif proxy.getPN(p.."@"..index..".",true) then -- key is param without leading @
-      key = "@"..index
-    else -- probably _key
-      local sections = proxy.getPN(p,true)
-      local section = proxy.get(sections[#sections].path.."_key")
-      if section then -- mapping contains _key
-        if section[1].value == index then -- last record matches _key
-          proxy.set(section[1].path..section[1].param,"")
-          key = gsub(gsub(section[1].path,p,""),"%.","")
-        else -- last record does not match _key, so search (backwards) for it
-          for i=#sections,1,-1 do
-            section = proxy.get(sections[i].path.."_key")
-            if section[1].value == index then -- found matching key
-              key = gsub(gsub(section[1].path,p,""),"%.","")
-              break
-            end
-          end
-        end
-      else -- mapping does not contain _key, so just assume it is the last one
-        key = gsub(gsub(sections[#sections].path,p,""),"%.","")
-      end
-    end
-    if key then
-      for k,v in pairs(data) do
-        if k == "network" and type(v) ~= "table" then
-          v = { v }
-        end
-        if type(v) == "table" then
-          for _,value in ipairs(v) do
-            local subkey,error = proxy.add(p..key.."."..k..".")
-            if not subkey then
-              message_helper.pushMessage(T(string.format("Error adding %s to s list: %s",value,k,error)),"error")
-            else
-              proxy.set(p..key.."."..k..".@"..subkey..".value",value)
-            end
-          end
-        else
-          proxy.set(p..key.."."..k,v)
-        end
-      end
-      proxy.apply()
-    end
-  end,
+  onAdd = zones_helper.onZoneAdded,
+  onDelete = zones_helper.onZoneDeleted,
 }
 
 local function zone_filter(data)
@@ -332,7 +276,7 @@ end
 
 local fw_forwarding_valid = {
   enabled = vB,
-  name = gOV(validateName),
+  name = gOV(zones_helper.validateName),
   family = gVIES(fw_rules_helper.fwrules_family),
   src = gVIES(zones),
   dest = gVIES(zones),
