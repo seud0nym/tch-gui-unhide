@@ -61,6 +61,7 @@ local function proxyAdd(p,v,quiet)
             if section[1].value == key then -- found matching key
               key = gsub(gsub(section[1].path,p,""),"%.","")
               error = nil
+              break
             end
           end
         end
