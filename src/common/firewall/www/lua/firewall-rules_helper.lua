@@ -26,29 +26,15 @@ local gDSM = post_helper.getDefaultSubnetMask
 local netMaskToMask = post_helper.cidr2mask
 local isNA = post_helper.isNetworkAddress
 
+local uci_fw_zone_path = "uci.firewall.zone."
 
-local rpc_fw_zone_path = "uci.firewall.zone."
-local rpc_fw_zone_content = content_helper.getMatchedContent(rpc_fw_zone_path)
-local dst_intfs = {
-  {"",T"<i>Incoming Rule</i>"},
-}
-local src_intfs = {
-  {"",T"<i>Outgoing Rule</i>"},
-}
-for _,v in ipairs (rpc_fw_zone_content) do
-  dst_intfs[#dst_intfs+1] = { v.name,T(v.name) }
-  src_intfs[#src_intfs+1] = { v.name,T(v.name) }
-end
-dst_intfs[#dst_intfs+1] = { "*",T"ALL" }
-src_intfs[#src_intfs+1] = { "*",T"ALL" }
-
-local fwrules_family = {
+M.fwrules_family = {
   { "",T""},
   { "ipv4",T"IPv4"},
   { "ipv6",T"IPv6"},
 }
 -- WARNING! Probably incomplete: derived from existing configured values
-local fwrules_icmp_types = {
+M.fwrules_icmp_types = {
   { "echo-reply",T"echo-reply" },
   { "destination-unreachable",T"destination-unreachable" },
   { "echo-request",T"echo-request" },
@@ -62,25 +48,26 @@ local fwrules_icmp_types = {
   { "unknown-header-type",T"unknown-header-type" },
 }
 
-local fwrules_targets = {
+M.fwrules_targets = {
   { "ACCEPT",T"ACCEPT"},
   { "DROP",T"DROP"},
   { "REJECT",T"REJECT"},
 }
 
-local fwrules_protocols = {
+M.fwrules_protocols = {
   { "",T"TCP"},
   { "tcp",T"TCP"},
   { "udp",T"UDP"},
   { "tcpudp",T"TCP/UDP"},
+  { "tcp udp",T"TCP/UDP"},
   { "icmp",T"ICMP"},
   { "esp",T"ESP"},
   { "ah",T"AH"},
   { "sctp",T"SCTP"},
-  { "all",T"all"},
+  { "all",T"ALL"},
 }
 
-local fwrules_v6_protocols = {
+M.fwrules_v6_protocols = {
   { "",T"TCP"},
   { "tcp",T"TCP"},
   { "udp",T"UDP"},
@@ -92,8 +79,26 @@ local fwrules_v6_protocols = {
   { "all",T"all"},
 }
 
+function M.getZones()
+  local uci_fw_zone_content = content_helper.getMatchedContent(uci_fw_zone_path)
+  local zones = {}
+  local dst_intfs = {
+    {"",T"<i>Incoming Rule</i>"},
+  }
+  local src_intfs = {
+    {"",T"<i>Outgoing Rule</i>"},
+  }
+  for _,v in ipairs (uci_fw_zone_content) do
+    zones[#zones+1] = { v.name,T(v.name) }
+    dst_intfs[#dst_intfs+1] = { v.name,T(v.name) }
+    src_intfs[#src_intfs+1] = { v.name,T(v.name) }
+  end
+  dst_intfs[#dst_intfs+1] = { "*",T"ALL" }
+  src_intfs[#src_intfs+1] = { "*",T"ALL" }
+  return zones,dst_intfs,src_intfs
+end
+
 local duplicatedErrMsg = nil
-local session = ngx.ctx.session
 --[[
    The following function used to validate the duplicate entries while adding or editing on firewall table.
    We will throw the duplicate error if any rows containing all 6 values below are duplicated
@@ -107,7 +112,8 @@ local session = ngx.ctx.session
 ]]
 local function rulesDuplicateCheck(basepath,tableid,columns)
   return function(value,postdata,key)
-  local success,msg
+    local session = ngx.ctx.session
+    local success,msg
     if value and value ~= "" then
       success,msg = vSIPR(value,postdata,key)
     else
@@ -209,6 +215,7 @@ local function validateLanIP(value,object,key)
 end
 
 function M.getRuleColumns(fwrule_options)
+  local _,dst_intfs,src_intfs = M.getZones()
   local dup_chk_basepath = match(fwrule_options.basepath,"^(.+)@%.$")
   local isIPv6 = false
   if find(fwrule_options.basepath,"_v6") then
@@ -239,7 +246,7 @@ function M.getRuleColumns(fwrule_options)
       name = "family",
       param = "family",
       type = "select",
-      values = fwrules_family,
+      values = M.fwrules_family,
       readonly = true,
     },
     { -- [4]
@@ -254,7 +261,7 @@ function M.getRuleColumns(fwrule_options)
       name = "protocol",
       param = "proto",
       type = "select",
-      values = fwrules_protocols,
+      values = M.fwrules_protocols,
       readonly = true,
     },
     { -- [6]
@@ -262,7 +269,7 @@ function M.getRuleColumns(fwrule_options)
       name = "icmp_type",
       param = "icmp_type",
       type = "checkboxgroup",
-      values = fwrules_icmp_types,
+      values = M.fwrules_icmp_types,
       readonly = true,
     },
     { -- [7]
@@ -356,7 +363,7 @@ function M.getRuleColumns(fwrule_options)
           param = "target",
           default = "DROP",
           type = "select",
-          values = fwrules_targets,
+          values = M.fwrules_targets,
           attr = { select = { class="span2" } },
         },
         { -- [4]
@@ -365,7 +372,7 @@ function M.getRuleColumns(fwrule_options)
           param = "proto",
           default = "tcp",
           type = "select",
-          values = fwrules_protocols,
+          values = M.fwrules_protocols,
           attr = { select = { class="span2" } },
         },
         { -- [5]
@@ -446,13 +453,13 @@ function M.getRuleColumns(fwrule_options)
     for _,v in ipairs(fwrule_columns) do
       v.name = v.name.."_v6"
       if v.param == "proto" then
-        v.values = fwrules_v6_protocols
+        v.values = M.fwrules_v6_protocols
       end
       if v.name == "fwrule_entry_v6" then
         for _,w in ipairs(v.subcolumns) do
           w.name = w.name.."_v6"
           if w.param == "proto" then
-            w.values = fwrules_v6_protocols
+            w.values = M.fwrules_v6_protocols
           elseif w.param == "family" then
             w.default = "ipv6"
           elseif w.param == "src_ip" or w.param == "dest_ip" then
@@ -463,9 +470,9 @@ function M.getRuleColumns(fwrule_options)
     end
     fwrule_valid = {
       enabled_v6 = vB,
-      target_v6 = gVIES(fwrules_targets),
-      family_v6 = gVIES(fwrules_family),
-      protocol_v6 = gVIES(fwrules_v6_protocols),
+      target_v6 = gVIES(M.fwrules_targets),
+      family_v6 = gVIES(M.fwrules_family),
+      protocol_v6 = gVIES(M.fwrules_v6_protocols),
       src_v6 = gVIES(src_intfs),
       src_ip_v6 = gOV(vIP6AS),
       src_port_v6 = gOV(vSIPR),
@@ -476,9 +483,9 @@ function M.getRuleColumns(fwrule_options)
   else
     fwrule_valid = {
       enabled = vB,
-      target = gVIES(fwrules_targets),
-      family = gVIES(fwrules_family),
-      protocol = gVIES(fwrules_protocols),
+      target = gVIES(M.fwrules_targets),
+      family = gVIES(M.fwrules_family),
+      protocol = gVIES(M.fwrules_protocols),
       src = gVIES(src_intfs),
       src_ip = validateLanIP,
       src_port = gOV(vSIPR),
