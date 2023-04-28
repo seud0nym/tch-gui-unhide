@@ -1,23 +1,19 @@
 local proxy = require("datamodel")
 local message_helper = require("web.uimessage_helper")
-local format = string.format
+local zones_helper = require("firewall-zones_helper")
+
+local format,gsub = string.format,string.gsub
 
 local M = {}
 
 function M.delete_interface(intf)
   local paths = { "uci.network.interface.@"..intf..".", }
   local intf_ipaddr = proxy.get(paths[#paths].."ipaddr")[1].value
+  local zones = {}
 
   for _,v in ipairs(proxy.getPN("uci.firewall.rule.",true)) do
-    local fw_rule = proxy.get(v.path.."src",v.path.."dest",v.path.."dest_ip")
-    if fw_rule[1].value == intf or fw_rule[2].value == intf or fw_rule[3].value == intf_ipaddr then
-      paths[#paths+1] = v.path
-    end
-  end
-
-  for _,v in ipairs(proxy.getPN("uci.firewall.forwarding.",true)) do
-    local fw_fwd = proxy.get(v.path.."src")
-    if fw_fwd[1].value == intf then
+    local fw_rule = proxy.get(v.path.."dest_ip",v.path.."src_ip")
+    if fw_rule[1].value == intf_ipaddr or fw_rule[2].value == intf_ipaddr then
       paths[#paths+1] = v.path
     end
   end
@@ -28,6 +24,7 @@ function M.delete_interface(intf)
       if v.value == intf then
         if #nw == 1 then
           paths[#paths+1] = zone.path
+          zones[#zones+1] = gsub(gsub(zone.path,"uci.firewall.zone.",""),"%.","")
         else
           paths[#paths+1] = v.path
         end
@@ -66,6 +63,12 @@ function M.delete_interface(intf)
       errors = errors + 1
     end
   end
+
+  for i=1,#zones,1 do
+    zones_helper.onZoneDeleted(zones[i])
+  end
+
+  proxy.apply()
 
   return errors,errors < #paths
 end
