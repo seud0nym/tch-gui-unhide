@@ -71,3 +71,13 @@ if [ -n "$DHCP_MAIN_LOCAL" -a $(grep -E "$(echo $DHCP_MAIN_LOCAL | sed -e 's|/\(
   SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
 fi
 unset DHCP_MAIN_LOCAL
+
+if [ "$(uci -q get network.config.wan_mode)" = "bridge" -a "$(uci -q get uci -q get network.lan6)" = "interface" ]; then
+  if ! uci -q get dhcp.main.interface | grep -q '\blan6\b'; then
+    echo -e "[$SCRIPT]: Fixing bridged-booster lan6 dnsmasq configuration"
+    uci -q del_list dhcp.main.interface='lan6'
+    uci -q add_list dhcp.main.interface='lan6'
+    uci commit dhcp
+    SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
+  fi
+fi
