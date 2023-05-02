@@ -71,12 +71,13 @@ function M.isMultiAPEnabled()
     meshbrokerState = "uci.mesh_broker.global.@mesh_broker.enable"
   }
   content_helper.getExactContent(multiap_state)
-  return multiap_state.controller == "1" and multiap_state.meshbrokerState == "1" and (multiap_state.agent == "1" or multiap_state.agent == "0")
+  return multiap_state and multiap_state.controller == "1" and multiap_state.meshbrokerState == "1" and (multiap_state.agent == "1" or multiap_state.agent == "0")
 end
 
-function M.getWiFiCardHTML()
-  local multiap_enabled = M.isMultiAPEnabled()
+function M.getRadios()
   local radios = {}
+  local multiap_enabled = M.isMultiAPEnabled()
+
   for _,v in ipairs(proxy.getPN("rpc.wireless.radio.", true)) do
     local radio = match(v.path, "rpc%.wireless%.radio%.@([^%.]+)%.")
     if radio then
@@ -110,7 +111,7 @@ function M.getWiFiCardHTML()
       local radio,ssid,ishidden,isguest,state,sortby,wps_state,iface
       if multiap_enabled then
         radio,ssid,ishidden,isguest,state,sortby,wps_state = fetch_by_cred(paramindex.value,radios)
-        iface = proxy.get(paramindex.path:gsub("%.cred%.",".intf.").."value")[1].value
+        iface = untaint(proxy.get(paramindex.path:gsub("%.cred%.",".intf.").."value")[1].value)
       else
         radio,ssid,ishidden,isguest,state,sortby,wps_state,iface = fetch_by_intf(paramindex.value)
       end
@@ -137,6 +138,31 @@ function M.getWiFiCardHTML()
     end
   end
 
+  for _,radio in pairs(radios) do
+    table.sort(radio.ssid,function(a,b) return a.sort < b.sort end)
+  end
+
+  return radios
+end
+
+function M.getAccessPoints()
+  local aps = {}
+  for _,radio in pairs(M.getRadios()) do
+    local band
+    if radio.frequency == "5" then
+      band = " (5GHz)"
+    else
+      band = " (2.4GHz)"
+    end
+    for _,v in ipairs(radio.ssid) do
+      aps[#aps+1] = { v.iface, T(v.ssid..band) }
+    end
+  end
+  table.sort(aps,function(a,b) return a[2] < b[2] end)
+  return aps
+end
+
+function M.getWiFiCardHTML()
   local html = {}
   local band_attr = {
     span = {
@@ -149,9 +175,7 @@ function M.getWiFiCardHTML()
     },
   }
 
-  for _,radio in pairs(radios) do
-    table.sort(radio.ssid,function(a,b) return a.sort < b.sort end)
-
+  for _,radio in pairs(M.getRadios()) do
     html[#html+1] = ui_helper.createSimpleLight(radio.admin_state,radio.info,band_attr)
 
     for i,v in ipairs(radio.ssid) do

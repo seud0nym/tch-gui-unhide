@@ -14,28 +14,11 @@ function M.isMultiAPEnabled()
     controller = "uci.multiap.controller.enabled",
   }
   content_helper.getExactContent(multiap_state)
-  return multiap_state.controller == "1" and multiap_state.agent == "1"
+  return multiap_state and multiap_state.controller == "1" and multiap_state.agent == "1"
 end
 
-function M.getWiFiCardHTML()
+function M.getRadios()
   local radios = {}
-  local bs_lan = "disabled"
-  local html = {}
-  local bs = {}
-  local ap = {}
-  local hidden = {}
-  local wps = {}
-  local band_attr = {
-    span = {
-      class = "wifi-band",
-    },
-  }
-  local ssid_attr = {
-    span = {
-      class = "ssid-status",
-    },
-  }
-
   for _,v in ipairs(proxy.getPN("rpc.wireless.radio.", true)) do
     local radio = match(v.path, "rpc%.wireless%.radio%.@([^%.]+)%.")
     if radio then
@@ -111,6 +94,56 @@ function M.getWiFiCardHTML()
     end
   end
 
+  for _,radio in pairs(radios) do
+    table.sort(radio.ssid,function(a,b) return a.sort < b.sort end)
+  end
+
+  return radios
+end
+
+function M.getAccessPoints()
+  local ap = {}
+  for _,v in ipairs(proxy.getPN("uci.wireless.wifi-ap.",true)) do
+    local path = v.path
+    local values = proxy.get(path.."iface")
+    local iface = untaint(values[1].value)
+    ap[iface] = match(path,".*@([^.]*)")
+  end
+
+  local aps = {}
+  for _,radio in pairs(M.getRadios()) do
+    local band
+    if radio.frequency == "5" then
+      band = " (5GHz)"
+    else
+      band = " (2.4GHz)"
+    end
+    for _,v in ipairs(radio.ssid) do
+      aps[#aps+1] = { ap[v.iface], T(v.ssid..band) }
+    end
+  end
+  table.sort(aps,function(a,b) return a[2] < b[2] end)
+  return aps
+end
+
+function M.getWiFiCardHTML()
+  local bs_lan = "disabled"
+  local html = {}
+  local bs = {}
+  local ap = {}
+  local hidden = {}
+  local wps = {}
+  local band_attr = {
+    span = {
+      class = "wifi-band",
+    },
+  }
+  local ssid_attr = {
+    span = {
+      class = "ssid-status",
+    },
+  }
+
   for _,v in ipairs(proxy.getPN("uci.wireless.wifi-ap.",true)) do
     local path = v.path
     local values = proxy.get(path.."iface",path.."bandsteer_id",path.."public",path.."wps_state")
@@ -139,9 +172,7 @@ function M.getWiFiCardHTML()
     end
   end
 
-  for _,radio in pairs(radios) do
-    table.sort(radio.ssid,function(a,b) return a.sort < b.sort end)
-
+  for _,radio in pairs(M.getRadios()) do
     html[#html+1] = ui_helper.createSimpleLight(radio.admin_state,radio.info,band_attr)
 
     for i,v in ipairs(radio["ssid"]) do
