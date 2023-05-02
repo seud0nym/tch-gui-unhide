@@ -87,7 +87,7 @@ sed \
   -e '/elementCSRFtoken/a\					}\\' \
   -i $LTE_CARD
 
-echo -e "[$SCRIPT]: Add Device Capabilities and LTE Band Selection to Mobile Configuration screen"
+echo -e "[$SCRIPT]: Add Device Capabilities and LTE Band/Roaming Selection to Mobile Configuration screen"
 sed \
   -e 's/getValidateCheckboxSwitch()/validateBoolean/' \
   -e 's/createCheckboxSwitch/createSwitch/' \
@@ -166,6 +166,9 @@ sed \
   -e '/local function get_profile_select/i\    end' \
   -e '/local function get_profile_select/i\end' \
   -e '/local function get_profile_select/i\\' \
+  -e '/p.mapParams\["interface_enabled"\]/a\    p.roaming_map = { { "none",T"None" }, { "national",T"National" }, { "international",T"International" } }' \
+  -e '/p.mapParams\["interface_enabled"\]/a\		p.mapParams["roaming"] = device.uci_path .. "roaming"' \
+  -e '/p.mapParams\["interface_enabled"\]/a\		p.mapValid["roaming"] = gVIES(p.roaming_map)' \
   -e '/p.mapParams\["interface_enabled"\]/a\		if utils.radio_tech_map[device.leds.radio] == "LTE" then' \
   -e '/p.mapParams\["interface_enabled"\]/a\			p.mapParams["lte_bands"] = device.uci_path .. "lte_bands"' \
   -e '/p.mapParams\["interface_enabled"\]/a\			p.mapValid["lte_bands"] = validate_lte_bands(device)' \
@@ -184,9 +187,11 @@ sed \
   -e '/"Access Technology"/a\	 						lte_bands_checked[#lte_bands_checked+1] = string.untaint(b)' \
   -e '/"Access Technology"/a\	 					end' \
   -e '/"Access Technology"/a\	 				end' \
-  -e '/"Access Technology"/a\	 				tinsert(html, ui_helper.createCheckboxGroup(T"LTE Bands", "lte_bands", lte_bands, lte_bands_checked, {checkbox = { class="inline" }}, nil))' \
+  -e '/"Access Technology"/a\	 				tinsert(html, ui_helper.createCheckboxGroup(T"LTE Bands"..":", "lte_bands", lte_bands, lte_bands_checked, {checkbox = { class="inline" }}, nil))' \
   -e '/"Access Technology"/a\	 			end' \
+  -e '/"Access Technology"/a\	 			tinsert(html, ui_helper.createInputSelect(T"Roaming"..":", "roaming", page.roaming_map, page.content["roaming"], advanced))' \
   -e '/^\s*get_device_info_section/a get_device_capabilities_section(page, html)' \
+  -e 's/^[[:blank:]]*tinsert.*telstra.hybrid/--&/' \
   -i /www/docroot/modals/lte-modal.lp
 
 echo -e "[$SCRIPT]: Fix uneven SMS messages in night mode"
