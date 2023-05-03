@@ -4,18 +4,6 @@ if ! grep -q 'date -k' /etc/crontabs/root; then
   SRV_cron=$(( $SRV_cron + 1 ))
 fi
 
-echo -e "[$SCRIPT]: Fix Time of Day tabs"
-sed \
-  -e 's/T"Time of day access control"/T"Device Access"/' \
-  -e 's/Create New Rule/Add New Rule/' \
-  -e "/update\">\\\/a ');" \
-  -e '/update">\\/a local lp = require("web.lp")' \
-  -e '/update">\\/a lp.setpath("/www/snippets/")' \
-  -e '/update">\\/a lp.include("tabs-tod.lp")' \
-  -e "/update\">\\\/a ngx.print('\\\\" \
-  -e "/^<div style=\"padding-top: 0px; padding-left: 20px;\" >/,/^<\/div>/d" \
-  -i /www/docroot/modals/tod-modal.lp
-
 echo -e "[$SCRIPT]: Restart Time of Day processing after updates applied"
 sed -e 's|reload$|reload; /etc/init.d/tod restart;|' -i /usr/share/transformer/commitapply/uci_tod.ca
 SRV_transformer=$(( $SRV_transformer + 1 ))

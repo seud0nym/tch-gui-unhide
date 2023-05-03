@@ -1,9 +1,0 @@
-echo -e "[$SCRIPT]: Fix Time of Day Wireless Control tabs"
-sed \
-  -e 's/T"Time of day wireless control"/T"Wireless Control"/' \
-  -e '/lp.setpath/a\if ngx.var.args == "tod" then' \
-  -e '/lp.setpath/a\lp.include("tabs-tod.lp")' \
-  -e '/lp.setpath/a\else' \
-  -e '/tabs-wireless.lp/a\end' \
-  -i /www/docroot/modals/tod_wireless-modal.lp
-

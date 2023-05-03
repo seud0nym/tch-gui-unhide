@@ -3,18 +3,20 @@
 -- Localization
 gettext.textdomain('webui-core')
 
-local ui_helper = require("web.ui_helper")
+local content_helper = require("web.content_helper")
+local lp = require("web.lp")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
-local content_helper = require("web.content_helper")
 local proxy = require("datamodel")
+local tod_helper = require("tod_helper")
+local ui_helper = require("web.ui_helper")
 
 local ngx = ngx
 local string,table = string,table
 local concat,insert = table.concat,table.insert
 local ipairs = ipairs
 local tonumber = tonumber
-local match,gmatch,format,find,sub = string.match,string.gmatch,string.format,string.find,string.sub
+local match,gmatch,format,sub = string.match,string.gmatch,string.format,string.sub
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 local untaint_mt = require("web.taint").untaint_mt
@@ -22,22 +24,18 @@ local session = ngx.ctx.session
 
 local validateTime = post_helper.validateTime
 local validateBoolean = post_helper.validateBoolean
-local optionallyValidate = post_helper.getOptionalValidation
 local getRandomKey = post_helper.getRandomKey
 local gVIES = post_helper.getValidateInEnumSelect
 
-local tod_timer_path = "uci.tod.timer."
-local tod_action_path = "uci.tod.action."
-local tod_voicednd_path = "uci.tod.voicednd."
+local ringing_status_map = setmetatable({
+  ["off"] = T"Off",
+  ["on"] = T"On"
+},untaint_mt)
 
 local profileCount = 0
 local profileName = {
   {"All",T"All"},
 }
-local ringing_status_map = setmetatable({
-  ["off"] = T"Off",
-  ["on"] = T"On"
-},untaint_mt)
 
 --To get the number of profile and list of profile Number
 local profileNumber = proxy.get("rpc.mmpbx.sip_profile.")
@@ -67,7 +65,7 @@ for i=1,profileCount do
 end
 
 -- when the timer in the action section of dnd rule is empty, whole rule will be deleted.
-local voice_dnd = content_helper.convertResultToObject(tod_voicednd_path,proxy.get(tod_voicednd_path))
+local voice_dnd = content_helper.convertResultToObject("uci.tod.voicednd.",proxy.get("uci.tod.voicednd."))
 for _,v in pairs (voice_dnd) do
   local index = match(v.paramindex,"^@voicednd(%S+)")
   local dnd_timer = proxy.get(format("uci.tod.action.@action%s.timers.",index))
@@ -78,131 +76,107 @@ for _,v in pairs (voice_dnd) do
   end
 end
 
-local function theWeekdays()
-  return {
-    { "Mon",T"Mon." },
-    { "Tue",T"Tue." },
-    { "Wed",T"Wed." },
-    { "Thu",T"Thu." },
-    { "Fri",T"Fri." },
-    { "Sat",T"Sat." },
-    { "Sun",T"Sun." },
-  }
-end
-
-local function getTodVoiceDnd()
-  -- ToD forwarding rules
-  local tod_columns = {
-    {
-      header = T"Status",
-      name = "enabled",
-      param = "enabled",
-      type = "light",
-      readonly = true,
-      attr = { input = { class="span1" } },
-    }, --[1]
-    {
-      header = T"Number",
-      name = "profile",
-      param = "profile",
-      type = "text",
-      readonly = true,
-      attr = { input = { class="span2" } },
-    }, --[2]
-    {
-      header = T"Start Time",
-      name = "start_time",
-      param = "start_time",
-      type = "text",
-      readonly = true,
-      attr = { input = { class="span2" } },
-    }, --[3]
-    {
-      header = T"Stop Time",
-      name = "stop_time",
-      param = "stop_time",
-      type = "text",
-      readonly = true,
-      attr = { input = { class="span2" } },
-    }, --[4]
-    {
-      header = T"Ringing",
-      name = "profile",
-      param = "profile",
-      type = "text",
-      readonly = true,
-      attr = { input = { class="span2" } },
-    }, --[5]
-    {
-      header = T"Day of week",
-      name = "weekdays",
-      param = "weekdays",
-      values = theWeekdays(),
-      type = "checkboxgroup",
-      readonly = true,
-      attr = { input = { class="span2" } },
-    }, --[6]
- {
-      header = "", --T"ToD",
-      legend = T"Add a New Ringing Schedule",
-      name = "timeofday",
-      type = "aggregate",
-      synthesis = nil, --tod_aggregate,
-      subcolumns = {
-        {
-          header = T"Enabled",
-          name = "enabled",
-          param = "enabled",
-          type = "switch",
-          default = "1",
-          attr = { switch= { class="inline" } },
-        },
-        {
-          header = T"Number",
-          name = "profile",
-          param = "profile",
-          type = "select",
-          values = profileName,
-          default = "All",
-          attr = { select = { class="span2" } },
-        },
-        {
-          header = T"Start Time",
-          name = "start_time",
-          param = "start_time",
-          type = "text",
-          default = "00:00",
-          attr = { input = { class="span2",id="starttime",style="cursor:pointer; background-color:white" } },
-        },
-        {
-          header = T"Stop Time",
-          name = "stop_time",
-          param = "stop_time",
-          type = "text",
-          default = "23:59",
-          attr = { input = { class="span2",id="stoptime",style="cursor:pointer; background-color:white" } },
-        },
-        {
-          header = T"Day of week",
-          name = "weekdays",
-          param = "weekdays",
-          type = "checkboxgroup",
-          values = theWeekdays(),
-          attr = { checkbox = { class="inline" } },
-        },
-      }
-    }, --[7]
-  }
-
-  return {
-    columns = tod_columns,
-    days = theWeekdays(),
-  }
-end
-
-local tod = getTodVoiceDnd()
-local tod_columns = tod.columns
-local validDays = post_helper.getValidateInEnumSelect(tod.days)
+local tod_columns = {
+  {
+    header = T"Status",
+    name = "enabled",
+    param = "enabled",
+    type = "light",
+    readonly = true,
+    attr = { input = { class="span1" } },
+  }, --[1]
+  {
+    header = T"Number",
+    name = "profile",
+    param = "profile",
+    type = "text",
+    readonly = true,
+    attr = { input = { class="span2" } },
+  }, --[2]
+  {
+    header = T"Start Time",
+    name = "start_time",
+    param = "start_time",
+    type = "text",
+    readonly = true,
+    attr = { input = { class="span2" } },
+  }, --[3]
+  {
+    header = T"Stop Time",
+    name = "stop_time",
+    param = "stop_time",
+    type = "text",
+    readonly = true,
+    attr = { input = { class="span2" } },
+  }, --[4]
+  {
+    header = T"Ringing",
+    name = "profile",
+    param = "profile",
+    type = "text",
+    readonly = true,
+    attr = { input = { class="span2" } },
+  }, --[5]
+  {
+    header = T"Day of week",
+    name = "weekdays",
+    param = "weekdays",
+    values = tod_helper.weekdays,
+    type = "checkboxgroup",
+    readonly = true,
+    attr = { input = { class="span2" } },
+  }, --[6]
+{
+    header = "", --T"ToD",
+    legend = T"Add a New Ringing Schedule",
+    name = "timeofday",
+    type = "aggregate",
+    synthesis = nil, --tod_aggregate,
+    subcolumns = {
+      {
+        header = T"Enabled",
+        name = "enabled",
+        param = "enabled",
+        type = "switch",
+        default = "1",
+        attr = { switch= { class="inline" } },
+      },
+      {
+        header = T"Number",
+        name = "profile",
+        param = "profile",
+        type = "select",
+        values = profileName,
+        default = "All",
+        attr = { select = { class="span2" } },
+      },
+      {
+        header = T"Start Time",
+        name = "start_time",
+        param = "start_time",
+        type = "text",
+        default = "00:00",
+        attr = { input = { class="span2",id="starttime",style="cursor:pointer; background-color:white" } },
+      },
+      {
+        header = T"Stop Time",
+        name = "stop_time",
+        param = "stop_time",
+        type = "text",
+        default = "23:59",
+        attr = { input = { class="span2",id="stoptime",style="cursor:pointer; background-color:white" } },
+      },
+      {
+        header = T"Day of week",
+        name = "weekdays",
+        param = "weekdays",
+        type = "checkboxgroup",
+        values = tod_helper.weekdays,
+        attr = { checkbox = { class="inline" } },
+      },
+    }
+  }, --[7]
+}
 
 local rngshdContent = {
   todStatus = "uci.tod.todvoicednd.enabled",
@@ -214,21 +188,6 @@ local rngshdValidation = {
   profileStatus = post_helper.validateNonEmptyString,
 }
 
--- validates days (Mon...Sun)
--- @param #table value have the value of corresponding key
--- @return #boolean or nil+error message
-local function validateWeekdays(value)
-  if not value then
-    return nil,T"Invalid day"
-  end
-  for _,v in ipairs(value) do
-    if not validDays(v) then
-      return nil,T"Invalid day"
-    end
-  end
-  return true
-end
-
 local tod_options = {
   tableid = "tod",
   basepath = "uci.tod.voicednd.",
@@ -238,56 +197,39 @@ local tod_options = {
   canApply = true,
   canEdit = true,
   objectName = "action"..getRandomKey(),
-  addNamedObject = true
+  addNamedObject = true,
 }
 
-local function daysOverlap(days1,days2)
-  days1 = concat(days1," ")
-  for _,day in ipairs(days2) do
-    if find(days1,day) then
-      return true
-    end
-  end
-  return nil
-end
-
 local function validate_voicednd(postcontent,timer_data)
-  local todData = {
-    enable = postcontent.enable,
-    profile = postcontent.profile,
-    start_time = postcontent.start_time,
-    stop_time = postcontent.stop_time,
-    weekdays = postcontent.weekdays,
-  }
   local todValidations = {
     enable = validateBoolean,
     profile = gVIES(profileName),
     start_time = validateTime,
     stop_time = validateTime,
-    weekdays = optionallyValidate(validateWeekdays), -- weekdays can be empty if user didn't select any day
+    weekdays = tod_helper.validateWeekdays,
   }
-
-  local success,errmsg = content_helper.validateObject(todData,todValidations)
+  local success,errmsg = content_helper.validateObject(postcontent,todValidations)
   if not success then
-    return nil,errmsg
+    for field,error in pairs(errmsg) do
+      message_helper.pushMessage(T(field..": "..error),"error")
+    end
+    return nil
   end
-
-  -- day/time overlap validation
   if postcontent.start_time >= postcontent.stop_time then
-    return nil,T"Start time should be less than Stop time."
+    message_helper.pushMessage(T"Stop time should be after Start time.","error")
+    return nil
   end
   for i,v in ipairs(timer_data) do
     if i ~= postcontent.index then
       if postcontent.profile == v.profile or v.profile == "All" or postcontent.profile == "All" then
-        if daysOverlap(postcontent.weekdays,v.days) and -- days overlap
-          postcontent.start_time <= v.stop_time and
-          postcontent.stop_time >= v.start_time then -- time overlaps
-          return nil,T"Overlapping times are not allowed."
+        local result,error = tod_helper.validateScheduleOverlap(postcontent,v)
+        if not result then
+          message_helper.pushMessage(T(error),"error")
+          return nil
         end
       end
     end
   end
-
   return true
 end
 
@@ -296,55 +238,30 @@ local function onAdd(success,content,onModify)
   if onModify then
     index = success:match("voicednd(.+)")
   end
-  local setTable = {}
-
-  if type(content.weekdays) ~= "table" then
-    if content.weekdays == "" then
-      content.weekdays = {}
-      for _,v in ipairs(tod.days) do
-        insert(content.weekdays,v[1])
-      end
-    else
-      content.weekdays = {untaint(content.weekdays)}
-    end
-  else
-    for i,v in ipairs(content.weekdays) do
-      content.weekdays[i] = untaint(v)
-    end
-  end
-
-  local valid,errmsg = validate_voicednd(content,session:retrieve("timer_data"))
-  if not valid then
-    tod_options.errmsg = errmsg
+  local setObject = {}
+  if not validate_voicednd(content,session:retrieve("timer_data")) then
     return nil
   end
-
   if not onModify then
-    proxy.add(tod_action_path.."@"..success..".timers.")
-    proxy.add(tod_timer_path,"timer"..index)
-    proxy.add(tod_voicednd_path,"voicednd"..index)
-    proxy.add(tod_voicednd_path.."@voicednd"..index..".profile.")
+    proxy.add("uci.tod.action.@"..success..".timers.")
+    proxy.add("uci.tod.timer.","timer"..index)
+    proxy.add("uci.tod.voicednd.","voicednd"..index)
+    proxy.add("uci.tod.voicednd.@voicednd"..index..".profile.")
   end
-
   content.weekdays = concat(content.weekdays,",")
-
   content.start_time = format("%s:%s",content.weekdays,content.start_time)
   content.stop_time = format("%s:%s",content.weekdays,content.stop_time)
-
-  setTable[format("%s@action%s.timers.@1.value",tod_action_path,index)] = "timer"..index
-
-  setTable[format("%s@action%s.enabled",tod_action_path,index)] = content.enabled
-  setTable[format("%s@action%s.script",tod_action_path,index)] = "voicedndscript"
-  setTable[format("%s@action%s.object",tod_action_path,index)] = "voicednd.voicednd"..index
-
-  setTable[format("%s@timer%s.start_time",tod_timer_path,index)] = content.start_time
-  setTable[format("%s@timer%s.stop_time",tod_timer_path,index)] = content.stop_time
-  setTable[format("%s@timer%s.name",tod_timer_path,index)] = "voicednd"
-
-  setTable[format("%s@voicednd%s.profile.@1.value",tod_voicednd_path,index)] = content.profile
-  proxy.set(setTable)
+  setObject[format("%s@action%s.timers.@1.value","uci.tod.action.",index)] = "timer"..index
+  setObject[format("%s@action%s.enabled","uci.tod.action.",index)] = content.enabled
+  setObject[format("%s@action%s.script","uci.tod.action.",index)] = "voicedndscript"
+  setObject[format("%s@action%s.object","uci.tod.action.",index)] = "voicednd.voicednd"..index
+  setObject[format("%s@timer%s.start_time","uci.tod.timer.",index)] = content.start_time
+  setObject[format("%s@timer%s.stop_time","uci.tod.timer.",index)] = content.stop_time
+  setObject[format("%s@timer%s.name","uci.tod.timer.",index)] = "voicednd"
+  setObject[format("%s@voicednd%s.profile.@1.value","uci.tod.voicednd.",index)] = content.profile
+  local ret = proxy.set(setObject)
   proxy.apply()
-  return true
+  return ret
 end
 
 local function onModify(index,content)
@@ -370,22 +287,26 @@ if ngx.var.request_method == "POST" then
   local current_index = postargs.index
   local allowedIndexes = session:retrieve(tod_options.tableid..".allowedindexes") or {}
   current_index = allowedIndexes[current_index] and allowedIndexes[current_index].paramindex or -1
-
   if postargs.action == "TABLE-NEW" then
     tod_options.editing = -1
   elseif postargs.action == "TABLE-EDIT" then
     tod_options.editing = postargs.index
   elseif postargs.action == "TABLE-ADD" then
-    current_index = proxy.add(tod_action_path,tod_options.objectName)
+    current_index = proxy.add("uci.tod.action.",tod_options.objectName)
     local success = onAdd(current_index,postargs)
     if not success then
-      proxy.del(tod_action_path.."@"..tod_options.objectName..".")
+      proxy.del("uci.tod.action.@"..tod_options.objectName..".")
       tod_options.editing = -1
     end
+    proxy.apply()
   elseif postargs.action == "TABLE-MODIFY" then
-    onModify(current_index,postargs)
+    local success = onModify(current_index,postargs)
+    if not success then
+      tod_options.editing = -1
+    end
   elseif postargs.action == "TABLE-DELETE" then
     onDelete(current_index)
+    proxy.apply()
   end
 end
 
@@ -399,9 +320,9 @@ local tod_data,tod_index = content_helper.loadTableData(tod_options.basepath,tod
 local tablesessionindexes = tod_options.tableid..".allowedindexes"
 session:store(tablesessionindexes,tod_index)
 
-local action_list = content_helper.convertResultToObject(tod_action_path,proxy.get(tod_action_path))
-local timer_list = content_helper.convertResultToObject(tod_timer_path,proxy.get(tod_timer_path))
-local voicednd_list = content_helper.convertResultToObject(tod_voicednd_path,proxy.get(tod_voicednd_path))
+local action_list = content_helper.convertResultToObject("uci.tod.action.",proxy.get("uci.tod.action."))
+local timer_list = content_helper.convertResultToObject("uci.tod.timer.",proxy.get("uci.tod.timer."))
+local voicednd_list = content_helper.convertResultToObject("uci.tod.voicednd.",proxy.get("uci.tod.voicednd."))
 local ringingStatus = proxy.get("uci.tod.todvoicednd.ringing")[1].value
 local timer_data = {}
 
@@ -433,7 +354,7 @@ for i = #tod_without_timer,1,-1 do
 end
 
 for i,v in ipairs(tod_data) do
-  v[1] = dnd_action[i].enabled -- status
+  local days,start_time = dnd_timer[i].start_time:match("^(.-):(.+)$")
   local profile = voicednd_list[i]["profile.@1.value"]
   for _,profileNum in pairs(profileName) do --To get the profile number from profileName table
     if profileNum[1] == profile then
@@ -441,14 +362,16 @@ for i,v in ipairs(tod_data) do
       break
     end
   end
+  v[1] = dnd_action[i].enabled -- status
   v[2] = profile  --profilenumber
-  local days,start_time = dnd_timer[i].start_time:match("^(.-):(.+)$")
   v[3] = start_time -- start_time
   v[4] = dnd_timer[i].stop_time:match("^.-:(.+)$") -- stop_time
   v[5] = ringing_status_map[ringingStatus] -- ringingState
   v[6] = {} -- days
-  for day in gmatch(days,"[^,]+") do
-    insert(v[6],untaint(day))
+  if days then
+    for day in gmatch(days,"[^,]+") do
+      insert(v[6],untaint(day))
+    end
   end
   -- Sub Columns
   v[7] = {
@@ -462,18 +385,22 @@ for i,v in ipairs(tod_data) do
     start_time = v[3],
     stop_time = v[4],
     days = v[6],
-    profile = voicednd_list[i]["profile.@1.value"]
+    profile = voicednd_list[i]["profile.@1.value"],
   }
 end
 
 session:store("timer_data",timer_data)
 
 local modal="/modals/tod_dnd-modal.lp"
+local tabs = "tabs-voice.lp"
+if ngx.var.args == "tod" then
+  modal = modal.."?tod"
+  tabs = "tabs-tod.lp"
+end
+lp.setpath("/www/snippets/")
 
 local switch_class_enable = {
-  input = {
-    class = "monitor-changes",
-  }
+  input = { class = "monitor-changes", }
 }
 local profileStatus_attr = {
   group = { class = "monitor-todStatus monitor-1 monitor-hidden-todStatus", },
@@ -483,36 +410,32 @@ local table_attr = {
   group = { class = "monitor-todStatus monitor-1 monitor-hidden-todStatus", },
 }
 
-ngx.print(ui_helper.createHeader(T"Time of Day"),'\
+ngx.print(ui_helper.createHeader(T"Time of Day",true,false),'\
 <div class="modal-body update">\
-');
-local lp = require("web.lp")
-lp.setpath("/www/snippets/")
-if ngx.var.args == "tod" then
-  lp.include("tabs-tod.lp")
-  modal = modal.."?tod"
-else
-  lp.include("tabs-voice.lp")
-end
-ngx.print('\
-  <form class="form-horizontal" method="post" action="',modal,'">',
+'); lp.include(tabs); ngx.print('\
+  <form class="form-horizontal" method="post" action="',modal,'">\
+    <style>#tod .line-edit {display:none;}</style>',
     ui_helper.createMessages(message_helper.popMessages()),'\
     <legend>',T"Do Not Disturb",'</legend>',
-      ui_helper.createSwitch(T"Enabled","todStatus",ring_data["todStatus"],switch_class_enable,ring_helpmsg["todStatus"]))
-    if ring_data["todStatus"] == "1" then ngx.print('\
-      <div id="parent_switch"">',
-	      ui_helper.createSwitch(T"In schedule, ringing is","profileStatus",ring_data["profileStatus"],profileStatus_attr,ring_helpmsg["profileStatus"]),
-      '</div>',
+    ui_helper.createSwitch(T"Enabled","todStatus",ring_data["todStatus"],switch_class_enable,ring_helpmsg["todStatus"]))
+    if ring_data["todStatus"] == "1" then ngx.print(
+      ui_helper.createSwitch(T"In schedule, ringing is","profileStatus",ring_data["profileStatus"],profileStatus_attr,ring_helpmsg["profileStatus"]),
       ui_helper.createTable(tod_columns,tod_data,tod_options,table_attr,nil))
-      if ngx.var.request_method == "POST" and (ngx.req.get_post_args().action == "TABLE-NEW" or ngx.req.get_post_args().action == "TABLE-EDIT") then ngx.print('\
-        <script type="text/javascript">\
-          $("#stoptime").parent().parent().after(\'<div class="control-group"><div style="padding-top:12px;" class="controls"><span class="alert">',T"The Gateway will block/allow all the time if none of the days are selected",'</span></div></div>\');\
-        </script>\
-      ')
-      end
     end
     ngx.print('\
   </form>\
 </div>\
-<script type="text/javascript" src="/js/tod_dnd-modal.js"></script>\
-',ui_helper.createFooter())
+<script type="text/javascript" src="/js/tod-modal.js"></script>\
+<script src="/js/modal-busy.js"></script>\
+')
+if ngx.var.request_method == "POST" and (ngx.req.get_post_args().action == "TABLE-NEW" or ngx.req.get_post_args().action == "TABLE-EDIT") then
+  ngx.print('\
+<script type="text/javascript">\
+  $(function () {\
+    var warning = \'<div class="control-group"><div style="padding-top: 12px;" class="controls"><span class="alert">',T"The Gateway will block/allow all the time if none of the days are selected",'</span></div></div>\';\
+    $(\'#stoptime\').parent().parent().after(warning);\
+  });\
+</script>\
+');
+end
+ngx.print(ui_helper.createFooter())

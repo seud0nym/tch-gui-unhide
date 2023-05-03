@@ -290,34 +290,6 @@ end
 function M.getTodwifi()
   setlanguage()
 
-  local function genWifiList()
-
-	local wifi_list = {}
-
-	for _,v in ipairs(proxy.getPN("rpc.wireless.ap.",true)) do
-		local ap = match(v.path,"rpc%.wireless%.ap%.@([^%.]+)%.")
-
-		local iface = proxy.get("rpc.wireless.ap.@"..ap..".ssid")
-		iface = iface and iface[1].value or ""
-
-		if iface then
-      local backhaul = proxy.get("uci.wireless.wifi-iface.@"..iface..".backhaul")
-      if backhaul and backhaul[1].value ~= "1" then
-        local freq = proxy.get("rpc.wireless.ssid.@"..iface..".radio")
-        if freq and freq[1].value then
-          freq = match(freq[1].value,"radio_5G") and "5GHz" or "2.4GHz"
-        end
-        local ssid = proxy.get("rpc.wireless.ssid.@"..iface..".ssid")
-        ssid = ssid and ssid[1].value
-
-        wifi_list[#wifi_list+1] = { ap ,ssid.." ("..freq..")" }
-      end
-    end
-  end
-
-	return wifi_list
-  end
-
   local wifimodes = {
     { "on",T"On" },
     { "off",T"Off" },
@@ -338,7 +310,7 @@ function M.getTodwifi()
         name = "ap",
         param = "ap",
         type = "text",
-		readonly = true,
+		    readonly = true,
         attr = { input = { class="span3" } },
     },--[2]
     {
@@ -390,21 +362,13 @@ function M.getTodwifi()
                 default = "1",
                 attr = { switch= { class="inline" } },
             },
-            --[[{   -- NOTE: don't foget update M.getTod() when change position
-                header = T"Hostname",
-                name = "id",
-                param = "id",
-                type = "text",
-                attr = { input = { class="span2",maxlength="17"},autocomplete=M.get_hosts_ac() },
-            },--]]
-			{
-				header = T"Access Point",
-				name = "ap",
-				param = "ap",
-				type = "checkboxgroup",
-                values = genWifiList(),
-				attr = { input = { class="span2" } },
-			},--[2]
+            {
+                header = T"Access Point",
+                name = "ap",
+                param = "ap",
+                type = "checkboxgroup",
+                attr = { input = { class="span2" } },
+            },
             {
                 header = T"AP State",
                 name = "mode",
@@ -448,20 +412,12 @@ function M.getTodwifi()
     ["stop_time"]   = validateTime,
     ["weekdays"]    = getWeekDays,
     ["enabled"]     = vB,
-    --["id"]          = vSIM,
   }
-
---[[  local tod_default = {
-    --["type"] = "mac",
-  }]]--
-
 
   return {
     columns = tod_columns,
     valid   = tod_valid,
     days    = theWeekdays(),
-    --default = tod_default,
-    --sort_func = tod_sort_func,
   }
 end
 
