@@ -63,6 +63,7 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
 <div class="modal-body update">\
   '); lp.include("tabs-firewall.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/firewall-user-rules-modal.lp">\
+    <style>#fw_userrules .line-edit,#fw_userrules_v6 .line-edit {display:none;}</style>\
     ');
     ngx.print(ui_helper.createMessages(message_helper.popMessages()))
     if not userLevelEnabled then
