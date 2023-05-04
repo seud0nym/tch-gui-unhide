@@ -19,17 +19,15 @@ VERSION=$(uci -q get version.@version[0].marketing_version)
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
 
+[ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
+
 [ -n "$VERSION" ] || abort_install "Failed to determine device firmware version?"
 [ -n "$VARIANT" ] || abort_install "Failed to determine device variant?"
 [ -n "$MAC_HEX" ] || abort_install "Failed to determine MAC representation?"
 
 cat /proc/cpuinfo | grep -q 'ARMv7 Processor rev 1 (v7l)' && ARMv7=1 || ARMv7=0
 
-RESTART_SERVICES=y
-SAVE_DEFAULTS=n
-SHOW_DEFAULTS=n
-
-# Keep count of changes so we know whether to restart services
+#region Service Counters
 SRV_bulkdata=0
 SRV_cups=0
 SRV_cwmp=0
@@ -61,7 +59,9 @@ SRV_upnp=0
 SRV_wansensing=0
 SRV_watchdog=0
 SRV_wifi=0
+#endregion Service Counters
 
+#region Usage
 usage() {
 cat <<EOH
 Hardens root access and applies optional service configuration changes.
@@ -164,27 +164,14 @@ fi
 exit
 }
 
-upgrade() {
-  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
-  if [ "$RESPONSE_CODE" = 200 ]; then
-    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
-    if [ $? -eq 0 ]; then
-      chmod +x $SCRIPT
-      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
-    else
-      echo "[$SCRIPT] Failed to download $SCRIPT."
-    fi
-  elif [ "$RESPONSE_CODE" = 404 ]; then
-    echo "[$SCRIPT] ERROR! Not found on GitHub???"
-  elif [ "$RESPONSE_CODE" = 000 ]; then
-    echo "ERROR! No Internet connection???"
-  else
-    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
-  fi
-  exit
-}
+[ "/$1/" = "/-?/" -o "/$1/" = "/--help/" ] && usage
+#endregion Usage
 
-# Options
+#region Environment
+RESTART_SERVICES=y
+SAVE_DEFAULTS=n
+SHOW_DEFAULTS=n
+
 set_defaults() {
   __ALG='u'
   __DECT='u'
@@ -232,8 +219,28 @@ set_defaults
 if [ -f .defaults.de-telstra ]; then
   . ./.defaults.de-telstra
 fi
+#endregion Environment
 
-[ "/$1/" = "/-?/" -o "/$1/" = "/--help/" ] && usage
+#region Options
+upgrade() {
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ]; then
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
+    if [ $? -eq 0 ]; then
+      chmod +x $SCRIPT
+      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
+    else
+      echo "[$SCRIPT] Failed to download $SCRIPT."
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]; then
+    echo "[$SCRIPT] ERROR! Not found on GitHub???"
+  elif [ "$RESPONSE_CODE" = 000 ]; then
+    echo "ERROR! No Internet connection???"
+  else
+    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
+  fi
+  exit
+}
 
 while getopts :a:b:c:d:e:f:g:h:i:k:l:m:n:op:q:r:s:t:u:w:yAF:GI:MO:RSU-: option; do
  case "${option}" in
@@ -295,6 +302,7 @@ if [ "$HOMEWARE" -eq 20 ]; then
   # fi
   HOMEWARE=18
 fi
+#endregion Options
 
 show_default() {
   local _DFLT
@@ -2719,9 +2727,10 @@ ExAOjKi0BckqCdJRoMhQVrBQDVmvDVRXo8lI00F3qlKloLJH/gl+tTiCcUNOnzbNPxLK7Be+bcDb9G0s
   rm /tmp/wget_1.19.5-4_arm_cortex-a9_neon.ipk
 }
 
+#region Hardening
 echo [$SCRIPT]: Applying default hardening rules...
 
-# CWMP
+#region CWMP
 CWMPD_LOG=$(uci -q show system | grep -i cwmp | cut -d. -f1-2 | sort -u)
 CWMPD_WANS=$(grep "^ *set_cwmpd" /usr/lib/lua/wansensingfw/failoverhelper.lua | wc -l)
 CWMPD_IQOS=$(uci -q show iqos | grep "target='cwmpd'" | cut -d. -f1-2)
@@ -2766,8 +2775,9 @@ if [ "$(uci -q get cwmpd.cwmpd_config.state)" = "1" -o -e /etc/init.d/cwmpd -o -
 else
   echo [$SCRIPT]: - CWMP already Disabled
 fi
+#endregion CWMP
 
-# Telstra Monitoring
+#region Telstra Monitoring
 WIFI_WANS=$(grep "^ *set_wifi_doctor" /usr/lib/lua/wansensingfw/failoverhelper.lua | wc -l)
 WRKR_WANS=$(uci -q show wansensing | grep "@worker\[[0-9]*\]\.enable='1'" | wc -l)
 if [ -z "$(uci -q get autoreset.vsparc_enabled)" -a -z "$(uci -q get autoreset.thor_enabled)" -a -z "$(uci -q get wifi_doctor_agent.acs)" -a -z "$(uci -q get wifi_doctor_agent.config)" -a -z "$(uci -q get wifi_doctor_agent.as_config)" -a $WRKR_WANS -eq 0 -a $WIFI_WANS -eq 0 ]; then
@@ -2807,8 +2817,9 @@ else
     echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! Telstra monitoring NOT Disabled${NC}"
   fi
 fi
+#endregion Telstra Monitoring
 
-# Telstra logging and data collection
+#region Telstra logging and data collection
 if [ "$__MONITORING" = 'n' ]; then
   if [ -e /etc/init.d/lotagent ]; then
     if /etc/init.d/lotagent enabled; then
@@ -2845,8 +2856,9 @@ if [ "$__MONITORING" = 'n' ]; then
 else
   echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! Telstra logging and data collection NOT Removed${NC}"
 fi
+#endregion Telstra logging and data collection
 
-# Telstra AIR
+#region Telstra AIR
 if [ -z "$(uci -q get dhcp.hotspot)" -a -z "$(uci -q get dhcp.fonopen)" -a -z "$(uci -q get network.fonopen)" -a -z "$(uci -q get web.fon)" -a -z "$(uci -q show web.ruleset_main.rules | grep '\bfon\b')" -a -z "$(uci -q show qos.reclassify_1.srcif | grep '\bfonopen\b')" -a -z "$(uci -q show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\))" -a -z "$(uci -q get wireless.bs2)" -a -z "$(uci -q get wireless.bs3)" ]; then
   echo [$SCRIPT]: - Telstra AIR already removed
 else
@@ -2907,8 +2919,9 @@ if [ "$__AIR" = 'n' ]; then
     SRV_qos=$(( $SRV_qos + 3 ))
   fi
 fi
+#endregion Telstra AIR
 
-# Telstra NTP servers
+#region Telstra NTP servers
 if [ "$__NTP" = 'n' ]; then
   for s in $(uci -q get system.ntp.server | tr " " "$IFS")
   do
@@ -2926,13 +2939,14 @@ if [ "$__NTP" = 'n' ]; then
 else
   echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! Telstra NTP servers NOT Removed${NC}"
 fi
+#endregion Telstra NTP servers
 
+#region USB noexec
 # Fix for bug introduced in commit ec5edb5 that caused "Too many levels of symbolic links" error
 if ! uci -q show mountd | grep 'options' | cut -d= -f2- | grep -q '='; then
   echo -e "[$SCRIPT]: - ${ORANGE}Fixing 'Too many levels of symbolic links' error${NC}"
   cp -p /rom/etc/config/mountd /etc/config/mountd
 fi
-# USB noexec
 if uci -q show mountd | grep -qE 'mountd\.(ext[2-4]|fat|hfsplus(journal)*|ntfs)\.options=.*noexec.*'; then
   if [ "$__NOEXEC" = 'n' ]; then
     for fs in ext2 ext3 ext4 fat hfsplus hfsplusjournal ntfs; do
@@ -2952,8 +2966,9 @@ if uci -q show mountd | grep -qE 'mountd\.(ext[2-4]|fat|hfsplus(journal)*|ntfs)\
 else
   echo [$SCRIPT]: - noexec on ext2/3/4, fat, hfsplus, hfsplusjournal and ntfs mounts already Disabled
 fi
+#endregion USB noexec
 
-# Telstra APN check
+#region Telstra APN check
 if grep -q 'set_voip_iface(x, mobileiface4, mobileiface6)' /usr/lib/lua/wansensingfw/failoverhelper.lua; then
   if [ "$__LTE" == 'n' ]; then
     echo [$SCRIPT]: - Removing Telstra APN check
@@ -2965,8 +2980,9 @@ if grep -q 'set_voip_iface(x, mobileiface4, mobileiface6)' /usr/lib/lua/wansensi
 else
   echo [$SCRIPT]: - Telstra APN check already removed
 fi
+#endregion Telstra APN check
 
-# Dropbear
+#region Dropbear
 if [ -f authorized_keys ]; then
   if [ "$__KEYS" = 'n' ]; then
     cmp -s authorized_keys /etc/dropbear/authorized_keys
@@ -3043,8 +3059,9 @@ exit 0
 EoS99
   chmod +x /etc/rc.d/S99ula-dropbear
 fi
+#endregion Dropbear
 
-# RTFD protection
+#region RTFD protection
 if [ ! -e /rom/etc/rtfd_persistent_filelist.conf -a ! -e /etc/rtfd_persistent_filelist.conf ]; then
   ROOT_PROTECT_NOW="0"
 elif [ ! -e /rom/etc/rtfd_persistent_filelist.conf -a -e /etc/rtfd_persistent_filelist.conf ]; then
@@ -3071,10 +3088,10 @@ fi
 if [ "$__ROOT_PROTECT" = "0" ]; then
   echo -e "[$SCRIPT]:${GREEN} NOTE: Installation of tch-gui-unhide will ALWAYS enable RTFD protection!${NC}"
 fi
+#endregion RTFD protection
+#endregion Hardening
 
-# End of hardening
-
-# Telstra QoS VoWiFi reclassify rules
+#region Telstra QoS VoWiFi reclassify rules
 [ $SRV_qos_tch -ge 0 ] && qos_cfg="qos_tch" || qos_cfg="qos"
 VoWiFi="$(uci -q show $qos_cfg | grep -E "$(uci -q show $qos_cfg | grep =reclassify | cut -d= -f1 | xargs | tr " " "|")" | grep VoWiFi | cut -d. -f1-2)"
 if [ -z "$VoWiFi" ]; then
@@ -3091,9 +3108,9 @@ else
     echo -e "[$SCRIPT]: ${ORANGE}OVERRIDE! Telstra QoS VoWiFi reclassify rules not removed${NC}"
   fi
 fi
+#endregion Telstra QoS VoWiFi reclassify rules
 
-
-# Host Name
+#region Host Name
 CURRENT_HOSTNAME="$(uci -q get system.@system[0].hostname)"
 if [ "$__HOST" = "u" ]; then
   echo [$SCRIPT]: Host name unchanged \[$CURRENT_HOSTNAME\]
@@ -3164,8 +3181,9 @@ else
     SRV_samba=$(( $SRV_samba + 1 ))
   fi
 fi
+#endregion Host Name
 
-# Domain Name
+#region Domain Name
 DOMAIN_NOW="$(uci -q get dhcp.main.domain)"
 if [ "$__DOMAIN" = "u" -o "$DOMAIN_NOW" = "$__DOMAIN" ]; then
   echo [$SCRIPT]: Domain name unchanged \[$DOMAIN_NOW\]
@@ -3202,8 +3220,9 @@ else
   exec_uci add_list dhcp.main.hostname="$FQDN"
   SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
 fi
+#endregion Domain Name
 
-# DNS Servers
+#region DNS Servers
 uci -q get network.wan > /dev/null
 if [ $? -eq 0 ]; then
   WANDNS_NOW="$(uci -q get dhcp.main.server)"
@@ -3272,8 +3291,9 @@ if [ $? -eq 0 ]; then
 else
   echo [$SCRIPT]: DNS unchanged - no WAN configuration??? Maybe in bridged mode...
 fi
+#endregion DNS Servers
 
-# DLNA
+#region DLNA
 DLNA_NOW="$(uci -q get dlnad.config.enabled)"
 if [ "$__DLNAD" = "u" -o "$DLNA_NOW" = "$__DLNAD" ]; then
   echo [$SCRIPT]: Content sharing unchanged \[$(status2text $DLNA_NOW)\]
@@ -3283,8 +3303,9 @@ else
   SRV_dlna=$(( $SRV_dlna + 1 ))
   echo [$SCRIPT]: Content sharing $(status2text $__DLNAD)
 fi
+#endregion DLNA
 
-# Printer Sharing
+#region Printer Sharing
 PS_NOW="$(uci -q get printersharing.config.enabled)"
 if [ \( "$__PRNTR" = "u" -o "$PS_NOW" = "$__PRNTR" \) -a "$(iptables -S | grep -c 'lan.*--dport 631 .*DROP')" != "$__PRNTR" ]; then
   echo [$SCRIPT]: Printer sharing unchanged \[$(status2text $PS_NOW)\]
@@ -3310,8 +3331,9 @@ else
   SAMBA_PS="$__PRNTR"
   echo [$SCRIPT]: Printer sharing $(status2text $__PRNTR)
 fi
+#endregion Printer Sharing
 
-# File Sharing
+#region File Sharing
 FS_NOW="$(uci -q get samba.samba.filesharing)"
 if [ "$__SAMBA" = "u" -o "$FS_NOW" = "$__SAMBA" ]; then
   echo [$SCRIPT]: File sharing unchanged \[$(status2text $FS_NOW)\]
@@ -3323,8 +3345,9 @@ else
   SAMBA_FS="$__SAMBA"
   echo [$SCRIPT]: File sharing $(status2text $__SAMBA)
 fi
+#endregion File Sharing
 
-# SAMBA
+#region SAMBA
 SAMBA_NOW="$(uci -q get samba.samba.enabled)"
 if [ "$SAMBA_NOW" = "1" -a "$SAMBA_PS" = "0" -a "$SAMBA_FS" = "0" ]; then
   exec_uci set samba.samba.enabled="0"
@@ -3337,8 +3360,9 @@ elif [ "$SAMBA_NOW" = "0" -a \( "$SAMBA_PS" = "1" -o "$SAMBA_FS" = "1" \) ]; the
   SRV_samba=$(( $SRV_samba + 1 ))
   echo [$SCRIPT]: SAMBA Enabled
 fi
+#endregion SAMBA
 
-# Telephony
+#region Telephony
 if [ "$__MMPBX_SRV" = "d" ]; then
   for s in $(uci show mmpbx | grep =service | grep -v 'hold\|dnd\|mwi' | cut -d= -f1); do
     n="$(uci -q get $s.type)"
@@ -3371,7 +3395,8 @@ else
     echo [$SCRIPT]: Telephony Disabled
   fi
 fi
-# VoLTE
+
+#region VoLTE
 if [ -n "$(uci -q get mobiled_device_specific.@device[0])" ]; then
   if [ "$(uci -q get mobiled_device_specific.@device[0].ims_pdn_autobringup)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].activated)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].autoconnect)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].optional)" = "1" ]; then
     echo [$SCRIPT]: VoLTE capability already Enabled
@@ -3393,8 +3418,9 @@ if [ -n "$(uci -q get mobiled_device_specific.@device[0])" ]; then
     SRV_mobiled=$(( $SRV_mobiled + 1 ))
   fi
 fi
+#endregion VoLTE
 
-# DECT
+#region DECT
 DECT_NOW="$(uci -q get mmpbx.dectemission.state)"
 if [ -n "$DECT_NOW" ]; then
   if [ "$__DECT" = "u" -o "$DECT_NOW" = "$__DECT" ]; then
@@ -3412,8 +3438,10 @@ if [ -n "$DECT_NOW" ]; then
     echo [$SCRIPT]: DECT Supported Manufacturer Codes removed to fix issues registering Gigaset handsets
   fi
 fi
+#endregion DECT
+#endregion Telephony
 
-# WAN Supervision
+#region WAN Supervision
 if [ $SRV_supervision -ge 0 ]; then
   SUPERVISION_NOW="$(uci -q get supervision.global.mode)"
   if [ "$__SUPERVISION" = "u" -o "$SUPERVISION_NOW" = "$__SUPERVISION" ]; then
@@ -3429,8 +3457,9 @@ if [ $SRV_supervision -ge 0 ]; then
     echo [$SCRIPT]: WAN Supervision Mode = $__SUPERVISION
   fi
 fi
+#endregion WAN Supervision
 
-# Intercept Daemon
+#region Intercept Daemon
 INTERCEPT_NOW="$(uci -q get intercept.config.enabled)"
 if [ "$__INTERCEPT" = "u" -o "$INTERCEPT_NOW" = "$__INTERCEPT" ]; then
   echo [$SCRIPT]: Intercept Daemon unchanged \[$(status2text $INTERCEPT_NOW)\]
@@ -3440,8 +3469,9 @@ else
   SRV_intercept=$(( $SRV_intercept + 1 ))
   echo [$SCRIPT]: Intercept Daemon $(status2text $__INTERCEPT)
 fi
+#endregion Intercept Daemon
 
-# LED Logging
+#region LED Logging
 LED_LOG_NOW=$(uci -q get ledfw.syslog.trace)
 if [ -n "$LED_LOG_NOW" ]; then
   if [ "$__LED_LOG" = "u" -o "$LED_LOG_NOW" = "$__LED_LOG" ]; then
@@ -3453,8 +3483,9 @@ if [ -n "$LED_LOG_NOW" ]; then
     echo [$SCRIPT]: LED Logging $(status2text $__LED_LOG)
   fi
 fi
+#endregion LED Logging
 
-# Wi-Fi WPS
+#region Wi-Fi WPS
 if [ "$__WPS" = "u" ]; then
   WPS_NOW="$(uci -q show wireless | grep wps_state=\'1\' | wc -l)"
   if [ "$WPS_NOW" -eq 1 ]; then
@@ -3493,8 +3524,9 @@ else
     exec_uci commit wireless
   fi
 fi
+#endregion Wi-Fi WPS
 
-# NAT ALG Helpers
+#region NAT ALG Helpers
 if [ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" ]; then
   if [ "$__ALG" = "u" ]; then
     ALG_ENABLED=0
@@ -3565,8 +3597,9 @@ else # 20.3.c and later
     SRV_fw=$(( $SRV_fw + 1 ))
   fi
 fi
+#endregion NAT ALG Helpers
 
-# UPnP
+#region UPnP
 UPNP_NOW="$(uci -q get upnpd.config.enable_upnp)"
 NATPMP_NOW="$(uci -q get upnpd.config.enable_natpmp)"
 if [ "$__UPNP" = "u" -o \( "$NATPMP_NOW" = "$__UPNP" -a "$UPNP_NOW" = "$__UPNP" \) ]; then
@@ -3578,8 +3611,9 @@ else
   SRV_upnp=$(( $SRV_upnp + 2 ))
   echo [$SCRIPT]: UPnP $(status2text $__UPNP)
 fi
+#endregion UPnP
 
-# DumaOS
+#region DumaOS
 if [ $SRV_dumaos -ge 0 ]; then
   DUMAOS_NOW="$(uci -q get dumaos.tr69.dumaos_enabled)"
   if [ "$__DUMAOS" = "u" -o "$DUMAOS_NOW" = "$__DUMAOS" ]; then
@@ -3591,8 +3625,9 @@ if [ $SRV_dumaos -ge 0 ]; then
     echo [$SCRIPT]: DumaOS $(status2text $__DUMAOS)
   fi
 fi
+#endregion DumaOS
 
-# EasyMesh
+#region EasyMesh
 if [ $SRV_multiap -ge 0 ]; then
   BHAUL_IF="$(uci -q show wireless | grep "backhaul='1'" | cut -d. -f2)"
   BHAUL_AP="$(uci -q show wireless | grep -E "wireless\.ap.*\.iface='$BHAUL_IF'" | cut -d. -f2)"
@@ -3640,8 +3675,9 @@ if [ $SRV_mesh_broker -ge 0 ]; then
     echo [$SCRIPT]: EasyMesh BackHaul SSID $(status2text $__MULTIAP_BKH)
   fi
 fi
+#endregion EasyMesh
 
-# NFC
+#region NFC
 if [ $SRV_nfc -ge 0 ]; then
   NFC_NOW="$(uci -q get nfc.@nfc[0].enabled)"
   if [ "$__NFC" = "u" -o "$NFC_NOW" = "$__NFC" ]; then
@@ -3653,8 +3689,9 @@ if [ $SRV_nfc -ge 0 ]; then
     echo [$SCRIPT]: NFC $(status2text $__NFC)
   fi
 fi
+#endregion NFC
 
-# Power Saving
+#region Power Saving
 PWR_OPTIONS="$(pwrctl 2>&1 | grep -oe '--[^[:blank:]]*' | sort -u)"
 PWR_CFG_SET() { echo $PWR_OPTIONS | grep -qe "--$1\b" && pwrctl config --$1 $2; }
 PWR_STATUS=$(pwrctl show | grep -i ENABLED | wc -l)
@@ -3799,8 +3836,9 @@ case "$__POWER" in
       fi
       exec_uci commit power;;
 esac
+#endregion Power Saving
 
-# Package Repository
+#region Package Repository
 [ -n "$__REPO" ] && HOMEWARE=$__REPO
 # macoers repository URL changed, so need to update if it is the old one
 OPKG_DEP=$(grep -c 'www.macoers.com/repository' /etc/opkg/customfeeds.conf)
@@ -3902,8 +3940,9 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
     echo [$SCRIPT]: Sorry!! I can only configure opkg for ARMv7 devices...
   fi
 fi
+#endregion Package Repository
 
-# Guest Wi-Fi
+#region Guest Wi-Fi
 if [ $__GUEST = y ]; then
   [ -n "$(uci -q get dhcp.guest)" ] && exec_uci delete dhcp.guest
   SRV_dhcp=$(( $SRV_dhcp + 1 ))
@@ -3985,7 +4024,9 @@ if [ $SRV_mesh_broker -lt 0 -a $(uci -q show network | grep -E '\.Guest.*=interf
     SRV_multiap=$(( $SRV_multiap + 3 ))
   fi
 fi
+#endregion Guest Wi-Fi
 
+#region Services
 echo [$SCRIPT]: Applying service changes...
 [ "$__LITE" = 'R' ] && {
   for s in cupsd dumaos mesh_broker mmpbxfwctl mmpbxd mmpbxbrcmdect mud multiap_agent multiap_controller multiap_vendorextensions ndhttpd telemetry-daemon xl2tpd; do
@@ -4070,7 +4111,9 @@ if [ "$__LITE" = 'y' ]; then
   [ "$__UPNP" = "0" ] && { /etc/init.d/miniupnpd-tch disable; /etc/init.d/miniupnpd-tch stop; } > /dev/null 2>&1
   [ ! -e /etc/ipsec.conf ] && { /etc/init.d/xl2tpd disable; /etc/init.d/xl2tpd stop; } > /dev/null 2>&1
 fi
+#endregion Services
 
+#region Packages
 if [ -n "$PACKAGES_TO_REMOVE" ]; then
   echo [$SCRIPT]: Removing packages that are no longer required \($PACKAGES_TO_REMOVE\)
   opkg --force-removal-of-dependent-packages remove $PACKAGES_TO_REMOVE
@@ -4084,7 +4127,9 @@ if [ -e /rom/usr/lib/opkg/info/mappings-fon.list ]; then
     [ ! -f $f ] && cp -p /rom$f $f
   done
 fi
+#endregion Packages
 
+#region Cleanup
 if [ -n "$CWMPD_LOG_FILES" ]; then
   echo [$SCRIPT]: Removing old CWMP log files
   rm -f $CWMPD_LOG_FILES
@@ -4092,7 +4137,9 @@ fi
 
 echo [$SCRIPT]: Cleaning up broken links in /etc/rc.d
 find /etc/rc.d -type l ! -exec test -e {} \; -exec rm {} \;
+#endregion Cleanup
 
+#region Change IP setup
 SRV_network=0
 if [ -n "$__IPADDR" -a "$__IPADDR" != "$(uci -q get network.lan.ipaddr)" ]; then
   echo [$SCRIPT]: Setting LAN IPv4 address to ${__IPADDR}...
@@ -4100,6 +4147,7 @@ if [ -n "$__IPADDR" -a "$__IPADDR" != "$(uci -q get network.lan.ipaddr)" ]; then
   exec_uci commit network
   SRV_network=$(( $SRV_network + 1 ))
 fi
+#endregion Change IP setup
 
 if [ "$VERSION" = "17.2" -a -f transformer-cli -a ! -f /usr/bin/transformer-cli ]; then
   echo [$SCRIPT]: Adding transformer-cli to command path
@@ -4110,9 +4158,11 @@ fi
 echo [$SCRIPT]: Done!
 [ $__ROOT_PWD_REMINDER = y ] && echo -e "[$SCRIPT]: ${GREEN}NOTE: If you haven't changed the root password, you should do it now...${NC}"
 
+#region Change IP apply
 if [ $SRV_network -gt 0 ]; then
   echo -e "[$SCRIPT]: ${GREEN}NOTE: You will need to reconnect via SSH to the new IP address!!!${NC}";
   /etc/init.d/network reload > /dev/null 2>&1
 fi
+#endregion Change IP apply
 
 unlock normally

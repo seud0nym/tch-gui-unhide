@@ -26,6 +26,8 @@ VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//' -e 's/vac/
 MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
 HOSTNAME=$(uci -q get system.@system[0].hostname)
 
+[ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
+
 [ -n "$VERSION" ]  || abort_install "Failed to determine device firmware version?"
 [ -n "$FW_BASE" ]  || abort_install "Failed to determine device base firmware (marketing) version?"
 [ -n "$VARIANT" ]  || abort_install "Failed to determine device variant?"
