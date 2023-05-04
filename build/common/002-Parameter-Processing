@@ -29,7 +29,7 @@ Optional parameters:
  -a 4|5           Set the number of cards across on screen width greater than 1200px
                    (Default is current setting, or 4 for first time installs)
  -h d|s|n|"txt"   Set the browser tabs title (Default is current setting)
-                   (d)=$VARIANT (s)=$VARIANT-$MAC (n)=$HOSTNAME ("txt")=Specified "txt"
+                   (d)=$VARIANT (s)=$VARIANT-$MAC_HEX (n)=$HOSTNAME ("txt")=Specified "txt"
  -l y|n           Keep the Telstra landing page (y) or de-brand the landing page (n) (applicable to 
                     Smart Modem Gen 2 and later only)
                     (Default is current setting, or (n) if no theme has been applied)
@@ -132,7 +132,7 @@ while getopts :a:b:c:d:f:h:i:l:m:p:rs:t:uv:x:yC:LTVWX-: option; do
    h) case "${OPTARG}" in
         d) TITLE="$VARIANT";;
         n) TITLE="$HOSTNAME";;
-        s) TITLE="$VARIANT-$MAC";;
+        s) TITLE="$VARIANT-$MAC_HEX";;
         *) TITLE="$OPTARG";;
       esac;;
    i) if [ "$(echo ${OPTARG} | tr "YN" "yn" | sed 's/\(.\)\(.*\)/\1/')" = "y" ]; then ICONS=visible; else ICONS=hidden; fi;;
@@ -251,7 +251,7 @@ fi
 [ "$BG_RFRSH" = "false" ] && CHART_CARDS="n"
 
 if [ $SAVE_DEFAULTS = "y" ]; then
-  set | grep -E 'ACROSS|BG_RFRSH|CHART_CARDS|COLOR|DFLT_USR|FIX_DFLT_USR|FIX_FW_UPGRD|FW_UPGRD|ICONS|KEEPLP|MINIFY|SIP_PWDS|THEME|TITLE|UPDATE_BTN' > .defaults.$SCRIPT
+  set | grep -E 'ACROSS|BG_RFRSH|CHART_CARDS|COLOR|DFLT_USR|FIX_DFLT_USR|FIX_FW_UPGRD|FW_UPGRD|ICONS|KEEPLP|MINIFY|SIP_PWDS|START_PAGE|THEME|TITLE|UPDATE_BTN' > .defaults.$SCRIPT
   echo -e "${GREEN}NOTE: Defaults are only used in clean installs, not upgrades!${NC}"
   echo -e "${GREEN}Defaults saved!${NC}"
   exit

@@ -25,11 +25,11 @@ show_setting() {
         esac;;
     h)  _ABL="$3"
         case "$3" in
-          "")            _ABL="$(printf "$ORANGE")Unchanged"; _ST="$(printf '\033[9m')";;
-          $VARIANT-$MAC) _VAL="s";;
-          $VARIANT)      _VAL="d";;
-          $HOSTNAME)     _VAL="h";;
-          *)             _VAL="$3";;
+          "")                _ABL="$(printf "$ORANGE")Unchanged"; _ST="$(printf '\033[9m')";;
+          $VARIANT-$MAC_HEX) _VAL="s";;
+          $VARIANT)          _VAL="d";;
+          $HOSTNAME)         _VAL="h";;
+          *)                 _VAL="$3";;
         esac;;
     i)  case "$3" in
           visible) _VAL="y"; _ABL="Visible";;
@@ -98,6 +98,11 @@ show_setting() {
   _W=$(( 20 + ${#_ST} + ${#_NC} ))
   printf "[$SCRIPT]:  %-35s %-${_W}s %s\n" "$_TXT" "$_ST$_OPT$_VAL$_NC" "$_ABL$_NC"
 }
+show_variable() {
+  local name=$1
+  local value=$(eval echo \$$name)
+  printf "[$SCRIPT]:  %-56s %s\n" "$name" "$value"
+}
 
 if [ $ABORT = n ]; then
   if [ -z "$INSTALLED_RELEASE" ]; then
@@ -110,6 +115,12 @@ else
   echo -e "[$SCRIPT]: Installer tch-gui-unhide release: ${ORANGE}$RELEASE${NC}"
 fi
 
+if [ "$VERBOSE" = V ]; then
+  echo -e "[$SCRIPT]: ${CYAN}Environment Variables${NC}"
+  show_variable VARIANT
+  show_variable MAC_HEX
+  show_variable HOSTNAME
+fi
 echo -e "[$SCRIPT]: ${CYAN}Theme Options${NC}"
   show_setting "Theme"                                "t" "$THEME"
   show_setting "Theme highlight colour"               "c" "$COLOR"
