@@ -20,7 +20,7 @@ if [ "$(uci -q get firewall.bwstats)" != "include" ]; then
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ "$(uci -q get firewall.bwstats.enabled)" != '1' ]; then
-  [ "$DEBUG" = "V" ] && echo -e "[$SCRIPT]: Enabling firewall.bwstats"
+  [ "$VERBOSE" = "V" ] && echo -e "[$SCRIPT]: Enabling firewall.bwstats"
   uci set firewall.bwstats.enabled='1'
   uci commit firewall
   SRV_firewall=$(( $SRV_firewall + 1 ))
