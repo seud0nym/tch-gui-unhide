@@ -301,47 +301,47 @@ show_default() {
     s) case "$3" in BFD) _OPT="sb";; DNS) _OPT="sd";; Disabled) _OPT="sn";; *) _OPT='su';; esac;;
     *) case "$3" in 0) _OPT="${1}n";; 1) _OPT="${1}y";; *) _OPT="$1$3";; esac;;
   esac
-  case "$3" in
-    u) _DFLT=Unchanged;;
-    0) _DFLT=Disabled;;
-    1) if [ "$1" = "m" ]; then 
-        case "$2" in
-          *Agen*) _OPT="ma";;
-          *Back*) _OPT="mb";;
-          *Cont*) _OPT="mc";;
-          *Vend*) _OPT="mv";;
-        esac
-       fi
-       _DFLT=Enabled
-       ;;
-    y) _DFLT=Yes;;
-    n) _DFLT=No;;
-    m) _DFLT="De-provisioned";;
-    d) _DFLT="System Default";;
-    *) if [ "$1" = "h" ]; then
-        case "$3" in
-          d) _DFLT="$VARIANT";;
-          s) _DFLT="$VARIANT-$MAC_HEX";;
-          *) _DFLT="$3";;
-        esac
-      elif [ "$1" = "n" ]; then
-        case "$3" in
-          a) _DFLT="From ISP";;
-          c) _DFLT="Cloudflare";;
-          g) _DFLT="Google";;
-          f) _DFLT="OpenDNS Family Shield";;
-          o) _DFLT="OpenDNS";;
-          *) _DFLT="$3";;
-        esac
-      elif [ "$1" = 'I' ]; then
-        [ -z "$3" ] && _DFLT=Unchanged || _DFLT="$3"
-      elif [ "$1" = 'O' ]; then
-        _DFLT="$HOMEWARE"
-        [ -z "$3" ] && _OPT="O$HOMEWARE"
-      else
-        _DFLT="$3"
-      fi;;
-  esac
+  if [ "$1" = "h" ]; then
+    case "$3" in
+      d) _DFLT="$VARIANT";;
+      s) _DFLT="$VARIANT-$MAC_HEX";;
+      *) _DFLT="$3";;
+    esac
+  elif [ "$1" = "n" ]; then
+    case "$3" in
+      a) _DFLT="From ISP";;
+      c) _DFLT="Cloudflare";;
+      g) _DFLT="Google";;
+      f) _DFLT="OpenDNS Family Shield";;
+      o) _DFLT="OpenDNS";;
+      *) _DFLT="$3";;
+    esac
+  elif [ "$1" = 'I' ]; then
+    [ -z "$3" ] && _DFLT=Unchanged || _DFLT="$3"
+  elif [ "$1" = 'O' ]; then
+    _DFLT="$HOMEWARE"
+    [ -z "$3" ] && _OPT="O$HOMEWARE"
+  else
+    case "$3" in
+      u) _DFLT=Unchanged;;
+      0) _DFLT=Disabled;;
+      1) if [ "$1" = "m" ]; then 
+          case "$2" in
+            *Agen*) _OPT="ma";;
+            *Back*) _OPT="mb";;
+            *Cont*) _OPT="mc";;
+            *Vend*) _OPT="mv";;
+          esac
+        fi
+        _DFLT=Enabled
+        ;;
+      y) _DFLT=Yes;;
+      n) _DFLT=No;;
+      m) _DFLT="De-provisioned";;
+      d) _DFLT="System Default";;
+      *) _DFLT="$3";;
+    esac
+  fi
   _OPT="$(printf '-%-20s' "$_OPT\e[0m")"
   printf "  %-40s " "$2"
   if [ $_ESC = 9 ]; then
@@ -2721,7 +2721,7 @@ echo [$SCRIPT]: Applying default hardening rules...
 CWMPD_LOG=$(uci -q show system | grep -i cwmp | cut -d. -f1-2 | sort -u)
 CWMPD_WANS=$(grep "^ *set_cwmpd" /usr/lib/lua/wansensingfw/failoverhelper.lua | wc -l)
 CWMPD_IQOS=$(uci -q show iqos | grep "target='cwmpd'" | cut -d. -f1-2)
-if [ "$(uci -q get cwmpd.cwmpd_config.state)" -eq "1" -o -e /etc/init.d/cwmpd -o -n "$CWMPD_IQOS" -o $CWMPD_WANS -gt 0 -o -n "$CWMPD_LOG" ]; then
+if [ "$(uci -q get cwmpd.cwmpd_config.state)" = "1" -o -e /etc/init.d/cwmpd -o -n "$CWMPD_IQOS" -o $CWMPD_WANS -gt 0 -o -n "$CWMPD_LOG" ]; then
   if [ "$__CWMP" = 'n' ]; then
     echo [$SCRIPT]: - Disabling CWMP
     exec_uci set cwmpd.cwmpd_config.state='0'
@@ -2806,12 +2806,14 @@ fi
 
 # Telstra logging and data collection
 if [ "$__MONITORING" = 'n' ]; then
-  if /etc/init.d/lotagent enabled; then
-    echo [$SCRIPT]: - Disabling lotagent \(Telstra logging?\)
-    /etc/init.d/lotagent stop
-    /etc/init.d/lotagent disable
-  else
-    echo [$SCRIPT]: - lotagent already Disabled
+  if [ -e /etc/init.d/lotagent ]; then
+    if /etc/init.d/lotagent enabled; then
+      echo [$SCRIPT]: - Disabling lotagent \(Telstra logging?\)
+      /etc/init.d/lotagent stop
+      /etc/init.d/lotagent disable
+    else
+      echo [$SCRIPT]: - lotagent already Disabled
+    fi
   fi
 
   if [ "$(uci -q get bulkdata.global.enabled)" = "1" ]; then
@@ -3366,24 +3368,26 @@ else
   fi
 fi
 # VoLTE
-if [ "$(uci -q get mobiled_device_specific.@device[0].ims_pdn_autobringup)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].activated)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].autoconnect)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].optional)" = "1" ]; then
-  echo [$SCRIPT]: VoLTE capability already Enabled
-else
-  echo [$SCRIPT]: Enabling VoLTE voice service and SMS reception
-  if [ "$(uci -q get mmpbxmobilenet.VoLTE)" = "profile" ]; then
-    exec_uci set mmpbxmobilenet.VoLTE.enabled='1'
-  elif [ "$(uci -q get mmpbxmobilenet.mobile_profile_0)" = "profile" ]; then
-    exec_uci set mmpbxmobilenet.mobile_profile_0.enabled='1'
+if [ -n "$(uci -q get mobiled_device_specific.@device[0])" ]; then
+  if [ "$(uci -q get mobiled_device_specific.@device[0].ims_pdn_autobringup)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].activated)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].autoconnect)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].optional)" = "1" ]; then
+    echo [$SCRIPT]: VoLTE capability already Enabled
+  else
+    echo [$SCRIPT]: Enabling VoLTE voice service and SMS reception
+    if [ "$(uci -q get mmpbxmobilenet.VoLTE)" = "profile" ]; then
+      exec_uci set mmpbxmobilenet.VoLTE.enabled='1'
+    elif [ "$(uci -q get mmpbxmobilenet.mobile_profile_0)" = "profile" ]; then
+      exec_uci set mmpbxmobilenet.mobile_profile_0.enabled='1'
+    fi
+    exec_uci commit mmpbxmobilenet
+    SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
+    exec_uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
+    exec_uci set mobiled_sessions.@session[0].activated='1'
+    exec_uci set mobiled_sessions.@session[0].autoconnect='1'
+    exec_uci set mobiled_sessions.@session[0].optional='1'
+    exec_uci commit mobiled_device_specific
+    exec_uci commit mobiled_sessions
+    SRV_mobiled=$(( $SRV_mobiled + 1 ))
   fi
-  exec_uci commit mmpbxmobilenet
-  SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
-  exec_uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
-  exec_uci set mobiled_sessions.@session[0].activated='1'
-  exec_uci set mobiled_sessions.@session[0].autoconnect='1'
-  exec_uci set mobiled_sessions.@session[0].optional='1'
-  exec_uci commit mobiled_device_specific
-  exec_uci commit mobiled_sessions
-  SRV_mobiled=$(( $SRV_mobiled + 1 ))
 fi
 
 # DECT
