@@ -9,7 +9,8 @@ if [ "$1" = "setup" ]; then
         local extra="$(printf "%-8s%s" "${cmd}" "${help}")"\
         EXTRA_HELP="${EXTRA_HELP}\\t${extra}\\n"\
         EXTRA_COMMANDS="${EXTRA_COMMANDS} ${cmd}"\
-}\n' -i /etc/rc.common
+}\
+' -i /etc/rc.common
   echo ">> Determining installed and current versions of required packages..."
   coreutils_current="$(curl -skl https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/arm_cortex-a9/packages/Packages | grep -m1 '^Version' | cut -d' ' -f2)"
   coreutils_installed="$(opkg list-installed | grep '^coreutils ' | cut -d- -f2 | xargs)"
