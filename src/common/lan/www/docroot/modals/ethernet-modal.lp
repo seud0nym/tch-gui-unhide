@@ -788,7 +788,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
               <th style="width:65px;">',ui_helper.createSwitchPort("2",eth.state_1,eth.speed_1),'</th>\
               <th style="width:65px;">',ui_helper.createSwitchPort("3",eth.state_2,eth.speed_2),'</th>\
               <th style="width:65px;">',ui_helper.createSwitchPort("4",eth.state_3,eth.speed_3),'</th>')
-              if isBridgedMode and cur_intf == "lan" then
+              if isBridgedMode then
                 ngx.print('<th>',ui_helper.createSwitchPort("WAN",eth.state_4,eth.speed_4, { socket={ class="red" } }),'</th>')
               end
               ngx.print('\
