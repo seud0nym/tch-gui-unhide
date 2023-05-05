@@ -285,23 +285,25 @@ if [ "$MINIFY" = y ]; then
   sed -e '/[ \t]*\/\/[ \t]*Zooming with more than 100/d' -i /www/docroot/modals/lte-doctor.lp
 fi
 
-echo -e "[$SCRIPT]: Adding any missing operational mobile operators"
-while read mcc mnc name; do
-  path=$(uci -q show mobiled | grep -E "@operator\[[0-9]+\].mnc='$mnc'" | cut -d. -f1-2)
-  if [ -z "$path" -o "$(uci -q get ${path}.mcc)" != "$mcc" ]; then
-    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Adding $name (${mcc}${mnc})"
-    cfg="$(uci add mobiled operator)"
-    uci set mobiled.${cfg}.mcc="$mcc"
-    uci set mobiled.${cfg}.mnc="$mnc"
-    uci set mobiled.${cfg}.name="$name"
-  fi
-done <<-EOF
-505 01 Telstra
-505 02 Optus
-505 03 Vodafone
-505 14 AAPT
-505 19 Lycamobile
-505 38 Truphone
-505 52 OptiTel
+if [ -e /etc/config/mobiled ]; then
+  echo -e "[$SCRIPT]: Adding any missing operational mobile operators"
+  while read mcc mnc name; do
+    path=$(uci -q show mobiled | grep -E "@operator\[[0-9]+\].mnc='$mnc'" | cut -d. -f1-2)
+    if [ -z "$path" -o "$(uci -q get ${path}.mcc)" != "$mcc" ]; then
+      [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Adding $name (${mcc}${mnc})"
+      cfg="$(uci add mobiled operator)"
+      uci set mobiled.${cfg}.mcc="$mcc"
+      uci set mobiled.${cfg}.mnc="$mnc"
+      uci set mobiled.${cfg}.name="$name"
+    fi
+  done <<-EOF
+  505 01 Telstra
+  505 02 Optus
+  505 03 Vodafone
+  505 14 AAPT
+  505 19 Lycamobile
+  505 38 Truphone
+  505 52 OptiTel
 EOF
-uci commit mobiled
+  uci commit mobiled
+fi
