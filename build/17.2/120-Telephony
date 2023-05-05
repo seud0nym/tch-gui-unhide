@@ -95,3 +95,8 @@ for _, dupli in ipairs(duplicates) do
 end
 
 VOLTE
+
+if ! grep -q mmpbxmobilenet /usr/share/transformer/commitapply/uci_mmpbx.ca; then
+  echo -e "[$SCRIPT]: Adding mmpbxmobilenet commit/apply action"
+  echo '^mmpbxmobilenet%. /etc/init.d/mmpbxd restart; /etc/init.d/wansensing reload' >> /usr/share/transformer/commitapply/uci_mmpbx.ca
+fi
