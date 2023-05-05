@@ -22,6 +22,12 @@ if [ "$(uci -q get mmpbx.dectemission)" != "dectemission" ]; then
   sed -e '/--region DECT/,/--endregion/d' -i /www/lua/telephonycard_helper.lua
 fi
 
+if [ ! -e /etc/config/mobiled_device_specific ]; then
+  echo -e "[$SCRIPT]: Remove VoLTE Tab and card info"
+  sed -e '/mmpbx-volte-modal.lp/d' -i /www/snippets/tabs-voice.lp
+  sed -e '/--region VoLTE/,/--endregion/d' -i /www/lua/telephonycard_helper.lua
+fi
+
 echo -e "[$SCRIPT]: Add missing insert option on dial plan entries"
 sed \
   -e 's/registerMultiMap/registerNamedMultiMap/' \

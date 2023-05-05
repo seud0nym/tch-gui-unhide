@@ -168,6 +168,7 @@ function M.getTelephonyCardHTML(mmpbx_state)
     end
   end
 
+  --region VoLTE
   local volte = {
     state = "Device.Services.X_TELSTRA_VOLTE.Enable",
     registration_status = "rpc.mobiled.device.@1.voice.info.volte.registration_status",
@@ -201,6 +202,7 @@ function M.getTelephonyCardHTML(mmpbx_state)
       temp[#temp+1] = format(stats_fmt,callsIn,callsMissed,callsOut)
     end
   end
+  --endregion VoLTE (Do NOT remove this region: used by 120-Telephony)
 
   local html = {}
 
