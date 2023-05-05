@@ -76,13 +76,14 @@ ngx.print('\
   <div class="smallcard">\
     ',ui_helper.createCardHeader(T"Eco Settings",modalPath,nil,nil,{icon={class="icon-leaf"}}),'\
     <div class="content card_bg" data-bg-text="&#xf06c;">\
-      <div class="divtable">',
+      <div class="divtable">', -- each light must be on a line by itself because any not applicable to the device are deleted by 500-Power
         ui_helper.createSimpleLight(content.cpuspeed_status,content.cpuspeed),
         ui_helper.createSimpleLight(content.cpuwait,content.cpuwait_text),
         ui_helper.createSimpleLight(content.ethapd,content.ethapd_text),
         ui_helper.createSimpleLight(content.eee,content.eee_text),
         ui_helper.createSimpleLight(content.autogreeen,content.autogreeen_text),
-        ui_helper.createSimpleLight(content.dgm,content.dgm_text),'\
+        ui_helper.createSimpleLight(content.dgm,content.dgm_text),
+        '\
       </div>\
     </div>\
   </div>\
