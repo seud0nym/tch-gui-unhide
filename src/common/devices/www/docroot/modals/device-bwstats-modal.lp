@@ -30,6 +30,9 @@ local cfgValid = {
 
 local config,config_helpmsg = post_helper.handleQuery(cfgParams,cfgValid)
 local isEnabled = (config["enabled"] == "1")
+if not config_helpmsg then
+  config_helpmsg = {}
+end
 
 local button_attr = { button = { id = "btn-zero" }, group = { class ="monitor-enabled monitor-1", } }
 local enabled_attr = { input = { class = "monitor-changes" } }
