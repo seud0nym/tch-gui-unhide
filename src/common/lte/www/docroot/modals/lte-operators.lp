@@ -1,29 +1,22 @@
 --pretranslated: do not change this file
 
-local string = string
-local table = { insert = table.insert }
-local ngx,format = ngx,string.format
-
 -- Enable localization
 gettext.textdomain('webui-mobiled')
 
-local proxy = require("datamodel")
+local lp = require("web.lp")
 local post_helper = require("web.post_helper")
 local ui_helper = require("web.ui_helper")
 local utils = require("web.lte-utils")
 
+local ngx,format = ngx,string.format
+
 local params = utils.get_params()
 
-local used_plmn = {}
-local devices = proxy.getPN("uci.mobiled.device.",true)
-if devices then
-  for _,device in pairs(devices) do
-    local mcc = format("%s",proxy.get(device.path.."mcc")[1].value)
-    local mnc = format("%s",proxy.get(device.path.."mnc")[1].value)
-    used_plmn[mcc..mnc] = 1
-  end
+local used_plmn
+local serving_system = utils.getContent("rpc.mobiled.device.@1.network.serving_system.")
+if serving_system and serving_system.mcc and serving_system.mnc then
+  used_plmn = format("%s%s",serving_system.mcc,serving_system.mnc)
 end
-
 
 local operator_valid = {
   ["name"] = post_helper.getValidateStringLengthInRange(1,127),
@@ -32,12 +25,12 @@ local operator_valid = {
 }
 
 local function operator_filter(data)
-  if used_plmn[format("%s",data.plmn)] then
+  if used_plmn == data.plmn then
     data["used"] = T"Yes";
-    return { canEdit = false,canDelete = false }
+    return { canEdit = false, canDelete = false }
   else
     data["used"] = T"No";
-    return { canEdit = true,canDelete = true }
+    return { canEdit = true, canDelete = true }
   end
 end
 
@@ -78,29 +71,23 @@ local operator_options = {
   basepath = "uci.mobiled.operator.@.",
   canAdd = true,
   canDelete = true,
-  createMsg = T"Add operator",
-  minEntries = 1
+  createMsg = T"Add Operator",
+  minEntries = 1,
+  sorted = "name",
 }
 
 local operator_data,operator_helpmsg = post_helper.handleTableQuery(operator_columns,operator_options,operator_filter,nil,operator_valid)
 
-  ngx.print('\
-');  ngx.print( ui_helper.createHeader(params.modal_title,false,true) ); ngx.print('\
+lp.setpath("/www/snippets/")
+
+ngx.print(ui_helper.createHeader(params.modal_title,false,true),'\
 <div class="modal-body update" id="lte-body">\
   <form class="form-horizontal" method="post" action="modals/lte-operators.lp">\
-    ');
-      local lp = require("web.lp")
-      lp.setpath("/www/snippets/")
-      lp.include("tabs-mobiled.lp")
-
-      local html = {}
-      table.insert(html,"<fieldset><legend>"..T"Operators".."</legend>")
-      table.insert(html,ui_helper.createTable(operator_columns,operator_data,operator_options,nil,operator_helpmsg))
-      table.insert(html,"</fieldset>")
-      table.insert(html,"<a target='_blank' href='https://en.wikipedia.org/wiki/Mobile_Network_Codes_in_ITU_region_5xx_(Oceania)#Australia_%E2%80%93_AU'>Click here for valid MCC and MNC values</a>")
-      ngx.print(html)
-      ngx.print('\
+    '); lp.include("tabs-mobiled.lp"); ngx.print('\
+    <fieldset><legend>',T"Operators",'</legend>',
+      ui_helper.createTable(operator_columns,operator_data,operator_options,nil,operator_helpmsg),'\
+    </fieldset>\
+    <a target="_blank" href="https://en.wikipedia.org/wiki/Mobile_Network_Codes_in_ITU_region_5xx_(Oceania)">Click here for valid MCC and MNC values</a>\
   </form>\
 </div>\
-');  ngx.print( ui_helper.createFooter() ); ngx.print('\
-');
+',ui_helper.createFooter())
