@@ -127,9 +127,7 @@ function M.getAccessPoints()
 end
 
 function M.getWiFiCardHTML()
-  local bs_lan = "disabled"
   local html = {}
-  local bs = {}
   local ap = {}
   local hidden = {}
   local wps = {}
@@ -146,26 +144,15 @@ function M.getWiFiCardHTML()
 
   for _,v in ipairs(proxy.getPN("uci.wireless.wifi-ap.",true)) do
     local path = v.path
-    local values = proxy.get(path.."iface",path.."bandsteer_id",path.."public",path.."wps_state")
+    local values = proxy.get(path.."iface",path.."public",path.."wps_state")
     local iface = untaint(values[1].value)
-    local bs_id = values[2].value
-    if bs_id == "" or bs_id == "off" then
-      bs[iface] = "0"
-    else
-      local state = proxy.get("uci.wireless.wifi-bandsteer.@"..bs_id..".state")
-      if state and state[1].value == "0" then
-        bs[iface] = "0"
-      else
-        bs[iface] = "1"
-      end
-    end
     ap[iface] = match(path,".*@([^.]*)")
-    if values[3].value == "0" then
+    if values[2].value == "0" then
       hidden[iface] = " style='color:gray'"
     else
       hidden[iface] = ""
     end
-    if values[4].value == "1" then
+    if values[3].value == "1" then
       wps[iface] = "<img src='/img/Pair_green.png' title='WPS Enabled' style='height:12px;width:20px;object-position:top;object-fit:cover;padding-left:4px;'>"
     else
       wps[iface] = ""
@@ -176,9 +163,6 @@ function M.getWiFiCardHTML()
     html[#html+1] = ui_helper.createSimpleLight(radio.admin_state,radio.info,band_attr)
 
     for i,v in ipairs(radio["ssid"]) do
-      if bs_lan == "disabled" and v.network == "lan" and bs[v.iface] == "1" then
-        bs_lan = "enabled"
-      end
       if i <= 2 then
         local state
         if v.iface and ap[v.iface] then
@@ -190,32 +174,6 @@ function M.getWiFiCardHTML()
       end
     end
   end
-
-  if bs_lan == "disabled" then
-    if M.isMultiAPEnabled() then
-      local multiap_cred_path = "uci.multiap.controller_credentials."
-      local multiap_cred_data = content_helper.convertResultToObject(multiap_cred_path.."@.",proxy.get(multiap_cred_path))
-      local multiap_cred = {}
-      for _,v in ipairs(multiap_cred_data) do
-        if v.fronthaul == '1' then
-          if match(v.frequency_bands,"radio_2G") then
-            multiap_cred.primary = v.paramindex
-          else
-            multiap_cred.secondary = v.paramindex
-          end
-        end
-      end
-      local multiap_cred_secondary_path = multiap_cred.secondary and multiap_cred_path.."@"..multiap_cred.secondary
-      if multiap_cred_secondary_path then
-        local multiap_cred_secondary_state = proxy.get(multiap_cred_secondary_path..".state")
-        if multiap_cred_secondary_state and multiap_cred_secondary_state[1].value == "0" then
-          bs_lan = "enabled"
-        end
-      end
-    end
-  end
-
-  html[#html+1] = ui_helper.createSimpleLight(bs_lan == "enabled" and "1" or "0","Band Steering "..bs_lan)
 
   return html
 end
