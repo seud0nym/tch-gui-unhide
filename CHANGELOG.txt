@@ -1,4 +1,4 @@
-2023.05.03
+2023.05.05
 ==========
 * tch-gui-unhide: Added cron task to update kernel time zone when daylight saving changes so that Time of Day processing will be run on correct schedule (#146)
 * tch-gui-unhide: Added separate tabs to Local Network for global configuration and static leases 
@@ -7,13 +7,19 @@
 * tch-gui-unhide: Added ability to add and remove additional LAN interfaces
 * tch-gui-unhide: Added ability to add/remove/edit firewall zones and zone forwarding rules
 * tch-gui-unhide: Added ability to configure mobile roaming
+* tch-gui-unhide: Added some operational mobile operators if not already defined
+* tch-gui-unhide: Fixed detection of in-use mobile operator
 * tch-gui-unhide: Fixed wireless radio in device description on Egress QoS on FW 20.4
 * tch-gui-unhide: Fixed failed address validation on IPv6 port forwarding when MAC has multiple IPv6 addresses
-* tch-gui-unhide: Show wait spinner when changing tabs on slow screens, and adding table rows
+* tch-gui-unhide: Show wait spinner when changing tabs and adding table rows on slow screens
 * tch-gui-unhide: Do not show VoLTE call stats if Telephony disabled
 * tch-gui-unhide: Fixed Time of Day Wireless Control on FW 20.4 to allow selection of SSID to allow/blocking
 * tch-gui-unhide: General code and consistency improvements to all Time of Day tabs
+* tch-gui-unhide: Removed band steering status from Wi-Fi card
+* tch-gui-unhide: Abort installation if cannot determine required environment
 * tch-gui-unhide-xtra.adblock: Updated to support Adblock 4.1.5
+* de-telstra: Fixed various issues on devices with FW 17.2 or without 4G Backup
+* de-telstra: Abort if cannot determine required environment
 * hijack-dns: Fixed some issues with --status output
 * move-lan-port-to-own-network: Modified to correctly configure the port switch and now uses VLANs to resolve issues where clients would fail to acquire an address via DHCP
 * move-lan-port-to-own-network: Prevent running when mdkshell not present (e.g. FW 20.4)
