@@ -1,0 +1,1 @@
+^mobiled_device_specific%. /etc/init.d/mobiled restart; /etc/init.d/mmpbxd restart; /etc/init.d/wansensing reload

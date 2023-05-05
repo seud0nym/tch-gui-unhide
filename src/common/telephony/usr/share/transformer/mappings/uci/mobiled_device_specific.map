@@ -1,0 +1,18 @@
+local config_mobiled_device_specific = "mobiled_device_specific"
+
+-- uci.mobiled_device_specific
+mapper("uci_1to1").registerConfigMap(config_mobiled_device_specific)
+
+-- uci.mobiled_device_specific.device.{i}
+local mobiled_device_specific_device = {
+  config = config_mobiled_device_specific,
+  type = "device",
+  options = { "mbn_selection","sip_user_agent",
+              "audio_digital_tx_gain","audio_digital_rx_gain",
+              "audio_codec_tx_gain","audio_mode","audio_codecs",
+              "ims_pdn_autobringup","enable_lapi","early_media_rtp_polling_timer",
+              "enable_256qam", },
+  lists = { "model" },
+}
+
+mapper("uci_1to1").registerNamedMultiMap(mobiled_device_specific_device)

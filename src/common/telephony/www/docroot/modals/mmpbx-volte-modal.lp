@@ -4,15 +4,26 @@
 gettext.textdomain("webui-voice")
 
 local content_helper = require ("web.content_helper")
+local lp = require("web.lp")
+local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local ui_helper = require("web.ui_helper")
-local message_helper = require("web.uimessage_helper")
+
+local vB = post_helper.validateBoolean
 
 local mapParams = {
   enabled = "Device.Services.X_TELSTRA_VOLTE.Enable",
+  ims_pdn_autobringup = "uci.mobiled_device_specific.device.@device[0].ims_pdn_autobringup",
+  session_activated = "uci.mobiled_sessions.session.@session[0].activated",
+  session_autoconnect = "uci.mobiled_sessions.session.@session[0].autoconnect",
+  session_optional = "uci.mobiled_sessions.session.@session[0].optional",
 }
 local mapValid = {
-  enabled = post_helper.validateBoolean,
+  enabled = vB,
+  ims_pdn_autobringup = vB,
+  session_activated = vB,
+  session_autoconnect = vB,
+  session_optional = vB,
 }
 local volte = post_helper.handleQuery(mapParams,mapValid)
 
@@ -57,15 +68,13 @@ local enabled_monitor = {
   },
 }
 
+lp.setpath("/www/snippets/")
+
 ngx.print(ui_helper.createHeader(T"Telephony",false,true),'\
 <div class="modal-body update">\
-');
-local lp = require("web.lp")
-lp.setpath("/www/snippets/")
-lp.include("tabs-voice.lp")
-ngx.print('\
-  <form class="form-horizontal" method="post" action="',uri,'">\
-  ',ui_helper.createMessages(message_helper.popMessages()),'\
+'); lp.include("tabs-voice.lp"); ngx.print('\
+  <form class="form-horizontal" method="post" action="',uri,'">',
+  ui_helper.createMessages(message_helper.popMessages()),'\
   <form class="form-horizontal">\
     <fieldset>\
       <legend>',T"VoLTE Service",'</legend>')
@@ -85,6 +94,16 @@ ngx.print('\
         ui_helper.createLabel(T"VoLTE Service Status",status_message,enabled_monitor),
         ui_helper.createLabel(T"VoLTE APN",apn,enabled_monitor),'\
     </fieldset>\
+    <div class="monitor-enabled monitor-1 monitor-show-enabled">\
+      <legend>',T"Mobile Configuration",'</legend>',
+        ui_helper.createAlertBlock(T"When using VoLTE with <i>NO</i> SIP profile enabled, try leaving these settings <b>OFF</b>. When using VoLTE <i>with</i> a SIP profile enabled, try turning these settings <b>ON</b>.",{alert={class="alert alert-info"}}),'\
+      <legend><small>',T"Device",'</small></legend>',
+        ui_helper.createSwitch(T"IMS PDN Auto Bring Up","ims_pdn_autobringup",volte["ims_pdn_autobringup"]),'\
+      <legend><small>',T"Session",'</small></legend>',
+        ui_helper.createSwitch(T"Activated","session_activated",volte["session_activated"]),
+        ui_helper.createSwitch(T"Auto Connect","session_autoconnect",volte["session_autoconnect"]),
+        ui_helper.createSwitch(T"Optional","session_optional",volte["session_optional"]),'\
+      </div>\
   </form>\
 </div>\
 ',ui_helper.createFooter())

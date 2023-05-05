@@ -1,0 +1,13 @@
+local config_mobiled_sessions = "mobiled_sessions"
+
+-- uci.mobiled_sessions
+mapper("uci_1to1").registerConfigMap(config_mobiled_sessions)
+
+-- uci.mobiled_sessions.session.{i}
+local mobiled_sessions_device = {
+  config = config_mobiled_sessions,
+  type = "session",
+  options = { "session_id", "profile", "name", "optional", "internal", "activated", "autoconnect", },
+}
+
+mapper("uci_1to1").registerNamedMultiMap(mobiled_sessions_device)

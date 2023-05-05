@@ -26,6 +26,8 @@ if [ ! -e /etc/config/mobiled_device_specific ]; then
   echo -e "[$SCRIPT]: Remove VoLTE Tab and card info"
   sed -e '/mmpbx-volte-modal.lp/d' -i /www/snippets/tabs-voice.lp
   sed -e '/--region VoLTE/,/--endregion/d' -i /www/lua/telephonycard_helper.lua
+  rm -f /usr/share/transformer/mappings/uci/mobiled_device_specific.map /usr/share/transformer/commitapply/mobiled_device_specific.ca
+  rm -f /usr/share/transformer/mappings/uci/mobiled_sessions.map /usr/share/transformer/commitapply/mobiled_sessions.ca
 fi
 
 echo -e "[$SCRIPT]: Add missing insert option on dial plan entries"
@@ -58,6 +60,8 @@ sed \
 
 echo -e "[$SCRIPT]: Replace NA in Call Log with VoLTE"
 sed -e 's/"NA"/"VoLTE"/' -i /www/docroot/modals/mmpbx-log-modal.lp
+
+
 
 if [ "$MINIFY" = y ]; then
   echo -e "[$SCRIPT]: Pre-minify fixes"
