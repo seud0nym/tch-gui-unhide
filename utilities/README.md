@@ -43,7 +43,7 @@ Optionally, it can also:
 - Set the device IPv4 DNS servers
 - Disable or enable content and printer sharing, and the DLNA server
 - Disable or enable all WAN ALGs (FTP, TFTP, SNMP, PPTP, IRC, AMANDA, RTSP, SIP)
-- Disable or enable telephony, and enables VoLTE backup voice service and SMS reception
+- Disable or enable telephony
 - Disable or enable DECT Emission Mode
 - Disable or enable UPnP
 - Disable or enable power saving

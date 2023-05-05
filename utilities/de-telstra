@@ -41,7 +41,6 @@ SRV_iqos=0
 SRV_intercept=0
 SRV_ledfw=0
 SRV_mmpbxd=0
-SRV_mobiled=0
 SRV_monitor=0
 SRV_mountd=0
 [ -e /etc/config/multiap ] && SRV_multiap=0 || SRV_multiap=-1
@@ -3396,30 +3395,6 @@ else
   fi
 fi
 
-#region VoLTE
-if [ -n "$(uci -q get mobiled_device_specific.@device[0])" ]; then
-  if [ "$(uci -q get mobiled_device_specific.@device[0].ims_pdn_autobringup)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].activated)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].autoconnect)" = "1" -a "$(uci -q get mobiled_sessions.@session[0].optional)" = "1" ]; then
-    echo [$SCRIPT]: VoLTE capability already Enabled
-  else
-    echo [$SCRIPT]: Enabling VoLTE voice service and SMS reception
-    if [ "$(uci -q get mmpbxmobilenet.VoLTE)" = "profile" ]; then
-      exec_uci set mmpbxmobilenet.VoLTE.enabled='1'
-    elif [ "$(uci -q get mmpbxmobilenet.mobile_profile_0)" = "profile" ]; then
-      exec_uci set mmpbxmobilenet.mobile_profile_0.enabled='1'
-    fi
-    exec_uci commit mmpbxmobilenet
-    SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
-    exec_uci set mobiled_device_specific.@device[0].ims_pdn_autobringup='1'
-    exec_uci set mobiled_sessions.@session[0].activated='1'
-    exec_uci set mobiled_sessions.@session[0].autoconnect='1'
-    exec_uci set mobiled_sessions.@session[0].optional='1'
-    exec_uci commit mobiled_device_specific
-    exec_uci commit mobiled_sessions
-    SRV_mobiled=$(( $SRV_mobiled + 1 ))
-  fi
-fi
-#endregion VoLTE
-
 #region DECT
 DECT_NOW="$(uci -q get mmpbx.dectemission.state)"
 if [ -n "$DECT_NOW" ]; then
@@ -4069,7 +4044,6 @@ else
   [ $SRV_ledfw -gt 0 ] && /etc/init.d/ledfw restart > /dev/null
   [ $SRV_mesh_broker -gt 0 ] && /etc/init.d/mesh-broker restart > /dev/null 2>&1
   [ $SRV_mmpbxd -gt 0 ] && { /etc/init.d/mmpbxd restart; /etc/init.d/mmpbxfwctl restart; } > /dev/null 2>&1
-  [ $SRV_mobiled -gt 0 ] && /etc/init.d/mobiled restart > /dev/null 2>&1
   [ $SRV_monitor -gt 0 -a -e /etc/init.d/wifi-doctor-agent ] && /etc/init.d/wifi-doctor-agent reload > /dev/null 2>&1
   [ $SRV_multiap -gt 0 ] && { /etc/init.d/multiap_controller restart; /etc/init.d/multiap_agent restart; /etc/init.d/multiap_vendorextensions restart; } > /dev/null 2>&1
   [ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
