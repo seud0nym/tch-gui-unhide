@@ -305,6 +305,9 @@ local mapValid = {
 }
 
 local content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
+if not helpmsg then
+  helpmsg = {}
+end
 -- End POST process
 
 if content["uci_wan6_ifname"] == "" then
@@ -332,7 +335,6 @@ local content_rpc = {
   ip6prefix = "rpc.network.interface.@wan6.ip6prefix",
   dnsv6 = "rpc.network.interface.@wan6.dnsservers",
 }
-
 
 ajax_helper.handleAjaxQuery(content_rpc,function(c)
     -- this will add the HTML for the light

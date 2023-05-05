@@ -51,7 +51,9 @@ function M.getDevicesCardHTML(all)
               local json = curl:read("*a")
               local devices = dkjson.decode(json)
               curl:close()
-              nAPDevices = nAPDevices + (#devices or 0)
+              if devices and type(devices) == "table" then
+                nAPDevices = nAPDevices + #devices
+              end
             else
               ngx.log(ngx.ERR,format("curl -qsklm1 --connect-timeout 1 http://%s:59595",ipv4[1].value))
             end
