@@ -11,18 +11,79 @@ local tonumber = tonumber
 
 local M = {}
 
-local function getActiveWANInterfaces()
-  local wan_intf = {}
-  local content_wan = {
-    wwan_ipaddr = "rpc.network.interface.@wwan.ipaddr",
-    wwan_ip6addr = "rpc.network.interface.@wwan.ip6addr",
+local function alignNumber(value,description)
+  local volume = common.bytes2string(value)
+  return format('<span class="bytes" title="%s %s">%s</span>',volume,description,volume)
+end
+
+local function getInterfaceStats(intf,icon)
+  local content = {
+    ip4addr = "rpc.network.interface.@"..intf..".ipaddr",
+    ip6addr = "rpc.network.interface.@"..intf..".ip6addr",
   }
-  content_helper.getExactContent(content_wan)
-  if content_wan.wwan_ipaddr:len() ~= 0 or content_wan.wwan_ip6addr:len() ~= 0 then
-    wan_intf[#wan_intf+1] = "wwan"
+  content_helper.getExactContent(content)
+  if content.ip4addr:len() ~= 0 or content.ip6addr:len() ~= 0 then
+    local result = {
+      name = intf,
+      icon = icon,
+      rx_bytes = 0,
+      tx_bytes = 0,
+      total_bytes = 0,
+    }
+    local rpc_ifname = proxy.get("rpc.network.interface.@"..intf..".ifname")
+    if rpc_ifname then
+      local path = format("%s_%s",os.date("%F"),rpc_ifname[1].value)
+      local rx_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".rx_bytes")
+      if rx_bytes then
+        result.rx_bytes = tonumber(rx_bytes[1].value)
+        result.tx_bytes = tonumber(proxy.get("rpc.gui.traffichistory.usage.@"..path..".tx_bytes")[1].value)
+      else
+        result.rx_bytes = tonumber(proxy.get("rpc.network.interface.@"..intf..".rx_bytes")[1].value)
+        result.tx_bytes = tonumber(proxy.get("rpc.network.interface.@"..intf..".tx_bytes")[1].value)
+      end
+      result.total_bytes = result.rx_bytes + result.tx_bytes
+      return result
+    end
   end
-  wan_intf[#wan_intf+1] = "wan"
-  return wan_intf
+  return nil
+end
+
+local function getActiveWANInterfaces(wansensing,mobile,wired)
+  local intf = { }
+  local wan,wwan
+
+  if wired or wansensing == "1" then
+    wan = getInterfaceStats("wan","link")
+  end
+  if mobile or not wired then
+    wwan = getInterfaceStats("wwan","signal")
+  else
+    local perm_wwan = proxy.get("uci.network.interface.@wwan.enabled")
+    if perm_wwan and perm_wwan[1].value == "1" then
+      wwan = getInterfaceStats("wwan","signal")
+      wwan.permanent = true
+    end
+  end
+
+  if wan and wwan and not (mobile or wwan.permanent) then
+    wan.rx_bytes = wan.rx_bytes + wwan.rx_bytes
+    wan.tx_bytes = wan.tx_bytes + wwan.tx_bytes
+    wan.total_bytes = wan.total_bytes + wwan.total_bytes
+    intf[#intf+1] = wan
+  else
+    if wan then
+      intf[#intf+1] = wan
+    end
+    if wwan then
+      intf[#intf+1] = wwan
+    end
+  end
+
+  if wansensing ~= "1" and mobile then
+  elseif wansensing ~= "1" and mobile then
+  end
+
+  return intf
 end
 
 function M.getBroadbandCardHTML(wansensing)
@@ -101,29 +162,6 @@ function M.getBroadbandCardHTML(wansensing)
     }
     content_helper.getExactContent(mobiled_state)
 
-    local content_rpc = {
-      rx_bytes = 0,
-      tx_bytes = 0,
-      total_bytes = 0,
-    }
-    local wan_intf
-    for _,v in pairs(getActiveWANInterfaces()) do
-      local rpc_ifname = proxy.get("rpc.network.interface.@"..v..".ifname")
-      if rpc_ifname then
-        wan_intf = v
-        local path = format("%s_%s",os.date("%F"),rpc_ifname[1].value)
-        local rx_bytes = proxy.get("rpc.gui.traffichistory.usage.@"..path..".rx_bytes")
-        if rx_bytes then
-          content_rpc.rx_bytes = content_rpc.rx_bytes + rx_bytes[1].value
-          content_rpc.tx_bytes = content_rpc.tx_bytes + proxy.get("rpc.gui.traffichistory.usage.@"..path..".tx_bytes")[1].value
-        else
-          content_rpc.rx_bytes = content_rpc.rx_bytes + tonumber(proxy.get("rpc.network.interface.@"..v..".rx_bytes")[1].value)
-          content_rpc.tx_bytes = content_rpc.tx_bytes + tonumber(proxy.get("rpc.network.interface.@"..v..".tx_bytes")[1].value)
-        end
-      end
-    end
-    content_rpc.total_bytes = content_rpc.rx_bytes + content_rpc.tx_bytes
-
     local wan_ifname = wan_data["wan_ifname"]
     local up = false
     if (mobile and wired) or not mobile then
@@ -168,7 +206,7 @@ function M.getBroadbandCardHTML(wansensing)
       if not vlanid then
         local vid = proxy.get("uci.network.device.@"..wan_ifname..".vid")
         if vid and vid[1].value ~= "" then
-          vlanid = vid[1].value
+          vlanid = untaint(vid[1].value)
         end
       end
       if vlanid then
@@ -189,9 +227,11 @@ function M.getBroadbandCardHTML(wansensing)
       html[#html+1] = ui_helper.createSimpleLight("4","Mobile SIM disconnected")
       status = "down"
     end
-    if wan_intf then
-      html[#html+1] = format('<span class="simple-desc modal-link" data-toggle="modal" data-remote="/modals/broadband-usage-modal.lp?wan_intf='..wan_intf..'" data-id="bb-usage-modal" style="padding-top:5px"><span class="icon-small status-icon">&udarr;</span>%s&ensp;<i class="icon-cloud-upload status-icon"></i> %s&ensp;<i class="icon-cloud-download status-icon"></i> %s</span>',
-        common.bytes2string(content_rpc.total_bytes),common.bytes2string(content_rpc.tx_bytes),common.bytes2string(content_rpc.rx_bytes))
+
+    html[#html+1] = '<style>span.bytes{display:inline-block;text-align:right;width:50px;margin-top:-3px;margin-bottom:-6px;}</style>'
+    for _,wan_intf in ipairs(getActiveWANInterfaces(wansensing,mobile,wired)) do
+      html[#html+1] = format('<span class="simple-desc modal-link" data-toggle="modal" data-remote="/modals/broadband-usage-modal.lp?wan_intf=%s" data-id="bb-usage-modal"><i class="icon-%s status-icon"></i><span class="icon-small status-icon">&udarr;</span>%s&ensp;<i class="icon-cloud-upload status-icon"></i> %s&ensp;<i class="icon-cloud-download status-icon"></i> %s</span>',
+        wan_intf.name,wan_intf.icon,alignNumber(wan_intf.total_bytes,"Uploaded + Downloaded"),alignNumber(wan_intf.tx_bytes,"Uploaded"),alignNumber(wan_intf.rx_bytes,"Downloaded"))
     end
   end
 
