@@ -94,7 +94,7 @@ ngx.print(ui_helper.createHeader(T"Telephony",false,true),'\
         ui_helper.createLabel(T"VoLTE Service Status",status_message,enabled_monitor),
         ui_helper.createLabel(T"VoLTE APN",apn,enabled_monitor),'\
     </fieldset>\
-    <div class="monitor-enabled monitor-1 monitor-show-enabled">\
+    <div>\
       <legend>',T"Mobile Configuration",'</legend>',
         ui_helper.createAlertBlock(T"When using VoLTE with <i>NO</i> SIP profile enabled, try leaving these settings <b>OFF</b>. When using VoLTE <i>with</i> a SIP profile enabled, try turning these settings <b>ON</b>.",{alert={class="alert alert-info"}}),'\
       <legend><small>',T"Device",'</small></legend>',
