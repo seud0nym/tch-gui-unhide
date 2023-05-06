@@ -19,7 +19,7 @@ local ngx = ngx
 local session = ngx.ctx.session
 local ipairs,pairs,string = ipairs,pairs,string
 local tonumber,tostring = tonumber,tostring
-local find,format,gmatch,gsub,match = string.find,string.format,string.gmatch,string.gsub,string.match
+local find,format,gmatch,gsub,match,sub = string.find,string.format,string.gmatch,string.gsub,string.match,string.sub
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
@@ -771,7 +771,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
           for ifname in gmatch(untaint(content.ifnames) or "","(%S+)") do
             ifnames[ifname] = true
           end
-          local function add_vlan_port_switch(ifname)
+          local function add_port_checkbox(ifname)
             ngx.print('<td style="text-align:center;width:65px;"><input type="checkbox" name="lanport" value="',ifname,'" ',ifnames[ifname] and "checked" or "",'></td>')
           end
           local ban_circle = "<td class='red' style='font-family:FontAwesome;text-align:center;'>&#xf05e;</td>"
@@ -794,6 +794,19 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
               ngx.print('\
             </tr>')
             local unused = 0
+            local used = {}
+            for _,v in ipairs(proxy.getPN("uci.network.interface.",true)) do
+              local intf = match(v.path,"@([^%.]+)")
+              if intf ~= cur_intf then
+                for ifname in gmatch(untaint(proxy.get(v.path.."ifname")[1].value),"(%S+)") do
+                  local base = match(ifname,"(eth[0-4])")
+                  if base then
+                    used[base] = intf
+                  end
+                end
+              end
+            end
+            local lastport = isBridgedMode and 4 or 3
             if vlan_enabled[1].value == "1" then
               local switch_vlan = content_helper.getMatchedContent("uci.network.switch_vlan.",{ device = "bcmsw_ext" })
               table.sort(switch_vlan,function (a, b)
@@ -804,7 +817,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                 local ports = untaint(v.ports)
                 ngx.print('<tr>')
                 ngx.print('<td style="text-align:right;">',T(vlan),'</td>')
-                for i=0,3,1 do
+                for i=0,lastport,1 do
                   local ifname = format("eth%d",i)
                   local vlan_ifname
                   for k,vid in pairs(devices[ifname]) do
@@ -813,15 +826,13 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                       break
                     end
                   end
-                  if vlan_ifname and find(ports,tostring(i),nil,true) then
-                    add_vlan_port_switch(vlan_ifname)
-                  else
-                    ngx.print(ban_circle)
-                  end
-                end
-                if isBridgedMode and cur_intf == "lan" then
-                  if vlan == "1" then
-                    add_vlan_port_switch("eth4")
+                  if vlan_ifname then
+                    local at = find(ports,tostring(i),nil,true)
+                    if at and (sub(ports,at+1,at+1) == "t" or not used[ifname] or used[ifname] == cur_intf)  then
+                      add_port_checkbox(vlan_ifname)
+                    else
+                      ngx.print(ban_circle)
+                    end
                   else
                     ngx.print(ban_circle)
                   end
@@ -829,27 +840,17 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
               end
               ngx.print('</tr>')
             else --VLANs disabled
-              local used = {}
-              for _,v in ipairs(proxy.getPN("uci.network.interface.",true)) do
-                local intf = match(v.path,"@([^%.]+)")
-                if intf ~= cur_intf then
-                  for ifname in gmatch(untaint(proxy.get(v.path.."ifname")[1].value),"(%S+)") do
-                    local base = match(ifname,"(eth[0-4])")
-                    if base then
-                      used[base] = intf
-                    end
-                  end
-                end
-              end
               ngx.print('<tr>')
               ngx.print('<td></td>')
-              for i=0,(isBridgedMode and 4 or 3),1 do
-                local base = format("eth%d",i)
-                if used[base] then
-                  ngx.print(ban_circle)
-                else
+              for i=0,lastport,1 do
+                local ifname = format("eth%d",i)
+                if not used[ifname] then
                   unused = unused + 1
-                  add_vlan_port_switch(base)
+                  add_port_checkbox(ifname)
+                elseif used[ifname] == cur_intf then
+                  add_port_checkbox(ifname)
+                else
+                  ngx.print(ban_circle)
                 end
               end
               ngx.print('</tr>')
