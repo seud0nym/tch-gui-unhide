@@ -14,7 +14,7 @@ sed \
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
 echo -e "[$SCRIPT]: Populate interface configuration in bridgedmode_helper"
-for ifname in $(grep -rhE "uci *set *network\.(ppp|ipoe|wan|eth4|atm_8_35|ptm0|Guest).*=interface" /rom/etc/uci-defaults/ | cut -d. -f2 | cut -d= -f1); do
+for ifname in $(grep -rhE "uci *set *network\.(ppp|ipoe|wan|eth4|atm_8_35|ptm0).*=interface" /rom/etc/uci-defaults/ | cut -d. -f2 | cut -d= -f1); do
   ifcfg=$(grep -rhE "uci *set *network\.$ifname\." /rom/etc/uci-defaults/ | cut -d' ' -f3- | awk -v ifname="$ifname" 'BEGIN{ifcfg=ifname "={";} {split($0,l,"=")split(l[1],o,".");gsub("'"'"'","",l[2]);ifcfg=ifcfg "[\"uci.network.interface.@" ifname "." o[3] "\"]=\"" l[2] "\",";} END{print ifcfg "},";}')
   sed \
     -e "/local delnames =/a \"uci.network.interface.@$ifname.\"," \
