@@ -65,13 +65,10 @@ local lan_ula = ethernet_helper.get_lan_ula()
 
 local ipv42num = post_helper.ipv42num
 local vB = post_helper.validateBoolean
-local vIP4N = post_helper.validateIPv4Netmask
-local gAV = post_helper.getAndValidation
 local gOV = post_helper.getOptionalValidation
 local gVIES = post_helper.getValidateInEnumSelect
 local gVNIR = post_helper.getValidateNumberInRange
 local vNES = post_helper.validateNonEmptyString
-local vSIIP = post_helper.validateStringIsIP
 local vSIIP4 = post_helper.validateStringIsIPv4
 local vSIIP6 = post_helper.validateStringIsIPv6
 
@@ -322,7 +319,7 @@ local mapValid = {
   localgw = gOV(vSIIP4),
   localdevIP = ethernet_helper.validateGatewayIP(cur_intf,all_intfs,lan_intfs),
   localIPv6 = ethernet_helper.validateIPv6(cur_intf,wireless_radio,ppp_dev,ppp_intf),
-  localdevmask = gAV(vIP4N,vSIIP),
+  localdevmask = ethernet_helper.validateGatewayMask,
   ntpServer = validateNTP,
   proto = gVIES(ethernet_helper.proto),
   slaacState = ethernet_helper.validateDHCPState(),
@@ -338,9 +335,6 @@ if isBridgedMode and cur_intf == "lan" then
     end
   end
 else
-  mapParams["proto"] = nil
-  mapValid["proto"] = nil
-
   local dhcp = {}
   local dhcp_dns = {}
   -- Check if there is a custom DNS server, if so, then retrieve its index
@@ -630,7 +624,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
           if v.index == cur_intf then
             active = "active"
           end
-          if v.index ~= "loopback" then
+          if v.index ~= "loopback" and not (isBridgedMode and v.index == "lan6") then
             local url = "modals/ethernet-modal.lp?intf="..v.index
             html[#html+1] = format('<li class="%s"><a id="%s" href="#" data-remote="%s">%s',active,v.index,url,v.name)
             if v.index ~= "lan" and not match(v.index,"^Guest") and v.index ~= "fonopen" then
@@ -700,6 +694,8 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                 ui_helper.createLabel(T"Local Gateway",cur_ip[3].value,dhcp_attr)
               )
             end
+          else
+            ngx.print(ui_helper.createSimpleInputHidden("proto",content["proto"]))
           end
           ngx.print(
             ui_helper.createInputText(T"Device IPv4 Address","localdevIP",content["localdevIP"],static_attr,helpmsg["localdevIP"]),
@@ -714,7 +710,13 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
 
           ngx.print(ui_helper.createSwitch(T"IPv6 Enabled on Boot","localIPv6",content["localIPv6"],switch_class_enable))
           if content["localIPv6"] == "1" then
-            local ipv6addr = proxy.get("rpc.network.interface.@"..cur_intf..".ip6addr")
+            local ipv6addr
+            if cur_intf == "lan" then
+              ipv6addr = proxy.get("rpc.network.interface.@lan6.ip6addr")
+            end
+            if not ipv6addr then
+              ipv6addr = proxy.get("rpc.network.interface.@"..cur_intf..".ip6addr")
+            end
             if ipv6addr then
               ngx.print(ui_helper.createLabel(T"Device IPv6 Address",ipv6addr[1].value,ipv6_attr))
             end

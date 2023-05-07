@@ -18,6 +18,8 @@ local gVNIR = post_helper.getValidateNumberInRange
 local vIAS6 = gOV(post_helper.validateIPAndSubnet(6))
 local vSIIP = post_helper.validateStringIsIP
 local vSILT = post_helper.validateStringIsLeaseTime
+local vIP4N = post_helper.validateIPv4Netmask
+local gAV = post_helper.getAndValidation
 
 local dhcpStateSelect = {
   {"server"},
@@ -178,7 +180,7 @@ function M.get_lan_ula()
 end
 
 function M.validateByPass(_,_,_)
-    return true
+  return true
 end
 
 -- Validation is done for the dhcpLimit for the particular subnet
@@ -284,6 +286,9 @@ function M.validateGatewayIP(curintf,all_intfs,lan_intfs)
   -- This function will validate the Modem IP Address and check for
   -- Valid IP Format,Limited Broadcast Address,Public IP Range,Multicast Address Range
   return function(value,object,key)
+    if object.proto ~= "static" then
+      return true
+    end
     local val,errmsg = aIPV(value,object,key)
     if not val then
       return nil,errmsg
@@ -331,6 +336,13 @@ function M.validateGatewayIP(curintf,all_intfs,lan_intfs)
       return nil,T"Public IP Range should not be used"
     end
   end
+end
+
+function M.validateGatewayMask(value,object,key)
+  if object.proto ~= "static" then
+    return true
+  end
+  return gAV(vIP4N,vSIIP)(value,object,key)
 end
 
 function M.validateHint(value,_,_)
