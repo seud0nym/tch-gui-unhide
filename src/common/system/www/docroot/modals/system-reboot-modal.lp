@@ -124,13 +124,11 @@ ngx.print(
   }\
   $("#btn-system-bootp").on("click",function() {\
      if (confirm("',T"This will put your gateway into LAN Update",'")){\
-       tch.showProgress(\'',T"Rebooting...",'\');\
        return resetreboot($("#bootp-msg"),$(this),"system_bootp");\
      }\
   });\
   $("#btn-system-switchover").on("click",function() {\
      if (confirm("',T"This will switch the active bank with the passive one",'")){\
-       tch.showProgress(\'',T"Rebooting...",'\');\
        return resetreboot($("#switchover-msg"),$(this),"system_switchover");\
      }\
   });\

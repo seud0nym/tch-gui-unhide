@@ -42,7 +42,6 @@ function rand16() {
             value : $("#localIPv6").val()
           },tch.elementCSRFtoken());
           var target = $(".modal form").attr("action");
-          tch.showProgress("Wait...");
           $.post(target,params,function(response){
             //The following block of code used to display the success/error message and manage the footer.
             $(".alert").remove();
@@ -50,7 +49,6 @@ function rand16() {
             $("#modal-changes").attr("style","display:none");
             $("#modal-no-change").attr("style","display:block");
             iPv6StateOnlyChanged = 0;
-            tch.removeProgress();
           });
           return false;
          }
