@@ -202,6 +202,9 @@ local mapValid = {
 }
 
 local content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
+if not helpmsg then
+  helpmsg = {}
+end
 -- default value
 if content["uci_wan_auto"] ~= "0" then
   content["uci_wan_auto"] = "1"
