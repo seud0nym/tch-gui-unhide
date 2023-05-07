@@ -4,16 +4,16 @@ local content_helper = require("web.content_helper")
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 
-local floor,find,format,match = math.floor,string.find,string.format,string.match
+local floor,find,format,match,toupper = math.floor,string.find,string.format,string.match,string.upper
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 local tonumber = tonumber
 
 local M = {}
 
-local function alignNumber(value,description)
-  local volume = common.bytes2string(value)
-  return format('<span class="bytes" title="%s %s">%s</span>',volume,description,volume)
+local function alignNumber(value,description,name)
+  local html,text = common.bytes2string(value)
+  return format('<span class="bytes" title="%s %s %s today">%s</span>',text,description,name,html)
 end
 
 local function getInterfaceStats(intf,icon)
@@ -230,8 +230,14 @@ function M.getBroadbandCardHTML(wansensing)
 
     html[#html+1] = '<style>span.bytes{display:inline-block;text-align:right;width:50px;margin-top:-3px;margin-bottom:-6px;}</style>'
     for _,wan_intf in ipairs(getActiveWANInterfaces(wansensing,mobile,wired)) do
-      html[#html+1] = format('<span class="simple-desc modal-link" data-toggle="modal" data-remote="/modals/broadband-usage-modal.lp?wan_intf=%s" data-id="bb-usage-modal"><i class="icon-%s status-icon"></i><span class="icon-small status-icon">&udarr;</span>%s&ensp;<i class="icon-cloud-upload status-icon"></i> %s&ensp;<i class="icon-cloud-download status-icon"></i> %s</span>',
-        wan_intf.name,wan_intf.icon,alignNumber(wan_intf.total_bytes,"Uploaded + Downloaded"),alignNumber(wan_intf.tx_bytes,"Uploaded"),alignNumber(wan_intf.rx_bytes,"Downloaded"))
+      local intf = toupper(wan_intf.name)
+      html[#html+1] = format('<span class="simple-desc modal-link" data-toggle="modal" data-remote="/modals/broadband-usage-modal.lp?wan_intf=%s" data-id="bb-usage-modal"><i class="icon-%s status-icon" title="%s"></i><span class="icon-small status-icon">&udarr;</span>%s&ensp;<i class="icon-cloud-upload status-icon"></i> %s&ensp;<i class="icon-cloud-download status-icon"></i> %s</span>',
+        wan_intf.name,
+        wan_intf.icon,
+        intf,
+        alignNumber(wan_intf.total_bytes,"Total Uploaded + Downloaded over",intf),
+        alignNumber(wan_intf.tx_bytes,"Uploaded to",intf),
+        alignNumber(wan_intf.rx_bytes,"Downloaded from",intf))
     end
   end
 

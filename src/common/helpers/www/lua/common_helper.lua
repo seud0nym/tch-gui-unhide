@@ -12,13 +12,13 @@ function M.bytes2string(s_bytes)
     local mb = kb/1024
     local gb = mb/1024
     if gb >= 1 then
-      return format("%.1f",gb).."<small>GB</small>"
+      return format("%.1f<small>GB</small>",gb),format("%.1fGB",gb)
     elseif mb >= 1 then
-      return format("%.1f",mb).."<small>MB</small>"
+      return format("%.1f<small>MB</small>",mb),format("%.1fMB",mb)
     elseif kb >= 1 then
-      return format("%.1f",kb).."<small>KB</small>"
+      return format("%.1f<small>KB</small>",kb),format("%.1fKB",kb)
     else
-      return format("%d",s_bytes).."<small>B</small>"
+      return format("%d<small>B</small>",bytes),format("%dB",bytes)
     end
   end
 end
