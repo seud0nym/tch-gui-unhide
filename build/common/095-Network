@@ -38,7 +38,7 @@ if [ "$(uci -q get network.config.wan_mode)" = "bridge" ]; then
     uci set network.lan6.reqprefix='no'
     uci set network.lan6.soltimeout='240'
   fi
-  uci set network.lan.ipv6='0'
+  uci set network.lan.ipv6='1'
   uci set network.lan6.ipv6='1'
   uci commit network
   SRV_network=$(( $SRV_network + 2 ))
