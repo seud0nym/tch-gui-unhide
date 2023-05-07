@@ -155,9 +155,12 @@ function M.configBridgedMode()
       if added then
         ngx.log(ngx.WARN,format("configBridgedMode: Adding LAN6 (Result=%s)",tostring(added)))
         local ok,err = proxy.set({
+          ["uci.network.interface.@lan.ipv6"] = "0",
+          ["uci.network.interface.@lan6.auto"] = "0",
           ["uci.network.interface.@lan6.forceprefix"] = "0",
           ["uci.network.interface.@lan6.iface_464xlat"] = "0",
           ["uci.network.interface.@lan6.ifname"] = "br-lan",
+          ["uci.network.interface.@lan6.ipv6"] = "1",
           ["uci.network.interface.@lan6.noslaaconly"] = "1",
           ["uci.network.interface.@lan6.peerdns"] = "1",
           ["uci.network.interface.@lan6.proto"] = "dhcpv6",

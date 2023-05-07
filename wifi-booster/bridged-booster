@@ -287,23 +287,32 @@ if [ $RESTORE = n ]; then
     echo -e "${GREEN}Setting LAN Gateway IP address to $LAN_GATEWAY${NC}"
     uci set network.lan.gateway="$LAN_GATEWAY"
   fi
-  [ "$LAN_IPv6" = "1" ] && echo -e "${GREEN}Enabling LAN IPv6${NC}" || echo -e "${GREEN}Disabling LAN IPv6${NC}"
-  uci set network.lan.ipv6="$LAN_IPv6"
-  if [ "$(uci -q get network.config.wan_mode)" = "bridge" -a -z "$(uci -q get network.lan6)" ]; then
-    uci set network.lan6=interface
-    uci set network.lan6.defaultreqopts='0'
-    uci set network.lan6.forceprefix='0'
-    uci set network.lan6.iface_464xlat='0'
-    uci set network.lan6.ifname='br-lan'
-    uci set network.lan6.noslaaconly='1'
-    uci set network.lan6.peerdns='1'
-    uci set network.lan6.proto='dhcpv6'
-    uci set network.lan6.reqaddress='force'
-    uci set network.lan6.reqopts='23 17'
-    uci set network.lan6.reqprefix='no'
-    uci set network.lan6.soltimeout='240'
-    uci -q del_list dhcp.main.interface='lan6'
-    uci -q add_list dhcp.main.interface='lan6'
+  if [ "$LAN_IPv6" = "1" ]; then
+    echo -e "${GREEN}Enabling LAN IPv6${NC}"
+    if [ "$(uci -q get network.config.wan_mode)" = "bridge" -a -z "$(uci -q get network.lan6)" ]; then
+      uci set network.lan.ipv6='0'
+      uci set network.lan6=interface
+      uci set network.lan6.auto='0'
+      uci set network.lan6.defaultreqopts='0'
+      uci set network.lan6.forceprefix='0'
+      uci set network.lan6.iface_464xlat='0'
+      uci set network.lan6.ifname='br-lan'
+      uci set network.lan6.ipv6='1'
+      uci set network.lan6.noslaaconly='1'
+      uci set network.lan6.peerdns='1'
+      uci set network.lan6.proto='dhcpv6'
+      uci set network.lan6.reqaddress='force'
+      uci set network.lan6.reqopts='23 17'
+      uci set network.lan6.reqprefix='no'
+      uci set network.lan6.soltimeout='240'
+      uci -q del_list dhcp.main.interface='lan6'
+      uci -q add_list dhcp.main.interface='lan6'
+    else
+      uci set network.lan.ipv6="$LAN_IPv6"
+    fi
+  else
+    echo -e "${GREEN}Disabling LAN IPv6${NC}"
+    uci set network.lan.ipv6="$LAN_IPv6"
   fi
   echo -e "${GREEN}Configuring bridged mode${NC}"
   uci set network.config.wan_mode='bridge'
