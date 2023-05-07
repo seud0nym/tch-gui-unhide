@@ -27,7 +27,9 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
     sleases = "uci.dhcp.hostNumberOfEntries",
   }
   if isBridgedMode and require("datamodel").get("rpc.network.interface.@lan6.ip6addr") then
+    lan.ipv6State = "uci.network.interface.@lan6.ipv6"
     lan.ipv6addr = "rpc.network.interface.@lan6.ip6addr"
+    lan.ipv6prefix = "rpc.network.interface.@lan6.ip6prefix_assignment"
   end
   content_helper.getExactContent(lan)
 

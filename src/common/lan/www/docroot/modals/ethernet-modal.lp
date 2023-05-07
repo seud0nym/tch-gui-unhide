@@ -714,13 +714,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
 
           ngx.print(ui_helper.createSwitch(T"IPv6 Enabled on Boot","localIPv6",content["localIPv6"],switch_class_enable))
           if content["localIPv6"] == "1" then
-            local ipv6addr
-            if cur_intf == "lan" then
-              ipv6addr = proxy.get("rpc.network.interface.@lan6.ip6addr")
-            end
-            if not ipv6addr then
-              ipv6addr = proxy.get("rpc.network.interface.@"..cur_intf..".ip6addr")
-            end
+            local ipv6addr = proxy.get("rpc.network.interface.@"..cur_intf..".ip6addr")
             if ipv6addr then
               ngx.print(ui_helper.createLabel(T"Device IPv6 Address",ipv6addr[1].value,ipv6_attr))
             end
