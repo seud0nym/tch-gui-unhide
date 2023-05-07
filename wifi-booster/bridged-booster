@@ -289,8 +289,8 @@ if [ $RESTORE = n ]; then
   fi
   if [ "$LAN_IPv6" = "1" ]; then
     echo -e "${GREEN}Enabling LAN IPv6${NC}"
+    uci set network.lan.ipv6='1'
     if [ "$(uci -q get network.config.wan_mode)" = "bridge" -a -z "$(uci -q get network.lan6)" ]; then
-      uci set network.lan.ipv6='0'
       uci set network.lan6=interface
       uci set network.lan6.auto='0'
       uci set network.lan6.defaultreqopts='0'
@@ -307,12 +307,10 @@ if [ $RESTORE = n ]; then
       uci set network.lan6.soltimeout='240'
       uci -q del_list dhcp.main.interface='lan6'
       uci -q add_list dhcp.main.interface='lan6'
-    else
-      uci set network.lan.ipv6="$LAN_IPv6"
     fi
   else
     echo -e "${GREEN}Disabling LAN IPv6${NC}"
-    uci set network.lan.ipv6="$LAN_IPv6"
+    uci set network.lan.ipv6='0'
   fi
   echo -e "${GREEN}Configuring bridged mode${NC}"
   uci set network.config.wan_mode='bridge'
