@@ -22,7 +22,8 @@ local content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
 if not helpmsg then helpmsg = {} end
 
 if ngx.var.request_method == "POST" then
-  bridged_mode.configure(ngx.req.get_post_args(0)["action"])
+  local post_args = ngx.req.get_post_args(0)
+  bridged_mode.configure(post_args.action,post_args.dhcp)
 end
 
 local ula_attr = {

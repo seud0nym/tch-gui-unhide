@@ -49,7 +49,8 @@ if devices and devices > 0 and content["wwan_metric"] == "" then
 end
 
 if ngx.var.request_method == "POST" then
-  bridged.configure(ngx.req.get_post_args(0)["action"])
+  local post_args = ngx.req.get_post_args(0)
+  bridged.configure(post_args.action,post_args.dhcp)
 end
 
 if not tabdata.current.ajax then

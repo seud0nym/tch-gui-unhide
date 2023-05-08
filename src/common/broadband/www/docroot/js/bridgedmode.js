@@ -27,10 +27,12 @@ function cancel_request(action) {
   $("#"+action+"-confirming-msg").addClass("hide");
   $("#"+action+"-changes").addClass("hide");
   $("#"+action+"-rebooting-msg").addClass("hide");
+  $("input#bridged_dhcp").parents("div.control-group").addClass("hide");
 }
 function confirm_request(action) {
   $("#"+action+"-confirming-msg").removeClass("hide");
   $("#"+action+"-changes").removeClass("hide");
+  $("input#bridged_dhcp").parents("div.control-group.hide").removeClass("hide");
   $(".modal-body").animate({"scrollTop":"+=100px"},"fast")
 }
 function reconfigure(action) {
@@ -46,7 +48,11 @@ function reconfigure(action) {
   $("#modal-no-change").addClass("hide");
   $.post(
     target,
-    { "action":action,"CSRFtoken":$("meta[name=CSRFtoken]").attr("content") },
+    { 
+      "action":action,
+      "dhcp":$("input#bridged_dhcp").val(),
+      "CSRFtoken":$("meta[name=CSRFtoken]").attr("content") 
+    },
     function(data) {
       if(data.success) {
         wait_for_webserver_down();

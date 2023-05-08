@@ -91,6 +91,7 @@ function M.addBridgedModeButtons(html)
     }
   }
   html[#html + 1] = ui_helper.createButton("Change Mode","Bridged","icon-cog",bridged_button)
+  html[#html + 1] = ui_helper.createSwitch("Get IP from DHCP<span class='icon-question-sign' title='Set the device IPv4 address from DHCP, if using a LAN bridge. Do NOT use on a WAN bridge!'></span>","bridged_dhcp","0",{group={class="hide"},switch={class="no-save"}})
   html[#html + 1] = '<div class="control-group controls">'
   html[#html + 1] = ui_helper.createAlertBlock(T"Switching to <strong>Bridged Mode</strong> and restarting. Please wait...",bridged_rebooting)
   html[#html + 1] = ui_helper.createAlertBlock(T"Are you sure you want to switch to <strong>Bridged Mode</strong>?",bridged_confirming)
@@ -139,7 +140,7 @@ function M.isBridgedMode()
   return wan_mode and wan_mode[1].value == "bridge"
 end
 
-function M.configBridgedMode()
+function M.configBridgedMode(dhcp)
   local success,errors = proxy.set({
     ["uci.wansensing.global.enable"] = "0",
     ["uci.network.interface.@lan.ifname"] = "eth0 eth1 eth2 eth3 eth4 atm_8_35 ptm0",
@@ -148,6 +149,14 @@ function M.configBridgedMode()
   })
 
   ngx.log(ngx.WARN,format("configBridgedMode: Configuring WAN Sensing, LAN, WAN Mode and DHCP (Result=%s)",tostring(success)))
+  if not success then
+    logErrors("configBridgedMode",errors)
+  elseif dhcp and dhcp == "1" then
+    success,errors = proxy.set("uci.network.interface.@lan.proto","dhcp")
+    ngx.log(ngx.WARN,format("configBridgedMode: Configuring LAN for DHCP (Result=%s)",tostring(success)))
+  else
+    ngx.log(ngx.WARN,format("configBridgedMode: DHCP=%s)",dhcp or "nil"))
+  end
 
   if success then
     if not proxy.getPN("uci.network.interface.@lan6.",true) then
@@ -292,11 +301,11 @@ function M.configRoutedMode()
   return success
 end
 
-function M.configure(mode)
+function M.configure(mode,dhcp)
   local isBridgedMode = M.isBridgedMode()
   if mode == "bridged" then
     if not isBridgedMode then
-      if M.configBridgedMode() then
+      if M.configBridgedMode(dhcp) then
         reboot()
       else
         failed("Check system log: Failed to configure bridged mode!")
