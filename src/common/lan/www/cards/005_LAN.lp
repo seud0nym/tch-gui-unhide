@@ -149,6 +149,7 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
           ngx.print(format(T'Prefix: <nobr><strong style="letter-spacing:-1px;font-size:12px;">%s</strong></nobr>',lan["ipv6prefix"]))
         end
       end
+      ngx.print('</p>')
       if not isBridgedMode then
         ngx.print(ui_helper.createSimpleLight(dhcp_state,dhcp_text))
         if not adguard or adguard.enabled ~= "1" then
@@ -166,8 +167,7 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
       else
         ngx.print(ui_helper.createSimpleLight("0",'<span class="modal-link" data-toggle="modal" data-remote="/modals/ethernet-vlan-modal.lp" data-id="vlan-modal">VLANs disabled</span>'))
       end
-      ngx.print(
-      '</p>\
+      ngx.print('\
     </div>\
   </div>\
 </div>\
