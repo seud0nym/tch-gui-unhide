@@ -146,6 +146,9 @@ function M.configBridgedMode(dhcp)
     ["uci.network.interface.@lan.ifname"] = "eth0 eth1 eth2 eth3 eth4 atm_8_35 ptm0",
     ["uci.network.config.wan_mode"] = "bridge",
     ["uci.dhcp.dhcp.@lan.ignore"] = "1",
+    ["uci.network.interface.@wan.ifname"] = "lo",
+    ["uci.network.interface.@wan.auto"] = "0",
+    ["uci.network.interface.@wan.proto"] = "none",
   })
 
   ngx.log(ngx.WARN,format("configBridgedMode: Configuring WAN Sensing, LAN, WAN Mode and DHCP (Result=%s)",tostring(success)))
@@ -193,9 +196,11 @@ function M.configBridgedMode(dhcp)
     }
 
     for _,v in ipairs(delnames) do
-      local deleted,errmsg,errcode = proxy.del(v)
-      if not deleted then
-        ngx.log(ngx.WARN,format("configBridgedMode: Failed to delete %s ([%s]: %s)",v,errcode,errmsg))
+      if v ~= "uci.network.interface.@wan." then
+        local deleted,errmsg,errcode = proxy.del(v)
+        if not deleted then
+          ngx.log(ngx.WARN,format("configBridgedMode: Failed to delete %s ([%s]: %s)",v,errcode,errmsg))
+        end
       end
     end
 
@@ -265,6 +270,9 @@ function M.configRoutedMode()
       ["uci.network.interface.@lan.gateway"] = "",
       ["uci.network.config.wan_mode"] = "dhcp",
       ["uci.dhcp.dhcp.@lan.ignore"] = "0",
+      ["uci.network.interface.@wan.ifname"] = "eth4",
+      ["uci.network.interface.@wan.auto"] = "1",
+      ["uci.network.interface.@wan.proto"] = "dhcp",
     }
     if proxy.get("uci.network.interface.@lan.proto")[1].value == "dhcp" then
       settings["uci.network.interface.@lan.proto"] = "static"
