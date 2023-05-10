@@ -125,9 +125,9 @@ function M.get_interfaces()
   for _,v in ipairs(all_intfs) do
     if v.type ~= "wan" and v.paramindex ~= "ppp" and v.paramindex ~= "ipoe" and v.name ~= "wg0" and v.proto ~= "wireguard" and (not find(v["ppp.ll_intf"],"wl") or wireless_radio[untaint(v["ppp.ll_intf"])]) then
       if v.name and v.name ~= "" then
-        lan_intfs[#lan_intfs + 1] = {name = v.name,index = v.paramindex}
+        lan_intfs[#lan_intfs + 1] = {name=v.name,index=v.paramindex,up=v.up}
       else
-        lan_intfs[#lan_intfs + 1] = {name = v.paramindex,index = v.paramindex}
+        lan_intfs[#lan_intfs + 1] = {name=v.paramindex,index=v.paramindex,up=v.up}
       end
     end
     if v.paramindex == getintf then

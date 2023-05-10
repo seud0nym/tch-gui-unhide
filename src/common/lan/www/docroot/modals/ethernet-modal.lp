@@ -247,32 +247,38 @@ local function validateInterfaceNames(value,object,key)
   elseif object.lanport ~= "" then
     lanports = { object.lanport }
   end
-  local ifnames = ""
+  local updated_ifnames = ""
   for ifname in gmatch(untaint(value),"(%S+)") do
     if not match(ifname,"(eth[0-4])") then -- keep any non-ethernet interfaces
-      ifnames = (ifnames == "" and ifnames or ifnames.." ")..ifname
+      updated_ifnames = (updated_ifnames == "" and updated_ifnames or updated_ifnames.." ")..ifname
     end
   end
   if lanports then
     for _,v in pairs(lanports) do
       local ifname = untaint(v)
-      if ifname ~= "eth4" then
-        local base = match(ifname,"(eth[0-3])")
-        if base ~= ifname then
-          if not devices[base] or not devices[base][ifname] then
-            return nil,"Unknown interface: "..ifname
-          end
+      local base = match(ifname,"(eth[0-4])")
+      if base ~= ifname then
+        if not devices[base] or not devices[base][ifname] then
+          return nil,"Unknown interface: "..ifname
         end
       end
-      ifnames = ifname..(ifnames == "" and ifnames or " "..ifnames)
+      updated_ifnames = ifname..(updated_ifnames == "" and updated_ifnames or " "..updated_ifnames)
     end
   end
-  if value ~= ifnames then
-    object[key] = ifnames
-    if #lanports == 1 and object.type ~= "" then
-      object.type = ""
-    elseif #lanports > 1 and object.type ~= "bridge" then
-      object.type = "bridge"
+  if value ~= updated_ifnames then
+    local ifnames = split(updated_ifnames," ")
+    local type = ""
+    for i=#ifnames,1,-1 do
+      if find(ifnames[i],"^wl") then
+        ifnames[i] = nil
+      end
+    end
+    object[key] = updated_ifnames
+    if cur_intf == "lan" or (find(cur_intf,"Guest",nil,true) and #ifnames > 0) or #ifnames > 1 then
+      type = "bridge"
+    end
+    if object.type ~= type then
+      object.type = type
     end
   end
   return true
@@ -330,7 +336,7 @@ local mapValid = {
 
 if isBridgedMode and cur_intf == "lan" then
   for k,_ in pairs(mapParams) do
-    if k ~= "localdevIP" and k ~= "localIPv6" and k ~= "localdevmask" and k ~= "localgw" and k ~= "proto" and k ~= "ifnames" and k ~= "type" and k ~= "ip6assign" and k ~= "ip6hint" then
+    if k ~= "localdevIP" and k ~= "localIPv6" and k ~= "localdevmask" and k ~= "localgw" and k ~= "proto" and k ~= "ifnames" and k ~= "type" then
       mapParams[k] = nil
     end
   end
@@ -378,7 +384,7 @@ local function proxySet(p,v)
 end
 
 if ngx.var.request_method == "POST" then
-  if cur_intf == "lan" and isBridgedMode then
+  if isBridgedMode and cur_intf == "lan" then
     local proto = session:retrieve("old_proto")
     session:store("old_proto",(content["proto"]))
     if content["proto"] ~= proto and not next(helpmsg) then
@@ -620,13 +626,11 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
         <li class="nav-header">',T"LAN Interfaces",'</li>');
         local html = {}
         for _,v in ipairs(lan_intfs) do
-          local active = ""
-          if v.index == cur_intf then
-            active = "active"
-          end
           if v.index ~= "loopback" and not (isBridgedMode and v.index == "lan6") then
             local url = "modals/ethernet-modal.lp?intf="..v.index
-            html[#html+1] = format('<li class="%s"><a id="%s" href="#" data-remote="%s">%s',active,v.index,url,v.name)
+            local active = v.index == cur_intf and "active" or ""
+            html[#html+1] = format('<li class="%s"><a id="%s" href="#" data-remote="%s">',active,v.index,url)
+            html[#html+1] = ui_helper.createSimpleLight(v.up,v.name)
             if v.index ~= "lan" and not match(v.index,"^Guest") and v.index ~= "fonopen" then
               html[#html+1] = format('<i title="Remove interface %s" id="remove-interface-%s" class="icon-remove-sign" style="float:right;cursor:pointer;"></i>',v.name,v.index)
             end
@@ -641,7 +645,9 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
       ',ui_helper.createMessages(message_helper.popMessages()),'\
       <div class="span4">\
         <legend>',T"Global Information",'</legend>\
-        <fieldset>');
+        <fieldset>',
+          ui_helper.createLabel("Interface Type",content.type == "bridge" and "Bridge" or "Single Port"),
+          ui_helper.createSimpleInputHidden("type",content.type))
           --region Global
           --region attributes
           local advanced = {
@@ -722,30 +728,32 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             end
           end
 
-          local min_prefix_len = 48
-          local ip6prefix = proxy.get("rpc.network.interface.@wan6.ip6prefix")
-          if ip6prefix and ip6prefix[1].value ~= "" then
-            min_prefix_len = tonumber(match(untaint(ip6prefix[1].value),"/(%d+)$")) or 48
+          if not (isBridgedMode and cur_intf == "lan") then
+            local min_prefix_len = 48
+            local ip6prefix = proxy.get("rpc.network.interface.@wan6.ip6prefix")
+            if ip6prefix and ip6prefix[1].value ~= "" then
+              min_prefix_len = tonumber(match(untaint(ip6prefix[1].value),"/(%d+)$")) or 48
+            end
+            if min_prefix_len < 64 then min_prefix_len = min_prefix_len + 1 end
+            local req_prefix_map = {}
+            for prefix_len = 64,min_prefix_len,-1 do
+              req_prefix_map[#req_prefix_map+1] = { tostring(prefix_len),T("/"..prefix_len) }
+            end
+            --region attributes
+            local number_attr = {
+              group = { class = "monitor-localIPv6 monitor-1 monitor-hidden-localIPv6", },
+              select = { style = "width:100px", }
+            }
+            local hex_attr = {
+              group = { class = "monitor-localIPv6 monitor-1 monitor-hidden-localIPv6", },
+              input = { style = "width:80px", }
+            }
+            --endregion attributes
+            ngx.print(
+              ui_helper.createInputSelect(T"IPv6 Prefix Size<span class='icon-question-sign' title='Delegate a prefix of the given length to this interface'></span>","ip6assign",req_prefix_map,content["ip6assign"],number_attr,helpmsg["ip6assign"]),
+              ui_helper.createInputText(T"IPv6 Subprefix Hint<span class='icon-question-sign' title='Subprefix ID to be used if available'></span>","ip6hint",content["ip6hint"],hex_attr,helpmsg["ip6hint"])
+            )
           end
-          if min_prefix_len < 64 then min_prefix_len = min_prefix_len + 1 end
-          local req_prefix_map = {}
-          for prefix_len = 64,min_prefix_len,-1 do
-            req_prefix_map[#req_prefix_map+1] = { tostring(prefix_len),T("/"..prefix_len) }
-          end
-          --region attributes
-          local number_attr = {
-            group = { class = "monitor-localIPv6 monitor-1 monitor-hidden-localIPv6", },
-            select = { style = "width:100px", }
-          }
-          local hex_attr = {
-            group = { class = "monitor-localIPv6 monitor-1 monitor-hidden-localIPv6", },
-            input = { style = "width:80px", }
-          }
-          --endregion attributes
-          ngx.print(
-            ui_helper.createInputSelect(T"IPv6 Prefix Size<span class='icon-question-sign' title='Delegate a prefix of the given length to this interface'></span>","ip6assign",req_prefix_map,content["ip6assign"],number_attr,helpmsg["ip6assign"]),
-            ui_helper.createInputText(T"IPv6 Subprefix Hint<span class='icon-question-sign' title='Subprefix ID to be used if available'></span>","ip6hint",content["ip6hint"],hex_attr,helpmsg["ip6hint"])
-          )
 
           if not (isBridgedMode and cur_intf == "lan") then
             if cur_dhcp_intf == "lan" then
@@ -775,48 +783,55 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
           '</fieldset>',
           '<fieldset>',
             '<legend style="border-bottom:0px;margin-bottom:0px;">',T"Port Assignment",'</legend>',
-            ui_helper.createSimpleInputHidden("ifnames",content.ifnames),
-            ui_helper.createSimpleInputHidden("type",content.type),'\
+            ui_helper.createSimpleInputHidden("ifnames",content.ifnames),'\
           <table id="portmap" class="table table-striped">\
             <tr>\
-              <th style="text-align:right;vertical-align:bottom;">',vlan_enabled[1].value == "1" and T"VLAN ID" or "",'</th>\
+              <th style="width:50%;text-align:right;vertical-align:bottom;">',vlan_enabled[1].value == "1" and T"VLAN ID" or "",'</th>\
               <th style="width:65px;">',ui_helper.createSwitchPort("1",eth.state_0,eth.speed_0),'</th>\
               <th style="width:65px;">',ui_helper.createSwitchPort("2",eth.state_1,eth.speed_1),'</th>\
               <th style="width:65px;">',ui_helper.createSwitchPort("3",eth.state_2,eth.speed_2),'</th>\
               <th style="width:65px;">',ui_helper.createSwitchPort("4",eth.state_3,eth.speed_3),'</th>')
               if isBridgedMode then
-                ngx.print('<th>',ui_helper.createSwitchPort("WAN",eth.state_4,eth.speed_4, { socket={ class="red" } }),'</th>')
+                ngx.print('<th>',ui_helper.createSwitchPort("WAN",eth.state_4,eth.speed_4,{socket={class="red"}}),'</th>')
               end
               ngx.print('\
+              <th style="width:50%;"></th>\
             </tr>')
             local unused = 0
-            local used = {}
+            local used = {eth0={[".count"]=0},eth1={[".count"]=0},eth2={[".count"]=0},eth3={[".count"]=0},eth4={[".count"]=0}}
             for _,v in ipairs(proxy.getPN("uci.network.interface.",true)) do
               local intf = match(v.path,"@([^%.]+)")
-              if intf ~= cur_intf then
-                for ifname in gmatch(untaint(proxy.get(v.path.."ifname")[1].value),"(%S+)") do
-                  local base = match(ifname,"(eth[0-4])")
-                  if base then
-                    used[base] = intf
-                  end
+              for ifname in gmatch(untaint(proxy.get(v.path.."ifname")[1].value),"(%S+)") do
+                local base = match(ifname,"(eth[0-4])")
+                if base then
+                  local vlan = match(ifname,"eth[0-4]_(%d+)$") or -1
+                  used[base][".count"] = used[base][".count"] + 1
+                  used[base][intf] = vlan
                 end
               end
             end
             local lastport = isBridgedMode and 4 or 3
             if vlan_enabled[1].value == "1" then
-              local switch_vlan = content_helper.getMatchedContent("uci.network.switch_vlan.",{ device = "bcmsw_ext" })
+              local switch_vlan = content_helper.getMatchedContent("uci.network.switch_vlan.",{device="bcmsw_ext"})
               table.sort(switch_vlan,function (a, b)
                 return (tonumber(a.vlan) or -1) < (tonumber(b.vlan) or -1)
               end)
+              local untagged = {}
+              for _,v in ipairs(switch_vlan) do
+                for i,state in gmatch(untaint(v.ports),"(%d)(%S*)") do
+                  if state ~= "t" then
+                    untagged[format("eth%d",i)] = untaint(v.vlan)
+                  end
+                end
+              end
               for _,v in ipairs(switch_vlan) do
                 local vlan = untaint(v.vlan)
                 local ports = untaint(v.ports)
-                ngx.print('<tr>')
-                ngx.print('<td style="text-align:right;">',T(vlan),'</td>')
+                ngx.print('<tr><td style="width:50%;text-align:right;">',T(vlan),'</td>')
                 for i=0,lastport,1 do
-                  local ifname = format("eth%d",i)
+                  local base = format("eth%d",i)
                   local vlan_ifname
-                  for k,vid in pairs(devices[ifname]) do
+                  for k,vid in pairs(devices[base] or {}) do
                     if vid == vlan then
                       vlan_ifname = k
                       break
@@ -824,8 +839,29 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                   end
                   if vlan_ifname then
                     local at = find(ports,tostring(i),nil,true)
-                    if at and (sub(ports,at+1,at+1) == "t" or not used[ifname] or used[ifname] == cur_intf)  then
-                      add_port_checkbox(vlan_ifname)
+                    if at then -- this port is used in this vlan
+                      if sub(ports,at+1,at+1) == "t" then -- port is tagged, so can be multiple
+                        add_port_checkbox(vlan_ifname)
+                      elseif untagged[base] == vlan then -- port is untagged...
+                        if used[base][cur_intf] == vlan then -- and used in the current interface
+                          add_port_checkbox(vlan_ifname)
+                        else
+                          local untagged_used = false
+                          for _,vid in pairs(used[base]) do
+                            if vid == vlan then
+                              untagged_used = true -- untagged port is used in another interface
+                              break
+                            end
+                          end
+                          if untagged_used then
+                            ngx.print(ban_circle)
+                          else
+                            add_port_checkbox(vlan_ifname)
+                          end
+                        end
+                      else
+                        ngx.print(ban_circle)
+                      end
                     else
                       ngx.print(ban_circle)
                     end
@@ -833,23 +869,22 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                     ngx.print(ban_circle)
                   end
                 end
+                ngx.print('<td style="width:50%;"></td></tr>')
               end
-              ngx.print('</tr>')
             else --VLANs disabled
-              ngx.print('<tr>')
-              ngx.print('<td></td>')
+              ngx.print('<tr><td style="width:50%;"></td>')
               for i=0,lastport,1 do
-                local ifname = format("eth%d",i)
-                if not used[ifname] then
+                local base = format("eth%d",i)
+                if used[base][".count"] == 0 then
                   unused = unused + 1
-                  add_port_checkbox(ifname)
-                elseif used[ifname] == cur_intf then
-                  add_port_checkbox(ifname)
+                  add_port_checkbox(base)
+                elseif used[base][cur_intf] then
+                  add_port_checkbox(base)
                 else
                   ngx.print(ban_circle)
                 end
               end
-              ngx.print('</tr>')
+              ngx.print('<td style="width:50%;"></td></tr>')
             end
             ngx.print('\
           </table>')
