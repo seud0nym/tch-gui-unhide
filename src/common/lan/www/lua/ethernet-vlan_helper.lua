@@ -1,14 +1,46 @@
 local content_helper = require("web.content_helper")
 local message_helper = require("web.uimessage_helper")
 local proxy = require("datamodel")
+local split = require("split").split
 
-local find,format,gmatch,match = string.find,string.format,string.gmatch,string.match
+local find,format,gmatch,match,gsub = string.find,string.format,string.gmatch,string.match,string.gsub
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
+-- cpu_port and untagged_flag are updated by 165-VLAN
+local cpu_port = "8t"
+local untagged_flag = "*"
+
+local function p2ports(values)
+  local ports = cpu_port
+  for p=4,0,-1 do
+    local value = values["p"..p]
+    if value and value ~= "" then
+      ports = p..untaint(value).." "..ports
+    end
+  end
+  return ports
+end
+
+local function update_ifnames(path,value)
+  local interface = match(path,"uci%.network%.interface%.@(%S+)%.ifname")
+  local type = ""
+  local ifnames = split(value," ")
+  for i=#ifnames,1,-1 do
+    if find(ifnames[i],"^wl") then
+      ifnames[i] = nil
+    end
+  end
+  proxy.set(path,value)
+  if interface == "lan" or (find(interface,"Guest",nil,true) and #ifnames > 0) or #ifnames > 1 then
+    type = "bridge"
+  end
+  return proxy.set("uci.network.interface.@"..interface..".type",type)
+end
+
 local M = {}
 
-function M.add_vlan(index,vid,ports,cpu_port)
+function M.add_vlan(index,vid,ports)
   local path -- index is _key, which is not exposed by transformer
   local switch_vlans = proxy.getPN("uci.network.switch_vlan.",true)
   for _,v in ipairs(switch_vlans) do
@@ -33,7 +65,7 @@ function M.add_vlan(index,vid,ports,cpu_port)
   proxy.set(path.."vlan",vid)
   proxy.set(path.."ports",ports or cpu_port)
   proxy.set(path.."_key","")
-  for p=0,3,1 do
+  for p=0,4,1 do
     local port = format("eth%s",p)
     local device = format("vlan_%s_%s",port,vid)
     local added,errmsg = proxy.add("uci.network.device.",device)
@@ -48,13 +80,17 @@ function M.add_vlan(index,vid,ports,cpu_port)
   end
 end
 
+function M.get_cpu_port()
+  return cpu_port
+end
+
 function M.get_device_map()
-  local map = { eth0 = {}, eth1 = {}, eth2 = {}, eth3 = {} }
+  local map = { eth0 = {}, eth1 = {}, eth2 = {}, eth3 = {}, eth4 = {} }
   for _,p in ipairs(proxy.getPN("uci.network.device.",true)) do
     local values = proxy.get(p.path.."ifname",p.path.."type",p.path.."enabled",p.path.."name",p.path.."vid")
     if values then
       local ifname = untaint(values[1].value)
-      if match(ifname,"^eth[0-3]$") and values[2].value == "8021q" and values[3].value ~= "0" then
+      if match(ifname,"^eth[0-4]$") and values[2].value == "8021q" and values[3].value ~= "0" then
         local name = untaint(values[4].value)
         local vid = untaint(values[5].value)
         if name ~= "" then
@@ -83,6 +119,10 @@ function M.get_port_states()
   return port
 end
 
+function M.get_untagged_flag()
+  return untagged_flag
+end
+
 function M.fix_ifnames(enabled_was,enabled)
   local vlan_usage = {}
   local device_map = M.get_device_map()
@@ -91,18 +131,18 @@ function M.fix_ifnames(enabled_was,enabled)
     local value = proxy.get(interface.path.."ifname")
     if value then
       local ifnames = untaint(value[1].value)
-      if find(ifnames,"eth[0-3]") then
+      if find(ifnames,"eth[0-4]") then
         local ifnames_new
         for ifname in gmatch(ifnames,"(%S+)") do
           if enabled_was[1].value ~= enabled then
             if enabled == "0" then -- VLANs disabled, so move VLAN interfaces back to base interface
-              local base = match(ifname,"(eth[0-3])_%d+$")
+              local base = match(ifname,"(eth[0-4])_%d+$")
               if base then
                 ifname = base
               end
               ifnames_new = (ifnames_new and ifnames_new.." " or "")..ifname
             elseif enabled == "1" then -- VLANs enabled, so move base interfaces to VLAN ID 1 interfaces
-              if match(ifname,"^eth[0-3]$") then
+              if match(ifname,"^eth[0-4]$") then
                 ifname = "vlan_"..ifname.."_1"
                 if device_map[ifname] then
                   for k,v in pairs(device_map[ifname]) do
@@ -116,7 +156,7 @@ function M.fix_ifnames(enabled_was,enabled)
               ifnames_new = (ifnames_new and ifnames_new.." " or "")..ifname
             end
           end
-          local index,vlan_id = match(ifname,"eth([0-3])_(%d+)$")
+          local index,vlan_id = match(ifname,"eth([0-4])_(%d+)$")
           if vlan_id then
             local key = match(interface.path,"@([^%.]+)")
             if not vlan_usage[vlan_id] then
@@ -136,8 +176,7 @@ function M.fix_ifnames(enabled_was,enabled)
           end
         end
         if ifnames_new and ifnames_new ~= ifnames then
-          proxy.set(interface.path.."ifname",ifnames_new)
-          apply = true
+          apply = update_ifnames(interface.path.."ifname",ifnames_new)
         end
       end
     end
@@ -146,6 +185,82 @@ function M.fix_ifnames(enabled_was,enabled)
     proxy.apply()
   end
   return vlan_usage
+end
+
+function M.onAdd()
+  return function(_,values)
+    local vlans = proxy.getPN("uci.network.switch_vlan.",true) or {}
+    for i=#vlans,1,-1 do
+      local device = proxy.get(vlans[i].path.."device")
+      if device and device[1].value == "" then
+        local index = match(untaint(vlans[i].path),"@([^%.]+)")
+        if index then
+          M.add_vlan(index,untaint(values.vlan),p2ports(values))
+          proxy.apply()
+          break
+        end
+      end
+    end
+  end
+end
+
+function M.onDelete(vid)
+  return function()
+    if vid and vid ~= "" then
+      local ifnames_map = {}
+      for _,interface in pairs(proxy.getPN("uci.network.interface.",true)) do
+        local path = interface.path.."ifname"
+        local value = proxy.get(path)
+        if value then
+          local ifnames = untaint(value[1].value)
+          if find(ifnames,"eth",0,true) then
+            ifnames_map[#ifnames_map+1] = { path = path, ifnames = ifnames, updated_ifnames = ifnames }
+          end
+        end
+      end
+      for p=0,4,1 do
+        for _,ifname in ipairs({format("eth%s_%s",p,vid),format("vlan_eth%s_%s",p,vid)}) do
+          proxy.del(format("uci.network.device.@%s",ifname))
+          for i=1,#ifnames_map,1 do
+            ifnames_map[i].updated_ifnames = gsub(ifnames_map[i].updated_ifnames,ifname,"")
+          end
+        end
+      end
+      for _,v in ipairs(ifnames_map) do
+        if v.ifnames ~= v.updated_ifnames then
+          update_ifnames(v.path,gsub(gsub(gsub(v.updated_ifnames,"^ +","")," +$",""),"  "," "))
+        end
+      end
+      proxy.apply()
+    end
+  end
+end
+
+function M.onModify(vlan_usage)
+  return function(index,values)
+    local vlan_id = untaint(values.vlan)
+    local ports = p2ports(values)
+    if values.ports ~= ports then
+      proxy.set("uci.network.switch_vlan.@"..index..".ports",ports)
+    end
+    if vlan_usage[vlan_id] then
+      for ifname in gmatch(vlan_usage[vlan_id].interfaces or "","(%S+)") do
+        local ifpath = "uci.network.interface.@"..ifname..".ifname"
+        local ifnames = untaint(proxy.get(ifpath)[1].value)
+        local updated_ifnames = ifnames
+        for p,interface in pairs(vlan_usage[vlan_id].ports) do
+          if not find(ports,p,nil,true) then
+            updated_ifnames = gsub(updated_ifnames,interface,"")
+          end
+        end
+        if ifnames ~= updated_ifnames then
+          updated_ifnames = gsub(gsub(gsub(updated_ifnames,"^ +","")," +$",""),"  "," ")
+          update_ifnames(ifpath,updated_ifnames)
+        end
+      end
+    end
+    proxy.apply()
+  end
 end
 
 return M
