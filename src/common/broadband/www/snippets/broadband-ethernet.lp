@@ -44,27 +44,25 @@ if (iface and find(iface,ethIntf)) or (ethIntf and find(deviceIfname,ethIntf)) t
   stats = {
     operstate = "sys.class.net.@"..ethIntf..".operstate",
     carrier = "sys.class.net.@"..ethIntf..".carrier",
-    speed = "sys.class.net.@"..ethIntf..".speed",
   }
   content_helper.getExactContent(stats)
 else
   stats = {
     operstate = "down",
     carrier = "0",
-    speed = "0",
   }
 end
 
-local intf_state = "disabled"
+local intf_state
 local intf_state_map = {
-  disabled = T"Ethernet disabled",
+  down = T"Ethernet connection down",
+  disconnected = T"Ethernet up but link down",
   connected = T"Ethernet connected",
-  disconnected = T"Ethernet not connected",
 }
 
 local intf_light_map = {
-  disabled = "off",
-  disconnected = "red",
+  down = "red",
+  disconnected = "orange",
   connected = "green",
 }
 
@@ -75,7 +73,7 @@ if stats.operstate == "up" then
     intf_state = "disconnected"
   end
 else
-  intf_state = "disabled"
+  intf_state = "down"
 end
 
   ngx.print('\
