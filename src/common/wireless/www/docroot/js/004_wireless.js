@@ -19,6 +19,7 @@ function updateWirelessCard(){
   });
 }
 $().ready(function(){
+  updateWirelessCard();
   ssidFuncID=setInterval(updateWirelessCard,19000);
   addRegisteredInterval(ssidFuncID);
 });

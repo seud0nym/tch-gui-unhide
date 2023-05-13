@@ -76,6 +76,7 @@ ngx.print('\
       end
       ngx.print('\
       <div id="broadband-card-content">\
+        <span class="simple-desc">Getting Broadband Status...</span>\
       </div>\
     </div>\
   </div>\
