@@ -112,11 +112,14 @@ local sleases_options = {
 }
 
 local used_tags = {}
-local syshosts_data = proxy.get("sys.hosts.host.")
+local syshosts_data
 local sleases_filter = function(data)
   used_tags[untaint(data['tag'])] = true
   if data['owner'] == "portforward" then
     local path
+    if not syshosts_data then
+      syshosts_data = proxy.get("sys.hosts.host.")
+    end
     if syshosts_data then
       for _,v in pairs(syshosts_data) do
         if v.value == data['mac'] then
