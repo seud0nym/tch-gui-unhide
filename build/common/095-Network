@@ -44,3 +44,7 @@ if [ "$(uci -q get network.config.wan_mode)" = "bridge" ]; then
   SRV_network=$(( $SRV_network + 2 ))
 fi
 
+if grep "kill -9 \`ps | grep parseopt60 | awk '{print \$1}' | head -n 1\`; /usr/bin/parseopt60 &" /etc/udhcpc.user; then
+  echo -e "[$SCRIPT]: Fix '/usr/bin/parseopt60: not found' error"
+  sed -e "s#kill -9 \`ps | grep parseopt60 | awk '{print \$1}' | head -n 1\`; /usr/bin/parseopt60 &#( & )#" -i /etc/udhcpc.user
+fi
