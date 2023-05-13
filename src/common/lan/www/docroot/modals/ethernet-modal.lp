@@ -630,7 +630,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             local url = "modals/ethernet-modal.lp?intf="..v.index
             local active = v.index == cur_intf and "active" or ""
             html[#html+1] = format('<li class="%s"><a id="%s" href="#" data-remote="%s">',active,v.index,url)
-            html[#html+1] = ui_helper.createSimpleLight(v.up,v.name)
+            html[#html+1] = ui_helper.createSimpleLight(v.up,v.name,{span={style="display:inline-block;"}})
             if v.index ~= "lan" and not match(v.index,"^Guest") and v.index ~= "fonopen" then
               html[#html+1] = format('<i title="Remove interface %s" id="remove-interface-%s" class="icon-remove-sign" style="float:right;cursor:pointer;"></i>',v.name,v.index)
             end
@@ -725,6 +725,10 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             end
             if ipv6addr then
               ngx.print(ui_helper.createLabel(T"Device IPv6 Address",ipv6addr[1].value,ipv6_attr))
+            end
+            local ipv6prefix = proxy.get("rpc.network.interface.@"..cur_intf..".ip6prefix_assignment")
+            if ipv6prefix and ipv6prefix[1].value ~= "" then
+              ngx.print(ui_helper.createLabel(T"Device IPv6 Prefix",ipv6prefix[1].value,ipv6_attr))
             end
           end
 
