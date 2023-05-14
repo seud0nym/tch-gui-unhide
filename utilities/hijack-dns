@@ -309,6 +309,8 @@ echo -e "[$SCRIPT] Loading configuration defaults..."
 load_configuration
 
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
+[ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
+
 IPv4_LAN=$(uci -q get network.lan.ipaddr)
 DHCP_OPT6=$(uci -q -d"$IFS" get dhcp.lan.dhcp_option | grep '^6,' | xargs)
 

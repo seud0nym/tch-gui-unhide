@@ -1,18 +1,27 @@
 local proxy = require("datamodel")
 local string = string
+local format,gsub = string.format,string.gsub
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
 local M = {}
 
-local values = proxy.get("uci.network.interface.@lan.ipaddr","uci.env.var.variant_friendly_name")
-local lan_ip = untaint(values[1].value)
+local ipaddr = proxy.get("uci.network.interface.@lan.ipaddr")
+local name = proxy.get("uci.env.var.variant_friendly_name")
+local variant
+if not name then
+  name = proxy.get("env.var.prod_friendly_name")
+  variant = gsub(untaint(name[1].value),"Technicolor ","")
+else
+  variant = gsub(untaint(name[1].value),"TLS","")
+end
+local lan_ip = untaint(ipaddr[1].value)
 
 local dns_servers = {
   { -- IPv4 DNS servers
     {"",T""},
     {"custom",T"Enter Custom IP Address"},
-    {lan_ip,T(string.format("%s (%s)",string.gsub(untaint(values[2].value),"TLS$",""),lan_ip))},
+    {lan_ip,T(format("%s (%s)",variant,lan_ip))},
     -- insert ipv4-DNS-Servers file content here (Do NOT change or remove this comment - used by 105-DNS)
     {"8.8.8.8",T"Google (8.8.8.8)"},
     {"8.8.4.4",T"Google (8.8.4.4)"},

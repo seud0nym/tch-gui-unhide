@@ -1,7 +1,17 @@
 local proxy = require("datamodel")
+local string = string
 local gsub = string.gsub
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
+
+local name = proxy.get("uci.env.var.variant_friendly_name")
+local variant
+if not name then
+  name = proxy.get("env.var.prod_friendly_name")
+  variant = gsub(untaint(name[1].value),"Technicolor ","")
+else
+  variant = gsub(untaint(name[1].value),"TLS","")
+end
 
 local M = {}
 
@@ -133,7 +143,7 @@ M.card_titles = {
   eco = "Eco Settings",
   firewall = "Firewall",
   fon = "Telstra AIR",
-  gateway = gsub(untaint(proxy.get("uci.env.var.variant_friendly_name")[1].value),"TLS",""),
+  gateway = variant,
   internet = "Internet Access",
   iproutes = "IP Routing",
   LAN = "Local Network",

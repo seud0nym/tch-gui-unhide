@@ -18,6 +18,7 @@ USB="$(ls $MOUNT_PATH | head -n1)"
 UCI_DEFAULTS="zzz-9999-reroot"
 
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
+[ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
 MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
 
 if [ -z "$(which bootmgr)" ]; then
@@ -311,7 +312,6 @@ if [ -n "$__BKUP" ]; then
     TARGET="${MOUNT_PATH}${USB}/backups"
     echo "NOTE:     /overlay contents and current configuration will be backed up to $TARGET"
     [ -d "$TARGET" ] || mkdir -p "$TARGET"
-    VARIANT=$(uci -q get env.var.variant_friendly_name)
     FULL_VERSION=$(uci get version.@version[0].version | cut -d- -f1)
     echo -e "INFO:     Backing up overlay to ${ORANGE}$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz${NC} ..."
     tar -C /overlay -czf $TARGET/$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz .
@@ -334,7 +334,7 @@ if [ $RESTORE_CONFIG = Y ]; then
     exit
   else
     if [ -z "$1" ]; then
-      RESTORE_OPTIONS=$(ls ${MOUNT_PATH}${USB}/backups/$(uci -q get env.var.variant_friendly_name)-$SERIAL-*-overlay-files-backup.tgz 2>/dev/null | sort -r | head -n 1)
+      RESTORE_OPTIONS=$(ls ${MOUNT_PATH}${USB}/backups/$VARIANT-$SERIAL-*-overlay-files-backup.tgz 2>/dev/null | sort -r | head -n 1)
       if [ -z "$RESTORE_OPTIONS" ]; then
         echo -e "${RED}ABORTING: Configuration restore requested, but no overlay backups for serial number $SERIAL found!${NC}"
         exit

@@ -15,15 +15,14 @@ abort_install() {
 
 SCRIPT="$(basename $0)"
 
+MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
 VERSION=$(uci -q get version.@version[0].marketing_version)
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
-MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
-
 [ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
 
+[ -n "$MAC_HEX" ] || abort_install "Failed to determine MAC representation?"
 [ -n "$VERSION" ] || abort_install "Failed to determine device firmware version?"
 [ -n "$VARIANT" ] || abort_install "Failed to determine device variant?"
-[ -n "$MAC_HEX" ] || abort_install "Failed to determine MAC representation?"
 
 cat /proc/cpuinfo | grep -q 'ARMv7 Processor rev 1 (v7l)' && ARMv7=1 || ARMv7=0
 

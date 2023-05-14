@@ -20,19 +20,18 @@ done
 echo "$TARGET_VERSION" | grep -q '\.' || abort_install "Unable to determine Target Version! Did the script get renamed??"
 SCRIPT=$(basename $0 | sed "s/-$TARGET_VERSION//")
 
-VERSION=$(uci -q get version.@version[0].version | cut -d- -f1)
 FW_BASE=$(uci -q get version.@version[0].marketing_version)
-VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//' -e 's/vac//')
-MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
 HOSTNAME=$(uci -q get system.@system[0].hostname)
-
+MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
+VERSION=$(uci -q get version.@version[0].version | cut -d- -f1)
+VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//' -e 's/vac//')
 [ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
 
-[ -n "$VERSION" ]  || abort_install "Failed to determine device firmware version?"
 [ -n "$FW_BASE" ]  || abort_install "Failed to determine device base firmware (marketing) version?"
-[ -n "$VARIANT" ]  || abort_install "Failed to determine device variant?"
-[ -n "$MAC_HEX" ]  || abort_install "Failed to determine MAC representation?"
 [ -n "$HOSTNAME" ] || abort_install "Failed to determine device hostname?"
+[ -n "$MAC_HEX" ]  || abort_install "Failed to determine MAC representation?"
+[ -n "$VERSION" ]  || abort_install "Failed to determine device firmware version?"
+[ -n "$VARIANT" ]  || abort_install "Failed to determine device variant?"
 
 DFLT_USR=$(uci -q get web.uidefault.defaultuser)
 FW_UPGRD=$(uci -q get web.uidefault.upgradefw)

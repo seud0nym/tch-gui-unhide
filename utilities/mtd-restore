@@ -1,8 +1,9 @@
 #!/bin/sh
 
 SCRIPT="$(basename $0)"
-VARIANT=$(uci -q get env.var.variant_friendly_name)
 VERSION=$(uci -q get version.@version[0].marketing_version)
+VARIANT=$(uci -q get env.var.variant_friendly_name)
+[ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
 
 usage() {
 cat <<EOH

@@ -20,6 +20,7 @@ fi
 
 usage() {
 local VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
+[ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
 local MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
 cat <<EOH
 Applies a new firmware to the device, without losing root access.
@@ -93,8 +94,6 @@ Options:
  -U               Download the latest version of $SCRIPT from GitHub.
                     Do NOT specify any other parameters or options if doing
                     a version upgrade.
-EOH
-[ "$VERSION" = "17.2" -o "$VERSION" = "18.1.c" -o "$VERSION" = "20.3.c" ] && cat <<EOH
  --restore-config Runs the restore-config.sh script after reboot if it is found
                     in the USB backups directory. Output will be written to the 
                     system log. --restore-config should be the LAST option

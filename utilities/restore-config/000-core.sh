@@ -216,10 +216,11 @@ restore_overlay_to_tmp() {
 
   rm -f $BASE/.include $BASE/.exclude
 
-  BACKUP_VERSION=$($UCI -q get version.@version[0].marketing_version)
-  BACKUP_VARIANT=$($UCI -q get env.var.variant_friendly_name | sed -e 's/TLS//')
   BACKUP_SERIAL=$($UCI get env.var.serial)
+  BACKUP_VERSION=$($UCI -q get version.@version[0].marketing_version)
   BACKUP_VERSION_NUMBER=$(comparable_version $BACKUP_VERSION)
+  BACKUP_VARIANT=$($UCI -q get env.var.variant_friendly_name | sed -e 's/TLS//')
+  [ -z "$BACKUP_VARIANT" ] && BACKUP_VARIANT=$($UCI -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
 }
 
 run_script() {
@@ -369,20 +370,21 @@ while getopts :i:ntvy option; do
 done
 shift $((OPTIND-1))
 
-DEVICE_VERSION=$(uci -q get version.@version[0].marketing_version)
-DEVICE_VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 DEVICE_SERIAL=$(uci get env.var.serial)
+DEVICE_VERSION=$(uci -q get version.@version[0].marketing_version)
 DEVICE_VERSION_NUMBER=$(comparable_version $DEVICE_VERSION)
+DEVICE_VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
+[ -z "$DEVICE_VARIANT" ] && DEVICE_VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
 
 if [ $# -gt 1 ]; then
     log E "Maximum of 1 parameter (excluding options) expected. Found $*"
     exit 2
 elif [ -z "$1" ]; then
-  DFLT_OVERLAY=$(uci -q get env.var.variant_friendly_name)-$DEVICE_SERIAL-$(uci get version.@version[0].version | cut -d- -f1)-overlay-files-backup.tgz
+  DFLT_OVERLAY=$DEVICE_VARIANT-$DEVICE_SERIAL-$(uci get version.@version[0].version | cut -d- -f1)-overlay-files-backup.tgz
   if [ -f $DFLT_OVERLAY ]; then
     OVERLAY=$DFLT_OVERLAY
   else 
-    PREV_OVERLAY=$(ls $(uci -q get env.var.variant_friendly_name)-$DEVICE_SERIAL-*-overlay-files-backup.tgz 2>/dev/null | sort -r | head -n 1)
+    PREV_OVERLAY=$(ls $DEVICE_VARIANT-$DEVICE_SERIAL-*-overlay-files-backup.tgz 2>/dev/null | sort -r | head -n 1)
     if [ -n "$PREV_OVERLAY" ]; then
       OVERLAY=$PREV_OVERLAY
     else

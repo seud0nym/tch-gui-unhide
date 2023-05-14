@@ -3,8 +3,9 @@
 SCRIPT="$(basename $0)"
 
 SERIAL=$(uci get env.var.serial)
-VARIANT=$(uci -q get env.var.variant_friendly_name)
 VERSION=$(uci get version.@version[0].version | cut -d- -f1)
+VARIANT=$(uci -q get env.var.variant_friendly_name)
+[ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
 
 if [ -z "$(which bootmgr)" ]; then
   BOOTED="$(cat /proc/banktable/booted 2>/dev/null)"
