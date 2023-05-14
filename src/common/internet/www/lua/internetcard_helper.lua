@@ -69,11 +69,6 @@ function M.getInternetCardHTML(mode_active)
   if not mobile then
     -- BRIDGE
     if mode_active == "bridge" then
-      local cs = {
-        variant = "env.var.variant_friendly_name",
-      }
-      content_helper.getExactContent(cs)
-
       html[#html+1] = '<p class="subinfos">'
       html[#html+1] = T'Gateway is in Bridged Mode'
       html[#html+1] = '</p>'
