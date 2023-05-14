@@ -173,7 +173,6 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
         1' "$DIRECTORY/$FILENAME" >> $TARGET
     fi
   done
-  [ -n "$PRERELEASE" ] && sed -e 's/^\(DEBUG=\)n/\1y/' -i $TARGET
 done
 
 echo "${GREEN}Cleaning up..${NC}"
