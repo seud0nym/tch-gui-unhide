@@ -1,0 +1,7 @@
+if [ -f /etc/init.d/cwmpd ]; then
+  echo -e "[$SCRIPT]: Reverting stock changes to CWMP card"
+  sed \
+    -e 's/ title=."%s." //' \
+    -e 's/class="subinfos" [^>]*>/class="subinfos">/' \
+    -i /www/cards/090_cwmpconf.lp
+fi

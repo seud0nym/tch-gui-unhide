@@ -1,0 +1,8 @@
+if [ -f /www/cards/007_devicesecurity.lp ]; then
+  echo -e "[$SCRIPT]: Fixing Device Security card"
+  sed \
+    -e 's/NotInstalled/Not Installed/' \
+    -e 's/createCardHeaderNoIcon(T"Device Security")/createCardHeader(T"Device Security",modalPath,nil,nil,{icon={class="icon-usd"}})/' \
+    -e 's/<div class="content">/<div class="content card_bg" data-bg-text="\&#xf155;">/' \
+    -i /www/cards/007_devicesecurity.lp
+fi

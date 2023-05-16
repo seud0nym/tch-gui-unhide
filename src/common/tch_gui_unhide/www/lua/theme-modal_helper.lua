@@ -139,6 +139,7 @@ M.card_titles = {
   contentsharing = "Content Sharing",
   cwmpconf = "CWMP",
   Devices = "Devices",
+  devicesecurity = "Device Security",
   diagnostics = "Diagnostics",
   eco = "Eco Settings",
   firewall = "Firewall",
