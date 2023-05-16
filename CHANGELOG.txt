@@ -1,9 +1,9 @@
-2023.05.14
+2023.05.16
 ==========
 * tch-gui-unhide: Added cron task to update kernel time zone when daylight saving changes so that Time of Day processing will be run on correct schedule (#146)
 * tch-gui-unhide: Added separate tabs to Local Network for global configuration and static leases 
 * tch-gui-unhide: Added LAN port assignment to Local Network interface configuration
-* tch-gui-unhide: Added VLAN tab to Local Network (not FW 20.4)
+* tch-gui-unhide: Added VLAN tab to Local Network (not FW 20.4/21.4)
 * tch-gui-unhide: Added ability to add and remove additional LAN interfaces
 * tch-gui-unhide: Added ability to add/remove/edit firewall zones and zone forwarding rules
 * tch-gui-unhide: Added ability to configure mobile operator and roaming
@@ -11,18 +11,19 @@
 * tch-gui-unhide: Added missing mmpbxmobilenet commit/apply action (FW 17.2)
 * tch-gui-unhide: Added ability to get the IP address from DHCP when switching to bridged mode (for use on LAN bridges only!)
 * tch-gui-unhide: Added LAN interfaces up/down lights and display LAN interface type (Bridge vs Single Port)
+* tch-gui-unhide: Added associated mobile device and session settings to VoLTE tab
+* tch-gui-unhide: Added support for FW 21.4
 * tch-gui-unhide: Fixed bug that caused the Eco Settings card to fail to display and threw an error when the device did not support Ethernet Deep Green Mode (#149)
 * tch-gui-unhide: Fixed mobile device capabilities not showing on FW 17.2
 * tch-gui-unhide: Fixed detection of in-use mobile operator
-* tch-gui-unhide: Fixed wireless radio in device description on Egress QoS on FW 20.4
+* tch-gui-unhide: Fixed wireless radio in device description on Egress QoS on FW 20.4/21.4
 * tch-gui-unhide: Fixed failed address validation on IPv6 port forwarding when MAC has multiple IPv6 addresses
 * tch-gui-unhide: Fixed Ethernet connection status on Broadband screen (#148)
+* tch-gui-unhide: Fixed minor display issue on Mobile card, and removed check for mobile devices before displaying
+* tch-gui-unhide: Fixed Time of Day Wireless Control on FW 20.4/21.4 to allow selection of SSID to allow/blocking
 * tch-gui-unhide: Show wait spinner when changing tabs and adding table rows on slow screens
 * tch-gui-unhide: Do not show VoLTE call stats if Telephony disabled
 * tch-gui-unhide: Removed VoLTE tab if no VoLTE configuration support
-* tch-gui-unhide: Added associated mobile device and session settings to VoLTE tab
-* tch-gui-unhide: Fixed minor display issue on Mobile card, and remove check for mobile devices before displaying
-* tch-gui-unhide: Fixed Time of Day Wireless Control on FW 20.4 to allow selection of SSID to allow/blocking
 * tch-gui-unhide: General code and consistency improvements to all Time of Day tabs
 * tch-gui-unhide: Removed band steering status from Wi-Fi card
 * tch-gui-unhide: When Permanent WWAN enabled, show upload/download stats separately for WAN and WWAN on Broadband card
@@ -35,8 +36,9 @@
 * de-telstra: No longer automatically enables VoLTE (replaced by GUI configuration)
 * hijack-dns: Fixed some issues with --status output
 * move-lan-port-to-own-network: Modified to correctly configure the port switch and now uses VLANs to resolve issues where clients would fail to acquire an address via DHCP
-* move-lan-port-to-own-network: Prevent running when mdkshell not present (e.g. FW 20.4)
+* move-lan-port-to-own-network: Prevent running when mdkshell not present (e.g. FW 20.4/21.4)
 * reset-to-factory-defaults-with-root/safe-firmware-upgrade: Copy mtd executable to /tmp and use that to write/verify firmware (to prevent "Segmentation fault" errors)
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Allow restore between 20.4 and later firmware
 * set-optimal-bank-plan: Now supports recommended configuration on SMG3 (booting from bank 2 + exploitable firmware kept in bank 1)
 * show-bank-plan: Changed messages when running on SMG3
 * update-ca-certificates: Auto-detect latest OpenWrt release to get latest version of ca-certificates and ca-bundle, and only download packages if they have been updated
