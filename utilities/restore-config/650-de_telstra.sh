@@ -42,6 +42,7 @@ options="${options} -r$(config2yn printersharing.config.enabled)"
 options="${options} -f$(config2yn samba.samba.filesharing)"
 options="${options} -e$(config2yn mmpbx.dectemission.state)"
 options="${options} -u$(config2yn upnpd.config.enable_upnp)"
+options="${options} -l$(config2yn ledfw.syslog.trace)"
 if uci -q get supervision; then
   case "$($UCI -q get supervision.global.mode)" in
     BFD) options="${options} -sb";;
