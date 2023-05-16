@@ -4,6 +4,8 @@ LAN_IP_ADDR="$(uci get network.lan.ipaddr)"
 LAN_IP_MASK="$(uci get network.lan.netmask)"
 
 if uci -q get mobiled.@profile[0] > /dev/null; then
+  log I "Restoring mobile state..."
+  uci_set mobiled.@device[0].enabled
   log I "Restoring mobile operators and profiles..."
   uci_copy mobiled profile
   uci_copy mobiled operator
