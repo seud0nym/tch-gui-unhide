@@ -18,7 +18,7 @@ for cfg in dhcp network user_friendly_name; do
   restore_file /etc/config/$cfg
 done
 
-if [ "$DEVICE_VERSION" = "$BACKUP_VERSION" -o \( "$DEVICE_VERSION_NUMBER" -le 2004000 -a "$BACKUP_VERSION_NUMBER" -le 2004000 \) ]; then
+if [ "$DEVICE_VERSION" = "$BACKUP_VERSION" -o \( "$DEVICE_VERSION_NUMBER" -le 2004000 -a "$BACKUP_VERSION_NUMBER" -le 2004000 \) -o \( "$DEVICE_VERSION_NUMBER" -ge 2004000 -a "$BACKUP_VERSION_NUMBER" -ge 2004000 \) ]; then
   log I "Restoring wireless configuration..."
   uci -q revert wireless
   restore_file /etc/config/wireless
@@ -36,7 +36,6 @@ if [ $TEST_MODE = y ]; then
   uci -q commit ddns
 
   log W "TEST MODE: Disabling Wi-Fi..."
-
   if [ -n "$(uci -q get wireless.radio_2G.state)" ]; then
     uci set wireless.radio_2G.state='0'
     uci set wireless.radio_5G.state='0'
