@@ -162,17 +162,15 @@ sed \
   -e '/local function get_profile_select/i\    end' \
   -e '/local function get_profile_select/i\end' \
   -e '/local function get_profile_select/i\\' \
-  -e '/p.mapParams\["interface_enabled"\]/a\		if p.device.capabilities.manual_plmn_selection == "true" then' \
-  -e '/p.mapParams\["interface_enabled"\]/a\			p.plmn_map = {}' \
-  -e '/p.mapParams\["interface_enabled"\]/a\			for _,o in pairs(proxy.getPN("uci.mobiled.operator.",true)) do' \
-  -e '/p.mapParams\["interface_enabled"\]/a\				local op = proxy.get(o.path.."plmn",o.path.."name")' \
-  -e '/p.mapParams\["interface_enabled"\]/a\				local plmn,name = string.untaint(op[1].value),string.untaint(op[2].value)' \
-  -e '/p.mapParams\["interface_enabled"\]/a\				p.plmn_map[#p.plmn_map+1] = { plmn, T(string.format("%s - %s",plmn,name)), name }' \
-  -e '/p.mapParams\["interface_enabled"\]/a\			end' \
-  -e '/p.mapParams\["interface_enabled"\]/a\			table.sort(p.plmn_map,function(a,b) return string.lower(a[3]) < string.lower(b[3]) end)' \
-  -e '/p.mapParams\["interface_enabled"\]/a\			p.mapParams["plmn"] = device.uci_path .. "plmn"' \
-  -e '/p.mapParams\["interface_enabled"\]/a\			p.mapValid["plmn"] = gVIES(p.plmn_map)' \
+  -e '/p.mapParams\["interface_enabled"\]/a\		p.plmn_map = {}' \
+  -e '/p.mapParams\["interface_enabled"\]/a\		for _,o in pairs(proxy.getPN("uci.mobiled.operator.",true)) do' \
+  -e '/p.mapParams\["interface_enabled"\]/a\			local op = proxy.get(o.path.."plmn",o.path.."name")' \
+  -e '/p.mapParams\["interface_enabled"\]/a\			local plmn,name = string.untaint(op[1].value),string.untaint(op[2].value)' \
+  -e '/p.mapParams\["interface_enabled"\]/a\			p.plmn_map[#p.plmn_map+1] = { plmn, T(string.format("%s - %s",plmn,name)), name }' \
   -e '/p.mapParams\["interface_enabled"\]/a\		end' \
+  -e '/p.mapParams\["interface_enabled"\]/a\		table.sort(p.plmn_map,function(a,b) return string.lower(a[3]) < string.lower(b[3]) end)' \
+  -e '/p.mapParams\["interface_enabled"\]/a\		p.mapParams["plmn"] = device.uci_path .. "plmn"' \
+  -e '/p.mapParams\["interface_enabled"\]/a\		p.mapValid["plmn"] = gVIES(p.plmn_map)' \
   -e '/p.mapParams\["interface_enabled"\]/a\		p.roaming_map = { { "none",T"None" }, { "national",T"National" }, { "international",T"International" } }' \
   -e '/p.mapParams\["interface_enabled"\]/a\		p.mapParams["roaming"] = device.uci_path .. "roaming"' \
   -e '/p.mapParams\["interface_enabled"\]/a\		p.mapValid["roaming"] = gVIES(p.roaming_map)' \
@@ -196,9 +194,7 @@ sed \
   -e '/"Access Technology"/a\	 				end' \
   -e '/"Access Technology"/a\	 				tinsert(html, ui_helper.createCheckboxGroup(T"LTE Bands"..":", "lte_bands", lte_bands, lte_bands_checked, {checkbox = { class="inline" }}, nil))' \
   -e '/"Access Technology"/a\	 			end' \
-  -e '/"Access Technology"/a\	 			if page.device.capabilities.manual_plmn_selection == "true" then' \
-  -e '/"Access Technology"/a\	 				tinsert(html, ui_helper.createInputSelect(T"Network Operator"..":", "plmn", page.plmn_map, page.content["plmn"], advanced))' \
-  -e '/"Access Technology"/a\	 			end' \
+  -e '/"Access Technology"/a\				tinsert(html, ui_helper.createInputSelect(T"Network Operator"..":", "plmn", page.plmn_map, page.content["plmn"], advanced))' \
   -e '/"Access Technology"/a\	 			tinsert(html, ui_helper.createInputSelect(T"Roaming"..":", "roaming", page.roaming_map, page.content["roaming"], advanced))' \
   -e '/^[[:blank:]]*get_device_info_section/a get_device_capabilities_section(page, html)' \
   -e 's/^[[:blank:]]*tinsert.*telstra.hybrid/--&/' \
@@ -296,24 +292,46 @@ if [ "$MINIFY" = y ]; then
 fi
 
 if [ -e /etc/config/mobiled ]; then
+  echo -e "[$SCRIPT]: Removing any duplicate mobile operators"
+  for cfg in $(uci show mobiled | grep =operator | cut -d= -f1); do
+    plmn="$(uci -q get $cfg.mcc)$(uci -q get $cfg.mnc)"
+    tmp="$(eval echo \$__$plmn)"
+    if [ -z "$tmp" ]; then
+      eval __$plmn=$cfg
+      if ! echo $cfg | grep -q "@operator"; then
+        [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Removing name from $cfg"
+        uci rename ${cfg}=''
+      fi
+    else
+      [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Deleting duplicate PLMN $plmn"
+      uci delete $cfg
+    fi
+  done
   echo -e "[$SCRIPT]: Adding any missing operational mobile operators"
   while read mcc mnc name; do
-    path=$(uci -q show mobiled | grep -E "@operator\[[0-9]+\].mnc='$mnc'" | cut -d. -f1-2)
-    if [ -z "$path" -o "$(uci -q get ${path}.mcc)" != "$mcc" ]; then
+    path=""
+    for cfg in $(uci show mobiled | grep =operator | cut -d= -f1); do
+      if [ "$(uci -q get ${cfg}.mcc)" = "$mcc" -a "$(uci -q get ${cfg}.mnc)" = "$mnc" ]; then
+        path=$cfg
+        break
+      fi
+    done
+    if [ -z "$path" ]; then
       [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Adding $name (${mcc}${mnc})"
       cfg="$(uci add mobiled operator)"
       uci set mobiled.${cfg}.mcc="$mcc"
       uci set mobiled.${cfg}.mnc="$mnc"
       uci set mobiled.${cfg}.name="$name"
+      uci rename mobiled.${cfg}=''
     fi
   done <<-EOF
-  505 01 Telstra
-  505 02 Optus
-  505 03 Vodafone
-  505 14 AAPT
-  505 19 Lycamobile
-  505 38 Truphone
-  505 52 OptiTel
+505 01 Telstra
+505 02 Optus
+505 03 Vodafone
+505 14 AAPT
+505 19 Lycamobile
+505 38 Truphone
+505 52 OptiTel
 EOF
   uci commit mobiled
 fi
