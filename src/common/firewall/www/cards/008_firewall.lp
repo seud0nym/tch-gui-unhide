@@ -65,7 +65,7 @@ if session:hasAccess("/modals/firewall-modal.lp") then
         if content.lanIpv6Enabled ~= "0" and content.pinholeEnabled == "1" then
           fwd_count = fwd_count + tonumber(content.fwd_ipv6_rules)
         end
-        html[#html+1] = format(N("<strong %1$s>%2$d Port Forwarding rule</strong> defined","<strong %1$s>%2$d Port Forwarding rules</strong> defined",fwd_count),fwd_modal_link,fwd_count)
+        html[#html+1] = format(N("<strong %1$s>%2$d Port Forward rule</strong> defined","<strong %1$s>%2$d Port Forward rules</strong> defined",fwd_count),fwd_modal_link,fwd_count)
         html[#html+1] = "<br>"
 
         local nat_alg_card_hidden = proxy.get("uci.web.card.@card_natalghelper.hide")

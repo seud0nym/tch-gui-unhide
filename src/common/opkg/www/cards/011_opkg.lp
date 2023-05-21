@@ -25,12 +25,12 @@ else
   opkg_text["configured"] = T"Custom feeds not configured"
 end
 if opkg_data["last_update"] == "-1" then
-  opkg_text["last_update"] = T"Not since last reboot"
+  opkg_text["last_update"] = T"Not since reboot"
 else
   opkg_text["last_update"] = T(os.date("%d/%m/%Y %H:%M:%S",tonumber(opkg_data["last_update"])))
 end
-opkg_text["system_installed"] = format("<strong class='modal-link' data-toggle='modal' data-remote='/modals/opkg-system-installed-modal.lp' data-id='opkg-sys-modal'>%d packages</strong> installed by system",tonumber(opkg_data["system_installed"]))
-opkg_text["user_installed"] = format(N("%s%d package%s","%s%d packages%s",user_installed),"<strong class='modal-link' data-toggle='modal' data-remote='/modals/opkg-user-installed-modal.lp' data-id='opkg-usr-modal'>",user_installed,"</strong> installed by user")
+opkg_text["system_installed"] = format("<strong class='modal-link' data-toggle='modal' data-remote='/modals/opkg-system-installed-modal.lp' data-id='opkg-sys-modal'>%d packages</strong> system installed",tonumber(opkg_data["system_installed"]))
+opkg_text["user_installed"] = format(N("%s%d package%s","%s%d packages%s",user_installed),"<strong class='modal-link' data-toggle='modal' data-remote='/modals/opkg-user-installed-modal.lp' data-id='opkg-usr-modal'>",user_installed,"</strong> user installed")
 
 local session = ngx.ctx.session
 local modalPath

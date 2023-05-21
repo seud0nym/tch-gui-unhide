@@ -33,21 +33,8 @@ else
   end
 end
 
-local ifs = require("qosdevice_helper").getNetworkDevices()
-local devices = proxy.getPN("uci.qos.device.",true)
-for _,v in ipairs(devices) do
-  local device = untaint(match(v.path,"uci%.qos%.device%.@([^%.]+)%."))
-  if ifs[device] and ifs[device] ~= "" and ifs[device] ~= "ppp" and ifs[device] ~= "ipoe" then
-    local shaper = proxy.get(v.path.."swshaper")[1].value:untaint()
-    if shapers.names[shaper] == "1" then
-      shapers.active = shapers.active + 1
-      shapers.light = "1"
-    end
-  end
-end
-
 local data = {
-  html = format(N("<strong %1$s>%2$d Shaper</strong>","<strong %1$s>%2$d Shapers</strong>",shapers.enabled),shape_link,shapers.enabled).." enabled on "..format(N("<strong %1$s>%2$d interface</strong>","<strong %1$s>%2$d interfaces</strong>",shapers.active),shape_link,shapers.active),
+  html = format(N("<strong %1$s>%2$d Shaper</strong> enabled","<strong %1$s>%2$d Shapers</strong> enabled",shapers.enabled),shape_link,shapers.enabled),
 }
 
 local swshapers = proxy.getPN("Device.QoS.Shaper.",true)

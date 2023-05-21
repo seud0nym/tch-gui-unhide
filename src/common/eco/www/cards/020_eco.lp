@@ -42,9 +42,9 @@ else
 end
 
 if content.ethapd == "1" then
-  content.ethapd_text = T"Ethernet Auto Power Down enabled"
+  content.ethapd_text = T"Ethernet APD enabled"
 else
-  content.ethapd_text = T"Ethernet Auto Power Down disabled"
+  content.ethapd_text = T"Ethernet APD disabled"
 end
 
 if content.eee == "1" then
@@ -60,9 +60,9 @@ else
 end
 
 if content.dgm == "1" then
-  content.dgm_text = T"Ethernet Deep Green Mode enabled"
+  content.dgm_text = T"Ethernet DGM enabled"
 else
-  content.dgm_text = T"Ethernet Deep Green Mode disabled"
+  content.dgm_text = T"Ethernet DGM disabled"
 end
 
 local modalPath = nil

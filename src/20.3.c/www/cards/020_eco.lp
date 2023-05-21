@@ -17,15 +17,15 @@ local content = {
 content_helper.getExactContent(content)
 
 if content.apd == "1" then
-  content.apd_text = T"Ethernet Auto Power Down enabled"
+  content.apd_text = T"Ethernet APD enabled"
 else
-  content.apd_text = T"Ethernet Auto Power Down disabled"
+  content.apd_text = T"Ethernet APD disabled"
 end
 
 if content.dgm == "1" then
-  content.dgm_text = T"Ethernet Deep Green Mode enabled"
+  content.dgm_text = T"Ethernet DGM enabled"
 else
-  content.dgm_text = T"Ethernet Deep Green Mode disabled"
+  content.dgm_text = T"Ethernet DGM disabled"
 end
 
 if content.eee == "1" then

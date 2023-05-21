@@ -134,7 +134,7 @@ ngx.print('\
         '</p>'
         )
       end
-      ngx.print(ui_helper.createSimpleLight(content.backhaul_state,T(format("Backhaul %s (5G) %s",content.backhaul_ssid,state_map(content.backhaul_state)))),'\
+      ngx.print(ui_helper.createSimpleLight(content.backhaul_state,T(format("Backhaul %s %s",content.backhaul_ssid,state_map(content.backhaul_state)))),'\
     </div>\
   </div>\
 </div>\

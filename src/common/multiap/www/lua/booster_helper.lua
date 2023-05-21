@@ -138,14 +138,14 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled)
     controllerStatus = "EasyMesh Controller disabled"
   end
   if ap_path and content["ap_state"] and content["ap_iface"] == bh_iface and content["bh_ssid"] ~= "" then
-    local pattern="Backhaul %s ".."%s %s"
+    local pattern="Backhaul %s ".." %s"
     if content["ap_state"] == "0" then
-      backhaulStatus = T(format(pattern,content["bh_ssid"],"(5G)","disabled"))
+      backhaulStatus = T(format(pattern,content["bh_ssid"],"disabled"))
     elseif content["state5g"] == "0" then
       content["ap_state"] = "2"
-      backhaulStatus = T(format(pattern,content["bh_ssid"],"(5G)","radio off"))
+      backhaulStatus = T(format(pattern,content["bh_ssid"],"radio off"))
     else
-      backhaulStatus = T(format(pattern,content["bh_ssid"],"(5G)","enabled"))
+      backhaulStatus = T(format(pattern,content["bh_ssid"],"enabled"))
     end
   end
   if bandlock == "1" and content["bandlock"] then

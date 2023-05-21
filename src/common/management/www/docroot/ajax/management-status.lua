@@ -46,7 +46,7 @@ end
 
 local html = {}
 
-html[#html+1] = ui_helper.createSimpleLight(on_schedule,'<span class="modal-link" data-toggle="modal" data-remote="/modals/theme-modal.lp" data-id="theme-modal">Scheduled Theme Change</span> '..theme_status)
+html[#html+1] = ui_helper.createSimpleLight(on_schedule,'<span class="modal-link" data-toggle="modal" data-remote="/modals/theme-modal.lp" data-id="theme-modal">Auto Theme Change</span> '..theme_status)
 html[#html+1] = '<span class="simple-desc">'
 html[#html+1] = '<i class="icon-cog status-icon"></i>'
 html[#html+1] = format(N("<strong %s>%d process</strong> running","<strong %s>%d processes</strong> running",counts.proc),'class="modal-link" data-toggle="modal" data-remote="/modals/system-proc-modal.lp" data-id="system-proc-modal"',counts.proc)

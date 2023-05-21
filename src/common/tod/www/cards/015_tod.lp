@@ -34,7 +34,7 @@ if session:hasAccess("/modals/tod-modal.lp") then
           if session:hasAccess("/modals/tod_wireless-modal.lp") then ngx.print('\
             <span class="simple-desc">\
               <i class="icon-rss status-icon"></i>',
-              format("<strong class='modal-link' data-toggle='modal' data-remote='/modals/tod_wireless-modal.lp?tod' data-id='tod_wireless-modal'>%d Wireless Control</strong> %s defined",rulecount_wifi,N("rule","rules",rulecount_wifi)),'\
+              format("<strong class='modal-link' data-toggle='modal' data-remote='/modals/tod_wireless-modal.lp?tod' data-id='tod_wireless-modal'>%d Wireless Access</strong> %s defined",rulecount_wifi,N("rule","rules",rulecount_wifi)),'\
             </span>')
           end
           if session:hasAccess("/modals/tod_dnd-modal.lp") then

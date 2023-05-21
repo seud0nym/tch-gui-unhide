@@ -12,7 +12,7 @@ local session = ngx.ctx.session
 
 if session:hasAccess("/modals/ethernet-modal.lp") then
   local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
-  local dhcp_text = "DHCP:"
+  local dhcp_text = "DHCP: "
   local dhcp_state = "0"
 
   local lan = {
@@ -55,38 +55,38 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
       if lan["dhcpv4State"] ~= "disabled" then
         if lan["ignored"] == "1" then
           dhcp_state = "2"
-          dhcp_text = dhcp_text.." v4 <i class='icon-ban-circle orange'></i>"
+          dhcp_text = dhcp_text.."v4 <i class='icon-ban-circle orange'></i>"
         else
           dhcp_state = "1"
-          dhcp_text = dhcp_text.." v4 <i class='icon-ok-circle green'></i>"
+          dhcp_text = dhcp_text.."v4 <i class='icon-ok-circle green'></i>"
         end
       else
         dhcp_state = "0"
-        dhcp_text = dhcp_text.." v4 <i class='icon-remove-circle gray'></i>"
+        dhcp_text = dhcp_text.."v4 <i class='icon-remove-circle gray'></i>"
       end
       if lan["dhcpv6State"] ~= "disabled" then
         if lan["ignored"] == "1" then
           dhcp_state = dhcp_state ~= "1" and "2" or dhcp_state
-          dhcp_text = dhcp_text.." v6 <i class='icon-ban-circle orange'></i>"
+          dhcp_text = dhcp_text.."v6 <i class='icon-ban-circle orange'></i>"
         else
           dhcp_state = dhcp_state ~= "1" and "1" or dhcp_state
-          dhcp_text = dhcp_text.." v6 <i class='icon-ok-circle green'></i>"
+          dhcp_text = dhcp_text.."v6 <i class='icon-ok-circle green'></i>"
         end
       else
         dhcp_state = dhcp_state ~= "1" and "0" or dhcp_state
-        dhcp_text = dhcp_text.." v6 <i class='icon-remove-circle gray'></i>"
+        dhcp_text = dhcp_text.."v6 <i class='icon-remove-circle gray'></i>"
       end
       if lan["slaacState"] ~= "disabled" then
         if lan["ignored"] == "1" then
           dhcp_state = dhcp_state ~= "1" and "2" or dhcp_state
-          dhcp_text = dhcp_text.." SLAAC+RA <i class='icon-ban-circle orange'></i>"
+          dhcp_text = dhcp_text.."SLAAC+RA <i class='icon-ban-circle orange'></i>"
         else
           dhcp_state = dhcp_state ~= "1" and "1" or dhcp_state
-          dhcp_text = dhcp_text.." SLAAC+RA <i class='icon-ok-circle green'></i>"
+          dhcp_text = dhcp_text.."SLAAC+RA <i class='icon-ok-circle green'></i>"
         end
       else
         dhcp_state = dhcp_state ~= "1" and "0" or dhcp_state
-        dhcp_text = dhcp_text.." SLAAC+RA <i class='icon-remove-circle gray'></i>"
+        dhcp_text = dhcp_text.."SLAAC+RA <i class='icon-remove-circle gray'></i>"
       end
     else --IPv4 only
       if lan["dhcpv4State"] ~= "disabled" then

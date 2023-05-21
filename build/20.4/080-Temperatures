@@ -4,5 +4,5 @@ sed \
   -e 's|readfile(f,"number",floor).*|match(readfile(f),"cpu_temp: ([%d%.]*)")|' \
   -i /www/lua/gatewaycard_helper.lua
 sed \
-  -e 's/Sensor Temperatures/CPU Temperature/' \
+  -e 's/Temperatures/CPU Temperature/' \
   -i /www/cards/001_gateway.lp

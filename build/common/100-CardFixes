@@ -15,3 +15,5 @@ echo -e "[$SCRIPT]: Enable cards in Bridge Mode"
 # https://www.crc.id.au/hacking-the-technicolor-tg799vac-and-unlocking-features/#mozTocId685948
 sed -e '/if info.bridged then/,/end/d' -i /www/lua/cards_limiter.lua
 
+echo -e "[$SCRIPT]: Make Parental card text consistent"
+sed -e 's/is defined/defined/' -e 's/are defined/defined/' -i $(ls /www/cards/*_parental.lp)

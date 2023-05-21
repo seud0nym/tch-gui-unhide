@@ -80,30 +80,30 @@ function M.getDevicesCardHTML(all)
 
   html[#html+1] = '<span class="simple-desc">'
   html[#html+1] = '<i class="icon-link status-icon"></i>'
-  html[#html+1] = format(N('<strong %s>%d ethernet device</strong> connected','<strong %s>%d ethernet devices</strong> connected',activeEth),device_modal_link,activeEth)
+  html[#html+1] = format(N('<strong %s>%d Ethernet device</strong>','<strong %s>%d Ethernet devices</strong>',activeEth),device_modal_link,activeEth)
   html[#html+1] = '</span>'
   html[#html+1] = '<span class="simple-desc">'
   html[#html+1] = '<i class="icon-wifi status-icon"></i>'
-  html[#html+1] = format(N('<strong %s>%d Wi-Fi device</strong> active','<strong %s>%d Wi-Fi devices</strong> active',activeWiFi),device_modal_link,activeWiFi)
+  html[#html+1] = format(N('<strong %s>%d Local Wi-Fi device</strong>','<strong %s>%d Local Wi-Fi devices</strong>',activeWiFi),device_modal_link,activeWiFi)
   html[#html+1] = '</span>'
   if all then
     if multiap then
       html[#html+1] = '<span class="simple-desc">'
       html[#html+1] = '<i class="icon-sitemap status-icon"></i>'
-      html[#html+1] = format(N('<strong %s>%d Wi-Fi device</strong> booster connected','<strong %s>%d Wi-Fi devices</strong> booster connected',nAgtDevices),device_modal_link,nAgtDevices)
+      html[#html+1] = format(N('<strong %s>%d Booster Wi-Fi device</strong>','<strong %s>%d Booster Wi-Fi devices</strong>',nAgtDevices),device_modal_link,nAgtDevices)
       html[#html+1] = '</span>'
     end
     if nAPDevices > 0 then
       html[#html+1] = '<span class="simple-desc">'
       html[#html+1] = '<i class="icon-sitemap status-icon"></i>'
-      html[#html+1] = format(N('<strong %s>%d Wi-Fi device</strong> AP connected','<strong %s>%d Wi-Fi devices</strong> AP connected',nAPDevices),device_modal_link,nAPDevices)
+      html[#html+1] = format(N('<strong %s>%d AP Wi-Fi device</strong>','<strong %s>%d AP Wi-Fi devices</strong>',nAPDevices),device_modal_link,nAPDevices)
       html[#html+1] = '</span>'
     end
   end
   -- Do NOT remove this comment! Insert WireGuard peer count here
   html[#html+1] = '<span class="simple-desc">'
   html[#html+1] = '<i class="icon-eye-close" style="color:grey"></i>'
-  html[#html+1] = format(N('<strong %s>%d device</strong> inactive','<strong %s>%d devices</strong> inactive',inactive),all_devices_modal_link,inactive)
+  html[#html+1] = format(N('<strong %s>%d Inactive device</strong>','<strong %s>%d Inactive devices</strong>',inactive),all_devices_modal_link,inactive)
   html[#html+1] = '</span>'
   if bwstats_enabled then
     local bwstats_template = '<span class="modal-link" data-toggle="modal" data-remote="modals/device-bwstats-modal.lp" data-id="device-bwstats-modal">Bandwidth Monitor %s</span>'
