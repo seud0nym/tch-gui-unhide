@@ -721,7 +721,7 @@ sync
 echo -e "${GREEN}INFO:     Device has been reset to factory defaults and root access retained${NC}"
 
 if [ -n "$FIRMWARE" -a "$RBI" = "Y" ]; then
-  cp $(which mtd) /tmp/
+  cp $(which mtd) $(which grep) /tmp/
   echo -e "INFO:     Writing ${ORANGE}$FIRMWARE${NC} into ${ORANGE}${TARGET_MTD}${NC}..."
   echo -en "${GREY}"
   /tmp/mtd -e ${TARGET_MTD} write "$FIRMWARE" ${TARGET_MTD}
@@ -729,7 +729,7 @@ if [ -n "$FIRMWARE" -a "$RBI" = "Y" ]; then
   echo -e "INFO:     Verifying ${ORANGE}${TARGET_MTD}${NC} against ${ORANGE}$FIRMWARE${NC}..."
   VERIFY_RESULT=$(/tmp/mtd verify "$FIRMWARE" ${TARGET_MTD} 2>&1)
   echo -e "${GREY}$VERIFY_RESULT${NC}"
-  if ! echo "$VERIFY_RESULT" | grep -q 'Success'; then
+  if ! echo "$VERIFY_RESULT" | /tmp/grep -q 'Success'; then
     echo -e "${RED}ABORTING: mtd verify FAILED!!${NC}"
     exit 2
   fi
