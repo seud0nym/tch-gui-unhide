@@ -9,7 +9,7 @@ local tch_gui_unhide_theme = {
   section = "theme",
   type = "tch_gui_unhide",
   options = {
-    "name", "colour", "icons", "keep_landing_page"
+    "name", "colour", "icons", "keep_landing_page", "landing_page_state"
   }
 }
 

@@ -34,12 +34,9 @@ sed \
   -i /www/docroot/css/responsive.css
 
 echo -e "[$SCRIPT]: Add theme processing"
-for f in $(grep -l -r '</head>\\' /www 2>/dev/null | grep -v '\(airiq\|help\|landingpage\)')
-do
-  grep -q 'lp.include("../snippets/theme' $f
-  if [ $? -eq 1 ]; then
-    grep -q "/css/gw.css" $f
-    if [ $? -eq 0 ]; then
+for f in $(grep -l -r '</head>\\' /www 2>/dev/null | grep -v '\(airiq\|help\|landingpage\)');do
+  if ! grep -q 'lp.include("../snippets/theme' $f; then
+    if grep -q "/css/gw.css" $f; then
       LP="advanced"
     else
       LP="basic"
@@ -59,6 +56,9 @@ do
     fi
   fi
 done
+
+uci set tch_gui_unhide.theme.landing_page_state='none'
+uci commit tch_gui_unhide
 
 if [ $ACROSS -eq 5 ]; then
   echo -e "[$SCRIPT]: Allowing 5 cards across on wide screens"

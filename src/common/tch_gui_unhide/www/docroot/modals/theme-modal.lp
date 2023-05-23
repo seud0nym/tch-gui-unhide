@@ -124,6 +124,11 @@ local alert_info = {
     class = "alert alert-info"
   },
 }
+local alert_warn = {
+  alert = {
+    class = "alert alert-warn"
+  },
+}
 
 message_helper.pushMessage("Successful theme changes will be visible <b>after</b> you save and close this window.","info")
 
@@ -140,7 +145,16 @@ ngx.print(ui_helper.createHeader(T"Management",false,false),'\
           ui_helper.createInputSelect(T"Night Theme Start","night_time",modal_helper.times,night.time,scheduled_attr),
           ui_helper.createInputSelect(T"Base Theme","theme_name",modal_helper.theme_names,theme_settings["theme_name"],{ group = { class = "monitor-on_schedule monitor-0" }, },helpmsg["theme_name"]),
           ui_helper.createInputSelect(T"Highlight Colour","theme_colour",modal_helper.theme_colours,theme_settings["theme_colour"],nil,helpmsg["theme_colour"]),
-          ui_helper.createInputSelect(T"Card Icons","card_icons",modal_helper.card_icons_options,theme_settings["card_icons"],nil,helpmsg["card_icons"]),'\
+          ui_helper.createInputSelect(T"Card Icons","card_icons",modal_helper.card_icons_options,theme_settings["card_icons"],nil,helpmsg["card_icons"]))
+          local landing_page_state = proxy.get("uci.tch_gui_unhide.theme.landing_page_state")
+          if landing_page_state then
+            if landing_page_state[1].value == "debranded" and (theme_settings.theme_name == "telstra" or theme_settings.theme_name == "telstramodern") then
+              ngx.print(ui_helper.createAlertBlock(T"The landing (login) page will still be de-branded even though you have selected a non-Telstra theme. You must re-run tch-gui-unhide with the -ly option to restore Telstra branding.",alert_warn))
+            elseif landing_page_state[1].value == "telstra" and not (theme_settings.theme_name == "telstra" or theme_settings.theme_name == "telstramodern") then
+              ngx.print(ui_helper.createAlertBlock(T"The landing (login) page will still be Telstra-branded even though you have selected a non-Telstra theme. You must re-run tch-gui-unhide with the -ln option to remove Telstra branding.",alert_warn))
+            end
+          end
+          ngx.print('\
       </fieldset>\
       <fieldset>\
         <legend>',T"Card Visibility",'</legend>',
