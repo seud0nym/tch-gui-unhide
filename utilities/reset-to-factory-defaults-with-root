@@ -355,7 +355,7 @@ if [ $RESTORE_CONFIG = Y ]; then
       DEVICE_VERSION="$VERSION"
     else
       DEVICE_VERSION=$(echo $FIRMWARE | grep -o '[1-2][078]\.[0-9]\(.c\)*')
-      if [-z "$DEVICE_VERSION" ]; then
+      if [ -z "$DEVICE_VERSION" ]; then
         echo -e "${RED}ABORTING: Unable to determine firmware version from filename: $FIRMWARE${NC}"
         echo -e "${RED}          Cannot determine if configuration restore is possible!${NC}"
         exit
