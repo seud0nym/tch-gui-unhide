@@ -35,6 +35,10 @@ show_setting() {
           visible) _VAL="y"; _ABL="Visible";;
           hidden)  _VAL="n"; _ABL="Hidden";;
         esac;;
+    l)  case "$3" in
+          y|true|1)  _VAL="y";  _ABL="Yes";;
+          n|false|0) _VAL="n";  _ABL="No";;
+        esac;;
     m)  case "$3" in
           y) _ST="$(printf "$ORANGE")"; _ABL="${_ST}Enabled";;
           n) _ABL="Disabled";;
