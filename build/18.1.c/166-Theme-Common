@@ -2,45 +2,52 @@ echo -e "[$SCRIPT]: Fixing card background image"
 sed \
   -e '$ a .card_bg:after{font-size:110px;bottom:-5px;z-index:-20;}' \
   -i /www/docroot/css/gw.css
-if [ -f /www/docroot/landingpage.lp -a "$KEEPLP" = "0" ];then
-  [ $COMPVER -lt 20040000428 ] && LP_TXT_COLOUR=808080 || LP_TXT_COLOUR=545454
-  echo -e "[$SCRIPT]: Theming and de-branding landing page"
-  sed \
-    -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color:#f8f8f8;}" \
-    -e "$ a body.landingpage #login_part_mobile>div:nth-child(2){display:none;}" \
-    -e "$ a body.landingpage #icon_down{display:none !important;}" \
-    -e "$ a body.landingpage #detailed_info_mobile{display:block !important;}" \
-    -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(1){display:none;}" \
-    -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(2){display:none;}" \
-    -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(3)>table>tbody>tr>td{padding:0px 5px;width:50%;}" \
-    -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(4){display:none;}" \
-    -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(6){display:none;}" \
-    -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(7){display:none;}" \
-    -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(8){display:none;}" \
-    -e "$ a body.landingpage #footer_picture_mobile{display:none !important;}" \
-    -i /www/docroot/css/gw-telstra.css
-  sed \
-    -e 's/.hidden-desktop{display:none/.hidden-desktop{display:inherit/' \
-    -e 's/.visible-desktop{display:inherit/.visible-desktop{display:none/' \
-    -i /www/docroot/css/responsive.css
-  sed \
-    -e "s,<title>');  ngx.print( T\"Login\" ); ngx.print('</title>,<title>$TITLE Login</title>," \
-    -e 's,<img src="/img/TELSTRA_LOGO.png"[^>]*>,<img class="lp-logo" style="width:240px;margin-bottom:60px;">,' \
-    -e 's/Firmware Number/Firmware Version/' \
-    -e 's/Modem Make Model/Model/' \
-    -e 's/height:60%;min-height:400px;/height:30%;min-height:350px;width:100%;/' \
-    -e 's/"-webkit-border-radius: 20px;-moz-border-radius: 20px;border-radius: 20px;width:50%;"/"display:block;margin-bottom:2px;width:220px;"/' \
-    -e 's/"erroruserpass alert alert-error hide"/"erroruserpass alert alert-error hide" style="width:212px;margin:auto;padding:10px;"/' \
-    -e 's/buttonborder linear-mobile" style="width:50%/linear-mobile" style="width:65px/' \
-    -e "/<\/head>\\\/i '); local lp = require(\"web.lp\"); lp.include(\"../snippets/theme-basic.lp\"); ngx.print('\\\\" \
-    -e '/uci.versioncusto.override.fwversion_override/a \  unhide_version = "rpc.gui.UnhideVersion",' \
-    -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         </tr>\\\\" \
-    -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <tr>\\\\" \
-    -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <td style=\"text-align:right;font-weight: 900;color:#${LP_TXT_COLOUR};\">tch-gui-unhide</td>\\\\" \
-    -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <td style=\"text-align:left;color:#${LP_TXT_COLOUR};\">');  ngx.print( cui[\"unhide_version\"] ); ngx.print('</td>\\\\" \
-    -i /www/docroot/landingpage.lp
-  # Have to restart if changing landing page
-  SRV_nginx=$(( $SRV_nginx + 1 ))
+
+if [ -f /www/docroot/landingpage.lp ];then
+  echo -e "[$SCRIPT]: Removing hard-coded password on landing page"
+  sed -e 's/id="srp_password" value="Telstra">/id="srp_password">/' -i /www/docroot/landingpage.lp
+  if [ "$KEEPLP" = "0" ];then
+    [ $COMPVER -lt 20040000428 ] && LP_TXT_COLOUR=808080 || LP_TXT_COLOUR=545454
+    echo -e "[$SCRIPT]: Theming and de-branding landing page"
+    sed \
+      -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color:#f8f8f8;}" \
+      -e "$ a body.landingpage #login_part_mobile>div:nth-child(2){display:none;}" \
+      -e "$ a body.landingpage #icon_down{display:none !important;}" \
+      -e "$ a body.landingpage #detailed_info_mobile{display:block !important;}" \
+      -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(1){display:none;}" \
+      -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(2){display:none;}" \
+      -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(3)>table>tbody>tr>td{padding:0px 5px;width:50%;}" \
+      -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(4){display:none;}" \
+      -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(6){display:none;}" \
+      -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(7){display:none;}" \
+      -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(8){display:none;}" \
+      -e "$ a body.landingpage #footer_picture_mobile{display:none !important;}" \
+      -i /www/docroot/css/gw-telstra.css
+    sed \
+      -e 's/.hidden-desktop{display:none/.hidden-desktop{display:inherit/' \
+      -e 's/.visible-desktop{display:inherit/.visible-desktop{display:none/' \
+      -i /www/docroot/css/responsive.css
+    sed \
+      -e "s,<title>');  ngx.print( T\"Login\" ); ngx.print('</title>,<title>$TITLE Login</title>," \
+      -e 's,<img src="/img/TELSTRA_LOGO.png"[^>]*>,<img class="lp-logo" style="width:240px;margin-bottom:60px;">,' \
+      -e 's/Firmware Number/Firmware Version/' \
+      -e 's/Modem Make Model/Model/' \
+      -e 's/height:60%;min-height:400px;/height:30%;min-height:350px;width:100%;/' \
+      -e 's/"-webkit-border-radius: 20px;-moz-border-radius: 20px;border-radius: 20px;width:50%;"/"display:block;margin-bottom:2px;width:220px;"/' \
+      -e 's/"erroruserpass alert alert-error hide"/"erroruserpass alert alert-error hide" style="width:212px;margin:auto;padding:10px;"/' \
+      -e 's/buttonborder linear-mobile" style="width:50%/linear-mobile" style="width:65px/' \
+      -e "/<\/head>\\\/i '); local lp = require(\"web.lp\"); lp.include(\"../snippets/theme-basic.lp\"); ngx.print('\\\\" \
+      -e '/uci.versioncusto.override.fwversion_override/a \  unhide_version = "rpc.gui.UnhideVersion",' \
+      -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         </tr>\\\\" \
+      -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <tr>\\\\" \
+      -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <td style=\"text-align:right;font-weight: 900;color:#${LP_TXT_COLOUR};\">tch-gui-unhide</td>\\\\" \
+      -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <td style=\"text-align:left;color:#${LP_TXT_COLOUR};\">');  ngx.print( cui[\"unhide_version\"] ); ngx.print('</td>\\\\" \
+      -i /www/docroot/landingpage.lp
+    # Have to restart if changing landing page
+    SRV_nginx=$(( $SRV_nginx + 1 ))
+  else
+    echo -e "[$SCRIPT]: Keeping Telstra branding on landing page"
+  fi
 fi
 
 if [ "$MINIFY" = y ]; then
