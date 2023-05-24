@@ -1,4 +1,4 @@
-echo -e "[$SCRIPT]: Adding QoS System Shapers"
+echo -e "[$SCRIPT]: Adding QoS System Queues"
 sed \
   -e '/ui_helper.createHeader/i\
 local queue_columns = {\
@@ -90,13 +90,13 @@ end\
 ' \
   -e '/ngx.print(html)/i\
     html[#html+1] = "<fieldset>"\
-    html[#html+1] =	  "<legend>"..T"System Qos Queues".."</legend>"\
+    html[#html+1] =	  "<legend>"..T"System QoS Queues".."</legend>"\
     html[#html+1] =   ui_helper.createTable(queue_columns,queue_data,queue_options,nil,queue_helpMsg)\
     html[#html+1] = "</fieldset>"\
 ' \
   -i /www/docroot/modals/qos-queue-modal.lp
 
-echo -e "[$SCRIPT]: Adding Device IP Interface Classification Rules"
+echo -e "[$SCRIPT]: Adding QoS System Shapers"
 sed \
   -e '/^local info_box/i\
 local device_shaper_columns = {\
@@ -106,6 +106,7 @@ local device_shaper_columns = {\
     param = "Alias",\
     type = "text",\
     attr = { input = { class = "span2"} },\
+    readonly = true,\
   },\
   {\
     header = T"Shaping Rate",\
@@ -127,6 +128,7 @@ local device_shaper_columns = {\
     param = "Interface",\
     type = "text",\
     attr = { input = { class = "span2"} },\
+    readonly = true,\
   },\
   {\
     header = T"Status",\
@@ -140,7 +142,7 @@ local device_shaper_columns = {\
 local device_shaper_options = {\
   tableid = "device_shaper",\
   basepath = "Device.QoS.Shaper.",\
-  canEdit = false,\
+  canEdit = true,\
   canAdd = false,\
   canDelete = false,\
 }\
