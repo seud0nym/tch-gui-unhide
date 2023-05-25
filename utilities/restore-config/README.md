@@ -45,7 +45,7 @@ Options:
 **NOTE:** You do *not* need to have downloaded [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) and/or [`tch-gui-unhide`](https://github.com/seud0nym/tch-gui-unhide#readme); the restore will either locate these scripts or download them as needed.
 
 ## Known Issues
-- You can only restore to a device running the 20.4 firmware (e.g. Telstra Smart Modem Gen 3) from a backup made on 20.4 firmware (i.e. you cannot restore a 20.3.c backup to a 20.4 device or vice-versa)
+- You can only restore to a device running the 20.4 or 21.4 firmware (e.g. Telstra Smart Modem Gen 3) from a backup made on 20.4 or 21.4 firmware (i.e. you *cannot* restore a 20.3.c backup to a 20.4 device or vice-versa)
 - /etc/dropbear/authorized_keys is sometimes emptied rather than replaced/updated.
 - Telephony call logs are not restored.
 - Probably other things I haven't noticed.
