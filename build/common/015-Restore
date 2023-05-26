@@ -25,36 +25,36 @@ if [ $RESTORE = y ]; then
       rmdir "$d"
     fi
   done
-  for s in $(uci show web | grep normally_hidden | cut -d. -f2); do
+  for s in $(exec_uci show web | grep normally_hidden | cut -d. -f2); do
     echo -e "[$SCRIPT]: Removing config entry web.$s"
-    uci -q delete web.$s
-    uci -q del_list web.ruleset_main.rules="$s"
+    exec_uci -q delete web.$s
+    exec_uci -q del_list web.ruleset_main.rules="$s"
     SRV_nginx=$(( $SRV_nginx + 2 ))
   done
-  for s in $(uci show web | grep '=card' | cut -d= -f1); do
+  for s in $(exec_uci show web | grep '=card' | cut -d= -f1); do
     echo -e "[$SCRIPT]: Removing config entry $s"
-    uci -q delete $s
+    exec_uci -q delete $s
     SRV_nginx=$(( $SRV_nginx + 1 ))
   done
-  RULES=$(uci get web.ruleset_main.rules)
+  RULES=$(exec_uci get web.ruleset_main.rules)
   for s in $(echo $RULES | tr " " "\n" | grep -v dumaos | sort -u); do
-    TARGET=$(uci -q get web.$s.target)
+    TARGET=$(exec_uci -q get web.$s.target)
     if [ -n "$TARGET" -a ":$TARGET" != ":/" -a ! -f /www/docroot$TARGET -a ! -f /www$TARGET -a ! -f /www/docroot/ajax$TARGET ]; then
       echo -e "[$SCRIPT]: Removing config entry web.$s"
-      uci -q delete web.$s
-      uci -q del_list web.ruleset_main.rules="$s"
+      exec_uci -q delete web.$s
+      exec_uci -q del_list web.ruleset_main.rules="$s"
       SRV_nginx=$(( $SRV_nginx + 2 ))
     else
-      ROLE=$(uci -q get web.$s.roles)
+      ROLE=$(exec_uci -q get web.$s.roles)
       if [ -n "$ROLE" -a "$ROLE" = "nobody" ]; then
         echo -e "[$SCRIPT]: Resetting admin role on config entry web.$s.roles"
-        uci -q delete web.$s.roles
-        uci add_list web.$s.roles="admin"
+        exec_uci -q delete web.$s.roles
+        exec_uci add_list web.$s.roles="admin"
         SRV_nginx=$(( $SRV_nginx + 2 ))
       fi
     fi
   done
-  uci commit web
+  exec_uci commit web
   echo -e "[$SCRIPT]: Restoring /etc/nginx/nginx.conf"
   sed -e '/lua_shared_dict *TGU_/d' -i /etc/nginx/nginx.conf
   SRV_nginx=$(( $SRV_nginx + 1 ))

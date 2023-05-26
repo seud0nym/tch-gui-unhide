@@ -57,8 +57,7 @@ for f in $(grep -l -r '</head>\\' /www 2>/dev/null | grep -v '\(airiq\|help\|lan
   fi
 done
 
-uci set tch_gui_unhide.theme.landing_page_state='none'
-uci commit tch_gui_unhide
+LPSATE="$(uci -q get tch_gui_unhide.theme.landing_page_state >/dev/null)" || LPSTATE='none'
 
 if [ $ACROSS -eq 5 ]; then
   echo -e "[$SCRIPT]: Allowing 5 cards across on wide screens"

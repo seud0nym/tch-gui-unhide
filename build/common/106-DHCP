@@ -41,14 +41,14 @@ sed \
 tags=$(awk -e 'BEGIN{n="n";y="y";t="";o=n;}/^config tag/{t=$3;o=n;}/dhcp_option/{if(t!=""&&$1=="option"){o=y;}}/^\s*$/{if(o==y){printf t;}t="";o=n;}' /etc/config/dhcp | tr "'" " ")
 if [ -n "$tags" ]; then
   for tag in $tags; do
-    dhcp_opt=$(uci -q get dhcp.${tag}.dhcp_option)
+    dhcp_opt=$(exec_uci -q get dhcp.${tag}.dhcp_option)
     if [ -n "$dhcp_opt" ]; then
       echo -e "[$SCRIPT]: -> Converting DHCP tag '$tag' dhcp_option config added as option to a list"
-      uci -q delete dhcp.${tag}.dhcp_option
+      exec_uci -q delete dhcp.${tag}.dhcp_option
       for value in $dhcp_opt; do
-        uci add_list dhcp.${tag}.dhcp_option="$value"
+        exec_uci add_list dhcp.${tag}.dhcp_option="$value"
       done
-      uci commit dhcp
+      exec_uci commit dhcp
     fi
   done
 fi
@@ -63,21 +63,21 @@ sed \
   -e 's/\({ "ip", "mac", "name", "tag", "dns"\)\(, "owner" }\)/\1, "hostid", "duid"\2/' \
   -i /usr/share/transformer/mappings/uci/dhcp.map
 
-DHCP_MAIN_LOCAL="$(uci -q get dhcp.main.local)"
+DHCP_MAIN_LOCAL="$(exec_uci -q get dhcp.main.local)"
 if [ -n "$DHCP_MAIN_LOCAL" -a $(grep -E "$(echo $DHCP_MAIN_LOCAL | sed -e 's|/\([^/]*\)/|\\.\1\\b|')" /etc/hosts | wc -l) -eq 0 ]; then
   echo -e "[$SCRIPT]: Removing incorrect dhcp.main.local configuration added by de-telstra"
-  uci -q delete dhcp.main.local
-  uci commit dhcp
+  exec_uci -q delete dhcp.main.local
+  exec_uci commit dhcp
   SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
 fi
 unset DHCP_MAIN_LOCAL
 
-if [ "$(uci -q get network.config.wan_mode)" = "bridge" -a "$(uci -q get network.lan6)" = "interface" ]; then
-  if ! uci -q get dhcp.main.interface | grep -q '\blan6\b'; then
+if [ "$(exec_uci -q get network.config.wan_mode)" = "bridge" -a "$(exec_uci -q get network.lan6)" = "interface" ]; then
+  if ! exec_uci -q get dhcp.main.interface | grep -q '\blan6\b'; then
     echo -e "[$SCRIPT]: Fixing bridged-booster lan6 dnsmasq configuration"
-    uci -q del_list dhcp.main.interface='lan6'
-    uci -q add_list dhcp.main.interface='lan6'
-    uci commit dhcp
+    exec_uci -q del_list dhcp.main.interface='lan6'
+    exec_uci -q add_list dhcp.main.interface='lan6'
+    exec_uci commit dhcp
     SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
   fi
 fi

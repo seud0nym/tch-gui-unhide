@@ -2,57 +2,57 @@ if [ $FIX_SSH = y ]; then
   echo -e "[$SCRIPT]: Properly enabling SSH access over LAN"
   # We need to enable this properly as you can enable/disable via the GUI, and if done
   # without allowing password auth and root login, it can accidently prevent SSH access
-  uci set dropbear.lan.enable='1'
-  uci set dropbear.lan.PasswordAuth='on'
-  uci set dropbear.lan.RootPasswordAuth='on'
-  uci set dropbear.lan.RootLogin='1'
-  uci commit dropbear
+  exec_uci set dropbear.lan.enable='1'
+  exec_uci set dropbear.lan.PasswordAuth='on'
+  exec_uci set dropbear.lan.RootPasswordAuth='on'
+  exec_uci set dropbear.lan.RootLogin='1'
+  exec_uci commit dropbear
   SRV_dropbear=$(( $SRV_dropbear + 4 ))
 fi
 
 if [ $FIX_CFG_PORT = y ]; then
   echo -e "[$SCRIPT]: Enabling unsigned configuration export/import in the web GUI"
-  uci set system.config.export_plaintext='1'
-  uci set system.config.export_unsigned='1'
-  uci set system.config.import_plaintext='1'
-  uci set system.config.import_unsigned='1'
-  uci commit system
+  exec_uci set system.config.export_plaintext='1'
+  exec_uci set system.config.export_unsigned='1'
+  exec_uci set system.config.import_plaintext='1'
+  exec_uci set system.config.import_unsigned='1'
+  exec_uci commit system
   SRV_system=$(( $SRV_system + 4 ))
 fi
 
 if [ $FIX_FW_UPGRD = y ]; then
   if [ $FW_UPGRD = 1 ]; then
     echo -e "[$SCRIPT]: Enabling firmware upgrade in the web GUI"
-    uci set web.uidefault.upgradefw='1'
-    uci set web.uidefault.upgradefw_role='admin'
+    exec_uci set web.uidefault.upgradefw='1'
+    exec_uci set web.uidefault.upgradefw_role='admin'
     SRV_nginx=$(( $SRV_nginx + 2 ))
   else
     echo -e "[$SCRIPT]: DISABLING firmware upgrade in the web GUI"
-    uci set web.uidefault.upgradefw='0'
+    exec_uci set web.uidefault.upgradefw='0'
     SRV_nginx=$(( $SRV_nginx + 1 ))
   fi
-  uci commit web
+  exec_uci commit web
 fi
 
 if [ $FIX_DFLT_USR = y ]; then
   if [ "$DFLT_USR" = "admin" ]; then
     echo -e "[$SCRIPT]: Enabling the default user in the web GUI"
-    uci set web.default.default_user='usr_admin'
-    uci set web.uidefault.defaultuser='admin'
+    exec_uci set web.default.default_user='usr_admin'
+    exec_uci set web.uidefault.defaultuser='admin'
   else
     echo -e "[$SCRIPT]: Disabling the default user in the web GUI"
-    uci -q delete web.default.default_user
-    uci -q delete web.uidefault.defaultuser
+    exec_uci -q delete web.default.default_user
+    exec_uci -q delete web.uidefault.defaultuser
   fi
-  uci commit web
+  exec_uci commit web
   SRV_nginx=$(( $SRV_nginx + 2 ))
 fi
 
 if [ $FIX_PARENT_BLK = y ]; then
   echo -e "[$SCRIPT]: Ensuring admin role can administer the parental block"
-  uci -q del_list web.parentalblock.roles='admin'
-  uci add_list web.parentalblock.roles='admin'
-  uci commit web
+  exec_uci -q del_list web.parentalblock.roles='admin'
+  exec_uci add_list web.parentalblock.roles='admin'
+  exec_uci commit web
   SRV_nginx=$(( $SRV_nginx + 2 ))
 fi
 

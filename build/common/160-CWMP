@@ -25,7 +25,7 @@ else
   echo -e "[$SCRIPT]: CWMP not found - Removing from GUI"
   [ -e /www/cards/090_cwmpconf.lp ] && rm /www/cards/090_cwmpconf.lp
   [ -e /www/docroot/modals/cwmpconf-modal.lp ] && rm /www/docroot/modals/cwmpconf-modal.lp
-  uci -q delete web.cwmpconfmodal
-  uci -q del_list web.ruleset_main.rules=cwmpconfmodal
-  uci -q delete web.card_cwmpconf
+  exec_uci -q delete web.cwmpconfmodal
+  exec_uci -q del_list web.ruleset_main.rules=cwmpconfmodal
+  exec_uci -q delete web.card_cwmpconf
 fi

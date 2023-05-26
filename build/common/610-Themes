@@ -3,11 +3,12 @@ chmod +x /www /www/docroot /www/docroot/css /www/docroot/css/telstra /www/docroo
 
 echo -e "[$SCRIPT]: Persisting theme settings"
 make_tch_gui_unhide_config
-uci set tch_gui_unhide.theme.name="$THEME"
-uci set tch_gui_unhide.theme.colour="$COLOR"
-uci set tch_gui_unhide.theme.icons="$ICONS"
-uci set tch_gui_unhide.theme.keep_landing_page="$KEEPLP"
-uci commit tch_gui_unhide
+exec_uci set tch_gui_unhide.theme.name="$THEME"
+exec_uci set tch_gui_unhide.theme.colour="$COLOR"
+exec_uci set tch_gui_unhide.theme.icons="$ICONS"
+exec_uci set tch_gui_unhide.theme.keep_landing_page="$KEEPLP"
+exec_uci set tch_gui_unhide.theme.landing_page_state="$LPSTATE"
+exec_uci commit tch_gui_unhide
 
 useTelstraPNGLogo() {
   if [ ! -e /www/docroot/img/logo.gif -a -e /www/docroot/img/logo.png ]; then

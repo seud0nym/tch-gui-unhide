@@ -3,13 +3,13 @@ sed -e 's/\("proto",\)$/\1 "description",/' -i /usr/share/transformer/mappings/u
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
 echo -e "[$SCRIPT]: Check firewall helpers module availability"
-for m in $(uci show firewall_helpers | grep '\.module=')
+for m in $(exec_uci show firewall_helpers | grep '\.module=')
 do
   module=$(echo $m | cut -d"'" -f2)
   lsmod | grep -q "^$module "
   if [ $? -eq 0 ]; then
     path="$(echo $m | cut -d. -f1-2)"
-    name="$(uci -q get ${path}.name)"
+    name="$(exec_uci -q get ${path}.name)"
     if [ -n "$name" ]; then
       sed -e "/local available/a\  available['$name'] = true" -i /www/cards/092_natalghelper.lp
       sed -e "/local available/a\available['$name'] = true" -i /www/docroot/modals/nat-alg-helper-modal.lp
@@ -18,24 +18,24 @@ do
 done
 
 echo -e "[$SCRIPT]: Fix any incorrectly configured helpers"
-LAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "name='lan'" | cut -d. -f1-2)
-WAN_ZONE=$(uci show firewall | grep @zone | grep -m 1 "wan='1'" | cut -d. -f1-2)
+LAN_ZONE=$(exec_uci show firewall | grep @zone | grep -m 1 "name='lan'" | cut -d. -f1-2)
+WAN_ZONE=$(exec_uci show firewall | grep @zone | grep -m 1 "wan='1'" | cut -d. -f1-2)
 LAN_HELP=$(uci -qd"$IFS" get $LAN_ZONE.helper | sort | xargs)
 WAN_HELP=$(uci -qd"$IFS" get $WAN_ZONE.helper | sort | xargs)
 if [ "$LAN_HELP" != "$WAN_HELP" ]; then
   if [ -z "$WAN_HELP" ]; then
     if [ -n "$LAN_HELP" ]; then
-      uci -q delete $WAN_ZONE.helper
-      uci -q delete $LAN_ZONE.helper
+      exec_uci -q delete $WAN_ZONE.helper
+      exec_uci -q delete $LAN_ZONE.helper
     fi
   else
-    uci -q delete $LAN_ZONE.helper
+    exec_uci -q delete $LAN_ZONE.helper
     for h in $WAN_HELP
     do
-      uci add_list $LAN_ZONE.helper="$h"
+      exec_uci add_list $LAN_ZONE.helper="$h"
     done
   fi
-  uci commit firewall
+  exec_uci commit firewall
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 

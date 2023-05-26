@@ -2,18 +2,18 @@ check_pwr_setting() {
   local section="$1"
   local option="$2"
   local text="$3"
-  if [ -z "$(uci -q get power.$section.$option)" ]; then
+  if [ -z "$(exec_uci -q get power.$section.$option)" ]; then
     pwrctl show | grep "$text" | grep -q Disabled
     value=$?
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - power.$section.$option=$value"
-    uci set power.$section.$option="$value"
+    exec_uci set power.$section.$option="$value"
     SRV_power=$(( $SRV_power + 1 ))
   fi
 }
 
 echo -e "[$SCRIPT]: Checking power saving settings..."
-if [ -n "$(uci -q get power.cpu)" ];then
-  uci -q delete power.cpu
+if [ -n "$(exec_uci -q get power.cpu)" ];then
+  exec_uci -q delete power.cpu
   SRV_power=$(( $SRV_power + 1 ))
 fi
 
@@ -23,4 +23,4 @@ check_pwr_setting "ethernet" "eee" "PHY EEE"
 check_pwr_setting "ethernet" "net" "NET Down"
 check_pwr_setting "ethernet" "phy" "PHY Down"
 
-[ $SRV_power -gt 0 ] && uci commit power
+[ $SRV_power -gt 0 ] && exec_uci commit power

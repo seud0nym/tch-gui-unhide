@@ -9,7 +9,8 @@ if [ -f /www/docroot/landingpage.lp ];then
   if [ "$KEEPLP" = "0" ];then
     [ $COMPVER -lt 20040000428 ] && LP_TXT_COLOUR=808080 || LP_TXT_COLOUR=545454
     echo -e "[$SCRIPT]: Theming and de-branding landing page"
-    uci set tch_gui_unhide.theme.landing_page_state='debranded'
+    LPSTATE='none'
+    exec_uci set tch_gui_unhide.theme.landing_page_state='debranded'
     sed \
       -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color:#f8f8f8;}" \
       -e "$ a body.landingpage #login_part_mobile>div:nth-child(2){display:none;}" \
@@ -48,9 +49,8 @@ if [ -f /www/docroot/landingpage.lp ];then
     SRV_nginx=$(( $SRV_nginx + 1 ))
   else
     echo -e "[$SCRIPT]: Keeping Telstra branding on landing page"
-    uci set tch_gui_unhide.theme.landing_page_state='telstra'
+    LPSTATE='telstra'
   fi
-  uci commit tch_gui_unhide
 fi
 
 if [ "$MINIFY" = y ]; then

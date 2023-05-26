@@ -11,12 +11,12 @@ if [ $SIP_PWDS = y ]; then
   -i /www/docroot/modals/mmpbx-profile-modal.lp
 fi
 
-if [ "$(uci -q show mmpbxbrcmfxsdev | grep '=device' | wc -l)" -eq 1 ]; then
+if [ "$(exec_uci -q show mmpbxbrcmfxsdev | grep '=device' | wc -l)" -eq 1 ]; then
   echo -e "[$SCRIPT]: Remove extra FXS device from Telephony Codecs tab"
   sed -e '/fxs2/d' -e '/FXS2/d' -i /www/docroot/modals/mmpbx-codec-modal.lp
 fi
 
-if [ "$(uci -q get mmpbx.dectemission)" != "dectemission" ]; then
+if [ "$(exec_uci -q get mmpbx.dectemission)" != "dectemission" ]; then
   echo -e "[$SCRIPT]: Remove DECT Tab and card info"
   sed -e '/mmpbx-dect-modal.lp/d' -i /www/snippets/tabs-voice.lp
   sed -e '/--region DECT/,/--endregion/d' -i /www/lua/telephonycard_helper.lua
@@ -38,14 +38,14 @@ sed \
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
 echo -e "[$SCRIPT]: Provision the Do Not Disturb service"
-for p in $(uci show mmpbx | grep "service.*\.type='DND'" | cut -d. -f 1-2); do 
-  if [ "$(uci -q get $p.provisioned)" != "1" ]; then
+for p in $(exec_uci show mmpbx | grep "service.*\.type='DND'" | cut -d. -f 1-2); do 
+  if [ "$(exec_uci -q get $p.provisioned)" != "1" ]; then
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Provisioning $p"
-    uci set $p.provisioned='1'
+    exec_uci set $p.provisioned='1'
     SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
   fi
 done
-[ $SRV_mmpbxd -gt 0 ] && uci commit mmpbx
+[ $SRV_mmpbxd -gt 0 ] && exec_uci commit mmpbx
 
 echo -e "[$SCRIPT]: Restore SIP incoming/outgoing RPC transformer mappings"
 cp -p /rom/usr/share/transformer/mappings/rpc/mmpbx.incomingmap.map /usr/share/transformer/mappings/rpc/mmpbx.sip_incomingmap.map

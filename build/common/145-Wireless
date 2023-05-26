@@ -53,7 +53,7 @@ if [ "$MINIFY" = y ]; then
     -i /www/docroot/modals/wireless-client-modal.lp
 fi
 
-if [ $(uci show network | grep -E '\.Guest.*=interface' | wc -l) -eq 0 ]; then
+if [ $(exec_uci show network | grep -E '\.Guest.*=interface' | wc -l) -eq 0 ]; then
   echo -e "[$SCRIPT]: Fixed Basic view Wi-Fi tabs when Guest Wi-Fi removed"
   sed -e '/^--check whether the.*guest1 exists/,/^$/d' -i /www/snippets/tabs-wifi.lp
 fi

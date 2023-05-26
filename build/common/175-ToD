@@ -8,13 +8,13 @@ echo -e "[$SCRIPT]: Restart Time of Day processing after updates applied"
 sed -e 's|reload$|reload; /etc/init.d/tod restart;|' -i /usr/share/transformer/commitapply/uci_tod.ca
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
-if [ -z "$(uci get -q tod.voicednd)" ]; then
+if [ -z "$(exec_uci get -q tod.voicednd)" ]; then
   echo -e "[$SCRIPT]: Add missing Time of Day Do Not Disturb configuration"
-  uci set tod.voicednd=tod
-  uci set tod.voicednd.ringing='off'
-  uci set tod.voicednd.timerandactionmodified='0'
-  uci set tod.voicednd.enabled='0'
-  uci commit tod
+  exec_uci set tod.voicednd=tod
+  exec_uci set tod.voicednd.ringing='off'
+  exec_uci set tod.voicednd.timerandactionmodified='0'
+  exec_uci set tod.voicednd.enabled='0'
+  exec_uci commit tod
 fi
 
 echo -e "[$SCRIPT]: Update Time of Day commit/apply to enable Do Not Disturb processing"
@@ -104,7 +104,7 @@ end
 local function execute_action(action, runtime, action_trigger, object)
 
     local logger = runtime.logger
-    local uci = runtime.uci
+    local exec_uci = runtime.uci
     local ubus = runtime.ubus
     local cursor = uci.cursor()
 
@@ -161,7 +161,7 @@ end
 
 function M.start(runtime, action_trigger, object)
     local logger = runtime.logger
-    local uci = runtime.uci
+    local exec_uci = runtime.uci
     local cursor = uci.cursor()
     local activated = cursor:get("tod","voicednd","enabled")
     if activated == "1" then
@@ -174,7 +174,7 @@ end
 -- stop action
 
 function M.stop(runtime, action_trigger, object)
-    local uci = runtime.uci
+    local exec_uci = runtime.uci
     local cursor = uci.cursor()
     local activated = cursor:get("tod","voicednd","enabled")
     if activated == "1" then

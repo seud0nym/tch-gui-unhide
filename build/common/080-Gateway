@@ -1,4 +1,4 @@
-SERIAL=$(uci get env.var.serial)
+SERIAL=$(exec_uci get env.var.serial)
 echo -e "[$SCRIPT]: Change config export filename from config.bin to $VARIANT-$SERIAL-$VERSION@YYMMDD.bin"
 sed \
   -e "s/=config.bin/=$VARIANT-$SERIAL-$VERSION@\" .. os.date(\"%Y%m%d\") .. \".bin/" \

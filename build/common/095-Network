@@ -14,33 +14,33 @@ sed \
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
 echo -e "[$SCRIPT]: Populate interface configuration in bridgedmode_helper"
-for ifname in $(grep -rhE "uci *set *network\.(ppp|ipoe|wan|eth4|atm_8_35|ptm0).*=interface" /rom/etc/uci-defaults/ | cut -d. -f2 | cut -d= -f1); do
-  ifcfg=$(grep -rhE "uci *set *network\.$ifname\." /rom/etc/uci-defaults/ | cut -d' ' -f3- | awk -v ifname="$ifname" 'BEGIN{ifcfg=ifname "={";} {split($0,l,"=")split(l[1],o,".");gsub("'"'"'","",l[2]);ifcfg=ifcfg "[\"uci.network.interface.@" ifname "." o[3] "\"]=\"" l[2] "\",";} END{print ifcfg "},";}')
+for ifname in $(grep -rhE "exec_uci *set *network\.(ppp|ipoe|wan|eth4|atm_8_35|ptm0).*=interface" /rom/etc/uci-defaults/ | cut -d. -f2 | cut -d= -f1); do
+  ifcfg=$(grep -rhE "exec_uci *set *network\.$ifname\." /rom/etc/uci-defaults/ | cut -d' ' -f3- | awk -v ifname="$ifname" 'BEGIN{ifcfg=ifname "={";} {split($0,l,"=")split(l[1],o,".");gsub("'"'"'","",l[2]);ifcfg=ifcfg "[\"uci.network.interface.@" ifname "." o[3] "\"]=\"" l[2] "\",";} END{print ifcfg "},";}')
   sed \
     -e "/local delnames =/a \"uci.network.interface.@$ifname.\"," \
     -e "/local ifnames =/a $ifcfg" \
     -i /www/lua/bridgedmode_helper.lua
 done
 
-if [ "$(uci -q get network.config.wan_mode)" = "bridge" ]; then
-  if [ -z "$(uci -q get network.lan6)" ]; then
+if [ "$(exec_uci -q get network.config.wan_mode)" = "bridge" ]; then
+  if [ -z "$(exec_uci -q get network.lan6)" ]; then
     echo -e "[$SCRIPT]: Creating missing lan6 interface "
-    uci set network.lan6=interface
-    uci set network.lan6.defaultreqopts='0'
-    uci set network.lan6.forceprefix='0'
-    uci set network.lan6.iface_464xlat='0'
-    uci set network.lan6.ifname='br-lan'
-    uci set network.lan6.noslaaconly='1'
-    uci set network.lan6.peerdns='1'
-    uci set network.lan6.proto='dhcpv6'
-    uci set network.lan6.reqaddress='force'
-    uci set network.lan6.reqopts='23 17'
-    uci set network.lan6.reqprefix='no'
-    uci set network.lan6.soltimeout='240'
+    exec_uci set network.lan6=interface
+    exec_uci set network.lan6.defaultreqopts='0'
+    exec_uci set network.lan6.forceprefix='0'
+    exec_uci set network.lan6.iface_464xlat='0'
+    exec_uci set network.lan6.ifname='br-lan'
+    exec_uci set network.lan6.noslaaconly='1'
+    exec_uci set network.lan6.peerdns='1'
+    exec_uci set network.lan6.proto='dhcpv6'
+    exec_uci set network.lan6.reqaddress='force'
+    exec_uci set network.lan6.reqopts='23 17'
+    exec_uci set network.lan6.reqprefix='no'
+    exec_uci set network.lan6.soltimeout='240'
   fi
-  uci set network.lan.ipv6='1'
-  uci set network.lan6.ipv6='1'
-  uci commit network
+  exec_uci set network.lan.ipv6='1'
+  exec_uci set network.lan6.ipv6='1'
+  exec_uci commit network
   SRV_network=$(( $SRV_network + 2 ))
 fi
 

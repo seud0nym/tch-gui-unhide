@@ -8,7 +8,7 @@ fi
 if [ "$(pwd)" = "/tmp" -a -n "$(pgrep -f './tch-gui-unhide -y')" -a -n "$(pgrep -f 'logger -t tch-gui-unhide -p user.info')" ]; then
   __COPYTO=""
   [ -e /root/tch-gui-unhide-$FW_BASE -o -e /root/de-telstra ] && __COPYTO="$__COPYTO /root"
-  __MOUNT_PATH=$(uci -q get mountd.mountd.path)
+  __MOUNT_PATH=$(exec_uci -q get mountd.mountd.path)
   if [ -n "$__MOUNT_PATH" ]; then
     __USB="$(ls $__MOUNT_PATH | head -n1)"
     if [ -n "$__USB" -a \( -e ${__MOUNT_PATH}${__USB}/tch-gui-unhide-$FW_BASE -o -e ${__MOUNT_PATH}${__USB}/de-telstra \) ]; then

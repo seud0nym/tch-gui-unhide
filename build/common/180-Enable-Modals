@@ -1,13 +1,13 @@
-if [ $(uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | wc -l) -eq 0 ]
+if [ $(exec_uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | wc -l) -eq 0 ]
 then
   echo -e "[$SCRIPT]: Telstra Air and Fon SSIDs not found - Removing from GUI"
   [ -f /www/cards/010_fon.lp ] && rm /www/cards/010_fon.lp
   [ -f /www/docroot/modals/fon-modal.lp ] && rm /www/docroot/modals/fon-modal.lp
-  uci -q delete web.fon
-  uci -q delete web.fonmodal
-  uci -q del_list web.ruleset_main.rules=fon
-  uci -q del_list web.ruleset_main.rules=fonmodal
-  uci -q delete web.card_fon
+  exec_uci -q delete web.fon
+  exec_uci -q delete web.fonmodal
+  exec_uci -q del_list web.ruleset_main.rules=fon
+  exec_uci -q del_list web.ruleset_main.rules=fonmodal
+  exec_uci -q delete web.card_fon
 else
   echo -e "[$SCRIPT]: Telstra Air and Fon SSIDs FOUND - Leaving in GUI"
   if [ "$MINIFY" = y ]; then
@@ -26,7 +26,7 @@ fi
 echo -e "[$SCRIPT]: Checking modal visibility"
 for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal.lp\|mmpbx-sipdevice-modal.lp\|speedservice-modal.lp\)); do
   MODAL=$(basename $f)
-  RULE=$(uci show web | grep "/modals/$MODAL" | grep -m 1 -v card_ | cut -d. -f2)
+  RULE=$(exec_uci show web | grep "/modals/$MODAL" | grep -m 1 -v card_ | cut -d. -f2)
   if [ -z "$RULE" ]; then
     CREATE_RULE=y
     RULE=$(basename $f .lp | sed -e 's/-//g')
@@ -35,24 +35,24 @@ for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal
   fi
   if [ $CREATE_RULE = y ]; then
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Creating Rule $RULE: target=/modals/$MODAL"
-    uci set web.$RULE=rule
-    uci set web.$RULE.target=/modals/$MODAL
-    uci set web.$RULE.normally_hidden='1'
-    uci add_list web.$RULE.roles='admin'
+    exec_uci set web.$RULE=rule
+    exec_uci set web.$RULE.target=/modals/$MODAL
+    exec_uci set web.$RULE.normally_hidden='1'
+    exec_uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 4 ))
-  elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]; then
+  elif [ "$(exec_uci -q get web.$RULE.roles)" != "admin" ]; then
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing Rule $RULE: target=/modals/$MODAL Setting role to admin"
-    uci -q delete web.$RULE.roles
-    uci add_list web.$RULE.roles='admin'
+    exec_uci -q delete web.$RULE.roles
+    exec_uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 2 ))
   fi
-  uci -q get web.ruleset_main.rules | grep -qE "\b${RULE}\b" || uci add_list web.ruleset_main.rules=$RULE
+  exec_uci -q get web.ruleset_main.rules | grep -qE "\b${RULE}\b" || exec_uci add_list web.ruleset_main.rules=$RULE
 done
 
 echo -e "[$SCRIPT]: Checking ajax visibility"
 for f in $(find /www/docroot/ajax -type f | grep -vE 'internet.lua|wirelesscard.lua'); do
   AJAX=$(basename $f)
-  RULE=$(uci show web | grep "/ajax/$AJAX" | grep -m 1 -v card_ | cut -d. -f2)
+  RULE=$(exec_uci show web | grep "/ajax/$AJAX" | grep -m 1 -v card_ | cut -d. -f2)
   if [ -z "$RULE" ]; then
     CREATE_RULE=y
     RULE="$(basename $f .lua | sed -e 's/-//g')ajax"
@@ -61,32 +61,32 @@ for f in $(find /www/docroot/ajax -type f | grep -vE 'internet.lua|wirelesscard.
   fi
   if [ $CREATE_RULE = y ]; then
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Creating Rule $RULE: target=/ajax/$AJAX"
-    uci set web.$RULE=rule
-    uci set web.$RULE.target=/ajax/$AJAX
-    uci set web.$RULE.normally_hidden='1'
-    uci add_list web.$RULE.roles='admin'
+    exec_uci set web.$RULE=rule
+    exec_uci set web.$RULE.target=/ajax/$AJAX
+    exec_uci set web.$RULE.normally_hidden='1'
+    exec_uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 4 ))
-  elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]; then
+  elif [ "$(exec_uci -q get web.$RULE.roles)" != "admin" ]; then
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing Rule $RULE: target=/ajax/$AJAX Setting role to admin"
-    uci -q delete web.$RULE.roles
-    uci add_list web.$RULE.roles='admin'
+    exec_uci -q delete web.$RULE.roles
+    exec_uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 2 ))
   fi
-  uci -q get web.ruleset_main.rules | grep -qE "\b${RULE}\b" || uci add_list web.ruleset_main.rules=$RULE
+  exec_uci -q get web.ruleset_main.rules | grep -qE "\b${RULE}\b" || exec_uci add_list web.ruleset_main.rules=$RULE
 done
 
 echo -e "[$SCRIPT]: Checking configured web rules exist"
-for c in $(uci show web | grep '^web\..*\.target=' | grep -vE 'dumaos|homepage')
+for c in $(exec_uci show web | grep '^web\..*\.target=' | grep -vE 'dumaos|homepage')
 do
   f=/www/docroot$(echo "$c" | cut -d"'" -f2)
   if [ ! -f "$f" ]; then
     RULE=$(echo $c | cut -d. -f2)
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Deleting rule $RULE for missing target $f"
-    uci -q delete web.$RULE
-    uci -q del_list web.ruleset_main.rules=$RULE
+    exec_uci -q delete web.$RULE
+    exec_uci -q del_list web.ruleset_main.rules=$RULE
     SRV_nginx=$(( $SRV_nginx + 2 ))
   fi
 done
 
-uci commit web
+exec_uci commit web
 
