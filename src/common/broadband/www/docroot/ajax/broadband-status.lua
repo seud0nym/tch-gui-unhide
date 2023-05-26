@@ -7,7 +7,16 @@ local wan_data = {
 }
 content_helper.getExactContent(wan_data)
 
-local html,status = bbch.getBroadbandCardHTML(wan_data.wans_enable)
+local html,status
+xpcall(
+  function()
+    html,status = bbch.getBroadbandCardHTML(wan_data.wans_enable)
+  end,
+  function(err)
+    html,status = {"<pre>ERROR: ",err,"</pre>"},"unknown"
+    ngx.log(ngx.ERR, debug.traceback(err))
+ end
+)
 
 local data = {
   html = table.concat(html,"\n"),
