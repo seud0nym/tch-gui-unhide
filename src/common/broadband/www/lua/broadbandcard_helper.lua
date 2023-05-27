@@ -60,8 +60,14 @@ local function getActiveWANInterfaces(wansensing,mobile,wired)
   else
     local perm_wwan = proxy.get("uci.network.interface.@wwan.enabled")
     if perm_wwan and perm_wwan[1].value == "1" then
-      wwan = getInterfaceStats("wwan","signal")
-      wwan.permanent = true
+      wwan = getInterfaceStats("wwan","signal") or {
+        name = "wwan",
+        icon = "signal",
+        rx_bytes = 0,
+        tx_bytes = 0,
+        total_bytes = 0,
+        permanent = true,
+      }
     end
   end
 
@@ -77,10 +83,6 @@ local function getActiveWANInterfaces(wansensing,mobile,wired)
     if wwan then
       intf[#intf+1] = wwan
     end
-  end
-
-  if wansensing ~= "1" and mobile then
-  elseif wansensing ~= "1" and mobile then
   end
 
   return intf
