@@ -12,8 +12,15 @@ function M.delete_interface(intf)
   local zones = {}
 
   for _,v in ipairs(proxy.getPN("uci.firewall.rule.",true)) do
-    local fw_rule = proxy.get(v.path.."dest_ip",v.path.."src_ip")
-    if fw_rule[1].value == intf_ipaddr or fw_rule[2].value == intf_ipaddr then
+    local fw_rule = proxy.get(v.path.."dest",v.path.."src",v.path.."dest_ip",v.path.."src_ip")
+    if fw_rule[1].value == intf or fw_rule[2].value == intf or fw_rule[3].value == intf_ipaddr or fw_rule[4].value == intf_ipaddr then
+      paths[#paths+1] = v.path
+    end
+  end
+
+  for _,v in ipairs(proxy.getPN("uci.firewall.forwarding.",true)) do
+    local fwd_rule = proxy.get(v.path.."dest",v.path.."src")
+    if fwd_rule[1].value == intf or fwd_rule[2].value == intf then
       paths[#paths+1] = v.path
     end
   end
