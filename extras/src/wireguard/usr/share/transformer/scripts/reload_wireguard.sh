@@ -15,12 +15,10 @@ handle_interface() {
     if /bin/grep -qE "^${interface}$" /tmp/.wg_uci_modified_ifnames; then
       [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: Interface '$interface' found in /tmp/.wg_uci_modified_ifnames [enabled=$enabled]"
       /bin/sed -e "/^${interface}$/d" -i /tmp/.wg_uci_modified_ifnames
-      /sbin/ifdown $interface
       uci -q del_list dhcp.main.interface="$interface"
       [ "$enabled" = "1" ] && ifup $interface && uci -q add_list dhcp.main.interface="$interface"
     elif [ "$enabled" = "1" -a "$(ifstatus $interface | jsonfilter -e '@.up')" = "false" -a "$(ifstatus $interface | jsonfilter -e '@.pending')" = "false" ]; then
       [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: Interface '$interface' enabled but down! Bringing it back up..."
-      /sbin/ifup $interface
       uci -q del_list dhcp.main.interface="$interface"
       uci -q add_list dhcp.main.interface="$interface"
     else
@@ -39,12 +37,12 @@ handle_interface() {
   for interface in $(/bin/cat /tmp/.wg_uci_modified_ifnames | sort -u); do
     [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard: Interface '$interface' found in /tmp/.wg_uci_modified_ifnames but not in /etc/config/network"
     /bin/sed -e "/^${interface}$/d" -i /tmp/.wg_uci_modified_ifnames
-    /sbin/ifdown $interface
     uci -q del_list dhcp.main.interface="$interface"
   done
 
   uci commit dhcp
   /etc/init.d/dnmasq reload
+  /etc/init.d/network restart
 } 3>/var/lock/uci.wireguard.lock
 
 exit 0
