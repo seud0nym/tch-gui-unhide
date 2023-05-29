@@ -140,7 +140,7 @@ if ngx.var.request_method == "POST" then
   if post_data.tableid == "vlans" and post_data.action == "TABLE-EDIT" then
     vlan_columns[vlan_column_index.vlan].readonly = true
   end
-  if enabled_was.value == "0" and enabled_was.missing then
+  if enabled_was[1].value == "0" and enabled_was[1].missing then
     local enabled = post_data["enabled"]
     if enabled == "1" and enabled_was[1].value == "0" and enabled_was[1].missing then
       proxy_helper.add("uci.network.switch.","bcmsw_ext")
