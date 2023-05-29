@@ -1,3 +1,21 @@
+2023.05.29
+==========
+* tch-gui-unhide: Fixed and removed duplicate mobile operators
+* tch-gui-unhide: Fixed some card display issues on non-Windows browsers
+* tch-gui-unhide: Fixed duplicate System QoS queues on FW 20.4+
+* tch-gui-unhide: Fixed bug in persisting landing page state during installation
+* tch-gui-unhide: Fixed error when Permanent WWAN enabled, but there is no mobile IPv4 or IPv6 address assigned
+* tch-gui-unhide: Fixed "invalid instance" error when attempting to enable VLANs (#152)
+* tch-gui-unhide: Fixed bug where some firewall forwarding configuration and rules where not deleted when a LAN interface was deleted
+* tch-gui-unhide: Fixed bug where VLAN devices were not deleted when the VLAN was deleted
+* tch-gui-unhide: Allowed editing of System QoS shapers
+* tch-gui-unhide: Removed hard-coded password on landing page (20.3.c.0501)
+* tch-gui-unhide: Added error handling on Broadband card
+* tch-gui-unhide: Added GUI warning that switching between Telstra and non-Telstra themes will not change landing page branding without re-running tch-gui-unhide with the -l option
+* tch-gui-unhide-xtra.wireguard: WireGuard network interface not added to dnsmasq, so DNS lookups failed (#147)
+* tch-gui-unhide-xtra.wireguard: Restart networking on commit/apply of changes
+* tch-gui-unhide-xtra.wireguard: Peer receive and transmit bytes reversed on card
+
 2023.05.16
 ==========
 * tch-gui-unhide: Added cron task to update kernel time zone when daylight saving changes so that Time of Day processing will be run on correct schedule (#146)
