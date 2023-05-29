@@ -59,7 +59,7 @@ function M.getWireguardCardHTML()
   elseif content.server == "1" then
     html[#html+1] = '<p class="subinfos">'
     html[#html+1] = format("%s of %s server peers active<br>",content.server_active_peers,content.server_peers)
-    html[#html+1] = format(transfer_pattern,common.bytes2string(content.server_tx_bytes),common.bytes2string(content.server_rx_bytes))
+    html[#html+1] = format(transfer_pattern,common.bytes2string(content.server_rx_bytes),common.bytes2string(content.server_tx_bytes))
     html[#html+1] = '</p>'
   end
   if #interfaces > 1 then
@@ -220,8 +220,8 @@ function M.getDNS(include_ipv6)
   return dns
 end
 
-function M.receiveFile(filename,match)
-  local function do_receive(outfile,match)
+function M.receiveFile(filename,pattern)
+  local function do_receive(outfile,ptrn)
     local upload = require("web.fileupload")
     local form,err = upload.fromstream()
     if not form then
@@ -231,12 +231,12 @@ function M.receiveFile(filename,match)
     local file
     local discard = false
     while true do
-      local token,data,err = form:read()
+      local token,data,error = form:read()
       if not token then
-        return false,2,"read failed: "..err
+        return false,2,"read failed: "..error
       end
       if token == "header" then
-        if not discard and not file and find(data[2],match,1,true) then
+        if not discard and not file and data and find(data[2],ptrn,1,true) then
           file = outfile
         end
         if not discard and not file then
@@ -262,10 +262,10 @@ function M.receiveFile(filename,match)
   local file = io.open(filename,"w")
   local result,err_code,err_msg
   if file then
-    result,err_code,err_msg = do_receive(file,match)
+    result,err_code,err_msg = do_receive(file,pattern)
   else
     file = io.open("/dev/null","w")
-    do_receive(file,match)
+    do_receive(file,pattern)
     result = false
     err_code = 4
     err_msg = "internal error"
