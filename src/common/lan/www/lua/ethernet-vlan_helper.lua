@@ -1,6 +1,7 @@
 local content_helper = require("web.content_helper")
 local message_helper = require("web.uimessage_helper")
 local proxy = require("datamodel")
+local proxy_helper = require("proxy_helper")
 local split = require("split").split
 
 local find,format,gmatch,match,gsub = string.find,string.format,string.gmatch,string.match,string.gsub
@@ -31,49 +32,30 @@ local function update_ifnames(path,value)
       ifnames[i] = nil
     end
   end
-  proxy.set(path,value)
+  proxy_helper.set(path,value)
   if interface == "lan" or (find(interface,"Guest",nil,true) and #ifnames > 0) or #ifnames > 1 then
     type = "bridge"
   end
-  return proxy.set("uci.network.interface.@"..interface..".type",type)
+  return proxy_helper.set("uci.network.interface.@"..interface..".type",type)
 end
 
 local M = {}
 
 function M.add_vlan(index,vid,ports)
-  local path -- index is _key, which is not exposed by transformer
-  local switch_vlans = proxy.getPN("uci.network.switch_vlan.",true)
-  for _,v in ipairs(switch_vlans) do
-    if v.path == "uci.network.switch_vlan.@"..index.."." then
-      path = v.path
-      break
-    end
-  end
-  if not path then
-    for _,v in ipairs(switch_vlans) do
-      local key = proxy.get(v.path.."_key")
-      if key and key[1].value == "index" then
-        path = v.path
-        break
-      end
-    end
-    if not path then
-      path = switch_vlans[#switch_vlans].path
-    end
-  end
-  proxy.set(path.."device","bcmsw_ext")
-  proxy.set(path.."vlan",vid)
-  proxy.set(path.."ports",ports or cpu_port)
-  proxy.set(path.."_key","")
+  local path = "uci.network.switch_vlan.@"..index.."."
+  proxy_helper.set(path.."device","bcmsw_ext")
+  proxy_helper.set(path.."vlan",vid)
+  proxy_helper.set(path.."ports",ports or cpu_port)
+  proxy_helper.set(path.."_key","")
   for p=0,4,1 do
     local port = format("eth%s",p)
     local device = format("vlan_%s_%s",port,vid)
-    local added,errmsg = proxy.add("uci.network.device.",device)
+    local added,errmsg = proxy_helper.add("uci.network.device.",device)
     if added then
-      proxy.set("uci.network.device.@"..device..".ifname",port)
-      proxy.set("uci.network.device.@"..device..".name",device)
-      proxy.set("uci.network.device.@"..device..".type","8021q")
-      proxy.set("uci.network.device.@"..device..".vid",vid)
+      proxy_helper.set("uci.network.device.@"..device..".ifname",port)
+      proxy_helper.set("uci.network.device.@"..device..".name",device)
+      proxy_helper.set("uci.network.device.@"..device..".type","8021q")
+      proxy_helper.set("uci.network.device.@"..device..".vid",vid)
     else
       message_helper.pushMessage("Error creating device '"..device.."' for VLAN ID "..vid..": "..errmsg,"error")
     end
@@ -220,7 +202,7 @@ function M.onDelete(vid)
       end
       for p=0,4,1 do
         for _,ifname in ipairs({format("eth%s_%s",p,vid),format("vlan_eth%s_%s",p,vid)}) do
-          proxy.del(format("uci.network.device.@%s",ifname))
+          proxy.del(format("uci.network.device.@%s.",ifname))
           for i=1,#ifnames_map,1 do
             ifnames_map[i].updated_ifnames = gsub(ifnames_map[i].updated_ifnames,ifname,"")
           end
@@ -241,7 +223,7 @@ function M.onModify(vlan_usage)
     local vlan_id = untaint(values.vlan)
     local ports = p2ports(values)
     if values.ports ~= ports then
-      proxy.set("uci.network.switch_vlan.@"..index..".ports",ports)
+      proxy_helper.set("uci.network.switch_vlan.@"..index..".ports",ports)
     end
     if vlan_usage[vlan_id] then
       for ifname in gmatch(vlan_usage[vlan_id].interfaces or "","(%S+)") do

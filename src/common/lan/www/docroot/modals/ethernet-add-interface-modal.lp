@@ -12,6 +12,7 @@ local lp = require("web.lp")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
+local proxy_helper = require("proxy_helper")
 local ui_helper = require("web.ui_helper")
 
 local ngx = ngx
@@ -19,7 +20,7 @@ local _,_,all_intfs,lan_intfs,_,_,_,_ = ethernet_helper.get_interfaces()
 
 local ipairs,pairs,string = ipairs,pairs,string
 local tonumber,tostring = tonumber,tostring
-local format,gsub,match = string.format,string.gsub,string.match
+local format,match = string.format,string.match
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
@@ -33,91 +34,39 @@ local vNES = post_helper.validateNonEmptyString
 local vSIIP = post_helper.validateStringIsIP
 local gVSIDIP4 = post_helper.getValidateStringIsDeviceIPv4
 
-local function proxyAdd(p,v,quiet)
-  ngx.log(ngx.ALERT,format("Adding '%s' to %s",v or "new section",p))
-  local key,error = proxy.add(p,v)
-  if not key then
-    ngx.log(ngx.ERR,format("Failed to add '%s' to %s: %s",v or "new section",p,error))
-    if not quiet then
-      message_helper.pushMessage(T(format("Failed to add %s to '%s': %s",v or "new section",p,error)),"error")
-    end
-    return key,error
-  else
-    if proxy.getPN(p..key..".",true) then -- key is param
-      key = key
-    elseif proxy.getPN(p.."@"..key..".",true) then -- key is param without leading @
-      key = "@"..key
-    else -- probably _key
-      local sections = proxy.getPN(p,true)
-      local section = proxy.get(sections[#sections].path.."_key")
-      if section then -- mapping contains _key
-        if section[1].value == key then -- last record matches _key
-          proxy.set(section[1].path..section[1].param,"")
-          key = gsub(gsub(section[1].path,p,""),"%.","")
-        else -- last record does not match _key, so search (backwards) for it
-          error = "Unknown error - could not locate added key "..key
-          for i=#sections,1,-1 do
-            section = proxy.get(sections[i].path.."_key")
-            if section[1].value == key then -- found matching key
-              key = gsub(gsub(section[1].path,p,""),"%.","")
-              error = nil
-              break
-            end
-          end
-        end
-      else -- mapping does not contain _key, so just assume it is the last one
-        key = gsub(gsub(sections[#sections].path,p,""),"%.","")
-      end
-    end
-  end
-  return key,error
-end
-
-local function proxySet(p,v)
-  ngx.log(ngx.ALERT,format("Setting %s to '%s'",p,v))
-  local success,errors = proxy.set(p,v)
-  if not success then
-    for _,err in ipairs(errors) do
-      ngx.log(ngx.ERR,format("Failed to set %s to '%s': %s (%s)",err.path,v,err.errmsg,err.errcode))
-      message_helper.pushMessage(T(format("Failed to set %s to '%s': %s (%s)",err.path,v,err.errmsg,err.errcode)),"error")
-    end
-  end
-  return success
-end
-
 local function addFirewallRule(name,src,proto,target,dest,dest_ip,dest_port,family)
   local okay = true
   local path
   if okay then
-    local key,err = proxyAdd("uci.firewall.rule.")
+    local key,err = proxy_helper.add("uci.firewall.rule.")
     if err then
       okay = false
     else
-      path = "uci.firewall.rule."..key.."."
+      path = "uci.firewall.rule.@"..key.."."
     end
   end
   if okay then
-    okay = okay and proxySet(path.."name",name)
-    local index = proxyAdd(path.."proto.",nil,true)
+    okay = okay and proxy_helper.set(path.."name",name)
+    local index = proxy_helper.add(path.."proto.",nil,true)
     if not index then
-      okay = okay and proxySet(path.."proto",proto) -- FW 17.2
+      okay = okay and proxy_helper.set(path.."proto",proto) -- FW 17.2
     else
-      okay = okay and proxySet(path.."proto."..index..".value",proto)
+      okay = okay and proxy_helper.set(path.."proto.@"..index..".value",proto)
     end
-    okay = okay and proxySet(path.."src",src)
+    okay = okay and proxy_helper.set(path.."src",src)
     if dest then
-      okay = okay and proxySet(path.."dest",dest)
+      okay = okay and proxy_helper.set(path.."dest",dest)
     end
     if dest_ip then
-      okay = okay and proxySet(path.."dest_ip",dest_ip)
+      okay = okay and proxy_helper.set(path.."dest_ip",dest_ip)
     end
     if dest_port then
-      okay = okay and proxySet(path.."dest_port",dest_port)
+      okay = okay and proxy_helper.set(path.."dest_port",dest_port)
     end
     if family then
-      okay = okay and proxySet(path.."family",family)
+      okay = okay and proxy_helper.set(path.."family",family)
     end
-    okay = okay and proxySet(path.."target",target)
+    okay = okay and proxy_helper.set(path.."target",target)
   end
   return okay,path
 end
@@ -270,118 +219,118 @@ elseif ngx.var.request_method == "POST" then
     local paths = {}
 
     paths[#paths+1] = "uci.network.interface.@"..content.cur_intf.."."
-    local key,err = proxyAdd("uci.network.interface.",content.cur_intf)
+    local key,err = proxy_helper.add("uci.network.interface.",content.cur_intf)
     if err then
       okay = false
     end
     if okay then -- set interface config
-      okay = okay and proxySet(paths[#paths].."proto","static")
-      okay = okay and proxySet(paths[#paths].."force_link","1")
-      okay = okay and proxySet(paths[#paths].."rpfilter","1")
+      okay = okay and proxy_helper.set(paths[#paths].."proto","static")
+      okay = okay and proxy_helper.set(paths[#paths].."force_link","1")
+      okay = okay and proxy_helper.set(paths[#paths].."rpfilter","1")
       for k,v in pairs(content) do
         if k ~= "cur_intf" and k ~= "domain" then
-          okay = okay and proxySet(paths[#paths]..k,v)
+          okay = okay and proxy_helper.set(paths[#paths]..k,v)
         end
       end
     end
     if okay then -- add dnsmasq section
-      key,err = proxyAdd("uci.dhcp.dnsmasq.",content.cur_intf)
+      key,err = proxy_helper.add("uci.dhcp.dnsmasq.",content.cur_intf)
       if err then
         okay = false
       else
-        paths[#paths+1] = "uci.dhcp.dnsmasq."..key.."."
+        paths[#paths+1] = "uci.dhcp.dnsmasq.@"..key.."."
       end
     end
     if okay then -- set dnsmasq config
-      okay = okay and proxySet(paths[#paths].."disabled","0")
-      okay = okay and proxySet(paths[#paths].."nonwildcard","1")
-      okay = okay and proxySet(paths[#paths].."domainneeded","1")
-      okay = okay and proxySet(paths[#paths].."boguspriv","1")
-      okay = okay and proxySet(paths[#paths].."filterwin2k","0")
-      okay = okay and proxySet(paths[#paths].."localise_queries","1")
-      okay = okay and proxySet(paths[#paths].."rebind_protection","0")
-      okay = okay and proxySet(paths[#paths].."rebind_localhost","1")
-      okay = okay and proxySet(paths[#paths].."expandhosts","1")
-      okay = okay and proxySet(paths[#paths].."nonegcache","0")
-      okay = okay and proxySet(paths[#paths].."authoritative","1")
-      okay = okay and proxySet(paths[#paths].."readethers","1")
-      okay = okay and proxySet(paths[#paths].."leasefile","/tmp/dhcp.leases")
-      okay = okay and proxySet(paths[#paths].."resolvfile","/tmp/resolv.conf.d/resolv.conf.auto")
-      okay = okay and proxySet(paths[#paths].."strictorder","1")
-      okay = okay and proxySet(paths[#paths].."dhcpscript","/lib/dnsmasq/dhcp-event.sh")
-      okay = okay and proxySet(paths[#paths].."domain",content.domain)
-      okay = okay and proxySet(paths[#paths].."add_local_fqdn","0")
-      local dnsmasq_if,dnsmasq_if_err = proxyAdd(paths[#paths].."interface.")
+      okay = okay and proxy_helper.set(paths[#paths].."disabled","0")
+      okay = okay and proxy_helper.set(paths[#paths].."nonwildcard","1")
+      okay = okay and proxy_helper.set(paths[#paths].."domainneeded","1")
+      okay = okay and proxy_helper.set(paths[#paths].."boguspriv","1")
+      okay = okay and proxy_helper.set(paths[#paths].."filterwin2k","0")
+      okay = okay and proxy_helper.set(paths[#paths].."localise_queries","1")
+      okay = okay and proxy_helper.set(paths[#paths].."rebind_protection","0")
+      okay = okay and proxy_helper.set(paths[#paths].."rebind_localhost","1")
+      okay = okay and proxy_helper.set(paths[#paths].."expandhosts","1")
+      okay = okay and proxy_helper.set(paths[#paths].."nonegcache","0")
+      okay = okay and proxy_helper.set(paths[#paths].."authoritative","1")
+      okay = okay and proxy_helper.set(paths[#paths].."readethers","1")
+      okay = okay and proxy_helper.set(paths[#paths].."leasefile","/tmp/dhcp.leases")
+      okay = okay and proxy_helper.set(paths[#paths].."resolvfile","/tmp/resolv.conf.d/resolv.conf.auto")
+      okay = okay and proxy_helper.set(paths[#paths].."strictorder","1")
+      okay = okay and proxy_helper.set(paths[#paths].."dhcpscript","/lib/dnsmasq/dhcp-event.sh")
+      okay = okay and proxy_helper.set(paths[#paths].."domain",content.domain)
+      okay = okay and proxy_helper.set(paths[#paths].."add_local_fqdn","0")
+      local dnsmasq_if,dnsmasq_if_err = proxy_helper.add(paths[#paths].."interface.")
       if dnsmasq_if_err then
         okay = false
       else
-        okay = okay and proxySet(paths[#paths].."interface."..dnsmasq_if..".value",content.cur_intf)
+        okay = okay and proxy_helper.set(paths[#paths].."interface.@"..dnsmasq_if..".value",content.cur_intf)
       end
-      local dnsmasq_notif,dnsmasq_notif_err = proxyAdd(paths[#paths].."notinterface.")
+      local dnsmasq_notif,dnsmasq_notif_err = proxy_helper.add(paths[#paths].."notinterface.")
       if dnsmasq_notif_err then
         okay = false
       else
-        okay = okay and proxySet(paths[#paths].."notinterface."..dnsmasq_notif..".value","loopback")
+        okay = okay and proxy_helper.set(paths[#paths].."notinterface.@"..dnsmasq_notif..".value","loopback")
       end
     end
     if okay then -- add dhcp section
-      key,err = proxyAdd("uci.dhcp.dhcp.",content.cur_intf.."_private")
+      key,err = proxy_helper.add("uci.dhcp.dhcp.",content.cur_intf.."_private")
       if err then
         okay = false
       else
-        paths[#paths+1] = "uci.dhcp.dhcp."..key.."."
+        paths[#paths+1] = "uci.dhcp.dhcp.@"..key.."."
       end
     end
     if okay then -- set dhcp config
-      okay = okay and proxySet(paths[#paths].."instance",content.cur_intf)
-      okay = okay and proxySet(paths[#paths].."interface",content.cur_intf)
-      okay = okay and proxySet(paths[#paths].."start","2")
-      okay = okay and proxySet(paths[#paths].."limit","253")
-      okay = okay and proxySet(paths[#paths].."leasetime","1d")
-      okay = okay and proxySet(paths[#paths].."force","1")
-      okay = okay and proxySet(paths[#paths].."dhcpv4","disabled")
-      okay = okay and proxySet(paths[#paths].."dhcpv6","disabled")
-      okay = okay and proxySet(paths[#paths].."ra","disabled")
-      okay = okay and proxySet(paths[#paths].."ra_management","0")
-      okay = okay and proxySet(paths[#paths].."ra_mininterval","200")
-      okay = okay and proxySet(paths[#paths].."ra_maxinterval","600")
-      okay = okay and proxySet(paths[#paths].."ra_lifetime","1800")
-      okay = okay and proxySet(paths[#paths].."ra_hoplimit","64")
-      okay = okay and proxySet(paths[#paths].."dhcpv4","disabled")
+      okay = okay and proxy_helper.set(paths[#paths].."instance",content.cur_intf)
+      okay = okay and proxy_helper.set(paths[#paths].."interface",content.cur_intf)
+      okay = okay and proxy_helper.set(paths[#paths].."start","2")
+      okay = okay and proxy_helper.set(paths[#paths].."limit","253")
+      okay = okay and proxy_helper.set(paths[#paths].."leasetime","1d")
+      okay = okay and proxy_helper.set(paths[#paths].."force","1")
+      okay = okay and proxy_helper.set(paths[#paths].."dhcpv4","disabled")
+      okay = okay and proxy_helper.set(paths[#paths].."dhcpv6","disabled")
+      okay = okay and proxy_helper.set(paths[#paths].."ra","disabled")
+      okay = okay and proxy_helper.set(paths[#paths].."ra_management","0")
+      okay = okay and proxy_helper.set(paths[#paths].."ra_mininterval","200")
+      okay = okay and proxy_helper.set(paths[#paths].."ra_maxinterval","600")
+      okay = okay and proxy_helper.set(paths[#paths].."ra_lifetime","1800")
+      okay = okay and proxy_helper.set(paths[#paths].."ra_hoplimit","64")
+      okay = okay and proxy_helper.set(paths[#paths].."dhcpv4","disabled")
     end
     if okay then -- add firewall zone
-      key,err = proxyAdd("uci.firewall.zone.")
+      key,err = proxy_helper.add("uci.firewall.zone.")
       if err then
         okay = false
       else
-        paths[#paths+1] = "uci.firewall.zone."..key.."."
+        paths[#paths+1] = "uci.firewall.zone.@"..key.."."
       end
     end
     if okay then -- set firewall zone config
-      okay = okay and proxySet(paths[#paths].."name",content.cur_intf)
-      okay = okay and proxySet(paths[#paths].."input","DROP")
-      okay = okay and proxySet(paths[#paths].."output","ACCEPT")
-      okay = okay and proxySet(paths[#paths].."forward","REJECT")
-      okay = okay and proxySet(paths[#paths].."mtu_fix","1")
-      okay = okay and proxySet(paths[#paths].."wan","0")
-      local fw_zone_network = proxyAdd(paths[#paths].."network.")
+      okay = okay and proxy_helper.set(paths[#paths].."name",content.cur_intf)
+      okay = okay and proxy_helper.set(paths[#paths].."input","DROP")
+      okay = okay and proxy_helper.set(paths[#paths].."output","ACCEPT")
+      okay = okay and proxy_helper.set(paths[#paths].."forward","REJECT")
+      okay = okay and proxy_helper.set(paths[#paths].."mtu_fix","1")
+      okay = okay and proxy_helper.set(paths[#paths].."wan","0")
+      local fw_zone_network = proxy_helper.add(paths[#paths].."network.")
       if not fw_zone_network then
         okay = false
       else
-        okay = okay and proxySet(paths[#paths].."network."..fw_zone_network..".value",content.cur_intf)
+        okay = okay and proxy_helper.set(paths[#paths].."network.@"..fw_zone_network..".value",content.cur_intf)
       end
     end
     if okay then -- add firewall forwarding
-      key,err = proxyAdd("uci.firewall.forwarding.")
+      key,err = proxy_helper.add("uci.firewall.forwarding.")
       if err then
         okay = false
       else
-        paths[#paths+1] = "uci.firewall.forwarding."..key.."."
+        paths[#paths+1] = "uci.firewall.forwarding.@"..key.."."
       end
     end
     if okay then -- set firewall forwarding config
-      okay = okay and proxySet(paths[#paths].."src",content.cur_intf)
-      okay = okay and proxySet(paths[#paths].."dest","wan")
+      okay = okay and proxy_helper.set(paths[#paths].."src",content.cur_intf)
+      okay = okay and proxy_helper.set(paths[#paths].."dest","wan")
     end
     if okay then -- add firewall rules
       okay,paths[#paths+1] = addFirewallRule("drop-lan-2-"..content.cur_intf,"lan","all","DROP",content.cur_intf)
@@ -403,14 +352,14 @@ elseif ngx.var.request_method == "POST" then
     end
     if okay then -- add firewall rules
       okay,paths[#paths+1] = addFirewallRule("Allow-"..content.cur_intf.."-ICMPv6",content.cur_intf,"icmp","ACCEPT",nil,nil,nil,"ipv6")
-      okay = okay and proxySet(paths[#paths].."limit","1000/sec")
+      okay = okay and proxy_helper.set(paths[#paths].."limit","1000/sec")
       for _,icmp_type in ipairs({"echo-request", "echo-reply", "destination-unreachable", "packet-too-big", "time-exceeded", "bad-header", "unknown-header-type", "router-solicitation", "neighbour-solicitation", "router-advertisement", "neighbour-advertisement"}) do
-        local index = proxyAdd(paths[#paths].."icmp_type.")
+        local index = proxy_helper.add(paths[#paths].."icmp_type.")
         if not index then
           okay = false
           break
         else
-          okay = okay and proxySet(paths[#paths].."icmp_type."..index..".value",icmp_type)
+          okay = okay and proxy_helper.set(paths[#paths].."icmp_type.@"..index..".value",icmp_type)
         end
       end
     end

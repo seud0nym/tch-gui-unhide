@@ -61,6 +61,8 @@ sed \
   -e 's/"type", "family"/"type", "path", "family"/' \
   -e 's/"hashsize", "timeout",$/& "match",/' \
   -e 's/"wan",$/& "_key"/' \
+  -e 's/"dest_port",$/& "_key"/' \
+  -e 's/^ *"enabled", "name", "src", "dest", "family",$/& "_key"/' \
   -i /usr/share/transformer/mappings/uci/firewall.map
 
 echo -e "[$SCRIPT]: Add transformer mapping for uci.firewall.nat."

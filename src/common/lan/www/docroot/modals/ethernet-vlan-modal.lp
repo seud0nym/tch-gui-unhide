@@ -7,6 +7,7 @@ local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
+local proxy_helper = require("proxy_helper")
 local ui_helper = require("web.ui_helper")
 local vlan_helper = require("ethernet-vlan_helper")
 
@@ -141,16 +142,16 @@ if ngx.var.request_method == "POST" then
   end
   if enabled_was.value == "0" and enabled_was.missing then
     local enabled = post_data["enabled"]
-    if enabled == "1" and enabled_was.value == "0" and enabled_was.missing then
-      proxy.add("uci.network.switch.","bcmsw_ext")
-      proxy.set("uci.network.switch.@bcmsw_ext.name","bcmsw_ext")
-      proxy.set("uci.network.switch.@bcmsw_ext.enable_vlan","1")
-      proxy.set("uci.network.switch.@bcmsw_ext.jumbo",post_data["jumbo"] or "0")
-      proxy.set("uci.network.switch.@bcmsw_ext.qosimppauseenable","0")
-      proxy.set("uci.network.switch.@bcmsw_ext.reset","1")
-      proxy.set("uci.network.switch.@bcmsw_ext.type","bcmsw")
-      proxy.set("uci.network.switch.@bcmsw_ext.unit","1")
-      local added,errmsg = proxy.add("uci.network.switch_vlan.")
+    if enabled == "1" and enabled_was[1].value == "0" and enabled_was[1].missing then
+      proxy_helper.add("uci.network.switch.","bcmsw_ext")
+      proxy_helper.set("uci.network.switch.@bcmsw_ext.name","bcmsw_ext")
+      proxy_helper.set("uci.network.switch.@bcmsw_ext.enable_vlan","1")
+      proxy_helper.set("uci.network.switch.@bcmsw_ext.jumbo",post_data["jumbo"] or "0")
+      proxy_helper.set("uci.network.switch.@bcmsw_ext.qosimppauseenable","0")
+      proxy_helper.set("uci.network.switch.@bcmsw_ext.reset","1")
+      proxy_helper.set("uci.network.switch.@bcmsw_ext.type","bcmsw")
+      proxy_helper.set("uci.network.switch.@bcmsw_ext.unit","1")
+      local added,errmsg = proxy_helper.add("uci.network.switch_vlan.")
       if added then
         vlan_helper.add_vlan(added,"1","0"..untagged_flag.." 1"..untagged_flag.." 2"..untagged_flag.." 3"..untagged_flag.." "..cpu_port)
       else
