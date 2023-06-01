@@ -18,10 +18,10 @@ if [ "$1" = "setup" ]; then
   adblock_installed="$(opkg list-installed | grep '^adblock ' | cut -d- -f2- | xargs)"
   ca_bundle_installed="$(opkg list-installed | grep '^ca-bundle ' | cut -d- -f3- | xargs)"
   ca_certificates_installed="$(opkg list-installed | grep '^ca-certificates ' | cut -d- -f3- | xargs)"
-  openwrt_latest="$(curl -skl https://downloads.openwrt.org/releases/ | grep -Eo '[0-9][0-9]\.[0-9.]+' | sort -ru | head -n1)"
-  adblock_current_filename="$(curl -skl https://downloads.openwrt.org/releases/${openwrt_latest}/packages/arm_cortex-a9/packages/Packages | grep '^Filename: adblock' | cut -d' ' -f2)"
+  openwrt_latest="$(curl -skL https://downloads.openwrt.org/releases/ | grep -Eo 'packages-[0-9][0-9]\.[0-9.]+' | sort -ru | head -n1)"
+  adblock_current_filename="$(curl -skL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/packages/Packages | grep '^Filename: adblock' | cut -d' ' -f2)"
   adblock_current="$(echo $adblock_current_filename | grep -Eo '[0-9][0-9.-]+')"
-  ca_current="$(curl -skl https://downloads.openwrt.org/releases/${openwrt_latest}/packages/arm_cortex-a9/base/Packages | grep 'Filename: ca-' | cut -d' ' -f2)"
+  ca_current="$(curl -skL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/base/Packages | grep 'Filename: ca-' | cut -d' ' -f2)"
   ca_bundle_current="$(echo "$ca_current" | grep bundle | grep -Eo '[0-9][0-9-]+')"
   ca_certificates_current="$(echo "$ca_current" | grep certificates | grep -Eo '[0-9][0-9-]+')"
   adblock_restart="n"
@@ -31,35 +31,35 @@ if [ "$1" = "setup" ]; then
   fi
   if [ "$coreutils_current" != "$coreutils_installed" ]; then
     echo ">> Downloading coreutils v$coreutils_current"
-    curl -kl https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/arm_cortex-a9/packages/coreutils_${coreutils_current}_arm_cortex-a9.ipk -o /tmp/coreutils_${coreutils_current}_arm_cortex-a9.ipk
+    curl -kL https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/arm_cortex-a9/packages/coreutils_${coreutils_current}_arm_cortex-a9.ipk -o /tmp/coreutils_${coreutils_current}_arm_cortex-a9.ipk
     echo ">> Installing coreutils v$coreutils_current"
     opkg --force-overwrite install /tmp/coreutils_${coreutils_current}_arm_cortex-a9.ipk
     rm /tmp/coreutils_${coreutils_current}_arm_cortex-a9.ipk
   fi
   if [ "$coreutils_current" != "$coresort_installed" ]; then
     echo ">> Downloading coreutils-sort v$coreutils_current"
-    curl -kl https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/arm_cortex-a9/packages/coreutils-sort_${coreutils_current}_arm_cortex-a9.ipk -o /tmp/coreutils-sort_${coreutils_current}_arm_cortex-a9.ipk
+    curl -kL https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/arm_cortex-a9/packages/coreutils-sort_${coreutils_current}_arm_cortex-a9.ipk -o /tmp/coreutils-sort_${coreutils_current}_arm_cortex-a9.ipk
     echo ">> Installing coreutils-sort v$coreutils_current"
     opkg --force-overwrite install /tmp/coreutils-sort_${coreutils_current}_arm_cortex-a9.ipk
     rm /tmp/coreutils-sort_${coreutils_current}_arm_cortex-a9.ipk
   fi
   if [ "$ca_bundle_current" != "$ca_bundle_installed" ]; then
     echo ">> Downloading ca-bundle v$ca_bundle_current"
-    curl -kl https://downloads.openwrt.org/releases/${openwrt_latest}/packages/arm_cortex-a9/base/ca-bundle_${ca_bundle_current}_all.ipk -o /tmp/ca-bundle_${ca_bundle_current}_all.ipk
+    curl -kL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/base/ca-bundle_${ca_bundle_current}_all.ipk -o /tmp/ca-bundle_${ca_bundle_current}_all.ipk
     echo ">> Installing ca-bundle v$ca_bundle_current"
     opkg --force-overwrite install /tmp/ca-bundle_${ca_bundle_current}_all.ipk
     rm /tmp/ca-bundle_${ca_bundle_current}_all.ipk
   fi
   if [ "$ca_certificates_current" != "$ca_certificates_installed" ]; then
     echo ">> Downloading ca-certificates v$ca_certificates_current"
-    curl -kl https://downloads.openwrt.org/releases/${openwrt_latest}/packages/arm_cortex-a9/base/ca-certificates_${ca_certificates_current}_all.ipk -o /tmp/ca-certificates_${ca_certificates_current}_all.ipk
+    curl -kL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/base/ca-certificates_${ca_certificates_current}_all.ipk -o /tmp/ca-certificates_${ca_certificates_current}_all.ipk
     echo ">> Installing ca-certificates v$ca_certificates_current"
     opkg --force-overwrite install /tmp/ca-certificates_${ca_certificates_current}_all.ipk
     rm /tmp/ca-certificates_${ca_certificates_current}_all.ipk
   fi
   if [ "$adblock_current" != "$adblock_installed" ]; then
     echo ">> Downloading adblock v$adblock_current"
-    curl -kl https://downloads.openwrt.org/releases/${openwrt_latest}/packages/arm_cortex-a9/packages/adblock_${adblock_current}_all.ipk -o /tmp/adblock_${adblock_current}_all.ipk
+    curl -kL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/packages/adblock_${adblock_current}_all.ipk -o /tmp/adblock_${adblock_current}_all.ipk
     echo ">> Installing adblock v$adblock_current"
     opkg --force-overwrite install /tmp/adblock_${adblock_current}_all.ipk
     rm /tmp/adblock_${adblock_current}_all.ipk

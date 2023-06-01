@@ -77,12 +77,12 @@ if [ $CRON = Y ]; then
   exit
 fi
 
-OPENWRT_LATEST="$(curl $CURL_OPT -s https://downloads.openwrt.org/releases/ | grep -Eo '[0-9][0-9]\.[0-9.]+' | sort -ru | head -n1)"
+OPENWRT_LATEST="$(curl $CURL_OPT -s https://downloads.openwrt.org/releases/ | grep -Eo 'packages-[0-9][0-9]\.[0-9.]+' | sort -ru | head -n1)"
 if [ -z "$OPENWRT_LATEST" ]; then
-    echo "[$SCRIPT] ERROR! Failed to determine latest OpenWrt release???"
+  echo "[$SCRIPT] ERROR! Failed to determine latest OpenWrt release???"
 fi
 
-SRC="https://downloads.openwrt.org/releases/${OPENWRT_LATEST}/packages/arm_cortex-a9/base"
+SRC="https://downloads.openwrt.org/releases/${OPENWRT_LATEST}/arm_cortex-a9/base"
 for IPK in $(curl $CURL_OPT -s $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2); do
   PKG="$(echo $IPK | grep -Eo '^ca-[^_]+')"
   VER="$(echo $IPK | grep -Eo '[0-9][0-9-]+')"
