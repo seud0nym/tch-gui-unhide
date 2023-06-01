@@ -25,6 +25,7 @@ sed \
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
 echo -e "[$SCRIPT]: Create voicedndscript.lua if it does not exist"
+grep -q 'exec_uci' /etc/tod/voicedndscript.lua && [ ! -e /rom/etc/tod/voicedndscript.lua ] && rm -f /etc/tod/voicedndscript.lua
 [ ! -e /etc/tod/voicedndscript.lua ] && mkdir -p /etc/tod && touch /etc/tod/voicedndscript.lua && chmod +x /etc/tod/voicedndscript.lua && cat <<"TOD" >>/etc/tod/voicedndscript.lua
 local M = {}
 local pairs = pairs
@@ -102,9 +103,8 @@ local function get_profile_to_operate(object, cursor, logger)
 end
 
 local function execute_action(action, runtime, action_trigger, object)
-
     local logger = runtime.logger
-    local exec_uci = runtime.uci
+    local uci = runtime.uci
     local ubus = runtime.ubus
     local cursor = uci.cursor()
 
@@ -161,7 +161,7 @@ end
 
 function M.start(runtime, action_trigger, object)
     local logger = runtime.logger
-    local exec_uci = runtime.uci
+    local uci = runtime.uci
     local cursor = uci.cursor()
     local activated = cursor:get("tod","voicednd","enabled")
     if activated == "1" then
@@ -174,7 +174,7 @@ end
 -- stop action
 
 function M.stop(runtime, action_trigger, object)
-    local exec_uci = runtime.uci
+    local uci = runtime.uci
     local cursor = uci.cursor()
     local activated = cursor:get("tod","voicednd","enabled")
     if activated == "1" then
