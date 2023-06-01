@@ -284,8 +284,9 @@ HW18
     fi
     if [ $OK = 0 ]; then
       _log user.info "Installing System CA certificates..."
-      SRC='https://downloads.openwrt.org/releases/packages-22.03/arm_cortex-a9/base'
-      for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2); do
+      OPENWRT_LATEST="$(curl -skL https://downloads.openwrt.org/releases/ | grep -Eo 'packages-[0-9][0-9]\.[0-9.]+' | sort -ru | head -n1)"
+      SRC="https://downloads.openwrt.org/releases/$OPENWRT_LATEST/arm_cortex-a9/base"
+      for IPK in $(curl -skL $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2); do
         curl -skL $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/$IPK
       done
       _log user.info "Updating local package list..."
