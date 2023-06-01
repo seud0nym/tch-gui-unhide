@@ -3,6 +3,11 @@
 adblock_supported_version="4.1"
 
 if [ "$1" = "setup" ]; then
+  case "$(grep 'CPU architecture' /proc/cpuinfo | cut -d: -f2 | sort -u | xargs)" in
+    7) arch="arm_cortex-a9";;
+    8) arch="arm_cortex-a53";;
+    *) echo ">> Unknown CPU architecture - unable to complete setup"; exit;;
+  esac
   grep -q '^extra_command()' /etc/rc.common || sed -e '/^$EXTRA_HELP/d' -e '/^EOF/a\echo -e "$EXTRA_HELP"' -e '/^depends()/i\extra_command() {\
         local cmd="$1"\
         local help="$2"\
@@ -12,7 +17,7 @@ if [ "$1" = "setup" ]; then
 }\
 ' -i /etc/rc.common
   echo ">> Determining installed and current versions of required packages..."
-  coreutils_current="$(curl -skl https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/arm_cortex-a9/packages/Packages | grep -m1 '^Version' | cut -d' ' -f2)"
+  coreutils_current="$(curl -skl https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/${arch}/packages/Packages | grep -m1 '^Version' | cut -d' ' -f2)"
   coreutils_installed="$(opkg list-installed | grep '^coreutils ' | cut -d- -f2 | xargs)"
   coresort_installed="$(opkg list-installed | grep '^coreutils-sort' | cut -d- -f3 | xargs)"
   adblock_installed="$(opkg list-installed | grep '^adblock ' | cut -d- -f2- | xargs)"
@@ -31,17 +36,17 @@ if [ "$1" = "setup" ]; then
   fi
   if [ "$coreutils_current" != "$coreutils_installed" ]; then
     echo ">> Downloading coreutils v$coreutils_current"
-    curl -kL https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/arm_cortex-a9/packages/coreutils_${coreutils_current}_arm_cortex-a9.ipk -o /tmp/coreutils_${coreutils_current}_arm_cortex-a9.ipk
+    curl -kL https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/${arch}/packages/coreutils_${coreutils_current}_${arch}.ipk -o /tmp/coreutils_${coreutils_current}_${arch}.ipk
     echo ">> Installing coreutils v$coreutils_current"
-    opkg --force-overwrite install /tmp/coreutils_${coreutils_current}_arm_cortex-a9.ipk
-    rm /tmp/coreutils_${coreutils_current}_arm_cortex-a9.ipk
+    opkg --force-overwrite install /tmp/coreutils_${coreutils_current}_${arch}.ipk
+    rm /tmp/coreutils_${coreutils_current}_${arch}.ipk
   fi
   if [ "$coreutils_current" != "$coresort_installed" ]; then
     echo ">> Downloading coreutils-sort v$coreutils_current"
-    curl -kL https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/arm_cortex-a9/packages/coreutils-sort_${coreutils_current}_arm_cortex-a9.ipk -o /tmp/coreutils-sort_${coreutils_current}_arm_cortex-a9.ipk
+    curl -kL https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/${arch}/packages/coreutils-sort_${coreutils_current}_${arch}.ipk -o /tmp/coreutils-sort_${coreutils_current}_${arch}.ipk
     echo ">> Installing coreutils-sort v$coreutils_current"
-    opkg --force-overwrite install /tmp/coreutils-sort_${coreutils_current}_arm_cortex-a9.ipk
-    rm /tmp/coreutils-sort_${coreutils_current}_arm_cortex-a9.ipk
+    opkg --force-overwrite install /tmp/coreutils-sort_${coreutils_current}_${arch}.ipk
+    rm /tmp/coreutils-sort_${coreutils_current}_${arch}.ipk
   fi
   if [ "$ca_bundle_current" != "$ca_bundle_installed" ]; then
     echo ">> Downloading ca-bundle v$ca_bundle_current"
