@@ -43,9 +43,9 @@ function M.getAdblockCardHTML()
   html[#html+1] = '<p class="subinfos">'
   html[#html+1] = format('<strong>Version</strong> %s',content.version)
   html[#html+1] = '<br>'
-  html[#html+1] = format('<strong>Lists updated:</strong> %s',content.last_rundate)
-  html[#html+1] = '<br>'
   html[#html+1] = format("<strong class='modal-link' data-toggle='modal' data-remote='/modals/adblck-sources-modal.lp' data-id='adblck-sources-modal'>%d DNS Block %s</strong> enabled",content.enabled_lists,N("List","Lists",content.enabled_lists))
+  html[#html+1] = '<br>'
+  html[#html+1] = format('<strong>Updated:</strong> %s',content.last_rundate)
   html[#html+1] = '<br>'
   html[#html+1] = format("<strong class='modal-link' data-toggle='modal' data-remote='/modals/adblck-lists-modal.lp' data-id='adblck-lists-modal'>%d Custom White List</strong> %s",white,N("domain","domains",white))
   html[#html+1] = '<br>'
