@@ -110,9 +110,9 @@ function M.fix_ifnames(enabled_was,enabled)
   local device_map = M.get_device_map()
   local apply = false
   for _,interface in pairs(proxy.getPN("uci.network.interface.",true)) do
-    local value = proxy.get(interface.path.."ifname")
-    if value then
-      local ifnames = untaint(value[1].value)
+    local values = proxy.get(interface.path.."ifname",gsub(interface.path,"^uci","rpc",1).."type")
+    if values and values[2].value == "lan" then
+      local ifnames = untaint(values[1].value)
       if find(ifnames,"eth[0-4]") then
         local ifnames_new
         for ifname in gmatch(ifnames,"(%S+)") do
@@ -192,9 +192,9 @@ function M.onDelete(vid)
       local ifnames_map = {}
       for _,interface in pairs(proxy.getPN("uci.network.interface.",true)) do
         local path = interface.path.."ifname"
-        local value = proxy.get(path)
-        if value then
-          local ifnames = untaint(value[1].value)
+        local values = proxy.get(path,gsub(interface.path,"^uci","rpc",1).."type")
+        if values and values[2].value == "lan" then
+          local ifnames = untaint(values[1].value)
           if find(ifnames,"eth",0,true) then
             ifnames_map[#ifnames_map+1] = { path = path, ifnames = ifnames, updated_ifnames = ifnames }
           end
@@ -228,16 +228,19 @@ function M.onModify(vlan_usage)
     if vlan_usage[vlan_id] then
       for ifname in gmatch(vlan_usage[vlan_id].interfaces or "","(%S+)") do
         local ifpath = "uci.network.interface.@"..ifname..".ifname"
-        local ifnames = untaint(proxy.get(ifpath)[1].value)
-        local updated_ifnames = ifnames
-        for p,interface in pairs(vlan_usage[vlan_id].ports) do
-          if not find(ports,p,nil,true) then
-            updated_ifnames = gsub(updated_ifnames,interface,"")
+        local v = proxy.get(ifpath,"rpc.network.interface.@"..ifname..".type")
+        if v and v[2].value == "lan" then
+          local ifnames = untaint(v[1].value)
+          local updated_ifnames = ifnames
+          for p,interface in pairs(vlan_usage[vlan_id].ports) do
+            if not find(ports,p,nil,true) then
+              updated_ifnames = gsub(updated_ifnames,interface,"")
+            end
           end
-        end
-        if ifnames ~= updated_ifnames then
-          updated_ifnames = gsub(gsub(gsub(updated_ifnames,"^ +","")," +$",""),"  "," ")
-          update_ifnames(ifpath,updated_ifnames)
+          if ifnames ~= updated_ifnames then
+            updated_ifnames = gsub(gsub(gsub(updated_ifnames,"^ +","")," +$",""),"  "," ")
+            update_ifnames(ifpath,updated_ifnames)
+          end
         end
       end
     end
