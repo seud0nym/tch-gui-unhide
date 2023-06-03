@@ -17,7 +17,7 @@ Make sure you are in the directory in which the `tch-gui-unhide` script in insta
 #### Upgrading an existing adblock installation
 `sh tch-gui-unhide-xtra.adblock setup`
 #### Removal Instructions
-1. Run: `sh tch-gui-unhide-xtra.adblock setup`
+1. Run: `sh tch-gui-unhide-xtra.adblock remove`
 2. Delete `tch-gui-unhide-xtra.adblock`
 3. Re-run `tch-gui-unhide` to remove the GUI changes, and the additional transformer mappings
 
