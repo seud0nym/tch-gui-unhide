@@ -70,6 +70,8 @@ if [ "$MINIFY" = y ]; then
     -e 's/\(phoneparent.onblur\)/;\1/' \
     -e 's/\(var wifiparent\)/;\1/' \
     -e 's/\(wifiparent.onblur\)/;\1/' \
+    -e 's/\(var securityparent\)/;\1/' \
+    -e 's/\(securityparent.onblur\)/;\1/' \
     -e 's/\(var gameparent\)/;\1/' \
     -e 's/\(gameparent.onblur\)/;\1/' \
     -e 's/\(function updateWaitingTime\)/;\1/' \
