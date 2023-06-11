@@ -73,6 +73,7 @@ if [ "$MINIFY" = y ]; then
     -e 's/\(var gameparent\)/;\1/' \
     -e 's/\(gameparent.onblur\)/;\1/' \
     -e 's/\(function updateWaitingTime\)/;\1/' \
+    -e 's/ *ngx.print( *); *//' \
     -i /www/docroot/landingpage.lp
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/loginbasic.lp"
   sed \
