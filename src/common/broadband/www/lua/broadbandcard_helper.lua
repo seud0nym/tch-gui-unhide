@@ -66,8 +66,8 @@ local function getActiveWANInterfaces(wansensing,mobile,wired)
         rx_bytes = 0,
         tx_bytes = 0,
         total_bytes = 0,
-        permanent = true,
       }
+      wwan.permanent = true
     end
   end
 
