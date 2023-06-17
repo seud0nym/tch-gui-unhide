@@ -524,7 +524,23 @@ Options:
 ```
 
 ## set-optimal-bank-plan
-It is a copy of the commands from https://hack-technicolor.readthedocs.io/en/stable/Hacking/PostRoot/#bank-planning, with a confirmation prompt.
+These devices have 2 firmware banks. Only 1 bank is ever active, and the other is dual purpose: 
+
+1. it is a fail safe in case the active bank won't boot, and 
+2. it is used by the over-the-air upgrade (OTA) procedure. When a firmware is loaded OTA, it is written into the passive bank, which is then made active. When the device reboots, it will be on the new firmware and booting from the previously passive bank.
+
+The so-called optimal bank plan takes advantage of a bootloader feature that allows the device to boot into a BOOTP environment that will allow you to load a new firmware via TFTP. Firmware loaded in this way is always written into bank 1, whether or not bank 1 is active. If bank 2 is active and bootable, the device will still boot from that bank and ignore the new firmware that has been loaded via TFTP.
+
+So the optimal bank plan has this configuration:
+
+* Bank 1 is empty but marked as the active bank
+* Bank 2 contains the bootable operating firmware
+
+What happens when the device boots is that it attempts to boot the active bank (bank 1) but can't because there is no bootable firmware in it. This causes a boot fail and the device then boots the passive bank. Note that this does not change the active bank – the unbootable bank is still marked as active.
+
+What makes it optimal is that if you lose root access to the firmware in bank 2 for any reason, you can always load a rootable firmware into bank 1 via TFTP and it will always boot into that loaded firmware, because bank 1 is still active. You can then easily reacquire root.
+
+The Telstra Smart Modem Gen 3 is slightly different in that it has a different bootloader, which seems to be active bank aware, and doesn't let you in to BOOTP mode if bank 1 is active. However, unlike earlier generations, it will automatically switch to bank 1 after loading a new firmware via TFTP.
 ```
 Usage: ./set-optimal-bank-plan
 ```
