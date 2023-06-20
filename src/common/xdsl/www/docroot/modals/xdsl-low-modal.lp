@@ -154,6 +154,9 @@ local driver_valid = {
   dsl0_maxusdatarate = vOPN,
 }
 local driver_content,help_msg = post_helper.handleQuery(driver_Params,driver_valid)
+if not help_msg then
+  help_msg = {}
+end
 
 local state_map = {
   ["0"] = T"Disabled",
@@ -174,13 +177,16 @@ local datarate_attr = {
   }
 }
 
-
 ngx.print(
-  ui_helper.createHeader(T"xDSL Details",false,false),'\
+  ui_helper.createHeader(T"xDSL",false,false),'\
   <style>.modal-body{overflow-x:hidden;} .form-horizontal .control-label{width:180px;} .form-horizontal .controls{margin-left:200px;}</style>\
-  <div class="modal-body update">',
-    ui_helper.createMessages(message_helper.popMessages()),'\
+  <div class="modal-body update">')
+    local lp = require("web.lp")
+    lp.setpath("/www/snippets/")
+    lp.include("tabs-xdsl.lp")
+    ngx.print(ui_helper.createMessages(message_helper.popMessages()),'\
     <fieldset>\
+      <legend>',T"xDSL Configuration",'</legend>\
       <form class="form-horizontal" method="post" action="modals/xdsl-low-modal.lp">\
         <div class="span4" style="width:60%">',
           ui_helper.createLight(T"Status",nil,state_map[untaint(content.dsl0_enabled)],{light = {class = light_map[untaint(content.dsl0_enabled)]}}),

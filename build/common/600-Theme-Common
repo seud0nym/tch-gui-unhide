@@ -9,7 +9,6 @@ fi # End of if [ $THEME_ONLY = n ] (002-Parameter-Processing)
 
 echo -e "[$SCRIPT]: Adding or updating card background icons"
 sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf115;"/' -i $(ls /www/cards/*_contentsharing.lp)
-sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf188;"/' -i $(ls /www/cards/*_diagnostics.lp)
 [ -f /www/cards/*_fon.lp ] && sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf143;"/' -i $(ls /www/cards/*_fon.lp)
 sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf012;"/' -i $(ls /www/cards/*_lte.lp)
 [ -f /www/cards/*_nfc.lp ] && sed -e 's/class="content"/class="content card_bg mirror" data-bg-text="\&#xf0b2;"/' -i $(ls /www/cards/*_nfc.lp)
@@ -19,7 +18,6 @@ sed -e 's/class="content"/class="content card_bg" data-bg-text="\&#xf079;"/' -i 
 
 echo -e "[$SCRIPT]: Updating card header icons"
 sed -e 's/\(T"Content Sharing", modalPath, nil, nil\))/\1,{icon={class="icon-folder-open-alt"}})/' -i $(ls /www/cards/*_contentsharing.lp)
-sed -e 's|\("modals/diagnostics-.*modal.lp"\))|\1,nil,nil,{icon={class="icon-bug"}})|' -i $(ls /www/cards/*_diagnostics.lp)
 [ -f /www/cards/*_fon.lp ] && sed -e 's/\(T"Telstra Air", modalPath, nil, nil\))/\1,{icon={class="icon-rss-sign"}})/' -i $(ls /www/cards/*_fon.lp)
 sed -e 's/\(params.card_title, modalPath\))/\1,nil,nil,{icon={class="icon-signal"}})/' -i $(ls /www/cards/*_lte.lp)
 [ -f /www/cards/*_nfc.lp ] && sed -e 's/\(T"NFC", modalPath, nil, nil\))/\1,{icon={class="icon-fullscreen"}})/' -i $(ls /www/cards/*_nfc.lp)

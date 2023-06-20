@@ -1,14 +1,3 @@
-echo -e "[$SCRIPT]: Add missing icons on Diagnostics card and change default tab to Traffic Monitor"
-sed \
- -e 's^"Diagnostics", "modals/diagnostics-xdsl-modal.lp"^"Diagnostics", "modals/diagnostics-traffic-modal.lp"^' \
- -e 's^\(<td><div data-toggle="modal" data-remote="modals/diagnostics-xdsl\)^<td><div data-toggle="modal" data-remote="modals/diagnostics-traffic-modal.lp" data-id="diagnostics-traffic-modal"><img href="#" rel="tooltip" data-original-title="TRAFFIC" src="/img/light/Profit-01-WF.png" alt="traffic"></div></td>\\\n\1^' \
- -e 's^\(alt="ping/trace"></div></td>\)\(</tr>\\\)^\1\\\n <td><div data-toggle="modal" data-remote="modals/logviewer-modal.lp" data-id="logviewer-modal"><img href="#" rel="tooltip" data-original-title="LOGVIEWER" src="/img/light/log-viewer.png" alt="logviewer"></div></td>\2^' \
- -e 's^\(<td><div data-toggle="modal" data-remote="modals/diagnostics-connection\)^<td><div data-toggle="modal" data-remote="modals/log-connections-modal.lp" data-id="log-connections-modal"><img href="#" rel="tooltip" data-original-title="CONNECTIONS" src="/img/light/Data-Sync-WF.png" alt="connections"></div></td>\\\n\1^' \
- -e 's^\(alt="network"></div></td>\)\(</tr>\\\)^\1\\\n <td><div data-toggle="modal" data-remote="modals/diagnostics-tcpdump-modal.lp" data-id="diagnostics-tcpdump-modal"><img href="#" rel="tooltip" data-original-title="TCPDUMP" src="/img/light/tcp-dump.png" alt="tcpdump"></div></td>\2^' \
- -e 's|\(alt="\)\([^/"]*\)|class="diag-\2" \1\2|g' \
- -e 's| cellspacing="10%" cellpadding="10%" ||' \
- -i /www/cards/009_diagnostics.lp
-
 echo -e "[$SCRIPT]: Rename Diagnostics tabs and add Connections and Traffic Monitor tabs"
 sed \
  -e 's/"Connection"/"Connection Check"/' \
@@ -16,6 +5,7 @@ sed \
  -e 's/"Network"/"Ports"/' \
  -e 's/Tcpdump/TCP Dump/' \
  -e '/xdsl-modal/i       \    {"diagnostics-traffic-modal.lp", T"Traffic Monitor"},'  \
+ -e '/xdsl-modal/d'  \
  -e '/connection-modal/a \    {"log-connections-modal.lp", T"Network Connections"},'  \
  -e '/string.len(ngx.var.args)/,/^end/d' \
  -e '/airiq/,/^[ ]*$/d' \
@@ -24,6 +14,12 @@ sed \
  -e 's/tabs-management/tabs-diagnostics/' \
  -e 's/"Management"/"Diagnostics"/' \
  -i /www/docroot/modals/log-connections-modal.lp
+
+echo -e "[$SCRIPT]: Move xDSL Diagnostics to xDSL card"
+sed \
+  -e 's/tabs-diagnostics/tabs-xdsl/' \
+  -e 's/T"Diagnostics"/T"xDSL"/' \
+  -i /www/docroot/modals/diagnostics-xdsl-modal.lp
 
 echo -e "[$SCRIPT]: Fix headings on Diagnostics tabs"
 for m in $(grep -L 'createHeader(T"Diagnostics"' /www/docroot/modals/diagnostics-*)

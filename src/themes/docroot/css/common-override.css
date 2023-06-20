@@ -13,6 +13,7 @@
 .chartcard-summary .chart-val{width:60px;text-align:right;font-size:small;}
 .copyright{margin-bottom:0px;color:black;}
 .copyright>p>a>img{width:14px;aspect-ratio:auto 14/14;}
+.diag-icon{float:left;width:48px;height:48px;}
 .header .btn{margin-left:5px;}
 .iptables-head{font-size:smaller;font-variant:small-caps;}
 .iptables-head th:nth-child(n+1):nth-child(-n+2){text-align:right;}
