@@ -518,7 +518,7 @@ MOD
     SRV_transformer=$(( $SRV_transformer + 1 ))
 
     sed \
-      -e '/diagnostics-ping-modal\.lp/i\      <div class="diag-icon" data-toggle="modal" data-remote="modals/diagnostics-speedtest-modal.lp" data-id="diagnostics-speedtest-modal" title="SPEEDTEST®"><img data-original-title="SPEEDTEST" alt="speedtest" class="diag-speedtest"></div>\\' \
+      -e '/diagnostics-ping-modal\.lp/i\      <div class="diag-icon" data-toggle="modal" data-remote="modals/diagnostics-speedtest-modal.lp" data-id="diagnostics-speedtest-modal" title="SPEEDTEST®"><span data-original-title="SPEEDTEST" class="diag-speedtest"/></div>\\' \
       -i /www/cards/009_diagnostics.lp
     sed \
       -e '/diagnostics-ping-modal\.lp/i\    {"diagnostics-speedtest-modal.lp", T"Speed Test"},' \
