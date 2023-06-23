@@ -1,0 +1,216 @@
+local dkjson = require("dkjson")
+local lfs = require("lfs")
+local format,match = string.format,string.match
+
+local status_cmd = "ps | grep speedtest | grep -v grep | grep format=json | cut -d' ' -f1"
+local start_cmd_fmt = "/root/ookla/speedtest --accept-license --format=json > /root/ookla/result-%015d.json &"
+local filename_pattern = "^result%-(%d+)%.json$"
+
+local results_cache = {
+  keys = {},
+  results = {},
+  time_check = nil,
+}
+
+local function getResults()
+  if results_cache.time_check and (results_cache.time_check + 30) > os.time() then
+    return results_cache.results, results_cache.keys
+  end
+
+  results_cache.results,results_cache.keys = {},{}
+
+  local files = {}
+  for name in lfs.dir("/root/ookla") do
+    print(name,match(name,filename_pattern))
+    if match(name,filename_pattern) then
+      files[#files+1] = name
+    end
+  end
+
+  table.sort(files,function (a,b)
+    return a>b
+  end)
+
+  for i,file in pairs(files) do
+    if i > 30 then
+      os.execute("rm -f /root/ookla/"..file)
+    else
+      local handle = io.open("/root/ookla/"..file)
+      if handle then
+        local content = handle:read("*a")
+        handle:close()
+        if content and content ~= "" then
+          local json = dkjson.decode(content)
+          if json and (json.type == "result" or json.type == "log") then
+            json.local_timestamp = tostring(tonumber(match(file,filename_pattern)))
+            results_cache.results[#results_cache.results+1] = json
+            results_cache.keys[#results_cache.keys+1] = tostring(#results_cache.results)
+          end
+        end
+      end
+    end
+  end
+
+  return results_cache.results,results_cache.keys
+end
+
+local function isRunning()
+  local cmd = io.popen(status_cmd, 'r')
+  if cmd then
+    local pid = cmd:read("*n")
+    cmd:close()
+    if pid and pid ~= "" then
+      return "1"
+    end
+  end
+  return "0"
+end
+
+local GUI_OOKLA_ = {
+  objectType = {
+    name = "rpc.gui.speedtest.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      running = {
+        access = "readWrite",
+        type = "boolean",
+      }
+    }
+  }
+}
+
+GUI_OOKLA_.get = {
+  running = isRunning
+}
+
+GUI_OOKLA_.set = {
+  running = function(_,_,value,_)
+    local running = isRunning()
+    if value == "1" then
+      if running == "1" then
+        return nil,"Already running"
+      else
+        os.execute(format(start_cmd_fmt,os.time()))
+      end
+    elseif value == "0" then
+      if running == "1" then
+        return nil,"Cannot interrupt running speedtest"
+      end
+    else
+      return nil,"Invalid value"
+    end
+  end
+}
+
+register(GUI_OOKLA_)
+
+local GUI_OOKLA_RESULT_i_ = {
+  objectType = {
+    name = "rpc.gui.speedtest.result.@.",
+    access = "readOnly",
+    minEntries = 0,
+    maxEntries = math.huge,
+    numEntriesParameter = "resultNumberOfEntries",
+    parameters = {
+      timestamp = {
+        access = "readOnly",
+        type = "unsignedLong"
+      },
+      isp = {
+        access = "readOnly",
+        type = "string"
+      },
+      server = {
+        access = "readOnly",
+        type = "string"
+      },
+      host = {
+        access = "readOnly",
+        type = "string"
+      },
+      latency = {
+        access = "readOnly",
+        type = "string"
+      },
+      download = {
+        access = "readOnly",
+        type = "string"
+      },
+      upload = {
+        access = "readOnly",
+        type = "string"
+      },
+      download_latency = {
+        access = "readOnly",
+        type = "string"
+      },
+      upload_latency = {
+        access = "readOnly",
+        type = "string"
+      },
+      packet_loss = {
+        access = "readOnly",
+        type = "string"
+      },
+      error_level = {
+        access = "readOnly",
+        type = "string"
+      },
+      error_message = {
+        access = "readOnly",
+        type = "string"
+      },
+      json = {
+        access = "readOnly",
+        type = "string"
+      },
+    },
+  },
+}
+
+GUI_OOKLA_RESULT_i_.entries = function(_)
+  local _,keys = getResults()
+  return keys
+end
+
+GUI_OOKLA_RESULT_i_.get = function(_,param,key)
+  local results = getResults()
+  local result = results[tonumber(key)]
+  if not result then
+    return ""
+  elseif param == "type" then
+    return result.type or ""
+  elseif param == "timestamp" then
+    return result.local_timestamp or ""
+  elseif param == "isp" then
+    return result.isp or ""
+  elseif param == "server" then
+    return format("%s %s",result.server.name or "",result.server.location or "")
+  elseif param == "host" then
+    return result.server.host or ""
+  elseif param == "latency" then
+    return format("%.2f",result.ping.latency)
+  elseif param == "download" then
+    return format("%.2f",result.download.bandwidth*8/1000000)
+  elseif param == "upload" then
+    return format("%.2f",result.upload.bandwidth*8/1000000)
+  elseif param == "download_latency" then
+    return format("%.2f",result.download.latency.iqm)
+  elseif param == "upload_latency" then
+    return format("%.2f",result.upload.latency.iqm)
+  elseif param == "packet_loss" then
+    return format("%.1f",result.packetLoss or 0)
+  elseif param == "error_level" then
+    return result.level or ""
+  elseif param == "error_message" then
+    return result.message or ""
+  elseif param == "json" then
+    return dkjson.encode(result)
+  else
+    return nil,"Unknown parameter: "..param
+  end
+end
+
+register(GUI_OOKLA_RESULT_i_)

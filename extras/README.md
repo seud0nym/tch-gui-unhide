@@ -65,6 +65,25 @@ Install SAMBA v3.6 using the `opkg` command (see **opkg Configuration** [`below`
 3. Re-run `tch-gui-unhide` to correctly restore the default version of SAMBA on the device and remove the GUI changes, the custom configuration and the additional transformer mappings
 4. Now you can delete `tch-gui-unhide-xtra.samba36-server`
 
+## tch-gui-unhide-xtra.speedtest
+Creates a GUI interface for the [`Ookla Speedtest®`](https://www.speedtest.net/apps/cli) CLI.
+#### Firmware Applicability
+Should be applicable to all firmware versions supported by `tch-gui-unhide` with release 2023.06.20 or later, running on ARM-based devices (not MIPS).
+#### Prerequisites
+Execute these commands to install the latest Speedtest® CLI where it is expected by `tch-gui-unhide`:  
+`mkdir /root/ookla`  
+*For all ARM-based hardware prior to and including Telstra Smart Modem Gen 2*:  
+&nbsp;&nbsp;&nbsp;`curl -kL https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-armel.tgz | tar -xz -C /root/ookla`  
+*For Telstra Smart Modem Gen 3*:  
+&nbsp;&nbsp;&nbsp;`curl -kL https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-linux-aarch64.tgz | tar -xz -C /root/ookla`  
+
+#### Installation
+`./tch-gui-unhide -x speedtest`
+#### Removal Instructions
+1. Delete `tch-gui-unhide-xtra.speedtest`
+2. Re-run `tch-gui-unhide` to remove the GUI changes, and the additional transformer mappings
+3. (Optional) Delete the Speedtest directory: `rm -rf /root/ookla`
+
 ## tch-gui-unhide-xtra.wireguard
 Creates a GUI interface for configuring the Wireguard VPN.
 #### Firmware Applicability
@@ -106,7 +125,7 @@ Each Access Point device with the `wlassoclist` extra script installed must have
 # How to download and execute these scripts
 
 ### Using the tch-gui-unhide -x option
-Use the `-x` option on the `tch-gui-unhide` command to download and apply the scripts. You can specify mulitple `-x` options to install multiple extras scripts.
+Use the `-x` option on the `tch-gui-unhide` command to download and apply the scripts. You can specify multiple `-x` options to install multiple extras scripts.
 
 ### Manual Download
 Download the scripts that you wish to execute into the same directory as `tch-gui-unhide`.
