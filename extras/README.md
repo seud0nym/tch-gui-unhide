@@ -70,6 +70,8 @@ Creates a GUI interface for the [`Ookla Speedtest®`](https://www.speedtest.net/
 #### Firmware Applicability
 Should be applicable to all firmware versions supported by `tch-gui-unhide` with release 2023.06.20 or later, running on ARM-based devices (not MIPS).
 #### Prerequisites
+Make sure you are in the directory in which the `tch-gui-unhide` script in installed, and then execute these commands:  
+`./update-ca-certificates`  
 Execute these commands to install the latest Speedtest® CLI where it is expected by `tch-gui-unhide`:  
 `mkdir /root/ookla`  
 *For all ARM-based hardware prior to and including Telstra Smart Modem Gen 2*:  
