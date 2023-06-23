@@ -44,11 +44,15 @@ Adds the ability to enable and disable the rsync daemon from the GUI.
 
 Correctly configures OpenWRT SAMBA 3.6 on firmware 17.2 and 18.1.c to provide SMBv2 for Windows 10 inter-operability. This update adds the ability to change the password via the GUI.
 
+#### [tch-gui-unhide-xtra.speedtest](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtraspeedtest)
+
+Creates a GUI interface for the [`Ookla Speedtest®`](https://www.speedtest.net/apps/cli) CLI.
+
 #### [tch-gui-unhide-xtra.wireguard](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtrawireguard)
 
 Creates a GUI interface for configuring the Wireguard VPN on firmware 20.3.
 
-#### [tch-gui-unhide-xtra.wlassoclist](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtraswlassoclist)
+#### [tch-gui-unhide-xtra.wlassoclist](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#tch-gui-unhide-xtrawlassoclist)
 
 Can be installed on a Technicolor device acting as a wireless Access Point to enable the main Technicolor router (running tch-gui-unhide) to query it and correctly report devices connected via Wi-Fi, rather than showing them as Ethernet connections.
 
