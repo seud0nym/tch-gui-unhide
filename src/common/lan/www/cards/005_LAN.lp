@@ -11,6 +11,7 @@ local untaint = string.untaint
 local session = ngx.ctx.session
 
 if session:hasAccess("/modals/ethernet-modal.lp") then
+  local vlan_helper = require("ethernet-vlan_helper")
   local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
   local dhcp_text = "DHCP: "
   local dhcp_state = "0"
@@ -34,11 +35,11 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
   content_helper.getExactContent(lan)
 
   local vlan = {
-    enabled = "uci.network.switch.@bcmsw_ext.enable_vlan",
+    enabled = vlan_helper.get_switch_path("enable_vlan"),
   }
   content_helper.getExactContent(vlan)
 
-  local switch_vlan = content_helper.getMatchedContent("uci.network.switch_vlan.",{ device = "bcmsw_ext" })
+  local switch_vlan = vlan_helper.get_switch_vlans(false)
 
   local adguard = {
     enabled = "rpc.gui.init.files.@AdGuardHome.active",

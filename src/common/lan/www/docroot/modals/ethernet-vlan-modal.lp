@@ -7,14 +7,13 @@ local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
-local proxy_helper = require("proxy_helper")
 local ui_helper = require("web.ui_helper")
 local vlan_helper = require("ethernet-vlan_helper")
 
 local ngx = ngx
 local session = ngx.ctx.session
 local concat = table.concat
-local find,gmatch,match = string.find,string.gmatch,string.match
+local find,gmatch,match,sub = string.find,string.gmatch,string.match,string.sub
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
@@ -25,13 +24,13 @@ local gVNIR = post_helper.getValidateNumberInRange
 local cpu_port = vlan_helper.get_cpu_port()
 local untagged_flag = vlan_helper.get_untagged_flag()
 
-local enabled_was = proxy.get("uci.network.switch.@bcmsw_ext.enable_vlan")
+local enabled_was = proxy.get(vlan_helper.get_switch_path("enable_vlan"))
 if not enabled_was then
   enabled_was = {{value = "0", missing = true}}
 end
 
 local tagged_state = {
-  { "",T"<span class='red' style='font-family:FontAwesome;'>&#xf05e;</span>" },
+  { "X",T"<span class='red' style='font-family:FontAwesome;'>&#xf05e;</span>" },
   { untagged_flag,T"Untagged" },
   { "t",T"Tagged" },
 }
@@ -77,6 +76,14 @@ local vlan_columns = {
     attr = tagged_state_attr,
   },
   {
+    header = concat(ui_helper.createSwitchPort("WAN",eth.state_4,eth.speed_4,{socket={class="red"}})),
+    name = "p4",
+    type = "select",
+    values = tagged_state,
+    attr = tagged_state_attr,
+    readonly = not isBridgedMode,
+  },
+  {
     header = "Used By",
     name = "usage",
     type = "text",
@@ -90,24 +97,6 @@ local vlan_columns = {
     readonly = true,
   },
 }
-if isBridgedMode then
-  local at
-  for k,v in ipairs(vlan_columns) do
-    if v.name == "p3" then
-      at = k +1
-      break
-    end
-  end
-  if at then
-    table.insert(vlan_columns,at,{
-      header = concat(ui_helper.createSwitchPort("WAN",eth.state_4,eth.speed_4,{socket={class="red"}})),
-      name = "p4",
-      type = "select",
-      values = tagged_state,
-      attr = tagged_state_attr,
-    })
-  end
-end
 local vlan_column_index = {}
 for k,v in ipairs(vlan_columns) do
   vlan_column_index[v.name] = k
@@ -143,21 +132,7 @@ if ngx.var.request_method == "POST" then
   if enabled_was[1].value == "0" and enabled_was[1].missing then
     local enabled = post_data["enabled"]
     if enabled == "1" and enabled_was[1].value == "0" and enabled_was[1].missing then
-      proxy_helper.add("uci.network.switch.","bcmsw_ext")
-      proxy_helper.set("uci.network.switch.@bcmsw_ext.name","bcmsw_ext")
-      proxy_helper.set("uci.network.switch.@bcmsw_ext.enable_vlan","1")
-      proxy_helper.set("uci.network.switch.@bcmsw_ext.jumbo",post_data["jumbo"] or "0")
-      proxy_helper.set("uci.network.switch.@bcmsw_ext.qosimppauseenable","0")
-      proxy_helper.set("uci.network.switch.@bcmsw_ext.reset","1")
-      proxy_helper.set("uci.network.switch.@bcmsw_ext.type","bcmsw")
-      proxy_helper.set("uci.network.switch.@bcmsw_ext.unit","1")
-      local added,errmsg = proxy_helper.add("uci.network.switch_vlan.")
-      if added then
-        vlan_helper.add_vlan(added,"1","0"..untagged_flag.." 1"..untagged_flag.." 2"..untagged_flag.." 3"..untagged_flag.." "..cpu_port)
-      else
-        message_helper.pushMessage("Error creating VLAN ID 1: "..errmsg,"error")
-      end
-      proxy.apply()
+      vlan_helper.add_switch(post_data["jumbo"] or "0")
     end
   end
   if post_data.action == "TABLE-DELETE" then
@@ -185,8 +160,8 @@ if enabled_was[1].missing and ngx.var.request_method ~= "POST" then
   vlan_data,vlan_helpmsg = {},{}
 else
   local mapParams = {
-    enabled = "uci.network.switch.@bcmsw_ext.enable_vlan",
-    jumbo = "uci.network.switch.@bcmsw_ext.jumbo",
+    enabled = vlan_helper.get_switch_path("enable_vlan"),
+    jumbo = vlan_helper.get_switch_path("jumbo"),
   }
   local mapValid = {
     enabled = vB,
@@ -194,10 +169,10 @@ else
   }
   content,content_helpmsg = post_helper.handleQuery(mapParams,mapValid)
 
-  local vlan_usage = vlan_helper.fix_ifnames(enabled_was,content.enabled)
+  local vlan_usage,vlan_ids = vlan_helper.fix_ifnames(enabled_was,content.enabled)
 
   local function vlan_filter(data)
-    if data.device == "bcmsw_ext" then
+    if data.device == vlan_helper.get_switch_device() then
       local vlan_id = untaint(data.vlan)
       if tonumber(vlan_id) <= 100 or (vlan_usage[vlan_id] and vlan_usage[vlan_id].count > 0) then
         return { canDelete = false, canEdit = true }
@@ -212,6 +187,33 @@ else
   vlan_options.onModify = vlan_helper.onModify(vlan_usage)
 
   vlan_data,vlan_helpmsg = post_helper.handleTableQuery(vlan_columns,vlan_options,vlan_filter,nil,vlan_valid)
+  local tablesessionindexes = vlan_options.tableid .. ".allowedindexes"
+  local allowedIndexes = session:retrieve(tablesessionindexes) or {}
+  for _,v in ipairs(vlan_data) do
+    vlan_ids[untaint(v[vlan_column_index.vlan])] = nil
+  end
+  for k,v in pairs(vlan_ids) do
+    if v then
+      local row = {}
+      for i,c in ipairs(vlan_columns) do
+        if c.name == "vlan" then
+          row[i] = k
+        elseif c.name == "ports" then
+          row[i] = ""
+          for p,ifname in pairs(vlan_usage[k].ports) do
+            if ifname and sub(ifname,5,5) == "." then
+              row[i] = (row[i] ~= "" and row[i].." " or "")..p.."t"
+            end
+          end
+        else
+          row[i] = ""
+        end
+      end
+      vlan_data[#vlan_data+1] = row
+      allowedIndexes[#allowedIndexes+1] = { canDelete = true, canEdit = false }
+    end
+  end
+  session:store(tablesessionindexes,allowedIndexes)
 
   local vlan_data_index = {}
   for k,v in ipairs(vlan_data) do
@@ -226,10 +228,15 @@ else
     if vlan_usage[vlan_id] then
       v[vlan_column_index.usage] = vlan_usage[vlan_id].interfaces
     end
+    for port=0,4,1 do
+      v[vlan_column_index.p0+port] = "X"
+    end
     for p in gmatch(ports,"(%S+)") do
       if p ~= cpu_port then
         local port,state = match(p,port_state_pattern)
-        v[vlan_column_index.p0+port] = state
+        if state then
+          v[vlan_column_index.p0+port] = state
+        end
       end
     end
   end
@@ -255,7 +262,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
         ui_helper.createSwitch(T"Jumbo Frames","jumbo",content["jumbo"],enabled_visible_attr,content_helpmsg["jumbo"]))
         if content.enabled == "1" then
           ngx.print(
-            '<style>#vlans th:nth-child(1),#vlans td:nth-child(1){text-align:right;}</style>',
+            '<style>.socket{margin-right:6px !important;} #vlans th:nth-child(1),#vlans td:nth-child(1){text-align:right;}</style>',
             '<legend>',T"VLANs",'</legend>',
             ui_helper.createTable(vlan_columns,vlan_data,vlan_options,enabled_visible_attr,vlan_helpmsg)
           )

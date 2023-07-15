@@ -42,7 +42,7 @@ if ngx.var.request_method == "POST" then
 end
 
 local cur_intf,cur_dhcp_intf,all_intfs,lan_intfs,ppp_dev,ppp_intf,dnsmasq_path,wireless_radio = ethernet_helper.get_interfaces()
-local devices = vlan_helper.get_device_map()
+local switch_vlan,valid_vlan_ifnames = vlan_helper.get_switch_vlans(false)
 
 --We need to update IPv6 state only when user want to update the IPv6 state alone.
 if ngx.var.request_method == "POST" and ngx.req.get_post_args(0).iPv6StateOnlyChanged == "yes" then
@@ -258,8 +258,9 @@ local function validateInterfaceNames(value,object,key)
       local ifname = untaint(v)
       local base = match(ifname,"(eth[0-4])")
       if base ~= ifname then
-        if not devices[base] or not devices[base][ifname] then
-          return nil,"Unknown interface: "..ifname
+        if not valid_vlan_ifnames[ifname] then
+          message_helper.pushMessage("Unknown VLAN interface: "..ifname,"error")
+          return nil,"Unknown VLAN interface: "..ifname
         end
       end
       updated_ifnames = ifname..(updated_ifnames == "" and updated_ifnames or " "..updated_ifnames)
@@ -774,20 +775,25 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
 
           --region LAN Ports
           local eth = vlan_helper.get_port_states()
-          local vlan_enabled = proxy.get("uci.network.switch.@bcmsw_ext.enable_vlan") or {{value = "0"}}
+          local vlan_enabled = proxy.get(vlan_helper.get_switch_path("enable_vlan")) or {{value = "0"}}
+          --region functions
           local ifnames = {}
           for ifname in gmatch(untaint(content.ifnames) or "","(%S+)") do
             ifnames[ifname] = true
           end
           local function add_port_checkbox(ifname)
             ngx.print('<td style="text-align:center;width:65px;"><input type="checkbox" name="lanport" value="',ifname,'" ',ifnames[ifname] and "checked" or "",'></td>')
+            return true
           end
           local ban_circle = "<td class='red' style='font-family:FontAwesome;text-align:center;'>&#xf05e;</td>"
+          --endregion functions
+          --region header
           ngx.print(
           '</fieldset>',
           '<fieldset>',
             '<legend style="border-bottom:0px;margin-bottom:0px;">',T"Port Assignment",'</legend>',
             ui_helper.createSimpleInputHidden("ifnames",content.ifnames),'\
+          <style>.socket{margin-right:6px !important;}</style>\
           <table id="portmap" class="table table-striped">\
             <tr>\
               <th style="width:50%;text-align:right;vertical-align:bottom;">',vlan_enabled[1].value == "1" and T"VLAN ID" or "",'</th>\
@@ -801,6 +807,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
               ngx.print('\
               <th style="width:50%;"></th>\
             </tr>')
+            --endregion header
             local unused = 0
             local used = {eth0={[".count"]=0},eth1={[".count"]=0},eth2={[".count"]=0},eth3={[".count"]=0},eth4={[".count"]=0}}
             for _,v in ipairs(proxy.getPN("uci.network.interface.",true)) do
@@ -808,18 +815,30 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
               for ifname in gmatch(untaint(proxy.get(v.path.."ifname")[1].value),"(%S+)") do
                 local base = match(ifname,"(eth[0-4])")
                 if base then
-                  local vlan = match(ifname,"eth[0-4]_(%d+)$") or -1
-                  used[base][".count"] = used[base][".count"] + 1
+                  local vlan = match(ifname,"eth[0-4]%.(%d+)$")
+                  if not vlan and match(ifname,"^eth[0-4]$") then
+                    vlan = "None"
+                    used[base][".count"] = used[base][".count"] + 1
+                  end
                   used[base][intf] = vlan
                 end
               end
             end
             local lastport = isBridgedMode and 4 or 3
+            local none_vlan_label = vlan_helper.get_none_vlan_label(vlan_enabled[1].value)
+            if none_vlan_label then
+              ngx.print('<tr><td style="width:50%;text-align:right;">',none_vlan_label,'</td>')
+              for i=0,lastport,1 do
+                local base = format("eth%d",i)
+                if used[base][cur_intf] == "None" or used[base][".count"] == 0 then
+                  add_port_checkbox(base)
+                else
+                  ngx.print(ban_circle)
+                end
+              end
+              ngx.print('<td style="width:50%;"></td></tr>')
+            end
             if vlan_enabled[1].value == "1" then
-              local switch_vlan = content_helper.getMatchedContent("uci.network.switch_vlan.",{device="bcmsw_ext"})
-              table.sort(switch_vlan,function (a, b)
-                return (tonumber(a.vlan) or -1) < (tonumber(b.vlan) or -1)
-              end)
               local untagged = {}
               for _,v in ipairs(switch_vlan) do
                 for i,state in gmatch(untaint(v.ports),"(%d)(%S*)") do
@@ -833,62 +852,36 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                 local ports = untaint(v.ports)
                 ngx.print('<tr><td style="width:50%;text-align:right;">',T(vlan),'</td>')
                 for i=0,lastport,1 do
+                  local filled = false
                   local base = format("eth%d",i)
-                  local vlan_ifname
-                  for k,vid in pairs(devices[base] or {}) do
-                    if vid == vlan then
-                      vlan_ifname = k
-                      break
-                    end
-                  end
-                  if vlan_ifname then
+                  local vlan_ifname = format("%s.%s",base,vlan)
+                  if used[base][cur_intf] == vlan then -- Used in the current interface
+                    filled = add_port_checkbox(vlan_ifname)
+                  else
                     local at = find(ports,tostring(i),nil,true)
-                    if at then -- this port is used in this vlan
+                    if at and not used[base][cur_intf] then -- this port is configured in this vlan
                       if sub(ports,at+1,at+1) == "t" then -- port is tagged, so can be multiple
-                        add_port_checkbox(vlan_ifname)
+                        filled = add_port_checkbox(vlan_ifname)
                       elseif untagged[base] == vlan then -- port is untagged...
-                        if used[base][cur_intf] == vlan then -- and used in the current interface
-                          add_port_checkbox(vlan_ifname)
-                        else
-                          local untagged_used = false
-                          for _,vid in pairs(used[base]) do
-                            if vid == vlan then
-                              untagged_used = true -- untagged port is used in another interface
-                              break
-                            end
-                          end
-                          if untagged_used then
-                            ngx.print(ban_circle)
-                          else
-                            add_port_checkbox(vlan_ifname)
+                        local untagged_used = false
+                        for _,vid in pairs(used[base]) do
+                          if vid == vlan or vid == "None" then
+                            untagged_used = true -- untagged port is used in another interface
+                            break
                           end
                         end
-                      else
-                        ngx.print(ban_circle)
+                        if not untagged_used then
+                          filled = add_port_checkbox(vlan_ifname)
+                        end
                       end
-                    else
-                      ngx.print(ban_circle)
                     end
-                  else
+                  end
+                  if not filled then
                     ngx.print(ban_circle)
                   end
                 end
                 ngx.print('<td style="width:50%;"></td></tr>')
               end
-            else --VLANs disabled
-              ngx.print('<tr><td style="width:50%;"></td>')
-              for i=0,lastport,1 do
-                local base = format("eth%d",i)
-                if used[base][".count"] == 0 then
-                  unused = unused + 1
-                  add_port_checkbox(base)
-                elseif used[base][cur_intf] then
-                  add_port_checkbox(base)
-                else
-                  ngx.print(ban_circle)
-                end
-              end
-              ngx.print('<td style="width:50%;"></td></tr>')
             end
             ngx.print('\
           </table>')
