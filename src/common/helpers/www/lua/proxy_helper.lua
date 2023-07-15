@@ -1,10 +1,9 @@
 -- Localization
 gettext.textdomain('webui-core')
 
+local log = require("tch.logger").new("proxy_helper",7)
 local message_helper = require("web.uimessage_helper")
 local proxy = require("datamodel")
-
-local ngx = ngx
 
 local ipairs,string = ipairs,string
 local format,gsub,sub = string.format,string.gsub,string.sub
@@ -12,10 +11,10 @@ local format,gsub,sub = string.format,string.gsub,string.sub
 local M = {}
 
 function M.add(p,v,quiet)
-  ngx.log(ngx.ALERT,format("Adding '%s' to %s",v or "new section",p))
+  log:notice("Adding '%s' to %s",v or "new section",p)
   local key,error = proxy.add(p,v)
   if not key then
-    ngx.log(ngx.ERR,format("Failed to add '%s' to %s: %s",v or "new section",p,error))
+    log:error("Failed to add '%s' to %s: %s",v or "new section",p,error)
     if not quiet then
       message_helper.pushMessage(T(format("Failed to add %s to '%s': %s",v or "new section",p,error)),"error")
     end
@@ -62,15 +61,20 @@ function M.add(p,v,quiet)
   if key and sub(key,1,1) == "@" then
     key = sub(key,2)
   end
-return key,error
+  if error then
+    log:error("Failed to add '%s' to %s : %s",v or "new section",p,error)
+  else
+    log:notice("Added key '%s' to %s",key,p)
+  end
+  return key,error
 end
 
 function M.set(p,v)
-  ngx.log(ngx.ALERT,format("Setting %s to '%s'",p,v))
+  log:notice("Setting %s to '%s'",p,v)
   local success,errors = proxy.set(p,v)
   if not success then
     for _,err in ipairs(errors) do
-      ngx.log(ngx.ERR,format("Failed to set %s to '%s': %s (%s)",err.path,v,err.errmsg,err.errcode))
+      log:error("Failed to set %s to '%s': %s (%s)",err.path,v,err.errmsg,err.errcode)
       message_helper.pushMessage(T(format("Failed to set %s to '%s': %s (%s)",err.path,v,err.errmsg,err.errcode)),"error")
     end
   end
