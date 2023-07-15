@@ -80,6 +80,12 @@ Options:
                     into the passive bank.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y').
+ --no-keys-check  Bypass check for updated authorized_keys file.
+                    By default if -k is specified, and an authorized_keys file
+                    exists in the current directory, and the default
+                    authorized_keys has not been updated, then the local
+                    authorized_keys file will be restored instead of the 
+                    current /etc/dropbear/authorized_keys.
  --no-forwards    Bypass restore of port forwards (ignored unless -i is
                     specified).
  --no-leases      Bypass restore of static leases (ignored unless -i is
@@ -146,7 +152,7 @@ RESTORE_CONFIG="N"
 while getopts :bcdD:eh:iI:kmnp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
-        i|no-forwards|no-leases|no-ula) OPTIONS="$OPTIONS --${OPTARG}";;
+        i|no-keys-check|no-forwards|no-leases|no-ula) OPTIONS="$OPTIONS --${OPTARG}";;
         restore-config) RESTORE_CONFIG="Y";;
         save-defaults) SAVE_DEFAULTS="Y";;
         no-defaults) OPTIONS="--no-defaults";;

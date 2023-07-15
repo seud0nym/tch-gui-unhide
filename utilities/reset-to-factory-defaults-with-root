@@ -90,6 +90,12 @@ Options:
                     into the passive bank.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y').
+ --no-keys-check  Bypass check for updated authorized_keys file.
+                    By default if -k is specified, and an authorized_keys file
+                    exists in the current directory, and the default
+                    authorized_keys has not been updated, then the local
+                    authorized_keys file will be restored instead of the 
+                    current /etc/dropbear/authorized_keys.
  --no-forwards    Bypass restore of port forwards (ignored unless -i is
                     specified).
  --no-leases      Bypass restore of static leases (ignored unless -i is
@@ -210,6 +216,7 @@ set_defaults() {
   __SYSLOG_IP=""
   __SYSLOG_PORT=""
   __VERBOSE=N
+  __NO_AUTH_KEYS_CHK="N"
   __NO_FWD="N"
   __NO_LEASES="N"
   __NO_ULA="N"
@@ -240,6 +247,7 @@ while getopts :bcdD:ef:h:iI:kl:mnp:svyU-: option; do
         i)              RESTORE_IPADDR="Y";;
         no-defaults)    set_defaults;;
         no-forwards)    __NO_FWD="Y";;
+        no-keys-check)  __NO_AUTH_KEYS_CHK="Y";;
         no-leases)      __NO_LEASES="Y";;
         no-ula)         __NO_ULA="Y";;
         restore-config) RESTORE_CONFIG="Y"; __CWMP="Y"; __NOEXEC="Y"; __KEYS="Y"; __VERBOSE="Y"; [ -z "$__IPADDR" ] && __IPADDR="$LAN_IP_NOW"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y";;
@@ -385,6 +393,7 @@ if [ $RESTORE_CONFIG = Y ]; then
     fi
   fi
 fi
+# region restore-config.sh
 [ $RESTORE_CONFIG = Y -a ! -e $TARGET/restore-config.sh ] && cat <<"EoSH" > $TARGET/restore-config.sh
 #!/bin/sh
 
@@ -464,6 +473,7 @@ unlock normally
 sh "${DIR}/000-core.sh" $*
 EoSH
 [ -e $TARGET/restore-config.sh ] && chmod +x $TARGET/restore-config.sh
+# endregion restore-config.sh
 
 if [ $RESTORE_CONFIG = Y ]; then
   echo -e "NOTE:     Configuration backup ${GREEN}${OVERLAY_BACKUP}${NC} will be restored to the device!"
@@ -603,10 +613,23 @@ elif [ "${VERSION%%.*}" = "20" ]; then
 fi
 
 if [ -n "$__KEYS" ]; then
+  rm -rf /tmp/rtfdwr_keys
+  mkdir -p /tmp/rtfdwr_keys/etc/dropbear
+  cp -p /etc/dropbear/* /tmp/rtfdwr_keys/etc/dropbear/
+  if [ "$__NO_AUTH_KEYS_CHK" = "N" -a -e authorized_keys ] && cmp -s /rom/etc/dropbear/authorized_keys /etc/dropbear/authorized_keys; then
+    echo -e "NOTE:     /etc/dropbear/authorized_keys will be ${GREEN}replaced${NC}"
+    cp authorized_keys /tmp/rtfdwr_keys/etc/dropbear/authorized_keys
+    chmod 600 /tmp/rtfdwr_keys/etc/dropbear/authorized_keys
+    chown root:root /tmp/rtfdwr_keys/etc/dropbear/authorized_keys
+  fi
   echo -e "NOTE:     SSH keys will be ${GREEN}restored${NC}: ${GREEN}$(ls /etc/dropbear | xargs)${NC}"
   SSH_DIRS="etc/dropbear"
-  [ -d /root/.ssh ] && SSH_DIRS="${SSH_DIRS} root/.ssh"
-  KEYS_CFG="echo '$(tar -czf - -C / $SSH_DIRS | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
+  if [ -d /root/.ssh ]; then
+    mkdir -p /tmp/rtfdwr_keys/root/.ssh
+    cp -p /root/.ssh/* /tmp/rtfdwr_keys/root/.ssh/
+    SSH_DIRS="${SSH_DIRS} root/.ssh"
+  fi
+  KEYS_CFG="echo '$(tar -czf - -C /tmp/rtfdwr_keys $SSH_DIRS | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
 else
   echo -e "${ORANGE}WARNING:  SSH keys will ${RED}NOT${ORANGE} be restored!${NC}"
 fi

@@ -364,7 +364,9 @@ Parameters:
 ```
 
 ## reset-to-factory-defaults-with-root
-This script implements the commands from https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access to reset the device to factory defaults whilst preserving root access.
+This script can be used to reset the device to factory defaults whilst preserving root access. It can also (optionally) automatically re-apply some important configuration after the reset.
+
+It is an updated and more exhaustive implementation of the commands from https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access.
 ```
 Usage: ./reset-to-factory-defaults-with-root [options]
 
@@ -415,6 +417,12 @@ Options:
                     the passive bank.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y').
+ --no-keys-check  Bypass check for updated authorized_keys file.
+                    By default if -k is specified, and an authorized_keys file
+                    exists in the current directory, and the default
+                    authorized_keys has not been updated, then the local
+                    authorized_keys file will be restored instead of the 
+                    current /etc/dropbear/authorized_keys.
  --no-forwards    Bypass restore of port forwards (ignored unless -i is
                     specified).
  --no-leases      Bypass restore of static leases (ignored unless -i is
@@ -444,12 +452,9 @@ Options:
 ## safe-firmware-upgrade
 Applies a new firmware to the device, without losing root access.
 
-It is basically the same as the procedure as described in
-http://hack-technicolor.rtfd.io/en/stable/Upgrade/#preserving-root-access and
-http://hack-technicolor.rtfd.io/en/stable/Upgrade/#flashing-firmware
-but with some additional options.
+It is basically the same as the procedure as described in http://hack-technicolor.rtfd.io/en/stable/Upgrade/#preserving-root-access and http://hack-technicolor.rtfd.io/en/stable/Upgrade/#flashing-firmware but with many additional options.
 
-This script has a dependency on the `reset-to-factory-defaults-with-root` script. If that script does not exist, or is not the correct version, it will be downloaded as needed.
+This script has a dependency on the `reset-to-factory-defaults-with-root` script. If that script does not exist, or is not the latest version, it will be downloaded as needed.
 ```
 Usage: ./safe-firmware-upgrade [options] filename
 
@@ -496,6 +501,12 @@ Options:
                     it defaults to root.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y')
+ --no-keys-check  Bypass check for updated authorized_keys file.
+                    By default if -k is specified, and an authorized_keys file
+                    exists in the current directory, and the default
+                    authorized_keys has not been updated, then the local
+                    authorized_keys file will be restored instead of the 
+                    current /etc/dropbear/authorized_keys.
  --no-forwards    Bypass restore of port forwards (ignored unless -i is
                     specified).
  --no-leases      Bypass restore of static leases (ignored unless -i is
