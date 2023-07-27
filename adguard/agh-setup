@@ -171,12 +171,18 @@ configure_dnmasq() {
   local PEER_DNS=""
   local LOCAL_USE=""
   local DNS_PORT=""
+  local WAN_MODE="$(uci -q get network.config.wan_mode)"
+  local APPLY_NETWORK=0
 
   if [ "$DNSMASQ" = "enable" ]; then
     PEER_DNS="1"
     LOCAL_USE="1"
     DNS_PORT="53"
-    DHCP_SERVER="server"
+    if [ "$WAN_MODE" = "bridge" ]; then
+      DHCP_SERVER="disabled"
+    else
+      DHCP_SERVER="server"
+    fi
   else
     PEER_DNS="0"
     LOCAL_USE="0"
@@ -194,18 +200,23 @@ configure_dnmasq() {
     fi
   fi
 
-  echo -e "${GREEN}[$SCRIPT] Configuring IPv4 WAN DNS...${NC}"
-  uci -q set network.wan.peerdns="$PEER_DNS"
-  uci -q delete network.wan.dns
-
-  if [ -n "$IPv6" ]; then
+  if [ "$(uci -q get network.wan)" = "interface" ]; then
+    echo -e "${GREEN}[$SCRIPT] Configuring IPv4 WAN DNS...${NC}"
+    uci -q set network.wan.peerdns="$PEER_DNS"
+    uci -q delete network.wan.dns
+    APPLY_NETWORK=1
+  fi
+  if [ "$(uci -q get network.wan6)" = "interface" -a -n "$IPv6" ]; then
     echo -e "${GREEN}[$SCRIPT] Configuring IPv6 WAN DNS...${NC}"
     uci -q set network.wan6.peerdns="$PEER_DNS"
+    APPLY_NETWORK=1
   fi
 
-  echo -e "${GREEN}[$SCRIPT] Applying network changes...${NC}"
-  uci commit network
-  /etc/init.d/network reload >/dev/null 2>&1
+  if [ $APPLY_NETWORK = 1 ]; then
+    echo -e "${GREEN}[$SCRIPT] Applying network changes...${NC}"
+    uci commit network
+    /etc/init.d/network reload >/dev/null 2>&1
+  fi
 
   echo -e "${GREEN}[$SCRIPT] Configuring dnsmasq...${NC}"
   /etc/init.d/dnsmasq stop
@@ -514,17 +525,28 @@ echo -e "${GREEN}[$SCRIPT] Extracting IP addresses from current configuration...
 DHCP_SETTINGS=$(lua -e '
   proxy = require("datamodel")
   values = proxy.get(
-    "uci.network.interface.@lan.ipaddr",
-    "uci.network.interface.@lan.netmask",
+    "rpc.network.interface.@lan.ipaddr",
+    "rpc.network.interface.@lan.ipmask",
     "uci.dhcp.dhcp.@lan.start",
     "uci.dhcp.dhcp.@lan.limit",
     "rpc.network.interface.@lan.ip6prefix_assignment",
     "uci.dhcp.dhcp.@lan.leasetime"
   )
   prefix = string.match(values[1].value,"^(%d+%.%d+%.%d+%.)")
-  ipstart = prefix..values[3].value
-  ipend = prefix..values[4].value
-  ipv6start = string.match(values[5].value or "", "(.*)/(%d+)") or ""
+  if prefix then
+    ipstart = prefix..values[3].value
+    ipend = prefix..values[4].value
+  end
+  cidr = tonumber(values[2].value)
+  mask = ""
+  for i=1,4 do
+    mask = mask .. tostring(256 - 2^(8 - math.min(8, cidr)))
+    if (i < 4) then
+      mask = mask .. "."
+    end
+    cidr = math.max(0, cidr - 8)
+  end
+  ipv6start = string.match(values[5].value or "", "(.*)/(%d+)")
   time,precision = string.match(values[6].value, "^(%d+)([wdhms])$")
   if not precision then
     time = 3600
@@ -537,26 +559,27 @@ DHCP_SETTINGS=$(lua -e '
   elseif precision == "m" then
     time = time * 60
   end
-  print(values[1].value,values[2].value,ipstart,ipend,time,ipv6start)
+  print(values[1].value,mask,ipstart,ipend,time,ipv6start)
 ')
 shift $#
 set -- $DHCP_SETTINGS
 GATEWAY=$1
 NETMASK=$2
-DHCPv4_START=$3
-DHCPv4_END=$4
-LEASE_TIME=$5
-if [ -n "$6" ]; then
-  DHCPv6_START="$(echo $6 | sed -e 's/:$/:1/')"
-  SLAAC="true"
-else
+DHCPv4_START=$(echo "$3" | sed -e 's/nil/""/')
+DHCPv4_END=$(echo "$4" | sed -e 's/nil/""/')
+LEASE_TIME=$(echo "$5" | sed -e 's/nil/""/')
+if [ "$6" = "nil" ]; then
   DHCPv6_START='""'
   SLAAC="false"
+else
+  DHCPv6_START="$(echo $6 | sed -e 's/:$/:1/')"
+  SLAAC="true"
 fi
 LOCAL_DOMAIN="$(uci get dhcp.@dnsmasq[0].domain)"
 
 if [ $OVERWRITE = Y -o ! -e $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml ]; then
   echo -e "${GREEN}[$SCRIPT] Configuring AdGuard Home...${NC}"
+  echo "[$SCRIPT] IP=$GATEWAY MASK=$NETMASK DHCP=$AGH_DHCP (DHCPv4=$DHCPv4_START->$DHCPv4_END DHCPv6=$DHCPv6_START SLAAC=$SLAAC)"
   cat <<YAML_END >$INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml
 bind_host: $GATEWAY
 bind_port: 8008
