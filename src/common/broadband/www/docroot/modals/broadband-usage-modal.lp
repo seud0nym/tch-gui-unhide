@@ -1,3 +1,4 @@
+---@diagnostic disable: missing-fields
 --pretranslated: do not change this file
 
 -- Localization
