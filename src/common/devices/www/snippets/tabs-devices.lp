@@ -2,14 +2,17 @@
 
 gettext.textdomain('webui-core')
 
+local bridged = require("bridgedmode_helper")
 local ipairs,string = ipairs,string
 local format,length,substring = string.format,string.len,string.sub
 
 local items = {
   {"device-modal.lp",T"Device List"},
-  {"device-map-modal.lp",T"Network Map"},
-  {"device-bwstats-modal.lp",T"Bandwidth Monitor"},
 }
+if not bridged.isBridgedMode() then
+  items[#items+1] = {"device-map-modal.lp",T"Network Map"}
+  items[#items+1] = {"device-bwstats-modal.lp",T"Bandwidth Monitor"}
+end
 
 local uri = ngx.var.uri
 if ngx.var.args and length(ngx.var.args) > 0 then
