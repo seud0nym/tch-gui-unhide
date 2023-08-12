@@ -552,6 +552,8 @@ What happens when the device boots is that it attempts to boot the active bank (
 What makes it optimal is that if you lose root access to the firmware in bank 2 for any reason, you can always load a rootable firmware into bank 1 via TFTP and it will always boot into that loaded firmware, because bank 1 is still active. You can then easily reacquire root.
 
 The Telstra Smart Modem Gen 3 is slightly different in that it has a different bootloader, which seems to be active bank aware, and doesn't let you in to BOOTP mode if bank 1 is active. However, unlike earlier generations, it will automatically switch to bank 1 after loading a new firmware via TFTP.
+
+This script will copy the booted and rooted firmware into bank 2, _including_ any customisation you have done (such as changing the root password), and then erase bank 1. It will then set bank 1 as active so that it is always tried first during booting. During a normal boot, bank 1 will fail and it will automatically switch and boot from your rooted firmware in bank 2 (without removing the active status from bank 1). It also means that if you need to use TFTP to load a new firmware into bank 1, it will always boot the loaded firmware by default.
 ```
 Usage: ./set-optimal-bank-plan
 ```
