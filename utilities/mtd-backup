@@ -25,7 +25,7 @@ Backs up mtd or ubifs device partitions to an attached USB device or SSHFS
 attached filesystem. Only unchanged partitions are backed up after the 
 first execution.
 
-USB devices have priority over SSHFS filesystems.
+USB device targets have priority over SSHFS filesystems.
 
 Usage: $0 [options]
 
@@ -37,7 +37,7 @@ Options:
                    $VARIANT-$SERIAL-$VERSION-config.gz file
  -e              Save the current environment into the
                    $VARIANT-$SERIAL-$VERSION-env file
- -o              Save the overlay content into the
+ -o              Save the changed overlay content into the
                    $VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz file
  -s              Skip recalculation of the checksum of the backed-up partition,
                    and just save the checksum calculated to determine if the
@@ -45,6 +45,8 @@ Options:
  -0              Skip backup of mtd0 if a backup already exists
                    (Ignored for UBIFS partitions)
  --no-drop-cache Skips flushing the RAM page cache after backup
+ --no-devices    Skips backing up the mtd or ubifs device partitions
+                   (Ignored unless -c, -e and/or -o specified)
  -l              Write log messages to stderr as well as the system log
  -v              Verbose mode
  -y              Bypass confirmation prompt (answers 'y')
@@ -82,6 +84,7 @@ CRON=N
 DEBUG=N
 DIR="backups"
 DUMP_CFG=N
+DUMP_DEV=Y
 DUMP_ENV=N
 DUMP_OVL=N
 FLUSH=Y
@@ -93,7 +96,11 @@ YES=N
 
 while getopts :cd:elosvy0CPU-: option; do
  case "${option}" in
-  -)  case "${OPTARG}" in no-drop-cache) FLUSH=N;; *) usage;; esac;;
+  -)  case "${OPTARG}" in 
+        no-devices) DUMP_DEV=N;;
+        no-drop-cache) FLUSH=N;; 
+        *) usage;; 
+      esac;;
   C)  CRON=Y;;
   P)  PATH_ONLY=Y;;
   c)  DUMP_CFG=Y;;
@@ -180,7 +187,7 @@ trap "unlock" 2
 
 if [ -e $LOCK ]; then
   if ps | grep -qE "\b$(cat $LOCK)\b.*$SCRIPT"; then
-    echo "$SCRIPT: Restore already running?"
+    echo "$SCRIPT: Backup already running?"
     exit 2
   else
     lock -u $LOCK
@@ -229,14 +236,31 @@ elif [ -f $TARGET/README! ]; then
   rm $TARGET/README!
 fi
 
-if [ $DUMP_CFG = Y ]; then
-  if [ -f $TARGET/$VARIANT-$SERIAL-config.gz ]; then
-    FIX_VER=$(cat $TARGET/$VARIANT-$SERIAL-config.gz | gunzip | grep 'marketing_version' | cut -d"'" -f2)
-    if [ -n "$FIX_VER" ]; then
-      $LOGGER user.info "RENAMING existing configuration backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-config.gz"
-      mv $TARGET/$VARIANT-$SERIAL-config.gz $TARGET/$VARIANT-$SERIAL-$FIX_VER-config.gz
-    fi
+# region Fix file naming from previous versions
+if [ -f $TARGET/$VARIANT-$SERIAL-config.gz ]; then
+  FIX_VER=$(cat $TARGET/$VARIANT-$SERIAL-config.gz | gunzip | grep 'marketing_version' | cut -d"'" -f2)
+  if [ -n "$FIX_VER" ]; then
+    $LOGGER user.info "RENAMING existing configuration backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-config.gz"
+    mv $TARGET/$VARIANT-$SERIAL-config.gz $TARGET/$VARIANT-$SERIAL-$FIX_VER-config.gz
   fi
+fi
+if [ -f $TARGET/$VARIANT-$SERIAL-env ]; then
+  FIX_VER=$(grep env.var.friendly_sw_version_activebank $TARGET/$VARIANT-$SERIAL-env | cut -d"'" -f2 | cut -d- -f1)
+  if [ -n "$FIX_VER" ]; then
+    $LOGGER user.info "RENAMING existing environment backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-env"
+    mv $TARGET/$VARIANT-$SERIAL-env $TARGET/$VARIANT-$SERIAL-$FIX_VER-env
+  fi
+fi
+if [ -f $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz ]; then
+  FIX_VER=$(cat $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz | tar  -xzOf - ./$BOOTED/etc/config/version | grep 'marketing_version' | cut -d"'" -f2 )
+  if [ -n "$FIX_VER" ]; then
+    $LOGGER user.info "RENAMING existing overlay contents backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-overlay-files-backup.tgz"
+    mv $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz $TARGET/$VARIANT-$SERIAL-$FIX_VER-overlay-files-backup.tgz
+  fi
+fi
+#endregion
+
+if [ $DUMP_CFG = Y ]; then
   $LOGGER user.info "WRITING current configuration to $TARGET/$VARIANT-$SERIAL-$VERSION-config.gz"
   SECONDS=$(date +%s)
   ACTIVE="$TARGET/$VARIANT-$SERIAL-$VERSION-config.gz"
@@ -260,13 +284,6 @@ else
 fi
 
 if [ $DUMP_ENV = Y ]; then
-  if [ -f $TARGET/$VARIANT-$SERIAL-env ]; then
-    FIX_VER=$(grep env.var.friendly_sw_version_activebank $TARGET/$VARIANT-$SERIAL-env | cut -d"'" -f2 | cut -d- -f1)
-    if [ -n "$FIX_VER" ]; then
-      $LOGGER user.info "RENAMING existing environment backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-env"
-      mv $TARGET/$VARIANT-$SERIAL-env $TARGET/$VARIANT-$SERIAL-$FIX_VER-env
-    fi
-  fi
   $LOGGER user.info "WRITING current environment to $TARGET/$VARIANT-$SERIAL-$VERSION-env"
   SECONDS=$(date +%s)
   ACTIVE="$TARGET/$VARIANT-$SERIAL-$VERSION-env"
@@ -278,23 +295,42 @@ else
 fi
 
 if [ $DUMP_OVL = Y ]; then
-  if [ -f $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz ]; then
-    FIX_VER=$(cat $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz | tar  -xzOf - ./$BOOTED/etc/config/version | grep 'marketing_version' | cut -d"'" -f2 )
-    if [ -n "$FIX_VER" ]; then
-      $LOGGER user.info "RENAMING existing overlay contents backup to $TARGET/$VARIANT-$SERIAL-$FIX_VER-overlay-files-backup.tgz"
-      mv $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz $TARGET/$VARIANT-$SERIAL-$FIX_VER-overlay-files-backup.tgz
-    fi
+  $LOGGER user.info "FINDING unchanged overlay contents to exclude"
+  if [ -z "$(which bootmgr)" ]; then
+    BOOTED="$(cat /proc/banktable/booted 2>/dev/null)"
+  else
+    BOOTED="bank_$(bootmgr partition booted)"
   fi
+  rm -f /tmp/exclude_from_overlay_backup
+  echo "./$BOOTED/etc/config/env" > /tmp/exclude_from_overlay_backup
+  for OVL_FILE in $(find /overlay/$BOOTED ! -type c -a ! -type d -a ! -type l | grep -v "./$BOOTED/etc/config/env" | sort); do 
+    SOURCE=$(echo $OVL_FILE | sed "s|^/overlay/$BOOTED|/rom|")
+    if [ -e $SOURCE ]; then
+      if cmp -s $OVL_FILE $SOURCE; then # Unchanged
+        echo $OVL_FILE | sed "s|^/overlay|.|" >> /tmp/exclude_from_overlay_backup
+      elif echo $OVL_FILE | grep -q "^/overlay/$BOOTED/etc/config"; then
+        CONFIG="$(basename $OVL_FILE)"
+        TMP_CONFIG="$(mktemp)"
+        uci -c /rom/etc/config show $CONFIG | sort > $TMP_CONFIG
+        if ! uci show $CONFIG | grep -v $SERIAL | sort | grep -qFxvf $TMP_CONFIG; then # Only serial number changed
+          echo $OVL_FILE | sed "s|^/overlay|.|" >> /tmp/exclude_from_overlay_backup
+        fi
+        rm -f $TMP_CONFIG
+      fi
+    fi
+  done
   $LOGGER user.info "WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz"
   SECONDS=$(date +%s)
   ACTIVE="$TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz"
-  tar -C /overlay -czf $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz .
+  tar -X /tmp/exclude_from_overlay_backup -C /overlay -czf $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz .
+  rm -f /tmp/exclude_from_overlay_backup
   ACTIVE=""
   [ $DEBUG = Y ] && $LOGGER user.debug "WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz took $(( $(date +%s) - $SECONDS )) seconds"
 else
   [ $DEBUG = Y ] && $LOGGER user.debug "SKIPPED overlay contents backup - Not requested"
 fi
 
+#region restore-config.sh
 [ $DUMP_OVL = Y -a $DUMP_CFG = Y ] && cat <<"EoSH" > $TARGET/restore-config.sh
 #!/bin/sh
 
@@ -373,6 +409,7 @@ unlock normally
 
 sh "${DIR}/000-core.sh" $*
 EoSH
+#endregion restore-config.sh
 [ -e $TARGET/restore-config.sh ] && chmod +x $TARGET/restore-config.sh
 
 getExistingSHA256() {
@@ -450,46 +487,49 @@ backupDevice() {
   [ -e $SHA256_ERROR ] && rm $SHA256_ERROR
 }
 
-if [ -z "$(which ubinfo)" ]; then
-  # Fix incorrect names from previous versions
-  rm -f $(ls $TARGET/$VARIANT-mtd2-rootfs_data-*.img.* 2>/dev/null | grep -v $VERSION)
-  for f in $(ls $TARGET/$VARIANT-mtd2-rootfs_data-$VERSION* 2>/dev/null); do
-    mv "$f" "$(echo $f | sed -e "s/-$VERSION//")"
-  done
-  sed -e '/dev:/d' -e 's/\(mtd[^:]*\)[^"]*"\([^"]*\)"/\1 \2/' /proc/mtd | while read -r dev name; do
-    if [ "$name" = "$BOOTED" ]; then
-      name="$name-$VERSION"
-    elif [ "$name" = "$NOT_BOOTED" ]; then
-      # Fix incorrect names from previous versions
-      for f in $(ls $TARGET/$VARIANT-$dev-$name.* 2>/dev/null); do
-        rm "$f"
-      done
-      name="$name-$OTHER_VERSION"
-    fi
-    getExistingSHA256
-
-    if [ "$dev" = "mtd0" -a $MTD0 = N -a -n "$SHA256SRC" -a -n "$SHA256OLD" -a -f $TARGET/$VARIANT-$dev-$name.img.gz ]; then
-      $LOGGER user.info "SKIPPED backup of $dev - Already exists and -0 option specified"
-      continue
-    fi
-
-    backupDevice
-  done
+if [ $DUMP_DEV = Y -o \( $DUMP_CFG = N -a $DUMP_ENV = N -a $DUMP_OVL = N \) ]; then
+  if [ -z "$(which ubinfo)" ]; then
+    # Fix incorrect names from previous versions
+    rm -f $(ls $TARGET/$VARIANT-mtd2-rootfs_data-*.img.* 2>/dev/null | grep -v $VERSION)
+    for f in $(ls $TARGET/$VARIANT-mtd2-rootfs_data-$VERSION* 2>/dev/null); do
+      mv "$f" "$(echo $f | sed -e "s/-$VERSION//")"
+    done
+    sed -e '/dev:/d' -e 's/\(mtd[^:]*\)[^"]*"\([^"]*\)"/\1 \2/' /proc/mtd | while read -r dev name; do
+      if [ "$name" = "$BOOTED" ]; then
+        name="$name-$VERSION"
+      elif [ "$name" = "$NOT_BOOTED" ]; then
+        # Fix incorrect names from previous versions
+        for f in $(ls $TARGET/$VARIANT-$dev-$name.* 2>/dev/null); do
+          rm "$f"
+        done
+        name="$name-$OTHER_VERSION"
+      fi
+      getExistingSHA256
+      if [ "$dev" = "mtd0" -a $MTD0 = N -a -n "$SHA256SRC" -a -n "$SHA256OLD" -a -f $TARGET/$VARIANT-$dev-$name.img.gz ]; then
+        $LOGGER user.info "SKIPPED backup of $dev - Already exists and -0 option specified"
+        continue
+      fi
+      backupDevice
+    done
+  else
+    for dev in $(ls /dev/ubi*_* | grep -v 'ubi_ctrl\|ubiblock'); do
+      dev=$(basename $dev)
+      name=$(ubinfo /dev/$dev | grep "Name:" | tr -s ' ' | cut -d' ' -f2)
+      if echo "$name" | grep -q "^[br]ootfs${BOOTED_BANK}$"; then
+        name="$name-$VERSION"
+      elif echo "$name" | grep -q "^[br]ootfs${OTHER_BANK}$"; then
+        name="$name-$OTHER_VERSION"
+      fi
+      getExistingSHA256
+      backupDevice
+    done
+  fi
 else
-  for dev in $(ls /dev/ubi*_* | grep -v 'ubi_ctrl\|ubiblock'); do
-    dev=$(basename $dev)
-    name=$(ubinfo /dev/$dev | grep "Name:" | tr -s ' ' | cut -d' ' -f2)
-    if echo "$name" | grep -q "^[br]ootfs${BOOTED_BANK}$"; then
-      name="$name-$VERSION"
-    elif echo "$name" | grep -q "^[br]ootfs${OTHER_BANK}$"; then
-      name="$name-$OTHER_VERSION"
-    fi
-    getExistingSHA256
-    backupDevice
-  done
+  $LOGGER user.info "SKIPPED all device backups as requested"
 fi
+
 if [ $FLUSH = Y ]; then
-  $LOGGER user.info "Flushing page cache..."
+  $LOGGER user.info "FLUSHING page cache..."
   sync
   echo 1 > /proc/sys/vm/drop_caches
 fi
