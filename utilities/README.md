@@ -260,7 +260,7 @@ Options:
 ## mtd-backup
 Backs up mtd or ubifs device partitions to an attached USB device or SSHFS attached filesystem. Only unchanged partitions are backed up after the first execution.
 
-USB devices have priority over SSHFS filesystems. 
+USB device targets have priority over SSHFS filesystems. 
 ```
 Usage: ./mtd-backup [options]
 
@@ -272,7 +272,7 @@ Options:
                    VARIANT-SERIAL-VERSION-config.gz file
  -e              Save the current environment into the 
                    VARIANT-SERIAL-VERSION-env file
- -o              Save the overlay content into the 
+ -o              Save the changed overlay content into the 
                    VARIANT-SERIAL-VERSION-overlay-files-backup.tgz file
  -s              Skip recalculation of the checksum of the backed-up 
                    partition, and just save the checksum calculated 
@@ -280,6 +280,8 @@ Options:
  -0              Skip backup of mtd0 if a backup already exists 
                    (Ignored for UBIFS partitions)
  --no-drop-cache Skips flushing the RAM page cache after backup
+ --no-devices    Skips backing up the mtd or ubifs device partitions
+                   (Ignored unless -c, -e and/or -o specified)
  -l              Write log messages to stderr as well as the system log
  -v              Verbose mode
  -y              Bypass confirmation prompt (answers 'y')
@@ -325,6 +327,8 @@ Parameters:
 
 ## overlay-restore
 Restores an overlay tar backup, such as those created by mtd-backup, reset-to-factory-defaults-with-root, and safe-firmware-upgrade. 
+
+When restoring an overlay backup from another device with same firmware, MAC addresses and serial numbers found in the configuration will be updated to the new devices MAC addresses and serial number.
 
 By default, both bank_1 and bank_2 will be restored.
 ```
@@ -499,6 +503,11 @@ Options:
  -n               Do NOT reboot.
  -p password      Set the password after reset and reboot. If not specified,
                     it defaults to root.
+ -s               Apply factory reset and acquire root on the passive bank, 
+                    rather than the booted bank, and then switch banks after 
+                    reboot. Firmware will also be flashed into the passive 
+                    bank. This is the default when flashing a .pkgtb firmware 
+                    into the passive bank.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y')
  --no-keys-check  Bypass check for updated authorized_keys file.
