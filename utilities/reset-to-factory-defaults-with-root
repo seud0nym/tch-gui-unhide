@@ -691,7 +691,7 @@ if [ -n "$FIRMWARE" ]; then
             ddns dlnad dosprotect dumaos dumaos_qos_tweaks \
             hotspotd \
             intercept iperf ipset iqos \
-            led ledfw log lotagent lsyslogd lte-doctor-logger lxc lxc.mount \
+            led ledfw lotagent lte-doctor-logger lxc lxc.mount \
             mesh-broker minidlna miniupnpd-tch mmpbxbrcmdect mmpbxd mmpbxd_lite mmpbxfwctl mosquitto mqttjson-services mud multiap_agent multiap_controller multiap_vendorextensions mwan \
             ndhttpd ndproxy nfcd nginx nqe \
             pinholehelper \
