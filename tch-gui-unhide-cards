@@ -105,6 +105,7 @@ apply_defaults() {
     HIDE=$HIDDEN
     case "${FILE#*_}" in
       adblock.lp)           SEQ="008";;
+      bank_plan.lp)         SEQ="002";;
       broadband.lp)         SEQ="002";;
       Charts.lp)            SEQ="000";;
       contentsharing.lp)    SEQ="012";;
@@ -200,6 +201,7 @@ apply_suggested() {
       WANDown.lp)           SEQ="000"; HIDE="$HIDE_EXTRA";;
       WANUp.lp)             SEQ="000"; HIDE="$HIDE_EXTRA";;
       gateway.lp)           SEQ="001";;
+      bank_plan.lp)         SEQ="002";;
       broadband.lp)         SEQ="002";;
       internet.lp)          SEQ="003";;
       DNS.lp)               SEQ="004";;

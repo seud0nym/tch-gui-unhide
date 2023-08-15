@@ -1,0 +1,21 @@
+echo -e "[$SCRIPT]: Adding transformer support for Optimal Bank Plan"
+sed \
+ -e '/banktype = {/i \      nextbootbank = {\
+        access = "readOnly",\
+        type = "string",\
+       },\
+       optimalbankplan = {\
+        access = "readOnly",\
+        type = "string",\
+       },' \
+ -e '/banktype = function/i \  nextbootbank = function(mapping, param)\
+    return banktable.getNextBootBank() or ""\
+  end,\
+  optimalbankplan = function(mapping, param)\
+    if banktable.getCurrentBank() == "bank_2" then\
+      return "1"\
+    end\
+    return "2"\
+  end,' \
+ -i /usr/share/transformer/mappings/rpc/system.fwupgrade.map
+

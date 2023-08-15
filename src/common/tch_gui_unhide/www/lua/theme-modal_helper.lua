@@ -135,6 +135,7 @@ M.times = {
 }
 M.card_titles = {
   adblock = "Adblock",
+  bank_plan = "Firmware Banks",
   broadband = "Broadband",
   contentsharing = "Content Sharing",
   cwmpconf = "CWMP",

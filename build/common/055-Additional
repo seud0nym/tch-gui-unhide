@@ -4,6 +4,7 @@ devices
 diagnostics
 dns
 firewall
+firmware
 gateway
 helpers
 internet
