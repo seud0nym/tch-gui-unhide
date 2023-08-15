@@ -25,7 +25,7 @@ sed \
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
 echo -e "[$SCRIPT]: Create voicedndscript.lua if it does not exist"
-grep -q 'exec_uci' /etc/tod/voicedndscript.lua && [ ! -e /rom/etc/tod/voicedndscript.lua ] && rm -f /etc/tod/voicedndscript.lua
+grep -q 'exec_uci' /etc/tod/voicedndscript.lua 2>/dev/null && [ ! -e /rom/etc/tod/voicedndscript.lua ] && rm -f /etc/tod/voicedndscript.lua
 [ ! -e /etc/tod/voicedndscript.lua ] && mkdir -p /etc/tod && touch /etc/tod/voicedndscript.lua && chmod +x /etc/tod/voicedndscript.lua && cat <<"TOD" >>/etc/tod/voicedndscript.lua
 local M = {}
 local pairs = pairs
