@@ -80,8 +80,10 @@ $().ready(function(){
     var lanhdr = document.querySelector("#Local,#Local_Network_tab").closest(".header-title");
     landiv.setAttribute("id","lan-card-throughput");
     lanhdr.parentNode.insertBefore(landiv,lanhdr.nextSibling);
-    updateThroughput();
-    tpFuncID=setInterval(updateThroughput,2000);
-    addRegisteredInterval(tpFuncID);
+    if ($("div.throughput").is(":visible")) {
+      updateThroughput();
+      tpFuncID=setInterval(updateThroughput,2000);
+      addRegisteredInterval(tpFuncID);
+    }
   }
 });

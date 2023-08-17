@@ -4,11 +4,16 @@
 gettext.textdomain('webui-core')
 
 local content_helper = require("web.content_helper")
+local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
+
 local cards = {
   gateway = "uci.web.card.@card_gateway.hide",
   broadband = "uci.web.card.@card_broadband.hide",
 }
 content_helper.getExactContent(cards)
+if isBridgedMode then
+  cards.broadband = "1"
+end
 
 if cards.gateway == "0" or cards.broadband == "0" then
   local js_chart_rgb_helper = require("js_chart_rgb_helper")

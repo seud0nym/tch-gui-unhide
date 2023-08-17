@@ -9,7 +9,7 @@ local content_helper = require("web.content_helper")
 
 -- could be in bridge mode and fail if included in wan_data
 local proxy = require("datamodel")
-local bridged = require("bridgedmode_helper")
+local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
 local wan_proto = proxy.get("uci.network.interface.@wan.proto")
 local static = wan_proto and wan_proto[1].value == "static"
 
@@ -68,7 +68,7 @@ ngx.print('\
     <div id="broadband-card-throughput"><div class="throughput"><span title="Raw throughput including protocol overhead"></span></div></div>\
     <div class="content card_bg mirror" data-bg-text="&#xf0c1;">\
       ');
-      if (WS_en == "1" or not static) and not bridged.isBridgedMode() then
+      if (WS_en == "1" or not static) and not isBridgedMode then
         ngx.print( ui_helper.createSimpleLight(nil,WS_Text,{ light = { class = WS_light_map[WS_State] } }) )
       end
       if WS_en == "1" then
@@ -80,6 +80,8 @@ ngx.print('\
       </div>\
     </div>\
   </div>\
-</div>\
-<script src="/js/002_broadband.js"></script>\
-');
+</div>')
+if isBridgedMode then
+  ngx.print('<script>$("div.throughput").hide();</script>')
+end
+ngx.print('<script src="/js/002_broadband.js"></script>');

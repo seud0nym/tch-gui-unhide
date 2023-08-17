@@ -9,7 +9,7 @@ local cards = {
 }
 content_helper.getExactContent(cards)
 
-if cards.broadband == "0" then
+if cards.broadband == "0" and not require("bridgedmode_helper").isBridgedMode() then
   local ui_helper = require("web.ui_helper")
   local js_chart_rgb_helper = require("js_chart_rgb_helper")
   local rgb = js_chart_rgb_helper.getRGB("wandn")
