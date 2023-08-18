@@ -30,7 +30,7 @@ else
   BOOTED="bank_$(bootmgr partition booted)"
   NOT_BOOTED="bank_$(bootmgr partition notbooted)"
 fi
-[ $ACTIVE = bank_1 ] && PASSIVE=2 || PASSIVE=1
+[ $BOOTED = bank_1 ] && PASSIVE=2 || PASSIVE=1
 
 usage() {
 cat <<EOH
@@ -286,7 +286,13 @@ while getopts :bcdD:ef:h:iI:kl:mnp:svyU-: option; do
   d)  echo "$__CWMP_DNS" | grep -q "\bfwstore.bdms.telstra.net\b" || __CWMP_DNS="$__CWMP_DNS fwstore.bdms.telstra.net";;
   D)  echo "$__CWMP_DNS" | grep -q "\b${OPTARG}\b" || __CWMP_DNS="$__CWMP_DNS $OPTARG";;
   e)  __NOEXEC="Y";;
-  f)  echo "$OPTARG" | grep -qE '\.(pkgtb|rbi|bin)$' && FIRMWARE="${OPTARG}" || { echo -e "${RED}ERROR:    Firmware file names must end with .pkgtb or .rbi or .bin!${NC}"; exit 2; };;
+  f)  if echo "$OPTARG" | grep -qE '\.(pkgtb|rbi|bin)$'; then
+        FIRMWARE="${OPTARG}"
+        echo "$FIRMWARE" | grep -qE '\.pkgtb$' && SWITCH_BANK="Y"
+      else
+        echo -e "${RED}ERROR:    Firmware file names must end with .pkgtb or .rbi or .bin!${NC}"
+        exit
+      fi;;
   h)  __HOSTNAME="$OPTARG";;
   i)  __IPADDR="$LAN_IP_NOW";;
   I)  if echo "${OPTARG}" | grep -qE "$VALID_IPv4_PATTERN"; then
@@ -310,12 +316,7 @@ while getopts :bcdD:ef:h:iI:kl:mnp:svyU-: option; do
   m)  __MOBILED="Y";;
   n)  __REBOOT="N";;
   p)  __ROOTPWD="${OPTARG}";;
-  s)  if [ "$ACTIVE" = "$BOOTED" ]; then
-        SWITCH_BANK="Y"
-      else
-        echo -e "${RED}ERROR:    Cannot switch banks when booted from inactive bank!${NC}"
-        exit
-      fi;;
+  s)  SWITCH_BANK="Y";;
   v)  __VERBOSE="Y";;
   y)  YES="Y";;
   U)  upgrade;;
@@ -324,11 +325,20 @@ while getopts :bcdD:ef:h:iI:kl:mnp:svyU-: option; do
 done
 shift $((OPTIND-1))
 
-echo -e "${GREY}INFO:     Active Firmware      = $(uci -q get env.var.friendly_sw_version_activebank)${NC}"
-echo -e "${GREY}INFO:     Passive Firmware     = $(uci -q get env.var.friendly_sw_version_passivebank)${NC}"
+TARGET_BANK=/overlay/${BOOTED}
+TARGET_MTD=${BOOTED}
+if [ $SWITCH_BANK = "Y" ]; then
+  TARGET_BANK=/overlay/${NOT_BOOTED}
+  TARGET_MTD=${NOT_BOOTED}
+fi
+
 echo -e "${GREY}INFO:     Active partition     = $ACTIVE${NC}"
 echo -e "${GREY}INFO:     Booted partition     = $BOOTED${NC}"
 echo -e "${GREY}INFO:     Not Booted partition = $NOT_BOOTED${NC}"
+echo -e "${GREY}INFO:     Booted firmware      = $(uci -q get env.var.friendly_sw_version_activebank)${NC}"
+echo -e "${GREY}INFO:     Not Booted firmware  = $(uci -q get env.var.friendly_sw_version_passivebank)${NC}"
+echo -e "${GREY}INFO:     Target overlay bank  = $TARGET_BANK${NC}"
+echo "$FIRMWARE" | grep -qE '\.(rbi|bin)$' && echo -e "${GREY}INFO:     Target MTD device    = $TARGET_MTD${NC}"
 echo -e "${GREY}INFO:     /overlay filesystem  = $OVERLAY_FS${NC}"
 echo -e "${GREY}INFO:     /rom filesystem      = $ROM_FS${NC}"
 echo -e "${GREY}INFO:     USB symbolic link    = $USB${NC}"
@@ -520,7 +530,6 @@ if [ -n "$FIRMWARE" ]; then
   if [ -f "$FIRMWARE" ]; then
     if echo "$FIRMWARE" | grep -qE '\.pkgtb$'; then
       echo -e "NOTE:     ${GREEN}$(basename $FIRMWARE)${NC} will be flashed into ${GREEN}$NOT_BOOTED${NC} by sysupgrade and a ${GREEN}bank switch performed${NC}"
-      SWITCH_BANK="Y"
       RBI="N"
     else
       if echo "$FIRMWARE" | grep -qE '\.rbi$'; then
@@ -532,9 +541,9 @@ if [ -n "$FIRMWARE" ]; then
           echo -e "NOTE:     ${ORANGE}$(basename $FIRMWARE)${NC} will be unpacked to ${MOUNT_PATH}${USB} before flashing.${NC}"
           echo "          Do you have enough space?"
         fi
-        echo -e "NOTE:     ${GREEN}$(basename $FIRMWARE .rbi).bin${NC} will be flashed into ${GREEN}$BOOTED${NC} by direct mtd write"
+        echo -e "NOTE:     ${GREEN}$(basename $FIRMWARE .rbi).bin${NC} will be flashed into ${GREEN}$TARGET_MTD${NC} by direct mtd write"
       else # .bin
-        echo -e "NOTE:     ${GREEN}$(basename $FIRMWARE)${NC} will be flashed into ${GREEN}$BOOTED${NC} by direct mtd write"
+        echo -e "NOTE:     ${GREEN}$(basename $FIRMWARE)${NC} will be flashed into ${GREEN}$TARGET_MTD${NC} by direct mtd write"
       fi
       if [ "$ACTIVE" = "$BOOTED" ]; then
         echo -e "${RED}WARNING:  Bank plan is NOT optimal! Active bank is $ACTIVE and booted bank is $BOOTED!${NC}"
@@ -766,13 +775,6 @@ if echo "$FIRMWARE" | grep -qE '\.rbi$'; then
   else
     exit
   fi
-fi
-
-TARGET_BANK=/overlay/${BOOTED}
-TARGET_MTD=${BOOTED}
-if [ $SWITCH_BANK = "Y" ]; then
-  TARGET_BANK=/overlay/${NOT_BOOTED}
-  TARGET_MTD=${NOT_BOOTED}
 fi
 
 if [ -n "$FIRMWARE" -a "$RBI" = "N" ]; then
