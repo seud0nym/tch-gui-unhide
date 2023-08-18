@@ -203,8 +203,15 @@ END
 [ -n "$MOBILED_CFG" ]  && echo "$MOBILED_CFG"
 [ -n "$RESTORE_CFG" ]  && echo "$RESTORE_CFG"
 [ "$__NO_BANK_PLAN_CHK" = "N" ] && cat <<"END"
-cat <<"PROFILE">/etc/profile.d/show-bank-plan.sh
-#!/bin/sh
+if [ -d /etc/profile.d ]; then
+  __PROFILE=/etc/profile.d/show-bank-plan.sh
+  touch $__PROFILE
+  chmod +x $__PROFILE
+  echo '#!/bin/sh'>$__PROFILE
+else
+  __PROFILE=/etc/profile
+fi
+cat <<"PROFILE">>$__PROFILE
 if [ -d /proc/banktable ]; then
   ACTIVE_OPTIMAL="1"
   ACTIVE="$(cat /proc/banktable/active | cut -c6)"
@@ -217,11 +224,11 @@ fi
 if [ "$ACTIVE" = "$ACTIVE_OPTIMAL" -a "$BOOTED" = "2" ]; then
   echo -e "Bank Plan: \033[1;32mOPTIMAL \033[90m(Active=$ACTIVE Booted=$BOOTED)\033[0m"
 else
-  echo -e 'Bank Plan: \033[0;31mSUB-OPTIMAL \033[90m(Active=$ACTIVE Booted=$BOOTED)\033[0m'
+  echo -e "Bank Plan: \033[0;31mSUB-OPTIMAL \033[90m(Active=$ACTIVE Booted=$BOOTED)\033[0m"
 fi
+unset ACTIVE ACTIVE_OPTIMAL BOOTED
 echo
 PROFILE
-chmod +x /etc/profile.d/show-bank-plan.sh
 END
 echo 'exit 0'
 }
