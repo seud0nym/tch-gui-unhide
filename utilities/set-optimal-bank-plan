@@ -61,8 +61,8 @@ else
   echo -e "${GREEN}==> Passive = ${PASSIVE_VERSION}${NC}"
 fi
 
-echo -e "${ORANGE}Ensuring the banks match in size...${NC}"
 if [ $BANKTABLE = Y ]; then
+  echo -e "${ORANGE}Ensuring the banks match in size...${NC}"
   BANK_COUNT=$(grep -c bank_ /proc/mtd)
   if [ $BANK_COUNT -ne 2 ]; then
     echo -e "${RED}==> ABORTING: Unexpected bank count - Expected 2 but found ${BANK_COUNT}!${NC}"
@@ -79,28 +79,18 @@ if [ $BANKTABLE = Y ]; then
     echo -e "${GREEN}==> OKAY: Bank 1 = ${BANK1_SIZE} Bank 2 = ${BANK2_SIZE}${NC}"
   fi
 else
-  ROOTFS1_SIZE="$(grep '"rootfs1"' /proc/mtd | cut -d' ' -f2)"
-  ROOTFS2_SIZE="$(grep '"rootfs2"' /proc/mtd | cut -d' ' -f2)"
-  if [ "$ROOTFS1_SIZE" != "$ROOTFS2_SIZE" ]; then
-    echo -e "${RED}==> ABORTING: Bank 1 and Bank 2 root partitions are different sizes??${NC}"
-    echo " - rootfs1 = $ROOTFS1_SIZE"
-    echo " - rootfs2 = $ROOTFS2_SIZE"
-    exit 2
-  else
-    echo -e "${GREEN}==> OKAY: [ROOT] Bank 1 = ${ROOTFS1_SIZE} Bank 2 = ${ROOTFS2_SIZE}${NC}"
-  fi
-fi
-
-if [ $BANKTABLE = N ]; then
+  echo -e "${ORANGE}Checking /tmp space...${NC}"
   rm -f /tmp/ubi*
   sync
   TMP_AVAIL_BYTES=$(( $(df -k /tmp | tail -n1 | tr -s ' ' | cut -d' ' -f4) * 1024 ))
-  ROOTFS1_BYTES=$(printf "%d" 0x$ROOTFS1_SIZE)
+  ROOTFS1_BYTES=$(ubinfo -d 0 -N rootfs1 | grep ^Size: | cut -d'(' -f2 | cut -d' ' -f1)
   if [ $TMP_AVAIL_BYTES -lt $ROOTFS1_BYTES ]; then
     echo -e "${RED}==> ABORTING: Insufficient /tmp space to copy root partition${NC}"
     echo " - rootfs1 = $ROOTFS1_BYTES bytes"
     echo " - /tmp    = $TMP_AVAIL_BYTES bytes"
     exit 2
+  else
+    echo -e "${GREEN}==> OKAY: rootfs1 = ${ROOTFS1_BYTES} /tmp = ${TMP_AVAIL_BYTES}${NC}"
   fi
 fi
 
@@ -176,7 +166,7 @@ if [ "$REPLY" = "y" -o "$REPLY" = "Y" ]; then
   if [ $BANKTABLE = Y ]; then
     echo -e "${ORANGE}Activating bank 1...${NC}"
     echo bank_1 > /proc/banktable/active
-    echo -e "${ORANGE}Erasing firmware in bank_1...${NC}"
+    echo -e "${ORANGE}Erasing firmware in bank 1...${NC}"
     mtd erase bank_1
   else
     echo -e "${ORANGE}Switching to bank 2...${NC}"
@@ -201,6 +191,7 @@ if [ "$REPLY" = "y" -o "$REPLY" = "Y" ]; then
       echo "# Rebooting to apply new bank plan!            #"
       echo "################################################"
       echo -e "${NC}"
+      sync
       reboot
     fi
   else
