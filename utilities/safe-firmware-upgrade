@@ -80,6 +80,8 @@ Options:
                     into the passive bank.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y').
+ --no-bank-check  Bypass adding the login notification about whether the bank
+                    plan is optimal or not.
  --no-keys-check  Bypass check for updated authorized_keys file.
                     By default if -k is specified, and an authorized_keys file
                     exists in the current directory, and the default
@@ -152,7 +154,7 @@ RESTORE_CONFIG="N"
 while getopts :bcdD:eh:iI:kmnp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
-        i|no-keys-check|no-forwards|no-leases|no-ula) OPTIONS="$OPTIONS --${OPTARG}";;
+        i|no-bank-check|no-keys-check|no-forwards|no-leases|no-ula) OPTIONS="$OPTIONS --${OPTARG}";;
         restore-config) RESTORE_CONFIG="Y";;
         save-defaults) SAVE_DEFAULTS="Y";;
         no-defaults) OPTIONS="--no-defaults";;

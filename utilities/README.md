@@ -421,6 +421,8 @@ Options:
                     the passive bank.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y').
+ --no-bank-check  Bypass adding the login notification about whether the bank
+                    plan is optimal or not.
  --no-keys-check  Bypass check for updated authorized_keys file.
                     By default if -k is specified, and an authorized_keys file
                     exists in the current directory, and the default
@@ -510,6 +512,8 @@ Options:
                     into the passive bank.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y')
+ --no-bank-check  Bypass adding the login notification about whether the bank
+                    plan is optimal or not.
  --no-keys-check  Bypass check for updated authorized_keys file.
                     By default if -k is specified, and an authorized_keys file
                     exists in the current directory, and the default

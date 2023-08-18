@@ -90,6 +90,8 @@ Options:
                     into the passive bank.
  -v               Show the reset script after it has been written.
  -y               Bypass confirmation prompt (answers 'y').
+ --no-bank-check  Bypass adding the login notification about whether the bank
+                    plan is optimal or not.
  --no-keys-check  Bypass check for updated authorized_keys file.
                     By default if -k is specified, and an authorized_keys file
                     exists in the current directory, and the default
@@ -169,7 +171,7 @@ comparable_version() {
 
 rtfd_script() {
 # Based on https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
-cat <<-END
+cat <<END
 exec 1>/tmp/${UCI_DEFAULTS}.out 2>/tmp/${UCI_DEFAULTS}.err
 echo root:$__ROOTPWD | chpasswd
 sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
@@ -189,17 +191,38 @@ uci set dropbear.afg.RootPasswordAuth='on'
 uci set dropbear.afg.RootLogin='1'
 uci set dropbear.lan.enable='0'
 /etc/init.d/dropbear enable
-$LAN_CFG
-$CWMP_CFG
-$DNSMASQ_CFG
-$HOSTNAME_CFG
-$SYSLOG_CFG
-$NOEXEC_CFG
-$KEYS_CFG
-$MOBILED_CFG
-$RESTORE_CFG
-exit 0
 END
+[ -n "$LAN_CFG" ]      && echo "$LAN_CFG"
+[ -n "$CWMP_CFG" ]     && echo "$CWMP_CFG"
+[ -n "$DNSMASQ_CFG" ]  && echo "$DNSMASQ_CFG"
+[ -n "$HOSTNAME_CFG" ] && echo "$HOSTNAME_CFG"
+[ -n "$SYSLOG_CFG" ]   && echo "$SYSLOG_CFG"
+[ -n "$NOEXEC_CFG" ]   && echo "$NOEXEC_CFG"
+[ -n "$KEYS_CFG" ]     && echo "$KEYS_CFG"
+[ -n "$MOBILED_CFG" ]  && echo "$MOBILED_CFG"
+[ -n "$RESTORE_CFG" ]  && echo "$RESTORE_CFG"
+[ "$__NO_BANK_PLAN_CHK" = "N" ] && cat <<"END"
+cat <<"PROFILE">/etc/profile.d/show-bank-plan.sh
+#!/bin/sh
+if [ -d /proc/banktable ]; then
+  ACTIVE_OPTIMAL="1"
+  ACTIVE="$(cat /proc/banktable/active | cut -c6)"
+  BOOTED="$(cat /proc/banktable/booted | cut -c6)"
+else
+  ACTIVE_OPTIMAL="2"
+  ACTIVE="$(bootmgr partition active 2>/dev/null | grep -v rd_metadata)"
+  BOOTED="$(bootmgr partition booted 2>/dev/null | grep -v rd_metadata)"
+fi
+if [ "$ACTIVE" = "$ACTIVE_OPTIMAL" -a "$BOOTED" = "2" ]; then
+  echo -e "Bank Plan: \033[1;32mOPTIMAL \033[90m(Active=$ACTIVE Booted=$BOOTED)\033[0m"
+else
+  echo -e 'Bank Plan: \033[0;31mSUB-OPTIMAL \033[90m(Active=$ACTIVE Booted=$BOOTED)\033[0m'
+fi
+echo
+PROFILE
+chmod +x /etc/profile.d/show-bank-plan.sh
+END
+echo 'exit 0'
 }
 
 set_defaults() {
@@ -217,6 +240,7 @@ set_defaults() {
   __SYSLOG_PORT=""
   __VERBOSE=N
   __NO_AUTH_KEYS_CHK="N"
+  __NO_BANK_PLAN_CHK="N"
   __NO_FWD="N"
   __NO_LEASES="N"
   __NO_ULA="N"
@@ -246,6 +270,7 @@ while getopts :bcdD:ef:h:iI:kl:mnp:svyU-: option; do
   -)  case "${OPTARG}" in
         i)              RESTORE_IPADDR="Y";;
         no-defaults)    set_defaults;;
+        no-bank-check)  __NO_BANK_PLAN_CHK="Y";;
         no-forwards)    __NO_FWD="Y";;
         no-keys-check)  __NO_AUTH_KEYS_CHK="Y";;
         no-leases)      __NO_LEASES="Y";;
@@ -669,7 +694,7 @@ fi
 
 if [ $__VERBOSE = Y ]; then
   echo -e "NOTE:     The following reset script will executed after reboot:${GREY}"
-  rtfd_script | sed -e '/^$/d' -e 's/^/  /'
+  rtfd_script
   echo -en "${NC}"
 fi
 
