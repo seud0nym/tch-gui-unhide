@@ -169,6 +169,7 @@ comparable_version() {
   echo $result
 }
 
+#region rtfd_script()
 rtfd_script() {
 # Based on https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
 cat <<END
@@ -224,6 +225,7 @@ chmod +x /etc/profile.d/show-bank-plan.sh
 END
 echo 'exit 0'
 }
+#endregion
 
 set_defaults() {
   __BKUP=""
@@ -633,7 +635,7 @@ fi
 if [ -n "$__NOEXEC" ]; then
   echo -e "NOTE:     Any 'noexec' flags will be ${ORANGE}removed${NC} from USB filesystem mounts"
   NOEXEC_CFG="sed -e 's/noexec,//' -e 's/,noexec//' -i /etc/config/mountd"
-elif [ "${VERSION%%.*}" = "20" ]; then
+elif [ "${VERSION%%.*}" -ge 20 ]; then
   echo -e "${ORANGE}WARNING:  'noexec' flags will ${RED}NOT${ORANGE} be removed from USB filesystem mounts!${NC}"
 fi
 
