@@ -724,6 +724,27 @@ if [ $YES = N ]; then
   fi
 fi
 
+if [ -z "$__CWMP" -a -z "$__CWMP_DNS" ]; then
+  echo -e "${ORANGE}"
+  echo '**************************************************************************'
+  echo '* !! WARNING !!                                                          *'
+  echo '*                                                                        *'
+  echo '* You are about to reset without specifying either the -c or -d options! *'
+  echo '*                                                                        *'
+  echo '* If you have an internet connection after reboot (either a fixed wired  *'
+  echo '* connection or 4G backup connection via a SIM card) your device will be *'
+  echo '* vulnerable to an over-the-air firmware update and you could lose root! *'
+  echo '*                                                                        *'
+  echo '* You need to re-confirm that you understand this and want to continue.  *'
+  echo '**************************************************************************'
+  echo
+  echo -en "ACTION:   Enter y to continue, or anything else to exit now${NC} "
+  read
+  if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
+    exit
+  fi
+fi
+
 if [ -n "$FIRMWARE" ]; then
   echo -e  "INFO:     $(grep '^Mem\(Free\|Available\)' /proc/meminfo | xargs)"
   echo -en "INFO:     Stopping services"
