@@ -332,6 +332,12 @@ while getopts :bcdD:ef:h:iI:kl:mnp:svyU-: option; do
 done
 shift $((OPTIND-1))
 
+if [ $SAVE_DEFAULTS = Y ]; then
+  set | grep '^__' > .defaults.$SCRIPT
+  echo -e "\e[1;32mDefaults saved\e[0m"
+  exit
+fi
+
 TARGET_BANK=/overlay/${BOOTED}
 TARGET_MTD=${BOOTED}
 if [ $SWITCH_BANK = "Y" ]; then
@@ -350,12 +356,6 @@ echo -e "${GREY}INFO:     /overlay filesystem  = $OVERLAY_FS${NC}"
 echo -e "${GREY}INFO:     /rom filesystem      = $ROM_FS${NC}"
 echo -e "${GREY}INFO:     USB symbolic link    = $USB${NC}"
 
-if [ $SAVE_DEFAULTS = Y ]; then
-  set | grep '^__' > .defaults.$SCRIPT
-  echo -e "\e[1;32mDefaults saved\e[0m"
-  exit
-fi
-
 if [ -n "$__BKUP" ]; then
   if [ -z "$USB" ]; then
     echo -e "${RED}ABORTING: Backup requested, but no attached USB device found!${NC}"
@@ -366,7 +366,26 @@ if [ -n "$__BKUP" ]; then
     [ -d "$TARGET" ] || mkdir -p "$TARGET"
     FULL_VERSION=$(uci get version.@version[0].version | cut -d- -f1)
     echo -e "INFO:     Backing up overlay to ${ORANGE}$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz${NC} ..."
-    tar -C /overlay -czf $TARGET/$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz .
+    rm -f /tmp/exclude_from_overlay_backup
+    echo "./$BOOTED/etc/config/env" > /tmp/exclude_from_overlay_backup
+    for OVL_FILE in $(find /overlay/$BOOTED ! -type c -a ! -type d -a ! -type l | grep -v "./$BOOTED/etc/config/env" | sort); do 
+      SOURCE=$(echo $OVL_FILE | sed "s|^/overlay/$BOOTED|/rom|")
+      if [ -e $SOURCE ]; then
+        if cmp -s $OVL_FILE $SOURCE; then # Unchanged
+          echo $OVL_FILE | sed "s|^/overlay|.|" >> /tmp/exclude_from_overlay_backup
+        elif echo $OVL_FILE | grep -q "^/overlay/$BOOTED/etc/config"; then
+          CONFIG="$(basename $OVL_FILE)"
+          TMP_CONFIG="$(mktemp)"
+          uci -c /rom/etc/config show $CONFIG | sort > $TMP_CONFIG
+          if ! uci show $CONFIG | grep -v $SERIAL | sort | grep -qFxvf $TMP_CONFIG; then # Only serial number changed
+            echo $OVL_FILE | sed "s|^/overlay|.|" >> /tmp/exclude_from_overlay_backup
+          fi
+          rm -f $TMP_CONFIG
+        fi
+      fi
+    done
+    tar -X /tmp/exclude_from_overlay_backup -C /overlay -czf $TARGET/$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz $(cd /overlay && ls -d ./bank_[12])
+    rm -f /tmp/exclude_from_overlay_backup
     echo -e "INFO:     Backing up config to  ${ORANGE}$VARIANT-$SERIAL-$FULL_VERSION-config.gz${NC} ..."
     uci show 2>/dev/null | awk -e "$(lua -e 'proxy=require("datamodel");
     passwords=proxy.get("rpc.gui.pwd.")
@@ -519,22 +538,9 @@ EoSH
 [ -e $TARGET/restore-config.sh ] && chmod +x $TARGET/restore-config.sh
 # endregion restore-config.sh
 
-if [ $RESTORE_CONFIG = Y ]; then
-  echo -e "NOTE:     Configuration backup ${GREEN}${OVERLAY_BACKUP}${NC} will be restored to the device!"
-  echo -e "${ORANGE}WARNING:  Configuration restore can take 5-10 minutes. Be patient!${NC}"
-  echo -e "${ORANGE}WARNING:  The device MUST have internet access after factory reset or the configuration restore will ${RED}FAIL!${NC}"
-  echo "COMMAND:  ${MOUNT_PATH}${USB}/backups/restore-config ${RESTORE_OPTIONS}"
-  RESTORE_CFG="(while [ ! -e ${MOUNT_PATH}${USB}/backups/restore-config.sh ]; do sleep 2; done; sh ${MOUNT_PATH}${USB}/backups/restore-config.sh -vvy $RESTORE_OPTIONS 2>&1 | logger -t restore-config) &"
-else
-  echo -e "${ORANGE}WARNING:  You are resetting to factory defaults!${NC}"
-  echo -e "${ORANGE}          Any customisation or settings you have changed will be lost!${NC}"
-  grep -q 'tch-gui-unhide' /www/docroot/gateway.lp && echo -e "NOTE:     You will need to ${ORANGE}re-run tch-gui-unhide${NC} after rebooting!"
-fi
-echo -e "NOTE:     Root access will be preserved and the root password will be set to '${GREEN}${__ROOTPWD}${NC}'"
-
 RBI="Y"
 if [ -n "$FIRMWARE" ]; then
-  if [ -f "$FIRMWARE" ]; then
+  if [ -e "$FIRMWARE" ]; then
     if echo "$FIRMWARE" | grep -qE '\.pkgtb$'; then
       echo -e "NOTE:     ${GREEN}$(basename $FIRMWARE)${NC} will be flashed into ${GREEN}$NOT_BOOTED${NC} by sysupgrade and a ${GREEN}bank switch performed${NC}"
       RBI="N"
@@ -563,6 +569,20 @@ if [ -n "$FIRMWARE" ]; then
   fi
   echo -e "NOTE:     ${ORANGE}Services will be stopped to increase free RAM${NC}"
 fi
+
+if [ $RESTORE_CONFIG = Y ]; then
+  echo -e "NOTE:     Configuration backup ${GREEN}${OVERLAY_BACKUP}${NC} will be restored to the device!"
+  echo -e "${ORANGE}WARNING:  Configuration restore can take 5-10 minutes. Be patient!${NC}"
+  echo -e "${ORANGE}WARNING:  The device MUST have internet access after factory reset or the configuration restore will ${RED}FAIL!${NC}"
+  echo "COMMAND:  ${MOUNT_PATH}${USB}/backups/restore-config ${RESTORE_OPTIONS}"
+  RESTORE_CFG="(while [ ! -e ${MOUNT_PATH}${USB} ]; do sleep 2; done; sh ${MOUNT_PATH}${USB}/backups/restore-config.sh -vvy $RESTORE_OPTIONS 2>&1 | logger -t restore-config) &"
+else
+  echo -e "${ORANGE}WARNING:  You are resetting to factory defaults!${NC}"
+  echo -e "${ORANGE}          Any customisation or settings you have changed will be lost!${NC}"
+  grep -q 'tch-gui-unhide' /www/docroot/gateway.lp && echo -e "NOTE:     You will need to ${ORANGE}re-run tch-gui-unhide${NC} after rebooting!"
+fi
+
+echo -e "NOTE:     Root access will be preserved and the root password will be set to '${GREEN}${__ROOTPWD}${NC}'"
 
 NOW_C_CLASS="$(echo $LAN_IP_NOW | cut -d. -f1-3)"
 CFG_C_CLASS="$(echo $__IPADDR | cut -d. -f1-3)"
