@@ -767,7 +767,6 @@ fi
 
 if [ -n "$FIRMWARE" ]; then
   echo -e  "INFO:     $(grep '^Mem\(Free\|Available\)' /proc/meminfo | xargs)"
-  echo -en "INFO:     Stopping services"
   services="watchdog-tch \
             adblock AdGuardHome autoreset \
             bqos bulkdata \
@@ -786,12 +785,22 @@ if [ -n "$FIRMWARE" ]; then
             uhttpd \
             wansensing wfa-testsuite-daemon wifi-doctor-agent wol \
             xl2tpd"
+  sp='/-\|'
+  i=1
+  c=0
   for service in $services; do
     if [ -x /etc/init.d/$service ]; then
-      echo -en "."    
+      echo -en "\rINFO:     Stopping services: $(echo $sp | cut -c $i) ${GREY}$service${NC}"
+      c=$(( $c - ${#service} ))
+      while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done
+      c=${#service}
+      [ $i -lt 4 ] && i=$(( $i + 1 )) || i=1
       /etc/init.d/$service stop >/dev/null 2>&1
     fi
   done
+  echo -en "\rINFO:     Stopped services"
+  c=$(( $c + 31 - 26 ))
+  while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done
   echo
   echo -e  "INFO:     $(grep '^Mem\(Free\|Available\)' /proc/meminfo | xargs)"
 fi
