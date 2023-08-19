@@ -322,7 +322,7 @@ if [ $DUMP_OVL = Y ]; then
   $LOGGER user.info "WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz"
   SECONDS=$(date +%s)
   ACTIVE="$TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz"
-  tar -X /tmp/exclude_from_overlay_backup -C /overlay -czf $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz .
+  tar -X /tmp/exclude_from_overlay_backup -C /overlay -czf $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz $(cd /overlay && ls -d ./bank_[12])
   rm -f /tmp/exclude_from_overlay_backup
   ACTIVE=""
   [ $DEBUG = Y ] && $LOGGER user.debug "WRITING overlay contents to $TARGET/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz took $(( $(date +%s) - $SECONDS )) seconds"
