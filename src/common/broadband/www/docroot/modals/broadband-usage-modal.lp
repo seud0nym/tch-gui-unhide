@@ -1,5 +1,5 @@
----@diagnostic disable: missing-fields
 --pretranslated: do not change this file
+---@diagnostic disable: missing-fields
 
 -- Localization
 gettext.textdomain('webui-core')
