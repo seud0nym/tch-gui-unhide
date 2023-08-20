@@ -25,10 +25,11 @@ sed -e 's/\(T"Printer Sharing", modalPath\))/\1,nil,nil,{icon={class="icon-print
 sed -e 's/\(T"Parental Controls", modalPath, switchName, nil\))/\1,{icon={class="icon-lock"}})/' -i $(ls /www/cards/*_parental.lp)
 sed -e 's|\(T"Relay Setup", "modals/relay-modal.lp"\))|\1,nil,nil,{icon={class="icon-retweet"}})|' -i $(ls /www/cards/*_relaysetup.lp)
 
-echo -e "[$SCRIPT]: Fix some responsive span widths"
+echo -e "[$SCRIPT]: Fix some responsive CSS settings"
 sed \
   -e 's/:56px/:80px/' \
   -e 's/:170px/:150px/' \
+  -e 's/.smallcard p.subinfos{margin-left:0px;margin-top:0px;}//' \
   -i /www/docroot/css/responsive.css
 
 echo -e "[$SCRIPT]: Add theme processing"
