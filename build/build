@@ -66,9 +66,22 @@ sh update-sha256.sh
 cd - >/dev/null
 
 echo "${GREEN}Building /tmp/themes.b64...${NC}"
+[ -n "$DEBUG" ] && echo Copying ../src/themes to /tmp/tch-gui-unhide/themes/
+cleanup /tmp/tch-gui-unhide/themes
+mkdir -p /tmp/tch-gui-unhide/themes
+tar --exclude README.md -cf - -C ../src/themes/ . | tar $DEBUG -xf - -C /tmp/tch-gui-unhide/themes/
+for f in $(find /tmp/tch-gui-unhide/themes -type f -name '*.css'); do
+  m=$(mktemp)
+  cp $f $m
+  # https://gist.github.com/dominicmartineau/5483359
+  cat $m | sed -e 's/^[ \t]*//g; s/[ \t]*$//g; s/\([:{;,]\) /\1/g; s/ {/{/g; s/\/\*.*\*\///g; /^$/d' | sed -e :a -e '$!N; s/\n\(.\)/\1/; ta' > $f 
+  [ -n "$DEBUG" ] && echo "Minified $f ($(cat $m | wc -c) -> $(cat $f | wc -c))"
+  rm -f $m
+done 
 echo "echo -e \"\${GREY}BLD/069:\${NC} Deploy theme files\"" > /tmp/themes.b64
-echo "echo '$(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -cf - -C ../src/themes . | bzip2 --best | base64 -w0)' | base64 -d | bzcat | tar -xf - -C /" >> /tmp/themes.b64
+echo "echo '$(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -cf - -C /tmp/tch-gui-unhide/themes . | bzip2 --best | base64 -w0)' | base64 -d | bzcat | tar -xf - -C /" >> /tmp/themes.b64
 echo "" >> /tmp/themes.b64
+cleanup /tmp/tch-gui-unhide/themes
 
 for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
   [ -n "$1" -a "$1" != "$MAJOR" ] && continue
@@ -118,14 +131,24 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
   find /tmp/tch-gui-unhide/$MAJOR/ -type d \( -name 'init.d' -o -name 'sbin' -o -name 'iface' \) -exec chmod -R 755 {} \;
   find /tmp/tch-gui-unhide/$MAJOR/ -type d -exec chmod 755 {} \;
 
+  if which terser >/dev/null; then
+    echo "${GREEN}Compressing Javascript...${NC}"
+    for f in $(find /tmp/tch-gui-unhide/$MAJOR/ -type f -name '*.js'); do
+      m=$(mktemp)
+      cp $f $m
+      terser $m --mangle --compress --comments false --output $f
+      [ -n "$DEBUG" ] && echo "Minified $f ($(cat $m | wc -c) -> $(cat $f | wc -c))"
+      rm -f $m
+    done
+  fi
+  
   TARGET=../tch-gui-unhide-$MAJOR
   echo "${GREEN}Writing $TARGET...${NC}"
   echo "#!/bin/sh" > $TARGET
   echo "echo -e \"\\033[90mBLD/125:\\033[0m Built for firmware version $MAJOR - ${PRERELEASE}Release $DATE_VERSION\"" >> $TARGET
   echo "RELEASE='$FULL_VERSION'" >> $TARGET
 
-  for s in $(find common $MAJOR -type f -a ! -name .do-not-delete ! -name .include -printf '%f/%h\n' | cat - $MAJOR/.include 2>/dev/null | grep -v '^#' | sort)
-  do
+  for s in $(find common $MAJOR -type f -a ! -name .do-not-delete ! -name .include -printf '%f/%h\n' | cat - $MAJOR/.include 2>/dev/null | grep -v '^#' | sort); do
     [ -n "$DEBUG" ] && echo "Processing $s"
     FILENAME="$(echo $s | cut -d/ -f1)"
     SEQUENCE="$(echo $FILENAME | cut -d- -f1)"
