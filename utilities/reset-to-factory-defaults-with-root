@@ -365,7 +365,7 @@ if [ -n "$__BKUP" ]; then
     echo "NOTE:     /overlay contents and current configuration will be backed up to $TARGET"
     [ -d "$TARGET" ] || mkdir -p "$TARGET"
     FULL_VERSION=$(uci get version.@version[0].version | cut -d- -f1)
-    echo -e "INFO:     Backing up overlay to ${ORANGE}$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz${NC} ..."
+    echo -e "${GREY}INFO:     Finding unchanged overlay contents to exclude${NC}"
     rm -f /tmp/exclude_from_overlay_backup
     echo "./$BOOTED/etc/config/env" > /tmp/exclude_from_overlay_backup
     for OVL_FILE in $(find /overlay/$BOOTED ! -type c -a ! -type d -a ! -type l | grep -v "./$BOOTED/etc/config/env" | sort); do 
@@ -384,6 +384,7 @@ if [ -n "$__BKUP" ]; then
         fi
       fi
     done
+    echo -e "INFO:     Backing up overlay to ${ORANGE}$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz${NC} ..."
     tar -X /tmp/exclude_from_overlay_backup -C /overlay -czf $TARGET/$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz $(cd /overlay && ls -d ./bank_[12])
     rm -f /tmp/exclude_from_overlay_backup
     echo -e "INFO:     Backing up config to  ${ORANGE}$VARIANT-$SERIAL-$FULL_VERSION-config.gz${NC} ..."
