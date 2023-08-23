@@ -393,9 +393,11 @@ session:store("timer_data",timer_data)
 
 local modal="/modals/tod_dnd-modal.lp"
 local tabs = "tabs-voice.lp"
+local header = T"Telephony"
 if ngx.var.args == "tod" then
   modal = modal.."?tod"
   tabs = "tabs-tod.lp"
+  header = T"Time of Day"
 end
 lp.setpath("/www/snippets/")
 
@@ -410,7 +412,7 @@ local table_attr = {
   group = { class = "monitor-todStatus monitor-1 monitor-hidden-todStatus", },
 }
 
-ngx.print(ui_helper.createHeader(T"Time of Day",true,false),'\
+ngx.print(ui_helper.createHeader(header,true,false),'\
 <div class="modal-body update">\
 '); lp.include(tabs); ngx.print('\
   <form class="form-horizontal" method="post" action="',modal,'">\
