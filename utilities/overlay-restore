@@ -146,7 +146,7 @@ read
 echo -e "$(date +%F@%X): ${ORANGE}REMOVING existing overlay...${NC}"
 cd /overlay
 rm -rf $RESTORE
-cd -
+cd - >/dev/null
 
 echo -e "$(date +%F@%X): ${ORANGE}RESTORING...${NC}"
 if tar -x${GZIP}${VERBOSE} -f $FILENAME -C /overlay $RESTORE; then
