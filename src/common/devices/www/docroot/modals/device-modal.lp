@@ -345,10 +345,20 @@ if ngx.var.request_method == "POST" and ngx.var.content_type and match(ngx.var.c
   end
 end
 
-ngx.print(ui_helper.createHeader(T"Devices",false,true,interval),'\
+local tabs = "tabs-lan.lp"
+local header = T"Local Network"
+local modal_param=""
+if getargs.dev and getargs.dev == "1" then
+  modal_param = "&dev=1"
+  tabs = "tabs-devices.lp"
+  header = T"Devices"
+end
+lp.setpath("/www/snippets/")
+
+ngx.print(ui_helper.createHeader(header,false,true,interval),'\
 <div class="modal-body update">\
-'); lp.include("tabs-devices.lp") ngx.print('\
-  <form class="form-horizontal" method="post" action="modals/device-modal.lp?sort=',sortcol,'&connected=',connected,'">',
+'); lp.include(tabs) ngx.print('\
+  <form class="form-horizontal" method="post" action="modals/device-modal.lp?sort=',sortcol,'&connected=',connected,modal_param,'">',
     ui_helper.createMessages(message_helper.popMessages()),'\
     <fieldset>',
       ui_helper.createTable(devices_columns,devices_data,devices_options,nil,devices_helpmsg),'\
@@ -379,7 +389,7 @@ for(var i=0;i<hdrs.length;i++){\
     if (title=="") {\
       title="Sort by "+text;\
     }\
-    hdrs[i].innerHTML=\'<a href="#" title="\'+title+\'" data-remote="modals/device-modal.lp?sort=\'+sort+\'&connected=\'+connected+\'">\'+text+\'</a>\';\
+    hdrs[i].innerHTML=\'<a href="#" title="\'+title+\'" data-remote="modals/device-modal.lp?sort=\'+sort+\'&connected=\'+connected+\'',modal_param,'">\'+text+\'</a>\';\
     hdrs[i].setAttribute("class","nav");\
   }\
 }\

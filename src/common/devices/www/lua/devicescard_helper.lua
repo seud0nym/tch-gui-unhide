@@ -8,8 +8,8 @@ local format,match = string.format,string.match
 local untaint = string.untaint
 local tonumber = tonumber
 
-local device_modal_link = 'class="modal-link" data-toggle="modal" data-remote="modals/device-modal.lp" data-id="device-modal"'
-local all_devices_modal_link = 'class="modal-link" data-toggle="modal" data-remote="modals/device-modal.lp?connected=All" data-id="device-modal"'
+local device_modal_link = 'class="modal-link" data-toggle="modal" data-remote="modals/device-modal.lp?dev=1" data-id="device-modal"'
+local all_devices_modal_link = 'class="modal-link" data-toggle="modal" data-remote="modals/device-modal.lp?connected=All&dev=1" data-id="device-modal"'
 
 local M = {}
 

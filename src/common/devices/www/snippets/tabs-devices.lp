@@ -26,7 +26,7 @@ for _,v in ipairs(items) do
   if substring(uri,1,length(modal)) == modal then
     active = "active"
   end
-  html[#html+1] = format('<li class="%s"><a href="#" data-remote="/modals/%s">%s</a></li>',active,v[1],v[2])
+  html[#html+1] = format('<li class="%s"><a href="#" data-remote="/modals/%s?dev=1">%s</a></li>',active,v[1],v[2])
 end
 html[#html+1] = '</ul>'
 ngx.print(html);
