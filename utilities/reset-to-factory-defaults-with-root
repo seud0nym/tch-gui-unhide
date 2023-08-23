@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 
 VERSION="$(uci get version.@version[0].marketing_version)"
 SERIAL=$(uci get env.var.serial)
-LAN_IP_NOW="$(uci get network.lan.ipaddr)"
+LAN_IP_NOW="$(ip -o -4 address show dev br-lan | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -n1)"
 OVERLAY_FS="$(mount | grep '/overlay type' | cut -d' ' -f5)"
 ROM_FS="$(mount | grep '/rom type' | cut -d' ' -f5)"
 MOUNT_PATH="$(uci get mountd.mountd.path)"
@@ -355,6 +355,7 @@ echo "$FIRMWARE" | grep -qE '\.(rbi|bin)$' && echo -e "${GREY}INFO:     Target M
 echo -e "${GREY}INFO:     /overlay filesystem  = $OVERLAY_FS${NC}"
 echo -e "${GREY}INFO:     /rom filesystem      = $ROM_FS${NC}"
 echo -e "${GREY}INFO:     USB symbolic link    = $USB${NC}"
+echo -e "${GREY}INFO:     IPv4 Address         = $LAN_IP_NOW${NC}"
 
 if [ -n "$__BKUP" ]; then
   if [ -z "$USB" ]; then
@@ -776,7 +777,7 @@ if [ -n "$FIRMWARE" ]; then
             hotspotd \
             intercept iperf ipset iqos \
             led ledfw lotagent lte-doctor-logger lxc lxc.mount \
-            mesh-broker minidlna miniupnpd-tch mmpbxbrcmdect mmpbxd mmpbxd_lite mmpbxfwctl mosquitto mqttjson-services mud multiap_agent multiap_controller multiap_vendorextensions mwan \
+            minidlna miniupnpd-tch mmpbxbrcmdect mmpbxd mmpbxd_lite mmpbxfwctl mosquitto mqttjson-services mud multiap_agent multiap_controller multiap_vendorextensions mwan \
             ndhttpd ndproxy nfcd nginx nqe \
             pinholehelper \
             qos qos_tch \
