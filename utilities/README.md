@@ -6,7 +6,6 @@ A collection of utility scripts for your Technicolor router. Most of the names a
 - [guest-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#guest-restore)
 - [hijack-dns](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#hijack-dns)
 - [log-check](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#log-check)
-- [move-lan-port-to-own-network](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#move-lan-port-to-own-network)
 - [mtd-backup](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-backup)
 - [mtd-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-restore)
 - [overlay-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#overlay-restore)
@@ -217,44 +216,6 @@ Usage: ./log-check [options]
 
 Options:
  -C    Adds or removes the scheduled hourly cron job
-```
-
-## move-lan-port-to-own-network
-Moves a LAN port from the LAN bridge to its own network.
-```
-Usage: ./move-lan-port-to-own-network [options]
-
-Options:
- -p 1|2|3|4   Specifies the LAN port to be moved to its own network. When used
-                in conjunction with -R, specifies the port to be moved back to
-                the LAN bridge. If not specified, defaults to '4'.
- -n name      The interface name of the network. This is the name that will 
-                appear in the Local Network screen to manage the network. If not
-                specified, defaults to 'lan'+port number.
- -i n.n.n.n   Specifies the IP address to be assigned to the LAN port. Cannot be
-                in an existing IP range used by other networks (e.g. LAN. Guest).
-                If not specified, defaults to '192.168.3.1'.
- -m n.n.n.n   Specifies the subnet mask to be applied to the new network. If not 
-                specified, defaults to '255.255.255.0'. 
-                NOTE: Only 255.255.255.0 is currently supported.
- -6 n|'N'     Specifies the IPv6 hint to be assigned to the new network. Use 'N' 
-                to disable IPv6 on this network. If -6 is not specified, it 
-                defaults to the next available hint.
- -d domain    The domain name to use for the new network. If not specified, 
-                defaults to 'modem'.
- -h hostname  The host name to be associated with the IP address. If not 
-                specified, defaults to the same as the LAN hostname.
- -f g|g5|l|c  Add the new network into the specified firewall zone:
-                  g  = Guest
-                  g5 = 5GHz Guest (same as g on FW 20.4)
-                  l  = LAN
-                  c  = Create new firewall zone
-                If not specified, defaults to creating a new zone.
- -R           Restore the LAN port to the LAN bridge.
- -r           Skip reboot (NOT recommended!)
- -v           Show verbose messages
- -y           Bypass the confirmation prompt (answers "y")
- -U           Download the latest version of move-lan-port-to-own-network from GitHub
 ```
 
 ## mtd-backup
