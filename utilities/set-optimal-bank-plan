@@ -37,7 +37,7 @@ fi
 if [ -z "$ACTIVE" -o -z "$BOOTED" ]; then
   echo -e "${RED}==> ABORTING: Cannot determine active or booted bank!!${NC}"
   exit 2
-elif [ \( "$ACTIVE" = "1" -o $BANKTABLE = N \) -a "$BOOTED" = "2" ]; then
+elif [ \( \( $BANKTABLE = Y -a "$ACTIVE" = "1" \) -o \( $BANKTABLE = N -a "$ACTIVE" = "2" \) \) -a "$BOOTED" = "2" ]; then
   echo -e "${GREEN}==> OKAY: Active = bank ${ACTIVE} Booted = bank ${BOOTED}${NC}"
   echo -e "${GREEN}==> EXITING: Bank Plan is already OPTIMAL!!${NC}"
   exit
@@ -53,7 +53,7 @@ fi
 [ -z "$ACTIVE_VERSION" ] && ACTIVE_VERSION=$(uci -q get env.var.friendly_sw_version_activebank)
 [ -z "$PASSIVE_VERSION" ] && PASSIVE_VERSION=$(uci -q get env.var.friendly_sw_version_passivebank)
 
-if [ "$BOOTED" = "2" -a \( -z "$ACTIVE_VERSION" -o "$ACTIVE_VERSION" = "Unknown" \) ]; then
+if [ $BANKTABLE = Y -a "$BOOTED" = "2" -a \( -z "$ACTIVE_VERSION" -o "$ACTIVE_VERSION" = "Unknown" \) ]; then
   echo -e "${RED}==> ABORTING: Firmware version in bank 1 is Unknown!!${NC}"
   exit 2
 else
