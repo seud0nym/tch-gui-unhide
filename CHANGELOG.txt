@@ -1,8 +1,28 @@
-2023.07.15
+2023.08.24
 ==========
 * tch-gui-unhide: Fixed display issue with Diagnostics card in Firefox
-* tch-gui-unhide: Converted to dot notation for VLAN handling to implement VLAN tab on FW 20.4/21.4 (#160) NOTE: The install will convert existing device configuration added by release 2023.06.23 and earlier to dot notation automatically.
+* tch-gui-unhide: Fixed headers on modals shared between Time of Day, Wireless and Telephony
+* tch-gui-unhide: Added new Firmware Banks card
+* tch-gui-unhide: Added Connected Devices tab to Local Network
+* tch-gui-unhide: Added VLAN GUI for FW 20.4 and 21.4 (#160)
+* tch-gui-unhide: Converted to dot notation for VLAN handling (#160) NOTE: The install will convert device configuration added by release 2023.06.23 and earlier to dot notation automatically
+* tch-gui-unhide: Improved card display on mobile devices
+* tch-gui-unhide: Minified tch-gui-unhide CSS and Javascript files
+* tch-gui-unhide: Removed WAN UP/Down charts and throughput indicator when in bridged mode
+* tch-gui-unhide: Removed Network Map and Bandwidth Monitor tabs from Devices when in bridged mode
+* mtd-backup: Added --no-devices option to allow skipping device dumps when creating configuration, environment and/or overlay backups
+* mtd-backup: Overlay backup does not backup unchanged files or configuration files that have only had the serial number changed/added
+* mtd-backup: Only the bank directories are included in the overlay backup
+* overlay-restore: When restoring an overlay backup from another device with same firmware, MAC addresses and serial numbers found in the configuration will be updated to the new devices MAC addresses and serial number
 * reset-to-factory-defaults-with-root/safe-firmware-upgrade: Now will automatically apply an authorized_keys file found in the same directory as the script when using the -k option if the default authorized_keys file has not been updated and the new --no-keys-check option is not specified
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Removed logging from services stopped during firmware upgrade
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Removed mesh-broker from services stopped during firmware upgrade (because it can hang on a file lock)
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Automatically adds a check at login to determine if the bank plan is optimal (can be suppressed with --no-bank-check option)
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: If -c or -d options not specified, now displays an additional confirmation warning that the device will be vulnerable to over-the-updates and loss of root if a wired or 4g backup internet connection is active after reboot
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Overlay backup does not backup unchanged files or configuration files that have only had the serial number changed/added
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Force bank switch over during first boot on FW 20.4/21.4 to resolve issue where bank 1 was left active after firmware update into bank 2
+* set-optimal-bank-plan: Work-around for different bank sizes on FW 20.4/21.4
+* set-optimal-bank-plan: Fixed detection and optimisation of bank plan on FW 20.4/21.4
 
 2023.06.23
 ==========
