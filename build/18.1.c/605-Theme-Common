@@ -4,13 +4,10 @@ sed \
   -i /www/docroot/css/gw.css
 
 if [ -f /www/docroot/landingpage.lp ];then
-  echo -e "[$SCRIPT]: Removing hard-coded password on landing page"
-  sed -e 's/id="srp_password" value="Telstra">/id="srp_password">/' -i /www/docroot/landingpage.lp
   if [ "$KEEPLP" = "0" ];then
     [ $COMPVER -lt 20040000428 ] && LP_TXT_COLOUR=808080 || LP_TXT_COLOUR=545454
     echo -e "[$SCRIPT]: Theming and de-branding landing page"
-    LPSTATE='none'
-    exec_uci set tch_gui_unhide.theme.landing_page_state='debranded'
+    LPSTATE='debranded'
     sed \
       -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(5)>form>center>div{background-color:#f8f8f8;}" \
       -e "$ a body.landingpage #login_part_mobile>div:nth-child(2){display:none;}" \
@@ -45,6 +42,8 @@ if [ -f /www/docroot/landingpage.lp ];then
       -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <td style=\"text-align:right;font-weight: 900;color:#${LP_TXT_COLOUR};\">tch-gui-unhide</td>\\\\" \
       -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <td style=\"text-align:left;color:#${LP_TXT_COLOUR};\">');  ngx.print( cui[\"unhide_version\"] ); ngx.print('</td>\\\\" \
       -i /www/docroot/landingpage.lp
+    echo -e "[$SCRIPT]: Removing hard-coded password on landing page"
+    sed -e 's/id="srp_password" value="Telstra">/id="srp_password">/' -i /www/docroot/landingpage.lp
     # Have to restart if changing landing page
     SRV_nginx=$(( $SRV_nginx + 1 ))
   else
