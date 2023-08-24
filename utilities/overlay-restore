@@ -111,8 +111,15 @@ fi
 echo -e "$(date +%F@%X): PRESERVING MAC address configuration..."
 MAC_TMP=$(mktemp)
 MAC_UCI=$(mktemp)
+echo '#!/bin/sh
+/rom/etc/uci-defaults/tch_0000-ripcontent 
+/rom/etc/uci-defaults/tch_0010-generate-env
+/sbin/wireless_init_uci_env.sh
+'> $MAC_UCI
 uci show env | grep -v usb | grep "mac*.='[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]'" | cut -d"'" -f2 | sort -u > $MAC_TMP
-uci show | grep -v '^env\.' | grep -Ff $MAC_TMP | sed -e 's/^/uci -q set /' > $MAC_UCI
+uci show | grep -v '^env\.' | grep -Ff $MAC_TMP | sed -e 's/^/uci -q set /' >> $MAC_UCI
+rm -f $MAC_TMP
+chmod +x $MAC_UCI
 
 echo -e "$(date +%F@%X): CHECKING ${GREEN}${FILENAME}${NC}..."
 [ "$(hexdump -e '/2 "%02x"' -n 2 $FILENAME)" = "8b1f" ] && { GZIP="z"; echo "$(date +%F@%X):  ==> NOTE: Backup is compressed"; } || { GZIP=""; echo "$(date +%F@%X):  ==> NOTE: Backup is NOT compressed"; }
@@ -153,15 +160,16 @@ if tar -x${GZIP}${VERBOSE} -f $FILENAME -C /overlay $RESTORE; then
   sync
   echo -e "$(date +%F@%X): ${GREEN}COMPLETED${NC}"
   echo -e "$(date +%F@%X): ${GREEN}CREATING post-boot configuration...${NC}"
-  mv $MAC_UCI /etc/uci-defaults/overlay_restore_post_boot
+  mkdir -p /overlay/$BOOTED/etc/uci-defaults
+  mv $MAC_UCI /overlay/$BOOTED/etc/uci-defaults/zzz_9999-overlay-restore 
   if echo $RESTORE | grep -q $BOOTED; then
     if [ -n "$2" -a "$SERIAL" != "$2" ]; then
       for f in $(grep -rl "$2" /etc/config /www 2>/dev/null); do
-        echo "sed -e 's/$2/$SERIAL/g' -i $f">>/etc/uci-defaults/overlay_restore_post_boot
+        echo "sed -e 's/$2/$SERIAL/g' -i $f">>/overlay/$BOOTED/etc/uci-defaults/zzz_9999-overlay-restore
       done
     fi
-    echo 'while [ $(ls /www/cards/???_lte.lp 2>/dev/null | wc -l) -gt 1 ]; do rm -f $(ls -tr /www/cards/???_lte.lp 2>/dev/null | head -n1); done'>>/etc/uci-defaults/overlay_restore_post_boot
-    echo 'exit 0'>>/etc/uci-defaults/overlay_restore_post_boot
+    echo 'while [ $(ls /www/cards/???_lte.lp 2>/dev/null | wc -l) -gt 1 ]; do rm -f $(ls -tr /www/cards/???_lte.lp 2>/dev/null | head -n1); done'>>/overlay/$BOOTED/etc/uci-defaults/zzz_9999-overlay-restore
+    echo 'exit 0'>>/overlay/$BOOTED/etc/uci-defaults/zzz_9999-overlay-restore
     sync
   fi
   if [ $REBOOT = Y ]; then
