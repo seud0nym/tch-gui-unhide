@@ -16,22 +16,24 @@ ROM_FS="$(mount | grep '/rom type' | cut -d' ' -f5)"
 MOUNT_PATH="$(uci get mountd.mountd.path)"
 USB="$(ls $MOUNT_PATH | head -n1)"
 UCI_DEFAULTS="zzz-9999-reroot"
+BOOTMGR="$(which bootmgr)"
 
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 [ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
 MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
 
-if [ -z "$(which bootmgr)" ]; then
+if [ -z "$BOOTMGR" ]; then
   ACTIVE="$(cat /proc/banktable/active 2>/dev/null)"
   BOOTED="$(cat /proc/banktable/booted 2>/dev/null)"
   NOT_BOOTED="$(cat /proc/banktable/notbooted 2>/dev/null)"
 else
-  ACTIVE="bank_$(bootmgr partition active | grep -v rd_metadata)"
-  BOOTED="bank_$(bootmgr partition booted)"
-  NOT_BOOTED="bank_$(bootmgr partition notbooted)"
+  ACTIVE="bank_$($BOOTMGR partition active | grep -v rd_metadata)"
+  BOOTED="bank_$($BOOTMGR partition booted)"
+  NOT_BOOTED="bank_$($BOOTMGR partition notbooted)"
 fi
 [ $BOOTED = bank_1 ] && PASSIVE=2 || PASSIVE=1
 
+#region usage()
 usage() {
 cat <<EOH
 Resets the device to factory defaults, and prepares a run-once root access
@@ -126,6 +128,7 @@ EOH
 echo
 exit
 }
+#endregion
 
 upgrade() {
   RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
@@ -202,6 +205,7 @@ END
 [ -n "$KEYS_CFG" ]     && echo "$KEYS_CFG"
 [ -n "$MOBILED_CFG" ]  && echo "$MOBILED_CFG"
 [ -n "$RESTORE_CFG" ]  && echo "$RESTORE_CFG"
+[ -n "$BOOTMGR" -a "$SWITCH_BANK" = "Y" ] && echo "bootmgr switch_over $PASSIVE"
 [ "$__NO_BANK_PLAN_CHK" = "N" ] && cat <<"END"
 if [ -d /etc/profile.d ]; then
   __PROFILE=/etc/profile.d/show-bank-plan.sh
@@ -544,7 +548,7 @@ RBI="Y"
 if [ -n "$FIRMWARE" ]; then
   if [ -e "$FIRMWARE" ]; then
     if echo "$FIRMWARE" | grep -qE '\.pkgtb$'; then
-      echo -e "NOTE:     ${GREEN}$(basename $FIRMWARE)${NC} will be flashed into ${GREEN}$NOT_BOOTED${NC} by sysupgrade and a ${GREEN}bank switch performed${NC}"
+      echo -e "NOTE:     ${GREEN}$(basename $FIRMWARE)${NC} will be flashed into ${GREEN}$NOT_BOOTED${NC} by sysupgrade${NC}"
       RBI="N"
     else
       if echo "$FIRMWARE" | grep -qE '\.rbi$'; then
@@ -792,12 +796,14 @@ if [ -n "$FIRMWARE" ]; then
   c=0
   for service in $services; do
     if [ -x /etc/init.d/$service ]; then
-      echo -en "\rINFO:     Stopping services: $(echo $sp | cut -c $i) ${GREY}$service${NC}"
-      c=$(( $c - ${#service} ))
-      while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done
-      c=${#service}
-      [ $i -lt 4 ] && i=$(( $i + 1 )) || i=1
-      /etc/init.d/$service stop >/dev/null 2>&1
+      if /etc/init.d/$service enabled; then
+        echo -en "\rINFO:     Stopping services: $(echo $sp | cut -c $i) ${GREY}$service${NC}"
+        c=$(( $c - ${#service} ))
+        while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done
+        c=${#service}
+        [ $i -lt 4 ] && i=$(( $i + 1 )) || i=1
+        /etc/init.d/$service stop >/dev/null 2>&1
+      fi
     fi
   done
   echo -en "\rINFO:     Stopped services"
@@ -880,10 +886,10 @@ fi
 
 if [ $SWITCH_BANK = "Y" ]; then
   echo -e "INFO:     Switching active bank to ${GREEN}bank_$PASSIVE${NC}"
-  if [ -z "$(which bootmgr)" ]; then
+  if [ -z "$BOOTMGR" ]; then
     echo bank_$PASSIVE > /proc/banktable/active
   elif [ -z "$FIRMWARE" ]; then
-    bootmgr switch_over $PASSIVE
+    $BOOTMGR switch_over $PASSIVE
   fi
 fi
 
