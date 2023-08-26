@@ -56,21 +56,21 @@ Creates a GUI interface for configuring the Wireguard VPN on firmware 20.3.
 
 Can be installed on a Technicolor device acting as a wireless Access Point to enable the main Technicolor router (running tch-gui-unhide) to query it and correctly report devices connected via Wi-Fi, rather than showing them as Ethernet connections.
 
-## Extended Capabilities
+## Supplemental Features
 
-Using the additional scripts found in sub-folders of this repository, you can configure your device with these extended capabilities:
+Using the additional scripts found in sub-folders of this repository, you can configure your device with these supplemental features:
 
-#### [AdGuard Home](https://github.com/seud0nym/tch-gui-unhide/tree/master/adguard#readme)
+#### [AdGuard Home](https://github.com/seud0nym/tch-gui-unhide/tree/master/supplemental/adguard#readme)
 
 Allows you to install and configure [AdGuard Home](https://github.com/AdguardTeam/AdGuardHome) on your device, and _disable_ dnsmasq. AdGuard Home will then handle DNS resolution and DHCP for your local network.
 
-#### [OpenSpeedTest](https://github.com/seud0nym/tch-gui-unhide/tree/master/speedtest#readme)
+#### [OpenSpeedTest](https://github.com/seud0nym/tch-gui-unhide/tree/master/supplemental/speedtest#readme)
 
 Allows you to install the [OpenSpeedTest Server](https://github.com/openspeedtest/Speed-Test) on your device, to test the performance of your Wi-Fi or your LAN in relation to your router.
 
-#### [Wi-Fi Booster](https://github.com/seud0nym/tch-gui-unhide/tree/master/wifi-booster#readme)
+#### [Wi-Fi Booster](https://github.com/seud0nym/tch-gui-unhide/tree/master/supplemental/wifi-booster#readme)
 
-Allows you to configure an EasyMesh-capable Telstra Smart Modem as a "Wi-Fi Booster" to extend Wi-Fi coverage throughout a home (wired back-haul only).
+Allows you to configure an EasyMesh-capable Telstra Smart Modem (Gen 1 or Gen 2) as a "Wi-Fi Booster" to extend Wi-Fi coverage throughout a home (wired back-haul only).
 
 # Utility Scripts
 
