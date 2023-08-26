@@ -68,21 +68,21 @@ Read the section on "Optional Installation Parameters" before running one of the
 ## Default Installation on USB Device
 Insert a USB device and then run the following command on your device:
 ```
-curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/agh-setup | sh -s -- -e
+curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/adguard/agh-setup | sh -s -- -e
 ```
 When this command successfully completes, AdGuard Home will be installed and running from the USB Device. The web interface will be accessible at http://[router ip address]:8008. The default username is root and the default password is agh-admin.
 
 ## Running AdGuard Home from Internal Storage
 Run the following command on your device:
 ```
-curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/agh-setup | sh -s -- -i
+curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/adguard/agh-setup | sh -s -- -i
 ```
 When this command successfully completes, AdGuard Home will be installed and running from your internal storage. The web interface will be accessible at http://[router ip address]:8008. The default username is root and the default password is agh-admin.
 
 ## Manual Download of Setup Script
 If you are uncomfortable running the script without reviewing it first, simply download it and execute it manually:
 ```
-curl -skL -o agh-setup https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/agh-setup
+curl -skL -o agh-setup https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/adguard/agh-setup
 chmod +x agh-setup
 ```
 You can execute `./agh-setup -?` to see all available installation options (some of which are also described below).
@@ -151,12 +151,12 @@ When the script completes, you will be able to access AdGuard Home in your brows
 # Upgrading
 By default, the setup will schedule a monthly task to update AdGuard Home.
 
-To manually update AdGuard Home, use the [`agh-update`](https://github.com/seud0nym/tch-gui-unhide/tree/master/adguard#agh-update) script below.
+To manually update AdGuard Home, use the [`agh-update`](https://github.com/seud0nym/tch-gui-unhide/tree/master/supplemental/adguard#agh-update) script below.
 
 # Uninstalling
 Run the following command on your device:
 ```
-curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/agh-setup | sh -s -- -r
+curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/adguard/agh-setup | sh -s -- -r
 ```
 Or, if you downloaded the script manually, you can run `./agh-setup -r`.
 

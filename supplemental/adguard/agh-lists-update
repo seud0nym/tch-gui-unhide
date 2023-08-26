@@ -26,10 +26,10 @@ exit
 }
 
 upgrade() {
-  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/$SCRIPT)
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/adguard/$SCRIPT)
   if [ "$RESPONSE_CODE" = 200 ]
   then
-    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/adguard/$SCRIPT
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/adguard/$SCRIPT
     if [ $? -eq 0 ]
     then
       chmod +x $SCRIPT

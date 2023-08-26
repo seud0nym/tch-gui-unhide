@@ -8,7 +8,7 @@ Sometimes you want or need to test the performance of your Wi-Fi or your LAN in 
 ## Installation
 Run the following command on your device:
 ```
-curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/speedtest/ost-setup | sh -s --
+curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/speedtest/ost-setup | sh -s --
 ```
 
 The script will check free space requirements and then install if sufficient space is available.
@@ -16,7 +16,7 @@ The script will check free space requirements and then install if sufficient spa
 ### Manual Download of Setup Script
 If you are uncomfortable running the script without reviewing it first, simply download it and execute it manually:
 ```
-curl -skLO https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/speedtest/ost-setup
+curl -skLO https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/speedtest/ost-setup
 chmod +x ost-setup
 ```
 Then execute `./ost-setup` to run the installation.
@@ -27,7 +27,7 @@ When the script completes, you will be able to access OpenSpeedTest in your brow
 ## Uninstalling
 Run the following command on your device:
 ```
-curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/speedtest/ost-setup | sh -s -- -r
+curl -skL https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/speedtest/ost-setup | sh -s -- -r
 ```
 Or, if you downloaded the script manually, you can run `./ost-setup -r`.
 

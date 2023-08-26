@@ -107,7 +107,7 @@ If the booster device does not acquire either or both of the SSIDs, disable and 
 # How to download and execute the script
 Execute this command on your device via a PuTTY session or equivalent (an active WAN/Internet connection is required):
 ```
-curl -kLO https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/wifi-booster/bridged-booster
+curl -kLO https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/wifi-booster/bridged-booster
 ```
 
 Alternatively, download the script manually and load it up to your device using WinSCP or equivalent.
