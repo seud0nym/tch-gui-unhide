@@ -28,5 +28,5 @@ echo -e "[$SCRIPT]: Fix static leases for FW 17.2"
 sed \
   -e 's/"uci\.dhcp\.host\.@\."/"uci.dhcp.host."/' \
   -e '/objectName/,/addNamedObject/d' \
-  -i /www/docroot/modals/ethernet-modal.lp
+  -i /www/docroot/modals/ethernet-static-leases-modal.lp
 
