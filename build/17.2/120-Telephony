@@ -1,5 +1,7 @@
-echo -e "[$SCRIPT]: Create Services.X_TELSTRA_VOLTE.map if it does not exist"
-[ ! -e /usr/share/transformer/mappings/bbf/Services.X_TELSTRA_VOLTE.map ] && cat <<"VOLTE" >/usr/share/transformer/mappings/bbf/Services.X_TELSTRA_VOLTE.map
+if [ -e /etc/config/mobiled_device_specific -a ! -e /usr/share/transformer/mappings/bbf/Services.X_TELSTRA_VOLTE.map ]; then
+  #region Services.X_TELSTRA_VOLTE.map
+  echo -e "[$SCRIPT]: Create Services.X_TELSTRA_VOLTE.map"
+  cat <<"VOLTE" >/usr/share/transformer/mappings/bbf/Services.X_TELSTRA_VOLTE.map
 -- Manually generated
 
 local lfs = require("lfs")
@@ -95,6 +97,8 @@ for _, dupli in ipairs(duplicates) do
 end
 
 VOLTE
+  #endregion
+fi
 
 if ! grep -q mmpbxmobilenet /usr/share/transformer/commitapply/uci_mmpbx.ca; then
   echo -e "[$SCRIPT]: Adding mmpbxmobilenet commit/apply action"

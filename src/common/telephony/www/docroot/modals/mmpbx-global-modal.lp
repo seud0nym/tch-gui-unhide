@@ -31,6 +31,10 @@ local mapParams = {
   mmpbx_enabled = "uci.mmpbx.mmpbx.@global.enabled",
   voiceonfailover = "uci.wansensing.global.voiceonfailover",
 }
+if mobile_devices == 0 then
+  mapParams.voiceonfailover = nil
+  mapValid.voiceonfailover = nil
+end
 local content = post_helper.handleQuery(mapParams,mapValid)
 
 local split = require("split").split
@@ -302,7 +306,7 @@ local sipnet_options = {
   canDelete = false,
 }
 
-if cfg["wansensing_enabled"] == "1" and content["voiceonfailover"] == "1" then
+if mobile_devices == 0 and cfg["wansensing_enabled"] == "1" and content["voiceonfailover"] == "1" then
   sipnet_columns[10]["readonly"] = true
   sipnet_columns[10]["header"] = sipnet_columns[10]["header"].." <span class='icon-question-sign' title='Interface is controlled by WAN Sensing.'></span>"
 end
@@ -331,7 +335,7 @@ ngx.print('\
   html[#html+1] =     ui_helper.createSwitch(T"Telephony Enabled","mmpbx_enabled",content["mmpbx_enabled"])
   if cfg["wansensing_enabled"] == "1" and mobile_devices > 0 then
     html[#html+1] =     ui_helper.createSwitch(T"Voice on 4G Failover","voiceonfailover",content["voiceonfailover"])
-  else
+  elseif content["voiceonfailover"] then
     html[#html + 1] =   ui_helper.createSimpleInputHidden("voiceonfailover",content["voiceonfailover"])
   end
   html[#html+1] = '<fieldset>'
