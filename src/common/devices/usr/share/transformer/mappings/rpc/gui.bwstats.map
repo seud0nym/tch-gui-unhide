@@ -1,6 +1,7 @@
 local uci_helper = mapper("ucihelper")
 local uci_enabled_binding = {config="bwstats",sectionname="config",option="enabled"}
 local uci_logging_binding = {config="bwstats",sectionname="config",option="log_level"}
+local uci_log_unmatched_binding = {config="bwstats",sectionname="config",option="log_unmatched"}
 
 local commitapply = commitapply
 local tolower,match = string.lower,string.match
@@ -22,6 +23,10 @@ local GUI_BWSTATS_ = {
         access = "readWrite",
         type = "boolean"
       },
+      log_unmatched = {
+        access = "readWrite",
+        type = "boolean"
+      },
       log_level = {
         access = "readWrite",
         type = "int"
@@ -37,6 +42,13 @@ local GUI_BWSTATS_ = {
 GUI_BWSTATS_.get = {
   enabled = function()
     local level = uci_helper.get_from_uci(uci_enabled_binding)
+    if level ~= "1" then
+      level = "0"
+    end
+    return level
+  end,
+  log_unmatched = function()
+    local level = uci_helper.get_from_uci(uci_log_unmatched_binding)
     if level ~= "1" then
       level = "0"
     end
@@ -63,6 +75,15 @@ GUI_BWSTATS_.set = {
       return true
     end
     return nil,"enabled value must be 1 or 0"
+  end,
+  log_unmatched = function(_,_,value,_)
+    if value == "1" or value == "0" then
+      uci_helper.set_on_uci(uci_log_unmatched_binding,value)
+      uci_helper.commit(uci_log_unmatched_binding,value)
+      commitapply:newset("rpc.gui.bwstats.log_unmatched")
+      return true
+    end
+    return nil,"log_unmatched value must be 1 or 0"
   end,
   log_level = function(_,_,value,_)
     local level = tonumber(value)

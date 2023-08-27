@@ -22,9 +22,11 @@ end
 
 local cfgParams = {
   enabled = "rpc.gui.bwstats.enabled",
+  log_unmatched = "rpc.gui.bwstats.log_unmatched",
 }
 local cfgValid = {
   enabled = vB,
+  log_unmatched = vB,
   show_in_device_list = vB,
 }
 
@@ -111,6 +113,7 @@ ngx.print(ui_helper.createHeader(T"Devices",false,false),'\
     ngx.print('\
     <fieldset>',
     ui_helper.createSwitch(T"Enabled","enabled",config["enabled"],enabled_attr,config_helpmsg["enabled"]),
+    ui_helper.createSwitch(T"Log Unmatched Packets","log_unmatched",config["log_unmatched"],enabled_attr,config_helpmsg["log_unmatched"]),
     ui_helper.createButton("Zero Counters","Reset","icon-refresh",button_attr),'\
       <script>$("#btn-zero").click(function(){tch.loadModal($(".modal form").attr("action")+"?zero=1");})</script>\
     </fieldset>\

@@ -4,10 +4,14 @@ if [ ! -e /etc/config/bwstats ]; then
 config bwstats 'config'
         option enabled '0'
         option log_level '3'
+        option log_unmatched '0'
 BWSTATS
   chmod 644 /etc/config/bwstats
 fi
 chmod 755 /usr/share/tch-gui-unhide/bwstats.*
+if [ -z "$(exec_uci -q get bwstats.config.log_unmatched)" ]; then
+  exec_uci set bwstats.config.log_unmatched='0'
+fi
 
 if [ "$(exec_uci -q get firewall.bwstats)" != "include" ]; then
   echo -e "[$SCRIPT]: Creating configuration firewall.bwstats"

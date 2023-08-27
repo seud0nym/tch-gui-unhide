@@ -27,7 +27,9 @@ else
       [ $CHAIN = BWSTATSRX ] && DIRECTION=i || DIRECTION=o
       for CMD in iptables ip6tables; do
         $CMD -t $TABLE -nL $CHAIN >/dev/null 2>&1 || $CMD -t $TABLE -N $CHAIN
-        $CMD -t $TABLE -C $CHAIN -j LOG --log-prefix "$CHAIN IGNORED! " 2>/dev/null || $CMD -t $TABLE -A $CHAIN -j LOG --log-prefix "$CHAIN IGNORED! "
+        if [ "/$(uci -q get bwstats.config.log_unmatched)/" = "/1/" ]; then
+          $CMD -t $TABLE -C $CHAIN -j LOG --log-prefix "$CHAIN IGNORED! " 2>/dev/null || $CMD -t $TABLE -A $CHAIN -j LOG --log-prefix "$CHAIN IGNORED! "
+        fi
         $CMD -t $TABLE -C $PARENT_CHAIN -$DIRECTION br-lan -j $CHAIN 2>/dev/null || $CMD -t $TABLE -I $PARENT_CHAIN 1 -$DIRECTION br-lan -j $CHAIN
       done
     done
