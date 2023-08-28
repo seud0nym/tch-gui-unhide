@@ -3,6 +3,10 @@
 * tch-gui-unhide: Fixed Warning on setting landing page state
 * tch-gui-unhide: Fixed static leases in FW 17.2 which was broken by moving static leases to a separate tab in release 2023.05.16 (#168)
 * tch-gui-unhide: Fixed broken Telephony Enabled switch on devices with no 4G backup (#169)
+* tch-gui-unhide: Fixed clicking on Devices card header presented Local Network tabs rather than Devices tabs (#171)
+* tch-gui-unhide: Fixed incorrect CPU detection that prevented tc being installed and Bandwidth Shaping tab missing (#172)
+* tch-gui-unhide: Fixed incorrect tabs structure displayed when clicking on Network Connections in Diagnostics on Fw 17.2.0284 (#173)
+* tch-gui-unhide: Added option to disable/enable logging of unmatched packets in bandwidth monitoring
 * move-lan-port-to-own-network: Removed - use the GUI to create VLANs
 
 2023.08.24
