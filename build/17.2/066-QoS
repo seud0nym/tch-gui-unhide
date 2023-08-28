@@ -17,7 +17,7 @@ sed \
   -i /www/snippets/tabs-qos.lp
 
 if [ ! -f /usr/sbin/tc ]; then
-  if grep -q 'model.*:.*ARMv7 Processor rev 1 (v7l)' /proc/cpuinfo; then
+  if grep -q 'ARMv7 Processor rev 1 (v7l)' /proc/cpuinfo; then
     echo -e "[$SCRIPT]: tc command not found - installing"
     grep -qE '\ball\b' /etc/opkg.conf || echo "arch all 1">>/etc/opkg.conf
     grep -qE '\bnoarch\b' /etc/opkg.conf || echo "arch noarch 1">>/etc/opkg.conf
@@ -26,7 +26,7 @@ if [ ! -f /usr/sbin/tc ]; then
     grep -qE '\bbrcm63xx-tch\b' /etc/opkg.conf || echo 'arch brcm63xx-tch 30'>>/etc/opkg.conf
     grep -qE '\bbcm53xx\b' /etc/opkg.conf || echo 'arch bcm53xx 40'>>/etc/opkg.conf
     opkg --force-depends install /tmp/tc_4.0.0-1_bcm53xx.ipk 2>/dev/null
-  elif grep -q 'model.*:.*Broadcom BMIPS4350 V8.0' /proc/cpuinfo; then
+  elif grep -q 'Broadcom BMIPS4350 V8.0' /proc/cpuinfo; then
     echo -e "[$SCRIPT]: tc command not found - installing"
     grep -qE '\ball\b' /etc/opkg.conf || echo "arch all 1">>/etc/opkg.conf
     grep -qE '\bnoarch\b' /etc/opkg.conf || echo "arch noarch 1">>/etc/opkg.conf
