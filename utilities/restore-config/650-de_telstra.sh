@@ -32,7 +32,12 @@ fi
 if ! cmp -s /rom/etc/rtfd_persistent_filelist.conf $BANK2/etc/rtfd_persistent_filelist.conf; then
   options="${options} -Fy"
 fi
-options="${options} -h$($UCI -q get system.@system[0].hostname | sed -e "s/$BACKUP_VARIANT/$DEVICE_VARIANT/")"; 
+hostname="$($UCI -q get system.@system[0].hostname | sed -e "s/$BACKUP_VARIANT/$DEVICE_VARIANT/")"
+if [ -z "$hostname" ]; then
+  log W "Failed to determine backup hostname: using $DEVICE_VARIANT"
+  hostname="$DEVICE_VARIANT"
+fi
+options="${options} -h$hostname"; 
 if [ $TEST_MODE = y -a "$DEVICE_SERIAL" != "$BACKUP_SERIAL" ]; then
   log D " ++ Adding -TEST to hostname"
   options="${options}-TEST"
@@ -83,4 +88,4 @@ fi
 
 run_script de-telstra $options
 
-unset alg g key options wan_zone
+unset alg g hostname key options wan_zone
