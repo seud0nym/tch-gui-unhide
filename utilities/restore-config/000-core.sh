@@ -215,12 +215,6 @@ restore_overlay_to_tmp() {
   tar -xzf $OVERLAY -C $BASE -T $BASE/.include -X $BASE/.exclude
 
   rm -f $BASE/.include $BASE/.exclude
-
-  BACKUP_SERIAL=$($UCI get env.var.serial)
-  BACKUP_VERSION=$($UCI -q get version.@version[0].marketing_version)
-  BACKUP_VERSION_NUMBER=$(comparable_version $BACKUP_VERSION)
-  BACKUP_VARIANT=$($UCI -q get env.var.variant_friendly_name | sed -e 's/TLS//')
-  [ -z "$BACKUP_VARIANT" ] && BACKUP_VARIANT=$($UCI -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
 }
 
 run_script() {
@@ -412,13 +406,40 @@ if [ ! -e $CONFIG ]; then
   exit 2
 fi
 
+BACKUP_ENV="${OVERLAY%-overlay-files-backup.tgz}-env"
+if [ ! -e $BACKUP_ENV ]; then
+  log E "Environment backup '$BACKUP_ENV' not found?"
+  exit 2
+fi
+
+BACKUP_SERIAL=$(grep env.var.serial $BACKUP_ENV | cut -d"'" -f2)
+BACKUP_VERSION=$(grep env.var.friendly_sw_version_activebank $BACKUP_ENV | cut -d"'" -f2 | cut -d- -f1 | sed -e 's/\.[0-9][0-9][0-9][0-9]$//')
+BACKUP_VERSION_NUMBER=$(comparable_version $BACKUP_VERSION)
+BACKUP_VARIANT=$(grep env.var.variant_friendly_name $BACKUP_ENV | cut -d"'" -f2 | sed -e 's/TLS//')
+[ -z "$BACKUP_VARIANT" ] && BACKUP_VARIANT=$(grep env.var.prod_friendly_name $BACKUP_ENV | cut -d"'" -f2 | sed -e 's/Technicolor //')
+
 BACKUP_DIR="$(cd $(dirname $OVERLAY); pwd)"
 
-log I "Restoring:  ${OVERLAY} ($(ls -l ${OVERLAY} | tr -s ' ' | cut -d' ' -f6-8))"
-log I "Config:     ${CONFIG} ($(ls -l ${CONFIG} | tr -s ' ' | cut -d' ' -f6-8))"
-[ -n "$IPADDR" ] && log I "IP Address: ${IPADDR}"
-log I "Test Mode:  ${TEST_MODE}"
-log I "Reboot:     ${REBOOT}"
+[ -n "$IPADDR" ] && log I "IP Address                                                                : ${IPADDR}"
+log I "The directory path containing the backup files                            : $BACKUP_DIR"
+log I "The path to the overlay backup from which configuration is being restored : $OVERLAY"
+log I "The date of the overlay backup from which configuration is being restored : $(ls -l ${OVERLAY} | tr -s ' ' | cut -d' ' -f6-8)"
+log I "The path to the environment backup                                        : $BACKUP_ENV"
+log I "The date of the environment backup                                        : $(ls -l ${BACKUP_ENV} | tr -s ' ' | cut -d' ' -f6-8)"
+log I "The path to the device configuration backup                               : ${CONFIG}"
+log I "The date of the device configuration backup                               : $(ls -l ${CONFIG} | tr -s ' ' | cut -d' ' -f6-8)"
+log I "The serial number of the device from which the backup is being restored   : $BACKUP_SERIAL"
+log I "The serial number of the device to which the backup is being restored     : $DEVICE_SERIAL"
+log I "The device variant from which the backup is being restored                : $BACKUP_VARIANT"
+log I "The device variant to which the backup is being restored                  : $DEVICE_VARIANT"
+log I "The firmware version of the device from which the backup is being restored: $BACKUP_VERSION"
+log I "The firmware number of the device from which the backup is being restored : $BACKUP_VERSION_NUMBER"
+log I "The firmware version of the device to which the backup is being restored  : $DEVICE_VERSION"
+log I "The firmware number of the device to which the backup is being restored   : $DEVICE_VERSION_NUMBER"
+log I "Reboot on completion                                                      : $REBOOT"
+log I "Test mode                                                                 : $TEST_MODE"
+log I "Debugging is enabled                                                      : $DEBUG"
+log I "Verbose debugging                                                         : $VERBOSE"
 
 if [ $YES = n ]; then
   echo -n -e "ACTION: \033[1;32mEnter y to restore, or anything else to exit now:\033[0m "
