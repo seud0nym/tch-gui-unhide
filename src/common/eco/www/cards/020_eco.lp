@@ -48,9 +48,9 @@ else
 end
 
 if content.eee == "1" then
-  content.eee_text = T"Energy Efficent Ethernet enabled"
+  content.eee_text = T"Energy Efficient Ethernet enabled"
 else
-  content.eee_text = T"Energy Efficent Ethernet disabled"
+  content.eee_text = T"Energy Efficient Ethernet disabled"
 end
 
 if content.autogreeen == "1" then

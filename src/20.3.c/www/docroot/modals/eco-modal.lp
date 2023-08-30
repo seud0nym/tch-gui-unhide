@@ -51,7 +51,7 @@ ngx.print('\
       html[#html + 1] = '<fieldset><legend>'..T"Ethernet Settings"..'</legend>'
       html[#html + 1] = ui_helper.createSwitch(T"Auto Power Down","apd",content["apd"])
       html[#html + 1] = ui_helper.createSwitch(T"Deep Green Mode","dgm",content["dgm"])
-      html[#html + 1] = ui_helper.createSwitch(T"Energy Efficent Ethernet","eee",content["eee"])
+      html[#html + 1] = ui_helper.createSwitch(T"Energy Efficient Ethernet","eee",content["eee"])
       html[#html + 1] = ui_helper.createAlertBlock(T"The following options power down network interfaces. Use with care.",warn_box)
       html[#html + 1] = ui_helper.createSwitch(T"Network Device Down","net",content["net"])
       html[#html + 1] = ui_helper.createSwitch(T"PHY Power Down","phy",content["phy"])

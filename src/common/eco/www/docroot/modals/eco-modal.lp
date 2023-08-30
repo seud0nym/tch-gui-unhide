@@ -59,7 +59,7 @@ ngx.print('\
       html[#html + 1] = '</fieldset>'
       html[#html + 1] = '<fieldset><legend>'..T"Ethernet Settings"..'</legend>'
       html[#html + 1] = ui_helper.createSwitch(T"Auto Power Down","ethapd",content["ethapd"])
-      html[#html + 1] = ui_helper.createSwitch(T"Energy Efficent Ethernet","eee",content["eee"])
+      html[#html + 1] = ui_helper.createSwitch(T"Energy Efficient Ethernet","eee",content["eee"])
       html[#html + 1] = ui_helper.createSwitch(T"AutoGrEEEn","autogreeen",content["autogreeen"])
       html[#html + 1] = ui_helper.createSwitch(T"Deep Green Mode","dgm",content["dgm"])
       html[#html + 1] = '</fieldset>'
