@@ -1,5 +1,8 @@
 #!/bin/sh
 
+log D "Force remove any file locks"
+kill -9 $(pgrep flock) 2>/dev/null
+
 log I "Stopping services..."
 services="watchdog-tch \
           adblock autoreset \
@@ -8,7 +11,7 @@ services="watchdog-tch \
           ddns dlnad dosprotect dumaos dumaos_qos_tweaks \
           hotspotd \
           intercept iperf ipset iqos \
-          led ledfw log lotagent lsyslogd lte-doctor-logger \
+          led ledfw lotagent lte-doctor-logger \
           mesh-broker minidlna miniupnpd-tch mmpbxbrcmdect mmpbxd mmpbxd_lite mmpbxfwctl mosquitto mqttjson-services mud multiap_agent multiap_controller multiap_vendorextensions mwan \
           ndhttpd ndproxy nfcd nginx nqe \
           pinholehelper \
@@ -23,8 +26,12 @@ services="watchdog-tch \
 for service in $services; do
   if [ -x /etc/init.d/$service ]; then
     log D " -- Stopping $service service"
-    /etc/init.d/$service stop >/dev/null 2>&1
+    /etc/init.d/$service stop >/dev/null 2>&1 &
   fi
+  [ -e /var/lock/procd_$service.lock ] && rm -rf /var/lock/procd_$service.lock
 done
+
+log D "Force remove any remaining file locks"
+kill -9 $(pgrep flock) 2>/dev/null
 
 unset services service
