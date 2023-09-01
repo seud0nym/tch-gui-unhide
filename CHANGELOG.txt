@@ -1,4 +1,4 @@
-2023.08.29
+2023.09.01
 ==========
 * tch-gui-unhide: Fixed Warning on setting landing page state during first install
 * tch-gui-unhide: Fixed static leases in FW 17.2 which was broken by moving static leases to a separate tab in release 2023.05.16 (#168)
@@ -6,6 +6,9 @@
 * tch-gui-unhide: Fixed clicking on Devices card header presented Local Network tabs rather than Devices tabs (#171)
 * tch-gui-unhide: Fixed incorrect CPU detection that prevented tc being installed on FW 17.2 and Bandwidth Shaping tab missing (#172)
 * tch-gui-unhide: Fixed incorrect tabs structure displayed when clicking on Network Connections in Diagnostics on FW 17.2.0284 (#173)
+* tch-gui-unhide: Fixed unable to accept confirmation when clicking WiFi Analyzer options
+* tch-gui-unhide: Fixed bug that could display the waiting spinner when clicking a disabled button
+* tch-gui-unhide: Fixed incompatibility of WAN Sensing and Permanent WWAN with static IPs by adding new static-wan-routes-monitor service that will add/delete default routes when static WAN interfaces go up/down
 * tch-gui-unhide: Added option to disable/enable logging of unmatched packets in bandwidth monitoring
 * move-lan-port-to-own-network: Removed - use the GUI to create VLANs
 
