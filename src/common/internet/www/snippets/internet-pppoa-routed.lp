@@ -255,6 +255,7 @@ local mapValid = {
 }
 
 local content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
+if not helpmsg then helpmsg = {} end
 -- End POST process
 
 local content_uci = {
@@ -364,7 +365,7 @@ end
 <fieldset>\
 ');
 ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-  ngx.print('\
+ngx.print('\
 <legend>');  ngx.print( T"PPP connection" ); ngx.print('</legend>\
 ');
 
