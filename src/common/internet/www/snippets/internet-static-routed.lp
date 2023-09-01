@@ -121,6 +121,7 @@ local mapValid = {
 }
 
 local content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
+if not helpmsg then helpmsg = {} end
 
 local supervision_support = proxy.get("uci.supervision.global.enabled")
 local supervision_modes = {
@@ -146,6 +147,19 @@ if content.wanIpAddrParam == "" then
   content.wanIpAddrParam = proxy.get("rpc.network.interface.@wan.ipaddr")[1].value
   content.wanNetmaskParam = post_helper.cidr2mask(untaint(proxy.get("rpc.network.interface.@wan.ipmask")[1].value))
   content.wanGatewayParam = proxy.get("rpc.network.interface.@wan.nexthop")[1].value
+end
+if content.uci_wan6_addr == "" then
+  local ipv6addr = proxy.get("rpc.network.interface.@wan6.ipv6uniqueglobaladdr","rpc.network.interface.@wan6.ipv6uniquelocaladdr")
+  if ipv6addr then
+    if ipv6addr[1].value ~= "" then
+      content.uci_wan6_addr = ipv6addr[1].value
+    else
+      content.uci_wan6_addr = ipv6addr[2].value
+    end
+    content.uci_wan6_gw = proxy.get("rpc.network.interface.@wan6.nexthop")[1].value
+    content.uci_wan6_prefix = proxy.get("rpc.network.interface.@wan6.ip6prefix")[1].value
+    content.uci_wan6_auto = "0"
+  end
 end
 
 if content.uci_wan_auto ~= "0" then

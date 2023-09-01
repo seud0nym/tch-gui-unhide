@@ -24,7 +24,7 @@ done
 
 if [ "$(exec_uci -q get network.config.wan_mode)" = "bridge" ]; then
   if [ -z "$(exec_uci -q get network.lan6)" ]; then
-    echo -e "[$SCRIPT]: Creating missing lan6 interface "
+    echo -e "[$SCRIPT]: Creating missing lan6 interface"
     exec_uci set network.lan6=interface
     exec_uci set network.lan6.defaultreqopts='0'
     exec_uci set network.lan6.forceprefix='0'
@@ -47,4 +47,9 @@ fi
 if grep -q "kill -9 \`ps | grep parseopt60 | awk '{print \$1}' | head -n 1\`; /usr/bin/parseopt60 &" /etc/udhcpc.user; then
   echo -e "[$SCRIPT]: Fix '/usr/bin/parseopt60: not found' error"
   sed -e "s#kill -9 \`ps | grep parseopt60 | awk '{print \$1}' | head -n 1\`; /usr/bin/parseopt60 &#( & )#" -i /etc/udhcpc.user
+fi
+
+if ! /etc/init.d/static-wan-routes-monitor enabled; then
+  echo -e "[$SCRIPT]: Enabling static WAN routes monitor service"
+  /etc/init.d/static-wan-routes-monitor enable
 fi

@@ -1,0 +1,1 @@
+^network%.[^%.]+%.wan6?%. /etc/init.d/static-wan-routes-monitor restart

@@ -17,7 +17,7 @@ services="watchdog-tch \
           pinholehelper \
           qos qos_tch \
           ra redirecthelper rsyncd \
-          samba samba-nmbd socat supervision sync-adguard-home-data sysntpd \
+          samba samba-nmbd socat static-wan-routes-monitor supervision sync-adguard-home-data sysntpd \
           telemetry-daemon tls-thor tod trafficmon transformer tproxy \
           uhttpd \
           wansensing wfa-testsuite-daemon wifi-doctor-agent wol \

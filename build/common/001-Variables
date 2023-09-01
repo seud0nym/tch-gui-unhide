@@ -256,6 +256,7 @@ apply_service_changes() {
     restart nginx $SRV_nginx
     restart firewall $SRV_firewall
     restart network $SRV_network reload
+    restart static-wan-routes-monitor 1
     restart watchdog-tch 1 start
   fi
 }

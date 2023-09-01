@@ -8,10 +8,7 @@ local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
 
 -- could be in bridge mode and fail if included in wan_data
-local proxy = require("datamodel")
 local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
-local wan_proto = proxy.get("uci.network.interface.@wan.proto")
-local static = wan_proto and wan_proto[1].value == "static"
 
 -- wan status data
 local wan_data = {
@@ -39,10 +36,6 @@ if WS_en == "1" then
   if WS_L3 == "" then
     WS_L3 = "NONE"
   end
-  if static then
-    WS_State = "static"
-    WS_Text = T"WAN Sensing enabled on STATIC IP"
-  end
 else
    WS_Text = T"WAN Sensing disabled"
    WS_State = "Disabled"
@@ -52,7 +45,6 @@ local WS_light_map = {
   Disabled = "off",
   None = "orange",
   Enabled = "green",
-  static = "red",
 }
 
 local session = ngx.ctx.session
@@ -67,12 +59,9 @@ ngx.print('\
     ui_helper.createCardHeader(T"Broadband",modalPath,nil,nil,{icon={class="icon-link"}}),'\
     <div id="broadband-card-throughput"><div class="throughput"><span title="Raw throughput including protocol overhead"></span></div></div>\
     <div class="content card_bg mirror" data-bg-text="&#xf0c1;">\
-      ');
-      if (WS_en == "1" or not static) and not isBridgedMode then
-        ngx.print( ui_helper.createSimpleLight(nil,WS_Text,{ light = { class = WS_light_map[WS_State] } }) )
-      end
+      ',ui_helper.createSimpleLight(nil,WS_Text,{ light = { class = WS_light_map[WS_State] } }))
       if WS_en == "1" then
-        ngx.print( format('<p class="subinfos">L2: <strong>%s</strong> L3: <strong>%s</strong></p>',WS_L2,WS_L3) )
+        ngx.print(format('<p class="subinfos">L2: <strong>%s</strong> L3: <strong>%s</strong></p>',WS_L2,WS_L3))
       end
       ngx.print('\
       <div id="broadband-card-content">\

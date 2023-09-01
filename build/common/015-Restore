@@ -8,7 +8,7 @@ if [ $RESTORE = y ]; then
 
   restore_www V
 
-  for f in /etc/config/tch_gui_unhide /etc/tch-gui-unhide.ignored_release /etc/tch-gui-unhide.theme /etc/hotplug.d/iface/10-bqos /etc/init.d/bqos /usr/sbin/bqos /etc/hotplug.d/iface/60-add-IPv6-DNS-intercept-exceptions /etc/hotplug.d/iface/70-WAN-LEDs;do
+  for f in /etc/config/tch_gui_unhide /etc/tch-gui-unhide.ignored_release /etc/tch-gui-unhide.theme /etc/hotplug.d/iface/10-bqos /etc/init.d/bqos /usr/sbin/bqos /etc/hotplug.d/iface/60-add-IPv6-DNS-intercept-exceptions /etc/hotplug.d/iface/70-WAN-LEDs /etc/init.d/static-wan-routes-monitor;do
     if [ -f "$f" ]; then
       if [ "$(dirname $f)" = "/etc/init.d" ]; then
         echo -e "[$SCRIPT]: Disabling and stopping $f"
