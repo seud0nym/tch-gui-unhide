@@ -9,13 +9,10 @@ sed \
 SRV_transformer=$(( $SRV_transformer + 2 ))
 
 echo -e "[$SCRIPT]: Pointing QoS GUI at qos_tch transformer mapping"
-for f in qos-device-modal.lp qos-label-modal.lp qos-classify-modal.lp qos-queue-modal.lp qos-reclassify-modal.lp qos-swshaper-modal.lp; do
-  if [ -f /www/docroot/modals/$f ]; then
-    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/$f"
-    sed \
-      -e 's/uci\.qos\./uci.qos_tch./g' \
-      -e 's/uci%\.qos%\./uci%.qos_tch%./g' \
-      -i /www/docroot/modals/$f
+for f in modals/qos-device-modal.lp modals/qos-label-modal.lp modals/qos-classify-modal.lp modals/qos-queue-modal.lp modals/qos-reclassify-modal.lp modals/qos-swshaper-modal.lp ajax/qos-swshaper-status.lua; do
+  if [ -f /www/docroot/$f ]; then
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/$f"
+    sed -e 's/uci%*\.qos/&_tch/g' -i /www/docroot/$f
   fi
 done
 
