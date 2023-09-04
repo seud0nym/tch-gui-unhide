@@ -157,7 +157,7 @@ The extension scripts have access to the following environment when they execute
 | restore_file | path <...>  | `path`: The full path and filename to be restored (e.g. `/etc/config/network`). Multiple paths may be specified. If the file is marked as deleted in the backup, it will be **deleted** from the target device. |
 | restore_directory | directory | `directory`: The name of the directory to be restored. Files will be copied from the backup or deleted if marked so in the backup. |
 | uci_copy | config type exclude lists | `config`: The config file name (e.g. `'web'`).<br/>`type`: The config section type (e.g. `'rule'`)<br/>`exclude`: A regular expression that will be applied against the entire path returned by `$UCI show` and if a match is found, the section will be **excluded**. (e.g. `'dumaos\|homepage'`)<br/>`lists`: A space delimited list of configuration items that are lists, not single values. (e.g. `'roles'`) |
-| uci_copy_by_match | config type match option <...> | `config`: The config file name (e.g. `'firewall'`).<br/>`type`: The config section type (e.g. `'include'`)<br/>`match`: The option on which to match the configuration section between teh backup and target device. (e.g. `'path'`)<br>`option`: One or more space-separated names to be copied from the backup configuration. (e.g `'enabled' 'reload'`) |
+| uci_copy_by_match | config type match option <...> | `config`: The config file name (e.g. `'firewall'`).<br/>`type`: The config section type (e.g. `'include'`)<br/>`match`: The option on which to match the configuration section between the backup and target device. (e.g. `'path'`)<br>`option`: One or more space-separated names to be copied from the backup configuration. (e.g `'enabled' 'reload'`) |
 | uci_set | expr delete_if_empty islist | `expr`: *Either* a path to be copied from the backup to the target device (e.g. `uci_set wansensing.global.enable`) *or* a full path=value expression (e.g. `uci_set multiap.agent.macaddress="$agent_mac"`).<br/>`delete_if_empty`: Specify `y` if the target option is to be deleted if no value is found in the backup configuration.<br/>`islist`: Specify `y` if the target option is a list to which the value is to be added. |
 
 ### Default Extension Scripts
@@ -171,15 +171,15 @@ The extension scripts have access to the following environment when they execute
 | 250-wan_services_config.sh | Restores /etc/config/ddns, /etc/config/iperf and /etc/config/wol |
 | 300-power.sh | Restores /etc/config/power between compatible firmware versions |
 | 350-network.sh | Restores /etc/config/dhcp, /etc/config/network, /etc/config/wireless, /etc/config/user_friendly_name, and partially restores /etc/config/wansensing | 
-| 400-multiap.sh | Restores /etc/config/multiap if it is supported on both the backup and target device |
+| 400-easymesh.sh | Restores EasyMesh configuration if it is supported on both the backup and target device |
 | 450-qos.sh | Restores /etc/config/bqos (tch-gui-unhide buffer bloat and MAC shaping) and any defined egress shapers |
 | 500-telephony.sh | Restores the mmpbx config files, fixes the user agent and applies the SIP passwords |
 | 550-cron.sh | Restores scheduled cron tasks |
 | 600-sharing.sh | Restores the configuration for file, content and printer sharing |
 | 650-de_telstra.sh | Calculates the de-telstra options applied on the backup device and runs de-telstra with those options |
-| 700-packages.sh | Removes and installs packages and restores /etc/config/adblock /etc/config/minidlna and /etc/rsyncd.conf |
+| 700-packages.sh | Removes and installs packages and supplemental features |
 | 750-parental.sh | Restores /etc/config/parental |
 | 800-tod.sh | Restores /etc/config/tod |
 | 850-tch_gui_unhide.sh | Restores GUI files and configuration (including web password) and runs tch-gui-unhide with the correct options |
 | 900-firewall.sh | Restores the firewall config and defaults, system rules (by matching on rule name), includes (by matching on path), user rules, port forwarding rules, DNS Interception, DMZ and DoS protect configuration |
-| 950-service_status.sh | Disables any services that were disabled on the backup device |
+| 950-service_status.sh | Enables/disables any services that were enabled/disabled on the backup device |
