@@ -26,3 +26,9 @@ if [ -s $BANK2/etc/opkg/customfeeds.conf -a $(grep -v '^#' $BANK2/etc/opkg/custo
   log I "Restoring any additional packages configuration"
   restore_file /etc/config/adblock /etc/config/minidlna /etc/rsyncd.conf
 fi
+
+if [ -e $BANK2/etc/nginx/OpenSpeedTest-Server.conf ]; then
+  log I "Restoring OpenSpeedTest"
+  restore_directory /usr/share/nginx
+  restore_file /etc/nginx/OpenSpeedTest-Server.conf /etc/nginx/nginx.conf
+fi
