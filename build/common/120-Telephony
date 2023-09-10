@@ -61,7 +61,12 @@ sed \
 echo -e "[$SCRIPT]: Replace NA in Call Log with VoLTE"
 sed -e 's/"NA"/"VoLTE"/' -i /www/docroot/modals/mmpbx-log-modal.lp
 
-
+if [ "$(uci -q get mmpbx.global.wait_for_cwmpd)" != "0" ]; then
+  echo -e "[$SCRIPT]: Disabling Telephony dependency on cwmpd"
+  exec_uci set mmpbx.global.wait_for_cwmpd='0'
+  exec_uci commit mmpbx
+  SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
+fi
 
 if [ "$MINIFY" = y ]; then
   echo -e "[$SCRIPT]: Pre-minify fixes"

@@ -3361,6 +3361,12 @@ fi
 #endregion SAMBA
 
 #region Telephony
+if [ "$(uci -q get mmpbx.global.wait_for_cwmpd)" != "0" ]; then
+  echo [$SCRIPT]: Disabling Telephony dependency on cwmpd..
+  exec_uci set mmpbx.global.wait_for_cwmpd='0'
+  exec_uci commit mmpbx
+  SRV_mmpbxd=$(( $SRV_mmpbxd + 1 ))
+fi
 if [ "$__MMPBX_SRV" = "d" ]; then
   for s in $(uci show mmpbx | grep =service | grep -v 'hold\|dnd\|mwi' | cut -d= -f1); do
     n="$(uci -q get $s.type)"
