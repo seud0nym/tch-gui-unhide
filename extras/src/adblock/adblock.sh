@@ -77,6 +77,7 @@ if [ "$1" = "setup" ]; then
     adblock_restart="y"
   fi
   [ $adblock_restart = "y" ] && /etc/init.d/adblock restart
+  /etc/init.d/adblock reload &
   if ! grep -q '/etc/init.d/adblock' /etc/crontabs/root; then
     mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
     hh=$(awk 'BEGIN{srand();print int(rand()*4)+1;}')
