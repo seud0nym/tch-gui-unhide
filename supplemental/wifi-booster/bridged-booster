@@ -6,7 +6,8 @@ ORANGE='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-FW_VER=$(uci get version.@version[0].marketing_version)
+NQE="$(which nqcsctrl)"
+[ -e /etc/config/qos_tch ] && QoS="qos_tch" || QoS="qos"
 
 # Make sure that we are running on Telstra firmware
 if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]; then
@@ -55,9 +56,9 @@ if [ $EASYMESH = multiap ]; then cat <<EOH
               0=off 2=Default 9=very verbose
 EOH
 fi
-if [ $FW_VER = "20.3.c" ]; then cat <<EOH
- -s          Apply the Samba (NQE) fix for Firmware 20.3.c to allow the booster 
-              device to run as a file server.
+if [ -n "$NQE" ]; then cat <<EOH
+ -s          Apply the Samba (NQE) fix to allow the booster device to run as a
+              file server.
               (This option is ignored if -R specified)
 EOH
 fi
@@ -109,7 +110,7 @@ while getopts :6dg:i:l:m:n:rsyR option; do
           LAN_DNS="$LAN_DNS $OPTARG"
         fi;;
     r)  REBOOT='n';;
-    s)  [ $FW_VER = "20.3.c" ] && SAMBA='y' || usage;;
+    s)  [ -n "$NQE" ] && SAMBA='y' || usage;;
     y)  YES='y';;
     R)  RESTORE='y';;
     *)  usage;;
@@ -175,11 +176,11 @@ if [ $RESTORE = n ]; then
   [ $LAN_DHCP = "n" -a -z "$LAN_DNS" ] && echo -e " - ${GREEN}Set LAN DNS to $(echo $LAN_DNS | tr \"$IFS\" ' ')${NC}"
   echo -e " - ${GREEN}ENABLE Bridged Mode${NC}"
   [ "$LAN_IPv6" = "1" ] && echo -e " - ${GREEN}ENABLE LAN IPv6${NC}"
-  if [ $FW_VER = "20.3.c" ]; then
+  if [ -n "$NQE" ]; then
     if [ $SAMBA = y ]; then
-      echo -e " - ${GREEN}Apply the SAMBA (NQE) fix for FW 20.3.c${NC}"
+      echo -e " - ${GREEN}Apply the SAMBA (NQE) fix${NC}"
     else
-      echo -e " - ${ORANGE}Apply a partial fix for NQE bind errors on FW 20.3.c${NC}"
+      echo -e " - ${ORANGE}Apply a partial fix for NQE bind errors${NC}"
     fi
   fi
   echo -e " - ${ORANGE}DISABLE EasyMesh Controller${NC}"
@@ -246,10 +247,10 @@ if [ $RESTORE = n ]; then
   fi
 
   echo -e "${ORANGE}Disabling QoS${NC}"
-  for DEVICE in $(uci show qos | grep =device | tr = . | cut -d. -f2); do
-    uci set qos.$DEVICE.enable='0'
+  for DEVICE in $(uci show $QoS | grep =device | tr = . | cut -d. -f2); do
+    uci set $QoS.$DEVICE.enable='0'
   done
-  uci commit qos
+  uci commit $QoS
 
   if [ -n "$UHTTPD" ]; then
     echo -e "${ORANGE}Disabling DumaOS UHTTP daemon${NC}"
@@ -314,13 +315,13 @@ if [ $RESTORE = n ]; then
   fi
   echo -e "${GREEN}Configuring bridged mode${NC}"
   uci set network.config.wan_mode='bridge'
-  uci set network.lan.ifname="eth0 eth1 eth2 eth3 eth4 wl0 wl1 $BHAUL_IF"
+  uci set network.lan.ifname="eth0 eth1 eth2 eth3 eth4"
   for ifname in ppp ipoe wan wan6 wwan lan.pppoerelay; do
     uci -q delete network.$ifname
     uci -q delete dhcp.$ifname
   done
   uci -q delete network.@ppp_placeholder[0]
-  if [ $FW_VER = "20.3.c" ]; then
+  if [ -n "$NQE" ]; then
     uci set network.wan=interface
     if [ $SAMBA = n ]; then
       echo -e "${ORANGE}Applying partial fix for NQE bind errors${NC}"
@@ -331,19 +332,13 @@ if [ $RESTORE = n ]; then
       local_wifi_mac=$(uci get env.var.local_wifi_mac)
       uci set network.wan.ifname='atm_8_35'
       uci set network.wan.proto='static'
-      uci set network.wan.netmask="$LAN_NETMASK"
+      uci set network.wan.netmask="255.255.255.0"
       uci set network.wan.ipaddr="10.$(printf '%d' 0x$(echo $local_wifi_mac | cut -d: -f4)).$(printf '%d' 0x$(echo $local_wifi_mac | cut -d: -f5)).$(printf '%d' 0x$(echo $local_wifi_mac | cut -d: -f6))"
       uci set network.wan.gateway="$LAN_GATEWAY"
     fi
   fi
   uci commit network
   uci commit dhcp
-
-  echo -e "${ORANGE}Disabling Guest firewall rules${NC}"
-  for rule in $(uci show firewall | grep "@rule\[[0-9]*\]\.name='.*Guest.*'" | cut -d. -f1-2); do
-    uci set $rule.enabled='0'
-  done
-  uci commit firewall
 
   echo -e "${ORANGE}Disabling traffic history${NC}"
   sed -e '/traffichistory.lua/d' -i /etc/crontabs/root
@@ -387,7 +382,7 @@ if [ $RESTORE = n ]; then
     echo -e "${ORANGE}Stopping intercept daemon...${NC}"
     /etc/init.d/intercept stop
     echo -e "${ORANGE}Applying QoS changes...${NC}"
-    /etc/init.d/qos restart
+    /etc/init.d/$QoS restart
     if [ -n "$UHTTPD" ]; then
       echo -e "${ORANGE}Stopping DumaOS UHTTP daemon...${NC}"
       $UHTTPD stop
@@ -398,8 +393,6 @@ if [ $RESTORE = n ]; then
     fi
     echo -e "${ORANGE}Applying wireless changes...${NC}"
     /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"
-    echo -e "${ORANGE}Applying firewall changes...${NC}"
-    /etc/init.d/firewall reload
     echo -e "${ORANGE}Applying network changes...${NC}"
     /etc/init.d/network reload
     echo -e "${ORANGE}Applying cron changes...${NC}"
@@ -508,12 +501,6 @@ else # RESTORE
   done
   uci commit dhcp
 
-  echo -e "${ORANGE}Enabling Guest firewall rules${NC}"
-  for rule in $(uci show firewall | grep "@rule\[[0-9]*\]\.name='.*Guest.*'" | cut -d. -f1-2); do
-    uci set $rule.enabled='1'
-  done
-  uci commit firewall
-
   if [ -n "$UHTTPD" ]; then
     echo -e "${GREEN}Enabling DumaOS UHTTP daemon${NC}"
     $UHTTPD enable
@@ -524,10 +511,10 @@ else # RESTORE
   fi
 
   echo -e "${GREEN}Enabling QoS${NC}"
-  for DEVICE in $(uci show qos | grep =device | tr = . | cut -d. -f2); do
-    uci set qos.$DEVICE.enable='1'
+  for DEVICE in $(uci show $QoS | grep =device | tr = . | cut -d. -f2); do
+    uci set $QoS.$DEVICE.enable='1'
   done
-  uci commit qos
+  uci commit $QoS
 
   echo -e "${GREEN}Enabling intercept daemon${NC}"
   uci set intercept.config.enabled='1'
@@ -561,6 +548,7 @@ else # RESTORE
 
   if [ $REBOOT = y ]; then
     echo -e "${ORANGE}Rebooting...${NC}"
+    sync
     reboot
   else
     echo -e "${GREEN}Starting WAN Sensing daemon...${NC}"
@@ -576,7 +564,7 @@ else # RESTORE
     echo -e "${GREEN}Starting intercept daemon...${NC}"
     /etc/init.d/intercept restart
     echo -e "${GREEN}Applying QoS changes...${NC}"
-    /etc/init.d/qos restart
+    /etc/init.d/$QoS restart
     if [ -n "$UHTTPD" ]; then
       echo -e "${GREEN}Starting DumaOS UHTTP daemon...${NC}"
       $UHTTPD start
@@ -585,8 +573,6 @@ else # RESTORE
       echo -e "${GREEN}Starting DumaOS NDHTTP daemon${NC}"
       $NDHTTPD start
     fi
-    echo -e "${ORANGE}Applying firewall changes...${NC}"
-    /etc/init.d/firewall reload
     echo -e "${GREEN}Applying network changes...${NC}"
     /etc/init.d/network reload
     echo -e "${GREEN}Applying cron changes...${NC}"
