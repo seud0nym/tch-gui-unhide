@@ -81,3 +81,10 @@ if [ "$(exec_uci -q get network.config.wan_mode)" = "bridge" -a "$(exec_uci -q g
     SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
   fi
 fi
+
+if [ -z "$(exec_uci -q get dhcp.relay)" ]; then
+    echo -e "[$SCRIPT]: Adding missing DHCP Relay config"
+    exec_uci -q set dhcp.relay='relay'
+    exec_uci commit dhcp
+    SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
+fi
