@@ -21,16 +21,9 @@ local content = {
   broker = "uci.mesh_broker.global.@mesh_broker.enable",
   agent = "uci.wireless.map-agent.@agent.state",
   controller = "uci.mesh_broker.meshapp.@mesh_common.controller_enabled",
+  backhaul_ssid = "uci.wireless.wifi-iface.@wl0_1.ssid",
+  backhaul_state = "uci.wireless.wifi-iface.@wl0_1.state",
 }
-
-for _,v in ipairs(proxy.getPN("uci.mesh_broker.controller_credentials.", true)) do
-  local backhaul = proxy.get(v.path.."backhaul")
-  if backhaul and backhaul[1].value == "1" then
-    content.backhaul_ssid = v.path.."ssid"
-    content.backhaul_state = v.path.."state"
-    break;
-  end
-end
 
 content_helper.getExactContent(content)
 
