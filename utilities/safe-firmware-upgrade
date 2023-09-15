@@ -48,6 +48,9 @@ Options:
  -b               Make a full backup of your configuration from /overlay
                     before resetting to factory defaults.
                     (Requires attached USB device).
+ -B               Configure for bridged mode. Implies --no-forwards, 
+                    --no-leases and --no-ula. Ignored if --restore-config
+                    is specified.
  -c               Disable CWMP configuration during first boot after reset.
  -d               Add DNS rewrites to disable CWMP firmware downloads from
                     fwstore.bdms.telstra.net
@@ -62,7 +65,8 @@ Options:
                     By default, also restores port forwards, static leases
                     and the IPv6 ULA and prefix size (unless --no-forwards, 
                     --no-leases or --no-ula are specified).
- -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
+ -I n.n.n.n|DHCP  Use IP address n.n.n.n OR obtain the IP address from DHCP
+                    after reset and reboot
  -k               Keep existing SSH keys after reset and reboot.
  -l n.n.n.n:port  Configure logging to a remote syslog server on the specified
                     IP address and port. The port is optional and defaults to

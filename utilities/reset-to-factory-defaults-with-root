@@ -49,6 +49,9 @@ Options:
  -b               Make a full backup of your configuration from /overlay
                     before resetting to factory defaults.
                     (Requires attached USB device).
+ -B               Configure for bridged mode. Implies --no-forwards, 
+                    --no-leases and --no-ula. Ignored if --restore-config
+                    is specified.
  -c               Disable CWMP configuration during first boot after reset.
  -d               Add DNS rewrites to disable CWMP firmware downloads from
                     fwstore.bdms.telstra.net
@@ -74,7 +77,8 @@ Options:
                     By default, also restores port forwards, static leases
                     and the IPv6 ULA and prefix size (unless --no-forwards, 
                     --no-leases or --no-ula are specified).
- -I n.n.n.n       Use IP address n.n.n.n after reset and reboot.
+ -I n.n.n.n|DHCP  Use IP address n.n.n.n OR obtain the IP address from DHCP
+                    after reset and reboot
  -k               Keep existing SSH keys after reset and reboot.
  -l n.n.n.n:port  Configure logging to a remote syslog server on the specified
                     IP address and port. The port is optional and defaults to
@@ -196,6 +200,7 @@ uci set dropbear.afg.RootLogin='1'
 uci set dropbear.lan.enable='0'
 /etc/init.d/dropbear enable
 END
+[ -n "$BRIDGE_CFG" ]   && echo "$BRIDGE_CFG"
 [ -n "$LAN_CFG" ]      && echo "$LAN_CFG"
 [ -n "$CWMP_CFG" ]     && echo "$CWMP_CFG"
 [ -n "$DNSMASQ_CFG" ]  && echo "$DNSMASQ_CFG"
@@ -239,6 +244,7 @@ echo 'exit 0'
 #endregion
 
 set_defaults() {
+  __BRIDGED="N"
   __BKUP=""
   __CWMP=""
   __CWMP_DNS=""
@@ -264,6 +270,7 @@ if [ -f .defaults.$SCRIPT -a "$(echo "$*" | grep -o '\brestore-config\b')" != "r
   . ./.defaults.$SCRIPT
 fi
 
+ABORT="N"
 FIRMWARE=""
 YES="N"
 SAVE_DEFAULTS="N"
@@ -278,9 +285,10 @@ LEASES=""
 
 VALID_IPv4_PATTERN="([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
 
-while getopts :bcdD:ef:h:iI:kl:mnp:svyU-: option; do
+while getopts :bBcdD:ef:h:iI:kl:mnp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
+        abort)          ABORT="Y"; __VERBOSE="Y";;
         i)              RESTORE_IPADDR="Y";;
         no-defaults)    set_defaults;;
         no-bank-check)  __NO_BANK_PLAN_CHK="Y";;
@@ -288,11 +296,12 @@ while getopts :bcdD:ef:h:iI:kl:mnp:svyU-: option; do
         no-keys-check)  __NO_AUTH_KEYS_CHK="Y";;
         no-leases)      __NO_LEASES="Y";;
         no-ula)         __NO_ULA="Y";;
-        restore-config) RESTORE_CONFIG="Y"; __CWMP="Y"; __NOEXEC="Y"; __KEYS="Y"; __VERBOSE="Y"; [ -z "$__IPADDR" ] && __IPADDR="$LAN_IP_NOW"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y";;
+        restore-config) RESTORE_CONFIG="Y"; __BRIDGED="N"; __CWMP="Y"; __NOEXEC="Y"; __KEYS="Y"; __VERBOSE="Y"; [ -z "$__IPADDR" -o "$__IPADDR" = "DHCP" -o "$__IPADDR" = "dhcp" ] && __IPADDR="$LAN_IP_NOW"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y";;
         save-defaults)  SAVE_DEFAULTS="Y";;
         *)              usage;;
       esac;;
   b)  __BKUP="Y";;
+  B)  __BRIDGED="Y"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y";;
   c)  __CWMP="Y";;
   d)  echo "$__CWMP_DNS" | grep -q "\bfwstore.bdms.telstra.net\b" || __CWMP_DNS="$__CWMP_DNS fwstore.bdms.telstra.net";;
   D)  echo "$__CWMP_DNS" | grep -q "\b${OPTARG}\b" || __CWMP_DNS="$__CWMP_DNS $OPTARG";;
@@ -307,6 +316,8 @@ while getopts :bcdD:ef:h:iI:kl:mnp:svyU-: option; do
   h)  __HOSTNAME="$OPTARG";;
   i)  __IPADDR="$LAN_IP_NOW";;
   I)  if echo "${OPTARG}" | grep -qE "$VALID_IPv4_PATTERN"; then
+        __IPADDR="${OPTARG}"
+      elif [ "${OPTARG}" = "DHCP" -o "${OPTARG}" = "dhcp" ]; then
         __IPADDR="${OPTARG}"
       else
         echo -e "${RED}ERROR:    Invalid IP address: $OPTARG${NC}"
@@ -406,6 +417,7 @@ if [ -n "$__BKUP" ]; then
 fi
 
 if [ $RESTORE_CONFIG = Y ]; then
+  __BRIDGED="N"
   if [ -z "$USB" ]; then
     echo -e "${RED}ABORTING: Configuration restore requested, but no attached USB device found!${NC}"
     exit
@@ -444,6 +456,10 @@ if [ $RESTORE_CONFIG = Y ]; then
     if [ "$VERSION" = "$BACKUP_VERSION" -o \( "$DEVICE_VERSION_NUMBER" -le 2004000 -a "$BACKUP_VERSION_NUMBER" -le 2004000 \) -o \( "$DEVICE_VERSION_NUMBER" -ge 2004000 -a "$BACKUP_VERSION_NUMBER" -ge 2004000 \) ]; then
       OVERLAY_BACKUP="$(basename $RESTORE_OPTIONS | cut -d- -f1-3) ($(ls -l $RESTORE_OPTIONS | tr -s ' ' | cut -d' ' -f6-8))"
       if [ "$RESTORE_IPADDR" = "Y" ]; then
+        if [ "$__IPADDR" = "DHCP" -o "$__IPADDR" = "dhcp" ]; then
+          echo -e "${RED}ABORTING: Cannot configure IP from DHCP with --restore-config !${NC}"
+          exit
+        fi
         RESTORE_OPTIONS="-i $__IPADDR $RESTORE_OPTIONS"
       fi
       RESPONSE_CODE=$(curl -kLsI -m 5 -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/restore-config/.sha256)
@@ -588,13 +604,31 @@ else
   grep -q 'tch-gui-unhide' /www/docroot/gateway.lp && echo -e "NOTE:     You will need to ${ORANGE}re-run tch-gui-unhide${NC} after rebooting!"
 fi
 
+if [ "$__BRIDGED" = "Y" ]; then
+  echo -e "${ORANGE}WARNING${NC}:  Device will be in ${ORANGE}BRIDGED${NC} mode after rebooting!"
+  BRIDGE_CFG="uci set wansensing.global.enable='0'"
+  BRIDGE_CFG="$BRIDGE_CFG"$'\n'"uci set network.lan.ifname='eth0 eth1 eth2 eth3 eth4 atm_8_35 ptm0'"
+  BRIDGE_CFG="$BRIDGE_CFG"$'\n'"uci set network.config='config'"
+  BRIDGE_CFG="$BRIDGE_CFG"$'\n'"uci set network.config.wan_mode='bridge'"
+  BRIDGE_CFG="$BRIDGE_CFG"$'\n'"uci set dhcp.lan.ignore='1'"
+  BRIDGE_CFG="$BRIDGE_CFG"$'\n'"uci set network.wan.ifname='lo'"
+  BRIDGE_CFG="$BRIDGE_CFG"$'\n'"uci set network.wan.auto='0'"
+  BRIDGE_CFG="$BRIDGE_CFG"$'\n'"uci set network.wan.proto='none'"
+  for ifname in $(grep -rhE "uci *set *network\.(ppp|ipoe|wan|eth4|atm_8_35|ptm0).*=interface" /rom/etc/uci-defaults/ | cut -d. -f2 | cut -d= -f1); do
+    [ "$ifname" != "wan" ] && BRIDGE_CFG="$BRIDGE_CFG"$'\n'"uci delete network.$ifname"
+  done
+fi
+
 echo -e "NOTE:     Root access will be preserved and the root password will be set to '${GREEN}${__ROOTPWD}${NC}'"
 
 NOW_C_CLASS="$(echo $LAN_IP_NOW | cut -d. -f1-3)"
-CFG_C_CLASS="$(echo $__IPADDR | cut -d. -f1-3)"
 NOW_C_CLASS_ESCAPED="$(echo $NOW_C_CLASS | sed -e 's/\./\\./g')"
 
-if [ -n "$__IPADDR" ]; then
+if [ "$__IPADDR" = "DHCP" -o "$__IPADDR" = "dhcp" ]; then
+  echo -e "NOTE:     IP address will be set via ${GREEN}DHCP${NC}"
+  LAN_CFG="uci set network.lan.proto='dhcp'"
+elif [ -n "$__IPADDR" ]; then
+  CFG_C_CLASS="$(echo $__IPADDR | cut -d. -f1-3)"
   for GUESTIP in $(uci show network | grep "network\.Guest.*ipaddr=" | cut -d"'" -f2 | cut -d. -f1-3 | sort -u);do
     if [ "$CFG_C_CLASS" = "$GUESTIP" ]; then
       echo -e "${RED}ABORTING: $__IPADDR conflicts with the Guest IP address range!${NC}"
@@ -685,19 +719,20 @@ if [ -n "$__KEYS" ]; then
   rm -rf /tmp/rtfdwr_keys
   mkdir -p /tmp/rtfdwr_keys/etc/dropbear
   cp -p /etc/dropbear/* /tmp/rtfdwr_keys/etc/dropbear/
+  rm -f /tmp/rtfdwr_keys/etc/dropbear/authorized_keys_closed
   if [ "$__NO_AUTH_KEYS_CHK" = "N" -a -e authorized_keys ] && cmp -s /rom/etc/dropbear/authorized_keys /etc/dropbear/authorized_keys; then
     echo -e "NOTE:     /etc/dropbear/authorized_keys will be ${GREEN}replaced${NC}"
     cp authorized_keys /tmp/rtfdwr_keys/etc/dropbear/authorized_keys
     chmod 600 /tmp/rtfdwr_keys/etc/dropbear/authorized_keys
     chown root:root /tmp/rtfdwr_keys/etc/dropbear/authorized_keys
   fi
-  echo -e "NOTE:     SSH keys will be ${GREEN}restored${NC}: ${GREEN}$(ls /etc/dropbear | xargs)${NC}"
   SSH_DIRS="etc/dropbear"
   if [ -d /root/.ssh ]; then
     mkdir -p /tmp/rtfdwr_keys/root/.ssh
     cp -p /root/.ssh/* /tmp/rtfdwr_keys/root/.ssh/
     SSH_DIRS="${SSH_DIRS} root/.ssh"
   fi
+  echo -e "NOTE:     SSH keys will be ${GREEN}restored${NC}: ${GREEN}$(find /tmp/rtfdwr_keys -type f -exec basename {} \; | sort | xargs)${NC}"
   KEYS_CFG="echo '$(tar -czf - -C /tmp/rtfdwr_keys $SSH_DIRS | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
 else
   echo -e "${ORANGE}WARNING:  SSH keys will ${RED}NOT${ORANGE} be restored!${NC}"
@@ -742,7 +777,10 @@ if [ $__VERBOSE = Y ]; then
   echo -en "${NC}"
 fi
 
-if [ $YES = N ]; then
+if [ $ABORT = Y ]; then
+  echo -e "NOTE:     Aborted at user request"
+  exit
+elif [ $YES = N ]; then
   echo -en "${GREEN}ACTION:   Enter y to continue, or anything else to exit now${NC} "
   read
   if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
