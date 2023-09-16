@@ -72,7 +72,6 @@ if session:hasAccess("/modals/firewall-modal.lp") then
         if not nat_alg_card_hidden or nat_alg_card_hidden[1].value == "1" then
           local alg_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/nat-alg-helper-modal.lp" data-id="nat-alg-helper-modal"'
           local enabled_count = 0
-          local disabled_count = 0
           local helper_uci_path = "uci.firewall.helper."
           local helper_uci_content = proxy.get(helper_uci_path)
           helper_uci_content = content_helper.convertResultToObject(helper_uci_path,helper_uci_content)
@@ -80,16 +79,10 @@ if session:hasAccess("/modals/firewall-modal.lp") then
             if v.intf ~= "loopback" then
               if v.enable ~= "0" then
                 enabled_count = enabled_count + 1
-                else
-                disabled_count = disabled_count + 1
               end
             end
           end
-          if enabled_count > 0 then
-            html[#html+1] = T(format(N("<strong %1$s>%2$d NAT Helper</strong> enabled","<strong %1$s>%2$d NAT Helpers</strong> enabled",enabled_count),alg_modal_link,enabled_count))
-          else
-            html[#html+1] = T(format(N("<strong %1$s>%2$d NAT Helper</strong> disabled","<strong %1$s>%2$d NAT Helpers</strong> disabled",disabled_count),alg_modal_link,disabled_count))
-          end
+          html[#html+1] = T(format(N("<strong %1$s>%2$d NAT Helper</strong> enabled","<strong %1$s>%2$d NAT Helpers</strong> enabled",enabled_count),alg_modal_link,enabled_count))
           html[#html+1] = "<br>"
         end
 
