@@ -178,6 +178,13 @@ local devices_columns = {
     type = "text",
     readonly = true,
   },
+  {--[9]
+  header = T"",
+  name = "IPAddress",
+  param = "IPAddress",
+  type = "hidden",
+  readonly = true,
+},
 }
 local dumaOS = proxy.get("uci.dumaos.tr69.dumaos_enabled")
 if dumaOS and dumaOS[1].value ~= "1" then
@@ -310,6 +317,24 @@ local devices_filter = function(data)
     return false
   end
   data.InterfaceType = getInterfaceType(data)
+  if not data.IPv4 and not data.IPv6 then
+    local addresses = splitter.split(untaint(data.IPAddress)," ")
+    for _,address in ipairs(addresses) do
+      if find(address,":",1,true) then
+        if not data.IPv6 then
+          data.IPv6 = address
+        else
+          data.IPv6 = data.IPv6.."<br>"..address
+        end
+      else
+        if not data.IPv4 then
+          data.IPv4 = address
+        else
+          data.IPv4 = data.IPv4.."<br>"..address
+        end
+      end
+    end
+  end
   if data.IPv4 == "" or data.IPv6 == "" then
     if data.DhcpLeaseIP ~= "" then
       local chunks = {match(untaint(data.DhcpLeaseIP),"(%d+)%.(%d+)%.(%d+)%.(%d+)")}
