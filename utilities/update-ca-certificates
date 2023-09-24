@@ -106,4 +106,6 @@ else
   grep -q CURL_CA_BUNDLE $ENV || echo "export CURL_CA_BUNDLE='/etc/ssl/certs/ca-certificates.crt'" >> $ENV
   grep -q SSL_CERT_FILE $ENV || echo "SSL_CERT_FILE='/etc/ssl/cert.pem'" >> $ENV
 fi
+grep -q 'ca_directory=' /root/.wgetrc 2>/dev/null || echo 'ca_directory=/etc/ssl/certs' >> /root/.wgetrc
+
 
