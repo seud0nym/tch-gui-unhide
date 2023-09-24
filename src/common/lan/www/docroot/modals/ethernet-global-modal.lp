@@ -36,11 +36,15 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
 <div class="modal-body update">\
 '); lp.setpath("/www/snippets/"); lp.include("tabs-lan.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="',ngx.var.request_uri,'">\
-  ',ui_helper.createMessages(message_helper.popMessages()),'\
+  ',ui_helper.createMessages(message_helper.popMessages()))
+  if not require("bridgedmode_helper").isBridgedMode() then
+    ngx.print('\
     <fieldset>\
       <legend>',T"Global Configuration",'</legend>\
       ',ui_helper.createInputText(T"IPv6 ULA Prefix<span class='icon-question-sign' title='IPv6 equivalent of IPv4 private addresses. Must start with fd followed by 40 random bits and a /48 range (e.g. fd12:3456:789a::/48)'></span>", "ula_prefix", content["ula_prefix"], ula_attr, helpmsg["ula_prefix"]),'\
-    </fieldset>\
+    </fieldset>')
+  end
+  ngx.print('\
     <fieldset>\
       <legend>',T"Network Mode",'</legend>\
         ');
