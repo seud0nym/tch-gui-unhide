@@ -21,21 +21,24 @@ local lfs = require("lfs")
 
 local init_cmd = "/etc/init.d/rsyncd"
 local pid_file_cmd = "grep 'pid file' /etc/rsyncd.conf"
-local status_cmd = init_cmd .. " enabled"
+local status_cmd = init_cmd .. " enabled; echo $?"
 local start_cmd = init_cmd .. " restart|logger; " .. init_cmd .. " enable"
 local stop_cmd = init_cmd .. " stop|logger; " .. init_cmd .. " disable"
 
 local function isRunning()
   local cfg = io.popen(pid_file_cmd, 'r')
-  local line = cfg:read()
-  cfg:close()
-  local pid_file = line:match("pid *file *= *([^ ]*)")
-  local pid_file_exists = lfs.attributes(pid_file, 'mode')
-  if pid_file_exists then
-    return true
-  else
-    return false
+  if cfg then
+    local line = cfg:read()
+    cfg:close()
+    local pid_file = line:match("pid *file *= *([^ ]*)")
+    local pid_file_exists = lfs.attributes(pid_file, 'mode')
+    if pid_file_exists then
+      return true
+    else
+      return false
+    end
   end
+  return false
 end
 
 local GUI_RSYNC_ = {
@@ -55,17 +58,26 @@ local GUI_RSYNC_ = {
 
 GUI_RSYNC_.get = {
   enable = function()
-    local enabled = os.execute(status_cmd)
-    if isRunning() and enabled == 0 then
-      return "1"
-    else
-      return "0"
+    local cmd,err = io.popen(status_cmd,"r")
+    if cmd then
+      local state
+      for line in cmd:lines() do
+        state = line
+      end
+      cmd:close()
+      if isRunning() and state == "1" then
+        return "0"
+      elseif state == "0" then
+        return "1"
+      end
+      return nil,"Failed to determine service status: "..state
     end
+    return nil,err
   end
 }
 
 GUI_RSYNC_.set = {
-  enable = function(mapping,param,value,key)
+  enable = function(_,_,value,_)
     if value == "1" then
       os.execute(start_cmd)
     else
