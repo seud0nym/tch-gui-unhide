@@ -18,13 +18,18 @@ local GUI_QOS_ = {
 }
 
 local function isEnabled(service)
-  local cmd = io.popen("/etc/init.d/"..service.." enabled; echo $?","r")
-  local state = cmd:read("*n")
-  cmd:close()
-  if state == 1 then
-    return "0"
+  local cmd,err = io.popen("/etc/init.d/"..service.." enabled; echo $?","r")
+  if cmd then
+    local state = string.match(cmd:read("*a"),"(%d)")
+    cmd:close()
+    if state == "1" then
+      return "0"
+    elseif state == "0" then
+      return "1"
+    end
+    return "Failed to determine service status: "..state
   end
-  return "1"
+  return err
 end
 
 local function setServiceState(name, state)
