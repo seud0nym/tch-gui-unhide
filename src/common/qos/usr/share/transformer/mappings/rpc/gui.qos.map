@@ -1,3 +1,7 @@
+local logger = require("tch.logger")
+local log = logger.new("rpc.gui.qos",2)
+local format = string.format
+
 local GUI_QOS_ = {
   objectType = {
     name = "rpc.gui.qos.",
@@ -11,35 +15,34 @@ local GUI_QOS_ = {
       },
       iqos_enabled = {
         access = "readWrite",
-        type = "string"
+        type = "int"
       },
     }
   }
 }
 
 local function isEnabled(service)
-  local cmd,err = io.popen("/etc/init.d/"..service.." enabled; echo $?","r")
-  if cmd then
-    local state = string.match(cmd:read("*a"),"(%d)")
-    cmd:close()
-    if state == "1" then
-      return "0"
-    elseif state == "0" then
-      return "1"
-    end
-    return "Failed to determine service status: "..state
+  -- shell returns 0 for enabled and 1 for disabled, so need to 'not' it (!) to reverse because uci standard is enabled='1' disabled='0'
+  local cmd = format("! /etc/init.d/%s enabled; echo $?",service)
+  log:info("cmd="..cmd)
+  local result,err = io.popen(cmd,"r")
+  if result then
+    local state = result:read("*l")
+    result:close()
+    log:info("state="..state)
+    return state
   end
+  log:error(err)
   return err
 end
 
-local function setServiceState(name, state)
-  local script = "/etc/init.d/"..name
+local function setServiceState(name,state)
   if state == "0" then
-    os.execute(script.." disable;"..script.." stop;")
+    os.execute(format("/etc/init.d/%s disable;/etc/init.d/%s stop;",name,name))
   elseif state == "1" then
-    os.execute(script.." enable;"..script.." restart;")
+    os.execute(format("/etc/init.d/%s enable;/etc/init.d/%s restart;",name,name))
   else
-    return nil, "Invalid value ("..state..")"
+    return nil,"Invalid value ("..state..")"
   end
   return true
 end
@@ -55,10 +58,10 @@ GUI_QOS_.get = {
 
 GUI_QOS_.set = {
   qos_enabled = function(_,_,value)
-    return setServiceState("qos", value)
+    return setServiceState("qos",value)
   end,
   iqos_enabled = function(_,_,value)
-    return setServiceState("iqos", value)
+    return setServiceState("iqos",value)
   end,
 }
 

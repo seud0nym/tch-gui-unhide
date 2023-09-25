@@ -3,8 +3,8 @@ sed \
   -e 's/qos/&_tch/g' \
   /usr/share/transformer/mappings/uci/qos.map > /usr/share/transformer/mappings/uci/qos_tch.map
 sed \
-  -e 's/isEnabled("qos")/& and isEnabled("qos_tch")/' \
-  -e 's/setServiceState("qos", value)/& and setServiceState("qos_tch", value)/' \
+  -e 's/isEnabled("qos")/isEnabled("qos-tch")/' \
+  -e 's/setServiceState("qos",value)/& and setServiceState("qos-tch",value)/' \
   -i /usr/share/transformer/mappings/rpc/gui.qos.map
 SRV_transformer=$(( $SRV_transformer + 2 ))
 
