@@ -3,7 +3,7 @@ sed \
   -e "s/RADIO'S/RADIOS/" \
   -i /www/docroot/modals/wireless-radio.lp
 
-echo -e "[$SCRIPT]: Fixing Guest Split SSID when running as EasyMesh Agent role"
+echo -e "[$SCRIPT]: Fix Guest Split SSID when running as EasyMesh Agent role"
 sed \
   -e '/ui_helper.createSwitch(T"Split"/a\      else ngx.print(ui_helper.createSimpleInputHidden("split_ssid",split_ssid,{input={id="split_ssid"}}))' \
   -i /www/docroot/modals/wireless-modal.lp
