@@ -17231,7 +17231,7 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
     else
       echo [$SCRIPT]: - opkg distribution feeds already disabled
     fi
-    if [ -e /dev/net/tun -a "$DISTRIB_ARCH" = "arm_cortex-a9" ]; then
+    if [ -e /dev/net/tun -a \( "$DISTRIB_ARCH" = "arm_cortex-a9" -o "$DISTRIB_ARCH" = "arm_cortex-a53" \) ]; then
       if ! grep -q 'openwrt-wireguard-go' /etc/opkg/customfeeds.conf; then
         echo [$SCRIPT]: - Configuring opkg custom feeds for openwrt-wireguard-go
         echo "src/gz wg_go https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/repository/$DISTRIB_ARCH/base" >> /etc/opkg/customfeeds.conf
