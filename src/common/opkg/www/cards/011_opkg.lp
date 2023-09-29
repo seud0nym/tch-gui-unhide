@@ -8,7 +8,7 @@ local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
 
 local opkg_data = {
-  configured = "rpc.gui.opkg.feeds_configured",
+  customfeeds = "rpc.gui.opkg.customfeeds",
   last_update = "rpc.gui.opkg.last_update",
   system_installed = "rpc.gui.opkg.systemNumberOfEntries",
   user_installed = "rpc.gui.opkg.userNumberOfEntries",
@@ -19,10 +19,12 @@ content_helper.getExactContent(opkg_data)
 local user_installed = tonumber(opkg_data["user_installed"])
 
 local opkg_text = {}
-if opkg_data["configured"] == "1" then
+if opkg_data["customfeeds"] ~= "" then
   opkg_text["configured"] = T"Custom feeds configured"
+  opkg_data["configured"] = T"1"
 else
-  opkg_text["configured"] = T"Custom feeds not configured"
+  opkg_text["configured"] = T"No Custom feeds configured"
+  opkg_data["configured"] = T"0"
 end
 if opkg_data["last_update"] == "-1" then
   opkg_text["last_update"] = T"Not since reboot"

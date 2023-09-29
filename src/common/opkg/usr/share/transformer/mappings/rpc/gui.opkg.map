@@ -34,10 +34,12 @@ command = popen("grep 'model.*: *' /proc/cpuinfo | cut -d: -f2 | sort -u | xargs
 if command then
   local cpu = command:read()
   command:close()
-  if find(cpu,"ARMv7") then
-    architecture = "ARMv7"
+  if cpu == "8" then
+    architecture = "arm_cortex-a53"
+  elseif find(cpu,"ARMv7") then
+    architecture = "arm_cortex-a9"
   elseif find(cpu,"MIPS") then
-    architecture = "MIPS"
+    architecture = "mips"
   end
 end
 log.info("Architecture = %s",architecture)
@@ -55,6 +57,8 @@ if command then
 end
 telstraIPK("/usr/lib/ipk/Dependencies")
 telstraIPK("/usr/lib/ipk/THOR")
+
+os.execute("grep -q 'ca_directory=' /root/.wgetrc 2>/dev/null || echo 'ca_directory=/etc/ssl/certs' >> /root/.wgetrc")
 
 local opkg_cache = {
   tbl = nil,
@@ -155,9 +159,9 @@ local function checkPackages(grp)
           action = "",
         }
         if pattern == "" then
-          pattern = package .. " - ".. version
+          pattern = package.." - ".. version
         else
-          pattern = pattern .. "|" .. package .. " - ".. version
+          pattern = pattern.."|"..package.." - ".. version
         end
         package,version = "",""
       end
@@ -193,14 +197,14 @@ local function checkPackages(grp)
         local pkg,desc = string.match(line,"^/usr/lib/opkg/info/(.*)%.control:%s(.*)")
         if desc then
           local target = data["packages"][pkg]
-          data[target][pkg]["description"] = data[target][pkg]["description"] .. " " .. desc
+          data[target][pkg]["description"] = data[target][pkg]["description"].." "..desc
         end
       end
     end
     cmd:close()
   end
 
-  cmd = popen("opkg list | grep -v -E '" .. pattern .. "'","r")
+  cmd = popen("opkg list | grep -v -E '"..pattern.."'","r")
   if cmd then
     for line in cmd:lines() do
       local pkg,available_version,description = match(line,"(%S+)%s+%-%s+(%S+)%s*%-*%s*(.*)")
@@ -267,9 +271,9 @@ local GUI_OPKG_ = {
     minEntries = 1,
     maxEntries = 1,
     parameters = {
-      feeds_configured = {
-        access = "readWrite",
-        type = "boolean"
+      customfeeds = {
+        access = "readOnly",
+        type = "string"
       },
       last_action = {
         access = "readOnly",
@@ -303,22 +307,15 @@ local GUI_OPKG_ = {
   }
 }
 
-local function feeds_configured()
-  local status = "0"
-  local cmd = popen("sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep -E 'BoLaMN|macoers' | wc -l","r")
-  if cmd then
-    status = cmd:read("*n")
-    cmd:close()
-  end
-  if status > 0 then
-    return "1"
-  end
-  return "0"
-end
-
 GUI_OPKG_.get = {
-  feeds_configured = function ()
-    return feeds_configured()
+  customfeeds = function ()
+    local feeds
+    local cmd = popen("sed -e '/^#/d' /etc/opkg/customfeeds.conf | tr -s ' ' | cut -d' ' -f3","r")
+    if cmd then
+      feeds = cmd:read("*a")
+      cmd:close()
+    end
+    return feeds or ""
   end,
   last_action = function()
     checkPackages()
@@ -375,64 +372,6 @@ GUI_OPKG_.get = {
 }
 
 GUI_OPKG_.set = {
-  feeds_configured = function(_,_,value,_)
-    if value == "1" and feeds_configured() == "0" then
-      if architecture ~= "ARMv7" then
-        return nil, "Unsupported architecture"
-      end
-      os.execute("rm /etc/opkg.conf;\
-        echo 'dest root /'>/etc/opkg.conf;\
-        echo 'dest ram /tmp'>>/etc/opkg.conf;\
-        echo 'lists_dir ext /var/opkg-lists'>>/etc/opkg.conf;\
-        echo 'option overlay_root /overlay'>>/etc/opkg.conf;\
-        echo 'arch all 1'>>/etc/opkg.conf;\
-        echo 'arch noarch 1'>>/etc/opkg.conf;\
-        echo 'arch arm_cortex-a9 10'>>/etc/opkg.conf;\
-        echo 'arch arm_cortex-a9_neon 20'>>/etc/opkg.conf;\
-        echo 'arch brcm63xx-tch 30'>>/etc/opkg.conf;\
-        echo 'arch bcm53xx 40'>>/etc/opkg.conf;")
-      if fw_version == "17.2" then
-        os.execute("rm /etc/opkg/customfeeds.conf;\
-          echo 'src/gz base https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/base'>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz luci https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/luci'>>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz management https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/management'>>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz packages https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/packages'>>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz routing https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/routing'>>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz telephony https://raw.githubusercontent.com/BoLaMN/brcm63xx-tch/master/packages/telephony'>>/etc/opkg/customfeeds.conf")
-      else
-        os.execute("rm /etc/opkg/customfeeds.conf;\
-          echo 'src/gz base https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/base'>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz packages https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages'>>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz luci https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/luci'>>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz routing https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing'>>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz telephony https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony'>>/etc/opkg/customfeeds.conf;\
-          echo 'src/gz core https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages'>>/etc/opkg/customfeeds.conf;")
-        if fw_version == "20.3.c" then
-          os.execute("echo 'src/gz wg_go https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/repository/arm_cortex-a9/base' >> /etc/opkg/customfeeds.conf;")
-        end
-      end
-      os.execute("sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf;\
-        OPENWRT_LATEST=\"$(curl -skL https://downloads.openwrt.org/releases/ | grep -Eo 'packages-[0-9][0-9]\\.[0-9.]+' | sort -ru | head -n1)\"\
-        SRC=\"https://downloads.openwrt.org/releases/$OPENWRT_LATEST/arm_cortex-a9/base\"\
-        for IPK in $(curl -sk $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2); do\
-          curl -skL $SRC/$IPK -o /tmp/$IPK && opkg --force-overwrite install /tmp/$IPK 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/$IPK\
-        done")
-      if fw_version == "18.1.c" then
-        os.execute("curl -skL https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/packages/wget_1.19.5-4_arm_cortex-a9_neon.ipk -o /tmp/wget_1.19.5-4_arm_cortex-a9_neon.ipk && opkg --force-overwrite install /tmp/wget_1.19.5-4_arm_cortex-a9_neon.ipk 2>&1 | logger -s -t rpc.gui.opkg -p user.info && rm /tmp/wget_1.19.5-4_arm_cortex-a9_neon.ipk")
-      end
-      opkg_cache.reload = true
-      checkPackages()
-    elseif value == "0" and feeds_configured() == "1" then
-      os.execute("\
-        sed -e '/^arch /d' -i /etc/opkg.conf;\
-        sed -e '/BoLaMN/d' -e '/macoers/d' -i /etc/opkg/customfeeds.conf;\
-        sed -e '/opkg update/d' -i /etc/crontabs/root;\
-        /etc/init.d/cron restart;")
-    elseif value ~= "0" and value ~= "1" then
-      return nil,"Value must be 0 or 1"
-    end
-    return true
-  end,
   refresh_cache = function(_,_,value,_)
     if value == "1" then
       opkg_cache.reload = true
@@ -440,10 +379,11 @@ GUI_OPKG_.set = {
     elseif value ~= "0" then
       return nil,"Value must be 0 or 1"
     end
+    return true
   end,
   update = function(_,_,value,_)
     if value == "1" then
-      os.execute("logger -t rpc.gui.opkg -p user.info Executing: opkg update;opkg update 2>&1 | logger -t rpc.gui.opkg -p user.info")
+      os.execute("logger -t rpc.gui.opkg -p user.info Executing: env WGETRC=/root/.wgetrc opkg update;env WGETRC=/root/.wgetrc opkg update 2>&1 | logger -t rpc.gui.opkg -p user.info")
       opkg_cache.reload = true
       checkPackages()
     elseif value ~= "0" then
@@ -474,20 +414,20 @@ local function runAction(group,key,value)
       return nil,warning
     else
       local action_cmd
-      local command = tolower(value)
-      if command == "remove" then
-        action_cmd = "opkg --autoremove --force-depends --force-removal-of-dependent-packages remove "
-      elseif command == "install" then
-        action_cmd = "opkg --force-overwrite install "
-      elseif command == "upgrade" then
-        action_cmd = "opkg upgrade "
+      local cmd = tolower(value)
+      if cmd == "remove" then
+        action_cmd = "--autoremove --force-depends --force-removal-of-dependent-packages remove "
+      elseif cmd == "install" then
+        action_cmd = "--force-overwrite install "
+      elseif cmd == "upgrade" then
+        action_cmd = "upgrade "
       else
-        log:err("Unrecognised command: " .. command)
-        return nil,"Unrecognised command: " .. command
+        log:err("Unrecognised command: "..cmd)
+        return nil,"Unrecognised command: "..cmd
       end
-      action_cmd = action_cmd .. data[key]["name"]
-      log:info("Executing: " .. action_cmd)
-      os.execute(action_cmd .. " 2>&1 | logger -t rpc.gui.opkg -p user.info")
+      action_cmd = "env WGETRC=/root/.wgetrc opkg "..action_cmd..data[key]["name"]
+      log:info("Executing: "..action_cmd)
+      os.execute(action_cmd.." 2>&1 | logger -t rpc.gui.opkg -p user.info")
       opkg_cache.reload = true
       checkPackages()
     end

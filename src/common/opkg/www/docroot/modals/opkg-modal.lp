@@ -11,27 +11,23 @@ local message_helper = require("web.uimessage_helper")
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
-local vB = post_helper.validateBoolean
 local gVCS = post_helper.getValidateCheckboxSwitch()
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
 local mapParams = {
-  feeds = "rpc.gui.opkg.feeds_configured",
   run_update = "rpc.gui.opkg.update",
 }
 local mapValid = {
-  feeds = vB,
   run_update = gVCS,
 }
 local content = post_helper.handleQuery(mapParams,mapValid)
 
 local opkg_data = {
+  customfeeds = "rpc.gui.opkg.customfeeds",
   last_update = "rpc.gui.opkg.last_update",
   log = "rpc.gui.opkg.log",
-  user_installed = "rpc.gui.opkg.user_installed",
-  user_upgradable = "rpc.gui.opkg.user_upgradable",
 }
 content_helper.getExactContent(opkg_data)
 
@@ -49,30 +45,38 @@ ngx.print(ui_helper.createHeader(T"Packages",false,true,nil),'\
     ',ui_helper.createMessages(message_helper.popMessages()),'\
     <fieldset><legend>',T"Configuration",'</legend> \
       ');
-      local opkg_last_update_attr = {
-        span = {
-          id = "opkg_last_update",
-        },
-      }
-      local opkg_log_attr = {
-        group = {
-          class = "monitor-feeds monitor-1 monitor-hidden-feeds",
-        },
-        span = {
-          id = "opkg_log",
-          style = "display:block;white-space:pre;",
-        },
-      }
-
       local html = {}
-      html[#html+1] = ui_helper.createSwitch(T"Custom Feeds","feeds",content["feeds"])
-      html[#html+1] = ui_helper.createLabel(T"Last Update",last_update,opkg_last_update_attr)
-      if content["feeds"] == "1" then
+      if opkg_data["customfeeds"] ~= "" then
+        local opkg_pre_attr = {
+          span = {
+            style = "display:block;white-space:pre;",
+          },
+        }
+        local opkg_log_attr = {
+          span = {
+            id = "opkg_log",
+            style = "display:block;white-space:pre;",
+          },
+        }
+          local opkg_last_update_attr = {
+          span = {
+            id = "opkg_last_update",
+          },
+        }
+        html[#html+1] = ui_helper.createLabel(T"Custom Feeds",untaint(opkg_data["customfeeds"]),opkg_pre_attr)
+        html[#html+1] = ui_helper.createLabel(T"Last Update",last_update,opkg_last_update_attr)
         html[#html+1] = ui_helper.createCheckboxSwitch(T"Update Now","run_update",content["run_update"])
+        html[#html+1] = ui_helper.createLabel(T"Log Messages",untaint(opkg_data["log"]),opkg_log_attr)
       else
+        local warn_box = {
+          alert = {
+            class = "alert alert-warn",
+            style = "text-align:center",
+          }
+        }
+        html[#html+1] = ui_helper.createAlertBlock(T"No custom feeds configured. You can configure them using de-telstra with the -o option.",warn_box)
         html[#html+1] = ui_helper.createSimpleInputHidden("run_update","_DUMMY_")
       end
-      html[#html+1] = ui_helper.createLabel(T"Log Messages",untaint(opkg_data["log"]),opkg_log_attr)
       ngx.print(html,'\
     </fieldset>\
   </form>\
