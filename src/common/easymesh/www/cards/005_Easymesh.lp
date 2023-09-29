@@ -21,7 +21,6 @@ local content = {
   broker = "uci.mesh_broker.global.@mesh_broker.enable",
   agent = "uci.wireless.map-agent.@agent.state",
   controller = "uci.mesh_broker.meshapp.@mesh_common.controller_enabled",
-  backhaul_ssid = "uci.wireless.wifi-iface.@wl0_1.ssid",
   backhaul_state = "uci.wireless.wifi-iface.@wl0_1.state",
 }
 
@@ -127,7 +126,7 @@ ngx.print('\
         '</p>'
         )
       end
-      ngx.print(ui_helper.createSimpleLight(content.backhaul_state,T(format("Backhaul %s %s",content.backhaul_ssid,state_map(content.backhaul_state)))),'\
+      ngx.print(ui_helper.createSimpleLight(content.backhaul_state,T(format("Backhaul %s",state_map(content.backhaul_state)))),'\
     </div>\
   </div>\
 </div>\
