@@ -23,6 +23,9 @@ handle_interface() {
       [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: Interface '$interface' enabled but down! Bringing it back up..."
       uci -q del_list dhcp.main.interface="$interface"
       uci -q add_list dhcp.main.interface="$interface"
+    elif [ "$enabled" = "1" -a -z "$(ifstatus $interface | jsonfilter -e '@.up')" ]; then
+      [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: Interface '$interface' enabled but does not exist? Starting network..."
+      NETWORK_ACTION="restart"
     else
       [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: Interface '$interface' SKIPPED [enabled=$enabled]"
     fi
@@ -31,6 +34,8 @@ handle_interface() {
 
 {
   /usr/bin/flock -x 3
+
+  NETWORK_ACTION="reload"
 
   config_load network
   config_foreach handle_interface interface
@@ -44,7 +49,7 @@ handle_interface() {
 
   uci commit dhcp
   /etc/init.d/dnmasq reload
-  /etc/init.d/network reload
+  /etc/init.d/network $NETWORK_ACTION
 } 3>/var/lock/uci.wireguard.lock
 
 exit 0
