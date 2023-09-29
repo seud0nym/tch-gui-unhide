@@ -59,6 +59,27 @@ It does NOT remove the hidden BH-xxxxxx SSID, as this is not related to Telstra 
 Usage: ./de-telstra [options]
 
 Options:
+ -a u|y|n              NAT ALG Helpers:         u=Unchanged y=Enable n=Disable
+ -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
+ -C u|y|n              Reboot on core dump:     u=unchanged y=Enable n=Disable
+ -d u|g|l|<domainname>
+    where u            Leave domain name unchanged
+          g            Set the domain name to gateway
+          l            Set the domain name to lan
+          <domainname> Set the domain name to <domainname>
+ -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
+ -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
+ -F u|y|n              RTFD root protection:    u=unchanged y=Enable n=Disable
+                         NOTE: tch-gui-unhide will ALWAYS enable RTFD protection
+ -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
+ -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks
+ -h u|d|s|<hostname>
+    where u            Leave hostname unchanged
+          d            Set the hostname to VARIANT (e.g. DJA0231)
+          s            Set the hostname to VARIANT-MAC_HEX (e.g. DJA0231-XXXXXX)
+          <hostname>   Use the specified hostname
+ -i u|y|n              Intercept Daemon:        u=unchanged y=Enable n=Disable
+ -I n.n.n.n            Set the LAN IPv4 address to n.n.n.n
  -k a|c|e|k|m|n|s|x    Override default hardening configuration:
     where a            - Keep Telstra AIR enabled
           c            - Keep CWMP installed
@@ -73,16 +94,13 @@ Options:
                           scripts/programs on USB devices)
           T            - Keep all default Telstra configuration (Equivalent
                           to: -ka -kc -kk -kl -km -kn -kq -ks -kx)
- -h u|d|s|<hostname>
-    where u            Leave hostname unchanged
-          d            Set the hostname to VARIANT (e.g. DJA0231)
-          s            Set the hostname to VARIANT-MAC_HEX (e.g. DJA0231-XXXXXX)
-          <hostname>   Use the specified hostname
- -d u|g|l|<domainname>
-    where u            Leave domain name unchanged
-          g            Set the domain name to gateway
-          l            Set the domain name to lan
-          <domainname> Set the domain name to <domainname>
+ -l u|y|n            * LED logging:             u=unchanged y=Enable n=Disable 
+ -m u|a|b|c|v|y|n    * MultiAP (EasyMesh):      u=unchanged a=Enable Agent
+                                                            b=Enable BackHaul SSID
+                                                            c=Enable Controller 
+                                                            v=Enable Vendor Extensions
+                                                            y=same as -ma -mb -mc -mv
+                                                            n=Disable
  -n u|a|c|g|f|o|<n.n.n.n>
     where u            Leave DNS servers unchanged
           a            Automatically use the DNS servers from the ISP
@@ -92,19 +110,8 @@ Options:
           o            Set the DNS servers to OpenDNS
           <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated
                         IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
- -a u|y|n              NAT ALG Helpers:         u=Unchanged y=Enable n=Disable
- -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
- -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
- -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
- -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
- -i u|y|n              Intercept Daemon:        u=unchanged y=Enable n=Disable
- -l u|y|n            * LED logging:             u=unchanged y=Enable n=Disable 
- -m u|a|b|c|v|y|n    * MultiAP (EasyMesh):      u=unchanged a=Enable Agent
-                                                            b=Enable BackHaul SSID
-                                                            c=Enable Controller 
-                                                            v=Enable Vendor Extensions
-                                                            y=same as -ma -mb -mc -mv
-                                                            n=Disable
+ -o                    Configures opkg
+ -O 17|18|19           Overrides the default opkg repository with the specified version
  -p u|y|n|d            Power Saving:            u=unchanged y=Enable n=Disable d=Default
  -q u|y|n            * NFC:                     u=unchanged y=Enable n=Disable
  -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
@@ -114,21 +121,15 @@ Options:
  -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
  -w u|y|n              WPS:                     u=unchanged y=Enable n=Disable
                          (on non-Guest and non-Backhaul SSIDs)
- -F u|y|n              RTFD root protection:    u=unchanged y=Enable n=Disable
-                         NOTE: tch-gui-unhide will ALWAYS enable RTFD protection
- -I n.n.n.n            Set the LAN IPv4 address to n.n.n.n
+ -y                    Bypass the confirmation prompt (answers 'y')
  -A                    Equivalent to: -hd -dg -an -cn -fn -ln -in -rn -sd -un -wn -Fy
  -S                    Equivalent to: -hs -dg -an -cn -fn -ln -in -rn -sd -un -wn -Fy
  -M                    Minimum memory mode: Equivalent to:
                            -an -cn -fn -in -rn -tn -en -un -mn -gn -qn -Fy
                          PLUS stops and disables the associated services
- -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks
  -R                    Reset to device defaults: Equivalent to:
                          -h mymodem -d modem -na -ay -cy -fy -iy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn -sb
- -o                    Configures opkg
- -O 17|18|19           Overrides the default opkg repository with the specified version
  -U                    Download the latest version of de-telstra from GitHub
- -y                    Bypass the confirmation prompt (answers 'y')
  --save-defaults       Saves the command line options as defaults for future executions
                          When specified, NO changes are applied to the device
  --show-defaults       Shows the settings that would be applied (defaults and over-rides)
@@ -343,6 +344,7 @@ Options:
                     --no-leases and --no-ula. Ignored if --restore-config
                     is specified.
  -c               Disable CWMP configuration during first boot after reset.
+ -C               Disable reboot on core dump after reset.
  -d               Add DNS rewrites to disable CWMP firmware downloads from
                     fwstore.bdms.telstra.net
  -D domain        Add DNS rewrites to disable CWMP firmware downloads from
@@ -448,6 +450,7 @@ Options:
                     --no-leases and --no-ula. Ignored if --restore-config
                     is specified.
  -c               Disable CWMP configuration during first boot after reset.
+ -C               Disable reboot on core dump after reset.
  -d               Add DNS rewrites to disable CWMP firmware downloads from
                     fwstore.bdms.telstra.net
  -D domain        Add DNS rewrites to disable CWMP firmware downloads from

@@ -53,6 +53,7 @@ Options:
                     --no-leases and --no-ula. Ignored if --restore-config
                     is specified.
  -c               Disable CWMP configuration during first boot after reset.
+ -C               Disable reboot on core dump after reset.
  -d               Add DNS rewrites to disable CWMP firmware downloads from
                     fwstore.bdms.telstra.net
  -D domain        Add DNS rewrites to disable CWMP firmware downloads from
@@ -203,6 +204,7 @@ END
 [ -n "$BRIDGE_CFG" ]   && echo "$BRIDGE_CFG"
 [ -n "$LAN_CFG" ]      && echo "$LAN_CFG"
 [ -n "$CWMP_CFG" ]     && echo "$CWMP_CFG"
+[ -n "$SYS_CFG" ]      && echo "$SYS_CFG"
 [ -n "$DNSMASQ_CFG" ]  && echo "$DNSMASQ_CFG"
 [ -n "$HOSTNAME_CFG" ] && echo "$HOSTNAME_CFG"
 [ -n "$SYSLOG_CFG" ]   && echo "$SYSLOG_CFG"
@@ -246,6 +248,7 @@ echo 'exit 0'
 set_defaults() {
   __BRIDGED="N"
   __BKUP=""
+  __COREDUMP_REBOOT=""
   __CWMP=""
   __CWMP_DNS=""
   __HOSTNAME=""
@@ -285,7 +288,7 @@ LEASES=""
 
 VALID_IPv4_PATTERN="([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
 
-while getopts :bBcdD:ef:h:iI:kl:mnp:svyU-: option; do
+while getopts :bBcCdD:ef:h:iI:kl:mnp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
         abort)          ABORT="Y"; __VERBOSE="Y";;
@@ -303,6 +306,7 @@ while getopts :bBcdD:ef:h:iI:kl:mnp:svyU-: option; do
   b)  __BKUP="Y";;
   B)  __BRIDGED="Y"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y";;
   c)  __CWMP="Y";;
+  C)  __COREDUMP_REBOOT="N";;
   d)  echo "$__CWMP_DNS" | grep -q "\bfwstore.bdms.telstra.net\b" || __CWMP_DNS="$__CWMP_DNS fwstore.bdms.telstra.net";;
   D)  echo "$__CWMP_DNS" | grep -q "\b${OPTARG}\b" || __CWMP_DNS="$__CWMP_DNS $OPTARG";;
   e)  __NOEXEC="Y";;
@@ -689,6 +693,11 @@ if [ -n "$__CWMP" ]; then
   CWMP_CFG="uci set cwmpd.cwmpd_config.state='0'"$'\n'"/etc/init.d/cwmpd disable"
 elif [ -z "$__CWMP_DNS" ]; then
   echo -e "${ORANGE}WARNING:  CWMP firmware upgrades will be ${RED}ACTIVE${ORANGE} after reboot!${NC}"
+fi
+
+if [ -n "$__COREDUMP_REBOOT" ]; then
+  echo -e "NOTE:     Reboot on core dump will be ${GREEN}disabled${NC}"
+  SYS_CFG="uci set system.@coredump[0].reboot='0'"
 fi
 
 if [ -n "$__CWMP_DNS" ]; then

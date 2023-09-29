@@ -52,6 +52,7 @@ Options:
                     --no-leases and --no-ula. Ignored if --restore-config
                     is specified.
  -c               Disable CWMP configuration during first boot after reset.
+ -C               Disable reboot on core dump after reset.
  -d               Add DNS rewrites to disable CWMP firmware downloads from
                     fwstore.bdms.telstra.net
  -D domain        Add DNS rewrites to disable CWMP firmware downloads from
@@ -155,7 +156,7 @@ YES="N"
 SAVE_DEFAULTS="N"
 RESTORE_CONFIG="N"
 
-while getopts :bcdD:eh:iI:kmnp:svyU-: option; do
+while getopts :bcCdD:eh:iI:kmnp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
         i|no-bank-check|no-keys-check|no-forwards|no-leases|no-ula) OPTIONS="$OPTIONS --${OPTARG}";;
@@ -164,7 +165,7 @@ while getopts :bcdD:eh:iI:kmnp:svyU-: option; do
         no-defaults) OPTIONS="--no-defaults";;
         *) usage;;
       esac;;
-  b|c|d|e|i|k|m|n|s|v|y) OPTIONS="$OPTIONS -${option}";;
+  b|c|C|d|e|i|k|m|n|s|v|y) OPTIONS="$OPTIONS -${option}";;
   D|h|I|l|p) OPTIONS="$OPTIONS -${option} ${OPTARG}";;
   U) download reset-to-factory-defaults-with-root; download $SCRIPT; exit;;
   *) usage;;

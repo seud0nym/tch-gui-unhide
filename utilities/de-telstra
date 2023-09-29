@@ -69,6 +69,27 @@ Hardens root access and applies optional service configuration changes.
 Usage: $0 [options]
 
 Options:
+ -a u|y|n              ALG NAT Helpers:         u=Unchanged y=Enable n=Disable
+ -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
+ -C u|y|n              Reboot on core dump:     u=unchanged y=Enable n=Disable
+ -d u|g|l|<domainname>
+    where u            Leave domain name unchanged
+          g            Set the domain name to gateway
+          l            Set the domain name to lan
+          <domainname> Set the domain name to <domainname>
+ -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
+ -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
+ -F u|y|n              RTFD root protection:    u=unchanged y=Enable n=Disable
+                         NOTE: tch-gui-unhide will ALWAYS enable RTFD protection
+ -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
+ -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks
+ -h u|d|s|<hostname>
+    where u            Leave hostname unchanged
+          d            Set the hostname to $VARIANT
+          s            Set the hostname to $VARIANT-$MAC_HEX
+          <hostname>   Use the specified hostname
+ -i u|y|n              Intercept Daemon:        u=unchanged y=Enable n=Disable
+ -I n.n.n.n            Set the LAN IPv4 address to n.n.n.n
  -k a|c|e|k|m|n|q|s|x  Override default hardening configuration:
     where a            - Keep Telstra AIR enabled
           c            - Keep CWMP installed
@@ -83,16 +104,13 @@ Options:
                           scripts/programs on USB devices)
           T            - Keep all default Telstra configuration (Equivalent
                           to: -ka -kc -kk -kl -km -kn -kq -ks -kx)
- -h u|d|s|<hostname>
-    where u            Leave hostname unchanged
-          d            Set the hostname to $VARIANT
-          s            Set the hostname to $VARIANT-$MAC_HEX
-          <hostname>   Use the specified hostname
- -d u|g|l|<domainname>
-    where u            Leave domain name unchanged
-          g            Set the domain name to gateway
-          l            Set the domain name to lan
-          <domainname> Set the domain name to <domainname>
+ -l u|y|n            * LED logging:             u=unchanged y=Enable n=Disable
+ -m u|a|b|c|v|y|n    * MultiAP (EasyMesh):      u=unchanged a=Enable Agent
+                                                            b=Enable BackHaul SSID
+                                                            c=Enable Controller 
+                                                            v=Enable Vendor Extensions
+                                                            y=same as -ma -mb -mc -mv
+                                                            n=Disable
  -n u|a|c|g|f|o|<n.n.n.n>
     where u            Leave DNS servers unchanged
           a            Automatically use the DNS servers from the ISP
@@ -102,19 +120,8 @@ Options:
           o            Set the DNS servers to OpenDNS
           <n.n.n.n>    Set the DNS servers to 1 or 2 comma-separated
                         IPv4 addresses (e.g. 8.8.8.8,1.1.1.1)
- -a u|y|n              ALG NAT Helpers:         u=Unchanged y=Enable n=Disable
- -c u|y|n              Content Sharing:         u=unchanged y=Enable n=Disable
- -e u|y|n              DECT Emission Mode:      u=unchanged y=Enable n=Disable
- -f u|y|n              File Sharing:            u=unchanged y=Enable n=Disable
- -g u|y|n            * DumaOS (Game Optimiser): u=unchanged y=Enable n=Disable
- -i u|y|n              Intercept Daemon:        u=unchanged y=Enable n=Disable
- -l u|y|n            * LED logging:             u=unchanged y=Enable n=Disable
- -m u|a|b|c|v|y|n    * MultiAP (EasyMesh):      u=unchanged a=Enable Agent
-                                                            b=Enable BackHaul SSID
-                                                            c=Enable Controller 
-                                                            v=Enable Vendor Extensions
-                                                            y=same as -ma -mb -mc -mv
-                                                            n=Disable
+ -o                    Configures opkg
+ -O 17|18|19           Overrides the default opkg repository with the specified version
  -p u|y|n|d            Power Saving:            u=unchanged y=Enable n=Disable d=Default
  -q u|y|n            * NFC:                     u=unchanged y=Enable n=Disable
  -r u|y|n              Printer Sharing:         u=unchanged y=Enable n=Disable
@@ -124,21 +131,15 @@ Options:
  -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
  -w u|y|n              WPS:                     u=unchanged y=Enable n=Disable
                          (on non-Guest and non-Backhaul SSIDs)
- -F u|y|n              RTFD root protection:    u=unchanged y=Enable n=Disable
-                         NOTE: tch-gui-unhide will ALWAYS enable RTFD protection
- -I n.n.n.n            Set the LAN IPv4 address to n.n.n.n
+ -y                    Bypass the confirmation prompt (answers 'y')
  -A                    Equivalent to: -hd -dg -an -cn -fn -ln -in -rn -sd -un -wn -Fy
  -S                    Equivalent to: -hs -dg -an -cn -fn -ln -in -rn -sd -un -wn -Fy
  -M                    Minimum memory mode: Equivalent to:
                            -an -cn -fn -in -rn -tn -en -un -mn -gn -qn -Fy
                          PLUS stops and disables the associated services
- -G                    Removes the Guest Wi-Fi SSIDs, firewall rules/zones, and guest networks
  -R                    Reset to device defaults: Equivalent to:
                          -hmymodem -dmodem -na -ay -cy -fy -iy -pd -ry -ty -ey -uy -my -gy -qy -wy -Fn -sb
- -o                    Configures opkg
- -O 17|18|19           Overrides the default opkg repository with the specified version
  -U                    Download the latest version of $SCRIPT from GitHub
- -y                    Bypass the confirmation prompt (answers 'y')
  --save-defaults       Saves the command line options as defaults for future executions
                          When specified, NO changes are applied to the device
  --show-defaults       Shows the settings that would be applied (defaults and over-rides)
@@ -174,6 +175,7 @@ SHOW_DEFAULTS=n
 
 set_defaults() {
   __ALG='u'
+  __COREDUMP_REBOOT='u'
   __DECT='u'
   __DLNAD='u'
   __DOMAIN='u'
@@ -242,7 +244,7 @@ upgrade() {
   exit
 }
 
-while getopts :a:b:c:d:e:f:g:h:i:k:l:m:n:op:q:r:s:t:u:w:yAF:GI:MO:RSU-: option; do
+while getopts :a:b:c:d:e:f:g:h:i:k:l:m:n:op:q:r:s:t:u:w:yAC:F:GI:MO:RSU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
         debug) __VERBOSE="";;
@@ -276,6 +278,7 @@ while getopts :a:b:c:d:e:f:g:h:i:k:l:m:n:op:q:r:s:t:u:w:yAF:GI:MO:RSU-: option; 
   w)  case "${OPTARG}" in y) __WPS='1';; n) __WPS='0';; u) __WPS='u';; *) echo 'ERROR: -w valid options are y, n, or u'; exit 1;; esac;;
   y)  __YES='y';;
   A)  __HOST='d'; __DOMAIN='gateway'; __ALG='0'; __DLNAD='0'; __SAMBA='0'; __PRNTR='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1'; __SUPERVISION='DNS'; __INTERCEPT='0'; __LED_LOG='0';;
+  C)  case "${OPTARG}" in y) __COREDUMP_REBOOT='1';; n) __COREDUMP_REBOOT='0';; u) __COREDUMP_REBOOT='u';; *) echo 'ERROR: -C valid options are y, n, or u'; exit 1;; esac;;
   F)  case "${OPTARG}" in y) __ROOT_PROTECT='1';; n) __ROOT_PROTECT='0';; u) __ROOT_PROTECT='u';; *) echo 'ERROR: -F valid options are y, n, or u'; exit 1;; esac;;
   G)  __GUEST='y';;
   I)  if  echo "${OPTARG}" | grep -q -E "([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"; then
@@ -383,6 +386,7 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y -o $__YES = n ]; then
   show_default "n"  "DNS servers" $__NS
   show_default "a"  "NAT ALG Helpers" $__ALG
   show_default "c"  "Content Sharing" $__DLNAD
+  show_default "C"  "Reboot on Core Dump" $__COREDUMP_REBOOT
   [ -e /etc/init.d/mmpbxbrcmdect ] && show_default "e"  "DECT Emission Mode" $__DECT
   show_default "f"  "File Sharing" $__SAMBA
   [ $SRV_dumaos -ge 0 ] && show_default "g"  "DumaOS (Game Optimiser)" $__DUMAOS
@@ -16969,6 +16973,17 @@ if [ $SRV_nfc -ge 0 ]; then
   fi
 fi
 #endregion NFC
+
+#region Reboot on Core Dump
+COREDUMPREBOOT_NOW="$(uci -q get system.@coredump[0].reboot)"
+if [ "$__COREDUMP_REBOOT" = "u" -o "$__COREDUMP_REBOOT" = "$COREDUMPREBOOT_NOW" ]; then
+  echo [$SCRIPT]: Reboot on Core Dump unchanged \[$(status2text $COREDUMPREBOOT_NOW)\]
+else
+  exec_uci set system.@coredump[0].reboot="$__COREDUMP_REBOOT"
+  exec_uci commit system
+  echo [$SCRIPT]: Reboot on Core Dump $(status2text $__COREDUMP_REBOOT) 
+fi
+#endregion
 
 #region Power Saving
 PWR_OPTIONS="$(pwrctl 2>&1 | grep -oe '--[^[:blank:]]*' | sort -u)"
