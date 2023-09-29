@@ -12,6 +12,8 @@ handle_interface() {
   config_get enabled $interface enabled 0
 
   if [ "$proto" = "wireguard" ]; then
+    config_get log_level $interface log_level 
+    [ "$log_level" = "debug" ] && DEBUG=y
     if /bin/grep -qE "^${interface}$" /tmp/.wg_uci_modified_ifnames; then
       [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: Interface '$interface' found in /tmp/.wg_uci_modified_ifnames [enabled=$enabled]"
       /bin/sed -e "/^${interface}$/d" -i /tmp/.wg_uci_modified_ifnames
@@ -42,7 +44,7 @@ handle_interface() {
 
   uci commit dhcp
   /etc/init.d/dnmasq reload
-  /etc/init.d/network restart
+  /etc/init.d/network reload
 } 3>/var/lock/uci.wireguard.lock
 
 exit 0
