@@ -1,3 +1,42 @@
+2023.10.01
+==========
+* tch-gui-unhide: Fixed Warning on setting landing page state during first install
+* tch-gui-unhide: Fixed static leases in FW 17.2 which was broken by moving static leases to a separate tab in release 2023.05.16 (#168)
+* tch-gui-unhide: Fixed broken Telephony Enabled switch on devices with no 4G backup (#169)
+* tch-gui-unhide: Fixed clicking on Devices card header presented Local Network tabs rather than Devices tabs (#171)
+* tch-gui-unhide: Fixed incorrect CPU detection that prevented tc being installed on FW 17.2 and Bandwidth Shaping tab missing (#172)
+* tch-gui-unhide: Fixed incorrect tabs structure displayed when clicking on Network Connections in Diagnostics on FW 17.2.0284 (#173)
+* tch-gui-unhide: Fixed unable to accept confirmation when clicking WiFi Analyzer options
+* tch-gui-unhide: Fixed bug that could display the waiting spinner when clicking a disabled button
+* tch-gui-unhide: Fixed incompatibility of WAN Sensing and Permanent WWAN with static IPs by adding new static-wan-routes-monitor service that will add/delete default routes when static WAN interfaces go up/down (#175)
+* tch-gui-unhide: Fixed incorrect Egress Shapers count on QoS card (FW 20.4/21.4 only)
+* tch-gui-unhide: Fixed invalid instance error in DHCP Relay (#179)
+* tch-gui-unhide: Fixed IP addresses missing on FW 17.2 Devices list (#180)
+* tch-gui-unhide: Fixed bug that prevented WAN interfaces (ppp/ipoe/wan6) from being removed when switching to bridged mode
+* tch-gui-unhide: Fixed bug that showed 0 NAT helpers disabled instead of enabled on Firewall card
+* tch-gui-unhide: Fixed bug that always showed Egress QoS as enabled on card even when it was disabled
+* tch-gui-unhide: Fixed missing split_ssid id when device running in bridged mode (FW 20.4/21.4) 
+* tch-gui-unhide: Added option to disable/enable logging of unmatched packets in bandwidth monitoring
+* tch-gui-unhide: Added Packages card to FW 20.4/21.4
+* tch-gui-unhide: Removed custom feed configuration switch from Packages (use de-telstra with -o option or configure custom feeds manually)
+* tch-gui-unhide: Removed IPv6 ULA Prefix from Local Network Configuration tab when in bridged mode
+* tch-gui-unhide: Removed Backhaul SSID from WiFi Boosters card on FW 20.4/21.4
+* tch-gui-unhide: Disabled new mmpbx global wait_for_cwmpd setting that prevented Telephony from starting if CWMPD was removed or disabled
+* tch-gui-unhide: Upgraded tproxy-go to v2023.09.17-0-g0c6325a
+* tch-gui-unhide-xtra.adblock: Fixed bug in latest version detection (#181)
+* tch-gui-unhide-xtra.rsyncd: Fixed detection of service status
+* tch-gui-unhide-xtra.wireguard: Changed to reloading networking after changes rather than restarting as could cause temporary loss of WiFi
+* de-telstra: Disabled new mmpbx global wait_for_cwmpd setting that prevented Telephony from starting if CWMPD was removed or disabled
+* de-telstra: Enabled -o option to configure opkg for FW 20.4/21.4 (NOTE: There are no complete repositories for FW 20.4/21.4, but I have created a couple of repositories that contain statically linked binaries)
+* de-telstra: Added new -C option to enable/disable reboot on coredump
+* de-telstra: Added a check to find services blocked on a file lock and to clean up so that services restarts do not hang
+* de-telstra: Upgraded embedded CA certificates packages to 20230311-1
+* de-telstra: Upgraded embedded wget to statically linked version 1.19.5 with SSL support that will run on both 32-bit and 64-bit devices
+* move-lan-port-to-own-network: Removed - use the GUI to create VLANs
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Added new -B option to configure for bridged mode after reset/reboot
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Added new -C option to disable reboot on coredump after reset/reboot
+* update-ca-certificates: Added ca_directory to /root/.wgetrc
+
 2023.08.24
 ==========
 * tch-gui-unhide: Fixed display issue with Diagnostics card in Firefox
