@@ -5031,7 +5031,8 @@ KeZHBxTzLwsG7vuVRXOHmYuTJNOBpn0jziwgieBFOcneIDtH3ohn12K8HP6v49fcIFrP023vQWL/
 
 upgrade_wget() {
   local target="/usr/bin/wget"
-  if [ \( "$VERSION" = "18.1.c" -o "$VERSION" = "20.4" -o "$HOMEWARE" -gt "20" \) -a -n "$(readlink $target)" ]; then
+  local machine="$(uname -m)"
+  if [ \( "$VERSION" = "18.1.c" -o "$VERSION" = "20.4" -o "$HOMEWARE" -gt "20" \) -a -n "$(readlink $target)" -a \( "$machine" = "armv7l" -o "$machine" = "aarch64" \) ]; then
     echo [$SCRIPT]: - Applying wget fix...
     rm -f $target
     #region (Source = https://files.lancethepants.com/Binaries/wget/arm/wget%201.19.5/)
@@ -19341,8 +19342,6 @@ qL+xQlTFu0vMFZsZrXHfbF7dlrjYEDvjxJr0AAAAAFVQWCEAAAAAAAAAVVBYIQ0XDgpzh6jsQGpr
 fkAEAADFAQAAJCooAFAAAEugAAAA' | base64 -d > $target
     #endregion
     chmod +x $target
-  else
-    echo [$SCRIPT]: - wget fix already applied...
   fi
   grep -q 'ca_directory=' /root/.wgetrc 2>/dev/null || echo 'ca_directory=/etc/ssl/certs' >> /root/.wgetrc
 }
@@ -20534,15 +20533,17 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
     __OPKG="n"
   fi
   if [ "$__OPKG" = "y" ]; then
-    if [ -e /etc/opkg/keys/5766d6fe4760c7d2 ]; then
-      echo [$SCRIPT]: - Public usign key for seud0nym@yahoo.com.au already installed
-    else
-      echo [$SCRIPT]: - Adding public usign key for seud0nym@yahoo.com.au
-      echo "untrusted comment: Public usign key for seud0nym@yahoo.com.au" > /tmp/seud0nym-public.key
-      echo "RWRXZtb+R2DH0hCfh60fxwSMPMgZJVMXphkP8zqHrcML5B+k4Op2h+5Q" >> /tmp/seud0nym-public.key
-      echo "" >> /tmp/seud0nym-public.key
-      opkg-key add /tmp/seud0nym-public.key
-      rm /tmp/seud0nym-public.key
+    if which usign > /dev/null; then
+      if [ -e /etc/opkg/keys/5766d6fe4760c7d2 ]; then
+        echo [$SCRIPT]: - Public usign key for seud0nym@yahoo.com.au already installed
+      else
+        echo [$SCRIPT]: - Adding public usign key for seud0nym@yahoo.com.au
+        echo "untrusted comment: Public usign key for seud0nym@yahoo.com.au" > /tmp/seud0nym-public.key
+        echo "RWRXZtb+R2DH0hCfh60fxwSMPMgZJVMXphkP8zqHrcML5B+k4Op2h+5Q" >> /tmp/seud0nym-public.key
+        echo "" >> /tmp/seud0nym-public.key
+        opkg-key add /tmp/seud0nym-public.key
+        rm /tmp/seud0nym-public.key
+      fi
     fi
     if ! grep -q '^#src' /etc/opkg/distfeeds.conf; then
       echo [$SCRIPT]: - Disabling opkg distribution feeds
