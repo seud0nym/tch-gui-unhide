@@ -20662,6 +20662,22 @@ fi
 #endregion Guest Wi-Fi
 
 #region Services
+echo [$SCRIPT]: Checking for services blocked on a file lock...
+services=$(mktemp)
+for pid in $(pgrep flock); do
+  ppid=$(grep -i ^PPId /proc/$pid/status | cut -d: -f2 | xargs)
+  command=$(ps | grep -E "\b${ppid}\b" | grep -v grep | tr -s ' ' | cut -d' ' -f5-)
+  service=$(basename $(echo $command | grep -oE '/etc/init.d/[^ ]*'))
+  [ -z "$__VERBOSE" ] && echo -e "[$SCRIPT]: ${GREY} -> Found blocked command: $command [PID $ppid blocked by PID $pid]${NC}"
+  grep -q "^$service" $services || echo $service >> $services
+  sed -e "s|^\b$service\b.*|& $pid $ppid|" -i $services
+done
+cat $services | while read service pids; do
+  [ -z "$__VERBOSE" ] && echo -e "[$SCRIPT]: ${GREY} -> Deleting /var/lock/procd_$service.lock${NC}"
+  rm -f /var/lock/procd_$service.lock
+  [ -z "$__VERBOSE" ] && echo -e "[$SCRIPT]: ${GREY} -> Killing process IDs: $pids${NC}"
+  kill $pids
+done
 echo [$SCRIPT]: Applying service changes...
 [ "$__LITE" = 'R' ] && {
   for s in cupsd dumaos mesh_broker mmpbxfwctl mmpbxd mmpbxbrcmdect mud multiap_agent multiap_controller multiap_vendorextensions ndhttpd telemetry-daemon xl2tpd; do
