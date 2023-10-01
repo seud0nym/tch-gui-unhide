@@ -70,7 +70,7 @@ Allows you to install the [OpenSpeedTest Server](https://github.com/openspeedtes
 
 #### [Wi-Fi Booster](https://github.com/seud0nym/tch-gui-unhide/tree/master/supplemental/wifi-booster#readme)
 
-Allows you to configure an EasyMesh-capable Telstra Smart Modem (Gen 1 or Gen 2) as a "Wi-Fi Booster" to extend Wi-Fi coverage throughout a home (wired back-haul only).
+Allows you to configure a second EasyMesh-capable Telstra Smart Modem as a "Wi-Fi Booster" to extend Wi-Fi coverage throughout a home (wired back-haul only).
 
 # Utility Scripts
 
