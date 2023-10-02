@@ -162,6 +162,10 @@ local GUI_OOKLA_RESULT_i_ = {
         access = "readOnly",
         type = "string"
       },
+      url = {
+        access = "readOnly",
+        type = "string"
+      },
       json = {
         access = "readOnly",
         type = "string"
@@ -206,6 +210,8 @@ GUI_OOKLA_RESULT_i_.get = function(_,param,key)
     return result.level or ""
   elseif param == "error_message" then
     return result.message or ""
+  elseif param == "url" then
+    return result.result.url or ""
   elseif param == "json" then
     return dkjson.encode(result)
   else

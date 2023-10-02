@@ -75,6 +75,12 @@ local result_columns = {
     readonly = true,
   },
   {
+    header = T"URL",
+    name = "url",
+    param = "url",
+    readonly = true,
+  },
+  {
     header = T"Message",
     name = "error_message",
     param = "error_message",
@@ -95,7 +101,10 @@ local result_options = {
 }
 
 local result_filter = function(data)
+  local url = untaint(data.url)
+  local id = string.match(url,"([%x%-]+)$")
   data.timestamp = os.date("%c",tonumber(untaint(data.timestamp)))
+  data.url = "<a style='font-size:9px' target='_blank' href='"..url.."'>"..id.."&nbsp;<i class='icon-external-link'></i></a>"
   return true
 end
 
@@ -168,7 +177,7 @@ ngx.print(ui_helper.createHeader(T"Diagnostics", false, false) ); ngx.print('\
     if latest then
       ngx.print('\
       <div class="result-container-speed">\
-        <div class="result-item-details"><div class="result-label">',latest[c.timestamp],'</div></div>\
+        <div class="result-item-details"><div class="result-label">',latest[c.timestamp],'</div>',latest[c.url],'</div>\
         <div class="result-container-data  result-container-flex-center">\
           <div class="result-item-container result-item-container-align-center">\
               <div class="result-item result-item-first-class result-item-download" title="Receiving Time">\
