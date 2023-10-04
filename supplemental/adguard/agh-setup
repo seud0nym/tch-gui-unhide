@@ -55,9 +55,9 @@ options:
                      -xi  Do not enable DNS hijacking
                      -xs  Do not enable scheduled update of AdGuard Home
                      -xu  Do not download utility scripts (Implies -xs)
+                     -xx  Same as -xc -xg -xi -xs -xu
                      -xy  Do not replace an existing AdGuard Home Configuration
                             file (no effect if the .yaml file does not exist)
-                     -xx  Same as -xc -xg -xi -xs -xy -xu
  -s                Skips the free memory check.
                       If there is not enough free memory, the installation will be
                       aborted. Use this option to install anyway.
@@ -129,7 +129,7 @@ while getopts :deih:kn:p:rsuv:x: option; do
         s)  SCHEDULED=N;;
         u)  UTILITIES=N;SCHEDULED=N;;
         y)  OVERWRITE=N;;
-        x)  CA_CERT=N;DOWNLOAD=N;HIJACKING=N;SCHEDULED=N;UTILITIES=N;OVERWRITE=N;;
+        x)  CA_CERT=N;DOWNLOAD=N;HIJACKING=N;SCHEDULED=N;UTILITIES=N;;
         *)  echo -e "${RED}[$SCRIPT] Unknown -x$OPTARG option! Aborting...${NC}"; exit 2;;
       esac;;
   *)  usage;;
@@ -185,15 +185,15 @@ configure_dnmasq() {
     fi
   else
     PEER_DNS="0"
-    LOCAL_USE="0"
     if [ $AGH_DHCP = true ]; then
+      LOCAL_USE="0"
       DNS_PORT="0"
       DHCP_SERVER="disabled"
     else
+      LOCAL_USE="1"
       if [ $KEEP_DNSMASQ = N ]; then
-        DNS_PORT="53835"
+        DNS_PORT="0"
       else
-        LOCAL_USE="1"
         DNS_PORT="53"
       fi
       DHCP_SERVER="server"

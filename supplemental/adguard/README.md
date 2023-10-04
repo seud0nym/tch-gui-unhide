@@ -41,15 +41,6 @@ By default, this script disables dnsmasq to maximize free memory and enables the
 
 However, if you wish or need to use Guest Wi-Fi, or if you just want to continue using dnsmasq for DHCP, you can specify the `-d` installation option, as described below. However, continuing to run dnsmasq for DHCP comes at the cost of consuming additional RAM, which could be an issue on devices with less memory, such as the DJA0231.
 
-## Telephony (mmpbx) will not use AdGuard Home for DNS Resolution
-
-The mmpbxd daemon refuses to resolve IP addresses directly through AdGuard Home. It will only work with with dnsmasq. If you have both a VoIP provider configured in Telephony and wish to use AdGuard Home, then there are two possible work-arounds. Either:
-- enter an IP address instead of a domain address in the SIP Network Primary Registrar field on the Telephony Global tab; OR
-- specify the `-k` option when running the setup script. This will keep dnsmasq as the DNS Server, but all DNS queries will be resolved by AdGuard Home.
-
-Alternatively, you can use the scripts developed by @SmartBoy84 to periodically reconfigure mmpbxd with the correct address. They can be found here:
-https://github.com/SmartBoy84/TelephonyPatch
-
 ## Free RAM Requirements
 The forum post starts by saying that devices require 100MB RAM free. A subsequent post indicates around 30MB.
 
@@ -129,11 +120,11 @@ The following optional configuration parameters may be specified **after** the d
       - Do not enable scheduled update of AdGuard Home
     - -xu
       - Do not download utility scripts (implies -xs)
+    - -xx
+      - Same as **-xc -xg -xi xs -xu**
     - -xy
       - Do not replace an existing AdGuard Home Configuration file 
       - Has no effect if the AdGuardHome.yaml file does not exist
-    - -xx
-      - Same as **-xc -xg -xi -xu -xy**
 - -s
   - Skips the free memory check
   - If there is not enough free memory, the installation will be aborted.
