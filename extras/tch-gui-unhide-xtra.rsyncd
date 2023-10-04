@@ -14,7 +14,7 @@ if [ -f /etc/init.d/rsyncd -a -z "$XTRAS_REMOVE" ]; then
   echo " Adding rsyncd support..."
 
   # Create the UCI transformer mapping
-  cat <<MAP > /usr/share/transformer/mappings/rpc/gui.rsync.map
+  cat <<"MAP" > /usr/share/transformer/mappings/rpc/gui.rsync.map
 local init_cmd = "/etc/init.d/rsyncd"
 local status_cmd = "! "..init_cmd.." enabled; echo $?" -- shell returns 0 for enabled and 1 for disabled, so need to 'not' it (!) to reverse because uci standard is enabled='1' disabled='0'
 local start_cmd = init_cmd.." restart|logger; "..init_cmd.." enable"

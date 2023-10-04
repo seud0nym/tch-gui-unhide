@@ -28,7 +28,7 @@ if [ -f /etc/init.d/minidlna -a -z "$XTRAS_REMOVE" ]; then
 
   # Create the UCI transformer mapping
   if [ ! -f /usr/share/transformer/mappings/uci/minidlna.map ]; then
-    cat <<MAP > /usr/share/transformer/mappings/uci/minidlna.map
+    cat <<"MAP" > /usr/share/transformer/mappings/uci/minidlna.map
 MAP
     chmod 644 /usr/share/transformer/mappings/uci/minidlna.map
     SRV_transformer=$(( $SRV_transformer + 1 ))

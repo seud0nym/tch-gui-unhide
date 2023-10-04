@@ -36,7 +36,7 @@ if [ $? -eq 0 -a -z "$XTRAS_REMOVE" ]; then
 
     sed -e 's/"name" }/"name", "users" }/' -i /usr/share/transformer/mappings/uci/samba.map
     if [ ! -f /usr/share/transformer/mappings/rpc/gui.samba.map ]; then
-      cat <<MAP > /usr/share/transformer/mappings/rpc/gui.samba.map
+      cat <<"MAP" > /usr/share/transformer/mappings/rpc/gui.samba.map
 MAP
       chmod 644 /usr/share/transformer/mappings/rpc/gui.samba.map
     fi

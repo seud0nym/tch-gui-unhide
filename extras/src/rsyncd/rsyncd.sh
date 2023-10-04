@@ -14,7 +14,7 @@ if [ -f /etc/init.d/rsyncd -a -z "$XTRAS_REMOVE" ]; then
   echo " Adding rsyncd support..."
 
   # Create the UCI transformer mapping
-  cat <<MAP > /usr/share/transformer/mappings/rpc/gui.rsync.map
+  cat <<"MAP" > /usr/share/transformer/mappings/rpc/gui.rsync.map
 MAP
   chmod 644 /usr/share/transformer/mappings/rpc/gui.rsync.map
   SRV_transformer=$(( $SRV_transformer + 1 ))
