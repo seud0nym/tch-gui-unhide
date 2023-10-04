@@ -142,6 +142,11 @@ fi
 rm -f /tmp/tproxy-go*.bz2
 if [ -e /usr/sbin/tproxy-go ]; then
   chmod +x /usr/sbin/tproxy-go
+  echo -e "[$SCRIPT]: Prevent reboot on tproxy-go core dump"
+  uci -q del_list system.@coredump[0].reboot_exceptions='tproxy-go'
+  uci -q add_list system.@coredump[0].reboot_exceptions='tproxy-go'
+  uci commit system
+  SRV_system=$(( $SRV_system + 1 ))
   if [ ! -e /etc/config/tproxy ]; then
     echo -e "[$SCRIPT]: Creating tproxy config for IPv6 DNS hijacking"
     cat <<TPROXY > /etc/config/tproxy

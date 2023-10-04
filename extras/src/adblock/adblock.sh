@@ -85,6 +85,10 @@ if [ "$1" = "setup" ]; then
     echo ">> adblock daily update has been scheduled to execute at $hh:$(printf '%02d' $mm)am every day"
     /etc/init.d/cron restart
   fi
+  uci -q del_list system.@coredump[0].reboot_exceptions='sort'
+  uci -q add_list system.@coredump[0].reboot_exceptions='sort'
+  uci commit system
+  SRV_system=$(( $SRV_system + 2 ))
   echo ">> Setup complete"
   exit
 elif [ "$1" = "remove" ]; then

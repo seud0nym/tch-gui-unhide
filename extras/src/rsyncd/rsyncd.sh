@@ -19,6 +19,11 @@ MAP
   chmod 644 /usr/share/transformer/mappings/rpc/gui.rsync.map
   SRV_transformer=$(( $SRV_transformer + 1 ))
 
+  uci -q del_list system.@coredump[0].reboot_exceptions='rsync'
+  uci -q add_list system.@coredump[0].reboot_exceptions='rsync'
+  uci commit system
+  SRV_system=$(( $SRV_system + 1 ))
+
   # Add the modules
   grep -q '\[home\]' /etc/rsyncd.conf
   if [ $? -ne 0 ]; then
@@ -81,6 +86,9 @@ else
     echo " rsyncd removed - Cleaning up"
     rm /usr/share/transformer/mappings/rpc/gui.rsync.map
     SRV_transformer=$(( $SRV_transformer + 1 ))
+    uci -q del_list system.@coredump[0].reboot_exceptions='rsync'
+    uci commit system
+    SRV_system=$(( $SRV_system + 1 ))
   else
     echo " SKIPPED because rsyncd not installed"
   fi

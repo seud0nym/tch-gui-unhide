@@ -160,6 +160,13 @@ end\
 ngx.timer.at(0, preLoadWG)' -i $f
     fi
   done
+
+  uci -q del_list system.@coredump[0].reboot_exceptions='wireguard-go'
+  uci -q add_list system.@coredump[0].reboot_exceptions='wireguard-go'
+  uci -q del_list system.@coredump[0].reboot_exceptions='wg-go'
+  uci -q add_list system.@coredump[0].reboot_exceptions='wg-go'
+  uci commit system
+  SRV_system=$(( $SRV_system + 2 ))
 else
   WG_INSTALLED=0
 
@@ -193,6 +200,11 @@ else
     uci commit network
     SRV_network=$(( $SRV_network + 1 ))
   fi
+  
+  uci -q del_list system.@coredump[0].reboot_exceptions='wireguard-go'
+  uci -q del_list system.@coredump[0].reboot_exceptions='wg-go'
+  uci commit system
+  SRV_system=$(( $SRV_system + 2 ))
 
   if [ $WG_INSTALLED -eq 0 ]; then
     echo " SKIPPED - WireGuard not found"

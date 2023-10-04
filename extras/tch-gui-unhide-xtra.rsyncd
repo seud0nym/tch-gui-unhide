@@ -14,7 +14,7 @@ if [ -f /etc/init.d/rsyncd -a -z "$XTRAS_REMOVE" ]; then
   echo " Adding rsyncd support..."
 
   # Create the UCI transformer mapping
-  cat <<"MAP" > /usr/share/transformer/mappings/rpc/gui.rsync.map
+  cat <<MAP > /usr/share/transformer/mappings/rpc/gui.rsync.map
 local init_cmd = "/etc/init.d/rsyncd"
 local status_cmd = "! "..init_cmd.." enabled; echo $?" -- shell returns 0 for enabled and 1 for disabled, so need to 'not' it (!) to reverse because uci standard is enabled='1' disabled='0'
 local start_cmd = init_cmd.." restart|logger; "..init_cmd.." enable"
@@ -61,6 +61,11 @@ register(GUI_RSYNC_)
 MAP
   chmod 644 /usr/share/transformer/mappings/rpc/gui.rsync.map
   SRV_transformer=$(( $SRV_transformer + 1 ))
+
+  uci -q del_list system.@coredump[0].reboot_exceptions='rsync'
+  uci -q add_list system.@coredump[0].reboot_exceptions='rsync'
+  uci commit system
+  SRV_system=$(( $SRV_system + 1 ))
 
   # Add the modules
   grep -q '\[home\]' /etc/rsyncd.conf
@@ -124,6 +129,9 @@ else
     echo " rsyncd removed - Cleaning up"
     rm /usr/share/transformer/mappings/rpc/gui.rsync.map
     SRV_transformer=$(( $SRV_transformer + 1 ))
+    uci -q del_list system.@coredump[0].reboot_exceptions='rsync'
+    uci commit system
+    SRV_system=$(( $SRV_system + 1 ))
   else
     echo " SKIPPED because rsyncd not installed"
   fi

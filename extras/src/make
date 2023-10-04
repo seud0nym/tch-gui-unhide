@@ -1,5 +1,7 @@
 #!/bin/sh
 
+cd $(dirname $0)
+
 if [ -e .extras ]; then
   rm .extras
 fi

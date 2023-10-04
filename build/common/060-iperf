@@ -1,6 +1,14 @@
 if [ -e /usr/share/transformer/mappings/uci/iperf.map -a ! -e /etc/config/iperf -a ! -e /etc/init.d/iperf ]; then
   echo -e "[$SCRIPT]: Removing unused iperf transformer mapping"
   rm -f /usr/share/transformer/mappings/uci/iperf.map /usr/share/transformer/commitapply/uci_iperf.ca
+else
+  echo -e "[$SCRIPT]: Prevent reboot on iperf core dump"
+  uci -q del_list system.@coredump[0].reboot_exceptions='iperf'
+  uci -q add_list system.@coredump[0].reboot_exceptions='iperf'
+  uci -q del_list system.@coredump[0].reboot_exceptions='iperf3'
+  uci -q add_list system.@coredump[0].reboot_exceptions='iperf3'
+  uci commit system
+  SRV_system=$(( $SRV_system + 2 ))
 fi
 
 if [ -x /usr/bin/iperf3 ]; then
