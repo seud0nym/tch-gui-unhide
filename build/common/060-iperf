@@ -1,5 +1,9 @@
 if [ -e /usr/share/transformer/mappings/uci/iperf.map -a ! -e /etc/config/iperf -a ! -e /etc/init.d/iperf ]; then
   echo -e "[$SCRIPT]: Removing unused iperf transformer mapping"
-  rm /usr/share/transformer/mappings/uci/iperf.map
+  rm -f /usr/share/transformer/mappings/uci/iperf.map /usr/share/transformer/commitapply/uci_iperf.ca
 fi
 
+if [ -x /usr/bin/iperf3 ]; then
+  echo -e "[$SCRIPT]: Fixed iperf3 executable in service"
+  sed -e 's|/usr/bin/iperf\b|&3|' -i /etc/init.d/iperf
+fi

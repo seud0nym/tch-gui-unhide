@@ -8,6 +8,7 @@ firmware
 gateway
 helpers
 internet
+iperf
 iproutes
 lan
 lte

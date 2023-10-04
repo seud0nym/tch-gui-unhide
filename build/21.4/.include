@@ -1,5 +1,4 @@
 # Lines in this file must be specified in the format <filename>/<dirname relative to build dir>
-060-iperf/20.4
 065-MultiAP/20.4
 066-QoS/18.1.c
 072-QoS/20.3.c
