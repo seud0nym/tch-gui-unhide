@@ -5032,7 +5032,7 @@ KeZHBxTzLwsG7vuVRXOHmYuTJNOBpn0jziwgieBFOcneIDtH3ohn12K8HP6v49fcIFrP023vQWL/
 upgrade_wget() {
   local target="/usr/bin/wget"
   local machine="$(uname -m)"
-  if [ \( "$VERSION" = "18.1.c" -o "$VERSION" = "20.4" -o "$HOMEWARE" -gt "20" \) -a -n "$(readlink $target)" -a \( "$machine" = "armv7l" -o "$machine" = "aarch64" \) ]; then
+  if [ \( "$VERSION" = "18.1.c" -o "$VERSION" = "20.4" -o "$HOMEWARE" -gt "20" \) -a \( -n "$(readlink $target)" -o ! -x $target \) -a \( "$machine" = "armv7l" -o "$machine" = "aarch64" \) ]; then
     echo [$SCRIPT]: - Applying wget fix...
     rm -f $target
     #region (Source = https://files.lancethepants.com/Binaries/wget/arm/wget%201.19.5/)
