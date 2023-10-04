@@ -134,7 +134,7 @@ The following optional configuration parameters may be specified **after** the d
   - This will continue to use dnsmasq for DHCP, at the expense of some additional RAM.
 - -k
   - Specifies that you do want to keep dnsmasq as the primary DNS Server, but AdGuard Home will be used to resolve the DNS queries.
-  - This will come at the expense of some additional RAM, but allows you to run mmpbx VoIP Telephony and to configure DNS Rebind Protection.
+  - This will come at the expense of some additional RAM.
 
 # Post-Installation
 When the script completes, you will be able to access AdGuard Home in your browser at http://[router ip address]:8008
