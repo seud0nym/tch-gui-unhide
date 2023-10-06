@@ -30,41 +30,46 @@ if [ "$1" = "setup" ]; then
   ca_bundle_current="$(echo "$ca_current" | grep bundle | grep -Eo '[0-9][0-9-]+')"
   ca_certificates_current="$(echo "$ca_current" | grep certificates | grep -Eo '[0-9][0-9-]+')"
   adblock_restart="n"
-  if [ "$(echo $adblock_current | cut -d. -f1-2)" != $adblock_supported_version ]; then
+  if [ \( -n "$adblock_current" -a "$(echo $adblock_current | cut -d. -f1-2)" != $adblock_supported_version \) ]; then
     echo ">> Latest adblock version is $adblock_current but only version ${adblock_supported_version} is supported - unable to complete setup"
     exit 
+  elif [ -z "$adblock_current" -a "$(echo $adblock_installed | cut -d. -f1-2)" != $adblock_supported_version ]; then
+    echo ">> Unable to determin latest adblock version and version $adblock_installed installed but only version ${adblock_supported_version} is supported - unable to complete setup"
+    exit 
   fi
-  if [ "$coreutils_current" != "$coreutils_installed" ]; then
-    echo ">> Downloading coreutils v$coreutils_current"
-    curl -kL https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/${arch}/packages/coreutils_${coreutils_current}_${arch}.ipk -o /tmp/coreutils_${coreutils_current}_${arch}.ipk
-    echo ">> Installing coreutils v$coreutils_current"
-    opkg --force-overwrite install /tmp/coreutils_${coreutils_current}_${arch}.ipk
-    rm /tmp/coreutils_${coreutils_current}_${arch}.ipk
+  if [ -z "$coreutils_installed" ]; then
+    if [ "$coreutils_current" != "$coreutils_installed" ]; then
+      echo ">> Downloading coreutils v$coreutils_current"
+      curl -kL https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/${arch}/packages/coreutils_${coreutils_current}_${arch}.ipk -o /tmp/coreutils_${coreutils_current}_${arch}.ipk || exit $?
+      echo ">> Installing coreutils v$coreutils_current"
+      opkg --force-overwrite install /tmp/coreutils_${coreutils_current}_${arch}.ipk
+      rm /tmp/coreutils_${coreutils_current}_${arch}.ipk
+    fi
+    if [ "$coreutils_current" != "$coresort_installed" ]; then
+      echo ">> Downloading coreutils-sort v$coreutils_current"
+      curl -kL https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/${arch}/packages/coreutils-sort_${coreutils_current}_${arch}.ipk -o /tmp/coreutils-sort_${coreutils_current}_${arch}.ipk || exit $?
+      echo ">> Installing coreutils-sort v$coreutils_current"
+      opkg --force-overwrite install /tmp/coreutils-sort_${coreutils_current}_${arch}.ipk
+      rm /tmp/coreutils-sort_${coreutils_current}_${arch}.ipk
+    fi
   fi
-  if [ "$coreutils_current" != "$coresort_installed" ]; then
-    echo ">> Downloading coreutils-sort v$coreutils_current"
-    curl -kL https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/${arch}/packages/coreutils-sort_${coreutils_current}_${arch}.ipk -o /tmp/coreutils-sort_${coreutils_current}_${arch}.ipk
-    echo ">> Installing coreutils-sort v$coreutils_current"
-    opkg --force-overwrite install /tmp/coreutils-sort_${coreutils_current}_${arch}.ipk
-    rm /tmp/coreutils-sort_${coreutils_current}_${arch}.ipk
-  fi
-  if [ "$ca_bundle_current" != "$ca_bundle_installed" ]; then
+  if [ -n "$ca_bundle_current" -a "$ca_bundle_current" != "$ca_bundle_installed" ]; then
     echo ">> Downloading ca-bundle v$ca_bundle_current"
-    curl -kL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/base/ca-bundle_${ca_bundle_current}_all.ipk -o /tmp/ca-bundle_${ca_bundle_current}_all.ipk
+    curl -kL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/base/ca-bundle_${ca_bundle_current}_all.ipk -o /tmp/ca-bundle_${ca_bundle_current}_all.ipk || exit $?
     echo ">> Installing ca-bundle v$ca_bundle_current"
     opkg --force-overwrite install /tmp/ca-bundle_${ca_bundle_current}_all.ipk
     rm /tmp/ca-bundle_${ca_bundle_current}_all.ipk
   fi
-  if [ "$ca_certificates_current" != "$ca_certificates_installed" ]; then
+  if [ -n "$ca_certificates_current" -a "$ca_certificates_current" != "$ca_certificates_installed" ]; then
     echo ">> Downloading ca-certificates v$ca_certificates_current"
-    curl -kL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/base/ca-certificates_${ca_certificates_current}_all.ipk -o /tmp/ca-certificates_${ca_certificates_current}_all.ipk
+    curl -kL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/base/ca-certificates_${ca_certificates_current}_all.ipk -o /tmp/ca-certificates_${ca_certificates_current}_all.ipk || exit $?
     echo ">> Installing ca-certificates v$ca_certificates_current"
     opkg --force-overwrite install /tmp/ca-certificates_${ca_certificates_current}_all.ipk
     rm /tmp/ca-certificates_${ca_certificates_current}_all.ipk
   fi
-  if [ "$adblock_current" != "$adblock_installed" ]; then
+  if [ -n "$adblock_current" -a "$adblock_current" != "$adblock_installed" ]; then
     echo ">> Downloading adblock v$adblock_current"
-    curl -kL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/packages/adblock_${adblock_current}_all.ipk -o /tmp/adblock_${adblock_current}_all.ipk
+    curl -kL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/packages/adblock_${adblock_current}_all.ipk -o /tmp/adblock_${adblock_current}_all.ipk || exit $?
     echo ">> Installing adblock v$adblock_current"
     opkg --force-overwrite install /tmp/adblock_${adblock_current}_all.ipk
     rm /tmp/adblock_${adblock_current}_all.ipk
