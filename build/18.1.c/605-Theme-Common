@@ -49,6 +49,10 @@ if [ -f /www/docroot/landingpage.lp ];then
   else
     echo -e "[$SCRIPT]: Keeping Telstra branding on landing page"
     LPSTATE='telstra'
+    if [ $ACROSS = 5 ]; then
+      echo -e "[$SCRIPT]: Fixing landing page for 5 cards across"
+      sed -e 's/class="span1" style="margin-left: 0px;margin-top: 15px;/&width: 70px;/' -i /www/docroot/landingpage.lp
+    fi
   fi
 fi
 
