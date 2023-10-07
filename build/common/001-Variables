@@ -205,10 +205,12 @@ else
   fi
 fi
 
-if grep -qF 'home.lp' /etc/nginx/nginx.conf; then
-  START_PAGE="home.lp"
-else
-  START_PAGE="gateway.lp"
+if [ -z "$START_PAGE" ]; then
+  if grep -qF 'home.lp' /etc/nginx/nginx.conf; then
+    START_PAGE="home.lp"
+  else
+    START_PAGE="gateway.lp"
+  fi
 fi
 
 # Keep count of changes so we know whether to restart services
