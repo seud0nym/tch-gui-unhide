@@ -209,17 +209,25 @@ local function getAdblockCachedValue(param,level)
       local j = getRuntimeStatusJSON()
       if j and j ~= "" then
         local json = dkjson.decode(j)
-        local yr,mth,day,time = match(json.last_run,"(%d%d%d%d)%-(%d%d)%-(%d%d)T([^+]+)")
-        if time then
+        if json.adblock_status == "disabled" or json.last_run == "-" then
           status_cache["status"] = json.adblock_status
           status_cache["version"] = json.adblock_version
           status_cache["blocked_domains"] = json.blocked_domains
-          status_cache["last_rundate"] = format("%s-%s-%s %s",day,mth,yr,time)
+          status_cache["last_rundate"] = "unknown"
           status_cache["updated"] = modified
         else
-          status_cache["updated"] = 0
-          socket.sleep(2)
-          return getAdblockCachedValue(param,level+1)
+          local yr,mth,day,time = match(json.last_run,"(%d%d%d%d)%-(%d%d)%-(%d%d)T([^+]+)")
+          if time then
+            status_cache["status"] = json.adblock_status
+            status_cache["version"] = json.adblock_version
+            status_cache["blocked_domains"] = json.blocked_domains
+            status_cache["last_rundate"] = format("%s-%s-%s %s",day,mth,yr,time)
+            status_cache["updated"] = modified
+          else
+            status_cache["updated"] = 0
+            socket.sleep(2)
+            return getAdblockCachedValue(param,level+1)
+          end
         end
       else
         status_cache["updated"] = 0
@@ -599,8 +607,6 @@ function M.getAdblockCardHTML()
   local html = {}
   html[#html+1] = ui_helper.createSimpleLight(content.status,content.status_text)
   html[#html+1] = '<p class="subinfos">'
-  html[#html+1] = format('<strong>Version</strong> %s',content.version)
-  html[#html+1] = '<br>'
   html[#html+1] = format("<strong class='modal-link' data-toggle='modal' data-remote='/modals/adblck-sources-modal.lp' data-id='adblck-sources-modal'>%d DNS Block %s</strong> enabled",content.enabled_lists,N("List","Lists",content.enabled_lists))
   html[#html+1] = '<br>'
   html[#html+1] = format('<strong>Updated:</strong> %s',content.last_rundate)
