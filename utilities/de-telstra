@@ -20529,49 +20529,48 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
     grep -q '^arch arm_cortex-a53 10' /etc/opkg.conf || echo 'arch arm_cortex-a53 10'>>/etc/opkg.conf
     grep -q '^arch aarch64_cortex-a53 20' /etc/opkg.conf || echo 'arch aarch64_cortex-a53 20'>>/etc/opkg.conf
   else
-    echo -e "[$SCRIPT]: ${ORANGE}Sorry!! I do not know how to configure opkg for this device!${NC}"
-    __OPKG="n"
+    echo [$SCRIPT]: Looks like opkg has already been configured...
+  fi
+  if which usign > /dev/null; then
+    if [ -e /etc/opkg/keys/5766d6fe4760c7d2 ]; then
+      echo [$SCRIPT]: - Public usign key for seud0nym@yahoo.com.au already installed
+    else
+      echo [$SCRIPT]: - Adding public usign key for seud0nym@yahoo.com.au
+      echo "untrusted comment: Public usign key for seud0nym@yahoo.com.au" > /tmp/seud0nym-public.key
+      echo "RWRXZtb+R2DH0hCfh60fxwSMPMgZJVMXphkP8zqHrcML5B+k4Op2h+5Q" >> /tmp/seud0nym-public.key
+      echo "" >> /tmp/seud0nym-public.key
+      opkg-key add /tmp/seud0nym-public.key
+      rm /tmp/seud0nym-public.key
+    fi
+  fi
+  if ! grep -q '^#src' /etc/opkg/distfeeds.conf; then
+    echo [$SCRIPT]: - Disabling opkg distribution feeds
+    sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf
+  else
+    echo [$SCRIPT]: - opkg distribution feeds already disabled
+  fi
+  if [ -e /dev/net/tun -a \( "$DISTRIB_ARCH" = "arm_cortex-a9" -o "$DISTRIB_ARCH" = "arm_cortex-a53" \) ]; then
+    if ! grep -q 'openwrt-wireguard-go' /etc/opkg/customfeeds.conf; then
+      echo [$SCRIPT]: - Configuring opkg custom feeds for openwrt-wireguard-go
+      echo "src/gz wg_go https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/repository/$DISTRIB_ARCH/base" >> /etc/opkg/customfeeds.conf
+    else
+      echo [$SCRIPT]: - opkg custom feeds for openwrt-wireguard-go already configured
+    fi
+  fi
+  if ! grep -q 'tch-coreutils' /etc/opkg/customfeeds.conf; then
+    echo [$SCRIPT]: - Configuring opkg custom feeds for tch-coreutils
+    echo "src/gz tch_coreutils https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/$DISTRIB_ARCH/packages" >> /etc/opkg/customfeeds.conf
+  else
+    echo [$SCRIPT]: - opkg custom feeds for tch-coreutils already configured
+  fi
+  if ! grep -q 'tch-static' /etc/opkg/customfeeds.conf; then
+    echo [$SCRIPT]: - Configuring opkg custom feeds for tch-static
+    echo "src/gz tch_static https://raw.githubusercontent.com/seud0nym/tch-static/master/repository/$DISTRIB_ARCH/packages" >> /etc/opkg/customfeeds.conf
+  else
+    echo [$SCRIPT]: - opkg custom feeds for tch-static already configured
   fi
   if [ "$__OPKG" = "y" ]; then
-    if which usign > /dev/null; then
-      if [ -e /etc/opkg/keys/5766d6fe4760c7d2 ]; then
-        echo [$SCRIPT]: - Public usign key for seud0nym@yahoo.com.au already installed
-      else
-        echo [$SCRIPT]: - Adding public usign key for seud0nym@yahoo.com.au
-        echo "untrusted comment: Public usign key for seud0nym@yahoo.com.au" > /tmp/seud0nym-public.key
-        echo "RWRXZtb+R2DH0hCfh60fxwSMPMgZJVMXphkP8zqHrcML5B+k4Op2h+5Q" >> /tmp/seud0nym-public.key
-        echo "" >> /tmp/seud0nym-public.key
-        opkg-key add /tmp/seud0nym-public.key
-        rm /tmp/seud0nym-public.key
-      fi
-    fi
-    if ! grep -q '^#src' /etc/opkg/distfeeds.conf; then
-      echo [$SCRIPT]: - Disabling opkg distribution feeds
-      sed -e 's/^src/#src/' -i /etc/opkg/distfeeds.conf
-    else
-      echo [$SCRIPT]: - opkg distribution feeds already disabled
-    fi
-    if [ -e /dev/net/tun -a \( "$DISTRIB_ARCH" = "arm_cortex-a9" -o "$DISTRIB_ARCH" = "arm_cortex-a53" \) ]; then
-      if ! grep -q 'openwrt-wireguard-go' /etc/opkg/customfeeds.conf; then
-        echo [$SCRIPT]: - Configuring opkg custom feeds for openwrt-wireguard-go
-        echo "src/gz wg_go https://raw.githubusercontent.com/seud0nym/openwrt-wireguard-go/master/repository/$DISTRIB_ARCH/base" >> /etc/opkg/customfeeds.conf
-      else
-        echo [$SCRIPT]: - opkg custom feeds for openwrt-wireguard-go already configured
-      fi
-    fi
-    if ! grep -q 'tch-coreutils' /etc/opkg/customfeeds.conf; then
-      echo [$SCRIPT]: - Configuring opkg custom feeds for tch-coreutils
-      echo "src/gz tch_coreutils https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/$DISTRIB_ARCH/packages" >> /etc/opkg/customfeeds.conf
-    else
-      echo [$SCRIPT]: - opkg custom feeds for tch-coreutils already configured
-    fi
-    if ! grep -q 'tch-static' /etc/opkg/customfeeds.conf; then
-      echo [$SCRIPT]: - Configuring opkg custom feeds for tch-static
-      echo "src/gz tch_static https://raw.githubusercontent.com/seud0nym/tch-static/master/repository/$DISTRIB_ARCH/packages" >> /etc/opkg/customfeeds.conf
-    else
-      echo [$SCRIPT]: - opkg custom feeds for tch-static already configured
-    fi
-    upgrade_wget            
+    upgrade_wget
     upgrade_certificates
   fi
 fi
