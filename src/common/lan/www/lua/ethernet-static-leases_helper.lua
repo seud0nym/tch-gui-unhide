@@ -2,8 +2,6 @@ local content_helper = require("web.content_helper")
 local message_helper = require("web.uimessage_helper")
 local proxy = require("datamodel")
 local post_helper = require("web.post_helper")
-local uinetwork = require("web.uinetwork_helper")
-local hosts_ac = uinetwork.getAutocompleteHostsList()
 local pairs,string,ipairs,ngx = pairs,string,ipairs,ngx
 local find,format,gmatch,gsub,match,tolower,toupper = string.find,string.format,string.gmatch,string.gsub,string.match,string.lower,string.upper
 ---@diagnostic disable-next-line: undefined-field
@@ -25,19 +23,20 @@ function M.get_dhcp_tags()
   return tags
 end
 
-function M.get_hosts_mac()
+function M.get_mac_list(hosts_ac)
+  local mac_list = {}
   local hosts_mac = {}
-  local unique = {}
   for k,_ in pairs(hosts_ac) do
     local hostname,mac = match(k,"([%w%s%p]+) %[([%x:]+)%]$")
-    if not unique[mac] then
-      hosts_mac[#hosts_mac+1] = {mac,T(mac.." ["..hostname.."]"),toupper(hostname)}
-      unique[mac] = true
+    if not hosts_mac[mac] then
+      local description = T(mac.." ["..hostname.."]")
+      mac_list[#mac_list+1] = {mac,description,toupper(hostname)}
+      hosts_mac[mac] = description
     end
   end
-  table.sort(hosts_mac,function(k1,k2) return k1[3] < k2[3] end)
-  hosts_mac[#hosts_mac+1] = {"custom",T"custom"}
-  return hosts_mac
+  table.sort(mac_list,function(k1,k2) return k1[3] < k2[3] end)
+  mac_list[#mac_list+1] = {"custom",T"custom"}
+  return mac_list,hosts_mac
 end
 
 function M.onLeaseChange(index,data)

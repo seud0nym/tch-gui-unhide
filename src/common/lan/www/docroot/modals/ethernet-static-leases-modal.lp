@@ -11,6 +11,8 @@ local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local dns_list = require('dns_servers_helper').all()
 local hosts_ac = require("web.uinetwork_helper").getAutocompleteHostsList()
+local mac_list,hosts_mac = leases_helper.get_mac_list(hosts_ac)
+local tags = leases_helper.get_dhcp_tags()
 
 local ngx = ngx
 local ipairs,pairs,string = ipairs,pairs,string
@@ -18,9 +20,6 @@ local tonumber = tonumber
 local match = string.match
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
-
-local hosts_mac = leases_helper.get_hosts_mac()
-local tags = leases_helper.get_dhcp_tags()
 
 local vQTN = post_helper.validateQTN
 local gAV = post_helper.getAndValidation
@@ -36,8 +35,8 @@ local sleases_columns = {
     name = "sleases_mac",
     param = "mac",
     type = "select",
-    values = hosts_mac,
-    attr = { select = sleases_mac_attr,autocomplete = hosts_mac },
+    values = mac_list,
+    attr = { select = sleases_mac_attr },
     unique = true,
   },
   {
@@ -52,7 +51,7 @@ local sleases_columns = {
     name = "sleases_ip",
     param = "ip",
     type = "text",
-    attr = { input = { class="span2",maxlength="15",style="width:110px" },autocomplete = hosts_ac },
+    attr = { input = { class="span2",maxlength="15",style="width:110px" }, autocomplete = hosts_ac },
   },
   {
     header = T"Client<br>DUID&nbsp;<span class='icon-question-sign' title='DHCP Unique Identifier as 28 hexadecimal digits is required to assign the IPv6 Host ID.'></span>" ,
@@ -91,6 +90,10 @@ local sleases_columns = {
     readonly = true,
   },
 }
+if #mac_list <= 1 then
+  sleases_columns[1].type = "text"
+  sleases_columns[1].attr = { input = sleases_mac_attr, autocomplete = hosts_mac }
+end
 
 local sleases_valid = {
   sleases_name = leases_helper.validateStaticLeaseName,
@@ -238,7 +241,7 @@ if ngx.var.request_method == "POST" then
         text_mac = sleases_data[text_mac_index][1]
       end
       local flag = true
-      for _,j in ipairs(hosts_mac) do
+      for _,j in ipairs(mac_list) do
         if text_mac == j[1] then
           flag = false
           break
@@ -246,14 +249,8 @@ if ngx.var.request_method == "POST" then
       end
       if flag then
         sleases_mac_attr.value = text_mac
-        sleases_columns[1] = {
-          header = T"MAC Address",
-          name = "sleases_mac",
-          param = "mac",
-          type = "text",
-          attr = { input = sleases_mac_attr },
-          unique = true,
-        }
+        sleases_columns[1].type = "text"
+        sleases_columns[1].attr = { input = sleases_mac_attr, autocomplete = hosts_mac }
       end
       if post_data.action == "TABLE-MODIFY" or post_data.action == "TABLE-ADD" then
         local slease_ip = post_data.sleases_ip
