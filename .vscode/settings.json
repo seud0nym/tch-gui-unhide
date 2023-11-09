@@ -150,9 +150,14 @@
         "unused-local": "Information"
     },
     "Lua.diagnostics.ignoredFiles": "Enable",
-    "Lua.workspace.checkThirdParty": false,
+    "Lua.workspace.checkThirdParty": "Disable",
     "cSpell.language": "en-GB",
     "Lua.diagnostics.disable": [
         "param-type-mismatch"
-    ]
-}
+    ],
+    "remote.autoForwardPorts": false,
+    "remote.restoreForwardedPorts": false,
+    "remote.otherPortsAttributes": {
+       "onAutoForward": "ignore"
+    }
+ }
