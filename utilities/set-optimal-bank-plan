@@ -42,7 +42,7 @@ elif [ \( \( $BANKTABLE = Y -a "$ACTIVE" = "1" \) -o \( $BANKTABLE = N -a "$ACTI
   echo -e "${GREEN}==> EXITING: Bank Plan is already OPTIMAL!!${NC}"
   exit
 else
-  echo -e "${ORANGE}==> SUB-OPTIMAL: Active = bank ${ACTIVE} Booted = bank ${BOOTED}${NC}"
+  echo -e "${ORANGE}==> SUB-OPTIMAL: ${RED}Active = bank ${ACTIVE} Booted = bank ${BOOTED}${NC}"
 fi
 
 echo -e "${ORANGE}Checking firmware versions...${NC}"
@@ -52,6 +52,17 @@ if [ $BANKTABLE = Y ]; then
 fi
 [ -z "$ACTIVE_VERSION" ] && ACTIVE_VERSION=$(uci -q get env.var.friendly_sw_version_activebank)
 [ -z "$PASSIVE_VERSION" ] && PASSIVE_VERSION=$(uci -q get env.var.friendly_sw_version_passivebank)
+if [ -n "$ACTIVE_VERSION" ]; then
+  BOOTED_SUFFIX="$(uci -q get versioncusto.override.fwversion_suffix)"
+  [ -n "$BOOTED_SUFFIX" ] && ACTIVE_VERSION="$(echo $ACTIVE_VERSION | cut -d- -f1)$BOOTED_SUFFIX"
+fi
+if [ -n "$PASSIVE_VERSION" ]; then
+  [ "$BOOTED" = "2" ] && NOT_BOOTED="bank_1" || NOT_BOOTED="bank_2"
+  if [ -e /overlay/$NOT_BOOTED/etc/config/versioncusto ]; then
+    NOT_BOOTED_SUFFIX="$(uci -c /overlay/$NOT_BOOTED/etc/config -q get versioncusto.override.fwversion_suffix)"
+    [ -n "$NOT_BOOTED_SUFFIX" ] && PASSIVE_VERSION="$(echo $PASSIVE_VERSION | cut -d- -f1)$NOT_BOOTED_SUFFIX"
+  fi
+fi
 
 if [ $BANKTABLE = Y -a "$BOOTED" = "2" -a \( -z "$ACTIVE_VERSION" -o "$ACTIVE_VERSION" = "Unknown" \) ]; then
   echo -e "${RED}==> ABORTING: Firmware version in bank 1 is Unknown!!${NC}"

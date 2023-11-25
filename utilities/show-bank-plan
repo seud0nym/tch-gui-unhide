@@ -28,6 +28,8 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 FMT=" -> ${ORANGE}%-16s${NC} : %s "
 
+ACTIVE_BANK=""
+BOOTED_BANK=""
 OPTIMAL=0
 
 test_optimal() {
@@ -44,10 +46,24 @@ test_optimal() {
 handle_content() {
   local config="$1"
   local content="$2"
-  [ $QUIET = N ] && printf "$FMT" "$config" "$content"
+  if [ $QUIET = N ]; then
+    if [ "$config" = "activeversion" -a -n "$content" -a "/$content/" != "Unknown" -a -n "$ACTIVE_BANK" -a -e /overlay/$ACTIVE_BANK/etc/config/versioncusto ]; then
+      content="$(echo $content | cut -d- -f1)$(uci -c /overlay/$ACTIVE_BANK/etc/config -q get versioncusto.override.fwversion_suffix)"
+    elif [ "$config" = "bootedversion" -a -n "$content" -a "/$content/" != "Unknown" -a -n "$BOOTED_BANK" -a -e /overlay/$BOOTED_BANK/etc/config/versioncusto ]; then
+      content="$(echo $content | cut -d- -f1)$(uci -c /overlay/$BOOTED_BANK/etc/config -q get versioncusto.override.fwversion_suffix)"
+    elif [ \( "$config" = "passiveversion" -o "$config" = "notbootedversion" \) -a -n "$content" -a "/$content/" != "Unknown" -a -n "$BOOTED_BANK" ]; then
+      local passive="bank_1"
+      content="$(echo $content | cut -d- -f1)"
+      [ "$BOOTED_BANK" = "bank_1" -a "$BOOTED_BANK" != "$ACTIVE_BANK" ] && passive="bank_2"
+      [ -e /overlay/$passive/etc/config/versioncusto ] && content="$content$(uci -c /overlay/$passive/etc/config -q get versioncusto.override.fwversion_suffix)"
+    fi
+    printf "$FMT" "$config" "$content"
+  fi
   if [ "$config" = "active" ]; then
+    ACTIVE_BANK="$content"
     test_optimal "$content" "$ACTIVE_OPTIMAL"
   elif [ "$config" = "booted" ]; then
+    BOOTED_BANK="$content"
     test_optimal "$content" "$BOOTED_OPTIMAL"
   else
     [ $QUIET = N ] && echo
@@ -74,13 +90,14 @@ if [ -d /proc/banktable ]; then
   UNEXPECTED_CLR="$RED"
   for f in $(find /proc/banktable -type f | sort); do
     handle_content "$(basename $f)" "$(cat $f)"
+    [ "$(basename $f)" = "booted" ] && handle_content "bootedversion" $(uci -q get env.var.friendly_sw_version_activebank)
   done
 else
   BANKTABLE=N
   ACTIVE_OPTIMAL="bank_2"
   BOOTED_OPTIMAL="bank_2"
   UNEXPECTED_CLR="$ORANGE"
-  for f in active:partition:active activeversion:tchversion:active booted:partition:booted bootedversion:version:booted inactive:partition:passive notbooted:partition:notbooted notbootedversion:version:notbooted passiveversion:tchversion:passive; do
+  for f in active:partition:active activeversion:tchversion:active booted:partition:booted bootedversion:tchversion:booted inactive:partition:passive notbooted:partition:notbooted notbootedversion:tchversion:notbooted passiveversion:tchversion:passive; do
     set -- $(echo $f | tr ':' ' ')
     CONTENT=$(bootmgr $2 $3 2>/dev/null | grep -v rd_metadata)
     [ "$CONTENT" = "1" -o "$CONTENT" = "2" ] && CONTENT="bank_$CONTENT"

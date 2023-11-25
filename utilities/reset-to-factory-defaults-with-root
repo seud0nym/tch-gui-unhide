@@ -364,11 +364,22 @@ if [ $SWITCH_BANK = "Y" ]; then
   TARGET_MTD=${NOT_BOOTED}
 fi
 
+BOOTED_FW="$(uci -q get env.var.friendly_sw_version_activebank)"
+if [ -n "$BOOTED_FW" ]; then
+  BOOTED_SUFFIX="$(uci -q get versioncusto.override.fwversion_suffix)"
+  [ -n "$BOOTED_SUFFIX" ] && BOOTED_FW="$(echo $BOOTED_FW | cut -d- -f1)$BOOTED_SUFFIX"
+fi
+NOT_BOOTED_FW="$(uci -q get env.var.friendly_sw_version_passivebank)"
+if [ -n "$NOT_BOOTED_FW" -a -e /overlay/$NOT_BOOTED/etc/config/versioncusto ]; then
+  NOT_BOOTED_SUFFIX="$(uci -c /overlay/$NOT_BOOTED/etc/config -q get versioncusto.override.fwversion_suffix)"
+  [ -n "$NOT_BOOTED_SUFFIX" ] && NOT_BOOTED_FW="$(echo $NOT_BOOTED_FW | cut -d- -f1)$NOT_BOOTED_SUFFIX"
+fi
+
 echo -e "${GREY}INFO:     Active partition     = $ACTIVE${NC}"
 echo -e "${GREY}INFO:     Booted partition     = $BOOTED${NC}"
 echo -e "${GREY}INFO:     Not Booted partition = $NOT_BOOTED${NC}"
-echo -e "${GREY}INFO:     Booted firmware      = $(uci -q get env.var.friendly_sw_version_activebank)${NC}"
-echo -e "${GREY}INFO:     Not Booted firmware  = $(uci -q get env.var.friendly_sw_version_passivebank)${NC}"
+echo -e "${GREY}INFO:     Booted firmware      = $BOOTED_FW${NC}"
+echo -e "${GREY}INFO:     Not Booted firmware  = $NOT_BOOTED_FW${NC}"
 echo -e "${GREY}INFO:     Target overlay bank  = $TARGET_BANK${NC}"
 echo "$FIRMWARE" | grep -qE '\.(rbi|bin)$' && echo -e "${GREY}INFO:     Target MTD device    = $TARGET_MTD${NC}"
 echo -e "${GREY}INFO:     /overlay filesystem  = $OVERLAY_FS${NC}"
