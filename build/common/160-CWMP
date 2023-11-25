@@ -10,7 +10,7 @@ if [ -f /etc/init.d/cwmpd ]; then
     -e '/periodicinform_interval/a\    cwmp_user = "uci.cwmpd.cwmpd_config.acs_user",\
     cwmp_last_inform = "uci.cwmpd.cwmpd_config.last_periodic_inform",\
     cwmp_next_inform = "uci.cwmpd.cwmpd_config.periodicinform_time",' \
-    -e '/local state/i\  local last = (content.cwmp_last_inform == "" or content.cwmp_last_inform == "0") and "Never" or os.date("%F %T",tonumber(content.cwmp_last_inform:untaint()))\
+    -e '/local state/i\  local last = (content.cwmp_last_inform == "" or content.cwmp_last_inform == "0") and "Unknown" or os.date("%F %T",tonumber(content.cwmp_last_inform:untaint()))\
   local next = (content.cwmp_next_inform == "" or content.cwmp_next_inform == "0") and "Not Scheduled" or os.date("%F %T",tonumber(content.cwmp_next_inform:untaint()))' \
     -e 's|Periodic:|Last: <strong>%s</strong><br>Next: <strong>%s</strong><br>Periodic Inform Interval:|' \
     -e 's|</strong>", *content|</strong>",last,next,content|' \

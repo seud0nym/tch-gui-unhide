@@ -1,0 +1,8 @@
+if [ -f /etc/init.d/cwmpd ]; then
+  echo -e "[$SCRIPT]: Fixing CWMPD transformer mappings"
+  sed \
+    -e 's/"connectionrequest_throttle_number"$/&,\
+              "last_periodic_inform", "connectionrequest_url", "parameter_key", "last_session_try", "session_retry_count",\
+              "bootstrapped", "inform_trigger",/' \
+    -i /usr/share/transformer/mappings/uci/cwmpd.map
+fi
