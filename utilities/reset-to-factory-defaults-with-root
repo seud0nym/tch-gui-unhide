@@ -46,114 +46,97 @@ but with some additional options.
 Usage: $0 [options]
 
 Options:
- -b               Make a full backup of your configuration from /overlay
-                    before resetting to factory defaults.
-                    (Requires attached USB device).
- -B               Configure for bridged mode. Implies --no-forwards, 
-                    --no-leases and --no-ula. Ignored if --restore-config
-                    is specified.
- -c               Disable CWMP configuration during first boot after reset.
- -C               Disable reboot on core dump after reset.
- -d               Add DNS rewrites to disable CWMP firmware downloads from
-                    fwstore.bdms.telstra.net
- -D domain        Add DNS rewrites to disable CWMP firmware downloads from
-                    the specified domain. May be specified multiple times.
- -e               Disable any 'noexec' flags on USB mounted filesystems.
- -f filename      Flashes the specified firmware 'filename' before reset and 
-                    reboot. If 'filename' ends with .rbi, it will be unpacked 
-                    first, either to an attached USB device, or /tmp if no USB 
-                    is detected. 
-                    - If 'filename' ends in .rbi or .bin, it will be flashed 
-                      into the booted bank, unless -s is specified.
-                    - If 'filename' ends with .pkgtb, the firmware will be 
-                      flashed into the passive bank using sysupgrade (root 
-                      access will be preserved) and banks will be switched on 
-                      reboot.
- -h d|s|hostname  Sets the device hostname, where:
-                    d = Set the hostname to $VARIANT
-                    s = Set the hostname to $VARIANT-$MAC_HEX
-                    hostname = Use the specified hostname
- -i               Keep the existing LAN IP address after reset and reboot.
-                    This is the default if --restore-config is specified.
-                    By default, also restores port forwards, static leases
-                    and the IPv6 ULA and prefix size (unless --no-forwards, 
-                    --no-leases or --no-ula are specified).
- -I n.n.n.n|DHCP  Use IP address n.n.n.n OR obtain the IP address from DHCP
-                    after reset and reboot
- -k               Keep existing SSH keys after reset and reboot.
- -l n.n.n.n:port  Configure logging to a remote syslog server on the specified
-                    IP address and port. The port is optional and defaults to
-                    514 if not specified.
- -m               Keep existing mobile operators and profiles, and linked 
-                    WWAN profile.
-                    Ignored if no mobile profiles found.
- -n               Do NOT reboot.
- -p password      Set the password after reset and reboot. If not specified,
-                    it defaults to root.
- -s               Apply factory reset and acquire root on the passive bank, 
-                    rather than the booted bank, and then switch banks after 
-                    reboot. Firmware will also be flashed into the passive 
-                    bank. This is the default when flashing a .pkgtb firmware 
-                    into the passive bank.
- -v               Show the reset script after it has been written.
- -y               Bypass confirmation prompt (answers 'y').
- --no-bank-check  Bypass adding the login notification about whether the bank
-                    plan is optimal or not.
- --no-keys-check  Bypass check for updated authorized_keys file.
-                    By default if -k is specified, and an authorized_keys file
-                    exists in the current directory, and the default
-                    authorized_keys has not been updated, then the local
-                    authorized_keys file will be restored instead of the 
-                    current /etc/dropbear/authorized_keys.
- --no-forwards    Bypass restore of port forwards (ignored unless -i is
-                    specified).
- --no-leases      Bypass restore of static leases (ignored unless -i is
-                    specified).
- --no-ula         Bypass restore of the IPv6 ULA and LAN prefix size (ignored 
-                    unless -i is specified).
- --save-defaults  Saves the command line options (except -f/-s/-y) as defaults.
-                    When specified, NO changes are applied to the device.
- --no-defaults    Ignores any saved defaults for this execution
-                    --no-defaults must be the FIRST option specified.
- -U               Download the latest version of $SCRIPT from GitHub.
-                    Do NOT specify any other parameters or options if doing
-                    a version upgrade.
- --restore-config Runs the restore-config.sh script after reboot if it is found
-                    in the USB backups directory. Output will be written to the 
-                    system log. --restore-config should be the LAST option
-                    specified, and may optionally be followed by the name of
-                    the overlay backup file to be restored. Saved defaults are
-                    IGNORED when --restore-config is specified.
- --i              Specifies that the IP address configured by the -i or -I options 
-                    is also to be applied after the configuration is restored. If
-                    not specified, the IP address used will be the one found in the 
-                    configuration backup. Ignored unless --restore-config is also 
-                    specified.
+ -b                 Make a full backup of your configuration from /overlay
+                      before resetting to factory defaults.
+                     (Requires attached USB device).
+ -B                 Configure for bridged mode. Implies --no-forwards, 
+                      --no-leases and --no-ula. Ignored if --restore-config
+                      is specified.
+ -c                 Disable CWMP configuration during first boot after reset.
+ -C                 Disable reboot on core dump after reset.
+ -d                 Add DNS rewrites to disable CWMP firmware downloads from
+                      fwstore.bdms.telstra.net
+ -D domain          Add DNS rewrites to disable CWMP firmware downloads from
+                      the specified domain. May be specified multiple times.
+ -e                 Disable any 'noexec' flags on USB mounted filesystems.
+ -f filename        Flashes the specified firmware 'filename' before reset and 
+                      reboot. If 'filename' ends with .rbi, it will be unpacked 
+                      first, either to an attached USB device, or /tmp if no USB 
+                      is detected. 
+                      - If 'filename' ends in .rbi or .bin, it will be flashed 
+                        into the booted bank, unless -s is specified.
+                      - If 'filename' ends with .pkgtb, the firmware will be 
+                        flashed into the passive bank using sysupgrade (root 
+                        access will be preserved) and banks will be switched on 
+                        reboot.
+ -h d|n|s|hostname  Sets the device hostname, where:
+                      d = Set the hostname to $VARIANT
+                      n = Set the hostname to $HOSTNAME
+                      s = Set the hostname to $VARIANT-$MAC_HEX
+                      hostname = Use the specified hostname
+ -i                 Keep the existing LAN IP address after reset and reboot.
+                      This is the default if --restore-config is specified.
+                      By default, also restores port forwards, static leases
+                      and the IPv6 ULA and prefix size (unless --no-forwards, 
+                      --no-leases or --no-ula are specified).
+ -I n.n.n.n|DHCP    Use IP address n.n.n.n OR obtain the IP address from DHCP
+                      after reset and reboot
+ -k                 Keep existing SSH keys after reset and reboot.
+ -l n.n.n.n:port    Configure logging to a remote syslog server on the specified
+                      IP address and port. The port is optional and defaults to
+                      514 if not specified.
+ -m                 Keep existing mobile operators and profiles, and linked 
+                      WWAN profile.
+                      Ignored if no mobile profiles found.
+ -n                 Do NOT reboot.
+ -p password        Set the password after reset and reboot. If not specified,
+                      it defaults to root.
+ -s                 Apply factory reset and acquire root on the passive bank, 
+                      rather than the booted bank, and then switch banks after 
+                      reboot. Firmware will also be flashed into the passive 
+                      bank. This is the default when flashing a .pkgtb firmware 
+                      into the passive bank.
+ -v                 Show the reset script after it has been written.
+ -y                 Bypass confirmation prompt (answers 'y').
+ --no-bank-check    Bypass adding the login notification about whether the bank
+                      plan is optimal or not.
+ --no-keys-check    Bypass check for updated authorized_keys file.
+                      By default if -k is specified, and an authorized_keys file
+                      exists in the current directory, and the default
+                      authorized_keys has not been updated, then the local
+                      authorized_keys file will be restored instead of the 
+                      current /etc/dropbear/authorized_keys.
+ --no-forwards      Bypass restore of port forwards (ignored unless -i is
+                      specified).
+ --no-leases        Bypass restore of static leases (ignored unless -i is
+                      specified).
+ --no-ula           Bypass restore of the IPv6 ULA and LAN prefix size (ignored 
+                      unless -i is specified).
+ --save-defaults    Saves the command line options (except -f/-s/-y) as defaults.
+                      When specified, NO changes are applied to the device.
+ --show-defaults    Shows the settings that would be applied (defaults and over-rides)
+                      When specified, NO changes are applied to the device.
+ --no-defaults      Ignores any saved defaults for this execution
+                      --no-defaults must be the FIRST option specified.
+ -U                 Download the latest version of $SCRIPT from GitHub.
+                      Do NOT specify any other parameters or options if doing
+                      a version upgrade.
+ --restore-config   Runs the restore-config.sh script after reboot if it is found
+                      in the USB backups directory. Output will be written to the 
+                      system log. --restore-config should be the LAST option
+                      specified, and may optionally be followed by the name of
+                      the overlay backup file to be restored. Saved defaults are
+                      IGNORED when --restore-config is specified.
+ --i                Specifies that the IP address configured by the -i or -I options 
+                      is also to be applied after the configuration is restored. If
+                      not specified, the IP address used will be the one found in the 
+                      configuration backup. Ignored unless --restore-config is also 
+                      specified.
 EOH
 echo
 exit
 }
 #endregion
-
-upgrade() {
-  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
-  if [ "$RESPONSE_CODE" = 200 ]; then
-    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
-    if [ $? -eq 0 ]; then
-      chmod +x $SCRIPT
-      echo -e "${GREEN}SUCCESS:  Downloaded $SCRIPT.${NC}"
-    else
-      echo -e "${RED}ERROR:    Failed to download $SCRIPT?${NC}"
-    fi
-  elif [ "$RESPONSE_CODE" = 404 ]; then
-    echo -e "${RED}ERROR:    Not found on GitHub???${NC}"
-  elif [ "$RESPONSE_CODE" = 000 ]; then
-    echo -e "${RED}ERROR:    No Internet connection???${NC}"
-  else
-    echo -e "${RED}ERROR:    Unknown response code $RESPONSE_CODE${NC}"
-  fi
-  exit
-}
 
 comparable_version() {
   local result=""
@@ -245,6 +228,7 @@ echo 'exit 0'
 }
 #endregion
 
+#region Environment
 set_defaults() {
   __BRIDGED="N"
   __BKUP=""
@@ -260,7 +244,7 @@ set_defaults() {
   __REBOOT="Y"
   __SYSLOG_IP=""
   __SYSLOG_PORT=""
-  __VERBOSE=N
+  __VERBOSE="N"
   __NO_AUTH_KEYS_CHK="N"
   __NO_BANK_PLAN_CHK="N"
   __NO_FWD="N"
@@ -269,14 +253,11 @@ set_defaults() {
 }
 
 set_defaults
-if [ -f .defaults.$SCRIPT -a "$(echo "$*" | grep -o '\brestore-config\b')" != "restore-config" ]; then
-  . ./.defaults.$SCRIPT
-fi
-
 ABORT="N"
 FIRMWARE=""
 YES="N"
 SAVE_DEFAULTS="N"
+SHOW_DEFAULTS="N"
 RESTORE_CONFIG="N"
 RESTORE_IPADDR="N"
 RESTORE_OPTIONS=""
@@ -288,9 +269,36 @@ LEASES=""
 
 VALID_IPv4_PATTERN="([^.]|^)([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]).([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])([^.]|$)"
 
+if [ -f .defaults.$SCRIPT ]; then
+  . ./.defaults.$SCRIPT
+fi
+#endregion Environment
+
+#region Options
+upgrade() {
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ]; then
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/$SCRIPT
+    if [ $? -eq 0 ]; then
+      chmod +x $SCRIPT
+      echo -e "${GREEN}SUCCESS:  Downloaded $SCRIPT.${NC}"
+    else
+      echo -e "${RED}ERROR:    Failed to download $SCRIPT?${NC}"
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]; then
+    echo -e "${RED}ERROR:    Not found on GitHub???${NC}"
+  elif [ "$RESPONSE_CODE" = 000 ]; then
+    echo -e "${RED}ERROR:    No Internet connection???${NC}"
+  else
+    echo -e "${RED}ERROR:    Unknown response code $RESPONSE_CODE${NC}"
+  fi
+  exit
+}
+
 while getopts :bBcCdD:ef:h:iI:kl:mnp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
+        safe-firmware-upgrade) SCRIPT="safe-firmware-upgrade";;
         abort)          ABORT="Y"; __VERBOSE="Y";;
         i)              RESTORE_IPADDR="Y";;
         no-defaults)    set_defaults;;
@@ -299,8 +307,9 @@ while getopts :bBcCdD:ef:h:iI:kl:mnp:svyU-: option; do
         no-keys-check)  __NO_AUTH_KEYS_CHK="Y";;
         no-leases)      __NO_LEASES="Y";;
         no-ula)         __NO_ULA="Y";;
-        restore-config) RESTORE_CONFIG="Y"; __BRIDGED="N"; __CWMP="Y"; __NOEXEC="Y"; __KEYS="Y"; __VERBOSE="Y"; [ -z "$__IPADDR" -o "$__IPADDR" = "DHCP" -o "$__IPADDR" = "dhcp" ] && __IPADDR="$LAN_IP_NOW"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y";;
+        restore-config) RESTORE_CONFIG="Y"; __BRIDGED="N"; __CWMP="Y"; __NOEXEC="Y"; __KEYS="Y"; __VERBOSE="Y"; [ -z "$__IPADDR" -o "$__IPADDR" = "DHCP" -o "$__IPADDR" = "dhcp" ] && __IPADDR="$LAN_IP_NOW"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y"; break;;
         save-defaults)  SAVE_DEFAULTS="Y";;
+        show-defaults)  SHOW_DEFAULTS="Y";;
         *)              usage;;
       esac;;
   b)  __BKUP="Y";;
@@ -350,12 +359,7 @@ while getopts :bBcCdD:ef:h:iI:kl:mnp:svyU-: option; do
  esac
 done
 shift $((OPTIND-1))
-
-if [ $SAVE_DEFAULTS = Y ]; then
-  set | grep '^__' > .defaults.$SCRIPT
-  echo -e "\e[1;32mDefaults saved\e[0m"
-  exit
-fi
+#endregion Options
 
 TARGET_BANK=/overlay/${BOOTED}
 TARGET_MTD=${BOOTED}
@@ -373,6 +377,64 @@ NOT_BOOTED_FW="$(uci -q get env.var.friendly_sw_version_passivebank)"
 if [ -n "$NOT_BOOTED_FW" -a -e /overlay/$NOT_BOOTED/etc/config/versioncusto ]; then
   NOT_BOOTED_SUFFIX="$(uci -c /overlay/$NOT_BOOTED/etc/config -q get versioncusto.override.fwversion_suffix)"
   [ -n "$NOT_BOOTED_SUFFIX" ] && NOT_BOOTED_FW="$(echo $NOT_BOOTED_FW | cut -d- -f1)$NOT_BOOTED_SUFFIX"
+fi
+
+show_default() {
+  local _OPT="$1"
+  local _TXT="$2"
+  local _VAL="$3"
+  local _ESC=1
+  [ -z "$_VAL" -o "$_VAL" = "N" ] && _ESC=9
+  if [ "$1" = "-h" ]; then
+    case "$3" in
+      d) _OPT="-h$VARIANT";;
+      n) _OPT="-h$HOSTNAME";;
+      s) _OPT="-h$VARIANT-$MAC_HEX";;
+      *) _OPT="-h$3";;
+    esac
+  elif [ "$1" = "-n" -a "$_VAL" = "Y" ]; then
+    _ESC=9
+  else
+    case "$1" in
+      -D|-I|-l|-p) _OPT="${_OPT}${_VAL}";;
+      -f) [ "$SCRIPT" = "safe-firmware-upgrade" ] && _OPT="${_VAL}" || _OPT="${_OPT}${_VAL}";;
+    esac
+  fi
+  [ $_ESC = 1 ] && echo -en "${GREEN}"
+  echo -e "OPTION:   $(printf "%-40s " "$2")\e[${_ESC}m$_OPT${NC}"
+}
+
+save_defaults() {
+  set | grep '^__' > .defaults.$SCRIPT
+  echo -e "\e[1;32mINFO:     Defaults saved\e[0m"
+  exit
+}
+
+if [ $SAVE_DEFAULTS = "Y" -o $SHOW_DEFAULTS = "Y" -o $YES = "N" ]; then
+  show_default "-b" "Backup /overlay and configuration to USB" $__BKUP
+  show_default "-B" "Bridged mode" $__BRIDGED
+  show_default "-c" "Disable CWMP during first boot" $__CWMP
+  show_default "-C" "Disable reboot on core dump" $__COREDUMP_REBOOT
+  show_default "-D" "DNS rewrite to stop firmware download" $__CWMP_DNS
+  show_default "-e" "Disable USB 'noexec' flags" $__NOEXEC
+  show_default "-f" "Firmware file to be flashed" $FIRMWARE
+  show_default "-h" "Host name" $__HOSTNAME
+  show_default "-I" "IP address" $__IPADDR
+  show_default "-k" "Restore SSH keys" $__KEYS
+  show_default "-l" "Remote syslog server" $([ -n "${__SYSLOG_IP}" ] && echo ${__SYSLOG_IP}:${__SYSLOG_PORT})
+  show_default "-m" "Restore mobile operators/profiles" $__MOBILED
+  show_default "-n" "Disable reboot" $__REBOOT
+  show_default "-p" "Root password" $__ROOTPWD
+  show_default "-s" "Switch bank" $SWITCH_BANK
+  show_default "--no-bank-check"  "Disable bank plan message on login" $__NO_BANK_PLAN_CHK
+  show_default "--no-forwards"    "Disable restore of port-forwards" $__NO_FWD
+  show_default "--no-keys-check"  "Disable check for newer authorized_keys" $__NO_AUTH_KEYS_CHK
+  show_default "--no-leases"      "Disable restore of static leases" $__NO_LEASES
+  show_default "--no-ula"         "Disable restore of IPv6 ULA and prefix" $__NO_ULA
+  show_default "--restore-config" "Restore config from USB backup" $RESTORE_CONFIG
+  show_default "--i"              "Restore IP from USB backup" $RESTORE_IPADDR
+  [ $SHOW_DEFAULTS = "Y" ] && exit
+  [ $SAVE_DEFAULTS = "Y" ] && save_defaults
 fi
 
 echo -e "${GREY}INFO:     Active partition     = $ACTIVE${NC}"
@@ -722,6 +784,7 @@ fi
 if [ -n "$__HOSTNAME" ]; then
   case "${__HOSTNAME}" in
     d)  __HOSTNAME="$VARIANT";;
+    n)  __HOSTNAME="$HOSTNAME";;
     s)  __HOSTNAME="$VARIANT-$MAC_HEX";;
   esac
   echo -e "NOTE:     Host name will be set to ${GREEN}${__HOSTNAME}${NC}"
@@ -801,11 +864,10 @@ if [ $ABORT = Y ]; then
   echo -e "NOTE:     Aborted at user request"
   exit
 elif [ $YES = N ]; then
-  echo -en "${GREEN}ACTION:   Enter y to continue, or anything else to exit now${NC} "
+  echo -en "${GREEN}ACTION:   Enter [y] to continue, [s] to save options as defaults, or anything else to exit now${NC} "
   read
-  if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
-    exit
-  fi
+  [ "$REPLY" = "s" ] && save_defaults
+  [ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
 fi
 
 if [ -z "$__CWMP" -a -z "$__CWMP_DNS" ]; then

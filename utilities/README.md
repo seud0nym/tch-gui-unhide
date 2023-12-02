@@ -135,6 +135,7 @@ Options:
  --show-defaults       Shows the settings that would be applied (defaults and over-rides)
                          When specified, NO changes are applied to the device
  --no-defaults         Ignores any saved defaults for this execution
+                         --no-defaults must be the FIRST option specified.
  --no-service-restart  Do NOT restart services after applying configuration changes
  --no-password-remind  Do NOT remind to change root password
 ```
@@ -337,89 +338,92 @@ It is an updated and more exhaustive implementation of the commands from https:/
 Usage: ./reset-to-factory-defaults-with-root [options]
 
 Options:
- -b               Make a full backup of your configuration from /overlay 
-                    before resetting to factory defaults.
-                    (Requires attached USB device).
- -B               Configure for bridged mode. Implies --no-forwards, 
-                    --no-leases and --no-ula. Ignored if --restore-config
-                    is specified.
- -c               Disable CWMP configuration during first boot after reset.
- -C               Disable reboot on core dump after reset.
- -d               Add DNS rewrites to disable CWMP firmware downloads from
-                    fwstore.bdms.telstra.net
- -D domain        Add DNS rewrites to disable CWMP firmware downloads from
-                    the specified domain. May be specified multiple times.
- -e               Disable any 'noexec' flags on USB mounted filesystems.
- -f filename      Flashes the specified firmware 'filename' before reset and 
-                    reboot. If 'filename' ends with .rbi, it will be unpacked 
-                    first, either to an attached USB device, or /tmp if no USB 
-                    is detected. 
-                    - If 'filename' ends in .rbi or .bin, it will be flashed 
-                      into the booted bank, unless -s is specified.
-                    - If 'filename' ends with .pkgtb, the firmware will be 
-                      flashed into the passive bank using sysupgrade (root 
-                      access will be preserved) and banks will be switched on 
-                      reboot.
- -h d|s|hostname  Sets the device hostname, where:
-                    d = Set the hostname to VARIANT
-                    s = Set the hostname to VARIANT-MAC_HEX
-                    hostname = Use the specified hostname
- -i               Keep the existing LAN IP address after reset and reboot.
-                    This is the default if --restore-config is specified.
-                    By default, also restores port forwards, static leases
-                    and the IPv6 ULA and prefix size (unless --no-forwards, 
-                    --no-leases or --no-ula are specified).
- -I n.n.n.n|DHCP  Use IP address n.n.n.n OR obtain the IP address from DHCP
-                    after reset and reboot
- -k               Keep existing SSH keys after reset and reboot.
- -l n.n.n.n:port  Configure logging to a remote syslog server on the specified
-                    IP address and port. The port is optional and defaults to
-                    514 if not specified.
- -m               Keep existing mobile operators and profiles, and linked 
-                    WWAN profile.
-                    Ignored if no mobile profiles found.
- -n               Do NOT reboot.
- -p password      Set the password after reset and reboot. If not specified,
-                    it defaults to root.
- -s               Apply factory reset with root to the not booted bank, rather 
-                    than the booted bank, and then switch banks after reboot.
-                    Firmware will also be flashed into the passive bank.
-                    This is the default when flashing a .pkgtb firmware into 
-                    the passive bank.
- -v               Show the reset script after it has been written.
- -y               Bypass confirmation prompt (answers 'y').
- --no-bank-check  Bypass adding the login notification about whether the bank
-                    plan is optimal or not.
- --no-keys-check  Bypass check for updated authorized_keys file.
-                    By default if -k is specified, and an authorized_keys file
-                    exists in the current directory, and the default
-                    authorized_keys has not been updated, then the local
-                    authorized_keys file will be restored instead of the 
-                    current /etc/dropbear/authorized_keys.
- --no-forwards    Bypass restore of port forwards (ignored unless -i is
-                    specified).
- --no-leases      Bypass restore of static leases (ignored unless -i is
-                    specified).
- --no-ula         Bypass restore of the IPv6 ULA and LAN prefix size (ignored 
-                    unless -i is specified).
- --save-defaults  Saves the command line options (except -f/-s/-y) as defaults.
-                    When specified, NO changes are applied to the device.
- --no-defaults    Ignores any saved defaults for this execution.
-                    --no-defaults must be the FIRST option specified.
- -U               Download the latest version of the script from GitHub.
-                    Do NOT specify any other parameters or options if doing a 
-                    version upgrade.
- --restore-config Runs the restore-config.sh script after reboot if it is found
-                    in the USB backups directory. Output will be written to the 
-                    system log. --restore-config should be the LAST option
-                    specified, and may optionally be followed by the name of
-                    the overlay backup file to be restored. Saved defaults are
-                    IGNORED when --restore-config is specified.
- --i              Specifies that the IP address configured by the -i or -I options 
-                    is also to be applied after the configuration is restored. If
-                    not specified, the IP address used will be the one found in the 
-                    configuration backup. Ignored unless --restore-config is also 
-                    specified.
+ -b                 Make a full backup of your configuration from /overlay
+                      before resetting to factory defaults.
+                     (Requires attached USB device).
+ -B                 Configure for bridged mode. Implies --no-forwards, 
+                      --no-leases and --no-ula. Ignored if --restore-config
+                      is specified.
+ -c                 Disable CWMP configuration during first boot after reset.
+ -C                 Disable reboot on core dump after reset.
+ -d                 Add DNS rewrites to disable CWMP firmware downloads from
+                      fwstore.bdms.telstra.net
+ -D domain          Add DNS rewrites to disable CWMP firmware downloads from
+                      the specified domain. May be specified multiple times.
+ -e                 Disable any 'noexec' flags on USB mounted filesystems.
+ -f filename        Flashes the specified firmware 'filename' before reset and 
+                      reboot. If 'filename' ends with .rbi, it will be unpacked 
+                      first, either to an attached USB device, or /tmp if no USB 
+                      is detected. 
+                      - If 'filename' ends in .rbi or .bin, it will be flashed 
+                        into the booted bank, unless -s is specified.
+                      - If 'filename' ends with .pkgtb, the firmware will be 
+                        flashed into the passive bank using sysupgrade (root 
+                        access will be preserved) and banks will be switched on 
+                        reboot.
+ -h d|n|s|hostname  Sets the device hostname, where:
+                      d = Set the hostname to VARIANT
+                      n = Set the hostname to the current hostname
+                      s = Set the hostname to VARIANT-MAC_HEX
+                      hostname = Use the specified hostname
+ -i                 Keep the existing LAN IP address after reset and reboot.
+                      This is the default if --restore-config is specified.
+                      By default, also restores port forwards, static leases
+                      and the IPv6 ULA and prefix size (unless --no-forwards, 
+                      --no-leases or --no-ula are specified).
+ -I n.n.n.n|DHCP    Use IP address n.n.n.n OR obtain the IP address from DHCP
+                      after reset and reboot
+ -k                 Keep existing SSH keys after reset and reboot.
+ -l n.n.n.n:port    Configure logging to a remote syslog server on the specified
+                      IP address and port. The port is optional and defaults to
+                      514 if not specified.
+ -m                 Keep existing mobile operators and profiles, and linked 
+                      WWAN profile.
+                      Ignored if no mobile profiles found.
+ -n                 Do NOT reboot.
+ -p password        Set the password after reset and reboot. If not specified,
+                      it defaults to root.
+ -s                 Apply factory reset and acquire root on the passive bank, 
+                      rather than the booted bank, and then switch banks after 
+                      reboot. Firmware will also be flashed into the passive 
+                      bank. This is the default when flashing a .pkgtb firmware 
+                      into the passive bank.
+ -v                 Show the reset script after it has been written.
+ -y                 Bypass confirmation prompt (answers 'y').
+ --no-bank-check    Bypass adding the login notification about whether the bank
+                      plan is optimal or not.
+ --no-keys-check    Bypass check for updated authorized_keys file.
+                      By default if -k is specified, and an authorized_keys file
+                      exists in the current directory, and the default
+                      authorized_keys has not been updated, then the local
+                      authorized_keys file will be restored instead of the 
+                      current /etc/dropbear/authorized_keys.
+ --no-forwards      Bypass restore of port forwards (ignored unless -i is
+                      specified).
+ --no-leases        Bypass restore of static leases (ignored unless -i is
+                      specified).
+ --no-ula           Bypass restore of the IPv6 ULA and LAN prefix size (ignored 
+                      unless -i is specified).
+ --save-defaults    Saves the command line options (except -f/-s/-y) as defaults.
+                      When specified, NO changes are applied to the device.
+ --show-defaults    Shows the settings that would be applied (defaults and over-rides)
+                      When specified, NO changes are applied to the device.
+ --no-defaults      Ignores any saved defaults for this execution
+                      --no-defaults must be the FIRST option specified.
+ -U                 Download the latest version of the script from GitHub.
+                      Do NOT specify any other parameters or options if doing
+                      a version upgrade.
+ --restore-config   Runs the restore-config.sh script after reboot if it is found
+                      in the USB backups directory. Output will be written to the 
+                      system log. --restore-config should be the LAST option
+                      specified, and may optionally be followed by the name of
+                      the overlay backup file to be restored. Saved defaults are
+                      IGNORED when --restore-config is specified.
+ --i                Specifies that the IP address configured by the -i or -I options 
+                      is also to be applied after the configuration is restored. If
+                      not specified, the IP address used will be the one found in the 
+                      configuration backup. Ignored unless --restore-config is also 
+                      specified.
 ```
 
 ## safe-firmware-upgrade
@@ -432,91 +436,96 @@ This script has a dependency on the `reset-to-factory-defaults-with-root` script
 Usage: ./safe-firmware-upgrade [options] filename
 
 Where:
- filename         Is the name of the firmware file to be flashed. If the 
-                    filename ends with .rbi, it will be unpacked first, 
-                    either to an attached USB device, or /tmp if no USB is 
-                    detected. 
-                    - If 'filename' ends in .rbi or .bin, it will be flashed 
-                      into the booted bank
-                    - If 'filename' ends with .pkgtb, the firmware will be 
-                      flashed into the passive bank using sysupgrade (root 
-                      access will be preserved) and banks will be switched 
-                      on reboot.
+ filename           Is the name of the firmware file to be flashed. If the 
+                      filename ends with .rbi, it will be unpacked first, 
+                      either to an attached USB device, or /tmp if no USB is 
+                      detected. 
+                      - If 'filename' ends in .rbi or .bin, it will be flashed 
+                        into the booted bank, unless -s is specified.
+                      - If 'filename' ends with .pkgtb, the firmware will be 
+                        flashed into the passive bank using sysupgrade (root 
+                        access will be preserved) and banks will be switched on 
+                        reboot.
 
 Options:
- -b               Make a full backup of your configuration from /overlay
-                    (Requires attached USB device).
- -B               Configure for bridged mode. Implies --no-forwards, 
-                    --no-leases and --no-ula. Ignored if --restore-config
-                    is specified.
- -c               Disable CWMP configuration during first boot after reset.
- -C               Disable reboot on core dump after reset.
- -d               Add DNS rewrites to disable CWMP firmware downloads from
-                    fwstore.bdms.telstra.net
- -D domain        Add DNS rewrites to disable CWMP firmware downloads from
-                    the specified domain. May be specified multiple times.
- -e               Disable any 'noexec' flags on USB mounted filesystems.
- -h d|s|hostname  Sets the device hostname, where:
-                    d = Set the hostname to VARIANT
-                    s = Set the hostname to VARIANT-MAC_HEX
-                    hostname = Use the specified hostname
- -i               Keep the existing LAN IP address after reset and reboot.
-                    This is the default if --restore-config is specified.
-                    By default, also restores port forwards, static leases
-                    and the IPv6 ULA and prefix size (unless --no-forwards, 
-                    --no-leases or --no-ula are specified).
- -I n.n.n.n|DHCP  Use IP address n.n.n.n OR obtain the IP address from DHCP
-                    after reset and reboot
- -k               Keep existing SSH keys after reset and reboot.
- -l n.n.n.n:port  Configure logging to a remote syslog server on the specified
-                    IP address and port. The port is optional and defaults to
-                    514 if not specified.
- -m               Keep existing mobile operators and profiles, and linked 
-                    WWAN profile.
-                    Ignored if no mobile profiles found.
- -n               Do NOT reboot.
- -p password      Set the password after reset and reboot. If not specified,
-                    it defaults to root.
- -s               Apply factory reset and acquire root on the passive bank, 
-                    rather than the booted bank, and then switch banks after 
-                    reboot. Firmware will also be flashed into the passive 
-                    bank. This is the default when flashing a .pkgtb firmware 
-                    into the passive bank.
- -v               Show the reset script after it has been written.
- -y               Bypass confirmation prompt (answers 'y')
- --no-bank-check  Bypass adding the login notification about whether the bank
-                    plan is optimal or not.
- --no-keys-check  Bypass check for updated authorized_keys file.
-                    By default if -k is specified, and an authorized_keys file
-                    exists in the current directory, and the default
-                    authorized_keys has not been updated, then the local
-                    authorized_keys file will be restored instead of the 
-                    current /etc/dropbear/authorized_keys.
- --no-forwards    Bypass restore of port forwards (ignored unless -i is
-                    specified).
- --no-leases      Bypass restore of static leases (ignored unless -i is
-                    specified).
- --no-ula         Bypass restore of the IPv6 ULA and LAN prefix size (ignored 
-                    unless -i is specified).
- --save-defaults  Saves the command line options (except filename/-s/-y) as 
-                    defaults.
-                    When specified, NO changes are applied to the device.
- --no-defaults    Ignores any saved defaults for this execution.
-                    --no-defaults must be the FIRST option specified.
- -U               Download the latest version of the script from GitHub.
-                    Do NOT specify any other parameters or options if doing a
-                    version upgrade.
- --restore-config Runs the restore-config.sh script after reboot if it is found
-                    in the USB backups directory. Output will be written to the 
-                    system log. --restore-config should be the LAST option
-                    specified, and may optionally be followed by the name of
-                    the overlay backup file to be restored. Saved defaults are
-                    IGNORED when --restore-config is specified.
- --i              Specifies that the IP address configured by the -i or -I options 
-                    is also to be applied after the configuration is restored. If
-                    not specified, the IP address used will be the one found in the 
-                    configuration backup. Ignored unless --restore-config is also 
-                    specified.
+ -b                 Make a full backup of your configuration from /overlay
+                      before resetting to factory defaults.
+                     (Requires attached USB device).
+ -B                 Configure for bridged mode. Implies --no-forwards, 
+                      --no-leases and --no-ula. Ignored if --restore-config
+                      is specified.
+ -c                 Disable CWMP configuration during first boot after reset.
+ -C                 Disable reboot on core dump after reset.
+ -d                 Add DNS rewrites to disable CWMP firmware downloads from
+                      fwstore.bdms.telstra.net
+ -D domain          Add DNS rewrites to disable CWMP firmware downloads from
+                      the specified domain. May be specified multiple times.
+ -e                 Disable any 'noexec' flags on USB mounted filesystems.
+ -h d|n|s|hostname  Sets the device hostname, where:
+                      d = Set the hostname to VARIANT
+                      n = Set the hostname to the current hostname
+                      s = Set the hostname to VARIANT-MAC_HEX
+                      hostname = Use the specified hostname
+ -i                 Keep the existing LAN IP address after reset and reboot.
+                      This is the default if --restore-config is specified.
+                      By default, also restores port forwards, static leases
+                      and the IPv6 ULA and prefix size (unless --no-forwards, 
+                      --no-leases or --no-ula are specified).
+ -I n.n.n.n|DHCP    Use IP address n.n.n.n OR obtain the IP address from DHCP
+                      after reset and reboot
+ -k                 Keep existing SSH keys after reset and reboot.
+ -l n.n.n.n:port    Configure logging to a remote syslog server on the specified
+                      IP address and port. The port is optional and defaults to
+                      514 if not specified.
+ -m                 Keep existing mobile operators and profiles, and linked 
+                      WWAN profile.
+                      Ignored if no mobile profiles found.
+ -n                 Do NOT reboot.
+ -p password        Set the password after reset and reboot. If not specified,
+                      it defaults to root.
+ -s                 Apply factory reset and acquire root on the passive bank, 
+                      rather than the booted bank, and then switch banks after 
+                      reboot. Firmware will also be flashed into the passive 
+                      bank. This is the default when flashing a .pkgtb firmware 
+                      into the passive bank.
+ -v                 Show the reset script after it has been written.
+ -y                 Bypass confirmation prompt (answers 'y').
+ --no-bank-check    Bypass adding the login notification about whether the bank
+                      plan is optimal or not.
+ --no-keys-check    Bypass check for updated authorized_keys file.
+                      By default if -k is specified, and an authorized_keys file
+                      exists in the current directory, and the default
+                      authorized_keys has not been updated, then the local
+                      authorized_keys file will be restored instead of the 
+                      current /etc/dropbear/authorized_keys.
+ --no-forwards      Bypass restore of port forwards (ignored unless -i is
+                      specified).
+ --no-leases        Bypass restore of static leases (ignored unless -i is
+                      specified).
+ --no-ula           Bypass restore of the IPv6 ULA and LAN prefix size (ignored 
+                      unless -i is specified).
+ --save-defaults    Saves the command line options (except filename/-s/-y) as 
+                      defaults.
+                      When specified, NO changes are applied to the device.
+ --show-defaults    Shows the settings that would be applied (defaults and over-rides)
+                      When specified, NO changes are applied to the device.
+ --no-defaults      Ignores any saved defaults for this execution.
+                      --no-defaults must be the FIRST option specified.
+ -U                 Download the latest version of the script from GitHub.
+                      Do NOT specify any other parameters or options if doing
+                      a version upgrade.
+ --restore-config   Runs the restore-config.sh script after reboot if it is found
+                      in the USB backups directory. Output will be written to the 
+                      system log. --restore-config should be the LAST option
+                      specified before the firmware filename, and may optionally 
+                      be followed by the name of the overlay backup file to be 
+                      restored. Saved defaults are IGNORED when --restore-config 
+                      is specified.
+ --i                Specifies that the IP address configured by the -i or -I options 
+                      is also to be applied after the configuration is restored. If
+                      not specified, the IP address used will be the one found in the 
+                      configuration backup. Ignored unless --restore-config is also 
+                      specified.
 ```
 
 ## set-optimal-bank-plan
