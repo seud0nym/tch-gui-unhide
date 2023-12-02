@@ -27,9 +27,9 @@ local dhcpStateSelect = {
 }
 
 local non_routable ={
-  { ipv42num("10.0.0.0"), ipv42num("10.255.255.255") },
-  { ipv42num("172.16.0.0"), ipv42num("172.31.255.255") },
-  { ipv42num("192.168.0.0"), ipv42num("192.168.255.255") },
+  { ipv42num("10.0.0.0"),ipv42num("10.255.255.255") },
+  { ipv42num("172.16.0.0"),ipv42num("172.31.255.255") },
+  { ipv42num("192.168.0.0"),ipv42num("192.168.255.255") },
 }
 
 local function dhcpValidationNotRequired(cur_intf,cur_dhcp_intf,local_dev_ip)
@@ -76,8 +76,8 @@ end
 local M = {}
 
 M.proto = {
-  { "static", "Static IP&nbsp;&nbsp;"},
-  { "dhcp", "DHCP Assigned IP"}
+  { "static","Static IP&nbsp;&nbsp;"},
+  { "dhcp","DHCP Assigned IP"}
 }
 
 function M.calculateDHCPStartAddress(baseip,netmask,start,numips)
@@ -347,28 +347,46 @@ end
 
 function M.validateHint(value,_,_)
   if value ~= "" and (#value > 4 or not match(value,"^[%x]+$")) then
-    return nil, T"A hint can only contain 1 to 4 hexadecimal digits."
+    return nil,T"A hint can only contain 1 to 4 hexadecimal digits."
   end
   return true
 end
 
 function M.validateIPv6(curintf,wireless_radio,pppDev,pppIntf)
+  local IP6assign_path = "uci.network.interface.@"..curintf..".ip6assign"
+  local IP6assign_cache = "uci.network.interface.@"..curintf..".tch_ip6assign"  -- cache variable
   return function(value,_,_)
     local valid,msg = vB(value)
     if valid then
-      local IP6assign = "uci.network.interface.@"..curintf..".ip6assign"
-      if value == "0" then
+      local ip6assign = proxy.get(IP6assign_path)[1].value -- get current value and store in cache if we are switching state
+      if not ip6assign or ip6assign == "" then
+        ip6assign = "64"
+      end
+      local cached_ip6assign = proxy.get(IP6assign_cache)[1].value  -- fetch from cache
+      if not cached_ip6assign or cached_ip6assign == "" then
+        cached_ip6assign = ip6assign
+      end
+      local ipv6 = untaint(proxy.get("uci.network.interface.@"..curintf..".ipv6")[1].value) -- get current value in datamodel to know if we're switching state
+      if value == "0" then -- disabled
         -- In case we disable IPv6, we must first invalidate the existing prefix so that local devices know not to use IPv6 anymore
         -- Do this here by set the ip6assign pref and only on ipv6 state change
-        local ipv6 = proxy.get("uci.network.interface.@"..curintf..".ipv6") -- get current value in datamodel to know if we're switching state
-        if ipv6 and untaint(ipv6[1].value) ~= "0" then -- default is enabled so anything non 0 is enabled
-          proxy.set(IP6assign,"0") -- the value will be set back to its current value by process_query
+        if ipv6 and ipv6 ~= "0" then -- default is enabled so anything non 0 is currently enabled
+          -- set ra to 'disabled' in dhcp config
+          proxy.set("uci.dhcp.dhcp.@" .. curintf .. ".ra","disabled")
+          -- need to delete ip6assign entry
+          proxy.set(IP6assign_cache,ip6assign) -- save current value to cache
+          proxy.set(IP6assign_path,"") -- the value will be set back to its current value by process_query
           proxy.apply()
           ngx.sleep(3) -- ugly but need to give it the time to complete
         end
-      else
-        proxy.set(IP6assign,"64")
-        proxy.apply()
+      else -- value == "1" (enabled)
+        if ipv6 and ipv6 == "0" then -- currently disabled
+          -- enable router advertisements and restore ip6assign value from cache
+          proxy.set("uci.dhcp.dhcp.@" .. curintf .. ".ra","server")
+          proxy.set(IP6assign_path,cached_ip6assign) -- restore value from cache
+          proxy.set(IP6assign_cache,"") -- reset cache
+          proxy.apply()
+        end
       end
       if isQtnGuestWiFi(wireless_radio,pppDev) then
         local ucipath = content_helper.getMatchedContent("uci.network.device.",{ifname = pppIntf})
@@ -381,14 +399,14 @@ function M.validateIPv6(curintf,wireless_radio,pppDev,pppIntf)
   end
 end
 
-function M.validateLeaseTime(value,postdata,key)
+function M.validateLeaseTime(value,object,key)
   if value == '-1' then -- included '-1' as a feasible set value as specified in TR 181
-    postdata[key] = "infinite" -- included to ensure uci parameter is set as infinite
+    object[key] = "infinite" -- included to ensure uci parameter is set as infinite
     return true
   else
     local isLeaseTime,msg = vSILT(value)
     if isLeaseTime then
-      postdata["leaseTime"] = match(untaint(value),"^0*([1-9]%d*[smhdw]?)$")
+      object["leaseTime"] = match(untaint(value),"^0*([1-9]%d*[smhdw]?)$")
       return true
     else
       return nil,msg
@@ -396,12 +414,12 @@ function M.validateLeaseTime(value,postdata,key)
   end
 end
 
-function M.validateULAPrefix(value, object, key)
-  local valid, msg = vIAS6(value, object, key)
+function M.validateULAPrefix(value,object,key)
+  local valid,msg = vIAS6(value,object,key)
   if valid and value ~= "" and (sub(tolower(value),1,2) ~= "fd" or sub(value,-3,-1) ~= "/48") then
-    return nil, "ULA Prefix must be within the prefix fd::/7, with a range of /48"
+    return nil,"ULA Prefix must be within the prefix fd::/7, with a range of /48"
   end
-  return valid, msg
+  return valid,msg
 end
 
 return M

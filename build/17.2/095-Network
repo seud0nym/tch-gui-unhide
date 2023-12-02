@@ -30,3 +30,9 @@ sed \
   -e '/objectName/,/addNamedObject/d' \
   -i /www/docroot/modals/ethernet-static-leases-modal.lp
 
+if ! grep -q tch_ip6assign /usr/share/transformer/mappings/uci/network.map; then
+  echo -e "[$SCRIPT]: Add ip6assign value cache"
+  sed \
+    -e 's/"ip6assign"/&, "tch_ip6assign"/' \
+    -i /usr/share/transformer/mappings/uci/network.map
+fi
