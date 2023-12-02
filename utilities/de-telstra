@@ -145,6 +145,7 @@ Options:
  --show-defaults       Shows the settings that would be applied (defaults and over-rides)
                          When specified, NO changes are applied to the device
  --no-defaults         Ignores any saved defaults for this execution
+                         --no-defaults must be the FIRST option specified.
  --no-service-restart  Do NOT restart services after applying configuration changes
  --no-password-remind  Do NOT remind to change root password
 
