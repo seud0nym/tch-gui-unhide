@@ -43,11 +43,11 @@ for new in $(git status --short | awk -e '/^\?\?/{sub("^../","",$2);print "\\b" 
 done
 for major in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
   case "$major" in
-    17.2)   exclude="dumaos";;
-    18.1.c) exclude="transformer-cli";;
-    20.3.c) exclude="transformer-cli";;
-    20.4)   exclude="move-lan-port-to-own-network transformer-cli unpack-rbi";;
-    *)      exclude=""
+    17.2)    exclude="dumaos";;
+    18.1.c)  exclude="transformer-cli";;
+    20.3.c)  exclude="transformer-cli";;
+    2[01].4) exclude="set-optimal-bank-plan transformer-cli unpack-rbi";;
+    *)       exclude=""
   esac
   utils="$utilities"
   for utility in $exclude; do
