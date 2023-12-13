@@ -17,6 +17,7 @@ A collection of utility scripts for your Technicolor router. Most of the names a
 - [set-web-admin-password](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#set-web-admin-password)
 - [show-bank-plan](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#show-bank-plan)
 - [transformer-cli](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#transformer-cli)
+- [unflock](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#unflock)
 - [unpack-rbi](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#unpack-rbi)
 - [update-ca-certificates](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#update-ca-certificates)
 
@@ -595,6 +596,19 @@ If run with the `-q` option, then no output is displayed, and you must rely on t
 ## transformer-cli
 Version 17 firmware does not include `/usr/bin/transformer-cli`, which is very useful for working out what is returned in the various GUI scripts.
 
+## unflock
+Checks for and optionally removes stale service file locks.
+```
+Usage: ./unflock [options]
+
+Options:
+ -r   Removes any found stale locks
+ -C   Adds or removes the scheduled cron job
+```
+Without the `-r` option, `unflock` will simply report any found stale locks.
+
+When run with the -C option (which should be the only option), the scheduled job will be added if it does not already exist, or removed if it does exist in the schedule. By default, the script will run every minute. You can modify the schedule through the Management card in `tch-gui-unhide`, or by directly modifying the /etc/crontab/root file.
+
 ## unpack-rbi
 Unpacks the *.rbi* file passed as the first parameter. 
 ```
@@ -616,6 +630,7 @@ Options:
  -C  Adds or removes the scheduled monthly cron job
  -U  Download the latest version of update-ca-certificates from GitHub
 ```
+When run with the -C option (which should be the only option), the scheduled job will be added if it does not already exist, or removed if it does exist in the schedule. By default, the script will run once month on a randomly selected day at a random time between 2:00am and 5:00am. You can modify the schedule through the Management card in `tch-gui-unhide`, or by directly modifying the /etc/crontab/root file.
 
 # How to download and execute these scripts
 If you download a tch-gui-unhide release archive, the scripts applicable to that firmware version are included.

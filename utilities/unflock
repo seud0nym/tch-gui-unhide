@@ -1,0 +1,94 @@
+#!/bin/sh
+
+SCRIPT="$(basename $0)"
+
+if [ -z "$(which flock)" ]; then
+  echo "$SCRIPT: ERROR - unable to locate 'flock' executable. Aborting."
+  exit
+fi
+LSOF=$(which lsof)
+if [ -z "$LSOF" ]; then
+  echo "$SCRIPT: ERROR - unable to locate 'lsof' executable. Aborting."
+  exit
+fi
+
+usage() {
+cat <<EOH
+Checks for and optionally removes stale service file locks.
+
+Usage: $0 [options]
+
+Options:
+ -r   Removes any found stale locks
+ -C   Adds or removes the scheduled cron job
+
+EOH
+exit
+}
+
+__REMOVE=n
+while getopts :rC option; do
+ case "${option}" in
+  r)  __REMOVE=y;;
+  C)  if grep -q "$SCRIPT" /etc/crontabs/root; then
+        sed -e "/$SCRIPT/d" -i /etc/crontabs/root
+        echo "$SCRIPT: Scheduled file lock check has been removed."
+      else
+        echo "* * * * * $(cd $(dirname $0); pwd)/$SCRIPT -r" >> /etc/crontabs/root
+        echo "$SCRIPT: Scheduled file lock check for every minute."
+      fi
+      /etc/init.d/cron reload
+      exit;;
+  *)  usage;;
+ esac
+done
+
+services=""
+for pid in $(pgrep flock); do
+  blocked=$(( $(date '+%s') - $(date -r /proc/$pid '+%s') ))
+  if [ $blocked -ge 60 ]; then
+    fd=$(sed -e 's/^.*flock//' /proc/$pid/cmdline | tr '\0' ' ' | xargs)
+    if [ -n "$fd" ]; then
+      if echo -n "$fd" | grep -E '[0-9]*'; then
+        lockfile=$(readlink /proc/$pid/fd/$fd)
+      else
+        lockfile="$fd"
+      fi
+      ppid=$(grep -i ^PPId /proc/$pid/status | cut -d: -f2 | xargs)
+      service=$(basename $(grep -oE '/etc/init.d/[^\0]*' /proc/$ppid/cmdline))
+      if [ -n "$service" ]; then
+        action=$(tr '\0' ' ' < /proc/$ppid/cmdline | grep -oE '/etc/init.d/.*' | cut -d' ' -f2- | xargs)
+        if [ -e "$lockfile" ]; then
+          pids=$($LSOF $lockfile | grep $lockfile | grep -v "\b$pid\b\|\b$ppid\b" | tr -s ' ' | cut -d' ' -f2 | xargs echo $pid $ppid)
+        else
+          pids="$pid $ppid"
+        fi
+        echo "$SCRIPT: BLOCKED service='$service' lockfile='$lockfile' action='$action' pids=' $pids'"
+        for p in $pids; do
+          echo "$SCRIPT:         $(ps | grep "\b$p\b")"
+        done
+        if ! echo "$services" | grep -q "^$service"; then
+          if [ -z "$services" ]; then
+            services="$service#$lockfile#$action#"
+          else
+            services="$services\n$service#$lockfile#$action#"
+          fi
+        fi
+        services=$(echo -e "$services" | sed -e "s|^\b$service\b.*|& $pids|")
+      fi
+    fi
+  fi
+done
+
+if [ $__REMOVE = y -a -n "$services" ]; then
+  IFS='#'
+  echo -e "$services" | while read service lockfile action pids; do
+    [ -z "$service" -o -z "$lockfile" -o -z "$action" -o -z "$pids" ]  && continue
+    echo "$SCRIPT: UNBLOCK service='$service' lockfile='$lockfile' action='$action' pids='$pids'"
+    rm $lockfile
+    kill $pids
+    /etc/init.d/$service $action
+  done
+fi
+
+exit 0
