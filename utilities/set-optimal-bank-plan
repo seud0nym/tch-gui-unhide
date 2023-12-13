@@ -72,8 +72,25 @@ else
   echo -e "${GREEN}==> Passive = ${PASSIVE_VERSION}${NC}"
 fi
 
+manual_bank_planning() {
+  echo -e "${ORANGE}"
+  echo -e "########################################################"
+  echo -e "# You will need to manually set the optimal bank plan. #"
+  echo -e "#                                                      #"
+  echo -e "# 1. Ensure you have a rootable firmware in bank 1.    #"
+  echo -e "# 2. Ensure you are running from bank 1:               #"
+  echo -e "#    a. Use ${NC}./show-bank-plan${ORANGE} to see active/booted bank #"
+  echo -e "#    b. If necessary, swap to bank 1 using             #"
+  echo -e "#       ${NC}./reset-to-factory-defaults-with-root -s${ORANGE}       #"
+  echo -e "# 3. Use ./safe-firmware-upgrade to load required      #"
+  echo -e "#    firmware into bank 2                              #"
+  echo -e "# 4. Confirm bank layout with ${NC}./show-bank-plan${ORANGE}         #"
+  echo -e "########################################################"
+  echo -e "${NC}"
+}
+
+echo -e "${ORANGE}Ensuring the banks match in size...${NC}"
 if [ $BANKTABLE = Y ]; then
-  echo -e "${ORANGE}Ensuring the banks match in size...${NC}"
   BANK_COUNT=$(grep -c bank_ /proc/mtd)
   if [ $BANK_COUNT -ne 2 ]; then
     echo -e "${RED}==> ABORTING: Unexpected bank count - Expected 2 but found ${BANK_COUNT}!${NC}"
@@ -81,15 +98,35 @@ if [ $BANKTABLE = Y ]; then
   fi
   BANK1_SIZE="$(grep bank_1 /proc/mtd | cut -d' ' -f2)"
   BANK2_SIZE="$(grep bank_2 /proc/mtd | cut -d' ' -f2)"
-  if [ "$BANK1_SIZE" != "$BANK2_SIZE" ]; then
-    echo -e "${RED}==> ABORTING: Bank 1 and Bank 2 are different sizes??${NC}"
-    echo " - Bank 1 = $BANK1_SIZE"
-    echo " - Bank 2 = $BANK2_SIZE"
-    exit 2
-  else
-    echo -e "${GREEN}==> OKAY: Bank 1 = ${BANK1_SIZE} Bank 2 = ${BANK2_SIZE}${NC}"
-  fi
 else
+  BANK1_SIZE="$(grep rootfs1 /proc/mtd | cut -d' ' -f2)"
+  BANK2_SIZE="$(grep rootfs2 /proc/mtd | cut -d' ' -f2)"
+fi
+if [ "$BANK1_SIZE" != "$BANK2_SIZE" ]; then
+  echo -e "${RED}==> ABORTING: Bank 1 and Bank 2 are different sizes${NC}"
+  echo " - Bank 1 = $BANK1_SIZE"
+  echo " - Bank 2 = $BANK2_SIZE"
+  if [ $BANKTABLE = N ]; then
+    manual_bank_planning
+  fi
+  exit 2
+else
+  echo -e "${GREEN}==> OKAY: Bank 1 = ${BANK1_SIZE} Bank 2 = ${BANK2_SIZE}${NC}"
+  if [ $BANKTABLE = N ]; then
+    BANK1_SIZE="$(grep bootfs1 /proc/mtd | cut -d' ' -f2)"
+    BANK2_SIZE="$(grep bootfs2 /proc/mtd | cut -d' ' -f2)"
+    if [ "$BANK1_SIZE" != "$BANK2_SIZE" ]; then
+      echo -e "${RED}==> ABORTING: Boot 1 and Boot 2 are different sizes${NC}"
+      echo " - Boot 1 = $BANK1_SIZE"
+      echo " - Boot 2 = $BANK2_SIZE"
+      manual_bank_planning
+      exit 2
+    else
+      echo -e "${GREEN}==> OKAY: Boot 1 = ${BANK1_SIZE} Boot 2 = ${BANK2_SIZE}${NC}"
+    fi
+  fi
+fi
+if [ $BANKTABLE = N ]; then
   echo -e "${ORANGE}Checking /tmp space...${NC}"
   rm -f /tmp/ubi*
   sync

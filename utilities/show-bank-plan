@@ -142,7 +142,6 @@ else
       echo
       echo "It is strongly recommended that you always boot from bank 2 on this device, and"
       echo "keep a rootable firmware in bank 1 for updating the bank 2 firmware."
-      set_optimal_bank_plan
     fi
   fi
   exit 1
