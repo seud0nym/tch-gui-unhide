@@ -1,3 +1,21 @@
+2023.12.21
+==========
+* tch-gui-unhide: Fixed bug that caused LAN IPv6 Prefix Size to be reset to /64 whenever any other change was made on the Local Network Interfaces tab
+* tch-gui-unhide: Fixed Telstra landing page layout when 5 cards across specified (i.e. using options -a5 and -ly together)
+* tch-gui-unhide: Fixed missing CWMPD transformer mappings in FW 17.2 that caused incorrect values to be displayed on the CWMP card (#185)
+* tch-gui-unhide: Optimised loading of MAC address list for static leases, and ensure input is a text field if no MAC addresses found
+* tch-gui-unhide: Enabled iperf (if found) GUI in all firmware versions (FW 17.2/20.4/21.4 require the iperf3 or iperf3-static package to be installed)
+* tch-gui-unhide-xtra.adblock: Fixed various issues when adblock installed but disabled
+* tch-gui-unhide-xtra.rsyncd: Fixed bug in creation of transformer mapping
+* tch-gui-unhide-xtra.speedtest: Added result URL
+* tch-gui-unhide-xtra.wireguard: Do not show WireGuard Peers count on Devices card if WireGuard server disabled
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Replaced long Technicolor version suffixes with Telstra custom version suffixes (where possible)
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Now shows all options (both specified and unspecified) that were applied by parameters or saved defaults
+* set-optimal-bank-plan: Replaced long Technicolor version suffixes with Telstra custom version suffixes (where possible)
+* set-optimal-bank-plan: Reinstated bank size check for FW 20.4/21.4 because ubiupdatevol fails when target bank is too small (#165)
+* show-bank-plan: Replaced long Technicolor version suffixes with Telstra custom version suffixes (where possible)
+* unflock: New utility script to report and optionally remove stale service file locks (FW 18.1.c and later only)
+
 2023.10.01
 ==========
 * tch-gui-unhide: Fixed Warning on setting landing page state during first install
