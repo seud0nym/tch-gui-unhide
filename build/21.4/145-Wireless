@@ -1,0 +1,4 @@
+echo -e "[$SCRIPT]: Fix failure to save Wi-Fi tab when Guest removed"
+sed \
+ -e 's/\(local \)\(guest_[25]G_hide_check\)\( = .*@wl[01]_[12].public")\)\(\[1\].value$\)/\1\2\3; \2 = \2 and \2[1].value or "0";/' \
+ -i /www/docroot/modals/wireless-modal.lp
