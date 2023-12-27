@@ -408,8 +408,9 @@ fi
 
 BACKUP_ENV="${OVERLAY%-overlay-files-backup.tgz}-env"
 if [ ! -e $BACKUP_ENV ]; then
-  log E "Environment backup '$BACKUP_ENV' not found?"
-  exit 2
+  log W "Environment backup '$BACKUP_ENV' not found? Creating from '$CONFIG'..."
+  gzip -cdk $CONFIG | grep '^env\.var' > $BACKUP_ENV
+  touch -r $CONFIG $BACKUP_ENV
 fi
 
 BACKUP_SERIAL=$(grep env.var.serial $BACKUP_ENV | cut -d"'" -f2)
