@@ -8,6 +8,11 @@ sed \
   -e '/ui_helper.createSwitch(T"Split"/a\      else ngx.print(ui_helper.createSimpleInputHidden("split_ssid",split_ssid,{input={id="split_ssid"}}))' \
   -i /www/docroot/modals/wireless-modal.lp
 
+echo -e "[$SCRIPT]: Fix bug when changing WiFi password on single SSID"
+sed \
+  -e 's/wpa_pskwl1:"wpa_pskwl1",/wpa_pskwl1:"wpa_pskwl0",/' \
+  -i /www/docroot/modals/wireless-modal.lp
+
 if [ "$MINIFY" = y ]; then
   echo -e "[$SCRIPT]: Pre-minify fixes"
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/wireless-modal.lp"
