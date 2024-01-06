@@ -151,9 +151,6 @@ These scripts will be automatically run by `tch-gui-unhide` if they exist in the
 # opkg Configuration
 Once you have correctly configured `opkg` using one of the following methods, you need to run the `opkg update` command before installing packages.
 
-## Packages Card in User Interface (after tch-gui-unhide applied)
-If you have applied `tch-gui-unhide`, you can configure `opkg` and install/remove packages through the user interface.
-
 ## de-telstra
 If you are are a [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) user, simply run it with `-o` option to correctly configure `opkg` on your device.
 
@@ -161,6 +158,7 @@ If you are are a [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/
 Edit the `/etc/opkg/distfeeds.conf` file and insert a `#` before the repository listed, otherwise you will get errors when updating, because that repository does not exist.
 
 Edit the following files to configure `opkg`:
+
 #### Firmware Versions starting with 17
 - /etc/opkg.conf
 ```
@@ -203,12 +201,32 @@ src/gz chaos_calmer_luci_macoers https://repository.macoers.com/homeware/18/brcm
 src/gz chaos_calmer_routing_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/routing
 src/gz chaos_calmer_telephony_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/telephony
 src/gz chaos_calmer_core_macoers https://repository.macoers.com/homeware/18/brcm63xx-tch/VANTW/target/packages
+src/gz tch_coreutils https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/arm_cortex-a9/packages
+src/gz tch_static https://raw.githubusercontent.com/seud0nym/tch-static/master/repository/arm_cortex-a9/packages
 ```
 
-#### Firmware Versions starting with 20.4
-At present there is *no* opkg repository for the 20.4 firmware.
+#### Firmware Versions starting with 20.4 and 21.4
+There a very small number of packages available for firmware 20.4/21.4
+- /etc/opkg.conf
+```
+dest root /
+dest ram /tmp
+lists_dir ext /var/opkg-lists
+option overlay_root /overlay
+option check_signature
+dest lcm_native /opt/
+arch all 1
+arch noarch 1
+arch arm_cortex-a53 10
+arch aarch64_cortex-a53 20
+```
+- /etc/opkg/customfeeds.conf
+```
+src/gz tch_coreutils https://raw.githubusercontent.com/seud0nym/tch-coreutils/master/repository/arm_cortex-a53/packages
+src/gz tch_static https://raw.githubusercontent.com/seud0nym/tch-static/master/repository/arm_cortex-a53/packages
+```
 
-## Post Configuration
+### After Manual Configuration
 After configuring opkg, you need to update the package lists. You need to do this each time before you install any packages:
 ```
 opkg update
@@ -219,3 +237,12 @@ You should also update the system CA certificates. You can do this either by:
 * manually installing the CA certificates packages using: `opkg install ca-certificates ca-bundle`
 
 The `update-ca-certificates` script will install the latest available certificates (and gives you the option to schedule a regular job to update them), whereas the opkg packages may not contain the latest certificates.
+
+##### opkg update: wget returned 8
+When using the macoers repository, you may see the error `wget returned 8`. The troubleshooting steps are:
+
+1. Make sure your CA certificates are up to date by running the update-ca-certificates script.
+1. Try and manually download a failed URL through your browser. This should alert you if your IP address has been banned by macoers.com. If that is the case, you should contact them directly and ask to be unblocked.
+
+# Packages Card in User Interface (after tch-gui-unhide applied)
+If you have applied `tch-gui-unhide`, you can install/remove packages through the user interface. You do not need to do manual update of the package lists when using the user interface.
