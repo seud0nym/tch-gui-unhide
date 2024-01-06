@@ -25,6 +25,7 @@ If your device uses the jffs2 file system, then the setup script implements 2 di
 2. You can optionally specify the `-i` option to install AdGuard Home on internal storage.
    - The working directory will be set to tmpfs, but by default this means that *ALL* statistics, downloaded block lists and DHCP static and dynamic leases will be **lost** on reboot.
    - To work around this limitation, the script will install rsync to synchronize the AdGuard Home working directory back to permanent storage every minute and on shutdown. On boot, the permanent copy will be synced back to tmpfs before starting AdGuard Home. The worst case scenario should be that you could lose up to 1 minute of logs, leases and statistics.
+   - To install rsync, you must have configured to custom package repositories using the [`de-telstra`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra) script with the `-o` option, or configure opkg [`manually`](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#manual-configuration).
 
 Note that if your device does _NOT_ use the jffs2 file system (e.g. Telstra Smart Modem Gen 3), then the default installation target is internal storage, and the tmpfs/rsync hack will _not_ be implemented, as it is unnecessary.
 

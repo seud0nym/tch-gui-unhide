@@ -395,45 +395,26 @@ fi
 if [ $EXTERNAL = N -a $OVERLAY_FS = jffs2 ]; then
   opkg list-installed | grep -q -E '^rsync '
   if [ $? -ne 0 ]; then
-    echo -e "${GREEN}[$SCRIPT] Installing on jffs2 internal storage requires the rsync backup hack...${NC}"
-    OPKG_FEEDS=$(lua -e '
-      require("web.taint")
-      proxy = require("datamodel")
-      feeds = proxy.get("rpc.gui.opkg.feeds_configured")
-      if feeds then
-        print(feeds[1].value)
-      else
-        print("-1")
-      end
-    ')
-    if [ "$OPKG_FEEDS" == "-1" ]; then
-      echo -e "${RED}[$SCRIPT] ERROR! tch-gui-unhide does not seem to be installed. Aborting...${NC}"
+    echo -e "${GREEN}[$SCRIPT] Installing on jffs2 internal storage requires the rsync opkg backup hack...${NC}"
+    if ! sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep 'BoLaMN\|macoers\|tch-static'; then
+      echo -e "${RED}[$SCRIPT] ERROR! opkg is not configured!${NC}"
+      echo -e "${ORANGE}[$SCRIPT]        You need to run ${NC}./de-telstra -o${ORANGE} or configure manually.${NC}"
+      echo -e "${RED}[$SCRIPT]        Aborting...${NC}"
       exit 2
-    elif [ "$OPKG_FEEDS" == "0" ]; then
-      echo -e "${ORANGE}[$SCRIPT] WARNING! Need to configure opkg. This make take a little while...${NC}"
-      OPKG_FEEDS=$(lua -e '
-        require("web.taint")
-        proxy = require("datamodel")
-        proxy.set("rpc.gui.opkg.feeds_configured", "1")
-        feeds = proxy.get("rpc.gui.opkg.feeds_configured")
-        print(feeds[1].value)
-      ')
-      if [ "$OPKG_FEEDS" = "1" ]; then
-        echo -e "${GREEN}[$SCRIPT] opkg successfully configured...${NC}"
-      else
-        echo -e "${RED}[$SCRIPT] ERROR! Failed to configure opkg. Aborting...${NC}"
-        exit 2
-      fi
     fi
 
     echo -e "${GREEN}[$SCRIPT] Updating package lists...${NC}"
     opkg update
 
-    echo -e "${GREEN}[$SCRIPT] Installing required packages...${NC}"
+    echo -e "${GREEN}[$SCRIPT] Installing required rsync package...${NC}"
     opkg install rsync
     if [ $? -ne 0 ]; then
-      echo -e "${RED}[$SCRIPT] ERROR! Failed to install required packages. Aborting...${NC}"
-      exit 2
+      echo -e "${ORANGE}[$SCRIPT] WARNING! Failed to install rsync. Attempting to install rsync-static...${NC}"
+      opkg install rsync-static
+      if [ $? -ne 0 ]; then
+        echo -e "${RED}[$SCRIPT] ERROR! Failed to install required rsync package. Aborting...${NC}"
+        exit 2
+      fi
     fi
   fi
 fi
