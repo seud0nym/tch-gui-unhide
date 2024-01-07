@@ -49,7 +49,7 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
   local lanIPv6 = lan["ipv6State"] == "" or lan["ipv6State"] == "1"
 
   if not isBridgedMode then
-    if adguard and adguard.enabled == "1" then
+    if adguard and (adguard.enabled == "1" and lan.dhcpv4State == "disabled" and lan.dhcpv6State == "disabled") then
       dhcp_state = "1"
       dhcp_text = format(T'<a style="color:inherit;text-decoration:none;" target="_blank" href="http://%s:8008"><b>AdGuard Home</b></a> DHCP enabled',lan["ipv4addr"])
     elseif lan["ipv6State"] == "" or lan["ipv6State"] == "1" then -- IPv6
