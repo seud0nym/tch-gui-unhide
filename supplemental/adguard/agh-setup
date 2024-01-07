@@ -393,9 +393,10 @@ if [ $CA_CERT = Y ]; then
 fi
 
 if [ $EXTERNAL = N -a $OVERLAY_FS = jffs2 ]; then
-  opkg list-installed | grep -q -E '^rsync '
-  if [ $? -ne 0 ]; then
-    echo -e "${GREEN}[$SCRIPT] Installing on jffs2 internal storage requires the rsync opkg backup hack...${NC}"
+  if which rsync > /dev/null; then
+    echo -e "${GREEN}[$SCRIPT] rsync command found${NC}"
+  else
+    echo -e "${GREEN}[$SCRIPT] Installing on jffs2 internal storage requires the rsync backup hack...${NC}"
     if ! sed -e '/^#/d' /etc/opkg/customfeeds.conf | grep 'BoLaMN\|macoers\|tch-static'; then
       echo -e "${RED}[$SCRIPT] ERROR! opkg is not configured!${NC}"
       echo -e "${ORANGE}[$SCRIPT]        You need to run ${NC}./de-telstra -o${ORANGE} or configure manually.${NC}"
