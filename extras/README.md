@@ -54,7 +54,7 @@ Install rsyncd using the `opkg` command (see **opkg Configuration** [`below`](ht
 ## tch-gui-unhide-xtra.samba36-server
 Correctly configures OpenWRT SAMBA 3.6 to provide SMBv2 for Windows 10 inter-operability. This update adds the ability to change the password via the GUI.
 #### Firmware Applicability
-You should *only* install SAMBA 3.6 on the 17.2 and 18.1.c firmware. The 20.3.c and 20.4 firmware contains NQE rather than SAMBA, and does not require the SAMBA 3.6 update to upgrade to SMBv2 and inter-operate with Windows 10.
+You should *only* install SAMBA 3.6 on the 17.2 and 18.1.c firmware. The 20.3.c and later firmware contains NQE rather than SAMBA, and do not require the SAMBA 3.6 update to upgrade to SMBv2 and inter-operate with Windows 10.
 #### Prerequisites
 Install SAMBA v3.6 using the `opkg` command (see **opkg Configuration** [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#opkg-Configuration)): `opkg --force-overwrite install samba36-server`
 #### Installation
@@ -89,7 +89,7 @@ Execute these commands to install the latest Speedtest® CLI where it is expecte
 ## tch-gui-unhide-xtra.wireguard
 Creates a GUI interface for configuring the Wireguard VPN.
 #### Firmware Applicability
-For firmware 20.3.c. *only*.
+For firmware 20.3.c and 21.4.
 - All other firmware has not been compiled with TUN support in the kernel, and therefore VPN tunnels cannot be created.
 #### Prerequisites
 Ensure opkg in configured correctly (see **opkg Configuration** [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#opkg-Configuration)). Then, add the [openwrt-wireguard-go](https://github.com/seud0nym/openwrt-wireguard-go) repository and install the package with these commands:  
