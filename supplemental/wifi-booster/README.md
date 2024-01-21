@@ -10,9 +10,24 @@ The Telstra Smart Modems (Gen 1.1 DJA0230 and Gen 2 DJA0231) implement the EasyM
 
 The Telstra Smart Modem Gen 3 (CobraXh) also implements the EasyMesh standard, but has a different implementation to the earlier generation devices.
 
-You can mix Gen 1.1 (DJA0230) and Gen 2 (DJA0231) devices, either as controller or booster. Gen 3 (CobraXh) devices _cannot_ be used as either a controller or booster in conjunction with any _previous_ generation (Gen 1 or Gen 2) device. However, if the Gen 3 devices are running firmware 21.4.0439 or later, they _can_ be used in a controller or booster configuration with another Gen 3 device. Gen 3 devices running firmware 20.4 cannot be used as a controller or booster.
+## Back-Haul
 
 Using a Smart modem as a "Booster" device requires a wired back-haul, either through a direct ethernet connection or via Ethernet-Over-Power adapters. Wireless backhaul is not possible at this time.
+
+## Device Compatibility Matrix
+
+|                                 | DJA0230 (Gen 1)<sup>1</sup> | DJA0231 (Gen 2)<sup>1</sup> | CobraXh (Gen 3)<sup>2</sup> |
+|---------------------------------|-----------------------------|-----------------------------|-----------------------------|
+| **DJA0230 (Gen 1)**<sup>1</sup> | Controller or Booster       | Controller or Booster       | N/A                         |
+| **DJA0231 (Gen 2)**<sup>1</sup> | Controller or Booster       | Controller or Booster       | N/A                         |
+| **CobraXh (Gen 3)**<sup>2</sup> | N/A                         | N/A                         | Controller or Booster       | 
+
+<sup>1</sup> Firmware 20.3.c only  
+<sup>2</sup> Firmware 21.4 only
+
+You can mix Gen 1.1 (DJA0230) and Gen 2 (DJA0231) devices, either as controller or booster. Gen 3 (CobraXh) devices _cannot_ be used as either a controller or booster in conjunction with any _previous_ generation (Gen 1 or Gen 2) device. However, if the Gen 3 devices are running firmware 21.4.0439 or later, they _can_ be used in a controller or booster configuration with another Gen 3 device. Gen 3 devices running firmware 20.4 cannot be used as a controller or booster.
+
+## Installation
 
 **NOTE : It is *strongly* recommended that you remove any configuration changes that you may have made to the device before commencing.**
 
