@@ -187,6 +187,7 @@ if [ $RESTORE = n ]; then
   echo -e " - ${GREEN}ENABLE EasyMesh Agent${NC}"
   [ $EASYMESH = multiap ] && echo -e " - ${GREEN}ENABLE MultiAP on the bridge${NC}"
   [ $EASYMESH = multiap ] && echo -e " - ${GREEN}Set MultiAP logging level to $MULTIAP_LOGGING_LEVEL${NC}"
+  echo -e " - ${GREEN}ENABLE MLD Multicast Snooping${NC}"
   if [ $REBOOT = y ]; then
     echo -e " - ${ORANGE}REBOOT to apply changes${NC}"
   else
@@ -288,6 +289,14 @@ if [ $RESTORE = n ]; then
     echo -e "${GREEN}Setting LAN Gateway IP address to $LAN_GATEWAY${NC}"
     uci set network.lan.gateway="$LAN_GATEWAY"
   fi
+  echo -e "${GREEN}Configuring bridged mode${NC}"
+  uci set network.config.wan_mode='bridge'
+  uci set network.lan.ifname="eth0 eth1 eth2 eth3 eth4 wl0 wl1"
+  for ifname in ppp ipoe wan wan6 wwan lan.pppoerelay; do
+    uci -q delete network.$ifname
+    uci -q delete dhcp.$ifname
+  done
+  uci -q delete network.@ppp_placeholder[0]
   if [ "$LAN_IPv6" = "1" ]; then
     echo -e "${GREEN}Enabling LAN IPv6${NC}"
     uci set network.lan.ipv6='1'
@@ -313,14 +322,6 @@ if [ $RESTORE = n ]; then
     echo -e "${GREEN}Disabling LAN IPv6${NC}"
     uci set network.lan.ipv6='0'
   fi
-  echo -e "${GREEN}Configuring bridged mode${NC}"
-  uci set network.config.wan_mode='bridge'
-  uci set network.lan.ifname="eth0 eth1 eth2 eth3 eth4"
-  for ifname in ppp ipoe wan wan6 wwan lan.pppoerelay; do
-    uci -q delete network.$ifname
-    uci -q delete dhcp.$ifname
-  done
-  uci -q delete network.@ppp_placeholder[0]
   if [ -n "$NQE" ]; then
     uci set network.wan=interface
     if [ $SAMBA = n ]; then
@@ -360,10 +361,14 @@ if [ $RESTORE = n ]; then
     echo -e "${ORANGE}Disabling EasyMesh controller${NC}"
     uci set mesh_broker.mesh_common.controller_enabled='0'
     echo -e "${GREEN}Enabling EasyMesh agent${NC}"
+    uci set mesh_broker.mesh_common.agent_enabled='1'
     uci set wireless.agent.state='1'
     uci commit mesh_broker
     uci commit wireless
   fi
+  echo -e "${GREEN}Enabling MLD Multicast Snooping${NC}"
+  uci set mcastsnooping.lan.mld_snooping='1'
+  uci commit mcastsnooping
 
   if [ $REBOOT = y ]; then
     echo -e "${ORANGE}Rebooting...${NC}"
@@ -406,6 +411,8 @@ if [ $RESTORE = n ]; then
       echo -e "${ORANGE}Applying EasyMesh changes...${NC}"
       /etc/init.d/mesh-broker restart && ubus call mesh_broker.config reload
     fi
+    echo -e "${ORANGE}Applying Multicast Snooping changes...${NC}"
+    /etc/init.d/mcsnooper restart
   fi
 else # RESTORE
   if [ $IP_ADDR_SET = n ]; then
@@ -413,6 +420,7 @@ else # RESTORE
   fi
 
   echo "About to:"
+  echo -e " - ${ORANGE}DISABLE MLD Multicast Snooping${NC}"
   echo -e " - ${GREEN}ENABLE EasyMesh Agent${NC}"
   echo -e " - ${GREEN}ENABLE EasyMesh Controller${NC}"
   [ $EASYMESH = multiap ] && echo -e " - ${GREEN}ENABLE MultiAP on the default interfaces${NC}"
@@ -444,6 +452,9 @@ else # RESTORE
     [ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
   fi
 
+  echo -e "${ORANGE}Disabling MLD Multicast Snooping${NC}"
+  uci set mcastsnooping.lan.mld_snooping='0'
+  uci commit mcastsnooping
   if [ $EASYMESH = multiap ]; then
     echo -e "${GREEN}Enabling MultiAP agent${NC}"
     uci set multiap.agent.enabled='1'
@@ -579,6 +590,8 @@ else # RESTORE
     /etc/init.d/cron restart
     echo -e "${GREEN}Applying MultiAP changes...${NC}"
     /etc/init.d/multiap_controller restart
+    echo -e "${ORANGE}Applying Multicast Snooping changes...${NC}"
+    /etc/init.d/mcsnooper restart
   fi
 fi
 
