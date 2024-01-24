@@ -73,7 +73,8 @@ fi
 if [ -s $BANK2/etc/opkg/customfeeds.conf -a $(grep -v '^#' $BANK2/etc/opkg/customfeeds.conf 2>/dev/null | wc -l) -gt 0 ]; then
   options="${options} -o"
   if [ "$DEVICE_VERSION" != "17.2" -a "$BACKUP_VERSION" != "17.2" -a "$(grep -om1 'homeware/[0-9][0-9]/' $BANK2/etc/opkg/customfeeds.conf)" != "homeware/$(echo $DEVICE_VERSION | cut -d. -f1)/" ]; then
-    options="${options} -O$(grep -om1 'homeware/[0-9][0-9]/' $BANK2/etc/opkg/customfeeds.conf | cut -d/ -f2)"
+    repo=$(grep -om1 'homeware/[0-9][0-9]/' $BANK2/etc/opkg/customfeeds.conf | cut -d/ -f2)
+    [ -n "$repo" ] && options="${options} -O$(grep -om1 'homeware/[0-9][0-9]/' $BANK2/etc/opkg/customfeeds.conf | cut -d/ -f2)"
   fi
 fi
 if ! $UCI show network | grep -qE '\.Guest.*=interface'; then
@@ -88,4 +89,4 @@ fi
 
 run_script de-telstra $options
 
-unset alg g hostname key options wan_zone
+unset alg g hostname key options wan_zone repo
