@@ -114,10 +114,11 @@ On the primary device, you must manually configure the following items:
 If the booster device does not acquire either or both of the SSIDs, disable and then re-enable the Agent on the booster device. This normally resolves the issue within a minute.
 
 ### Notes
-1. After running the script, you can move the cable from the LAN port to the WAN port if you wish. This is not mandatory, as when the device is running in bridged mode, all 5 ports are effectively LAN ports.
-2. A reboot is recommended after running the script. (The script will automatically reboot the device unless you specify otherwise.)
-3. You should see the booster device registered on the primary device within 1 minute. 
-4. If the booster device does not report that 3 SSIDs have been synced and/or the controller doesn't recognise the booster, try disabling the Agent on the booster device, save, wait a minute or two, then re-enable.
+1. A reboot is recommended after running the script. (The script will automatically reboot the device unless you specify otherwise.)
+1. You should see the booster device registered on the primary device within 1 minute. 
+1. If the booster device does not report that 3 SSIDs have been synced and/or the controller doesn't recognise the booster, try disabling the Agent on the booster device, save, wait a minute or two, then re-enable.
+1. After running the script, on _most_ devices you can move the cable from the LAN port to the WAN port if you wish. This is not mandatory, as when the device is running in bridged mode, all 5 ports are effectively LAN ports. 
+    - **NOTE**: Some (maybe most?) Gen 3 devices will _not_ register as a booster when using the WAN port to connect to the controller. The WAN port can still be used as a LAN port; just not as the port to connect to the controller.
 
 # How to download and execute the script
 Execute this command on your device via a PuTTY session or equivalent (an active WAN/Internet connection is required):
