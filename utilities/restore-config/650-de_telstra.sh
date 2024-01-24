@@ -70,7 +70,7 @@ if [ -e /etc/config/multiap -a -e $BANK2/etc/config/multiap ]; then
   options="${options} -mu"
 fi
 [ -e /etc/config/nfc ] && options="${options} -q$(config2yn nfc.@nfc[0].enabled)"
-if grep -qE 'macoers|BoLaMN' $BANK2/etc/opkg/customfeeds.conf 2>/dev/null; then
+if [ -s $BANK2/etc/opkg/customfeeds.conf -a $(grep -v '^#' $BANK2/etc/opkg/customfeeds.conf 2>/dev/null | wc -l) -gt 0 ]; then
   options="${options} -o"
   if [ "$DEVICE_VERSION" != "17.2" -a "$BACKUP_VERSION" != "17.2" -a "$(grep -om1 'homeware/[0-9][0-9]/' $BANK2/etc/opkg/customfeeds.conf)" != "homeware/$(echo $DEVICE_VERSION | cut -d. -f1)/" ]; then
     options="${options} -O$(grep -om1 'homeware/[0-9][0-9]/' $BANK2/etc/opkg/customfeeds.conf | cut -d/ -f2)"
