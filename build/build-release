@@ -38,7 +38,7 @@ rm ../*.tar.gz *.tar.gz 2>/dev/null
 echo Getting utilities list..
 new=$(git status --short | grep '^??' | cut -d' ' -f2)
 utilities="$(find ../utilities/ -maxdepth 1 -type f ! -name README.md | sort | sed -e 's,^\.\./,,')"
-for new in $(git status --short | awk -e '/^\?\?/{sub("^../","",$2);print "\\b" $2 "\\b";}0'); do
+for new in $(git status --short | awk '/^\?\?/{sub("^../","",$2);print "\\b" $2 "\\b";}0'); do
   utilities=$(echo $utilities | sed -e "s,$new,,")
 done
 for major in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do

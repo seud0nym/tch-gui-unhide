@@ -187,7 +187,7 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
         echo >> $TARGET
       fi
       [ -n "$DEBUG" ] && echo " - Appending $DIRECTORY/$FILENAME"
-      sed -e 's/\r$//' "$DIRECTORY/$FILENAME" | awk -v SEQUENCE=$SEQUENCE -e '
+      sed -e 's/\r$//' "$DIRECTORY/$FILENAME" | awk -v SEQUENCE=$SEQUENCE '
         /\[\$SCRIPT\]/ {
           gsub(/\[\$SCRIPT\]:/,sprintf("${GREY}%s/%03d:${NC}",SEQUENCE,NR));
         }
