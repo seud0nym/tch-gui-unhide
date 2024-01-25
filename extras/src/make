@@ -5,8 +5,7 @@ cd $(dirname $0)
 if [ -e .extras ]; then
   rm .extras
 fi
-for d in $(find . -maxdepth 1 -type d ! -path . -printf '%P ')
-do
+for d in $(find . -maxdepth 1 -type d ! -path . -printf '%P\n' | sort | xargs); do
   source="$d/$d.sh"
   if [ -f "$source" ]; then
     target="../tch-gui-unhide-xtra.$d"
