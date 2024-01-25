@@ -21,6 +21,7 @@ if [ -f /www/docroot/landingpage.lp ];then
       -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(7){display:none;}" \
       -e "$ a body.landingpage #detailed_info_mobile>div:nth-child(8){display:none;}" \
       -e "$ a body.landingpage #footer_picture_mobile{display:none !important;}" \
+      -e '$a @-moz-document url-prefix(){.table-td-described-info{font-size:12px;}}' \
       -i /www/docroot/css/gw-telstra.css
     sed \
       -e 's/.hidden-desktop{display:none/.hidden-desktop{display:inherit/' \
