@@ -153,7 +153,7 @@ download() {
 }
 
 OPTIONS="--no-defaults"
-[ -f .defaults.$SCRIPT ] && echo "$*" | grep -qv '\brestore-config\b' && grep -q ^OPTIONS .defaults.$SCRIPT && source ./.defaults.$SCRIPT || echo -e "${ORANGE}WARNING:  Saved defaults are invalid! Please save again.${NC}"
+[ -f .defaults.$SCRIPT ] && echo "$*" | grep -qv '\brestore-config\b' && ( grep -q ^OPTIONS .defaults.$SCRIPT && source ./.defaults.$SCRIPT || echo -e "${ORANGE}WARNING:  Saved defaults are invalid! Please save again.${NC}" )
 
 FIRMWARE=""
 YES="N"
