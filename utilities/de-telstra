@@ -19543,8 +19543,7 @@ fi
 
 #region Telstra NTP servers
 if [ "$__NTP" = 'n' ]; then
-  for s in $(uci -q get system.ntp.server | tr " " "$IFS")
-  do
+  for s in $(uci -q get system.ntp.server | tr " " "$IFS"); do
     if echo $s | grep -q -i telstra; then
       echo [$SCRIPT]: - Removing Telstra NTP server $s
       exec_uci del_list system.ntp.server="$s"
@@ -19555,6 +19554,14 @@ if [ "$__NTP" = 'n' ]; then
     echo [$SCRIPT]: - Telstra NTP servers already removed
   else
     exec_uci commit system
+  fi
+  if uci -q get dhcp.lan.dhcp_option | grep -q '42,203.57.51.100,203.14.0.250'; then
+    echo [$SCRIPT]: - Removing Telstra NTP servers DHCP option
+    uci del_list dhcp.lan.dhcp_option='42,203.57.51.100,203.14.0.250'
+    uci commit dhcp
+    SRV_dhcp=$(( $SRV_dhcp + 1 ))
+  else
+    echo [$SCRIPT]: - Telstra NTP servers DHCP option already removed
   fi
 else
   echo -e "[$SCRIPT]: - ${ORANGE}OVERRIDE! Telstra NTP servers NOT Removed${NC}"
