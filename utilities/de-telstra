@@ -19354,7 +19354,9 @@ echo [$SCRIPT]: Applying default hardening rules...
 CWMPD_LOG=$(uci -q show system | grep -i cwmp | cut -d. -f1-2 | sort -u)
 CWMPD_WANS=$(grep "^ *set_cwmpd" /usr/lib/lua/wansensingfw/failoverhelper.lua | wc -l)
 CWMPD_IQOS=$(uci -q show iqos | grep "target='cwmpd'" | cut -d. -f1-2)
-if [ "$(uci -q get cwmpd.cwmpd_config.state)" = "1" -o -e /etc/init.d/cwmpd -o -n "$CWMPD_IQOS" -o $CWMPD_WANS -gt 0 -o -n "$CWMPD_LOG" ]; then
+CWMP_DHCP_66=$(uci -q get dhcp.lan.dhcp_option | grep -o '66,dms.digitalbusiness.telstra.com')
+CWMP_DHCP_160=$(uci -q get dhcp.lan.dhcp_option | grep -o '160,http://polydms.digitalbusiness.telstra.com/dms/bootstrap')
+if [ "$(uci -q get cwmpd.cwmpd_config.state)" = "1" -o -e /etc/init.d/cwmpd -o -n "$CWMPD_IQOS" -o $CWMPD_WANS -gt 0 -o -n "$CWMPD_LOG" -o -n "$CWMP_DHCP_66" -o -n "$CWMP_DHCP_160" ]; then
   if [ "$__CWMP" = 'n' ]; then
     echo [$SCRIPT]: - Disabling CWMP
     exec_uci set cwmpd.cwmpd_config.state='0'
@@ -19387,6 +19389,18 @@ if [ "$(uci -q get cwmpd.cwmpd_config.state)" = "1" -o -e /etc/init.d/cwmpd -o -
         SRV_system=$(( $SRV_system + 1 ))
       done
       exec_uci commit system
+    fi
+    if [ -n "$CWMP_DHCP_66" ]; then
+      echo [$SCRIPT]: - Removing Telstra TFTP Server DHCP option
+      exec_uci del_list dhcp.lan.dhcp_option="$CWMP_DHCP_66"
+      exec_uci commit dhcp
+      SRV_dhcp=$(( $SRV_dhcp + 1 ))
+    fi
+    if [ -n "$CWMP_DHCP_160" ]; then
+      echo [$SCRIPT]: - Removing Telstra Provisioning Server DHCP option
+      exec_uci del_list dhcp.lan.dhcp_option="$CWMP_DHCP_160"
+      exec_uci commit dhcp
+      SRV_dhcp=$(( $SRV_dhcp + 1 ))
     fi
     PACKAGES_TO_REMOVE="$PACKAGES_TO_REMOVE conf-cwmpd cwmpd"
   else
@@ -19557,8 +19571,8 @@ if [ "$__NTP" = 'n' ]; then
   fi
   if uci -q get dhcp.lan.dhcp_option | grep -q '42,203.57.51.100,203.14.0.250'; then
     echo [$SCRIPT]: - Removing Telstra NTP servers DHCP option
-    uci del_list dhcp.lan.dhcp_option='42,203.57.51.100,203.14.0.250'
-    uci commit dhcp
+    exec_uci del_list dhcp.lan.dhcp_option='42,203.57.51.100,203.14.0.250'
+    exec_uci commit dhcp
     SRV_dhcp=$(( $SRV_dhcp + 1 ))
   else
     echo [$SCRIPT]: - Telstra NTP servers DHCP option already removed
