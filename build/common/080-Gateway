@@ -51,9 +51,14 @@ sed \
 
 echo -e "[$SCRIPT]: Add option to disable/enable NTP Server"
 sed \
-  -e '/uci.system.system.@system\[0\].timezone/i\   system_ntpserver = "uci.system.ntp.enable_server",' \
-  -e '/system_timezone = function/i\  system_ntpserver = post_helper.validateBoolean,' \
-  -e '/createInputSelect(T"Current Timezone"/a\    html[#html + 1] = ui_helper.createSwitch(T"Enable NTP Server", "system_ntpserver", system_data["system_ntpserver"], basic)' \
+  -e '/uci.system.system.@system\[0\].timezone/i\   system_ntpserver = "uci.system.ntp.enable_server",\
+    system_ntpfromdhcp = "uci.system.ntp.use_dhcp",' \
+  -e '/system_timezone = function/i\  system_ntpserver = post_helper.validateBoolean,\
+  system_ntpfromdhcp = post_helper.validateBoolean,' \
+  -e '/-- NTP servers/a\    html[#html + 1] = "<hr>"' \
+  -e "/^ngx.print(html)/i\    html[#html + 1] = ui_helper.createSwitch(T\"Auto-Discover NTP<span class='icon-question-sign' title='Enable to add any NTP servers advertised via WAN DHCP'></span>\", \"system_ntpfromdhcp\", system_data[\"system_ntpfromdhcp\"], basic)\
+    html[#html + 1] = ui_helper.createSwitch(T\"Enable NTP Server\", \"system_ntpserver\", system_data[\"system_ntpserver\"], basic)\
+    html[#html + 1] = \"<hr>\"" \
   -e '/elseif ngx.req.get_method() == "GET"/i\  if ngx.req.get_post_args().system_ntpserver == "0" then\
     local dhcp = {}\
     local baseDHCPOptions = "uci.dhcp.dhcp.@lan.dhcp_option."\
