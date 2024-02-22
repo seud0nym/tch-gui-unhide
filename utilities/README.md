@@ -641,10 +641,10 @@ You can also download the latest version individually:
 
 Execute this command on your device via a PuTTY session or equivalent (an active WAN/Internet connection is required):
 ```
-wget https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/<script> 
+wget --no-check-certificate https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/<script> 
 ```
 
-Alternatively, download the script manually and load it up to your device using WinSCP or equivalent.
+Alternatively, download the script manually and load it up to your device using WinSCP or equivalent. Make sure you do not change the line endings from Unix to Windows!!
 
 After you have the script on your device, you may need to make it executable, which is done with this command (assuming you are in the same directory as the script):
 ```
