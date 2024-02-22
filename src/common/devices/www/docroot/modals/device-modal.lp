@@ -179,12 +179,12 @@ local devices_columns = {
     readonly = true,
   },
   {--[9]
-  header = T"",
-  name = "IPAddress",
-  param = "IPAddress",
-  type = "hidden",
-  readonly = true,
-},
+    header = T"",
+    name = "IPAddress",
+    param = "IPAddress",
+    type = "hidden",
+    readonly = true,
+  },
 }
 local dumaOS = proxy.get("uci.dumaos.tr69.dumaos_enabled")
 if dumaOS and dumaOS[1].value ~= "1" then
@@ -414,7 +414,7 @@ for(var i=0;i<hdrs.length;i++){\
     if (title=="") {\
       title="Sort by "+text;\
     }\
-    hdrs[i].innerHTML=\'<a href="#" title="\'+title+\'" data-remote="modals/device-modal.lp?sort=\'+sort+\'&connected=\'+connected+\'',modal_param,'">\'+text+\'</a>\';\
+    hdrs[i].innerHTML=\'<a href="#" title="\'+title+\'" onclick="return showLoadingWrapper();" data-remote="modals/device-modal.lp?sort=\'+sort+\'&connected=\'+connected+\'',modal_param,'">\'+text+\'</a>\';\
     hdrs[i].setAttribute("class","nav");\
   }\
 }\
