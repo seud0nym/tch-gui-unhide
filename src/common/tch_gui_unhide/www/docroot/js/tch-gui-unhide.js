@@ -25,16 +25,23 @@ function unhideWaiting(){
   }
 }
 let modalLoaded=false;
-$(document).bind("DOMSubtreeModified",function(){
+const callback = (mutationList, observer) => {
   if(!modalLoaded){
-    if($(".modal-backdrop").length>0){
-      modalLoaded=true;
-      $("#waiting:not(.do-not-show)").fadeOut();
-      setTimeout(clearRegisteredIntervals,1);
-      setTimeout(abortActiveAjaxRequests,1);
+    for (const mutation of mutationList) {
+      if (mutation.type === "childList") {
+        if($(".modal-backdrop").length>0){
+          modalLoaded=true;
+          setTimeout(clearRegisteredIntervals);
+          setTimeout(abortActiveAjaxRequests);
+          $("#waiting:not(.do-not-show)").fadeOut();
+        }
+      }
     }
   }
-});
+};
+const observer = new MutationObserver(callback);
+const container = document.documentElement || document.body;
+observer.observe(container,{childList:true,subtree:true});
 $("body").on("click",".smallcard .header,.modal-link",unhideWaiting);
 $(document).ajaxSend(function(event,xhr,settings) {
   window.activeXHR.push(xhr);
