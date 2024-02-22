@@ -17,7 +17,7 @@ local tags = leases_helper.get_dhcp_tags()
 local ngx = ngx
 local ipairs,pairs,string = ipairs,pairs,string
 local tonumber = tonumber
-local match = string.match
+local format,lower,match = string.format,string.lower,string.match
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
@@ -95,6 +95,40 @@ if #mac_list <= 1 then
   sleases_columns[1].attr = { input = sleases_mac_attr, autocomplete = hosts_mac }
 end
 
+local getargs = ngx.req.get_uri_args()
+--region sorting
+local sortcol
+if (getargs.sort) then
+  sortcol = untaint(getargs.sort)
+else
+  sortcol = "name"
+end
+local sortfunc
+if sortcol == "name" then
+  sortfunc = function(a,b)
+    return lower(a.name or "") < lower(b.name or "")
+  end
+elseif sortcol == "mac" then
+  sortfunc = function(a,b)
+    return lower(a.mac or "") < lower(b.mac or "")
+  end
+elseif sortcol == "ip" then
+  local ipv4ToNumber = function(ipv4)
+    local bits = {match(untaint(ipv4) or "","(%d+)%.(%d+)%.(%d+)%.(%d+)")}
+    if #bits == 4 then
+      return tonumber(format("%03d%03d%03d%03d",bits[1],bits[2],bits[3],bits[4]))
+    else
+      return 0
+    end
+  end
+  sortfunc = function(a,b)
+    return ipv4ToNumber(a.ip) < ipv4ToNumber(b.ip)
+  end
+else
+  sortfunc = sortcol
+end
+--endregion
+
 local sleases_valid = {
   sleases_name = leases_helper.validateStaticLeaseName,
   sleases_mac = gAV(leases_helper.validateStaticLeaseMAC,vQTN),
@@ -111,7 +145,7 @@ local sleases_options = {
   addNamedObject = true,
   onAdd = leases_helper.onLeaseChange,
   onModify = leases_helper.onLeaseChange,
-  sorted = leases_helper.sort_static_leases,
+  sorted = sortfunc,
 }
 
 local used_tags = {}
@@ -277,7 +311,7 @@ lp.setpath("/www/snippets/")
 ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
 <div class="modal-body update">\
 '); lp.include("tabs-lan.lp"); ngx.print('\
-  <form class="form-horizontal" method="post" action="',ngx.var.request_uri,'">\
+  <form class="form-horizontal" method="post" action="modals/ethernet-static-leases-modal.lp?sort=',sortcol,'">\
   ',ui_helper.createMessages(message_helper.popMessages()),'\
     <fieldset>\
       <legend>',T"Static Leases",'</legend>\
@@ -298,7 +332,29 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
       ',ui_helper.createTable(tags_columns,tags_data,tags_options,nil,tags_helpmsg),'\
     </fieldset>\
   </form>\
-  <script src="/js/modal-busy.js"></script>\
 </div>\
+<script src="/js/modal-busy.js"></script>\
+',ui_helper.createFooter(),'\
 <script src="/js/ethernet-modal.js"></script>\
-',ui_helper.createFooter())
+<script>\
+var hdrs = document.getElementsByTagName("th");\
+for(var i=0;i<hdrs.length;i++){\
+  var text=hdrs[i].innerText;\
+  var sort="";\
+  var title="";\
+  switch(text){\
+    case "MAC Address":sort="mac";break;\
+    case "Host Name":sort="name";break;\
+    case "IPv4 Address":sort="ip";break;\
+    default:sort="";break;\
+  }\
+  if (sort!="") {\
+    if (title=="") {\
+      title="Sort by "+text;\
+    }\
+    hdrs[i].innerHTML=\'<a href="#" title="\'+title+\'" onclick="return showLoadingWrapper();" data-remote="modals/ethernet-static-leases-modal.lp?sort=\'+sort+\'">\'+text+\'</a>\';\
+    hdrs[i].setAttribute("class","nav");\
+  }\
+}\
+</script>\
+');

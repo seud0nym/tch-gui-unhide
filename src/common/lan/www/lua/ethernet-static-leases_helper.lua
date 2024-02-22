@@ -131,10 +131,6 @@ function M.onTagModify(index,changed)
   end
 end
 
-function M.sort_static_leases(a,b)
-  return toupper(a.name or "") < toupper(b.name or "")
-end
-
 function M.sort_tags(a,b)
   return toupper(a.paramindex or "") < toupper(b.paramindex or "")
 end
@@ -232,7 +228,6 @@ end
 
 function M.validateTags(data)
   local existing = proxy.getPN("uci.dhcp.tag.",true)
-ngx.log(ngx.ALERT,format("#data=%d #existing=%d",#data,#existing))
   if #data == #existing+1 then
     local new = data[#data][1]
     ngx.log(ngx.ALERT,format("new=%s",untaint(new)))
