@@ -74,7 +74,7 @@ u{text-decoration:none;}
   .chartcard-summary{height:195px;}
   .row>div.span3{height:217px;}
   .smallcard .content{height:125px}
-	.span3{width:270px;}
+  .span3{width:270px;}
   #classify .additional-edit input.span1{width:200px;}
   #classify .additional-edit input.span2{width:450px;}
   #sipnet .span2{width:105px;}
@@ -88,7 +88,7 @@ body,li,label,input,button,select,textarea,.table th,.table td{line-height:20px;
 @media screen and (max-width:1199px) {
   .chartcard-summary{height:217px;}
   .row{min-height:110px;}
-  .row>div.span3{height:237px;}
+  .row>div.span3{height:237px;float:left;margin-right:20px;}
   .smallcard .content{height:147px;}
-  .span3{width:320px;}
+  .span3{width:310px;}
 }
