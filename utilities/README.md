@@ -391,6 +391,9 @@ Options:
                       into the passive bank.
  -v                 Show the reset script after it has been written.
  -y                 Bypass confirmation prompt (answers 'y').
+ --force-backup     By default, attempting to overwrite a backup created today
+                      will cause the script to abort. Specify this option to
+                      force a new backup to overwrite the previous backup.
  --no-bank-check    Bypass adding the login notification about whether the bank
                       plan is optimal or not.
  --no-keys-check    Bypass check for updated authorized_keys file.
@@ -491,6 +494,9 @@ Options:
                       into the passive bank.
  -v                 Show the reset script after it has been written.
  -y                 Bypass confirmation prompt (answers 'y').
+ --force-backup     By default, attempting to overwrite a backup created today
+                      will cause the script to abort. Specify this option to
+                      force a new backup to overwrite the previous backup.
  --no-bank-check    Bypass adding the login notification about whether the bank
                       plan is optimal or not.
  --no-keys-check    Bypass check for updated authorized_keys file.

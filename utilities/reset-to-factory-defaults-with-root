@@ -19,7 +19,7 @@ UCI_DEFAULTS="zzz-9999-reroot"
 BOOTMGR="$(which bootmgr)"
 
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
-[ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
+[ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //' -e 's/TLS//')
 MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
 
 if [ -z "$BOOTMGR" ]; then
@@ -98,6 +98,9 @@ Options:
                       into the passive bank.
  -v                 Show the reset script after it has been written.
  -y                 Bypass confirmation prompt (answers 'y').
+ --force-backup     By default, attempting to overwrite a backup created today
+                      will cause the script to abort. Specify this option to
+                      force a new backup to overwrite the previous backup.
  --no-bank-check    Bypass adding the login notification about whether the bank
                       plan is optimal or not.
  --no-keys-check    Bypass check for updated authorized_keys file.
@@ -255,6 +258,7 @@ set_defaults() {
 set_defaults
 ABORT="N"
 FIRMWARE=""
+FORCE_BACKUP="N"
 YES="N"
 SAVE_DEFAULTS="N"
 SHOW_DEFAULTS="N"
@@ -301,6 +305,7 @@ while getopts :bBcCdD:ef:h:iI:kl:mnp:svyU-: option; do
         safe-firmware-upgrade) SCRIPT="safe-firmware-upgrade";;
         abort)          ABORT="Y"; __VERBOSE="Y";;
         i)              RESTORE_IPADDR="Y";;
+        force-backup)   FORCE_BACKUP="Y";;
         no-defaults)    set_defaults;;
         no-bank-check)  __NO_BANK_PLAN_CHK="Y";;
         no-forwards)    __NO_FWD="Y";;
@@ -412,6 +417,7 @@ save_defaults() {
 
 if [ $SAVE_DEFAULTS = "Y" -o $SHOW_DEFAULTS = "Y" -o $YES = "N" ]; then
   show_default "-b" "Backup /overlay and configuration to USB" $__BKUP
+  show_default "--force-backup" "Force overwrite of todays backup" $FORCE_BACKUP
   show_default "-B" "Bridged mode" $__BRIDGED
   show_default "-c" "Disable CWMP during first boot" $__CWMP
   show_default "-C" "Disable reboot on core dump" $__COREDUMP_REBOOT
@@ -455,9 +461,18 @@ if [ -n "$__BKUP" ]; then
     exit
   else
     TARGET="${MOUNT_PATH}${USB}/backups"
+    FULL_VERSION=$(uci get version.@version[0].version | cut -d- -f1)
+    if [ -s "$TARGET/$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz" ]; then
+      today="$(date +%Y-%m-%d)"
+      bakdt="$(ls -l --full-time "$TARGET/$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz" | tr -s ' ' | cut -d' ' -f6)"
+      if [ "$bakdt" = "$today" -a "$FORCE_BACKUP" = "N" ]; then
+        echo -e "${ORANGE}WARNING:  $TARGET/$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz created $bakdt"
+        echo -e    "${RED}ABORTING: Backup was already taken today, and ${NC}--force-backup${RED} option not specified${NC}"
+        exit
+      fi
+    fi
     echo "NOTE:     /overlay contents and current configuration will be backed up to $TARGET"
     [ -d "$TARGET" ] || mkdir -p "$TARGET"
-    FULL_VERSION=$(uci get version.@version[0].version | cut -d- -f1)
     echo -e "${GREY}INFO:     Finding unchanged overlay contents to exclude${NC}"
     rm -f /tmp/exclude_from_overlay_backup
     echo "./$BOOTED/etc/config/env" > /tmp/exclude_from_overlay_backup
