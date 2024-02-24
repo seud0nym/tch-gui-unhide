@@ -4,8 +4,8 @@ SCRIPT="$(basename $0)"
 
 SERIAL=$(uci get env.var.serial)
 VERSION=$(uci get version.@version[0].version | cut -d- -f1)
-VARIANT=$(uci -q get env.var.variant_friendly_name)
-[ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
+VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
+[ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //' -e 's/TLS//')
 
 if [ -z "$(which bootmgr)" ]; then
   BOOTED="$(cat /proc/banktable/booted 2>/dev/null)"
@@ -258,6 +258,11 @@ if [ -f $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz ]; then
     mv $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz $TARGET/$VARIANT-$SERIAL-$FIX_VER-overlay-files-backup.tgz
   fi
 fi
+for f in $(ls $TARGET/$(uci -q get env.var.variant_friendly_name)* 2>/dev/null); do
+  fixed=$(echo "$f" | sed -e "s/${VARIANT}TLS/${VARIANT}/")
+  $LOGGER user.info "RENAMING $f to $fixed"
+  mv "$f" "$fixed"
+done
 #endregion
 
 if [ $DUMP_CFG = Y ]; then
