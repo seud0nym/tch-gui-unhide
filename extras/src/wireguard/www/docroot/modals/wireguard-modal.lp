@@ -625,7 +625,7 @@ let target = $("#interfaces-to-add");\
 $("#config-file").on("change",function(evt) {\
   target.html("");\
   function addNewInterface(filename,content) {\
-    let name = filename.replace(/^\\/.+/,"").replace(/\\.[^/.]+$/,"").replace(/-/,"_");\
+    let name = filename.replace(/^\\/.+/g,"").replace(/\\.[^/.]+$/g,"").replace(/-/g,"_");\
     let group = $("<div>",{\
       "class" : "control-group"\
     });\
