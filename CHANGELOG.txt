@@ -1,3 +1,20 @@
+2024.02.29
+==========
+* tch-gui-unhide: Fixed failure to save Wi-Fi tab in FW 21.4 when Guest removed (https://whrl.pl/RgFNxA)
+* tch-gui-unhide: Fixed failure to save new WiFi password in FW 21.4 when using single SSID (https://whrl.pl/RgFNGZ)
+* tch-gui-unhide: Fixed de-branded landing page layout on Firefox v122.0 (https://whrl.pl/RgGjwx)
+* tch-gui-unhide: Fixed LAN card always showing AdGuard Home controlling DHCP (if AdGuard Home installed) even if it didn't (#187)
+* tch-gui-unhide: Added ability to enable/disable auto-discovery of NTP servers via WAN DHCP (https://whrl.pl/RgGFgy)
+* tch-gui-unhide: Added ability to sort Static Leases by MAC Address, Host Name and IPv4 address (#190)
+* tch-gui-unhide: The wait spinner will now be shown whilst sorting the connected Devices list
+* tch-gui-unhide: Improved card presentation on mobile devices
+* tch-gui-unhide: Replaced deprecated DOMSubtreeModified event on card dashboard with MutationObserver
+* de-telstra: Remove Telstra NTP Servers DHCP option (new in 21.4.0439)
+* de-telstra: Remove Telstra TFTP and Provisioning Servers DHCP options (new in 21.4.0439)
+* mtd-backup: Fixed naming of backups because it did not remove the TLS from the variant (e.g. it named backups starting with DJA0230TLS instead of just DJA0230)
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Now will not automatically overwrite an existing backup from today unless the new --force-backup option specified
+* safe-firmware-upgrade: Fixed incorrect warning that saved defaults are invalid when no defaults had been saved
+
 2023.12.21
 ==========
 * tch-gui-unhide: Fixed bug that caused LAN IPv6 Prefix Size to be reset to /64 whenever any other change was made on the Local Network Interfaces tab
