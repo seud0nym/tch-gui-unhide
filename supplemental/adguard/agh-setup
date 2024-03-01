@@ -33,6 +33,7 @@ options:
  -e                Install AdGuard Home on USB rather than INTERNAL storage.
                       This is the default if the local filesystem is jffs2, because 
                       AdGuard Home is INCOMPATIBLE with jffs2.
+ -j                Enable DNS hijacking.
  -k                Keep dnsmasq as the primary DNS Server on port 53 and use 
                       AdGuard Home as the only upstream DNS Server.
                       Implies the -d option.
@@ -46,16 +47,15 @@ options:
  -v 'version'      The version of AdGuard Home to be installed (e.g. $MIN_VER).
                      The default is the latest version, and the minimum version is
                      $MIN_VER. Ignored if -xg or -xx specified.
- -x c|g|i|s|u|y|x  Exclude features:
+ -x c|g|s|u|y|x    Exclude features:
                      -xc  Do not update System CA certificates
                             NOTE: If certificates are not up to date, AdGuard Home
                                   will FAIL to download filters
                      -xg  Do not get the latest version of AdGuard Home if it has
                             already been downloaded
-                     -xi  Do not enable DNS hijacking
                      -xs  Do not enable scheduled update of AdGuard Home
                      -xu  Do not download utility scripts (Implies -xs)
-                     -xx  Same as -xc -xg -xi -xs -xu
+                     -xx  Same as -xc -xg -xs -xu
                      -xy  Do not replace an existing AdGuard Home Configuration
                             file (no effect if the .yaml file does not exist)
  -s                Skips the free memory check.
@@ -90,7 +90,7 @@ AGH_PORT=53
 AGH_VER=""
 KEEP_DNSMASQ=N
 DOWNLOAD=Y
-HIJACKING=Y
+HIJACKING=N
 SCHEDULED=Y
 UTILITIES=Y
 REMOVE=N
@@ -109,12 +109,13 @@ else
   QUERYLOG_INTERVAL=24h
 fi
 
-while getopts :deih:kn:p:rsuv:x: option; do
+while getopts :deih:jkn:p:rsuv:x: option; do
  case "${option}" in
   d)  AGH_DHCP=false;;
   e)  EXTERNAL=Y;QUERYLOG_INTERVAL=2160h;;
   i)  EXTERNAL=N;QUERYLOG_INTERVAL=24h;;
   h)  PWD_HASH="$OPTARG";;
+  j)  HIJACKING=Y;;
   k)  KEEP_DNSMASQ=Y;AGH_DHCP=false;AGH_PORT=53535;;
   n)  USERNAME="$OPTARG";;
   p)  PASSWORD="$OPTARG";;
@@ -125,11 +126,10 @@ while getopts :deih:kn:p:rsuv:x: option; do
   x)  case "$OPTARG" in
         c)  CA_CERT=N;;
         g)  DOWNLOAD=N;;
-        i)  HIJACKING=N;;
         s)  SCHEDULED=N;;
         u)  UTILITIES=N;SCHEDULED=N;;
         y)  OVERWRITE=N;;
-        x)  CA_CERT=N;DOWNLOAD=N;HIJACKING=N;SCHEDULED=N;UTILITIES=N;;
+        x)  CA_CERT=N;DOWNLOAD=N;SCHEDULED=N;UTILITIES=N;;
         *)  echo -e "${RED}[$SCRIPT] Unknown -x$OPTARG option! Aborting...${NC}"; exit 2;;
       esac;;
   *)  usage;;
