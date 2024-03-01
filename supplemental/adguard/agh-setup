@@ -896,10 +896,11 @@ fi
 echo -e "${GREEN}[$SCRIPT] Installing AdGuard Home...${NC}"
 AdGuardHome/AdGuardHome -s install -c $INSTALL_ROOT/AdGuardHome/AdGuardHome.yaml -w $WORKING_DIR
 
-echo -e "${GREEN}[$SCRIPT] Checking AdGuard Home status...${NC}"
+echo -en "${GREEN}[$SCRIPT] Checking AdGuard Home status"
 AGH_RUNNING='false'
 STATUS_CHK=0
-while [ $STATUS_CHK -lt 5 ]; do
+while [ $STATUS_CHK -lt 15 ]; do
+  echo -n "."
   curl -su $USERNAME:$PASSWORD http://${GATEWAY}:8008/control/status | grep -q '"running":true'
   if [ $? -eq 0 ]; then
     AGH_RUNNING='true'
@@ -909,19 +910,20 @@ while [ $STATUS_CHK -lt 5 ]; do
     STATUS_CHK=$(( $STATUS_CHK + 1 ))
   fi
 done
+echo -e "${NC}"
 
 if [ $AGH_RUNNING = 'true' ]; then
   if [ $AGH_DHCP = true ]; then
     echo -e "${GREEN}[$SCRIPT] Loading static leases...${NC}"
-    for host in $(uci show dhcp | grep '@host.*=host$' | cut -d= -f1); do
+    for host in $(uci show dhcp | grep '=host$' | cut -d= -f1); do
       SLEASE_MAC="$(uci -q get $host.mac)"
       SLEASE_IP="$(uci -q get $host.ip)"
       SLEASE_NAME="$(uci -q get $host.name)"
       if [ -n "$SLEASE_IP" -a -n "$SLEASE_MAC" -a -n "$SLEASE_NAME" ]; then
         echo -e "[$SCRIPT] Loading static lease for $SLEASE_IP ($SLEASE_MAC - $SLEASE_NAME)"
-        curl -u $USERNAME:$PASSWORD -X POST --data "{ \"mac\":\"$SLEASE_MAC\", \"ip\":\"$SLEASE_IP\", \"hostname\":\"$SLEASE_NAME\" }" http://${GATEWAY}:8008/control/dhcp/add_static_lease
+        curl -u $USERNAME:$PASSWORD -X POST -H 'Content-Type: application/json' --data "{ \"mac\":\"$SLEASE_MAC\", \"ip\":\"$SLEASE_IP\", \"hostname\":\"$SLEASE_NAME\" }" http://${GATEWAY}:8008/control/dhcp/add_static_lease
       else
-        echo -e "${ORANGE}[$SCRIPT] SKIPED loading static lease - missing parameter (MAC=$SLEASE_MAC: IP=$SLEASE_IP HOST NAME=$SLEASE_NAME)${NC}"
+        echo -e "${ORANGE}[$SCRIPT] SKIPPED loading static lease - missing parameter (MAC=$SLEASE_MAC: IP=$SLEASE_IP HOST NAME=$SLEASE_NAME)${NC}"
       fi
     done
   fi
