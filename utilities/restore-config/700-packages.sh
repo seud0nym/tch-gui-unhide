@@ -22,8 +22,8 @@ if [ -s $BANK2/etc/opkg/customfeeds.conf -a $(grep -v '^#' $BANK2/etc/opkg/custo
   include=$(find $BANK2/usr/lib/opkg/info/ -type f -name '*.control' $exclude -exec basename {} .control \; | xargs)
   if [ -n "$include" ]; then
     log I "Installing additional packages"
-    opkg update
-    opkg --force-overwrite install $include
+    opkg --no-check-certificate update
+    opkg --no-check-certificate --force-overwrite install $include
     log I "Restoring additional packages configuration"
     restore_file /etc/config/adblock /etc/config/minidlna /etc/rsyncd.conf
   else
