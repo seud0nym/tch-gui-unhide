@@ -22,3 +22,4 @@ log I "Restoring ledfw configuration..."
 if [ "$DEVICE_VERSION" = "$BACKUP_VERSION" ]; then
   restore_file /etc/config/ledfw
 fi
+restore_file /etc/ledfw/stateMachines.lua
