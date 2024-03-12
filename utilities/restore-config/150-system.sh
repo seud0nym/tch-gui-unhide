@@ -17,3 +17,8 @@ if [ "$BACKUP_SERIAL" = "$DEVICE_SERIAL" ]; then
   uci_set system.@system[0].sw_reboot_count
 fi
 uci -q commit system
+
+log I "Restoring ledfw configuration..."
+if [ "$DEVICE_VERSION" = "$BACKUP_VERSION" ]; then
+  restore_file /etc/config/ledfw
+fi
