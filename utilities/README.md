@@ -394,6 +394,7 @@ Options:
  --force-backup     By default, attempting to overwrite a backup created today
                       will cause the script to abort. Specify this option to
                       force a new backup to overwrite the previous backup.
+ --no-backup        Ignore the -b option if a backup was already taken today.
  --no-bank-check    Bypass adding the login notification about whether the bank
                       plan is optimal or not.
  --no-keys-check    Bypass check for updated authorized_keys file.
@@ -497,6 +498,7 @@ Options:
  --force-backup     By default, attempting to overwrite a backup created today
                       will cause the script to abort. Specify this option to
                       force a new backup to overwrite the previous backup.
+ --no-backup        Ignore the -b option if a backup was already taken today.
  --no-bank-check    Bypass adding the login notification about whether the bank
                       plan is optimal or not.
  --no-keys-check    Bypass check for updated authorized_keys file.

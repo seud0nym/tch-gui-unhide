@@ -109,6 +109,7 @@ Options:
                       When specified, NO changes are applied to the device.
  --show-defaults    Shows the settings that would be applied (defaults and over-rides)
                       When specified, NO changes are applied to the device.
+ --no-backup        Ignore the -b option if a backup was already taken today.
  --no-defaults      Ignores any saved defaults for this execution.
                       --no-defaults must be the FIRST option specified.
  -U                 Download the latest version of $SCRIPT from GitHub.
@@ -166,7 +167,7 @@ RESTORE_CONFIG="N"
 while getopts :bcCdD:eh:iI:kmnp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
-        i|force-backup|no-bank-check|no-keys-check|no-forwards|no-leases|no-ula) OPTIONS="$OPTIONS --${OPTARG}";;
+        i|force-backup|no-backup|no-bank-check|no-keys-check|no-forwards|no-leases|no-ula) OPTIONS="$OPTIONS --${OPTARG}";;
         restore-config) RESTORE_CONFIG="Y";;
         save-defaults) SAVE_DEFAULTS="Y";;
         no-defaults) OPTIONS="--no-defaults";;

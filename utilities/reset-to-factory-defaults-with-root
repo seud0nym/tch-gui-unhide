@@ -119,6 +119,7 @@ Options:
                       When specified, NO changes are applied to the device.
  --show-defaults    Shows the settings that would be applied (defaults and over-rides)
                       When specified, NO changes are applied to the device.
+ --no-backup        Ignore the -b option if a backup was already taken today.
  --no-defaults      Ignores any saved defaults for this execution
                       --no-defaults must be the FIRST option specified.
  -U                 Download the latest version of $SCRIPT from GitHub.
@@ -259,6 +260,7 @@ set_defaults
 ABORT="N"
 FIRMWARE=""
 FORCE_BACKUP="N"
+NO_BACKUP="N"
 YES="N"
 SAVE_DEFAULTS="N"
 SHOW_DEFAULTS="N"
@@ -306,6 +308,7 @@ while getopts :bBcCdD:ef:h:iI:kl:mnp:svyU-: option; do
         abort)          ABORT="Y"; __VERBOSE="Y";;
         i)              RESTORE_IPADDR="Y";;
         force-backup)   FORCE_BACKUP="Y";;
+        no-backup)      NO_BACKUP="Y";;
         no-defaults)    set_defaults;;
         no-bank-check)  __NO_BANK_PLAN_CHK="Y";;
         no-forwards)    __NO_FWD="Y";;
@@ -417,6 +420,7 @@ save_defaults() {
 
 if [ $SAVE_DEFAULTS = "Y" -o $SHOW_DEFAULTS = "Y" -o $YES = "N" ]; then
   show_default "-b" "Backup /overlay and configuration to USB" $__BKUP
+  show_default "--no-backup" "Ignore -b if backed up today" $NO_BACKUP
   show_default "--force-backup" "Force overwrite of todays backup" $FORCE_BACKUP
   show_default "-B" "Bridged mode" $__BRIDGED
   show_default "-c" "Disable CWMP during first boot" $__CWMP
@@ -466,45 +470,51 @@ if [ -n "$__BKUP" ]; then
       today="$(date +%Y-%m-%d)"
       bakdt="$(ls -l --full-time "$TARGET/$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz" | tr -s ' ' | cut -d' ' -f6)"
       if [ "$bakdt" = "$today" -a "$FORCE_BACKUP" = "N" ]; then
-        echo -e "${ORANGE}WARNING:  $TARGET/$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz created $bakdt"
-        echo -e    "${RED}ABORTING: Backup was already taken today, and ${NC}--force-backup${RED} option not specified${NC}"
-        exit
-      fi
-    fi
-    echo "NOTE:     /overlay contents and current configuration will be backed up to $TARGET"
-    [ -d "$TARGET" ] || mkdir -p "$TARGET"
-    echo -e "${GREY}INFO:     Finding unchanged overlay contents to exclude${NC}"
-    rm -f /tmp/exclude_from_overlay_backup
-    echo "./$BOOTED/etc/config/env" > /tmp/exclude_from_overlay_backup
-    for OVL_FILE in $(find /overlay/$BOOTED ! -type c -a ! -type d -a ! -type l | grep -v "./$BOOTED/etc/config/env" | sort); do 
-      SOURCE=$(echo $OVL_FILE | sed "s|^/overlay/$BOOTED|/rom|")
-      if [ -e $SOURCE ]; then
-        if cmp -s $OVL_FILE $SOURCE; then # Unchanged
-          echo $OVL_FILE | sed "s|^/overlay|.|" >> /tmp/exclude_from_overlay_backup
-        elif echo $OVL_FILE | grep -q "^/overlay/$BOOTED/etc/config"; then
-          CONFIG="$(basename $OVL_FILE)"
-          TMP_CONFIG="$(mktemp)"
-          uci -c /rom/etc/config show $CONFIG | sort > $TMP_CONFIG
-          if ! uci show $CONFIG | grep -v $SERIAL | sort | grep -qFxvf $TMP_CONFIG; then # Only serial number changed
-            echo $OVL_FILE | sed "s|^/overlay|.|" >> /tmp/exclude_from_overlay_backup
-          fi
-          rm -f $TMP_CONFIG
+        if [ "$NO_BACKUP" = "N" ]; then
+          echo -e "${ORANGE}WARNING:  $TARGET/$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz created $bakdt"
+          echo -e    "${RED}ABORTING: Backup was already taken today, and ${NC}--force-backup${RED} option not specified${NC}"
+          exit
+        else
+          __BKUP="N"
         fi
       fi
-    done
-    echo -e "INFO:     Backing up overlay to ${ORANGE}$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz${NC} ..."
-    tar -X /tmp/exclude_from_overlay_backup -C /overlay -czf $TARGET/$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz $(cd /overlay && ls -d ./bank_[12])
-    rm -f /tmp/exclude_from_overlay_backup
-    echo -e "INFO:     Backing up config to  ${ORANGE}$VARIANT-$SERIAL-$FULL_VERSION-config.gz${NC} ..."
-    uci show 2>/dev/null | awk -e "$(lua -e 'proxy=require("datamodel");
-    passwords=proxy.get("rpc.gui.pwd.")
-    if passwords then
-      for _,v in ipairs(passwords) do
-        profile=string.match(v.path,"rpc%.gui%.pwd%.@([^%.]*)%.")
-        print(string.format("/^mmpbxrvsipnet.%s.password=/{print \"mmpbxrvsipnet.%s.password=\\\"%s\\\"\";next;}",profile,profile,v.value))
+    fi
+    if [ "$__BKUP" = "Y" ]; then
+      echo "NOTE:     /overlay contents and current configuration will be backed up to $TARGET"
+      [ -d "$TARGET" ] || mkdir -p "$TARGET"
+      echo -e "${GREY}INFO:     Finding unchanged overlay contents to exclude${NC}"
+      rm -f /tmp/exclude_from_overlay_backup
+      echo "./$BOOTED/etc/config/env" > /tmp/exclude_from_overlay_backup
+      for OVL_FILE in $(find /overlay/$BOOTED ! -type c -a ! -type d -a ! -type l | grep -v "./$BOOTED/etc/config/env" | sort); do 
+        SOURCE=$(echo $OVL_FILE | sed "s|^/overlay/$BOOTED|/rom|")
+        if [ -e $SOURCE ]; then
+          if cmp -s $OVL_FILE $SOURCE; then # Unchanged
+            echo $OVL_FILE | sed "s|^/overlay|.|" >> /tmp/exclude_from_overlay_backup
+          elif echo $OVL_FILE | grep -q "^/overlay/$BOOTED/etc/config"; then
+            CONFIG="$(basename $OVL_FILE)"
+            TMP_CONFIG="$(mktemp)"
+            uci -c /rom/etc/config show $CONFIG | sort > $TMP_CONFIG
+            if ! uci show $CONFIG | grep -v $SERIAL | sort | grep -qFxvf $TMP_CONFIG; then # Only serial number changed
+              echo $OVL_FILE | sed "s|^/overlay|.|" >> /tmp/exclude_from_overlay_backup
+            fi
+            rm -f $TMP_CONFIG
+          fi
+        fi
+      done
+      echo -e "INFO:     Backing up overlay to ${ORANGE}$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz${NC} ..."
+      tar -X /tmp/exclude_from_overlay_backup -C /overlay -czf $TARGET/$VARIANT-$SERIAL-$FULL_VERSION-overlay-files-backup.tgz $(cd /overlay && ls -d ./bank_[12])
+      rm -f /tmp/exclude_from_overlay_backup
+      echo -e "INFO:     Backing up config to  ${ORANGE}$VARIANT-$SERIAL-$FULL_VERSION-config.gz${NC} ..."
+      uci show 2>/dev/null | awk -e "$(lua -e 'proxy=require("datamodel");
+      passwords=proxy.get("rpc.gui.pwd.")
+      if passwords then
+        for _,v in ipairs(passwords) do
+          profile=string.match(v.path,"rpc%.gui%.pwd%.@([^%.]*)%.")
+          print(string.format("/^mmpbxrvsipnet.%s.password=/{print \"mmpbxrvsipnet.%s.password=\\\"%s\\\"\";next;}",profile,profile,v.value))
+        end
       end
-    end
-    print("1")')" | gzip > $TARGET/$VARIANT-$SERIAL-$FULL_VERSION-config.gz
+      print("1")')" | gzip > $TARGET/$VARIANT-$SERIAL-$FULL_VERSION-config.gz
+    fi
   fi
 fi
 
@@ -535,7 +545,7 @@ if [ $RESTORE_CONFIG = Y ]; then
     if [ -z "$FIRMWARE" ]; then
       DEVICE_VERSION="$VERSION"
     else
-      DEVICE_VERSION=$(echo $FIRMWARE | grep -o '[1-2][078]\.[0-9]\(.c\)*')
+      DEVICE_VERSION=$(echo $FIRMWARE | grep -o '[1-2][0178]\.[0-9]\(.c\)*')
       if [ -z "$DEVICE_VERSION" ]; then
         echo -e "${RED}ABORTING: Unable to determine firmware version from filename: $FIRMWARE${NC}"
         echo -e "${RED}          Cannot determine if configuration restore is possible!${NC}"
@@ -543,7 +553,7 @@ if [ $RESTORE_CONFIG = Y ]; then
       fi
     fi
     DEVICE_VERSION_NUMBER="$(comparable_version $DEVICE_VERSION)"
-    BACKUP_VERSION="$(tar -Ozxf $RESTORE_OPTIONS ./bank_2/etc/banner | grep ^Release: | grep -o '(.*)' | tr -d '()')"
+    BACKUP_VERSION="$(gzip -cdk "${RESTORE_OPTIONS%-overlay-files-backup.tgz}-config.gz" | grep env.var.friendly_sw_version_activebank | cut -d"'" -f2 | cut -d- -f1 | sed -e 's/\.[0-9][0-9][0-9][0-9]$//')"
     BACKUP_VERSION_NUMBER="$(comparable_version $BACKUP_VERSION)"
     if [ "$VERSION" = "$BACKUP_VERSION" -o \( "$DEVICE_VERSION_NUMBER" -le 2004000 -a "$BACKUP_VERSION_NUMBER" -le 2004000 \) -o \( "$DEVICE_VERSION_NUMBER" -ge 2004000 -a "$BACKUP_VERSION_NUMBER" -ge 2004000 \) ]; then
       OVERLAY_BACKUP="$(basename $RESTORE_OPTIONS | cut -d- -f1-3) ($(ls -l $RESTORE_OPTIONS | tr -s ' ' | cut -d' ' -f6-8))"
