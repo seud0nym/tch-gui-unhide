@@ -142,7 +142,7 @@ find_scripts() {
       if [ "$(dirname $f)" != "$SCRIPT_DIR" ]; then
         if ! cmp -s "$f" "${SCRIPT_DIR}/$(basename $f)" 2>/dev/null; then
           log D " >> Copying $f to ${SCRIPT_DIR}"
-          cp "$f" "${SCRIPT_DIR}/"
+          cp -p "$f" "${SCRIPT_DIR}/"
         else
           log D " -- $f skipped (identical to ${SCRIPT_DIR}/$(basename $f))"
         fi
@@ -164,7 +164,7 @@ restore_file() {
       /-/)  if ! cmp -s "$source" "$target"; then
               log V " ++ Restoring ${target}"
               mkdir -p "$folder"
-              cp "$source" "$target"
+              cp -p "$source" "$target"
             fi;;
       /c/)  if [ -e "$target" ]; then
               log V " -- Deleting  ${target}"
