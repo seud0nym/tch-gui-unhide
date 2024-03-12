@@ -258,10 +258,12 @@ if [ -f $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz ]; then
     mv $TARGET/$VARIANT-$SERIAL-overlay-files-backup.tgz $TARGET/$VARIANT-$SERIAL-$FIX_VER-overlay-files-backup.tgz
   fi
 fi
-for f in $(ls $TARGET/$(uci -q get env.var.variant_friendly_name)* 2>/dev/null); do
+for f in $(ls $TARGET/${VARIANT}TLS* 2>/dev/null); do
   fixed=$(echo "$f" | sed -e "s/${VARIANT}TLS/${VARIANT}/")
-  $LOGGER user.info "RENAMING $f to $fixed"
-  mv "$f" "$fixed"
+  if [ "$f" != "$fixed" ]; then
+    $LOGGER user.info "RENAMING $f to $fixed"
+    mv "$f" "$fixed"
+  fi
 done
 #endregion
 
