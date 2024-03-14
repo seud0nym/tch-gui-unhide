@@ -50,12 +50,9 @@ Options:
               (This option is ignored if -R specified)
  -6          Enable LAN IPv6
               (This option is ignored if -R specified)
-EOH
-if [ $EASYMESH = multiap ]; then cat <<EOH
- -l 0-9      Set MultiAP logging level
+ -l 0-9      Set EasyMesh logging level
               0=off 2=Default 9=very verbose
 EOH
-fi
 if [ -n "$NQE" ]; then cat <<EOH
  -s          Apply the Samba (NQE) fix to allow the booster device to run as a
               file server.
@@ -102,7 +99,7 @@ while getopts :6dg:i:l:m:n:rsyR option; do
     d)  LAN_DHCP='y';;
     g)  LAN_GATEWAY="$OPTARG";;
     i)  LAN_IP_ADDR="$OPTARG";IP_ADDR_SET='y';;
-    l)  [ $EASYMESH = "multiap" ] && MULTIAP_LOGGING_LEVEL="$OPTARG" || echo -e "${ORANGE}WARNING! -l option ignored on this EasyMesh implementation${NC}";;
+    l)  MULTIAP_LOGGING_LEVEL="$OPTARG";;
     m)  LAN_NETMASK="$OPTARG";;
     n)  if [ -z "$LAN_DNS" ]; then
           LAN_DNS="$OPTARG"
@@ -151,7 +148,7 @@ if [ $RESTORE = n ]; then
       fi
     done
     if [ "$MULTIAP_LOGGING_LEVEL" -lt 0 -o "$MULTIAP_LOGGING_LEVEL" -gt 9 ]; then
-      echo -e "${RED}ERROR! MultiAP logging level must be between 0 and 9${NC}"
+      echo -e "${RED}ERROR! Logging level must be between 0 and 9${NC}"
       exit
     fi
   fi
@@ -363,6 +360,15 @@ if [ $RESTORE = n ]; then
     echo -e "${GREEN}Enabling EasyMesh agent${NC}"
     uci set mesh_broker.mesh_common.agent_enabled='1'
     uci set wireless.agent.state='1'
+    echo -e "${GREEN}Enabling EasyMesh on bridge${NC}"
+    uci set mesh_broker.mesh_common.interfaces='^lo$|^eth[0-4]$|^wds(([0-9])+[.]){2}([0-9])+$'
+    echo -e "${GREEN}Set EasyMesh logging level to $MULTIAP_LOGGING_LEVEL${NC}"
+    uci set mesh_broker.mesh_broker.log_level="$MULTIAP_LOGGING_LEVEL"
+    uci set mesh_broker.logging.ieee1905="$MULTIAP_LOGGING_LEVEL"
+    uci set mesh_broker.logging.platform="$MULTIAP_LOGGING_LEVEL"
+    uci set mesh_broker.logging.controller="$MULTIAP_LOGGING_LEVEL"
+    uci set mesh_broker.logging.cloud_comm="$MULTIAP_LOGGING_LEVEL"
+    uci set mesh_broker.logging.steer_ng="$MULTIAP_LOGGING_LEVEL"
     uci commit mesh_broker
     uci commit wireless
   fi
@@ -469,10 +475,20 @@ else # RESTORE
     uci set multiap.logging.vendor_ipc="$MULTIAP_LOGGING_LEVEL"
     uci commit multiap
   else
-    echo -e "${GREEN}Enabling EasyMesh agent${NC}"
-    uci set wireless.agent.state='1'
     echo -e "${ORANGE}Enabling EasyMesh controller${NC}"
     uci set mesh_broker.mesh_common.controller_enabled='1'
+    echo -e "${GREEN}Enabling EasyMesh agent${NC}"
+    uci set mesh_broker.mesh_common.agent_enabled='1'
+    uci set wireless.agent.state='1'
+    echo -e "${GREEN}Enabling EasyMesh on default interfaces${NC}"
+    uci set mesh_broker.mesh_common.interfaces='^lo$|^eth[0-3]$|^wds(([0-9])+[.]){2}([0-9])+$'
+    echo -e "${GREEN}Set EasyMesh logging level to $MULTIAP_LOGGING_LEVEL${NC}"
+    uci set mesh_broker.mesh_broker.log_level="$MULTIAP_LOGGING_LEVEL"
+    uci set mesh_broker.logging.ieee1905="$MULTIAP_LOGGING_LEVEL"
+    uci set mesh_broker.logging.platform="$MULTIAP_LOGGING_LEVEL"
+    uci set mesh_broker.logging.controller="$MULTIAP_LOGGING_LEVEL"
+    uci set mesh_broker.logging.cloud_comm="$MULTIAP_LOGGING_LEVEL"
+    uci set mesh_broker.logging.steer_ng="$MULTIAP_LOGGING_LEVEL"
     uci commit mesh_broker
     uci commit wireless
   fi
