@@ -123,7 +123,7 @@ function M.get_interfaces()
   local lan_intfs = {}
   local ppp_intf,ppp_dev
   for _,v in ipairs(all_intfs) do
-    if v.type ~= "wan" and v.paramindex ~= "ppp" and v.paramindex ~= "ipoe" and v.name ~= "wg0" and v.proto ~= "wireguard" and (not find(v["ppp.ll_intf"],"wl") or wireless_radio[untaint(v["ppp.ll_intf"])]) then
+    if v.type ~= "wan" and v.paramindex ~= "ppp" and v.paramindex ~= "ipoe" and v.paramindex ~= "wg0" and v.proto ~= "none" and v.proto ~= "wireguard" and (not find(v["ppp.ll_intf"],"wl") or wireless_radio[untaint(v["ppp.ll_intf"])]) then
       if v.name and v.name ~= "" then
         lan_intfs[#lan_intfs + 1] = {name=v.name,index=v.paramindex,up=v.up}
       else
