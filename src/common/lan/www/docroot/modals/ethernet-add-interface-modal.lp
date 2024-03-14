@@ -43,6 +43,10 @@ local function addFirewallRule(name,src,proto,target,dest,dest_ip,dest_port,fami
       okay = false
     else
       path = "uci.firewall.rule.@"..key.."."
+      _,err = proxy.get(path)
+      if err then
+        path = "uci.firewall.rule."..key.."."
+      end
     end
   end
   if okay then
@@ -304,6 +308,10 @@ elseif ngx.var.request_method == "POST" then
         okay = false
       else
         paths[#paths+1] = "uci.firewall.zone.@"..key.."."
+        _,err = proxy.get(paths[#paths])
+        if err then
+          paths[#paths] = "uci.firewall.zone."..key.."."
+        end
       end
     end
     if okay then -- set firewall zone config
@@ -326,6 +334,10 @@ elseif ngx.var.request_method == "POST" then
         okay = false
       else
         paths[#paths+1] = "uci.firewall.forwarding.@"..key.."."
+        _,err = proxy.get(paths[#paths])
+        if err then
+          paths[#paths] = "uci.firewall.forwarding."..key.."."
+        end
       end
     end
     if okay then -- set firewall forwarding config
