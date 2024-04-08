@@ -15,7 +15,6 @@ local mac_list,hosts_mac = leases_helper.get_mac_list(hosts_ac)
 local tags = leases_helper.get_dhcp_tags()
 
 local ngx = ngx
-local ipairs,pairs,string = ipairs,pairs,string
 local tonumber = tonumber
 local format,lower,match = string.format,string.lower,string.match
 ---@diagnostic disable-next-line: undefined-field
@@ -158,13 +157,15 @@ local sleases_filter = function(data)
       syshosts_data = proxy.get("sys.hosts.host.")
     end
     if syshosts_data then
-      for _,v in pairs(syshosts_data) do
+      for k=1,#syshosts_data do
+        local v = syshosts_data[k]
         if v.value == data['mac'] then
           path = v.path
           break
         end
       end
-      for _,v in pairs(syshosts_data) do
+      for k=1,#syshosts_data do
+        local v = syshosts_data[k]
         if v.path == path and v.param == "HostName" then
           data['name'] = v.value
           break
@@ -220,7 +221,8 @@ local tags_columns = {
 }
 
 local tags_filter = function(data)
-  for k,v in pairs(data) do
+  for k=1,#data do
+    local v = data[k]
     if match(k,"^dhcp_option.@") and match(v,"^6,") then
       data.dhcp_option = v
     end
@@ -257,7 +259,8 @@ if ngx.var.request_method == "POST" then
 end
 
 local tags_data,tags_helpmsg = post_helper.handleTableQuery(tags_columns,tags_options,tags_filter,nil,tags_valid)
-for i,row in pairs(tags_data) do
+for i=1,#tags_data do
+  local row = tags_data[i]
   tags_data[i][3] = match(row[5],"^6,([^,]+)") or ""
   tags_data[i][4] = match(row[5],"^6,[^,]+,(.+)") or ""
 end
@@ -275,8 +278,9 @@ if ngx.var.request_method == "POST" then
         text_mac = sleases_data[text_mac_index][1]
       end
       local flag = true
-      for _,j in ipairs(mac_list) do
-        if text_mac == j[1] then
+      for k=1,#mac_list do
+        local v = mac_list[k]
+        if text_mac == v[1] then
           flag = false
           break
         end
@@ -292,7 +296,8 @@ if ngx.var.request_method == "POST" then
           local slease_mac = post_data.sleases_mac
           local arranged_data = content_helper.convertResultToObject("sys.hosts.host.",syshosts_data)
           if arranged_data then
-            for _,v in pairs(arranged_data) do
+            for k=1,#arranged_data do
+              local v = arranged_data[k]
               if v.DhcpLeaseTime ~= "" and v.IPAddress == slease_ip and v.MACAddress ~= slease_mac then
                 inUseFlag = true
                 break

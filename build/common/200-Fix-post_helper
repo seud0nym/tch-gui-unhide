@@ -24,7 +24,8 @@ if ! grep -q '^function M.validateStringIsIPv4' /usr/lib/lua/web/post_helper.lua
 function M.validateStringIsIPv4(ip)\
   local chunks = {ip:match("^(%d+)%.(%d+)%.(%d+)%.(%d+)$")}\
   if #chunks == 4 then\
-    for _,v in pairs(chunks) do\
+    for k=1,4 do\
+      local v = chunks[k]\
       if tonumber(v) > 255 then\
         return nil, "Invalid IPv4 address"\
       end\

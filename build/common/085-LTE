@@ -163,7 +163,9 @@ sed \
   -e '/local function get_profile_select/i\end' \
   -e '/local function get_profile_select/i\\' \
   -e '/p.mapParams\["interface_enabled"\]/a\		p.plmn_map = {}' \
-  -e '/p.mapParams\["interface_enabled"\]/a\		for _,o in pairs(proxy.getPN("uci.mobiled.operator.",true)) do' \
+  -e '/p.mapParams\["interface_enabled"\]/a\		local operators = proxy.getPN("uci.mobiled.operator.",true)' \
+  -e '/p.mapParams\["interface_enabled"\]/a\		for k=1,#operators do' \
+  -e '/p.mapParams\["interface_enabled"\]/a\		  local o = operators[k]' \
   -e '/p.mapParams\["interface_enabled"\]/a\			local op = proxy.get(o.path.."plmn",o.path.."name")' \
   -e '/p.mapParams\["interface_enabled"\]/a\			local plmn,name = string.untaint(op[1].value),string.untaint(op[2].value)' \
   -e '/p.mapParams\["interface_enabled"\]/a\			p.plmn_map[#p.plmn_map+1] = { plmn, T(string.format("%s - %s",plmn,name)), name }' \

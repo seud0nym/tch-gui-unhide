@@ -34,8 +34,9 @@ sed \
   end,' \
   -e '/^local system_data/i\local old_hostname = proxy.get("uci.system.system.@system[0].hostname")[1].value' \
   -e '/^local system_data/a\if old_hostname ~= system_data["system_hostname"] and not system_helpmsg["system_hostname"] and ngx.req.get_method() == "POST" and ngx.req.get_post_args().action == "SAVE" then\
-  local dns\
-  for _,dns in pairs(proxy.get("uci.dhcp.dnsmasq.@main.hostname.")) do\
+  local main = proxy.get("uci.dhcp.dnsmasq.@main.hostname.")\
+  for k=1,#main do\
+    local dns = main[k]\
     if dns.value == old_hostname then\
       proxy.set(dns.path.."value",untaint(system_data["system_hostname"]))\
       proxy.apply()\
