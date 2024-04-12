@@ -1,304 +1,355 @@
 --pretranslated: do not change this file
-
+ 
 -- Localization
 gettext.textdomain('webui-core')
 
-local ngx = ngx
-local content_helper = require("web.content_helper")
-local proxy = require("datamodel")
-local ui_helper = require("web.ui_helper")
-local message_helper = require("web.uimessage_helper")
+local ddns_helper = require("wanservices-ddns_helper")
 local post_helper = require("web.post_helper")
+local proxy = require("datamodel")
+local message_helper = require("web.uimessage_helper")
+local ui_helper = require("web.ui_helper")
+
+local format,sub = string.format,string.sub
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
-local format,match = string.format,string.match
 
-local gVIPIL = post_helper.getValidationIfPropInList
-local gVIES = post_helper.getValidateInEnumSelect
-local vB = post_helper.validateBoolean
-local vNES = post_helper.validateNonEmptyString
-local gVP = post_helper.getValidationPassword
-local vSIIP6 = post_helper.validateStringIsIPv6
-local gAV = post_helper.getAndValidation
-local gOrV = post_helper.getOrValidation
-local vSIDN = post_helper.validateStringIsDomainName
-local vSIIP = post_helper.validateStringIsIP
-local gVNIR = post_helper.getValidateNumberInRange
+local uniqueKey = post_helper.getRandomKey()
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
-local function generate_ddns_supported_services(name)
-  -- open the supported services file that come with the ddns package
-  local ddns_supported_services,valid_services = {},{}
-  local path = format("/etc/ddns/%s",name)
-  local f = io.open(path,"r")
-  if f then
-    for line in f:lines() do
-      --a service in this file is indicated as a url between quotes, we want a list with urls and name of service in capitals
-      local service = line:match('^%b""')
-      if service then
-        service = service:gsub('"','')
-        ddns_supported_services[service] = service
-        valid_services[#valid_services + 1] ={ service }
-      end
-    end
-    f:close()
+local services_status = ddns_helper.get_services_status()
+
+local ddns_columns = {
+  { --[1]
+    header = T"Enabled",
+    name = "enabled",
+    param = "enabled",
+    type = "switch",
+    readonly = true,
+  },
+  { --[2]
+    header = T"State",
+    param = "ddns_light",
+    type = "text",
+    readonly = true,
+  },
+  { --[3]
+    header = T"Status",
+    param = "ddns_status",
+    type = "text",
+    readonly = true,
+  },
+  { --[4]
+    header = T"Service",
+    name = "Service",
+    param = "service_name",
+    type = "select",
+    values = ddns_helper.valid_services,
+    readonly = true,
+  },
+  { --[5]
+    header = T"Type",
+    param = "interface",
+    type = "select",
+    values = ddns_helper.intf_map,
+    readonly = true,
+  },
+  { --[6]
+    header = T"Domain",
+    name = "Domain",
+    param = "domain",
+    type = "text",
+    readonly = true,
+  },
+  { --[7]
+    header = T"Check",
+    name = "CheckInterval",
+    param = "check_interval",
+    type = "text",
+    readonly = true,
+  },
+  { --[8]
+    header = T"",
+    name = "CheckUnit",
+    param = "check_unit",
+    type = "hidden",
+  },
+  { --[9]
+    header = T"Retry",
+    name = "RetryInterval",
+    param = "retry_interval",
+    type = "text",
+    readonly = true,
+  },
+  { --[10]
+    header = T"",
+    name = "RetryUnit",
+    param = "retry_unit",
+    type = "hidden",
+  },
+  { --[11]
+    header = T"Force",
+    name = "ForceInterval",
+    param = "force_interval",
+    type = "text",
+    readonly = true,
+  },
+  { --[12]
+    header = T"",
+    name = "ForceUnit",
+    param = "force_unit",
+    type = "hidden",
+  },
+  { --[13]
+    header = T"",
+    legend = T"<small>Service Configuration</small>",
+    name = "config",
+    type = "aggregate",
+    synthesis = nil,
+    subcolumns = {
+      { --[13][1]
+        header = T"Enabled",
+        name = "State",
+        param = "enabled",
+        type = "switch",
+        default = "1",
+      },
+      { --[13][2]
+        header = T"Service",
+        name = "Service",
+        param = "service_name",
+        type = "select",
+        values = ddns_helper.valid_ipv4_services,
+        attr = { select = { class="span3" } },
+      },
+      { --[13][3]
+        header = T"Type",
+        name = "Interface",
+        param = "interface",
+        type = "select",
+        values = { { "wan", T"IPv4"} },
+        readonly = true,
+      },
+      { --[13][4]
+        header = T"Domain",
+        name = "Domain",
+        param = "domain",
+        type = "text",
+        attr = { input = { class="span3"} },
+      },
+      { --[13][5]
+        header = T"Username",
+        name = "Username",
+        param = "username",
+        type = "text",
+        attr = { input = { class="span2" } },
+      },
+      { --[13][6]
+        header = T"Password/Token",
+        name = "Password",
+        param = "password",
+        type = "password",
+        attr = { input = { class="span2" } },
+      },
+      { --[13][7]
+        header = T"HTTPS<span class='icon-question-sign' title='HTTPS mode will enable encryption but NOT certificate-based authentication of Dynamic DNS service'></span>",
+        name = "HTTPS",
+        param = "use_https",
+        default = "1",
+        type = "switch",
+      },
+      { --[13][8]
+        header = T"Check Interval",
+        name = "CheckInterval",
+        param = "check_interval",
+        type = "text",
+        attr = { input = { type = "number",min = "1",class = "span1" } },
+        default = "10",
+      },
+      { --[13][9]
+        header = T"Retry Interval",
+        name = "RetryInterval",
+        param = "retry_interval",
+        type = "text",
+        attr = { input = { type = "number",min = "1",class = "span1" } },
+        default = "60",
+      },
+      { --[13][10]
+        header = T"Force Interval",
+        name = "ForceInterval",
+        param = "force_interval",
+        type = "text",
+        attr = { input = { type = "number",min = "1",class = "span1" } },
+        default = "72",
+      },
+      { --[13][11]
+        header = T"",
+        name = "CheckUnit",
+        param = "check_unit",
+        type = "hidden",
+        default = "minutes",
+      },
+      { --[13][12]
+        header = T"",
+        name = "RetryUnit",
+        param = "retry_unit",
+        type = "hidden",
+        default = "seconds",
+      },
+      { --[13][13]
+        header = T"",
+        name = "ForceUnit",
+        param = "force_unit",
+        type = "hidden",
+        default = "hours",
+      },
+    }
+  },
+}
+
+local gVIES = post_helper.getValidateInEnumSelect
+local vNES = post_helper.validateNonEmptyString
+local gVNIR = post_helper.getValidateNumberInRange
+local vSIDN = post_helper.validateStringIsDomainName
+local vB = post_helper.validateBoolean
+
+local ddns_valid = {
+  State = vB,
+  Service = gVIES(ddns_helper.valid_ipv4_services),
+  Domain = post_helper.getAndValidation(vNES,post_helper.getOrValidation(vSIDN,post_helper.validateStringIsIP)),
+  Username = ddns_helper.validate_username,
+  Password = post_helper.getValidationPassword(vNES),
+  HTTPS = vB,
+  CheckInterval = gVNIR(1,99999999),
+  CheckUnit = gVIES(ddns_helper.unit_map),
+  ForceInterval = gVNIR(1,99999999),
+  ForceUnit = gVIES(ddns_helper.unit_map),
+  RetryInterval = gVNIR(1,99999999),
+  RetryUnit = gVIES(ddns_helper.unit_map),
+}
+
+local function onAddDDns(index,content)
+  local ddns_path = "uci.ddns.service.@"..index
+  proxy.set(ddns_path..".cacert","IGNORE")
+  proxy.set(ddns_path..".lookup_host",untaint(content.Domain))
+  proxy.set(ddns_path..".interface",untaint(content.Interface))
+  proxy.set(ddns_path..".ip_network",untaint(content.Interface))
+  proxy.set(ddns_path..".ip_source","network")
+  if content.Interface == "wan" then
+    proxy.set(ddns_path..".use_ipv6","0")
+  else
+    proxy.set(ddns_path..".use_ipv6","1")
   end
-  return ddns_supported_services,valid_services
+  proxy.apply()
 end
 
-local ddns_ipv4_supported_services,valid_ipv4_services = generate_ddns_supported_services("services")
-local ddns_ipv6_supported_services,valid_ipv6_services = generate_ddns_supported_services("services_ipv6")
-
-local units = {
-  { "seconds", T"seconds" },
-  { "minutes", T"minutes" },
-  { "hours", T"hours" },
-  { "days", T"days" },
-}
-
-local function createInterval(label,values,interval,unit)
-  ngx.print('\
-  <div class="control-group">\
-    <label class="control-label">',label,' Interval</label>\
-    <div class="controls">\
-      <input type="number" min="1" value="',values[interval],'" class="edit-input span3" style="width:70px;text-align:right;" name="',interval,'" id="',interval,'">\
-      &nbsp;\
-      <select id="',unit,'" class="span3" style="width:100px;"  name="',unit,'">')
-        for _,v in pairs(units) do
-          ngx.print('<option value="',v[1],'"')
-          if v[1] == values[unit] then
-            ngx.print(' selected="selected"')
-          end
-          ngx.print('>',v[2],'</option>')
-        end
-        ngx.print('\
-        </select>\
-    </div>\
-  </div>')
+local function onUpdateDDns(index,content)
+  local ddns_path = "uci.ddns.service.@"..index
+  local domain = untaint(content.Domain)
+  local interface = untaint(content.Domain)
+  local function getValue(path)
+    local result = proxy.get(path)
+    if result then
+      return result[1].value
+    end
+    return nil
+  end
+  if not domain then
+    domain = getValue(ddns_path..".domain")
+  end
+  local ddns_lookup_host_path = ddns_path..".lookup_host"
+  local ddns_lookup_host = getValue(ddns_lookup_host_path)
+  if domain and ddns_lookup_host and domain ~= ddns_lookup_host then
+    proxy.set(ddns_lookup_host_path,untaint(content.Domain))
+  end
+  if not interface then
+    interface = getValue(ddns_path..".interface")
+  end
+  local ddns_ip_network_path = ddns_path..".ip_network"
+  local ddns_ip_network = getValue(ddns_ip_network_path)
+  if interface and ddns_ip_network and domain ~= ddns_ip_network then
+    proxy.set(ddns_ip_network_path,untaint(content.Interface))
+  end
 end
 
-local ddns_status_data = {
-  ddns_status = "rpc.ddns.status",
+local ddns_options = {
+  tableid = "ddnsoptions",
+  basepath = "uci.ddns.service.@.",
+  createMsg = T"Add IPv4 DDNS Rule",
+  objectName  = "myddns_"..uniqueKey,
+  addNamedObject = true,
+  canEdit = true,
+  canAdd = true,
+  canDelete = true,
+  onAdd = onAddDDns,
+  onModify = onUpdateDDns,
 }
+if ddns_helper.wan6 then
+  ddns_options.newList = { { text = T"Add IPv6 DDNS Rule",values = {} }, }
+end
 
-local ddns_ipv4_params = {
-  ddnsv4_enabled = "uci.ddns.service.@myddns_ipv4.enabled",
-  ddnsv4_service_name = "uci.ddns.service.@myddns_ipv4.service_name",
-  ddnsv4_domain = "uci.ddns.service.@myddns_ipv4.domain",
-  ddnsv4_lookup_host = "uci.ddns.service.@myddns_ipv4.lookup_host",
-  ddnsv4_username = "uci.ddns.service.@myddns_ipv4.username",
-  ddnsv4_password = "uci.ddns.service.@myddns_ipv4.password",
-  ddnsv4_usehttps = "uci.ddns.service.@myddns_ipv4.use_https",
-  ddnsv4_cacert = "uci.ddns.service.@myddns_ipv4.cacert",
-  ddnsv4_check_interval = "uci.ddns.service.@myddns_ipv4.check_interval",
-  ddnsv4_check_unit = "uci.ddns.service.@myddns_ipv4.check_unit",
-  ddnsv4_force_interval = "uci.ddns.service.@myddns_ipv4.force_interval",
-  ddnsv4_force_unit = "uci.ddns.service.@myddns_ipv4.force_unit",
-  ddnsv4_retry_interval = "uci.ddns.service.@myddns_ipv4.retry_interval",
-  ddnsv4_retry_unit = "uci.ddns.service.@myddns_ipv4.retry_unit",
-}
+local action,index,listid
+if ngx.var.request_method == "POST" then
+  local content = ngx.req.get_post_args()
+  action = content.action
+  index = tonumber(content.index)
+  listid = content.listid
+end
 
+local dfltCheckInterval,dfltCheckUnit = "10","minutes"
+local dfltRetryInterval,dfltRetryUnit = "60","seconds"
+local dfltForceInterval,dfltForceUnit = "72","hours"
+
+local function ddns_filter(data)
+  local ddns_status,ddns_message = ddns_helper.to_status(services_status,data.paramindex)
+  data.ddns_light = ui_helper.createSimpleLight(ddns_helper.ddns_light_map[ddns_status],ddns_helper.ddns_state_map[ddns_status])
+  data.ddns_status = ddns_message
+  data.check_interval = (not data.check_interval or data.check_interval == "") and dfltCheckInterval or data.check_interval
+  data.check_unit = (not data.check_unit or data.check_unit == "") and dfltCheckUnit or data.check_unit
+  data.retry_interval = (not data.retry_interval or data.retry_interval == "") and dfltRetryInterval or data.retry_interval
+  data.retry_unit = (not data.retry_unit or data.retry_unit == "") and dfltRetryUnit or data.retry_unit
+  data.force_interval = (not data.force_interval or data.force_interval == "") and dfltForceInterval or data.force_interval
+  data.force_unit = (not data.force_unit or data.force_unit == "") and dfltForceUnit or data.force_unit
+  if action ~= "TABLE-EDIT" then
+    data.check_interval = format("%s%s",data.check_interval,sub(untaint(data.check_unit),1,1))
+    data.retry_interval = format("%s%s",data.retry_interval,sub(untaint(data.retry_unit),1,1))
+    data.force_interval = format("%s%s",data.force_interval,sub(untaint(data.force_unit),1,1))
+  end
+  return true
+end
+
+local ddns_data,ddns_helpmsg = post_helper.handleTableQuery(ddns_columns,ddns_options,ddns_filter,nil,ddns_valid)
+if (action == "TABLE-NEW-LIST" and listid == "1") or ((action == "TABLE-EDIT" or action == "TABLE-MODIFY") and ddns_data[index][5] == "wan6") then
+  ddns_columns[13].subcolumns[2].values = ddns_helper.valid_ipv6_services
+  ddns_columns[13].subcolumns[3].values = { { "wan6", T"IPv6"} }
+  ddns_valid.Service = gVIES(ddns_helper.valid_ipv6_services)
+end
+
+local acme_domain,acme_data,acme_helpmsg
 local acme_params = {
   acme_enabled = "rpc.gui.acme.enabled",
 }
-
-local ddns_ipv6_params = {
-  ddnsv6_enabled = "uci.ddns.service.@myddns_ipv6.enabled",
-  ddnsv6_service_name = "uci.ddns.service.@myddns_ipv6.service_name",
-  ddnsv6_domain = "uci.ddns.service.@myddns_ipv6.domain",
-  ddnsv6_lookup_host = "uci.ddns.service.@myddns_ipv6.lookup_host",
-  ddnsv6_username = "uci.ddns.service.@myddns_ipv6.username",
-  ddnsv6_password = "uci.ddns.service.@myddns_ipv6.password",
-  ddnsv6_usehttps = "uci.ddns.service.@myddns_ipv6.use_https",
-  ddnsv6_cacert = "uci.ddns.service.@myddns_ipv6.cacert",
-  ddnsv6_check_interval = "uci.ddns.service.@myddns_ipv6.check_interval",
-  ddnsv6_check_unit = "uci.ddns.service.@myddns_ipv6.check_unit",
-  ddnsv6_force_interval = "uci.ddns.service.@myddns_ipv6.force_interval",
-  ddnsv6_force_unit = "uci.ddns.service.@myddns_ipv6.force_unit",
-  ddnsv6_retry_interval = "uci.ddns.service.@myddns_ipv6.retry_interval",
-  ddnsv6_retry_unit = "uci.ddns.service.@myddns_ipv6.retry_unit",
-}
-
-local function set_lookup_hostv4(_,object,_)
-  object["ddnsv4_lookup_host"] = object["ddnsv4_domain"]
-  return true
-end
-
-local function set_lookup_hostv6(_,object,_)
-  object["ddnsv6_lookup_host"] = object["ddnsv6_domain"]
-  return true
-end
-
-local function set_cacertv4(_,object)
-  object["ddnsv4_cacert"] = "IGNORE"
-  return true
-end
-
-local function set_cacertv6(_,object)
-  object["ddnsv6_cacert"] = "IGNORE"
-  return true
-end
-
-local ddns_ipv4_valid = {
-  ddnsv4_enabled = vB,
-  ddnsv4_service_name = gAV(gVIPIL(gOrV(vSIDN,vSIIP),"ddnsv4_enabled",{"1"}),gVIPIL(gVIES(valid_ipv4_services),"ddnsv4_enabled",{"1"})),
-  ddnsv4_username = gVIPIL(vNES,"ddnsv4_enabled",{"1"}),
-  ddnsv4_password = gVP(gVIPIL(vNES,"ddnsv4_enabled",{"1"})),
-  ddnsv4_domain = gOrV(vSIDN,vSIIP),
-  ddnsv4_lookup_host = set_lookup_hostv4,
-  ddnsv4_usehttps = vB,
-  ddnsv4_cacert = set_cacertv4,
-  ddnsv4_check_interval = gVNIR(1,99999999),
-  ddnsv4_check_unit = gVIES(units),
-  ddnsv4_force_interval = gVNIR(1,99999999),
-  ddnsv4_force_unit = gVIES(units),
-  ddnsv4_retry_interval = gVNIR(1,99999999),
-  ddnsv4_retry_unit = gVIES(units),
-}
-
 local acme_valid = {
   acme_enabled = vB
 }
-
-local ddns_ipv6_valid = {
-  ddnsv6_enabled = vB,
-  ddnsv6_service_name = gAV(gVIPIL(gOrV(vSIDN,vSIIP6),"ddnsv6_enabled",{"1"}),gVIPIL(gVIES(valid_ipv6_services),"ddnsv6_enabled",{"1"})),
-  ddnsv6_username = gVIPIL(vNES,"ddnsv6_enabled",{"1"}),
-  ddnsv6_password = gVP(gVIPIL(vNES,"ddnsv6_enabled",{"1"})),
-  ddnsv6_domain = gOrV(vSIDN,vSIIP6),
-  ddnsv6_lookup_host = set_lookup_hostv6,
-  ddnsv6_usehttps = vB,
-  ddnsv6_cacert = set_cacertv6,
-  ddnsv6_check_interval = gVNIR(1,99999999),
-  ddnsv6_check_unit = gVIES(units),
-  ddnsv6_force_interval = gVNIR(1,99999999),
-  ddnsv6_force_unit = gVIES(units),
-  ddnsv6_retry_interval = gVNIR(1,99999999),
-  ddnsv6_retry_unit = gVIES(units),
-}
-
-local ddns_state_map = {
-  disabled = T"Disabled",
-  updating = T"Updating",
-  updated = T"Updated",
-  error = T"Error",
-}
-
-local ddns_light_map = {
-  disabled = "off",
-  updating = "orange",
-  updated = "green",
-  error = "red",
-}
-
-local ddns_ipv4_data,ddns_ipv4_helpmsg
-local ddns_ipv4_status,ddns_ipv4_update_info
-local acme_domain,acme_data,acme_helpmsg
-
-ddns_ipv4_data,ddns_ipv4_helpmsg = post_helper.handleQuery(ddns_ipv4_params,ddns_ipv4_valid)
-if ddns_ipv4_data["ddnsv4_domain"] ~= "yourhost.example.com" then
-  acme_domain = vSIDN(ddns_ipv4_data["ddnsv4_domain"])
+for k=1,#ddns_data do
+  if ddns_data[k][5] ~= "yourhost.example.com" then
+    acme_domain = vSIDN(ddns_data[k][5])
+    if acme_domain then
+      break
+    end
+  end
 end
-if ddns_ipv4_data["ddnsv4_check_interval"] == "" then
-  ddns_ipv4_data["ddnsv4_check_interval"] = "10"
-end
-if ddns_ipv4_data["ddnsv4_check_unit"] == "" then
-  ddns_ipv4_data["ddnsv4_check_unit"] = "minutes"
-end
-if ddns_ipv4_data["ddnsv4_force_interval"] == "" then
-  ddns_ipv4_data["ddnsv4_force_interval"] = "72"
-end
-if ddns_ipv4_data["ddnsv4_force_unit"] == "" then
-  ddns_ipv4_data["ddnsv4_force_unit"] = "hours"
-end
-if ddns_ipv4_data["ddnsv4_retry_interval"] == "" then
-  ddns_ipv4_data["ddnsv4_retry_interval"] = "60"
-end
-if ddns_ipv4_data["ddnsv4_retry_unit"] == "" then
-  ddns_ipv4_data["ddnsv4_retry_unit"] = "seconds"
-end
-
-local ddns_ipv6_data,ddns_ipv6_helpmsg
-local ddns_ipv6_status,ddns_ipv6_update_info
-
-ddns_ipv6_data,ddns_ipv6_helpmsg = post_helper.handleQuery(ddns_ipv6_params,ddns_ipv6_valid)
-if not acme_domain and ddns_ipv6_data["ddnsv6_domain"] ~= "yourhost.example.com" then
-  acme_domain = vSIDN(ddns_ipv6_data["ddnsv6_domain"])
-end
-if ddns_ipv6_data["ddnsv6_check_interval"] == "" then
-  ddns_ipv6_data["ddnsv6_check_interval"] = "10"
-end
-if ddns_ipv6_data["ddnsv6_check_unit"] == "" then
-  ddns_ipv6_data["ddnsv6_check_unit"] = "minutes"
-end
-if ddns_ipv6_data["ddnsv6_force_interval"] == "" then
-  ddns_ipv6_data["ddnsv6_force_interval"] = "72"
-end
-if ddns_ipv6_data["ddnsv6_force_unit"] == "" then
-  ddns_ipv6_data["ddnsv6_force_unit"] = "hours"
-end
-if ddns_ipv6_data["ddnsv6_retry_interval"] == "" then
-  ddns_ipv6_data["ddnsv6_retry_interval"] = "60"
-end
-if ddns_ipv6_data["ddnsv6_retry_unit"] == "" then
-  ddns_ipv6_data["ddnsv6_retry_unit"] = "seconds"
-end
-
 if acme_domain then
   acme_data,acme_helpmsg = post_helper.handleQuery(acme_params,acme_valid)
 else
   proxy.set("rpc.gui.acme.enabled","0")
 end
 
-content_helper.getExactContent(ddns_status_data)
-local status = ddns_status_data.ddns_status
-
-local action
-if ngx.var.request_method == "POST" then
-  action = ngx.req.get_post_args().action
-end
-
-local function get_ddns_status(service_name,ddns_enabled)
-  local ddns_status = "error"
-  local ddns_update_info = "No error received from server"
-  local service_status
-
-  if status then
-    for x in string.gmatch(status,'([^%]]+)') do
-      service_status = match(x,service_name.."%[(.+)")
-      if service_status then
-        break
-      end
-    end
-  end
-  if ddns_enabled ~= "1" then
-    ddns_status = "disabled"
-  else
-    if action == "SAVE" then
-      ddns_status = "updating"
-    elseif service_status then
-      if service_status == "Domain's IP updated" then
-        ddns_status = "updated"
-      elseif service_status == "No error received from server" then
-        ddns_status = "updating"
-      else
-        ddns_status = "error"
-      end
-      ddns_update_info = format("%s",service_status)
-    end
-  end
-  return ddns_status,ddns_update_info
-end
-
-ddns_ipv4_status,ddns_ipv4_update_info = get_ddns_status("myddns_ipv4",ddns_ipv4_data.ddnsv4_enabled)
-
-ddns_ipv6_status,ddns_ipv6_update_info = get_ddns_status("myddns_ipv6",ddns_ipv6_data.ddnsv6_enabled)
-
-local basic = {
-  span = {
-    class = "span12"
+local info_box = {
+  alert = {
+    class = "alert-info"
   },
 }
 
@@ -307,77 +358,28 @@ ngx.print(ui_helper.createHeader(T"WAN Services",false,true),'\
   '); lp.include("tabs-wanservices.lp");ngx.print('\
   <form class="form-horizontal" method="post" action="modals/wanservices-ddns-modal.lp">\
   ',ui_helper.createMessages(message_helper.popMessages()),'\
-  <fieldset>\
-    <legend>',T"IPv4 Dynamic DNS",'</legend>',
-      ui_helper.createLight(T"Status",nil,ddns_state_map[ddns_ipv4_status],{ light = { class = ddns_light_map[ddns_ipv4_status] } }),
-      ui_helper.createSwitch(T"Enabled","ddnsv4_enabled",ddns_ipv4_data["ddnsv4_enabled"],nil,ddns_ipv4_helpmsg["ddnsv4_enabled"]),
-      ui_helper.createInputText(T"Service Name","ddnsv4_service_name",ddns_ipv4_data["ddnsv4_service_name"],{autocomplete = ddns_ipv4_supported_services},ddns_ipv4_helpmsg["ddnsv4_service_name"]),
-      ui_helper.createSwitch(T"HTTPS","ddnsv4_usehttps",ddns_ipv4_data["ddnsv4_usehttps"],nil,ddns_ipv4_helpmsg["ddnsv4_usehttps"]),
-      ui_helper.createLabel(T"",T"Note: HTTPS mode will enable encryption but not certificate-based authentication of DynDNS service",basic),
-      ui_helper.createInputText(T"Domain","ddnsv4_domain",ddns_ipv4_data["ddnsv4_domain"],nil,ddns_ipv4_helpmsg["ddnsv4_domain"]),
-      ui_helper.createInputText(T"User Name","ddnsv4_username",ddns_ipv4_data["ddnsv4_username"],nil,ddns_ipv4_helpmsg["ddnsv4_username"]),
-      ui_helper.createInputPassword(T"Password","ddnsv4_password",ddns_ipv4_data["ddnsv4_password"],nil,ddns_ipv4_helpmsg["ddnsv4_password"])
-    )
-    createInterval("Check", ddns_ipv4_data,"ddnsv4_check_interval","ddnsv4_check_unit")
-    createInterval("Retry", ddns_ipv4_data,"ddnsv4_retry_interval","ddnsv4_retry_unit")
-    createInterval("Force", ddns_ipv4_data,"ddnsv4_force_interval","ddnsv4_force_unit")
-    if ddns_ipv4_data["ddnsv4_enabled"] == "1" then
-      ngx.print(ui_helper.createLabel(T"DynDNS Information",ddns_ipv4_update_info,basic))
-    end
-    ngx.print('\
-  </fieldset>\
-  <fieldset>\
-    <legend>',T"IPv6 Dynamic DNS",'</legend>',
-      ui_helper.createLight(T"Status",nil,ddns_state_map[ddns_ipv6_status],{ light = { class = ddns_light_map[ddns_ipv6_status] } }),
-      ui_helper.createSwitch(T"Enabled","ddnsv6_enabled",ddns_ipv6_data["ddnsv6_enabled"],nil,ddns_ipv6_helpmsg["ddnsv6_enabled"]),
-      ui_helper.createInputText(T"Service Name","ddnsv6_service_name",ddns_ipv6_data["ddnsv6_service_name"],{autocomplete = ddns_ipv6_supported_services},ddns_ipv6_helpmsg["ddnsv6_service_name"]),
-      ui_helper.createSwitch(T"HTTPS","ddnsv6_usehttps",ddns_ipv6_data["ddnsv6_usehttps"],nil,ddns_ipv6_helpmsg["ddnsv6_usehttps"]),
-      ui_helper.createLabel(T"",T"Note: HTTPS mode will enable encryption but not certificate-based authentication of DynDNS service",basic),
-      ui_helper.createInputText(T"Domain","ddnsv6_domain",ddns_ipv6_data["ddnsv6_domain"],nil,ddns_ipv6_helpmsg["ddnsv6_domain"]),
-      ui_helper.createInputText(T"User Name","ddnsv6_username",ddns_ipv6_data["ddnsv6_username"],nil,ddns_ipv6_helpmsg["ddnsv6_username"]),
-      ui_helper.createInputPassword(T"Password","ddnsv6_password",ddns_ipv6_data["ddnsv6_password"],nil,ddns_ipv6_helpmsg["ddnsv6_password"])
-    )
-    createInterval("Check", ddns_ipv6_data,"ddnsv6_check_interval","ddnsv6_check_unit")
-    createInterval("Retry", ddns_ipv6_data,"ddnsv6_retry_interval","ddnsv6_retry_unit")
-    createInterval("Force", ddns_ipv6_data,"ddnsv6_force_interval","ddnsv6_force_unit")
-    if ddns_ipv6_data["ddnsv6_enabled"] == "1" then
-      ngx.print(ui_helper.createLabel(T"DynDNS Information",ddns_ipv6_update_info,basic))
-    end
-    ngx.print('\
-  </fieldset>\
-  ');
-  if acme_domain then
-    local acme_log_attr = {
-      span = {
-        id = "acme_log",
-        style = "display:block;white-space:pre;",
-      },
-    }
-    local acme_log = proxy.get("rpc.gui.acme.log")[1].value
-    ngx.print('\
     <fieldset>\
-      <legend>',T"SSL Certificate",'</legend>',
-        ui_helper.createAlertBlock(T"Enable to automatically issue and renew a SSL Certificate for the specified Dynamic DNS IPv4 and/or IPv6 Domain.<br>\
-          NOTE: You do <i>not</i> have to <i>enable</i> Dynamic DNS (e.g. if you have a static IP and your ISP provides DNS services) for a certificate to be generated,as long as you use a Domain that will resolve to the IP address of this device.",
-          { alert = { class = "alert-info" } }),
-        ui_helper.createSwitch(T"Server Certficate","acme_enabled",acme_data["acme_enabled"],nil,acme_helpmsg["acme_enabled"]),
-        ui_helper.createLabel(T"Certificate Log",untaint(acme_log),acme_log_attr),'\
-        <script>\
-          var acmeLogFuncID;\
-          function updateAcmeLog(){\
-            $.post("/ajax/acme-log.lua",[tch.elementCSRFtoken()],function(data){\
-              $("#acme_log").html(data["html"]);\
-            },"json")\
-            .fail(function(response){\
-              if(response.status==403||response.status==404){clearInterval(acmeLogFuncID);}\
-            });\
-          }\
-          $().ready(function(){acmeLogFuncID=setInterval(updateAcmeLog,2500);});\
-        </script>\
+      <legend>',T"Dynamic DNS",'</legend>',
+      ui_helper.createTable(ddns_columns,ddns_data,ddns_options,nil,ddns_helpmsg),'\
     </fieldset>\
+    <script src="js/wanservices-ddns-modal.js"></script>\
+    <script>\
+      addUnitSelect("Check","',dfltCheckInterval,'","',dfltCheckUnit,'");\
+      addUnitSelect("Retry","',dfltRetryInterval,'","',dfltRetryUnit,'");\
+      addUnitSelect("Force","',dfltForceInterval,'","',dfltForceUnit,'");\
+    </script>\
     ');
-  end
-  ngx.print('\
+    if acme_domain then
+      ngx.print('\
+      <fieldset>\
+        <legend>',T"SSL Certificates",'</legend>',
+          ui_helper.createAlertBlock(T"Enable to automatically issue and renew SSL Certificates for the Dynamic DNS domains.<br>\
+            NOTE: You do <i>not</i> have to <i>enable</i> Dynamic DNS (e.g. if you have a static IP and your ISP provides DNS services) for a certificate to be generated,as long as you use a Domain that will resolve to the IP address of this device.",
+            info_box),
+          ui_helper.createSwitch(T"Server Certficate","acme_enabled",acme_data["acme_enabled"],nil,acme_helpmsg["acme_enabled"]),'\
+      </fieldset>\
+      ');
+    end
+    ngx.print('\
   </form>\
-</div>',
-ui_helper.createFooter())
+</div>',ui_helper.createFooter());

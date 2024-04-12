@@ -1,81 +1,63 @@
+local ddns_helper = require("wanservices-ddns_helper")
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
----@diagnostic disable-next-line: undefined-field
-local untaint = string.untaint
-local gmatch,format,lower,match = string.gmatch,string.format,string.lower,string.match
+local format,match = string.format,string.match
 
 local M = {}
 
-local ddns_status = '<span class="modal-link" data-toggle="modal" data-remote="/modals/wanservices-ddns-modal.lp" data-id="wanservices-ddns-modal">%s Dynamic DNS %s%s</span>'
-local function get_ddns_status(wan_services_data,family)
-  local ddns_state
-
-  if wan_services_data["ddns_"..family.."_enabled"] ~= "1" then
-    ddns_state = ui_helper.createSimpleLight("0",format(ddns_status,family,"disabled",""))
-  else
-    local service_name = format("myddns_%s",lower(family))
-    local name = untaint(wan_services_data["ddns_"..family.."_domain"])
-    local attr = { span = { title = name }}
-    local cert = ""
-    if wan_services_data["cert_"..family.."_enabled"] and wan_services_data["cert_"..family.."_enabled"] == "1" then
-      cert="&nbsp;<span class='icon-lock' title='Server Certificate auto-renewal enabled for "..name.."'></span>"
-    else
-      cert="&nbsp;<span class='icon-unlock' title='Server Certificate auto-renewal disabled for "..name.."'></span>"
-    end
-
-    local status = wan_services_data["ddns_status"]
-    local service_status
-    if status then
-      for x in gmatch(status,'([^%]]+)') do
-        service_status = match(x,service_name.."%[(.+)")
-        if service_status then
-          break
-        end
-      end
-    end
-
-    if service_status then
-      if service_status == "Domain's IP updated" then
-        ddns_state = ui_helper.createSimpleLight("1",format(ddns_status,family,"- IP updated",cert),attr)
-      elseif service_status == "No error received from server" then
-        ddns_state = ui_helper.createSimpleLight("2",format(ddns_status,family,"- IP updating",cert),attr)
-      else
-        ddns_state = ui_helper.createSimpleLight("4",format(ddns_status,family,"update error",cert),attr)
-      end
-    else
-      ddns_state = ui_helper.createSimpleLight("4",format(ddns_status,family,"state unknown",cert),attr)
-    end
-  end
-
-  return ddns_state
-end
-
 function M.getWANServicesCardHTML()
   local html = {}
+
+  local ddns_status = '<span class="modal-link" data-toggle="modal" data-remote="/modals/wanservices-ddns-modal.lp" data-id="wanservices-ddns-modal">Dynamic DNS %s</span>'
+  local ddns_enabled = {}
+  local ddns_service = proxy.getPN("uci.ddns.service.", true)
+  for k=1,#ddns_service do
+    local state = proxy.get(ddns_service[k].path.."enabled")[1].value
+    if state ~= "0" then
+      ddns_enabled[#ddns_enabled+1] = match(ddns_service[k].path,"@(.+)%.$")
+    end
+  end
+  if #ddns_enabled == 0 then
+    html[#html+1] = ui_helper.createSimpleLight("0",format(ddns_status,"disabled"))
+  else
+    local services_status = ddns_helper.get_services_status()
+    local ddns = {
+      updated = 0,
+      updating = 0,
+      error = 0,
+      disabled = 0,
+    }
+    for k=1,#ddns_enabled do
+      local service = ddns_enabled[k]
+      local status = ddns_helper.to_status(services_status,service)
+      ddns[status] = ddns[status] + 1
+    end
+    if ddns.error ~= 0 then
+      html[#html+1] = ui_helper.createSimpleLight("4",format(ddns_status,"update error"))
+    elseif ddns.updating ~= 0 then
+      html[#html+1] = ui_helper.createSimpleLight("2",format(ddns_status,"updating"))
+    elseif ddns.updated ~= 0 then
+      html[#html+1] = ui_helper.createSimpleLight("1",format(ddns_status,"updated"))
+    else
+      html[#html+1] = ui_helper.createSimpleLight("0",format(ddns_status,"disabled"))
+    end
+  end
 
   local wan_services_data = {
     dmz_enable = "rpc.network.firewall.dmz.enable",
     dmz_blocked = "rpc.network.firewall.dmz.blocked",
     upnp_status = "uci.upnpd.config.enable_upnp",
     upnp_rules = "sys.upnp.RedirectNumberOfEntries",
-    ddns_IPv4_enabled = "uci.ddns.service.@myddns_ipv4.enabled",
-    ddns_IPv4_domain = "uci.ddns.service.@myddns_ipv4.domain",
-    ddns_IPv6_enabled = "uci.ddns.service.@myddns_ipv6.enabled",
-    ddns_IPv6_domain = "uci.ddns.service.@myddns_ipv6.domain",
-    ddns_status = "rpc.ddns.status",
-    cert_IPv4_enabled = "rpc.gui.acme.enabled",
+    acme_enabled = "rpc.gui.acme.enabled",
   }
   content_helper.getExactContent(wan_services_data)
-  wan_services_data["cert_IPv6_enabled"] = wan_services_data["cert_IPv4_enabled"]
 
-  local ddns4 = get_ddns_status(wan_services_data,"IPv4")
-  if ddns4 then
-    html[#html+1] = ddns4
-  end
-  local ddns6 = get_ddns_status(wan_services_data,"IPv6")
-  if ddns6 then
-    html[#html+1] = ddns6
+  local acme_status = '<span class="modal-link" data-toggle="modal" data-remote="/modals/wanservices-ddns-modal.lp" data-id="wanservices-ddns-modal">SSL Certificates %s</span>'
+  if wan_services_data["acme_enabled"] == "1" then
+    html[#html+1] = ui_helper.createSimpleLight("1",format(acme_status,"enabled"))
+  else
+    html[#html+1] = ui_helper.createSimpleLight("0",format(acme_status,"disabled"))
   end
 
   local dmz_status = '<span class="modal-link" data-toggle="modal" data-remote="/modals/wanservices-dmz-modal.lp" data-id="wanservices-dmz-modal">DMZ %s</span>'

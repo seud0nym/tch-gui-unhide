@@ -1,5 +1,3 @@
-local gsub,sub = string.gsub,string.sub
-
 local GUI_ACME_ = {
   objectType = {
     name = "rpc.gui.acme.",
@@ -11,34 +9,23 @@ local GUI_ACME_ = {
         access = "readWrite",
         type = "int"
       },
-      log = {
-        access = "readOnly",
-        type = "string"
-      },
     }
   }
 }
 
 local function isEnabled()
   local cmd = io.popen("grep -c 'acme-ipsec.sh' /etc/crontabs/root","r")
-  local state = cmd:read("*n")
-  cmd:close()
-  return state
+  if cmd then
+    local state = cmd:read("*n")
+    cmd:close()
+    return state
+  end
+  return 0
 end
 
 GUI_ACME_.get = {
   enabled = function()
     return tostring(isEnabled())
-  end,
-  log = function()
-    local today = sub(os.date(),1,10)
-    local cmd = io.popen("/sbin/logread -e 'acme.*\\["..today.."' | tail -n 20 | sed -e 's/.\\[[0-9;]*m//g' -e 's/^\\(.*acme.*\\)\\(\\[.*\\)/\\2/'","r")
-    local status = cmd:read("*a")
-    cmd:close()
-    if status == "" then
-      return "<i>No recent log messages found</i>"
-    end
-    return gsub(status,"\n","<br>")
   end,
 }
 
@@ -52,7 +39,7 @@ GUI_ACME_.set = {
       end
       return true
     else
-      if state == 1 then
+      if state ~= 0 then
         os.execute("sed -e '/acme-ipsec.sh/d' -i /etc/crontabs/root && /etc/init.d/cron restart")
         os.execute("/usr/bin/logger -t rpc.gui.acme -p user.info \"[$(date)] Removed scheduled cron job to check certificate renewal...\"")
       end

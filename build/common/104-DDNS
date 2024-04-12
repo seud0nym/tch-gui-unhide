@@ -6,3 +6,5 @@ else
 fi
 sed -e 's^"cat "^"sed -e \\"s/$(cat " .. adrFile ..")//\\" "^' -i /usr/share/transformer/mappings/rpc/ddns.map
 
+echo -e "[$SCRIPT]: Add use_ipv6 flag to DDNS transformer mapping"
+sed -e 's/"cacert",$/& "use_ipv6",/' -i /usr/share/transformer/mappings/uci/ddns.map

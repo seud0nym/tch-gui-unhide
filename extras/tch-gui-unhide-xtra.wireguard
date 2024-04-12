@@ -1369,9 +1369,19 @@ if curintf == "wg0" then
   mapParams["ipv6"] = "uci.wireguard.@wg0.ipv6"
   mapParams["listen_port"] = "uci.wireguard.@wg0.listen_port"
   mapParams["ipv4addr"] = "rpc.network.interface.@wan.ipaddr"
-  mapParams["ipv4ddns"] = "uci.ddns.service.@myddns_ipv4.domain"
   mapValid["ipv6"] = vB
   mapValid["listen_port"] = vSIP
+  local ddns = proxy.getPN("uci.ddns.service.")
+  if ddns then
+    for k=1,#ddns do
+      local path = ddns[k].path
+      local ifname = proxy.get(path.."interface")[1].value
+      if ifname == "wan" then
+        mapParams["ipv4ddns"] = path.."domain"
+        break
+      end
+    end
+  end
 end
 
 local config,helpmsg

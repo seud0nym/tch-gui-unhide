@@ -33,8 +33,7 @@ uci -q commit intercept
 
 if [ $TEST_MODE = y ]; then
   log W "TEST MODE: Disabling Dynamic DNS..."
-  uci set ddns.myddns_ipv4.enabled='0'
-  uci set ddns.myddns_ipv6.enabled='0'
+  uci show ddns | grep "enabled" | sed -e "s/'1'/'0'/" | xargs -n1 uci set
   uci -q commit ddns
 
   log W "TEST MODE: Disabling Wi-Fi..."
