@@ -87,6 +87,7 @@ local cron_columns = {
 }
 
 local cron_options = {
+  createMsg = T"Add Scheduled Task",
   canEdit = true,
   canAdd = true,
   canDelete = true,
