@@ -14,7 +14,7 @@ local GUI_ACME_ = {
 }
 
 local function isEnabled()
-  local cmd = io.popen("grep -c 'acme-ipsec.sh' /etc/crontabs/root","r")
+  local cmd = io.popen("grep -c 'acme-ddns.sh' /etc/crontabs/root","r")
   if cmd then
     local state = cmd:read("*n")
     cmd:close()
@@ -35,12 +35,12 @@ GUI_ACME_.set = {
     if value == "1" then
       if state == 0 then
         os.execute("/usr/bin/logger -t rpc.gui.acme -p user.info \"[$(date')] Spawning background execution of certificate issue/renewal...\"")
-        os.execute("/root/.acme.sh/acme-ipsec.sh -C -y &")
+        os.execute("/root/.acme.sh/acme-ddns.sh -C -y &")
       end
       return true
     else
       if state ~= 0 then
-        os.execute("sed -e '/acme-ipsec.sh/d' -i /etc/crontabs/root && /etc/init.d/cron restart")
+        os.execute("sed -e '/acme-ddns.sh/d' -i /etc/crontabs/root && /etc/init.d/cron restart")
         os.execute("/usr/bin/logger -t rpc.gui.acme -p user.info \"[$(date)] Removed scheduled cron job to check certificate renewal...\"")
       end
       return true

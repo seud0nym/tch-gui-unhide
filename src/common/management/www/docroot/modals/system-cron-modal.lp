@@ -157,7 +157,7 @@ ngx.print(ui_helper.createHeader(T"Management",false,true),'\
 $("#crontable td:contains(/usr/bin/thermalProtection)").siblings(":last").children(".btn-table-edit,.btn-table-delete").hide(); \
 $("#crontable td:contains(/sbin/trafficmon.lua)").siblings(":last").children(".btn-table-delete").hide(); \
 $("#crontable td:contains(/usr/sbin/traffichistory.lua)").siblings(":last").children(".btn-table-delete").hide(); \
-$("#crontable td:contains(/root/.acme.sh/acme-ipsec.sh)").siblings(":last").children(".btn-table-edit,.btn-table-delete").hide(); \
+$("#crontable td:contains(/root/.acme.sh/acme-ddns.sh)").siblings(":last").children(".btn-table-edit,.btn-table-delete").hide(); \
 $("#crontable td:contains(/usr/sbin/doh-ipsets-maintain)").siblings(":last").children(".btn-table-delete").hide(); \
 </script>\
 ');
