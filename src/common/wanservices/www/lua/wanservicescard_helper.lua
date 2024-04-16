@@ -85,15 +85,86 @@ function M.getWANServicesCardHTML()
   end
 
   local n_upnp_rules = tonumber(wan_services_data["upnp_rules"])
-  local upnp_status = '<span class="modal-link" data-toggle="modal" data-remote="/modals/wanservices-upnp-modal.lp" data-id="wanservices-upnp-modal">UPnP %s</span>'
+  local upnp_state,upnp_description
+  if n_upnp_rules > 0 then
+    local function compare_startport(a,b)
+      return a.start < b.start
+    end
+
+    local function validate_ports(ports)
+      table.sort(ports,compare_startport)
+      local curend = -1
+      for i=1,#ports do
+        local v = ports[i]
+        if v.start <= curend then
+          return false
+        else
+          curend = v["end"]
+        end
+      end
+      return true
+    end
+
+    local upnp_columns = {
+      {
+        header = T"Protocol",
+        name = "protocol",
+        param = "proto",
+        default = "tcp",
+        type = "select",
+        values = {
+          { "tcp","TCP"},
+          { "udp","UDP"},
+          { "tcpudp","TCP+UDP"}
+        },
+      },
+      {
+        header = T"WAN port",
+        name = "wanport",
+        param = "src_dport",
+        type = "text",
+      },
+    }
+
+    local upnp_options = {
+      tableid = "upnpportforwarding",
+      basepath = "sys.upnp.redirect.",
+    }
+
+    local upnp_data = require("web.post_helper").handleTableQuery(upnp_columns,upnp_options,nil,nil,nil)
+    local tcp = {}
+    local udp = {}
+    if upnp_data ~= nil then
+      for i=1,#upnp_data do
+        local v = upnp_data[i]
+        if v[1] == "TCP" or v[1] == "TCP+UDP" then
+          tcp[#tcp+1] = { start = tonumber(v[2]),["end"] = tonumber(v[2]),index = i }
+        end
+        if v[1] == "UDP" or v[1] == "TCP+UDP" then
+          udp[#udp+1] = { start = tonumber(v[2]),["end"] = tonumber(v[2]),index = i }
+        end
+      end
+    end
+    if not validate_ports(tcp) or not validate_ports(udp) then
+      upnp_state = "4"
+      upnp_description = "overlapping port leases!"
+    end
+  end
+  if not upnp_state then
+    if wan_services_data["upnp_status"] == "1" then
+      upnp_state = "1"
+      upnp_description = "enabled"
+    else
+      upnp_state = "0"
+      upnp_description = "disabled"
+    end
+  end
+  html[#html+1] = ui_helper.createSimpleLight(upnp_state,format('<span class="modal-link" data-toggle="modal" data-remote="/modals/wanservices-upnp-modal.lp" data-id="wanservices-upnp-modal">UPnP %s</span>',upnp_description))
   if wan_services_data["upnp_status"] == "1" then
-    html[#html+1] = ui_helper.createSimpleLight("1",format(upnp_status,"enabled"))
     html[#html+1] = '<p class="subinfos">'
     html[#html+1] = format(N("<strong %s>%d UPnP rule</strong> is active","<strong %s>%d UPnP rules</strong> are active",n_upnp_rules),
               'class="modal-link" data-toggle="modal" data-remote="modals/wanservices-upnp-modal.lp" data-id="wanservices-upnp-modal"',n_upnp_rules)
     html[#html+1] = '</p>'
-  else
-    html[#html+1] = ui_helper.createSimpleLight("0",format(upnp_status,"disabled"))
   end
 
   return html

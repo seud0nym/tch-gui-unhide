@@ -52,35 +52,42 @@ local upnp_columns = {
       { "udp","UDP"},
       { "tcpudp","TCP+UDP"}
     },
-    attr = { select = { class="span2" } },
+  },
+  {
+    header = T"Interface",
+    name = "interface",
+    param = "interface",
+    type = "text",
+  },
+  {
+    header = T"Remote Host",
+    name = "remote_host",
+    param = "remote_host",
+    type = "text",
   },
   {
     header = T"WAN port",
     name = "wanport",
     param = "src_dport",
     type = "text",
-    attr = { input = { class="span1",maxlength="5" } },
   },
   {
     header = T"LAN port",
     name = "lanport",
     param = "dest_port",
     type = "text",
-    attr = { input = { class="span1",maxlength="5" } },
   },
   {
     header = T"Destination",
     name = "destinationip",
     param = "dest_ip",
     type = "text",
-    attr = { input = { class="span2",maxlength="15"} },
   },
   {
     header = T"Description",
     name = "description",
     param = "description",
     type = "text",
-    attr = { input = { class="span2",maxlength="15"} },
   },
 }
 
@@ -94,7 +101,10 @@ local upnp_options = {
 
 local upnp_data,upnp_helpmsg = post_helper.handleTableQuery(upnp_columns,upnp_options,nil,nil,nil)
 
-local button_attr = { button = { id = "btn-clear-leases" }, group = { class = #upnp_data > 0 and nil or "hide", } }
+local button_attr = { button = { id = "btn-clear-leases" }, }
+if #upnp_data == 0 then
+  button_attr["group"] = { class = "hide", }
+end
 
 ngx.print(ui_helper.createHeader(T"WAN Services",false,true)); ngx.print('\
 <div class="modal-body update">\
