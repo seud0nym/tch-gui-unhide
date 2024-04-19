@@ -57,9 +57,13 @@ local ipv6_protocol_list = {
   { "all",T"All" },
 }
 
+local getargs = ngx.req.get_uri_args()
+if getargs.clear_leases and getargs.clear_leases == "1" then
+  proxy.set("rpc.gui.upnpd.clear_leases","1")
+end
+
 -- Used to update firewall helpers when rule deleted
 local del_ipv4_index = nil
-
 if ngx.var.request_method == "POST" then
   local content = ngx.req.get_post_args()
   if content.action == "TABLE-DELETE" and content.tableid == "ipv4_port_forwarding" then
@@ -131,9 +135,33 @@ local upnp_columns = {
     values = ipv4_protocol_list,
   },
   {
+    header = T"Interface",
+    name = "interface",
+    param = "interface",
+    type = "text",
+  },
+  {
+    header = T"Remote Host",
+    name = "remote_host",
+    param = "remote_host",
+    type = "text",
+  },
+  {
     header = T"WAN port",
     name = "wanport",
     param = "src_dport",
+    type = "text",
+  },
+  {
+    header = T"LAN port",
+    name = "lanport",
+    param = "dest_port",
+    type = "text",
+  },
+  {
+    header = T"Destination",
+    name = "destinationip",
+    param = "dest_ip",
     type = "text",
   },
   {
@@ -145,6 +173,9 @@ local upnp_columns = {
 }
 
 local upnp_options = {
+  canEdit = false,
+  canAdd = false,
+  canDelete = false,
   tableid = "upnpportforwarding",
   basepath = "sys.upnp.redirect.",
 }
@@ -156,10 +187,10 @@ if upnp_data ~= nil then
   for i=1,#upnp_data do
     local v = upnp_data[i]
     if v[1] == "TCP" or v[1] == "TCP+UDP" then
-      tcp[#tcp+1] = { start = tonumber(v[2]),["end"] = tonumber(v[2]),index = i,source = "[UPnP] "..v[3] }
+      tcp[#tcp+1] = { start = tonumber(v[4]),["end"] = tonumber(v[4]),index = i,source = "[UPnP] "..v[7] }
     end
     if v[1] == "UDP" or v[1] == "TCP+UDP" then
-      udp[#udp+1] = { start = tonumber(v[2]),["end"] = tonumber(v[2]),index = i,source = "[UPnP] "..v[3] }
+      udp[#udp+1] = { start = tonumber(v[4]),["end"] = tonumber(v[4]),index = i,source = "[UPnP] "..v[7] }
     end
   end
 end
@@ -572,6 +603,16 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false),'\
       <fieldset>\
         <legend>',T"IPv6 Port Forwarding",'</legend>',
           ui_helper.createTable(ipv6_columns,ipv6_data,ipv6_options,nil,ipv6_helpmsg),'\
+      </fieldset>\
+      ');
+    end
+    if #upnp_data > 0 then
+      ngx.print('\
+      <fieldset>\
+        <legend>',T"UPnP Leases",'</legend>',
+          ui_helper.createTable(upnp_columns,upnp_data,upnp_options,nil,nil),
+          ui_helper.createButton("Clear Leases","Restart UPnP Service","icon-refresh",{ button = { id = "btn-clear-leases" }, }),'\
+          <script>$("#btn-clear-leases").click(function(){tch.loadModal($(".modal form").attr("action")+"?clear_leases=1");})</script>\
       </fieldset>\
       ');
     end
