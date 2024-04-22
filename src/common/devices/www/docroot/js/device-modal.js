@@ -1,5 +1,5 @@
 $("#devices .maccell").each(function(index,cell){
-  var vendor=$("#"+cell.id+" .macvendor");
+  var vendor=$("#"+cell.id+" .devextinfo");
   if (vendor.text() === ""){
     var mac=$("#"+cell.id+" .macaddress").text();
     $.post("/ajax/vendor.lua?mac="+mac,[tch.elementCSRFtoken()],function(data){

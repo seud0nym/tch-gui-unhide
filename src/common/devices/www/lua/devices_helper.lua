@@ -75,7 +75,7 @@ function M.filter(wifi,connected,cache,editing)
       data.IPv6 = concat(addresses,"<br>")
     end
     local mac = untaint(data.MACAddress)
-    data.MACAddress = format("<span class='maccell' id='%s'><span class='macaddress'>%s</span><i class='macvendor'>%s</i><span>",gsub(mac,":",""),mac,mac_vendor[mac] or "")
+    data.MACAddress = format("<span class='maccell' id='%s'><span class='macaddress'>%s</span><i class='devextinfo'>%s</i><span>",gsub(mac,":",""),mac,mac_vendor[mac] or "")
     data.ConnectedTime = common.secondsToTime(os.time() - untaint(data.ConnectedTime))
     data.DhcpLeaseTime = common.secondsToTime(untaint(data.LeaseTimeRemaining))
     if editing then
@@ -92,22 +92,26 @@ function M.filter(wifi,connected,cache,editing)
 end
 
 function M.getInterfaceType(wifi,data)
-  if data.Radio and data.Radio ~= "" then
+  local std = ""
+  if data.OperatingStandard and data.OperatingStandard ~= "" then
+    std = "<span class='devextinfo'>802.11"..data.OperatingStandard.."</span>"
+  end
+  if data.Radio and data.Radio ~= "" and match(data.L2Interface,"^wl") then
     local key = untaint(data.Radio)
     local radio = radios[key]
     if radio then
-      return wifi.prefix.." - "..radio
+      return untaint(wifi.prefix.." - "..radio..std)
     else
-      return wifi.prefix.." - "..key
+      return untaint(wifi.prefix.." - "..key..std)
     end
   elseif match(data.L2Interface,"^wl0") then
-    return wifi.prefix.." - 2.4GHz"
+    return untaint(wifi.prefix.." - 2.4GHz"..std)
   elseif match(data.L2Interface,"^wl1") then
-    return wifi.prefix.." - 5GHz"
-  elseif match(data.L2Interface,"eth*") then
+    return untaint(wifi.prefix.." - 5GHz"..std)
+  elseif match(data.L2Interface,"^eth") then
     local agentWiFiBand = wifi.agentSTA[untaint(data.MACAddress)]
     if agentWiFiBand then
-      return agentWiFiBand
+      return untaint(agentWiFiBand..std)
     else
       if data.Port and data.Port ~= "" then
         return "Ethernet - "..data.Port
@@ -127,22 +131,42 @@ end
 function M.getWiFi()
   local remoteSTAs = 0
   local agentSTA = {}
-  local multiap = proxy.getPN("Device.Services.X_TELSTRA_MultiAP.Agent.",true)
+  local multiap = proxy.getPN("Device.WiFi.MultiAP.APDevice.",true)
   if multiap then
-    for k=1, #multiap do
+    for k=1,#multiap do
       local agent = multiap[k]
-      local agentname = format("%s",proxy.get(agent["path"].."Alias")[1].value)
-      if agentname ~= "" then
-        local BSSID2GHz = format("%s",proxy.get(agent["path"].."BSSID2GHZ")[1].value)
-        local staPath = agent["path"].."STA."
-        local staInfo = proxy.get(staPath)
-        local staList = content_helper.convertResultToObject(staPath,staInfo)
-        for i=1,#staList do
-          local sta_v = staList[i]
-          local staMAC = lower(untaint(sta_v.MACAddress))
-          local wifiBand = sta_v.BSSID == BSSID2GHz and " - 2.4GHz" or " - 5GHz"
-          agentSTA[staMAC] = agentname..wifiBand
-          remoteSTAs = remoteSTAs + 1
+      local alias = proxy.get(agent.path.."X_TELSTRA_MultiAP.Alias")[1].value
+      if alias ~= "" then
+        local agent_radios = proxy.getPN(agent.path.."Radio.",true)
+        for r=1,#agent_radios do
+          local radio = agent_radios[r]
+          local agent_band = format("%s - %s",alias,proxy.get(radio.path.."OperatingFrequencyBand")[1].value)
+          local staList = proxy.getPN(radio.path.."AP.1.AssociatedDevice.",true)
+          for s=1,#staList do
+            local staMAC = lower(untaint(proxy.get(staList[s].path.."MACAddress")[1].value))
+            agentSTA[staMAC] = agent_band
+          end
+        end
+      end
+    end
+  else
+    multiap = proxy.getPN("Device.Services.X_TELSTRA_MultiAP.Agent.",true)
+    if multiap then
+      for k=1,#multiap do
+        local agent = multiap[k]
+        local agentname = format("%s",proxy.get(agent.path.."Alias")[1].value)
+        if agentname ~= "" then
+          local BSSID2GHz = format("%s",proxy.get(agent.path.."BSSID2GHZ")[1].value)
+          local staPath = agent.path.."STA."
+          local staInfo = proxy.get(staPath)
+          local staList = content_helper.convertResultToObject(staPath,staInfo)
+          for i=1,#staList do
+            local sta_v = staList[i]
+            local staMAC = lower(untaint(sta_v.MACAddress))
+            local wifiBand = sta_v.BSSID == BSSID2GHz and " - 2.4GHz" or " - 5GHz"
+            agentSTA[staMAC] = agentname..wifiBand
+            remoteSTAs = remoteSTAs + 1
+          end
         end
       end
     end
