@@ -254,7 +254,7 @@ if curintf == "wg0" then
   mapParams["ipv4addr"] = "rpc.network.interface.@wan.ipaddr"
   mapValid["ipv6"] = vB
   mapValid["listen_port"] = vSIP
-  local ddns = proxy.getPN("uci.ddns.service.")
+  local ddns = proxy.getPN("uci.ddns.service.",true)
   if ddns then
     for k=1,#ddns do
       local path = ddns[k].path
