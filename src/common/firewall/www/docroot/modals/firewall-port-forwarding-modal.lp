@@ -10,6 +10,7 @@ local message_helper = require("web.uimessage_helper")
 local ports_list = require("portslist_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
+local splitter = require("split")
 local ui_helper = require("web.ui_helper")
 local uinetwork = require("web.uinetwork_helper")
 local wanservices = require("webui_core.wanservices")
@@ -20,10 +21,11 @@ lp.setpath("/www/snippets/")
 local ipv4_hosts_ac,ipv6_hosts_ac = uinetwork.getAutocompleteHostsList(true)
 
 local ngx = ngx
-local pairs,string = pairs,string
+local pairs,string,table,tonumber = pairs,string,table,tonumber
+local concat,sort = table.concat,table.sort
+local find,format,match = string.find,string.format,string.match
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
-local table,ipairs,tonumber,format,gmatch,match = table,ipairs,tonumber,string.format,string.gmatch,string.match
 
 local lan_details = {
   gw = "uci.network.interface.@lan.ipaddr",
@@ -64,12 +66,14 @@ end
 
 -- Used to update firewall helpers when rule deleted
 local del_ipv4_index = nil
+local post_action
 if ngx.var.request_method == "POST" then
   local content = ngx.req.get_post_args()
-  if content.action == "TABLE-DELETE" and content.tableid == "ipv4_port_forwarding" then
+  post_action = content.action
+  if post_action == "TABLE-DELETE" and content.tableid == "ipv4_port_forwarding" then
     del_ipv4_index = tonumber(content.index)
   end
-  if content.action == "SAVE" or content.action == "TABLE-ADD" or content.action == "TABLE-MODIFY" or content.action == "TABLE-DELETE"  then
+  if post_action == "SAVE" or post_action == "TABLE-ADD" or post_action == "TABLE-MODIFY" or post_action == "TABLE-DELETE"  then
     proxy.set("rpc.gui.firewall.clearCache","1")
   end
 end
@@ -299,7 +303,8 @@ local function set_helper_port(helper,port)
   if data == nil then
     return
   end
-  for _,v in ipairs(data) do
+  for k=1,#data do
+    local v = data[k]
     if v.param == "helper" and v.value == helper then
       proxy.set(v.path.."dest_port",port)
       return
@@ -452,13 +457,18 @@ local ipv6_columns = {
 }
 
 --region IPv6 functions
-local function validate_ipv6_address(value)
-  for addr in gmatch(untaint(value),"(%S+)") do
+local function validate_ipv6_address(value,object,key)
+  local v = untaint(value)
+  local delimiter = find(v,"<br>",1,true) and "<br>" or " "
+  local addresses = splitter.split(v,delimiter)
+  for k=1,#addresses do
+    local addr = addresses[k]
     local valid,errmsg = vSIIP6(addr)
     if not valid then
       return valid,addr..": "..errmsg
     end
   end
+  object[key] = concat(addresses," ")
   return true
 end
 
@@ -480,8 +490,10 @@ local function validate_ipv6_duplicate_rules(object)
     }
     local port_1_val = protoMap[untaint(protocol_1)]
     local port_2_val = protoMap[untaint(protocol_2)]
-    for _,proto_1 in ipairs(port_1_val) do
-      for _,proto_2 in ipairs(port_2_val) do
+    for i=1,#port_1_val do
+      local proto_1 = port_1_val[i]
+      for k=1,#port_2_val do
+        local proto_2 = port_2_val[k]
         if proto_1 == proto_2 then
           -- return true since protocols duplicate
           return true
@@ -549,7 +561,10 @@ local ipv6_options = {
 }
 
 local function ipv6_filter(data)
-    if data.target == "ACCEPT" and data.src == "wan" and data.dest == "lan" and data.family == "ipv6" then
+  if data.target == "ACCEPT" and data.src == "wan" and data.dest == "lan" and data.family == "ipv6" then
+    local addresses = splitter.split(untaint(data.dest_ip)," ")
+    sort(addresses)
+    data.dest_ip = concat(addresses,"<br>")
     return true
   end
   return false
