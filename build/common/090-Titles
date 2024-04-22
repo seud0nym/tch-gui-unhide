@@ -12,14 +12,26 @@ else
 fi
 
 echo -e "[$SCRIPT]: Change 'Gateway' to '$VARIANT'"
-for f in /www/cards/001_gateway.lp /www/cards/003_internet.lp /www/cards/005_LAN.lp /www/docroot/modals/device-modal.lp /www/docroot/modals/qos-bqos-modal.lp /www/docroot/modals/system-tftp-modal.lp /www/docroot/modals/tod*-modal.lp; do
+for f in \
+    /www/cards/001_gateway.lp \
+    /www/cards/003_internet.lp \
+    /www/cards/005_LAN.lp \
+    /www/docroot/modals/device-modal.lp \
+    /www/docroot/modals/qos-bqos-modal.lp \
+    /www/docroot/modals/system-tftp-modal.lp \
+    /www/docroot/modals/tod*-modal.lp \
+    /www/lua/devices_helper.lua \
+;do
   if [ -f "$f" ]; then
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  - $f"
     sed -e "s/\bGateway\b/$VARIANT/g" -e "s/=SERIAL=/$SERIAL/" -i $f
   fi
 done
 echo -e "[$SCRIPT]: Change 'Device' to '$VARIANT'"
-for f in /www/docroot/modals/ethernet-modal.lp /www/docroot/modals/firewall-dns_int-modal.lp; do
+for f in \
+    /www/docroot/modals/ethernet-modal.lp \
+    /www/docroot/modals/firewall-dns_int-modal.lp\
+;do
   if [ -f "$f" ]; then
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  - $f"
     sed -e "s/\bDevice\b/$VARIANT/g" -i $f
