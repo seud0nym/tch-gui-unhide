@@ -112,7 +112,7 @@ local function pbParams_find(bandtype)
 	for pbline in pbfile:lines() do
 		if pbline:match("Medley Phase %(Final%) Band Plan") then
 			if (bandtype == "Ds") then
-				pbfile:read("*l")
+				local _ = pbfile:read("*l")
 			end
 			pbstring = pbfile:read("*l")
 			break

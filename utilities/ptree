@@ -67,7 +67,7 @@ end
 TOP,FAILURE = io.popen("top -bn1")
 if TOP then
   for _ = 1,4,1 do
-    TOP:read("*l")
+    local _ = TOP:read("*l")
   end
   local PIDS = {}
   for line in TOP:lines() do
