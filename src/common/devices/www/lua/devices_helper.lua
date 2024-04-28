@@ -142,9 +142,11 @@ function M.getWiFi()
           local radio = agent_radios[r]
           local agent_band = format("%s - %s",alias,proxy.get(radio.path.."OperatingFrequencyBand")[1].value)
           local staList = proxy.getPN(radio.path.."AP.1.AssociatedDevice.",true)
-          for s=1,#staList do
-            local staMAC = lower(untaint(proxy.get(staList[s].path.."MACAddress")[1].value))
-            agentSTA[staMAC] = agent_band
+          if staList then
+            for s=1,#staList do
+              local staMAC = lower(untaint(proxy.get(staList[s].path.."MACAddress")[1].value))
+              agentSTA[staMAC] = agent_band
+            end
           end
         end
       end
