@@ -1,15 +1,20 @@
 #!/bin/sh
 
+GREEN='\033[1;32m'
+ORANGE='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+if [ ! -x /usr/bin/file ]; then
+  echo "${RED}ERROR: Cannot execute /usr/bin/file${NC}"
+  exit
+fi
+
 DATE_VERSION=$(date +%Y.%m.%d)
 FULL_VERSION=$(date +%Y.%m.%d@%H:%M)
 
 DEBUG=''
 PRERELEASE=''
-
-GREEN='\033[1;32m'
-ORANGE='\033[0;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
 
 while getopts :pv:D option; do
   case $option in
