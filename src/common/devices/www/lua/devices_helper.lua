@@ -1,5 +1,4 @@
 local common = require("common_helper")
-local content_helper = require("web.content_helper")
 local dkjson = require('dkjson')
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
@@ -9,9 +8,18 @@ local splitter = require("split")
 local string,ngx,os = string,ngx,os
 local concat,sort = table.concat,table.sort
 local tonumber = tonumber
-local find,format,gmatch,gsub,lower,match = string.find,string.format,string.gmatch,string.gsub,string.lower,string.match
+local find,format,gmatch,gsub,lower,match,sub = string.find,string.format,string.gmatch,string.gsub,string.lower,string.match,string.sub
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
+
+local this_ip = proxy.get("rpc.network.interface.@lan.ipaddr")[1].value
+local base_path = "Device.Services.X_TELSTRA_MultiAP.Agent."
+local sta_param = "STA"
+if not proxy.getPN(base_path,true) then
+  base_path = "Device.WiFi.MultiAP.APDevice."
+  sta_param = "AssociatedDevice"
+end
+local skip_path_length = #base_path + 2
 
 local radios = {}
 local values = proxy.getPN("rpc.wireless.radio.", true)
@@ -129,50 +137,56 @@ function M.getInterfaceType(wifi,data)
 end
 
 function M.getWiFi()
-  local remoteSTAs = 0
   local agentSTA = {}
-  local multiap = proxy.getPN("Device.WiFi.MultiAP.APDevice.",true)
-  if multiap then
-    for k=1,#multiap do
-      local agent = multiap[k]
-      local alias = proxy.get(agent.path.."X_TELSTRA_MultiAP.Alias")[1].value
-      if alias ~= "" then
-        local agent_radios = proxy.getPN(agent.path.."Radio.",true)
-        for r=1,#agent_radios do
-          local radio = agent_radios[r]
-          local agent_band = format("%s - %s",alias,proxy.get(radio.path.."OperatingFrequencyBand")[1].value)
-          local staList = proxy.getPN(radio.path.."AP.1.AssociatedDevice.",true)
-          if staList then
-            for s=1,#staList do
-              local staMAC = lower(untaint(proxy.get(staList[s].path.."MACAddress")[1].value))
-              agentSTA[staMAC] = agent_band
-            end
-          end
+  local bssid = {}
+  local skipPath = {}
+  local aliases = {}
+  local bands = {}
+  local macs = {}
+  local remoteIP = {}
+  local bandPrefixLength
+
+  local multiap = proxy.get(base_path)
+  for k=#multiap,1,-1 do
+    local v = multiap[k]
+    local p = untaint(v.path)
+    local prefix = sub(p,1,skip_path_length)
+    if not skipPath[v.prefix] then
+      if v.param == "IPAddress" then
+        if sta_param == "AssociatedDevice" and (v.value == "" or v.value == this_ip) then
+          skipPath[prefix] = true
+        elseif v.value ~= "" then
+          remoteIP[untaint(v.value)] = true
         end
-      end
-    end
-  else
-    multiap = proxy.getPN("Device.Services.X_TELSTRA_MultiAP.Agent.",true)
-    if multiap then
-      for k=1,#multiap do
-        local agent = multiap[k]
-        local agentname = format("%s",proxy.get(agent.path.."Alias")[1].value)
-        if agentname ~= "" then
-          local BSSID2GHz = format("%s",proxy.get(agent.path.."BSSID2GHZ")[1].value)
-          local staPath = agent.path.."STA."
-          local staInfo = proxy.get(staPath)
-          local staList = content_helper.convertResultToObject(staPath,staInfo)
-          for i=1,#staList do
-            local sta_v = staList[i]
-            local staMAC = lower(untaint(sta_v.MACAddress))
-            local wifiBand = sta_v.BSSID == BSSID2GHz and " - 2.4GHz" or " - 5GHz"
-            agentSTA[staMAC] = agentname..wifiBand
-            remoteSTAs = remoteSTAs + 1
-          end
+      elseif v.param == "Alias" then
+        if v.value == "" then
+          skipPath[prefix] = true
         end
+        aliases[prefix] = untaint(v.value)
+      elseif v.param == "OperatingFrequencyBand" then
+        bands[p] = v.value
+        bandPrefixLength = #p
+      elseif v.param == "BSSID2GHZ" then
+        bands[untaint(v.value)] = "2.4GHz"
+        bandPrefixLength = #p
+      elseif v.param == "BSSID5GHZ" then
+        bands[untaint(v.value)] = "5GHz"
+        bandPrefixLength = #p
+      elseif v.param == "BSSID" and find(p,"STA",skip_path_length,true) then
+        bssid[p] = untaint(v.value)
+      elseif v.param == "MACAddress" and find(p,sta_param,skip_path_length,true) then
+        macs[#macs+1] = { mac = untaint(v.value), prefix = prefix, path = p }
       end
     end
   end
+
+  for k =1,#macs do
+    local v = macs[k]
+    if not skipPath[v.prefix] then
+      agentSTA[lower(v.mac)] = format("%s - %s",aliases[v.prefix],((sta_param == "AssociatedDevice") and bands[sub(v.path,1,bandPrefixLength)] or bands[bssid[v.path]]))
+    end
+  end
+
   local hosts = proxy.getPN("uci.dhcp.host.",true)
   for k=1,#hosts do
     local p = hosts[k]
@@ -182,7 +196,7 @@ function M.getWiFi()
       local ap = match(untaint(tag),"^AP_([%w_]+)$")
       if ap then
         local ipv4 = proxy.get(path.."ip")
-        if ipv4 and ipv4[1].value ~= "" then
+        if ipv4 and ipv4[1].value ~= "" and not remoteIP[untaint(ipv4[1].value)] then
           local cmd = format("curl -qsklm1 --connect-timeout 1 http://%s:59595",ipv4[1].value)
           local curl = io.popen(cmd)
           if curl then
@@ -194,7 +208,6 @@ function M.getWiFi()
               for i=1,#devices do
                 local v = devices[i]
                 agentSTA[untaint(v.mac)] = format("%s - %s",ap,v.radio)
-                remoteSTAs = remoteSTAs + 1
               end
             end
           else
@@ -204,13 +217,10 @@ function M.getWiFi()
       end
     end
   end
-  local wifiPrefix = "Wireless"
-  if remoteSTAs > 0 then
-    wifiPrefix = "Gateway"
-  end
+
   return {
     agentSTA = agentSTA,
-    prefix = wifiPrefix
+    prefix = next(remoteIP) and "Gateway" or "Wireless"
   }
 end
 
