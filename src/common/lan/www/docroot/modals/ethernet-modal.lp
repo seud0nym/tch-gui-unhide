@@ -80,6 +80,13 @@ else
   local_dev_ip = proxy.get("rpc.network.interface.@"..cur_intf..".ipaddr")[1].value
 end
 
+local wanport = proxy.get("sys.eth.port.@eth4.status")
+if wanport and wanport[1].value then
+  wanport =  "eth4"
+else
+  wanport =  "eth3"
+end
+
 local dnsIndex = 0
 local ntpIndex = 0
 local dns_servers = {""}
@@ -369,6 +376,27 @@ end
 
 local content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
 if not helpmsg then helpmsg = {} end
+if not next(helpmsg) then
+  local ifnames = split(content["ifnames"]," ")
+  local wan_in_lan_bridge = false
+  for i=#ifnames,1,-1 do
+    if not find(ifnames[i],"^wl") then
+      proxy.set({
+        ["uci.ethernet.port.@"..ifnames[i]..".wan"] = "0",
+        ["uci.qos.device.@"..ifnames[i]..".classgroup"] = "TO_LAN",
+      })
+      if ifnames[i] == wanport then
+        wan_in_lan_bridge = true
+      end
+    end
+  end
+  if not wan_in_lan_bridge then
+    proxy.set({
+      ["uci.ethernet.port.@"..wanport..".wan"] = "1",
+      ["uci.qos.device.@"..wanport..".classgroup"] = "TO_WAN",
+    })
+  end
+end
 
 if not content["auto"] or content["auto"] == "" then
   content["auto"] = "1"
@@ -799,17 +827,28 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
               <th style="width:50%;text-align:right;vertical-align:bottom;">',vlan_enabled[1].value == "1" and T"VLAN ID" or "",'</th>\
               <th style="width:65px;">',ui_helper.createSwitchPort("1",eth.state_0,eth.speed_0),'</th>\
               <th style="width:65px;">',ui_helper.createSwitchPort("2",eth.state_1,eth.speed_1),'</th>\
-              <th style="width:65px;">',ui_helper.createSwitchPort("3",eth.state_2,eth.speed_2),'</th>\
-              <th style="width:65px;">',ui_helper.createSwitchPort("4",eth.state_3,eth.speed_3),'</th>')
-              if isBridgedMode then
-                ngx.print('<th>',ui_helper.createSwitchPort("WAN",eth.state_4,eth.speed_4,{socket={class="red"}}),'</th>')
+              <th style="width:65px;">',ui_helper.createSwitchPort("3",eth.state_2,eth.speed_2),'</th>')
+              if wanport == "eth3" then
+                ngx.print('\
+                  <th>',ui_helper.createSwitchPort("WAN",eth.state_3,eth.speed_3,{socket={class="red"}}),'</th>\
+                ')
+              else
+                ngx.print('\
+                  <th style="width:65px;">',ui_helper.createSwitchPort("4",eth.state_3,eth.speed_3),'</th>\
+                  <th>',ui_helper.createSwitchPort("WAN",eth.state_4,eth.speed_4,{socket={class="red"}}),'</th>\
+                ')
               end
               ngx.print('\
               <th style="width:50%;"></th>\
             </tr>')
             --endregion header
+            local lastport = 3
             local unused = 0
-            local used = {eth0={[".count"]=0},eth1={[".count"]=0},eth2={[".count"]=0},eth3={[".count"]=0},eth4={[".count"]=0}}
+            local used = {eth0={[".count"]=0},eth1={[".count"]=0},eth2={[".count"]=0},eth3={[".count"]=0},}
+            if wanport == "eth4" then
+              used.eth4={[".count"]=0}
+              lastport = 4
+            end
             for _,v in ipairs(proxy.getPN("uci.network.interface.",true)) do
               local intf = match(v.path,"@([^%.]+)")
               for ifname in gmatch(untaint(proxy.get(v.path.."ifname")[1].value),"(%S+)") do
@@ -824,7 +863,6 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                 end
               end
             end
-            local lastport = isBridgedMode and 4 or 3
             local none_vlan_label = vlan_helper.get_none_vlan_label(vlan_enabled[1].value)
             if none_vlan_label then
               ngx.print('<tr><td style="width:50%;text-align:right;">',none_vlan_label,'</td>')

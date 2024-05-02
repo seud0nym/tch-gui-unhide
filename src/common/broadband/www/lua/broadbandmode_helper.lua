@@ -3,7 +3,9 @@ gettext.textdomain('webui-core')
 local bridged = require("bridgedmode_helper")
 local proxy = require("datamodel")
 local content_helper = require("web.content_helper")
-local match,sub = string.match,string.sub
+local gsub,match,sub = string.gsub,string.match,string.sub
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 local content = {
   sfp_enabled = "uci.env.rip.sfp",
@@ -109,14 +111,12 @@ tablecontent[#tablecontent + 1] = {
     if sfp == 1 then
       proxy.set("uci.ethernet.globals.eth4lanwanmode","1")
     end
-    if ethname == "eth3" then
-      local ifnames = proxy.get("uci.network.interface.@lan.ifname")[1].value
-      proxy.set({
-        ["uci.network.interface.@lan.ifname"] = ifnames..' '..ethname,
-        ["uci.ethernet.port.@eth3.wan"] = "0"
-      })
-    end
-    proxy.set("uci.wansensing.global.l2type","ADSL")
+    local ifnames = proxy.get("uci.network.interface.@lan.ifname")[1].value
+    proxy.set({
+      ["uci.network.interface.@lan.ifname"] = gsub(gsub(untaint(ifnames),ethname,""),"%s$","")..' '..ethname,
+      ["uci.ethernet.port.@"..ethname..".wan"] = "0",
+      ["uci.wansensing.global.l2type"] = "ADSL"
+    })
   end,
 }
 tablecontent[#tablecontent + 1] = {
@@ -161,14 +161,12 @@ tablecontent[#tablecontent + 1] = {
     if sfp == 1 then
       proxy.set("uci.ethernet.globals.eth4lanwanmode","1")
     end
-    if ethname == "eth3" then
-      local ifnames = proxy.get("uci.network.interface.@lan.ifname")[1].value
-      proxy.set({
-        ["uci.network.interface.@lan.ifname"] = ifnames..' '..ethname,
-        ["uci.ethernet.port.@eth3.wan"] = "0"
-      })
-    end
-    proxy.set("uci.wansensing.global.l2type","VDSL")
+    local ifnames = proxy.get("uci.network.interface.@lan.ifname")[1].value
+    proxy.set({
+      ["uci.network.interface.@lan.ifname"] = gsub(gsub(untaint(ifnames),ethname,""),"%s$","")..' '..ethname,
+      ["uci.ethernet.port.@"..ethname..".wan"] = "0",
+      ["uci.wansensing.global.l2type"] = "VDSL"
+    })
   end,
 }
 tablecontent[#tablecontent + 1] = {
@@ -232,14 +230,12 @@ tablecontent[#tablecontent + 1] = {
     if sfp == 1 then
       proxy.set("uci.ethernet.globals.eth4lanwanmode","0")
     end
-    if ethname == "eth3" then
-      local ifnames = proxy.get("uci.network.interface.@lan.ifname")[1].value
-      proxy.set({
-        ["uci.network.interface.@lan.ifname"] = string.gsub(string.gsub(ifnames,ethname,""),"%s$",""),
-        ["uci.ethernet.port.@eth3.wan"] = "1"
-      })
-    end
-    proxy.set("uci.wansensing.global.l2type","ETH")
+    local ifnames = proxy.get("uci.network.interface.@lan.ifname")[1].value
+    proxy.set({
+      ["uci.network.interface.@lan.ifname"] = gsub(gsub(untaint(ifnames),ethname,""),"%s$",""),
+      ["uci.ethernet.port.@"..ethname..".wan"] = "1",
+      ["uci.wansensing.global.l2type"] = "ETH"
+    })
   end,
 }
 
