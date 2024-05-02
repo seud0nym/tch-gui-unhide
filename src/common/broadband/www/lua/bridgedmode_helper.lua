@@ -5,6 +5,18 @@ local ui_helper = require("web.ui_helper")
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
+local wanport = proxy.get("sys.eth.port.@eth4.status")
+local lan_bridged,lan_routed
+if wanport and wanport[1].value then
+  wanport =  "eth4"
+  lan_bridged = "eth0 eth1 eth2 eth3 eth4 atm_8_35 ptm0"
+  lan_routed = "eth0 eth1 eth2 eth3"
+else
+  wanport =  "eth3"
+  lan_bridged = "eth0 eth1 eth2 eth3 atm_8_35 ptm0"
+  lan_routed = "eth0 eth1 eth2"
+end
+
 local M = {}
 
 local function logErrors(source,errors)
@@ -143,12 +155,14 @@ end
 function M.configBridgedMode(dhcp)
   local success,errors = proxy.set({
     ["uci.wansensing.global.enable"] = "0",
-    ["uci.network.interface.@lan.ifname"] = "eth0 eth1 eth2 eth3 eth4 atm_8_35 ptm0",
+    ["uci.network.interface.@lan.ifname"] = lan_bridged,
     ["uci.network.config.wan_mode"] = "bridge",
     ["uci.dhcp.dhcp.@lan.ignore"] = "1",
     ["uci.network.interface.@wan.ifname"] = "lo",
     ["uci.network.interface.@wan.auto"] = "0",
     ["uci.network.interface.@wan.proto"] = "none",
+    ["uci.ethernet.port.@"..wanport..".wan"] = "0",
+    ["uci.qos.device.@"..wanport..".classgroup"] = "TO_LAN",
   })
 
   ngx.log(ngx.WARN,format("configBridgedMode: Configuring WAN Sensing, LAN, WAN Mode and DHCP (Result=%s)",tostring(success)))
@@ -266,13 +280,15 @@ function M.configRoutedMode()
   if success then
     local settings = {
       ["uci.wansensing.global.enable"] = "1",
-      ["uci.network.interface.@lan.ifname"] = "eth0 eth1 eth2 eth3",
+      ["uci.network.interface.@lan.ifname"] = lan_routed,
       ["uci.network.interface.@lan.gateway"] = "",
       ["uci.network.config.wan_mode"] = "dhcp",
       ["uci.dhcp.dhcp.@lan.ignore"] = "0",
-      ["uci.network.interface.@wan.ifname"] = "eth4",
+      ["uci.network.interface.@wan.ifname"] = wanport,
       ["uci.network.interface.@wan.auto"] = "1",
       ["uci.network.interface.@wan.proto"] = "dhcp",
+      ["uci.ethernet.port.@"..wanport..".wan"] = "1",
+      ["uci.qos.device.@"..wanport..".classgroup"] = "TO_WAN",
     }
     if proxy.get("uci.network.interface.@lan.proto")[1].value == "dhcp" then
       settings["uci.network.interface.@lan.proto"] = "static"
