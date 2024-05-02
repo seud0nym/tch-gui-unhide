@@ -288,7 +288,8 @@ if [ $RESTORE = n ]; then
   fi
   echo -e "${GREEN}Configuring bridged mode${NC}"
   uci set network.config.wan_mode='bridge'
-  uci set network.lan.ifname="eth0 eth1 eth2 eth3 eth4 wl0 wl1"
+  uci set network.lan.ifname="eth0 eth1 eth2 eth3 eth4"
+  uci set ethernet.eth4.wan='0'
   for ifname in ppp ipoe wan wan6 wwan lan.pppoerelay; do
     uci -q delete network.$ifname
     uci -q delete dhcp.$ifname
@@ -337,6 +338,7 @@ if [ $RESTORE = n ]; then
   fi
   uci commit network
   uci commit dhcp
+  uci commit ethernet
 
   echo -e "${ORANGE}Disabling traffic history${NC}"
   sed -e '/traffichistory.lua/d' -i /etc/crontabs/root
@@ -405,6 +407,7 @@ if [ $RESTORE = n ]; then
     echo -e "${ORANGE}Applying wireless changes...${NC}"
     /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"
     echo -e "${ORANGE}Applying network changes...${NC}"
+    /etc/init.d/ethernet reload
     /etc/init.d/network reload
     echo -e "${ORANGE}Applying cron changes...${NC}"
     /etc/init.d/cron restart
@@ -518,6 +521,8 @@ else # RESTORE
   uci -q delete network.lan6
 
   echo -e "${GREEN}Configuring routed mode${NC}"
+  uci set network.lan.ifname="eth0 eth1 eth2 eth3"
+  uci set ethernet.eth4.wan='1'
   uci -q delete network.wan
   uci -q delete network.@ppp_placeholder[0]
   sh /rom/etc/uci-defaults/tch_0030-network-wan
@@ -527,6 +532,7 @@ else # RESTORE
     uci set dhcp.$ifname.ignore='1'
   done
   uci commit dhcp
+  uci commit ethernet
 
   if [ -n "$UHTTPD" ]; then
     echo -e "${GREEN}Enabling DumaOS UHTTP daemon${NC}"
@@ -601,6 +607,7 @@ else # RESTORE
       $NDHTTPD start
     fi
     echo -e "${GREEN}Applying network changes...${NC}"
+    /etc/init.d/ethernet reload
     /etc/init.d/network reload
     echo -e "${GREEN}Applying cron changes...${NC}"
     /etc/init.d/cron restart
