@@ -165,3 +165,9 @@ sed \
 echo -e "[$SCRIPT]: Fix uptime on basic Broadband tab"
 sed -e 's/days > 1/days > 0/' -i /www/docroot/broadband.lp
 
+echo -e "[$SCRIPT]: Pre-load helpers"
+for f in $(ls /www/lua/*_helper.lua); do
+  if [ ! -e /rom$f ]; then
+    sed -e "2i local _ = require('$(basename $f .lua)')" -i /www/docroot/gateway.lp
+  fi
+done
