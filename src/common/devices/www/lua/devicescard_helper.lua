@@ -99,11 +99,11 @@ function M.getDevicesCardHTML(all)
       html[#html+1] = '</span>'
     end
   end
-  -- Do NOT remove this comment! Insert WireGuard peer count here
   html[#html+1] = '<span class="simple-desc">'
   html[#html+1] = '<i class="icon-eye-close" style="color:grey"></i>'
   html[#html+1] = format(N('<strong %s>%d Inactive device</strong>','<strong %s>%d Inactive devices</strong>',inactive),all_devices_modal_link,inactive)
   html[#html+1] = '</span>'
+  -- Do NOT remove this comment! Insert WireGuard peer count here
   if not bridged.isBridgedMode() then
     local bwstats_enabled = proxy.get("rpc.gui.bwstats.enabled")
     if bwstats_enabled then
