@@ -1,0 +1,93 @@
+#!/bin/sh
+
+SCRIPT="$(basename $0)"
+GREEN='\033[1;32m'
+ORANGE='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Make sure that we are running on Telstra firmware
+if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]; then
+  echo -e "${RED}ERROR! This script is intended for devices with Telstra firmware. Exiting${NC}"
+  exit 1
+fi
+
+if [ ! -f /etc/config/multiap -a ! -f /etc/config/mesh_broker ]; then
+  echo -e "${RED}ERROR! This script is only intended for devices with EasyMesh installed. Exiting${NC}"
+  exit 1
+fi
+
+if [ "$(uci -q get network.config.wan_mode)" != "bridge" ]; then
+  echo -e "${RED}ERROR! This script is only intended for devices running in bridge mode. Exiting${NC}"
+  exit 1
+fi
+
+usage() {
+cat <<EOH
+Configures the colour of the front LED on devices configured as a booster.
+
+Usage: $0 [options] [colour]
+
+Options:
+ -R          Restore to default
+ -y          Skip the confirmation prompt
+
+Colour: 
+  blue, cyan, green, magenta, orange, red, or white
+
+If not specified, colour defaults to blue.
+Colour is not required (and ignored) if -R specified.
+
+NOTE: The device will be rebooted to apply the changes!
+
+EOH
+exit
+}
+
+confirm() {
+  echo -e "${ORANGE}WARNING:  The device will be REBOOTED after applying the changes!${NC} "
+  if [ $YES = n ]; then
+    echo -en "${GREEN}ACTION:   Enter [y] to continue, or anything else to exit now${NC} "
+    read
+    if [ "$REPLY" != "y" -a "$REPLY" != "Y" ]; then
+      echo -e "NOTE:     Aborted at user request"
+      exit
+    fi
+  fi
+}
+
+COLOUR='blue'
+RESTORE='n'
+YES='n'
+
+while getopts :yR option; do
+  case "${option}" in
+    y)  YES='y';;
+    R)  RESTORE='y';;
+    *)  usage;;
+  esac
+done
+shift $((OPTIND-1))
+
+if [ $RESTORE = y ]; then
+  echo -e "NOTE:     Restoring state machines..."
+  confirm
+  cp -p /rom/etc/ledfw/stateMachines.lua /etc/ledfw/stateMachines.lua
+else
+  [ -n "$1" ] && COLOUR="$1"
+  if echo 'blue cyan green magenta orange red white' | grep -q "\b$COLOUR\b"; then
+    echo -e "NOTE:     Updating state machines to set front LED to $COLOUR..."
+    confirm
+    sed -e "/bridge_o[nf]*line =/,/}/{
+      s/true/false/
+      /blue/a\           staticLed\(\"front:$COLOUR\", true\),
+    }" /rom/etc/ledfw/stateMachines.lua > /etc/ledfw/stateMachines.lua
+  else
+    echo -e "${RED}ABORTING: Invalid colour '$COLOUR'!${NC}"
+    exit
+  fi
+fi
+
+echo -e "NOTE:     Rebooting..."
+sync
+reboot

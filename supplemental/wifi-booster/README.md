@@ -120,7 +120,7 @@ If the booster device does not acquire either or both of the SSIDs, disable and 
 1. After running the script, on _most_ devices you can move the cable from the LAN port to the WAN port if you wish. This is not mandatory, as when the device is running in bridged mode, all 5 ports are effectively LAN ports. 
     - **NOTE**: Some (maybe most?) Gen 3 devices will _not_ register as a booster when using the WAN port to connect to the controller. The WAN port can still be used as a LAN port; just not as the port to connect to the controller.
 
-# How to download and execute the script
+### How to download and execute the script
 Execute this command on your device via a PuTTY session or equivalent (an active WAN/Internet connection is required):
 ```
 curl -kLO https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/wifi-booster/bridged-booster
@@ -136,6 +136,51 @@ chmod +x bridged-booster
 Then, execute the script (assuming you are in the same directory into which you downloaded or uploaded the script):
 ```
 ./bridged-booster <options>
+```
+Use `-?` to see all the options available on the script.
+
+## set-led-colour Script
+The front LED on the Gen 2 and Gen 3 devices will always be red, unless an active LAN device is plugged into the WAN port, in which case the light will be green.
+
+This script changes the colour so that it will always be blue by default (whether or not a device is plugged into the WAN port). You can specify an alternate colour if desired (cyan, green, magenta, orange, red, or white).
+
+As usual, you control the LED brightness through the slider on the Device card in the GUI.
+
+### Usage
+```
+Usage: ./set-led-colour [options] [colour]
+
+Options:
+ -R          Restore to default
+ -y          Skip the confirmation prompt
+
+Colour: 
+  blue, cyan, green, magenta, orange, red, or white
+
+If not specified, colour defaults to blue.
+Colour is not required (and ignored) if -R specified.
+```
+
+### Notes
+1. The device will be rebooted to apply the changes!
+1. This script will *only* work on a Telstra device with EasyMesh that is currently in bridge mode.
+
+### How to download and execute the script
+Execute this command on your device via a PuTTY session or equivalent (an active WAN/Internet connection is required):
+```
+curl -kLO https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/wifi-booster/set-led-colour
+```
+
+Alternatively, download the script manually and load it up to your device using WinSCP or equivalent.
+
+After you have the script on your device, you may need to make it executable, which is done with this command (assuming you are in the same directory as the script):
+```
+chmod +x set-led-colour
+```
+
+Then, execute the script (assuming you are in the same directory into which you downloaded or uploaded the script):
+```
+./set-led-colour <options> <colour>
 ```
 Use `-?` to see all the options available on the script.
 
