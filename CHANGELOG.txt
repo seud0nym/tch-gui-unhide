@@ -1,3 +1,24 @@
+2024.05.31
+==========
+* tch-gui-unhide: Fixed non-LAN interfaces listed in side menu on Local Network screen
+* tch-gui-unhide: Fixed bug adding LAN interface on 17.2.0284 (#192)
+* tch-gui-unhide: Fixed missing wait spinner on some screens
+* tch-gui-unhide: Fixed bug that prevented display of correct access point on Devices list (FW 21.4)
+* tch-gui-unhide: Fixed eth4 QoS and ethernet settings when added to LAN bridge
+* tch-gui-unhide: Added ability to add/remove static leases from the Devices card
+* tch-gui-unhide: Added ability to create mutiple Dynamic DNS domains (https://whrl.pl/RgHwpI)
+* tch-gui-unhide: Added warning to port forwarding about overlapping UPnP leases (https://whrl.pl/RgHN1q)
+* tch-gui-unhide: Added UPnP leases table to port forwarding tab if any leases exist
+* tch-gui-unhide: Added warning to WAN Services card if overlapping UPnP leases exist
+* tch-gui-unhide: Added WiFi Operating Standard (e.g. 802.11ac) to Devices list
+* tch-gui-unhide: Added WAN port to Local Network Port Assignment when not bridged so that WAN port can be assigned to LAN bridge when WAN connection is vDSL (https://whrl.pl/RgHMAE)
+* tch-gui-unhide: Pre-load helpers on main dashboard screen to slightly improve performance
+* tch-gui-unhide: Slightly improved performance of Devices screen in EasyMesh environment (FW 21.4)
+* tch-gui-unhide: Moved WireGuard peer count after inactive device count on Devices card
+* tch-gui-unhide: IPv6 addresses on Firewall Port Forwarding tab are now sorted and occupy only one line per address (like Devices list)
+* tch-gui-unhide: Changed "IPv6 Port Forwarding" heading on Firewall Port Forwarding tab to the more accurate "IPv6 Pin Hole Rules"
+* tch-gui-unhide-xtra.wireguard: Fixed bug in removing/replacing special characters in imported interface names
+
 2024.02.29
 ==========
 * tch-gui-unhide: Fixed failure to save Wi-Fi tab in FW 21.4 when Guest removed (https://whrl.pl/RgFNxA)
