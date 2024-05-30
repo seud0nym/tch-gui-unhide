@@ -609,7 +609,7 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false),'\
     ui_helper.createMessages(message_helper.popMessages()),
     ui_helper.createAlertBlock(T"To enter WAN port ranges use <b>':'</b> (for example 500:505)",info),'\
     <fieldset>\
-      <legend>',T"IPv4 Port Forwarding",'</legend>')
+      <legend>',T"IPv4 Port Forwarding Rules",'</legend>')
         if #upnp_data > 0 then
           ui_helper.createAlertBlock(T"WARNING: WAN ports can <b>NOT</b> overlap existing UPnP leases, even if UPnP is <i>disabled</i>!",warning)
         end
@@ -618,7 +618,7 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false),'\
     if ipv6.lanIpv6Enabled ~= "0" and ipv6.pinholeEnabled == "1" then
       ngx.print('\
       <fieldset>\
-        <legend>',T"IPv6 Port Forwarding",'</legend>',
+        <legend>',T"IPv6 Pin Hole Rules",'</legend>',
           ui_helper.createTable(ipv6_columns,ipv6_data,ipv6_options,nil,ipv6_helpmsg),'\
       </fieldset>\
       ');
