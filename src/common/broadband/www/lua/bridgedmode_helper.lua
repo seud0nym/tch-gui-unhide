@@ -161,8 +161,6 @@ function M.configBridgedMode(dhcp)
     ["uci.network.interface.@wan.ifname"] = "lo",
     ["uci.network.interface.@wan.auto"] = "0",
     ["uci.network.interface.@wan.proto"] = "none",
-    ["uci.ethernet.port.@"..wanport..".wan"] = "0",
-    ["uci.qos.device.@"..wanport..".classgroup"] = "TO_LAN",
   })
 
   ngx.log(ngx.WARN,format("configBridgedMode: Configuring WAN Sensing, LAN, WAN Mode and DHCP (Result=%s)",tostring(success)))
