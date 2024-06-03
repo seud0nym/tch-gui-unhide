@@ -21,7 +21,7 @@ function M.getWANServicesCardHTML()
   if #ddns_enabled == 0 then
     html[#html+1] = ui_helper.createSimpleLight("0",format(ddns_status,"disabled"))
   else
-    local services_status = ddns_helper.get_services_status()
+    local services_status = ddns_helper.get_services_status(ddns_enabled)
     local ddns = {
       updated = 0,
       updating = 0,

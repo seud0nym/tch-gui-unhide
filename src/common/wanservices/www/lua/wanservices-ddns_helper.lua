@@ -95,14 +95,22 @@ if intfs_pn then
   end
 end
 
-function M.get_services_status()
+function M.get_services_status(ddns_enabled)
   local status = {}
   local result = proxy.get("rpc.ddns.status")
   if result then
     local all = untaint(result[1].value)
-    for v in gmatch(all,'([^%]]+)') do 
-      local paramindex,msg = match(v,'(.+)%[(.+)')
-      status[paramindex] = msg
+    if all == "No error received from server" then
+      if ddns_enabled and #ddns_enabled > 0  then
+        for k=1,#ddns_enabled do
+          status[ddns_enabled[k]] = "Disabled"
+        end
+      end
+    else
+      for v in gmatch(all,'([^%]]+)') do 
+        local paramindex,msg = match(v,'(.+)%[(.+)')
+        status[paramindex] = msg
+      end
     end
   end
   return status
@@ -118,6 +126,8 @@ function M.to_status(services_status,paramindex)
       ddns_status = "updated"
     elseif rpc_ddns_status == "No error received from server" then
       ddns_status = "updating"
+    elseif rpc_ddns_status == "Disabled" then
+      ddns_status = "disabled"
     else
       ddns_status = "error"
     end
