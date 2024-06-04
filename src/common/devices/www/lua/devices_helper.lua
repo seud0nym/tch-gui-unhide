@@ -147,35 +147,37 @@ function M.getWiFi()
   local bandPrefixLength
 
   local multiap = proxy.get(base_path)
-  for k=#multiap,1,-1 do
-    local v = multiap[k]
-    local p = untaint(v.path)
-    local prefix = sub(p,1,skip_path_length)
-    if not skipPath[v.prefix] then
-      if v.param == "IPAddress" then
-        if sta_param == "AssociatedDevice" and (v.value == "" or v.value == this_ip) then
-          skipPath[prefix] = true
-        elseif v.value ~= "" then
-          remoteIP[untaint(v.value)] = true
+  if multiap then
+    for k=#multiap,1,-1 do
+      local v = multiap[k]
+      local p = untaint(v.path)
+      local prefix = sub(p,1,skip_path_length)
+      if not skipPath[v.prefix] then
+        if v.param == "IPAddress" then
+          if sta_param == "AssociatedDevice" and (v.value == "" or v.value == this_ip) then
+            skipPath[prefix] = true
+          elseif v.value ~= "" then
+            remoteIP[untaint(v.value)] = true
+          end
+        elseif v.param == "Alias" then
+          if v.value == "" then
+            skipPath[prefix] = true
+          end
+          aliases[prefix] = untaint(v.value)
+        elseif v.param == "OperatingFrequencyBand" then
+          bands[p] = v.value
+          bandPrefixLength = #p
+        elseif v.param == "BSSID2GHZ" then
+          bands[untaint(v.value)] = "2.4GHz"
+          bandPrefixLength = #p
+        elseif v.param == "BSSID5GHZ" then
+          bands[untaint(v.value)] = "5GHz"
+          bandPrefixLength = #p
+        elseif v.param == "BSSID" and find(p,"STA",skip_path_length,true) then
+          bssid[p] = untaint(v.value)
+        elseif v.param == "MACAddress" and find(p,sta_param,skip_path_length,true) then
+          macs[#macs+1] = { mac = untaint(v.value), prefix = prefix, path = p }
         end
-      elseif v.param == "Alias" then
-        if v.value == "" then
-          skipPath[prefix] = true
-        end
-        aliases[prefix] = untaint(v.value)
-      elseif v.param == "OperatingFrequencyBand" then
-        bands[p] = v.value
-        bandPrefixLength = #p
-      elseif v.param == "BSSID2GHZ" then
-        bands[untaint(v.value)] = "2.4GHz"
-        bandPrefixLength = #p
-      elseif v.param == "BSSID5GHZ" then
-        bands[untaint(v.value)] = "5GHz"
-        bandPrefixLength = #p
-      elseif v.param == "BSSID" and find(p,"STA",skip_path_length,true) then
-        bssid[p] = untaint(v.value)
-      elseif v.param == "MACAddress" and find(p,sta_param,skip_path_length,true) then
-        macs[#macs+1] = { mac = untaint(v.value), prefix = prefix, path = p }
       end
     end
   end
