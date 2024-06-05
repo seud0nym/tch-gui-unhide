@@ -142,7 +142,17 @@ if ngx.var.request_method == "POST" then
   end
 end
 
-local custom_dns_data,custom_dns_helpmsg = dns_helper.handleDNSTableQuery(custom_dns_columns,custom_dns_options,nil,nil,custom_dns_valid)
+local adguard = proxy.get("rpc.gui.init.files.@AdGuardHome.active")
+local function custom_dns_filter(data)
+  if adguard and adguard[1].value == "1" then
+    if data.value == "127.0.0.1#53535" then
+      return { canDelete = false, canEdit = false }
+    end
+  end
+  return true
+end
+
+local custom_dns_data,custom_dns_helpmsg = dns_helper.handleDNSTableQuery(custom_dns_columns,custom_dns_options,custom_dns_filter,nil,custom_dns_valid)
 
 local current_dns,ipv4DNScolumns,ipv4DNSoptions,ipv4DNSdata,ipv4DNShelpmsg,ipv6DNScolumns,ipv6DNSoptions,ipv6DNSdata,ipv6DNShelpmsg,wwanDNScolumns,wwanDNSoptions,wwanDNSdata,wwanDNShelpmsg
 
