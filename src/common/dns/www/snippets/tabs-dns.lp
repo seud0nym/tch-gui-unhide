@@ -2,15 +2,16 @@
 
 gettext.textdomain('webui-core')
 
+local dns_helper = require("dns_helper")
 local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
 local proxy = require("datamodel")
 local ipairs,string = ipairs,string
 local format,len,sub = string.format,string.len,string.sub
 local items = {}
 
-local adguard = proxy.get("rpc.gui.init.files.@AdGuardHome.active")
+local mainport = proxy.get(dns_helper.dnsmasq_path.."port")[1].value
 
-if not adguard or adguard[1].value ~= "1" then
+if mainport ~= "0" then
   items[#items+1] = {"dns-modal.lp",T"Configuration"}
   if not isBridgedMode then
     items[#items+1] = {"dns-rewrites-modal.lp",T"Rewrites"}
