@@ -8,20 +8,20 @@ local format,gsub = string.format,string.gsub
 local untaint = string.untaint
 
 local adguard = proxy.get("rpc.gui.init.files.@AdGuardHome.active")
-local dns_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dns-modal.lp" data-id="dns-modal"'
 local dnsmasq_path = dns_helper.dnsmasq_path
 
 local html = {}
 
-if adguard and adguard[1].value == "1" then
-  local ipaddr = proxy.get("rpc.network.interface.@lan.ipaddr")[1].value
-  html[#html+1] = ui_helper.createSimpleLight("1", format('<a style="color:inherit;text-decoration:none;" target="_blank" href="http://%s:8008"><b>AdGuard Home</b></a> DNS enabled',untaint(ipaddr)))
-else
-  local tinsert = table.insert
-  local split = require("split").split
+local tinsert = table.insert
+local split = require("split").split
 
-  local dns_servers = {}
-  local rewrites_count = 0
+local dns_servers = {}
+local rewrites_count = 0
+
+local dns_modal_link = ""
+if proxy.get(dnsmasq_path.."port")[1].value ~= "0" then
+  dns_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dns-modal.lp" data-id="dns-modal"'
+  local ips = {}
 
   local noresolv = proxy.get(dnsmasq_path.."noresolv")[1].value
   local disabled = proxy.get(dnsmasq_path.."disabled")
@@ -30,44 +30,60 @@ else
     rewrites_count = #addresses
     for _,dnsmsrvr in pairs(proxy.get(dnsmasq_path.."server.")) do
       local domain,ip = dns_helper.toDomainAndIP(dnsmsrvr.value)
-      if not domain then
-        dns_servers[#dns_servers+1] = ip
-      else
-        tinsert(dns_servers,1,format("%s&rarr;%s",domain,ip))
-      end
-    end
-  end
-
-  local dnsservers_paths = {}
-  if isBridgedMode then
-    dnsservers_paths[#dnsservers_paths+1] = "rpc.network.interface.@lan.dnsservers"
-  else
-    if #dns_servers == 0 or noresolv ~= "1" then
-      local interface_pn = proxy.getPN("rpc.network.interface.",true)
-      for _,v in pairs(interface_pn or {}) do
-        if v.path then
-          local ifconfig = proxy.get(v.path.."type",v.path.."available",gsub(v.path,"^rpc","uci").."peerdns")
-          if ifconfig[1].value == "wan" and ifconfig[2].value == "1" and ifconfig[3].value ~= "0" then
-            dnsservers_paths[#dnsservers_paths + 1] = v.path.."dnsservers"
-          end
+      if not ips[ip] then
+        ips[ip] = true
+        if not domain then
+          dns_servers[#dns_servers+1] = ip
+        else
+          tinsert(dns_servers,1,format("%s&rarr;%s",domain,ip))
         end
       end
     end
   end
 
-  local dns_rpc_content = proxy.get(unpack(dnsservers_paths))
-  for _,v in pairs (dns_rpc_content or {}) do
-    if v and v.value ~= "" then
-      for _,server in pairs(split(untaint(v.value),",")) do
-        dns_servers[#dns_servers+1] = server
+  local dnsservers_paths = {}
+  local type = isBridgedMode and "lan" or "wan"
+  if #dns_servers == 0 or noresolv ~= "1" then
+    local interface_pn = proxy.getPN("rpc.network.interface.",true) or {}
+    for k=1,#interface_pn do
+      local v = interface_pn[k]
+      if v.path then
+        local ifconfig = proxy.get(v.path.."type",v.path.."available",gsub(v.path,"^rpc","uci").."peerdns")
+        if ifconfig[1].value == type and ifconfig[2].value == "1" and ifconfig[3].value ~= "0" then
+          dnsservers_paths[#dnsservers_paths + 1] = v.path.."dnsservers"
+        end
       end
     end
   end
 
-  html[#html+1] = '<span class="simple-desc"><i>&nbsp</i>'
-  html[#html+1] = format(N('<strong %s>%d</strong><span %s> DNS Server</span>','<strong %s>%d</strong><span %s> DNS Servers</span>',#dns_servers),dns_modal_link,#dns_servers,dns_modal_link)
-  html[#html+1] = '</span><p class="subinfos" style="letter-spacing:-1px;font-size:12px;font-weight:bold;line-height:14px;margin-top:0px;margin-bottom:-3px">'
-  local max_show = 2
+  local dns_rpc_content = proxy.get(unpack(dnsservers_paths)) or {}
+  for k=1,#dns_rpc_content do
+    local v = dns_rpc_content[k]
+    if v and v.value ~= "" then
+      for _,ip in pairs(split(untaint(v.value),",")) do
+        if not ips[ip] then
+          ips[ip] = true
+          dns_servers[#dns_servers+1] = ip
+        end
+      end
+    end
+  end
+elseif adguard and adguard[1].value == "1" then
+  dns_servers[#dns_servers+1] = "127.0.0.1"
+end
+
+html[#html+1] = '<span class="simple-desc"><i>&nbsp</i>'
+html[#html+1] = format(N('<strong %s>%d</strong><span %s> DNS Server</span>','<strong %s>%d</strong><span %s> DNS Servers</span>',#dns_servers),dns_modal_link,#dns_servers,dns_modal_link)
+html[#html+1] = '</span><p class="subinfos" style="letter-spacing:-1px;font-size:12px;font-weight:bold;line-height:14px;margin-top:0px;margin-bottom:-3px">'
+
+local max_show = 2
+if adguard and adguard[1].value == "1" then
+  local ipaddr = proxy.get("rpc.network.interface.@lan.ipaddr")[1].value
+  html[#html+1] = '<style>.agh-link:visited{text-decoration:none;}</style>'
+  html[#html+1] = format('-> <a class="modal-link agh-link" target="_blank" href="http://%s:8008">AdGuard Home</a>',untaint(ipaddr))
+  html[#html+1] = '<br>'
+  max_show = 1
+else
   if isBridgedMode then
     max_show = 4
   end
@@ -79,16 +95,16 @@ else
       html[#html+1] = server
     end
   end
-  if #dns_servers > max_show then
-    html[#html+1] = "<small>+".." "..(#dns_servers - max_show).." more</small>"
-  end
+end
+if #dns_servers > max_show then
+  html[#html+1] = "<small>+ "..(#dns_servers - max_show).." more</small>"
+end
 
-  if not isBridgedMode then
-    local rewrites_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dns-rewrites-modal.lp" data-id="dns-rewrites-modal"'
-    html[#html+1] = '</p><span class="simple-desc"><i>&nbsp</i>'
-    html[#html+1] = format(N('<strong%s >%d</strong><span %s> DNS Rewrite</span>','<strong %s>%d</strong><span %s> DNS Rewrites</span>',rewrites_count),rewrites_modal_link,rewrites_count,rewrites_modal_link)
-    html[#html+1] = '</span>'
-  end
+if not isBridgedMode then
+  local rewrites_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dns-rewrites-modal.lp" data-id="dns-rewrites-modal"'
+  html[#html+1] = '</p><span class="simple-desc"><i>&nbsp</i>'
+  html[#html+1] = format(N('<strong%s >%d</strong><span %s> DNS Rewrite</span>','<strong %s>%d</strong><span %s> DNS Rewrites</span>',rewrites_count),rewrites_modal_link,rewrites_count,rewrites_modal_link)
+  html[#html+1] = '</span>'
 end
 
 local interceptd = proxy.get("uci.intercept.config.enabled","uci.intercept.dns.spoofip")
