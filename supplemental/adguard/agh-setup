@@ -206,6 +206,11 @@ configure_dnmasq() {
     uci -q delete network.wan.dns
     APPLY_NETWORK=1
   fi
+  if [ "$(uci -q get network.wwan)" = "interface" ]; then
+    echo -e "${GREEN}[$SCRIPT] Configuring WWAN DNS...${NC}"
+    uci -q set network.wwan.peerdns="$PEER_DNS"
+    APPLY_NETWORK=1
+  fi
   if [ "$(uci -q get network.wan6)" = "interface" -a -n "$IPv6" ]; then
     echo -e "${GREEN}[$SCRIPT] Configuring IPv6 WAN DNS...${NC}"
     uci -q set network.wan6.peerdns="$PEER_DNS"
