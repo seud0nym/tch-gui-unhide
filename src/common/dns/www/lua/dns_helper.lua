@@ -42,7 +42,10 @@ end
 function M.toDomainAndIP(value)
   local v = untaint(value)
   local domain,ip = match(v,"/([^/]+)/(.*)")
-  return domain,ip or v
+  if domain then
+    return domain,ip
+  end
+  return nil,v
 end
 
 return M
