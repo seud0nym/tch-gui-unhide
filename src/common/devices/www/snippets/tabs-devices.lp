@@ -10,7 +10,6 @@ local items = {
   {"device-modal.lp",T"Device List"},
 }
 if not bridged.isBridgedMode() then
-  items[#items+1] = {"device-map-modal.lp",T"Network Map"}
   items[#items+1] = {"device-bwstats-modal.lp",T"Bandwidth Monitor"}
 end
 
