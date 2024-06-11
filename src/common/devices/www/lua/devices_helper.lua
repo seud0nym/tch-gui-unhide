@@ -4,6 +4,7 @@ local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
 local splitter = require("split")
+local static_helper = require("ethernet-static-leases_helper")
 
 local string,ngx,os = string,ngx,os
 local concat,sort = table.concat,table.sort
@@ -189,31 +190,34 @@ function M.getWiFi()
     end
   end
 
-  local hosts = proxy.getPN("uci.dhcp.host.",true)
-  for k=1,#hosts do
-    local p = hosts[k]
-    local path = p.path
-    local tag = proxy.get(path.."tag")[1].value
-    if tag ~= "" then
-      local ap = match(untaint(tag),"^AP_([%w_]+)$")
-      if ap then
-        local ipv4 = proxy.get(path.."ip")
-        if ipv4 and ipv4[1].value ~= "" and not remoteIP[untaint(ipv4[1].value)] then
-          local cmd = format("curl -qsklm1 --connect-timeout 1 http://%s:59595",ipv4[1].value)
-          local curl = io.popen(cmd)
-          if curl then
-            local json = curl:read("*a")
-            local devices = dkjson.decode(json)
-            curl:close()
-            if devices then
-              ap = gsub(ap,"_"," ")
-              for i=1,#devices do
-                local v = devices[i]
-                agentSTA[untaint(v.mac)] = format("%s - %s",ap,v.radio)
+  local _,aps = static_helper.get_dhcp_tags()
+  if aps > 0 then
+    local hosts = proxy.getPN("uci.dhcp.host.",true)
+    for k=1,#hosts do
+      local p = hosts[k]
+      local path = p.path
+      local tag = proxy.get(path.."tag")[1].value
+      if tag ~= "" then
+        local ap = match(untaint(tag),"^AP_([%w_]+)$")
+        if ap then
+          local ipv4 = proxy.get(path.."ip")
+          if ipv4 and ipv4[1].value ~= "" and not remoteIP[untaint(ipv4[1].value)] then
+            local cmd = format("curl -qsklm1 --connect-timeout 1 http://%s:59595",ipv4[1].value)
+            local curl = io.popen(cmd)
+            if curl then
+              local json = curl:read("*a")
+              local devices = dkjson.decode(json)
+              curl:close()
+              if devices then
+                ap = gsub(ap,"_"," ")
+                for i=1,#devices do
+                  local v = devices[i]
+                  agentSTA[untaint(v.mac)] = format("%s - %s",ap,v.radio)
+                end
               end
+            else
+              ngx.log(ngx.ERR,cmd)
             end
-          else
-            ngx.log(ngx.ERR,cmd)
           end
         end
       end

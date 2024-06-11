@@ -15,12 +15,16 @@ local M = {}
 
 function M.get_dhcp_tags()
   local tags = { {"",T""},}
+  local ap = 0 -- count of access point tags
   for _,tag in pairs(proxy.getPN("uci.dhcp.tag.",true)) do
     local name = match(tag.path,"uci%.dhcp%.tag%.@([^%.]+)%.")
     tags[#tags+1] = { name,T(name) }
+    if match(name,"^AP_([%w_]+)$") then
+      ap = ap+1
+    end
   end
   tags[#tags+1] = { ":custom;",T("(Add Custom Network ID)") }
-  return tags
+  return tags,ap
 end
 
 function M.get_mac_list(hosts_ac)
