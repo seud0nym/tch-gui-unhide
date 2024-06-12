@@ -2,6 +2,7 @@ local bridged = require("bridgedmode_helper")
 local dkjson = require('dkjson')
 local proxy = require("datamodel")
 local content_helper = require("web.content_helper")
+local static_helper = require("ethernet-static-leases_helper")
 local ui_helper = require("web.ui_helper")
 local format,match = string.format,string.match
 ---@diagnostic disable-next-line: undefined-field
@@ -39,24 +40,27 @@ function M.getDevicesCardHTML(all)
 
   local nAPDevices = 0
   if all then
-    for _,p in ipairs(proxy.getPN("uci.dhcp.host.",true)) do
-      local path = p.path
-      local tag = proxy.get(path.."tag")[1].value
-      if tag ~= "" then
-        local ap = match(untaint(tag),"^AP_([%w_]+)$")
-        if ap then
-          local ipv4 = proxy.get(path.."ip")
-          if ipv4 and ipv4[1].value ~= "" then
-            local curl = io.popen(format("curl -qsklm1 --connect-timeout 1 http://%s:59595",ipv4[1].value))
-            if curl then
-              local json = curl:read("*a")
-              local devices = dkjson.decode(json)
-              curl:close()
-              if devices and type(devices) == "table" then
-                nAPDevices = nAPDevices + #devices
+    local _,aps = static_helper.get_dhcp_tags()
+    if aps > 0 then
+      for _,p in ipairs(proxy.getPN("uci.dhcp.host.",true)) do
+        local path = p.path
+        local tag = proxy.get(path.."tag")[1].value
+        if tag ~= "" then
+          local ap = match(untaint(tag),"^AP_([%w_]+)$")
+          if ap then
+            local ipv4 = proxy.get(path.."ip")
+            if ipv4 and ipv4[1].value ~= "" then
+              local curl = io.popen(format("curl -qsklm1 --connect-timeout 1 http://%s:59595",ipv4[1].value))
+              if curl then
+                local json = curl:read("*a")
+                local devices = dkjson.decode(json)
+                curl:close()
+                if devices and type(devices) == "table" then
+                  nAPDevices = nAPDevices + #devices
+                end
+              else
+                ngx.log(ngx.ERR,format("curl -qsklm1 --connect-timeout 1 http://%s:59595",ipv4[1].value))
               end
-            else
-              ngx.log(ngx.ERR,format("curl -qsklm1 --connect-timeout 1 http://%s:59595",ipv4[1].value))
             end
           end
         end
@@ -68,6 +72,7 @@ function M.getDevicesCardHTML(all)
   local activeEth = tonumber(devices_data["activeEthernet"]) or 0
   local activeWiFi = tonumber(devices_data["activeWireless"]) or 0
   local inactive = ((tonumber(devices_data["numWireless"]) or 0) - activeWiFi) + (nEth - activeEth)
+  local localWiFi = (nAgtDevices > 0 or nAPDevices > 0) and "Local" or ""
   if nAgtDevices > 0 and activeEth > nAgtDevices then
     activeEth = activeEth - nAgtDevices
   end
@@ -83,10 +88,10 @@ function M.getDevicesCardHTML(all)
   html[#html+1] = '</span>'
   html[#html+1] = '<span class="simple-desc">'
   html[#html+1] = '<i class="icon-wifi status-icon"></i>'
-  html[#html+1] = format(N('<strong %s>%d Local Wi-Fi device</strong>','<strong %s>%d Local Wi-Fi devices</strong>',activeWiFi),device_modal_link,activeWiFi)
+  html[#html+1] = format(N('<strong %s>%d %s Wi-Fi device</strong>','<strong %s>%d %s Wi-Fi devices</strong>',activeWiFi),device_modal_link,activeWiFi,localWiFi)
   html[#html+1] = '</span>'
   if all then
-    if multiap then
+    if multiap and nAgtDevices > 0 then
       html[#html+1] = '<span class="simple-desc">'
       html[#html+1] = '<i class="icon-sitemap status-icon"></i>'
       html[#html+1] = format(N('<strong %s>%d Booster Wi-Fi device</strong>','<strong %s>%d Booster Wi-Fi devices</strong>',nAgtDevices),device_modal_link,nAgtDevices)
