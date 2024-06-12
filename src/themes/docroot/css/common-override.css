@@ -37,6 +37,7 @@
 #classify .checkbox{width:60px;}
 #custom_dns>thead>tr>th:nth-child(-n+2){width:46%;}
 #device-modal>div.modal-body>div.container{width:1060px !important;}
+#devices>tbody>tr>td>a{text-decoration:none;color:unset;}
 #devices>tbody>tr>td:nth-child(2) input{width:110px;}
 #devices>tbody>tr>td:nth-child(2),#devices>tbody>tr>td:nth-child(n+6):nth-child(-n+8){white-space:nowrap;}
 #devices>tbody>tr>td:nth-child(n+9):nth-child(-n+10),#devices>thead>tr>th:nth-child(n+9):nth-child(-n+10){text-align:center;}

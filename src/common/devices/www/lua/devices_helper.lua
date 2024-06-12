@@ -35,8 +35,82 @@ for k=1, #values do
   end
 end
 
-local function ipSort(a,b)
-  return a < b
+local function addIfNotExists(addr,list)
+  for k=1,#list do
+    if list[k] == addr then
+      return false
+    end
+  end
+  list[#list+1] = addr
+  return true
+end
+
+local function asAnchor(v,addr,editing)
+  if editing then
+    return addr
+  elseif v == 4 then
+    return format("<a target='blank' href='http://%s/'>%s</a>",addr,addr)
+  else
+    return format("<a target='blank' href='http://[%s]/'>%s</a>",addr,addr)
+  end
+end
+
+local function ipv4ToNumber(addr)
+  local bits = {match(untaint(addr),"(%d+)%.(%d+)%.(%d+)%.(%d+)")}
+  if #bits == 4 then
+    return tonumber(format("%03d%03d%03d%03d",bits[1],bits[2],bits[3],bits[4]))
+  else
+    return 0
+  end
+end
+
+local function ipv6ToString(addr)
+  local a = splitter.first_and_rest(untaint(addr)," ")
+  local emptyIdx = 0
+  local bits = {}
+  for bit in gmatch(a,"(%w*):*") do
+    if bit == "" then
+      emptyIdx = #bits+1
+    end
+    bits[#bits+1] = ('0'):rep(4-#bit)..bit
+  end
+  if emptyIdx > 0 then
+    for _ = emptyIdx+1,8,1 do
+      bits[emptyIdx] = bits[emptyIdx].."0000"
+    end
+  end
+  local retval = ""
+  for i=1,#bits do
+    local b = bits[i]
+    if retval == "" then
+      retval = b
+    else
+      retval = retval..b
+    end
+  end
+  return retval
+end
+
+local function joinAddresses(v,list,editing)
+  local joined = ""
+  if #list == 1 then
+    joined = asAnchor(v,list[1])
+  elseif #list > 1 then
+    sort(list,function(a,b)
+      if v == 4 then
+        return ipv4ToNumber(a) < ipv4ToNumber(b)
+      else
+        return ipv6ToString(a) < ipv6ToString(b)
+      end
+    end)
+    for k=1,#list do
+      joined = joined..asAnchor(v,list[k],editing)
+      if k < #list then
+        joined = joined.."<br>"
+      end
+    end
+  end
+  return joined
 end
 
 local M = {}
@@ -48,40 +122,32 @@ function M.filter(wifi,connected,cache,editing)
       return false
     end
     data.InterfaceType = M.getInterfaceType(wifi,data)
-    if not data.IPv4 and not data.IPv6 then
+    local ipv4 = splitter.split(untaint(data.IPv4)," ")
+    local ipv6 = splitter.split(untaint(data.IPv6)," ")
+    if #ipv4 == 0 or #ipv6 == 0 then
       local addresses = splitter.split(untaint(data.IPAddress)," ")
       for k=1, #addresses do
         local address = addresses[k]
         if find(address,":",1,true) then
-          if not data.IPv6 or data.IPv6 == "" then
-            data.IPv6 = address
-          else
-            data.IPv6 = data.IPv6.."<br>"..address
-          end
+          addIfNotExists(address,ipv6)
         else
-          if not data.IPv4 or data.IPv4 == "" then
-            data.IPv4 = address
-          else
-            data.IPv4 = data.IPv4.."<br>"..address
-          end
+          addIfNotExists(address,ipv4)
         end
       end
     end
-    if data.IPv4 == "" or data.IPv6 == "" then
+    if #ipv4 == 0 or #ipv6 == 0 then
       if data.DhcpLeaseIP ~= "" then
         local dhcpLeaseIP = untaint(data.DhcpLeaseIP)
         local chunks = {match(dhcpLeaseIP,"(%d+)%.(%d+)%.(%d+)%.(%d+)")}
         if (#chunks == 4) then
-          data.IPv4 = dhcpLeaseIP
+          addIfNotExists(dhcpLeaseIP,ipv4)
         else
-          data.IPv6 = dhcpLeaseIP
+          local addresses = splitter.split(untaint(data.IPAddress)," ")
+          for k=1, #addresses do
+            addIfNotExists(addresses[k],ipv6)
+          end
         end
       end
-    end
-    if data.IPv6 and find(untaint(data.IPv6)," ") then
-      local addresses = splitter.split(untaint(data.IPv6)," ")
-      sort(addresses,ipSort)
-      data.IPv6 = concat(addresses,"<br>")
     end
     local mac = untaint(data.MACAddress)
     data.MACAddress = format("<span class='maccell' id='%s'><span class='macaddress'>%s</span><i class='devextinfo'>%s</i><span>",gsub(mac,":",""),mac,mac_vendor[mac] or "")
@@ -89,13 +155,15 @@ function M.filter(wifi,connected,cache,editing)
     data.DhcpLeaseTime = common.secondsToTime(untaint(data.LeaseTimeRemaining))
     if editing then
       data.LeaseType = format("<span class='typecell'>%s<span>",untaint(data.LeaseType))
-      if data.IPv4 and data.IPv4 ~= "" then
-        local addresses = splitter.split(untaint(data.IPv4),"[<br> ]+")
-        sort(addresses,ipSort)
-        addresses[1] = format("<span class='ipv4cell'>%s<span>",addresses[1])
-        data.IPv4 = concat(addresses,"<br>")
+      if #ipv4 == 0 then
+        data.IPv4 = ""
+      else
+        data.IPv4 = format("<span class='ipv4cell'>%s<span>",ipv4[1])
       end
+    else
+      data.IPv4 = joinAddresses(4,ipv4,editing)
     end
+    data.IPv6 = joinAddresses(6,ipv6,editing)
     return true
   end
 end
@@ -319,50 +387,12 @@ function M.sorter(sortcol,wifi)
       return lower(a.FriendlyName or "") < lower(b.FriendlyName or "")
     end
   elseif sortcol == "IPv4" then
-    local ipv4ToNumber = function(a)
-      local ipv4
-      if (a.IPv4 == "") then
-        ipv4 = a.DhcpLeaseIP
-      else
-        ipv4 = a.IPv4
-      end
-      local bits = {ipv4:match("(%d+)%.(%d+)%.(%d+)%.(%d+)")}
-      if #bits == 4 then
-        return tonumber(format("%03d%03d%03d%03d",bits[1],bits[2],bits[3],bits[4]))
-      else
-        return 0
-      end
-    end
     sortfunc = function(a,b)
-      return ipv4ToNumber(a) < ipv4ToNumber(b)
+      local a4 = (a.IPv4 == "") and a.DhcpLeaseIP or a.IPv4
+      local b4 = (b.IPv4 == "") and b.DhcpLeaseIP or b.IPv4
+      return ipv4ToNumber(a4) < ipv4ToNumber(b4)
     end
   elseif sortcol == "IPv6" then
-    local ipv6ToString = function(addr)
-      local a = splitter.first_and_rest(untaint(addr)," ")
-      local emptyIdx = 0
-      local bits = {}
-      for bit in string.gmatch(a,"(%w*):*") do
-        if bit == "" then
-          emptyIdx = #bits+1
-        end
-        bits[#bits+1] = ('0'):rep(4-#bit)..bit
-      end
-      if emptyIdx > 0 then
-        for _ = emptyIdx+1,8,1 do
-          bits[emptyIdx] = bits[emptyIdx].."0000"
-        end
-      end
-      local retval = ""
-      for i=1,#bits do
-        local b = bits[i]
-        if retval == "" then
-          retval = b
-        else
-          retval = retval..b
-        end
-      end
-      return retval
-    end
     sortfunc = function(a,b)
       return ipv6ToString(a.IPv6) < ipv6ToString(b.IPv6)
     end
