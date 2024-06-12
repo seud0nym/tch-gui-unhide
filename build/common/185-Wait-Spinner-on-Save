@@ -1,14 +1,20 @@
-echo -e "[$SCRIPT]: Add wait spinner on WiFi modal save"
+echo -e "[$SCRIPT]: Add wait spinner on WiFi modal save or close"
 sed \
    -e '/); *ngx.print(ui_helper.createFooter/i\<script src="/js/modal-busy.js"></script>\\' \
    -e '/\(<% *ngx.print(ui_helper.createFooter\|class="modal-footer"\)/i\<script src="/js/modal-busy.js"></script>' \
    -i /www/docroot/modals/wireless-modal.lp
 
-echo -e "[$SCRIPT]: Add wait spinner on other modal save"
-for f in $(grep -l "ui_helper.createFooter" /www/docroot/modals/*); do
+echo -e "[$SCRIPT]: Add wait spinner on other modal save or close"
+for f in /www/docroot/modals/*; do
   if ! grep -q 'modal-busy\.js\|spinner\.gif\|spinner-green\.gif' $f; then
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Modifying $f"
-    sed -e "s#ui_helper.createFooter()#&,'<script src=\"/js/modal-busy.js\"></script>'#" -i $f
+    if grep -q "ui_helper.createFooter" $f; then
+      sed -e "s#ui_helper.createFooter()#&,'<script src=\"/js/modal-busy.js\"></script>'#" -i $f
+    elif grep -q "modal-footer" $f; then
+      sed -e 's#<div class="modal-footer#<script src="/js/modal-busy.js"></script>&#' -i $f
+    else 
+      echo " print('<script src=\"/js/modal-busy.js\"></script>')" >> $f
+    fi
   fi
 done
 
