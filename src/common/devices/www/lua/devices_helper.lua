@@ -7,7 +7,7 @@ local splitter = require("split")
 local static_helper = require("ethernet-static-leases_helper")
 
 local string,ngx,os = string,ngx,os
-local concat,sort = table.concat,table.sort
+local sort = table.sort
 local tonumber = tonumber
 local find,format,gmatch,gsub,lower,match,sub = string.find,string.format,string.gmatch,string.gsub,string.lower,string.match,string.sub
 ---@diagnostic disable-next-line: undefined-field
@@ -254,7 +254,16 @@ function M.getWiFi()
   for k =1,#macs do
     local v = macs[k]
     if not skipPath[v.prefix] then
-      agentSTA[lower(v.mac)] = format("%s - %s",aliases[v.prefix],((sta_param == "AssociatedDevice") and bands[sub(v.path,1,bandPrefixLength)] or bands[bssid[v.path]]))
+      if aliases[v.prefix] then
+        local band = (sta_param == "AssociatedDevice") and bands[sub(v.path,1,bandPrefixLength)] or bands[bssid[v.path]]
+        if not band then
+          band = "???GHz"
+          ngx.log(ngx.ERR,"Could not determine frequency band for ",v.mac," path=",v.path)
+        end
+        agentSTA[lower(v.mac)] = format("%s - %s",aliases[v.prefix],band)
+      else
+        agentSTA[lower(v.mac)] = "Unknown?"
+      end
     end
   end
 
