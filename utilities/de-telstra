@@ -90,7 +90,7 @@ Options:
           <hostname>   Use the specified hostname
  -i u|y|n              Intercept Daemon:        u=unchanged y=Enable n=Disable
  -I n.n.n.n            Set the LAN IPv4 address to n.n.n.n
- -k a|c|e|k|m|n|q|s|x  Override default hardening configuration:
+ -k a|c|e|k|m|n|q|x    Override default hardening configuration:
     where a            - Keep Telstra AIR enabled
           c            - Keep CWMP installed
           k            - Keep default public authorized keys
@@ -98,12 +98,13 @@ Options:
           m            - Keep Telstra monitoring and data collection enabled
           n            - Keep Telstra NTP servers
           q            - Keep Telstra QoS VoWiFi reclassify rules
-          s            - Keep WAN Supervision as BFD
           x            - Keep noexec on ext2/3/4, fat, hfsplus, hfsplusjournal
                           and ntfs filesystems (i.e. prevent execution of
                           scripts/programs on USB devices)
           T            - Keep all default Telstra configuration (Equivalent
-                          to: -ka -kc -kk -kl -km -kn -kq -ks -kx)
+                          to: -ka -kc -kk -kl -km -kn -kq -kx)
+                       NOTE: Use case opposite to reverse the override.
+                       e.g. -kT -kC keeps all Telstra config except CWMP
  -l u|y|n            * LED logging:             u=unchanged y=Enable n=Disable
  -m u|a|b|c|v|y|n    * MultiAP (EasyMesh):      u=unchanged a=Enable Agent
                                                             b=Enable BackHaul SSID
@@ -156,6 +157,8 @@ NOTE #3:  Shortcut options (e.g. -A, -S, -M and -R) can have their settings over
           the -A option disables Content Sharing (-cn). However, you can specify -A -cy 
           to enable Content Sharing and still apply all the other options implied by -A.
 
+Options are processed sequentially, so if an option is specified twice, only the last one
+is used. Saved defaults are applied before commmand line options.
 EOH
 
 if [ -n "$1" ]; then
@@ -265,7 +268,13 @@ while getopts :a:b:c:d:e:f:g:h:i:k:l:m:n:op:q:r:s:t:u:w:yAC:F:GI:MO:RSU-: option
   g)  case "${OPTARG}" in y) __DUMAOS='1';; n) __DUMAOS='0';; u) __DUMAOS='u';; *) echo 'ERROR: -g valid options are y, n, or u'; exit 1;; esac;;
   h)  __HOST=${OPTARG};;
   i)  case "${OPTARG}" in y) __INTERCEPT='1';; n) __INTERCEPT='0';; u) __INTERCEPT='u';; *) echo 'ERROR: -i valid options are y, n, or u'; exit 1;; esac;;
-  k)  case "${OPTARG}" in a) __AIR='y';; c) __CWMP='y';; k) __KEYS='y';; l) __LTE='y';; m) __MONITORING='y';; n) __NTP='y';; q) __QoS='y';; s) __SUPERVISION='BFD';; x) __NOEXEC='y';; T) __LTE='y'; __KEYS='y'; __CWMP='y'; __MONITORING='y'; __AIR='y'; __NTP='y'; __QoS='y'; __SUPERVISION='BFD'; __NOEXEC='y';; *) echo "ERROR: Unknown override option $OPTARG"; exit 1;; esac;;
+  k)  case "${OPTARG}" in 
+        a) __AIR='y';; c) __CWMP='y';; k) __KEYS='y';; l) __LTE='y';; m) __MONITORING='y';; n) __NTP='y';; q) __QoS='y';; x) __NOEXEC='y';; 
+        A) __AIR='n';; C) __CWMP='n';; K) __KEYS='n';; L) __LTE='n';; M) __MONITORING='n';; N) __NTP='n';; Q) __QoS='n';; X) __NOEXEC='n';; 
+        t) __LTE='n'; __KEYS='n'; __CWMP='n'; __MONITORING='n'; __AIR='n'; __NTP='n'; __QoS='n'; __NOEXEC='n';; 
+        T) __LTE='y'; __KEYS='y'; __CWMP='y'; __MONITORING='y'; __AIR='y'; __NTP='y'; __QoS='y'; __NOEXEC='y';; 
+        *) echo "ERROR: Unknown override option $OPTARG"; exit 1;; 
+      esac;;
   l)  case "${OPTARG}" in y) __LED_LOG='1';; n) __LED_LOG='0';; u) __LED_LOG='u';; *) echo 'ERROR: -l valid options are y, n, or u'; exit 1;; esac;;
   m)  case "${OPTARG}" in a) __MULTIAP_AGT='1';; b) __MULTIAP_BKH='1';; c) __MULTIAP_CTL='1';; v) __MULTIAP_VND='1';; y) __MULTIAP_AGT='1'; __MULTIAP_BKH='1'; __MULTIAP_CTL='1'; __MULTIAP_VND='1';; n) __MULTIAP_AGT='0'; __MULTIAP_BKH='0'; __MULTIAP_CTL='0'; __MULTIAP_VND='0';; u) __MULTIAP_AGT='u'; __MULTIAP_BKH='u'; __MULTIAP_CTL='u'; __MULTIAP_VND='u';; *) echo 'ERROR: -m valid options are a, b, c, v, y, n, or u'; exit 1;; esac;;
   n)  __NS=${OPTARG};;
@@ -330,6 +339,7 @@ show_default() {
       g) _DFLT="Google";;
       f) _DFLT="OpenDNS Family Shield";;
       o) _DFLT="OpenDNS";;
+      u) _DFLT="Unchanged";; 
       *) _DFLT="$3";;
     esac
   elif [ "$1" = 'I' ]; then

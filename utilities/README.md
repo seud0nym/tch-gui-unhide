@@ -81,7 +81,7 @@ Options:
           <hostname>   Use the specified hostname
  -i u|y|n              Intercept Daemon:        u=unchanged y=Enable n=Disable
  -I n.n.n.n            Set the LAN IPv4 address to n.n.n.n
- -k a|c|e|k|m|n|s|x    Override default hardening configuration:
+ -k a|c|e|k|m|n|x      Override default hardening configuration:
     where a            - Keep Telstra AIR enabled
           c            - Keep CWMP installed
           k            - Keep default public authorized keys
@@ -89,12 +89,13 @@ Options:
           m            - Keep Telstra monitoring and data collection enabled
           n            - Keep Telstra NTP servers
           q            - Keep Telstra QoS VoWiFi reclassify rules
-          s            - Keep WAN Supervision as BFD
           x            - Keep noexec on ext2/3/4, fat, hfsplus, hfsplusjournal
                           and ntfs filesystems (i.e. prevent execution of
                           scripts/programs on USB devices)
           T            - Keep all default Telstra configuration (Equivalent
-                          to: -ka -kc -kk -kl -km -kn -kq -ks -kx)
+                          to: -ka -kc -kk -kl -km -kn -kq -kx)
+                       NOTE: Use case opposite to reverse the override.
+                       e.g. -kT -kC keeps all Telstra config except CWMP
  -l u|y|n            * LED logging:             u=unchanged y=Enable n=Disable 
  -m u|a|b|c|v|y|n    * MultiAP (EasyMesh):      u=unchanged a=Enable Agent
                                                             b=Enable BackHaul SSID
@@ -144,6 +145,9 @@ Options:
 1. The default for all optional parameters is u (unchanged).
 2. The options to disable/enable NFC, EasyMesh and DumaOS are only applicable to devices with those services installed.
 3. Shortcut options (e.g. *-A*, *-S*, *-M* and *-R*) can have their settings overridden by specifying the required option **AFTER** the shortcut option. For example, the *-A* option disables Content Sharing (*-cn*). However, you can specify *-A -cy* to enable Content Sharing and still apply all the other options implied by *-A*.
+
+Options are processed sequentially, so if an option is specified twice, only the last one
+is used. Saved defaults are applied before commmand line options.
 
 #### Warning
 * Enabling power saving on FW 20.3.c will power down WAN/LAN ports!!
