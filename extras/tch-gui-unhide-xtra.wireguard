@@ -1368,20 +1368,8 @@ local mapValid = {
 if curintf == "wg0" then
   mapParams["ipv6"] = "uci.wireguard.@wg0.ipv6"
   mapParams["listen_port"] = "uci.wireguard.@wg0.listen_port"
-  mapParams["ipv4addr"] = "rpc.network.interface.@wan.ipaddr"
   mapValid["ipv6"] = vB
   mapValid["listen_port"] = vSIP
-  local ddns = proxy.getPN("uci.ddns.service.",true)
-  if ddns then
-    for k=1,#ddns do
-      local path = ddns[k].path
-      local ifname = proxy.get(path.."interface")[1].value
-      if ifname == "wan" then
-        mapParams["ipv4ddns"] = path.."domain"
-        break
-      end
-    end
-  end
 end
 
 local config,helpmsg
@@ -1401,22 +1389,74 @@ end
 if config.log_level ~= "debug" then
   config.log_level = "none"
 end
+
 if curintf == "wg0" then
+  local function getDomain(intf)
+    local ddns = proxy.getPN("uci.ddns.service.",true)
+    local disabled = nil
+    if ddns then
+      for k=1,#ddns do
+        local path = ddns[k].path
+        local ifname = proxy.get(path.."interface")[1].value
+        if ifname == intf then
+          local v = proxy.get(path.."domain",path.."enabled")
+          if v and v[1].value ~= "yourhost.example.com" and v[1].value ~= "" then
+            if v[2].value ~= "0" then
+              return untaint(v[1].value)
+            else
+              disabled = untaint(v[1].value)
+            end
+          end
+        end
+      end
+    end
+    return disabled
+  end
+
   if config.ipv6 == "" then
     config.ipv6 = "1"
   end
   if config.listen_port == "" then
     config.listen_port = "51820"
   end
-  config.domain = config.ipv4addr
-  if config.ipv4ddns ~= "yourhost.example.com" and config.ipv4ddns ~= "" then
-    config.domain = config.ipv4ddns
-    config.server_address = format("%s:%s",config.ipv4ddns,config.listen_port)
-  else
-    if config.ipv4addr == "" then
-      config.ipv4addr = proxy.get("rpc.network.interface.@lan.ipaddr")[1].value
+
+  local wan_ip = proxy.get("rpc.network.interface.@wan.ipaddr")
+  if wan_ip and wan_ip[1].value ~= "" then
+    config.wan_ip = untaint(wan_ip[1].value)
+    config.domain = getDomain("wan") or config.wan_ip
+  end
+  if not config.wan_ip then
+    if config.ipv6 == "0" then
+      wan_ip = proxy.get("rpc.network.interface.@wwan_4.ipaddr")
+      if wan_ip and wan_ip[1].value ~= "" then
+        config.wan_ip = untaint(wan_ip[1].value)
+        config.domain = getDomain("wan") or config.wan_ip
+      end
+    else
+      local wan6_ip = proxy.get("rpc.network.interface.@wan6.ipv6uniqueglobaladdr")
+      if wan6_ip and wan6_ip[1].value ~= "" then
+        config.wan_ip = gsub(untaint(wan6_ip[1].value),"/%d+","")
+        config.domain = getDomain("wan6") or config.wan_ip
+      end
+      if not config.wan_ip then
+        wan6_ip = proxy.get("rpc.network.interface.@wwan_6.ipv6uniqueglobaladdr")
+        if wan6_ip and wan6_ip[1].value ~= "" then
+          config.wan_ip = gsub(untaint(wan6_ip[1].value),"/%d+","")
+          config.domain = getDomain("wan6") or config.wan_ip
+        end
+      end
     end
-    config.server_address = format("%s:%s",config.ipv4addr,config.listen_port)
+  end
+
+  if config.wan_ip and config.domain then
+    config.server_address = format("%s:%s",config.domain,config.listen_port)
+  else
+    config.domain = "No WAN IP found?"
+    if config.enabled == "1" then
+      message_helper.pushMessage(T"Disabled because no WAN IP found","error")
+      config.enabled = "0"
+      proxySet("uci.wireguard.@"..curintf..".enabled",config.enabled)
+    end
   end
 end
 
@@ -1428,63 +1468,67 @@ if ngx.var.request_method == "POST" then
       updateFirewall(args)
     end
     if args.new_peer_name and args.new_peer_name ~= "" then
-      local peer_name = untaint(args.new_peer_name)
-      local valid,errmsg = vUN(peer_name)
-      if valid then
-        local ipv4_next,ipv4_netmask,ipv6_next,ipv6_netmask = wireguard_helper.getUnusedIP()
-        if not ipv4_next then
-          message_helper.pushMessage(T(ipv4_netmask),"error")
-        else
-          local _,errmsg = proxy.add("uci.wireguard.@"..curintf..".peer.",peer_name)
-          if errmsg then
-            for _,err in ipairs(errmsg) do
-              message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,peer_name,err.errmsg,err.errcode)),"error")
-            end
-            helpmsg["new_peer_name"] = "Failed to add peer"
+      if not config.server_address then
+        helpmsg["new_peer_name"] = "Cannot add peer: No WAN IP found"
+      else
+        local peer_name = untaint(args.new_peer_name)
+        local valid,errmsg = vUN(peer_name)
+        if valid then
+          local ipv4_next,ipv4_netmask,ipv6_next,ipv6_netmask = wireguard_helper.getUnusedIP()
+          if not ipv4_next then
+            message_helper.pushMessage(T(ipv4_netmask),"error")
           else
-            local private_key = wireguard_helper.genkey()
-            local include_ipv6 = (config.ipv6 ~= "0")
-            new_peer = {
-              name = peer_name,
-              address = format("%s/%s",ipv4_next,ipv4_netmask),
-              allowed_ips = format("%s/32",ipv4_next),
-              ipv6_allowed_ip = "",
-              private_key = private_key,
-              public_key = wireguard_helper.pubkey(private_key),
-              preshared_key = "",
-              dns = wireguard_helper.getDNS(include_ipv6),
-            }
-            if include_ipv6 and ipv6_next then
-              new_peer.address=format("%s,%s/%s",new_peer.address,ipv6_next,ipv6_netmask)
-              new_peer.allowed_ips=format("%s,%s/128",new_peer.allowed_ips,ipv6_next)
-              new_peer.ipv6_allowed_ip = ",::0/0"
-            end
-            if type(args["genpsk"]) == "table" then
-              for _,checked in pairs(args["genpsk"]) do
-                if checked == "_TRUE_" then
-                  local psk,psk_failed = wireguard_helper.genpsk()
-                  if not psk then
-                    message_helper.pushMessage(T(psk_failed),"error")
-                  else
-                    new_peer.preshared_key = psk
+            local _,errmsg = proxy.add("uci.wireguard.@"..curintf..".peer.",peer_name)
+            if errmsg then
+              for _,err in ipairs(errmsg) do
+                message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,peer_name,err.errmsg,err.errcode)),"error")
+              end
+              helpmsg["new_peer_name"] = "Failed to add peer"
+            else
+              local private_key = wireguard_helper.genkey()
+              local include_ipv6 = (config.ipv6 ~= "0")
+              new_peer = {
+                name = peer_name,
+                address = format("%s/%s",ipv4_next,ipv4_netmask),
+                allowed_ips = format("%s/32",ipv4_next),
+                ipv6_allowed_ip = "",
+                private_key = private_key,
+                public_key = wireguard_helper.pubkey(private_key),
+                preshared_key = "",
+                dns = wireguard_helper.getDNS(include_ipv6),
+              }
+              if include_ipv6 and ipv6_next then
+                new_peer.address=format("%s,%s/%s",new_peer.address,ipv6_next,ipv6_netmask)
+                new_peer.allowed_ips=format("%s,%s/128",new_peer.allowed_ips,ipv6_next)
+                new_peer.ipv6_allowed_ip = ",::0/0"
+              end
+              if type(args["genpsk"]) == "table" then
+                for _,checked in pairs(args["genpsk"]) do
+                  if checked == "_TRUE_" then
+                    local psk,psk_failed = wireguard_helper.genpsk()
+                    if not psk then
+                      message_helper.pushMessage(T(psk_failed),"error")
+                    else
+                      new_peer.preshared_key = psk
+                    end
+                    break
                   end
-                  break
                 end
               end
-            end
-            if  proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.public_key",peer_name),new_peer.public_key)
-            and proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.preshared_key",peer_name),new_peer.preshared_key)
-            and proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.allowed_ips",peer_name),new_peer.allowed_ips)
-            and proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.route_allowed_ips",peer_name),"1")
-            then
-              proxy.apply()
-              local config_template ="[Interface]\nPrivateKey = %s\nAddress = %s\nDNS = %s\n\n[Peer]\nPublicKey = %s\nPresharedKey = %s\nAllowedIPs = 0.0.0.0/0%s\nEndpoint = %s\n"
-              new_peer.config = gsub(format(config_template,new_peer.private_key,new_peer.address,new_peer.dns,wireguard_helper.pubkey(config.private_key),new_peer.preshared_key,new_peer.ipv6_allowed_ip,config.server_address),"PresharedKey = \n","")
+              if  proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.public_key",peer_name),new_peer.public_key)
+              and proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.preshared_key",peer_name),new_peer.preshared_key)
+              and proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.allowed_ips",peer_name),new_peer.allowed_ips)
+              and proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.route_allowed_ips",peer_name),"1")
+              then
+                proxy.apply()
+                local config_template ="[Interface]\nPrivateKey = %s\nAddress = %s\nDNS = %s\n\n[Peer]\nPublicKey = %s\nPresharedKey = %s\nAllowedIPs = 0.0.0.0/0%s\nEndpoint = %s\n"
+                new_peer.config = gsub(format(config_template,new_peer.private_key,new_peer.address,new_peer.dns,wireguard_helper.pubkey(config.private_key),new_peer.preshared_key,new_peer.ipv6_allowed_ip,config.server_address),"PresharedKey = \n","")
+              end
             end
           end
+        else
+          helpmsg["new_peer_name"] = errmsg
         end
-      else
-        helpmsg["new_peer_name"] = errmsg
       end
     end
   end
@@ -1695,7 +1739,7 @@ ngx.print(ui_helper.createHeader("WireGuard",false,true,refresh_seconds),'\
       if curintf == "wg0" then
         html[#html+1] = ui_helper.createInputText(T"Listen Port","listen_port",config["listen_port"],{ input = { type="number",min="0",max="65535",style="width:100px",} },helpmsg["listen_port"])
         html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled","ipv6",config["ipv6"],nil,helpmsg["ipv6"])
-        html[#html+1] = ui_helper.createLabel(T"Domain<span class='icon-question-sign' title='Configure the Domain name in WAN Services under IPv4 Dynamic DNS'></span>",config.domain)
+        html[#html+1] = ui_helper.createLabel(T"Domain<span class='icon-question-sign' title='Configure the Domain name in WAN Services under Dynamic DNS'></span>",config.domain)
       end
       html[#html+1] = ui_helper.createLabel(T"Private Key",config.private_key)
       html[#html+1] = ui_helper.createLabel(T"VPN Private IP",T(gsub(untaint(config.addresses),",","<br>")),private_ip_attr)
@@ -1724,8 +1768,10 @@ ngx.print(ui_helper.createHeader("WireGuard",false,true,refresh_seconds),'\
         $("#new-peer-alert")[0].scrollIntoView();\
         </script>'
       elseif curintf == "wg0" then
-        html[#html+1] = ui_helper.createInputText(T"Add new Peer","new_peer_name","",nil,helpmsg["new_peer_name"])
-        html[#html+1] = ui_helper.createCheckboxSwitch(T"Generate PSK<span class='icon-question-sign' title='Generate a unique Pre-Shared Key for the new Peer to increase security.'></span>","genpsk","0")
+        if config.server_address then
+          html[#html+1] = ui_helper.createInputText(T"Add new Peer","new_peer_name","",nil,helpmsg["new_peer_name"])
+          html[#html+1] = ui_helper.createCheckboxSwitch(T"Generate PSK<span class='icon-question-sign' title='Generate a unique Pre-Shared Key for the new Peer to increase security.'></span>","genpsk","0")
+        end
       else
         html[#html+1] = ui_helper.createCheckboxSwitch(T("Remove "..curintf),"del_iface","0")
       end
