@@ -242,6 +242,12 @@ function M.getWiFi()
         elseif v.param == "BSSID5GHZ" then
           bands[untaint(v.value)] = "5GHz"
           bandPrefixLength = #p
+        elseif v.param == "BSSID2GHZ_Backhaul" then
+          bands[untaint(v.value)] = "2.4GHz (BH)"
+          bandPrefixLength = #p
+        elseif v.param == "BSSID5GHZ_Backhaul" then
+          bands[untaint(v.value)] = "5GHz (BH)"
+          bandPrefixLength = #p
         elseif v.param == "BSSID" and find(p,"STA",skip_path_length,true) then
           bssid[p] = untaint(v.value)
         elseif v.param == "MACAddress" and find(p,sta_param,skip_path_length,true) then
