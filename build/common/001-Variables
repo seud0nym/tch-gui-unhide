@@ -217,6 +217,7 @@ fi
 SRV_cron=0
 SRV_dnsmasq=0
 SRV_dropbear=0
+SRV_ethernet=0
 SRV_firewall=0
 SRV_iperf=0
 SRV_mmpbxd=0
@@ -257,6 +258,7 @@ apply_service_changes() {
     restart mmpbxd $SRV_mmpbxd
     restart nginx $SRV_nginx
     restart firewall $SRV_firewall
+    restart ethernet $SRV_ethernet
     restart network $SRV_network reload
     restart static-wan-routes-monitor 1
     restart watchdog-tch 1 start

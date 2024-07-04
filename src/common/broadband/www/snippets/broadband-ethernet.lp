@@ -5,14 +5,16 @@ gettext.textdomain('webui-core')
 local ui_helper = require("web.ui_helper")
 local content_helper = require("web.content_helper")
 local proxy = require("datamodel")
-local find,sub = string.find,string.sub
+local find,match,sub = string.find,string.match,string.sub
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 local ethPortPath = "uci.ethernet.port."
 local ethIntf
 local ethIntfList = proxy.getPN(ethPortPath,true)
 if ethIntfList ~= nil then
   for _,v in pairs(ethIntfList) do
-    if proxy.get(v.path.."wan")[1].value:untaint() == "1" then
+    if untaint(proxy.get(v.path.."wan")[1].value) == "1" then
       local _,intfStart = find(v.path,ethPortPath.."@")
       if intfStart ~= nil then
         local intfEnd = find(sub(v.path,intfStart+1),"%.")
@@ -30,7 +32,7 @@ local wan = {
 }
 content_helper.getExactContent(wan)
 
-local iface = string.match(wan.iface,"([^%.]+)")
+local iface = match(wan.iface,"([^%.]+)")
 local deviceIfname = ""
 local stats
 if iface then
@@ -39,8 +41,8 @@ if iface then
     deviceIfname = deviceDetails[1].value
   end
 end
-if (iface and find(iface,ethIntf)) or (ethIntf and find(deviceIfname,ethIntf)) then
-  ethIntf = ethIntf:untaint()
+if (iface and ethIntf and find(iface,ethIntf)) or (ethIntf and find(deviceIfname,ethIntf)) then
+  ethIntf = untaint(ethIntf)
   stats = {
     operstate = "sys.class.net.@"..ethIntf..".operstate",
     carrier = "sys.class.net.@"..ethIntf..".carrier",
@@ -76,15 +78,9 @@ else
   intf_state = "down"
 end
 
-  ngx.print('\
-\
+ngx.print('\
 <fieldset>\
-  <legend>');  ngx.print( T"Physical Link Status" ); ngx.print('</legend>\
-\
-  ');
-  local html = {}
-  html[#html + 1] = ui_helper.createLight(T"Status",nil,intf_state_map[intf_state],{ light = { class = intf_light_map[intf_state] } })
-  ngx.print(html)
-  ngx.print('\
+  <legend>',T"Physical Link Status",'</legend>',
+  ui_helper.createLight(T"Status",nil,intf_state_map[intf_state],{ light = { class = intf_light_map[intf_state] } }),'\
 </fieldset>\
 ');

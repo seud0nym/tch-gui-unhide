@@ -42,6 +42,13 @@ if [ "$(exec_uci -q get network.config.wan_mode)" = "bridge" ]; then
   exec_uci set network.lan6.ipv6='1'
   exec_uci commit network
   SRV_network=$(( $SRV_network + 2 ))
+
+  if [ "$(exec_uci -q get ethernet.eth4.wan)" = "0" ]; then
+    echo -e "[$SCRIPT]: Fixing incorrect WAN port configuration"
+    exec_uci set ethernet.eth4.wan='1'
+    exec_uci commit ethernet
+    SRV_ethernet=$(( $SRV_ethernet + 1 ))
+  fi
 fi
 
 if grep -q "kill -9 \`ps | grep parseopt60 | awk '{print \$1}' | head -n 1\`; /usr/bin/parseopt60 &" /etc/udhcpc.user; then
