@@ -115,15 +115,23 @@ end
 
 local M = {}
 
-function M.filter(wifi,connected,cache,editing)
+M.hostname = untaint(proxy.get("uci.system.system.@system[0].hostname")[1].value)
+
+function M.filter(wifi,connected,cache,editing,wifionly)
   local mac_vendor = M.getMACVendors(cache)
   return function(data)
     if data.L2Interface == "" or (connected == "Active" and data.State == "0") then
       return false
     end
-    data.InterfaceType = M.getInterfaceType(wifi,data)
-    local ipv4 = splitter.split(untaint(data.IPv4)," ")
-    local ipv6 = splitter.split(untaint(data.IPv6)," ")
+    local connection,interfaceType = M.getInterfaceType(wifi,data)
+    if wifionly == true and not interfaceType then
+      return false
+    elseif wifionly == false and interfaceType then
+      return false
+    end
+    data.InterfaceType = connection
+    local ipv4 = splitter.split(untaint(data.IPv4) or ""," ")
+    local ipv6 = splitter.split(untaint(data.IPv6) or ""," ")
     if #ipv4 == 0 or #ipv6 == 0 then
       local addresses = splitter.split(untaint(data.IPAddress)," ")
       for k=1, #addresses do
@@ -177,18 +185,18 @@ function M.getInterfaceType(wifi,data)
     local key = untaint(data.Radio)
     local radio = radios[key]
     if radio then
-      return untaint(wifi.prefix.." - "..radio..std)
+      return untaint(wifi.prefix.." - "..radio..std),wifi.prefix
     else
-      return untaint(wifi.prefix.." - "..key..std)
+      return untaint(wifi.prefix.." - "..key..std),wifi.prefix
     end
   elseif match(data.L2Interface,"^wl0") then
-    return untaint(wifi.prefix.." - 2.4GHz"..std)
+    return untaint(wifi.prefix.." - 2.4GHz"..std),wifi.prefix
   elseif match(data.L2Interface,"^wl1") then
-    return untaint(wifi.prefix.." - 5GHz"..std)
+    return untaint(wifi.prefix.." - 5GHz"..std),wifi.prefix
   elseif match(data.L2Interface,"^eth") then
     local agentWiFiBand = wifi.agentSTA[untaint(data.MACAddress)]
     if agentWiFiBand then
-      return untaint(agentWiFiBand..std)
+      return untaint(agentWiFiBand[1]..std),agentWiFiBand[2]
     else
       if data.Port and data.Port ~= "" then
         return "Ethernet - "..data.Port
@@ -199,7 +207,7 @@ function M.getInterfaceType(wifi,data)
   elseif match(data.L2Interface,"moca*") then
     return "MoCA"
   elseif match(data.L2Interface,"^wds%d+") then
-    return wifi.prefix
+    return wifi.prefix,wifi.prefix
   else
     return data.L2Interface
   end
@@ -266,9 +274,9 @@ function M.getWiFi()
           band = "???GHz"
           ngx.log(ngx.ERR,"Could not determine frequency band for ",v.mac," path=",v.path)
         end
-        agentSTA[lower(v.mac)] = format("%s - %s",aliases[v.prefix],band)
+        agentSTA[lower(v.mac)] = {format("%s - %s",aliases[v.prefix],band),aliases[v.prefix]}
       else
-        agentSTA[lower(v.mac)] = "Unknown?"
+        agentSTA[lower(v.mac)] = {"Unknown?","Unknown?"}
       end
     end
   end
@@ -295,7 +303,7 @@ function M.getWiFi()
                 ap = gsub(ap,"_"," ")
                 for i=1,#devices do
                   local v = devices[i]
-                  agentSTA[untaint(v.mac)] = format("%s - %s",ap,v.radio)
+                  agentSTA[untaint(v.mac)] = {format("%s - %s",ap,v.radio),ap}
                 end
               end
             else
@@ -309,7 +317,8 @@ function M.getWiFi()
 
   return {
     agentSTA = agentSTA,
-    prefix = next(remoteIP) and "Gateway" or "Wireless"
+    prefix = next(remoteIP) and M.hostname or "Wireless",
+    multiap = multiap and true or false,
   }
 end
 

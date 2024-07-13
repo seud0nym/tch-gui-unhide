@@ -29,7 +29,7 @@ end
 local connected
 local connectedAction
 if (getargs.connected) then
-  connected = getargs.connected:untaint()
+  connected = untaint(getargs.connected)
 else
   connected = "Active"
 end
@@ -171,7 +171,7 @@ local devices_data,devices_helpmsg = post_helper.handleTableQuery(devices_column
 
 ngx.print(ui_helper.createHeader(header,false,true,interval),'\
 <div class="modal-body update">\
-'); lp.include(tabs) ngx.print('\
+'); lp.include(tabs); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/device-modal.lp?sort=',sortcol,'&connected=',connected,modal_param,'">',
     ui_helper.createMessages(message_helper.popMessages()),'\
     <fieldset>',

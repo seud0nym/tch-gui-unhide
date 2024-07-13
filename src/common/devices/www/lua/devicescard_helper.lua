@@ -10,7 +10,8 @@ local untaint = string.untaint
 local tonumber = tonumber
 
 local device_modal_link = 'class="modal-link" data-toggle="modal" data-remote="modals/device-modal.lp?dev=1" data-id="device-modal"'
-local all_devices_modal_link = 'class="modal-link" data-toggle="modal" data-remote="modals/device-modal.lp?connected=All&dev=1" data-id="device-modal"'
+local all_devices_modal_link = 'class="modal-link" data-toggle="modal" data-remote="modals/device-modal.lp?dev=1&connected=All" data-id="device-modal"'
+local wifi_device_modal_link = 'class="modal-link" data-toggle="modal" data-remote="modals/wifi-devices.lp?dev=1" data-id="device-modal"'
 
 local M = {}
 
@@ -88,19 +89,19 @@ function M.getDevicesCardHTML(all)
   html[#html+1] = '</span>'
   html[#html+1] = '<span class="simple-desc">'
   html[#html+1] = '<i class="icon-wifi status-icon"></i>'
-  html[#html+1] = format(N('<strong %s>%d %s Wi-Fi device</strong>','<strong %s>%d %s Wi-Fi devices</strong>',activeWiFi),device_modal_link,activeWiFi,localWiFi)
+  html[#html+1] = format(N('<strong %s>%d %s Wi-Fi device</strong>','<strong %s>%d %s Wi-Fi devices</strong>',activeWiFi),wifi_device_modal_link,activeWiFi,localWiFi)
   html[#html+1] = '</span>'
   if all then
     if multiap and nAgtDevices > 0 then
       html[#html+1] = '<span class="simple-desc">'
       html[#html+1] = '<i class="icon-sitemap status-icon"></i>'
-      html[#html+1] = format(N('<strong %s>%d Booster Wi-Fi device</strong>','<strong %s>%d Booster Wi-Fi devices</strong>',nAgtDevices),device_modal_link,nAgtDevices)
+      html[#html+1] = format(N('<strong %s>%d Booster Wi-Fi device</strong>','<strong %s>%d Booster Wi-Fi devices</strong>',nAgtDevices),wifi_device_modal_link,nAgtDevices)
       html[#html+1] = '</span>'
     end
     if nAPDevices > 0 then
       html[#html+1] = '<span class="simple-desc">'
       html[#html+1] = '<i class="icon-sitemap status-icon"></i>'
-      html[#html+1] = format(N('<strong %s>%d AP Wi-Fi device</strong>','<strong %s>%d AP Wi-Fi devices</strong>',nAPDevices),device_modal_link,nAPDevices)
+      html[#html+1] = format(N('<strong %s>%d AP Wi-Fi device</strong>','<strong %s>%d AP Wi-Fi devices</strong>',nAPDevices),wifi_device_modal_link,nAPDevices)
       html[#html+1] = '</span>'
     end
   end

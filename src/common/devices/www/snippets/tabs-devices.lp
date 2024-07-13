@@ -7,7 +7,8 @@ local ipairs,string = ipairs,string
 local format,length,substring = string.format,string.len,string.sub
 
 local items = {
-  {"device-modal.lp",T"Device List"},
+  {"device-modal.lp",T"All Devices"},
+  {"wifi-devices.lp",T"Wi-Fi Devices"},
 }
 if not bridged.isBridgedMode() then
   items[#items+1] = {"device-bwstats-modal.lp",T"Bandwidth Monitor"}
