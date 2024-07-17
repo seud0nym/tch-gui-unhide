@@ -32,9 +32,9 @@ local non_routable ={
   { ipv42num("192.168.0.0"),ipv42num("192.168.255.255") },
 }
 
-local function dhcpValidationNotRequired(cur_intf,cur_dhcp_intf,local_dev_ip)
-  local v = proxy.get("uci.network.interface.@"..cur_intf..".ipaddr","uci.dhcp.dhcp.@"..cur_dhcp_intf..".ignore")
-  return v and (v[1].value ~= local_dev_ip or v[2].value == "1")
+local function dhcpValidationNotRequired(cur_intf,local_dev_ip,dhcpIgnore)
+  local v = proxy.get("uci.network.interface.@"..cur_intf..".ipaddr")
+  return v and (v[1].value ~= local_dev_ip or dhcpIgnore == "1")
 end
 
 local function getDHCPData(object)
@@ -187,9 +187,9 @@ end
 -- If different subnet mask is given other than 255.255.255.0,then the
 -- DHCP Range limit has to be calculated from the new subnet and the validation
 -- has to be done for the new limit.
-function M.validateDHCPLimit(cur_intf,cur_dhcp_intf,local_dev_ip)
+function M.validateDHCPLimit(cur_intf,local_dev_ip)
   return function(value,object)
-    if dhcpValidationNotRequired(cur_intf,cur_dhcp_intf,local_dev_ip) then
+    if dhcpValidationNotRequired(cur_intf,local_dev_ip,object.dhcpIgnore) then
       return true
     end
     if match(value,"^[0-9]*$") then
@@ -231,9 +231,9 @@ end
 -- Validation is done for the DHCP start Address for the particular subnet
 -- For different subnets,validation for dhcpStart Address has to be done
 -- from the new DHCP Range with respect to the subnet mask & Network Address
-function M.validateDHCPStart(cur_intf,cur_dhcp_intf,local_dev_ip)
+function M.validateDHCPStart(cur_intf,local_dev_ip)
   return function(value,object)
-    if dhcpValidationNotRequired(cur_intf,cur_dhcp_intf,local_dev_ip) then
+    if dhcpValidationNotRequired(cur_intf,local_dev_ip,object.dhcpIgnore) then
       return true
     end
     if match(value,"^[0-9]*$") then
