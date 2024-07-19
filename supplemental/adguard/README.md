@@ -10,8 +10,6 @@ The instructions have been adapted for use on Technicolor devices.
 ## What It Does
 By default, the setup script will install and configure AdGuard Home on your device, and _disable_ dnsmasq. AdGuard Home will then handle DNS resolution and DHCP for your local network.
 
-It will also download and run the [`hijack-dns`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#hijack-dns) script, to configure DNS interception and hijacking.
-
 # Important Considerations
 The things you need to be aware of:
 
@@ -107,6 +105,8 @@ The following optional configuration parameters may be specified **after** the d
   - The version of AdGuard Home to be installed (e.g. v0.107.7).
   - The default is the latest version. 
   - Ignored if -xg or -xx specified.
+- -j
+  - Download and run the [`hijack-dns`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#hijack-dns) script, to configure DNS interception and hijacking.
 - -x c|g|i|s|u|x
   - Exclude features:
     - -xc
