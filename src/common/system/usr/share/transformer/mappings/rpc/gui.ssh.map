@@ -45,7 +45,7 @@ local function check_authorized_keys()
   local f = io.open(authorized_keys,"r")
   if f then
     for line in f:lines() do
-      if match(line,"^%s*(.-)%s*$") ~= "" then
+      if line == "" or match(line,"^%s*(.-)%s*$") ~= "" then
         res[#res+1] = { authorized_key = line, }
       end
     end
@@ -70,7 +70,7 @@ local function write_authorized_keys(keys)
     map.reload = true
     return true
   end
-  return nil, errmsg
+  return nil,errmsg
 end
 
 cachePublicKeyAndFingerprint("/etc/dropbear/dropbear_rsa_host_key","server")

@@ -136,7 +136,7 @@ if not isBridgedMode and ngx.var.request_method == "POST" then
   end
 end
 
-local function validate_authorized_key(value,object,key)
+local function validate_authorized_key(value)
   if match(untaint(value),"^(ssh%-rsa)%s+([%w%+%/]+)%s*(.*)$") then
     return true
   end
@@ -161,6 +161,14 @@ local authorized_keys_options = {
   tableid = "authorized_keys",
   basepath = "rpc.gui.ssh.authorized_keys.@.",
   createMsg = T"Add Authorized Key",
+  onAdd = function(index,values)
+    local success,errors = proxy.set("rpc.gui.ssh.authorized_keys.@"..index..".authorized_key",values.authorized_key)
+    if not success then
+      for _,err in ipairs(errors) do
+        message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,values.authorized_key,err.errmsg,err.errcode)),"error")
+      end
+    end
+  end,
 }
 local authorized_keys_data,authorized_keys_helpmsg = post_helper.handleTableQuery(authorized_keys_columns,authorized_keys_options,nil,nil,authorized_keys_valid)
 
