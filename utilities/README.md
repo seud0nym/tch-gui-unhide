@@ -191,7 +191,8 @@ Usage: ./hijack-dns [options]
 
 Options:
  -4 y|n       Enables IPv4 DNS hijacking. Defaults to y if not specified.
- -6 y|n       Enables IPv6 DNS hijacking. Defaults to y if not specified.
+ -6 y|n       Enables IPv6 DNS hijacking. Defaults to y IPv6 is enabled and 
+                option is not specified; otherwise the default is n.
  -d <ip_addr> The IPaddress of the local DNS Server to which DNS queries
                 will be redirected. You can specify this option twice: once 
                 for an IPv4 address and a second time for an IPv6 address.

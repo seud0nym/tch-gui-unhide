@@ -26,7 +26,8 @@ Usage: $0 [options]
 
 Options:
  -4 y|n       Enables IPv4 DNS hijacking. Defaults to y if not specified.
- -6 y|n       Enables IPv6 DNS hijacking. Defaults to y if not specified.
+ -6 y|n       Enables IPv6 DNS hijacking. Defaults to y IPv6 is enabled and 
+                option is not specified; otherwise the default is n.
  -d <ip_addr> The IPaddress of the local DNS Server to which DNS queries
                 will be redirected. You can specify this option twice: once 
                 for an IPv4 address and a second time for an IPv6 address.
@@ -255,11 +256,16 @@ upgrade() {
   exit
 }
 
+IPv4_LAN=$(uci -q get network.lan.ipaddr)
+DHCP_OPT6=$(uci -q -d"$IFS" get dhcp.lan.dhcp_option | grep '^6,' | xargs)
+IPv6_LAN=$(ip -6 -o address show scope global br-lan permanent | awk '{print $4}' | cut -d/ -f1 | sort | xargs)
+DHCP_IPv6=$(uci -q get dhcp.lan.dns | xargs -n 1 echo | sort | xargs)
+
 # Options
 IPv4="y"
 IPv4_DNS=""
 IPv4_EXC=""
-IPv6="y"
+[ -z "$IPv6_LAN" -o "$(echo "$IPv6_LAN" | cut -c1-4)" = "fe80" ] && IPv6="n" || IPv6="y"
 IPv6_DNS=""
 IPv6_EXC=""
 DECONFIGURE="n"
@@ -305,14 +311,16 @@ while getopts :4:6:d:x:rU-: option; do
   esac
 done
 
+if [ "$IPv6" = "y" -a \( -z "$IPv6_LAN" -o "$(echo "$IPv6_LAN" | cut -c1-4)" = "fe80" \) ]; then
+  echo -e "[$SCRIPT] ${RED}ERROR! IPv6 DNS Hijacking requested, but no permanent IPv6 LAN address found${NC}"
+  exit
+fi
+
 echo -e "[$SCRIPT] Loading configuration defaults..."
 load_configuration
 
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 [ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
-
-IPv4_LAN=$(uci -q get network.lan.ipaddr)
-DHCP_OPT6=$(uci -q -d"$IFS" get dhcp.lan.dhcp_option | grep '^6,' | xargs)
 
 LOCK="/var/run/${SCRIPT}.lck"
 trap "unlock" 2
@@ -483,6 +491,25 @@ if [ $STATUS = "y" ]; then
     [ "$dest_lanv6" = "0" ] && { [ -n "$dest_ipv6" ] && state="${GREEN}${dest_ipv6}${NC}" || state="${GREEN}${VARIANT}${NC}"; } || state="${ORANGE}${dest_ipv6} (NOT LAN IP?)${NC}"
     status "IPv6 DNS Redirected to" "$state"
   fi
+
+  [ -z "$dest_ipv6" ] && dns_should_be="$IPv6_LAN" || dns_should_be="$dest_ipv6"
+
+  if [ "$DHCP_IPv6" = "$dns_should_be" ]; then
+    state="${GREEN}${DHCP_IPv6}${NC}"
+  elif [ $FIX = y ]; then
+    uci -q delete dhcp.lan.dns
+    for ipv6_tmp in $dns_should_be; do
+      uci -q add_list dhcp.lan.dns="$ipv6_tmp"
+    done
+    uci commit dhcp
+    /etc/init.d/dnsmasq restart >/dev/null 2>&1
+    state="${GREEN}${dns_should_be} ${ORANGE}(FIXED!)${NC}"
+  else
+    state="${RED}${DHCP_IPv6} (SHOULD BE: '$IPv6_LAN')${NC}"
+    okay=n
+    fix_reqrd=y
+  fi
+  status "IPv6 DHCP DNS Server Option:" "$state"
 
   for section in $SECTIONS; do
     eval n="\$${section}_length"
@@ -731,9 +758,21 @@ if [ "$IPv6" = "y" ]; then
   if [ -n "$IPv6_DNS" ]; then
     echo -e "[$SCRIPT]${GREEN} Enabling IPv6 DNS Redirection to $IPv6_DNS${NC}"
     uci set tproxy.dnsv6.destIP="$IPv6_DNS"
+    if [ "$DHCP_IPv6" != "$IPv6_DNS" ]; then
+      for ipv6_tmp in $IPv6_DNS; do
+        uci -q add_list dhcp.lan.dns="$ipv6_tmp"
+        SRV_dnsmasq=1
+      done
+    fi
   else
     echo -e "[$SCRIPT]${GREEN} Enabling IPv6 DNS Hijacking${NC}"
     uci -q delete tproxy.dnsv6.destIP
+    if [ "$DHCP_IPv6" != "$IPv6_LAN" ]; then
+      for ipv6_tmp in $IPv6_LAN; do
+        uci -q add_list dhcp.lan.dns="$ipv6_tmp"
+        SRV_dnsmasq=1
+      done
+    fi
   fi
   echo -n > /etc/firewall.ipset.dns6_xcptn
   uci set firewall.dns6_xcptn.enabled='1'
