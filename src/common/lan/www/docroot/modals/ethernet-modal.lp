@@ -393,6 +393,26 @@ end
 if not content["auto"] or content["auto"] == "" then
   content["auto"] = "1"
 end
+if not content["dhcpIgnore"] or content["dhcpIgnore"] == "" then
+  content["dhcpIgnore"] = "0"
+end
+if not content["dhcpv4State"] or content["dhcpv4State"] == "" then
+  content["dhcpv4State"] = "server"
+end
+if not content["localIPv6"] or content["localIPv6"] == "" then
+  content["localIPv6"] = "1"
+end
+if not content["dhcplog"] or content["dhcplog"] == "" then
+  content["dhcplog"] = "0"
+end
+if not content["dhcpquiet"] or content["dhcpquiet"] == "" then
+  content["dhcpquiet"] = "0"
+end
+if not content["dhcplogv6"] or content["dhcplogv6"] == "" then
+  content["dhcplogv6"] = "6"
+elseif (tonumber(content["dhcplogv6"]) or 0) < 4 then
+  content["dhcplogv6"] = "4"
+end
 
 local function proxySet(p,v)
   local success,errors = proxy.set(p,v)
@@ -504,6 +524,11 @@ if content["dns_v6_pri"] ~= nil and content["dns_v6_pri"] ~= "" then
 else
   content["dns_v6_pri"] = "--1"
 end
+if content["dns_v6_pri"] ~= nil and content["dns_v6_pri"] ~= "" and content["dns_v6_pri"] ~= "--1" and not ethernet_helper.find_dns(content["dns_v6_pri"],dns_list[2]) then
+  local customipv6dns = content["dns_v6_pri"]:gsub("-",":")
+  dns_list[2][#dns_list[2]+1]={ content["dns_v6_pri"],T("Custom ("..customipv6dns..")")}
+end
+
 if content["dns_v6_sec"] ~= nil then
   if content["dns_v6_sec"] == lan_ula then
     content["dns_v6_sec"] = "::1"
@@ -511,11 +536,6 @@ if content["dns_v6_sec"] ~= nil then
   content["dns_v6_sec"] = content["dns_v6_sec"]:gsub(":","-")
 else
   content["dns_v6_sec"] = "--1"
-end
-
-if content["dns_v6_pri"] ~= nil and content["dns_v6_pri"] ~= "" and content["dns_v6_pri"] ~= "--1" and not ethernet_helper.find_dns(content["dns_v6_pri"],dns_list[2]) then
-  local customipv6dns = content["dns_v6_pri"]:gsub("-",":")
-  dns_list[2][#dns_list[2]+1]={ content["dns_v6_pri"],T("Custom ("..customipv6dns..")")}
 end
 if content["dns_v6_sec"] ~= nil and content["dns_v6_sec"] ~= "" and content["dns_v6_sec"] ~= "--1" and not ethernet_helper.find_dns(content["dns_v6_sec"],dns_list[2]) then
   local customipv6dns = content["dns_v6_sec"]:gsub("-",":")
@@ -543,7 +563,7 @@ if cur_intf == "lan" then
       end
     end
   end
-  if content["localIPv6"] == "1" then
+  if content["localIPv6"] ~= "0" then
     local values = proxy.get("uci.tproxy.config.enabled","uci.tproxy.rule.@dnsv6.enabled","uci.tproxy.rule.@dnsv6.destIP")
     if values then
       dns_int_ipv6 = values[1].value ~= "0" and values[2].value ~= "0"
@@ -555,7 +575,7 @@ if cur_intf == "lan" then
   end
 end
 local dns_int_ipv4_ok = dns_int_ipv4 and content["dns_v4_pri"] == dns_int_ipv4_dest_ip
-local dns_int_ipv6_ok = dns_int_ipv6 and (dns_int_ipv6_dest_ip == content["dns_v6_pri"] or find(dns_int_ipv6_dest_ip:gsub(":","-"),untaint(content["dns_v6_pri"]),1,true))
+local dns_int_ipv6_ok = dns_int_ipv6 and (dns_int_ipv6_dest_ip == content["dns_v6_pri"] or find(dns_int_ipv6_dest_ip:gsub(":","-"),untaint(content["dns_v6_pri"]),1,true) ~= 0)
 --endregion DNS
 
 --region DHCP
@@ -574,27 +594,6 @@ if helpmsg["dhcpLimit"] then
       helpmsg["dhcpLimit"] = nil
       helpmsg["dhcpStart"] = msg
     end
-end
-
-if not content["dhcpIgnore"] or content["dhcpIgnore"] == "" then
-  content["dhcpIgnore"] = "0"
-end
-if not content["dhcpv4State"] or content["dhcpv4State"] == "" then
-  content["dhcpv4State"] = "server"
-end
-if not content["localIPv6"] or content["localIPv6"] == "" then
-  content["localIPv6"] = "1"
-end
-if not content["dhcplog"] or content["dhcplog"] == "" then
-  content["dhcplog"] = "0"
-end
-if not content["dhcpquiet"] or content["dhcpquiet"] == "" then
-  content["dhcpquiet"] = "0"
-end
-if not content["dhcplogv6"] or content["dhcplogv6"] == "" then
-  content["dhcplogv6"] = "6"
-elseif (tonumber(content["dhcplogv6"]) or 0) < 4 then
-  content["dhcplogv6"] = "4"
 end
 
 local ipstart,ipend,network
@@ -742,7 +741,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
           ngx.print([[</div>]])
 
           ngx.print(ui_helper.createSwitch(T"IPv6 Enabled on Boot","localIPv6",content["localIPv6"],switch_class_enable))
-          if content["localIPv6"] == "1" then
+          if content["localIPv6"] ~= "0" then
             local ipv6addr
             if cur_intf == "lan" then
               ipv6addr = proxy.get("rpc.network.interface.@lan6.ip6addr")
