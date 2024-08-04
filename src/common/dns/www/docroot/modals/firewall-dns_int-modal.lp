@@ -20,7 +20,8 @@ lp.setpath("/www/snippets/")
 
 local ipdetails = {
   gw = "uci.network.interface.@lan.ipaddr",
-  netmask = "uci.network.interface.@lan.netmask"
+  netmask = "uci.network.interface.@lan.netmask",
+  ip6addr = "rpc.network.interface.@lan.ip6addr",
 }
 content_helper.getExactContent(ipdetails)
 
@@ -107,6 +108,13 @@ if dns_int then
       dest_ipv6 = untaint(state[4].value)
     end
 
+    if enabledv6 == "1" and ipdetails.ip6addr == "" then
+      enabledv6 = "0"
+      dest_ipv6 = ""
+      proxySet(path["Intercept-DNSv6"].."enabled",enabledv6)
+      proxySet(path["Intercept-DNSv6"].."destIP",dest_ipv6)
+    end
+
     if ngx.var.request_method == "POST" then
       local args = ngx.req.get_post_args()
       if args["action"] == "SAVE" then
@@ -175,25 +183,27 @@ if dns_int then
         local new_enabledv6 = untaint(args["enabledv6"])
         local new_dest_ipv6 = gsub(untaint(args["dest_ipv6"]),"^%s*(.-)%s*$","%1")
 
-        local validv6,errmsg = vB(new_enabledv6)
+        local validv6,errmsg6 = vB(new_enabledv6)
         if not validv6 then
-          helpmsg["enabledv6"] = errmsg
+          helpmsg["enabledv6"] = errmsg6
         elseif new_dest_ipv6 ~= "" then
-          validv6,errmsg = vSIIP6(new_dest_ipv6)
+          validv6,errmsg6 = vSIIP6(new_dest_ipv6)
           if not validv6 then
-            helpmsg["dest_ipv6"] = errmsg
+            helpmsg["dest_ipv6"] = errmsg6
           end
         end
 
         if validv6 then
-          if new_enabledv6 == "0" then
-            proxySet(path["Intercept-DNSv6"].."destIP","")
+          if new_enabledv6 == "0" or (new_enabledv6 == "1" and ipdetails.ip6addr == "") then
+            new_enabledv6 = "0"
             dest_ipv6 = ""
+            proxySet(path["Intercept-DNSv6"].."enabled",new_enabledv6)
+            proxySet(path["Intercept-DNSv6"].."destIP",dest_ipv6)
           elseif new_enabledv6 == "1" then
             local lan_dns_path = "uci.dhcp.dhcp.@lan.dns."
             local first_lan_dns_svr = lan_dns_path.."@1."
             while (proxy.get(first_lan_dns_svr)) do
-                proxy.del(first_lan_dns_svr)
+              proxy.del(first_lan_dns_svr)
             end
             if new_dest_ipv6 and new_dest_ipv6 ~= "" then
               local idx = proxy.add(lan_dns_path)
@@ -390,8 +400,15 @@ ngx.print(ui_helper.createHeader(T"DNS",true,false))   ngx.print('\
       )
     end
     ngx.print('<legend><small>'); ngx.print( T"IPv6" ); ngx.print('</small></legend>');
-    ngx.print(ui_helper.createSwitch(T"Enabled","enabledv6",enabledv6,enabled_attr))
-    ngx.print(ui_helper.createInputText(T"DNS Server Address<span class='icon-question-sign' title='IPv6 address of the DNS server to which hijacked requests will be sent. Leave blank to have this device handle IPv6 DNS.'></span>","dest_ipv6",dest_ipv6,monitor6_attr,helpmsg["dest_ipv6"]))
+    if ipdetails.ip6addr == "" then
+      enabledv6 = "0"
+      ngx.print(ui_helper.createLabel(T"Enabled","No: No permanent IPv6 LAN address found"),
+        ui_helper.createSimpleInputHidden("enabledv6",enabledv6),
+        ui_helper.createSimpleInputHidden("dest_ipv6",""))
+    else
+      ngx.print(ui_helper.createSwitch(T"Enabled","enabledv6",enabledv6,enabled_attr))
+      ngx.print(ui_helper.createInputText(T"DNS Server Address<span class='icon-question-sign' title='IPv6 address of the DNS server to which hijacked requests will be sent. Leave blank to have this device handle IPv6 DNS.'></span>","dest_ipv6",dest_ipv6,monitor6_attr,helpmsg["dest_ipv6"]))
+    end
     if dns_int and enabledv6 == "1" then
       ngx.print(ui_helper.createSwitch(T"Verbose Logging","verbose",content["verbose"],monitor6_attr,vhelpmsg["verbose"]))
       ngx.print(
