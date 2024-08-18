@@ -2,3 +2,12 @@ echo -e "[$SCRIPT]: Fix failure to save Wi-Fi tab when Guest removed"
 sed \
  -e 's/\(local \)\(guest_[25]G_hide_check\)\( = .*@wl[01]_[12].public")\)\(\[1\].value$\)/\1\2\3; \2 = \2 and \2[1].value or "0";/' \
  -i /www/docroot/modals/wireless-modal.lp
+
+if [ "$MINIFY" = y ]; then
+  echo -e "[$SCRIPT]: Pre-minify fixes"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/wireless-modal.lp"
+  sed \
+    -e 's/\(var apVal = \[ "wl0", "wl1" \]\)/\1;/' \
+    -e 's/\(var apValue = apVal\[ap\]\)/\1;/' \
+    -i /www/docroot/modals/wireless-modal.lp
+fi
