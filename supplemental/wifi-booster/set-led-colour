@@ -78,9 +78,11 @@ else
   if echo 'blue cyan green magenta orange red white' | grep -q "\b$COLOUR\b"; then
     echo -e "NOTE:     Updating state machines to set front LED to $COLOUR..."
     confirm
+    staticLed="$(grep -om1 'staticLed."\(power\|front\):' /rom/etc/ledfw/stateMachines.lua)"
+    grep -q 'Decrease brightness because of hardware issue' /rom/etc/ledfw/stateMachines.lua && value="5" || value="true"
     sed -e "/bridge_o[nf]*line =/,/}/{
       s/true/false/
-      /blue/a\           staticLed\(\"front:$COLOUR\", true\),
+      /blue/a\           $staticLed$COLOUR\", $value\),
     }" /rom/etc/ledfw/stateMachines.lua > /etc/ledfw/stateMachines.lua
   else
     echo -e "${RED}ABORTING: Invalid colour '$COLOUR'!${NC}"
