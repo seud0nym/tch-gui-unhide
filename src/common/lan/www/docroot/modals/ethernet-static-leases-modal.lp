@@ -221,14 +221,13 @@ local tags_columns = {
 }
 
 local tags_filter = function(data)
-  for k=1,#data do
-    local v = data[k]
+  for k,v in pairs(data) do
     if match(k,"^dhcp_option.@") and match(v,"^6,") then
       data.dhcp_option = v
     end
   end
   if used_tags[untaint(data.paramindex)] then
-    return { canDelete = false }
+    return { canEdit = true,canDelete = false }
   end
   return true
 end
