@@ -23,6 +23,8 @@ local gVNIR = post_helper.getValidateNumberInRange
 
 local cpu_port = vlan_helper.get_cpu_port()
 local untagged_flag = vlan_helper.get_untagged_flag()
+local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")
+local wan_port_available = isBridgedMode or not wan_ifname or wan_ifname[1].value ~= "eth4"
 
 local enabled_was = proxy.get(vlan_helper.get_switch_path("enable_vlan"))
 if not enabled_was then
@@ -81,7 +83,7 @@ local vlan_columns = {
     type = "select",
     values = tagged_state,
     attr = tagged_state_attr,
-    readonly = not isBridgedMode,
+    readonly = not wan_port_available,
   },
   {
     header = "Used By",
