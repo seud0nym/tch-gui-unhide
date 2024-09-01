@@ -21,16 +21,8 @@ local function telstraIPK(path)
   end
 end
 
-local fw_version = "Unknown"
-local command = popen("uci get version.@version[0].marketing_version")
-if command then
-  fw_version = command:read()
-  command:close()
-end
-log.info("Firmware version = %s",fw_version)
-
 local architecture = "Unknown"
-command = popen("grep 'model.*: *' /proc/cpuinfo | cut -d: -f2 | sort -u | xargs")
+local command = popen("grep 'model.*: *' /proc/cpuinfo | cut -d: -f2 | sort -u | xargs")
 if command then
   local cpu = command:read()
   command:close()
