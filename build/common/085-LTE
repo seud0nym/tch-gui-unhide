@@ -225,7 +225,7 @@ sed \
   local mapValid = {\
     to_number = function(value, object, key)\
       local valid,helpmsg = post_helper.validateNonEmptyString(value)\
-      if valid and not string.match(value, "^%+%d+$") then\
+      if valid and not string.match(value, "^%+?%d+$") then\
         valid,helpmsg = nil,T"Number must be in international dialling format including leading + and country code"\
       end\
       return valid,helpmsg\

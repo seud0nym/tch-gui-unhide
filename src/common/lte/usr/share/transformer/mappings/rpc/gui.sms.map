@@ -45,7 +45,7 @@ GUI_SMS_.get = {
 
 GUI_SMS_.set = {
   number = function(_,_,value,_)
-    if match(value,"^%+%d+$") then
+    if match(value,"^%+?%d+$") then
       sms.number = value
       return true
     end
