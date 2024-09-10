@@ -261,6 +261,7 @@ apply_service_changes() {
     restart ethernet $SRV_ethernet
     restart network $SRV_network reload
     restart static-wan-routes-monitor 1
+    restart mobiled 1
     restart watchdog-tch 1 start
   fi
 }

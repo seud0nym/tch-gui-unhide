@@ -214,6 +214,8 @@ sed \
   -e '/^local ui_helper/a\local message_helper = require("web.uimessage_helper")' \
   -e '/^local ui_helper/a\local proxy = require("datamodel")' \
   -e '/messages().length > 0">/i\  <fieldset><legend>Received Messages</legend>\\' \
+  -e "/messages().length > 0\">/a\',ui_helper.createAlertBlock(T'Messages may be prefixed by random characters! This is a known bug. Long messages are split into two or more messages.',{alert={class='alert-info'}}),'\\\\" \
+  -e "s/data.messages, \\\\'id\\\\', false/data.messages, \\\\'id\\\\', true/" \
   -e "/<\/form>/i\  </fieldset>\\\\" \
   -e "/<\/form>/i\  <fieldset><legend>Send a Message</legend>\\\\" \
   -e "/<\/form>/i\  ');" \
