@@ -155,7 +155,8 @@
     "Lua.workspace.checkThirdParty": "Disable",
     "cSpell.language": "en-GB",
     "Lua.diagnostics.disable": [
-        "param-type-mismatch"
+        "param-type-mismatch",
+        "cast-local-type"
     ],
     "remote.autoForwardPorts": false,
     "remote.restoreForwardedPorts": false,
