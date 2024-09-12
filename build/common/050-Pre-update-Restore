@@ -1,4 +1,4 @@
 # Do the restore
-restore_www
+restore_from_rom
 echo -e "[$SCRIPT]: Pre-update restore completed"
 

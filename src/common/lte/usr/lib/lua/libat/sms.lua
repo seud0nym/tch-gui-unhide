@@ -12,7 +12,6 @@ function M.get_messages(device)
 	if ret then
 		for _, line in pairs(ret) do
 			if line.response and line.pdu then
-				log:notice('line.response = "%s" line.pdu = "%s"',line.response,line.pdu)
 				local message = pdu.decode(line.pdu)
 				if message then
 					local id, status = match(line.response, "+CMGL:%s?(%d+),%s?(%d+)")
@@ -30,7 +29,7 @@ function M.get_messages(device)
 							message.status = "read"
 						end
 						message.id = id
-						log:notice('id = "%d" status = "%s" text = "%s"',message.id,message.status,message.text)
+						log:notice('id="%d" status="%s" text="%s" pdu="%s"',message.id,message.status,message.text,line.pdu)
 						tinsert(messages, message)
 					end
 				end

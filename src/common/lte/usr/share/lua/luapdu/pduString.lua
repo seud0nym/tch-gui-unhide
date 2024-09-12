@@ -53,6 +53,7 @@ function pduString:decodePayload(content,dcs,length,has_udh)
         udh.length = tonumber("0x"..content:sub(1,2))
         udh.content = content:sub(3,udh.length*2)
         content = content:sub(3+udh.length*2)
+        length = length-(1+udh.length)
     end
     local dcsBits = bit.band(dcs,12)
     local payload
@@ -84,11 +85,6 @@ function pduString:decode7bitPayload(content,length)
             state = state + 1
         end
     end
-    if     length     ~= 0 then
-        error("Content shorter than expected!")
-    elseif content:len() ~= 0 then
-        error("Content longer than expected!<"..content..">")
-    end
     return table.concat(data)
 end
 
@@ -99,11 +95,6 @@ function pduString:decode8bitPayload(content,length)
         octet,content = self:decodeOctet(content)
         data[#data+1] = string.char(octet)
         length = length - 1
-    end
-    if     length        > 0 then
-        error("Content shorter than expected!")
-    elseif content:len() > 0 then
-        error("Content longer than expected!<"..content..">")
     end
     return table.concat(data)
 end
@@ -129,12 +120,7 @@ function pduString:decode16bitPayload(content,length)
         end
         length = length - 2
     end
-    if     length        ~= 0 then
-        error("Content shorter than expected!<"..length..">")
-    elseif content:len() ~= 0 then
-        error("Content longer than expected!<"..content..">")
-    end
-    return table.concat(data):sub(-length)
+    return table.concat(data)
 end
 
 

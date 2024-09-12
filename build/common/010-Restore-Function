@@ -1,9 +1,23 @@
-restore_www() {
+restore_from_rom() {
   # File deployed to incorect location by releases prior to 2021.02.06
   if [ -f /usr/share/transformer/mappings/iperf.map ]; then
+    echo -e "[$SCRIPT]: Removing /usr/share/transformer/mappings/iperf.map"
     rm /usr/share/transformer/mappings/iperf.map
   fi
+  
   # Need to remove existing version or it doesn't get replaced??
+  for f in /usr/share/lua/luapdu*;do
+    if [ -f "$f" ]; then
+      echo -e "[$SCRIPT]: Removing $f"
+      rm "$f"
+    fi
+  done
+  for d in /usr/share/lua/luapdu;do
+    if [ -d "$d" ]; then
+      echo -e "[$SCRIPT]: Removing directory $d"
+      rmdir "$d"
+    fi
+  done
   if [ -f /usr/sbin/traffichistory.lua ]; then
     if [ "$1" = "V" ]; then
       echo -e "[$SCRIPT]: Removing file /usr/sbin/traffichistory.lua"
@@ -15,11 +29,13 @@ restore_www() {
     sed -e '/traffichistory.lua/d' -i /etc/crontabs/root
     SRV_cron=$(( $SRV_cron + 1 ))
   fi
+  
   # Remove stuff that will be replaced with latest versions
   [ -d /usr/share/tch-gui-unhide ] && rm -rf /usr/share/tch-gui-unhide
   mkdir -p /usr/share/tch-gui-unhide
+  
   # Add individual files to be restored here
-  for t in /etc/init.d/power /usr/lib/lua/web/post_helper.lua; do
+  for t in /etc/init.d/power /usr/lib/lua/web/post_helper.lua /usr/lib/lua/libat/sms.lua; do
     [ -f "${RESTORE_BASE}${t}" ] && s="${RESTORE_BASE}${t}" || s="/rom$t"
     if [ -f "$s" ]; then
       cmp -s "$s" "$t"
@@ -29,6 +45,7 @@ restore_www() {
       fi
     fi
   done
+  
   # Add directories to be restored here
   for d in www/cards www/docroot www/lua www/snippets usr/share/transformer/commitapply usr/share/transformer/mappings/rpc usr/share/transformer/mappings/uci; do
     echo -e "[$SCRIPT]: Restoring directory /$d"

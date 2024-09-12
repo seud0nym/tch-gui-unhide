@@ -6,9 +6,9 @@ if [ $RESTORE = y ]; then
     . ./$s
   done
 
-  restore_www V
+  restore_from_rom V
 
-  for f in /etc/config/tch_gui_unhide /etc/tch-gui-unhide.ignored_release /etc/tch-gui-unhide.theme /etc/hotplug.d/iface/10-bqos /etc/init.d/bqos /usr/sbin/bqos /etc/hotplug.d/iface/60-add-IPv6-DNS-intercept-exceptions /etc/hotplug.d/iface/70-WAN-LEDs /etc/init.d/static-wan-routes-monitor /usr/share/lua/luapdu.lua /usr/share/lua/luapdu/*;do
+  for f in /etc/config/tch_gui_unhide /etc/tch-gui-unhide.ignored_release /etc/tch-gui-unhide.theme /etc/hotplug.d/iface/10-bqos /etc/init.d/bqos /usr/sbin/bqos /etc/hotplug.d/iface/60-add-IPv6-DNS-intercept-exceptions /etc/hotplug.d/iface/70-WAN-LEDs /etc/init.d/static-wan-routes-monitor;do
     if [ -f "$f" ]; then
       if [ "$(dirname $f)" = "/etc/init.d" ]; then
         echo -e "[$SCRIPT]: Disabling and stopping $f"
@@ -19,7 +19,7 @@ if [ $RESTORE = y ]; then
       rm "$f"
     fi
   done
-  for d in /www/docroot/css/light /www/docroot/css/night /www/docroot/css/telstra /www/docroot/img/light /www/docroot/img/night /www/docroot/css/Telstra /usr/share/lua/luapdu;do
+  for d in /www/docroot/css/light /www/docroot/css/night /www/docroot/css/telstra /www/docroot/img/light /www/docroot/img/night /www/docroot/css/Telstra;do
     if [ -d "$d" ]; then
       echo -e "[$SCRIPT]: Removing empty directory $d"
       rmdir "$d"

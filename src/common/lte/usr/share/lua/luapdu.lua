@@ -1,6 +1,6 @@
--- Source: https://github.com/0x4C4A/lua-pdu
+-- Original Source: https://github.com/0x4C4A/lua-pdu
 
-local pduString    = require('luapdu.string')
+local pduString    = require('luapdu.pduString')
 
 local function decodePduSms(pduSmsString)
     local pduStr = pduString.new(pduSmsString)
