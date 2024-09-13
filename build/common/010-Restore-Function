@@ -6,7 +6,7 @@ restore_from_rom() {
   fi
   
   # Need to remove existing version or it doesn't get replaced??
-  for f in /usr/share/lua/luapdu*;do
+  for f in /usr/share/lua/luapdu.lua /usr/share/lua/luapdu/*;do
     if [ -f "$f" ]; then
       echo -e "[$SCRIPT]: Removing $f"
       rm "$f"
