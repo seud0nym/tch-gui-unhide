@@ -33,7 +33,6 @@ options:
  -e                Install AdGuard Home on USB rather than INTERNAL storage.
                       This is the default if the local filesystem is jffs2, because 
                       AdGuard Home is INCOMPATIBLE with jffs2.
- -j                Enable DNS hijacking.
  -k                Keep dnsmasq as the primary DNS Server on port 53 and use 
                       AdGuard Home as the only upstream DNS Server.
                       Implies the -d option.
@@ -90,7 +89,6 @@ AGH_PORT=53
 AGH_VER=""
 KEEP_DNSMASQ=N
 DOWNLOAD=Y
-HIJACKING=N
 SCHEDULED=Y
 UTILITIES=Y
 REMOVE=N
@@ -109,13 +107,12 @@ else
   QUERYLOG_INTERVAL=24h
 fi
 
-while getopts :deih:jkn:p:rsuv:x: option; do
+while getopts :deih:kn:p:rsuv:x: option; do
  case "${option}" in
   d)  AGH_DHCP=false;;
   e)  EXTERNAL=Y;QUERYLOG_INTERVAL=2160h;;
   i)  EXTERNAL=N;QUERYLOG_INTERVAL=24h;;
   h)  PWD_HASH="$OPTARG";;
-  j)  HIJACKING=Y;;
   k)  KEEP_DNSMASQ=Y;AGH_DHCP=false;AGH_PORT=53535;;
   n)  USERNAME="$OPTARG";;
   p)  PASSWORD="$OPTARG";;
@@ -452,18 +449,6 @@ if [ -z "$PWD_HASH" -a -n "$PASSWORD" ]; then
     fi
   else
     echo -e "${RED}[$SCRIPT] Password hash failed with message: ${NC}${HASH_MSG}${RED} Aborting...${NC}"
-    exit 2
-  fi
-fi
-
-if [ $HIJACKING = Y ]; then
-  echo -e "${GREEN}[$SCRIPT] Downlading latest version of hijack-dns...${NC}"
-  curl -kL -o /tmp/hijack-dns https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/utilities/hijack-dns
-  if [ $? -eq 0 ]; then
-    chmod +x /tmp/hijack-dns
-    echo "[$SCRIPT] Successfully downloaded hijack-dns."
-  else
-    echo -e "${RED}[$SCRIPT] Failed to download hijack-dns! Aborting...${NC}"
     exit 2
   fi
 fi
@@ -943,12 +928,6 @@ if [ $AGH_RUNNING = 'true' ]; then
       grep -q agh-update /etc/crontabs/root && sed -e "/agh-update/d" -i /etc/crontabs/root
       AdGuardHome/agh-update -C
     fi
-  fi
-
-  if [ $HIJACKING = Y ]; then
-    echo -e "${GREEN}[$SCRIPT] Running hijack-dns...${NC}"
-    sh /tmp/hijack-dns
-    rm /tmp/hijack-dns
   fi
 
   echo -e "${GREEN}[$SCRIPT] Done. You can now access AdGuard Home on http://${GATEWAY}:8008${NC}"

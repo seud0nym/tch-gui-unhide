@@ -105,9 +105,7 @@ The following optional configuration parameters may be specified **after** the d
   - The version of AdGuard Home to be installed (e.g. v0.107.7).
   - The default is the latest version. 
   - Ignored if -xg or -xx specified.
-- -j
-  - Download and run the [`hijack-dns`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#hijack-dns) script, to configure DNS interception and hijacking.
-- -x c|g|i|s|u|x
+- -x c|g|s|u|x
   - Exclude features:
     - -xc
       - Do not update the System CA certificates
@@ -115,14 +113,12 @@ The following optional configuration parameters may be specified **after** the d
       - **NOTE:** If certificates are not up to date, AdGuard Home will *FAIL* to download filters
     - -xg
       - Do not get the latest version of AdGuard Home if it has already been downloaded
-    - -xi
-      - Do not enable DNS hijacking/interception
     - -xs 
       - Do not enable scheduled update of AdGuard Home
     - -xu
       - Do not download utility scripts (implies -xs)
     - -xx
-      - Same as **-xc -xg -xi xs -xu**
+      - Same as **-xc -xg xs -xu**
     - -xy
       - Do not replace an existing AdGuard Home Configuration file 
       - Has no effect if the AdGuardHome.yaml file does not exist

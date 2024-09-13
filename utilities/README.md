@@ -4,7 +4,6 @@ A collection of utility scripts for your Technicolor router. Most of the names a
 - [de-telstra](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#de-telstra)
 - [dumaos](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#dumaos)
 - [guest-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#guest-restore)
-- [hijack-dns](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#hijack-dns)
 - [log-check](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#log-check)
 - [mtd-backup](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-backup)
 - [mtd-restore](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#mtd-restore)
@@ -178,44 +177,6 @@ Options:
  -y   Bypass the confirmation prompt (answers "y")
  -U   Download the latest version of guest-restore from GitHub
 ```
-
-## hijack-dns
-Configures DNS hijacking:
-
- - Hijacks DNS requests to ensure that they are handled by the device, or by a specified DNS Server
- - Rejects DNS-over-TLS (DoT) requests over IPv4 and IPv6
- - Rejects DNS-over-HTTPS (DoH) to known HTTPS DNS Servers over IPv4 and IPv6
- - Configures a scheduled weekly cron job to maintain IP Sets of known HTTPS DNS Servers
-```
-Usage: ./hijack-dns [options]
-
-Options:
- -4 y|n       Enables IPv4 DNS hijacking. Defaults to y if not specified.
- -6 y|n       Enables IPv6 DNS hijacking. Defaults to y IPv6 is enabled and 
-                option is not specified; otherwise the default is n.
- -d <ip_addr> The IPaddress of the local DNS Server to which DNS queries
-                will be redirected. You can specify this option twice: once 
-                for an IPv4 address and a second time for an IPv6 address.
-                If either is not specified, it defaults to the router. 
- -x <ip_addr> Exclude the specified IPv4 or IPv6 address from being 
-                hijacked. You may specify this option multiple times to 
-                exclude multiple IP addresses. The local DNS Server specified
-                with -d is automatically excluded and does not need to be 
-                re-specified with -x.
- -r           Disables DNS hijacking. Specify twice to remove configuration
-                and three times to remove support files. Removing the
-                configuration and support files is NOT recommended. They will
-                also be recreated automatically by tch-gui-unhide.
- --status     Shows and verifies DNS hijacking status
- --fix        Only applicable with --status. Attempts to correct errors.
- -U           Download the latest version of the script and supporting files
-                from GitHub
-```
-
-_NOTE_: **tch-gui-unhide releases starting with 2021.08.18 allow you to enable and configure DNS hijacking through a tab on the Firewall, and releases starting with 2022.01.01 support DNS hijacking on IPv6 using a transparent proxy.** 
-
-## intercept-dns
-*The intercept-dns script has been renamed to [hijack-dns](#hijack-dns) to avoid confusion with the intercept daemon.*
 
 ## log-check
 Checks that the logging RAM buffer and disk-based messages log are both being written correctly.
