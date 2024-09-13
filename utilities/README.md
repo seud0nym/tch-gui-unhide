@@ -414,6 +414,7 @@ Options:
                       specified).
  --no-ula           Bypass restore of the IPv6 ULA and LAN prefix size (ignored 
                       unless -i is specified).
+ --no-sms-db        Bypass restore of the SMS message database.
  --save-defaults    Saves the command line options (except -f/-s/-y) as defaults.
                       When specified, NO changes are applied to the device.
  --show-defaults    Shows the settings that would be applied (defaults and over-rides)
@@ -518,6 +519,7 @@ Options:
                       specified).
  --no-ula           Bypass restore of the IPv6 ULA and LAN prefix size (ignored 
                       unless -i is specified).
+ --no-sms-db        Bypass restore of the SMS message database.
  --save-defaults    Saves the command line options (except filename/-s/-y) as 
                       defaults.
                       When specified, NO changes are applied to the device.

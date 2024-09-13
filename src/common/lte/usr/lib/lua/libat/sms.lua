@@ -12,26 +12,26 @@ function M.get_messages(device)
 	if ret then
 		for _, line in pairs(ret) do
 			if line.response and line.pdu then
-				local message = pdu.decode(line.pdu)
+				local message = luapdu.decode(line.pdu)
 				if message then
 					local id, status = match(line.response, "+CMGL:%s?(%d+),%s?(%d+)")
 					id = tonumber(id)
 					if id then
-						local msg = luapdu.decode(line.pdu)
-						if msg then
-							message.text = msg.msg.content
-						else
-							log:error('Failed to decode "%s"',line.pdu)
-						end
+						-- create key/value pairs as returned by the original pdu.so library
+						message.number = (message.sender and message.sender.num) and message.sender.num or message.recipient and message.recipient.num or ""
+						message.text = message.msg.content
+						message.date = message.timestamp
 						if status == "0" then
 							message.status = "unread"
 						else
 							message.status = "read"
 						end
 						message.id = id
-						log:notice('id="%d" status="%s" text="%s" pdu="%s"',message.id,message.status,message.text,line.pdu)
+						log:notice('id="%d" status="%s" number="%s" date="%s" text="%s" pdu="%s"',message.id,message.status,message.number,message.date,message.text,line.pdu)
 						tinsert(messages, message)
 					end
+				else
+					log:error('Failed to decode "%s"',line.pdu)
 				end
 			end
 		end

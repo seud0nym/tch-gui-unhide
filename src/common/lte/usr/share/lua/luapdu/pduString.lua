@@ -123,6 +123,28 @@ function pduString:decode16bitPayload(content,length)
     return table.concat(data)
 end
 
+function pduString:decodeSCTS2Date(str)
+    local time,year,full_year,yy = {},os.date("%y"),os.date("%Y"),nil
+    yy,str = self:decodeDecOctets(str,1)
+    if yy == year then
+        time["year"] = full_year
+    else
+        local century = tonumber(full_year:sub(1,2))
+        if yy > year then
+            century = century+1
+            local this_century = tonumber(full_year:sub(1,2))
+            time["year"] = string.format("%02d%s",this_century,yy)
+        end
+        time["year"] = string.format("%02d%s",century,yy)
+    end
+    time["month"],str = self:decodeDecOctets(str,1)
+    time["day"],str = self:decodeDecOctets(str,1)
+    time["hour"],str = self:decodeDecOctets(str,1)
+    time["min"],str = self:decodeDecOctets(str,1)
+    time["sec"],str = self:decodeDecOctets(str,1)
+    _,str = self:decodeDecOctets(str,1) -- Timezone. Tricky.
+    return string.format(os.date("%Y-%m-%d %H:%M:%S",os.time(time))),str
+end
 
 function pduString:decodeTXmsg(content,response)
     response.msgReference,  content = self:decodeOctet(content)
@@ -159,7 +181,7 @@ function pduString:decodeRXmsg(content,response)
     end
     response.protocol,  content = self:decodeOctet(content)
     response.dcs,       content = self:decodeOctet(content)
-    response.timestamp, content = self:decodeDecOctets(content,7)
+    response.timestamp, content = self:decodeSCTS2Date(content)
     response.msg.len,   content = self:decodeOctet(content)
     response.msg.content,response.msg.udh = self:decodePayload(content,response.dcs,response.msg.len,response.msg.has_udh)
     return response
@@ -167,7 +189,7 @@ end
 
 function pduString:decodePDU()
     local content = self.str
-    local response = {smsc={},msg = { multipart = false,udh = false }}
+    local response = {smsc={},msg={multipart=false,has_udh=false}}
     response.smsc.len,content = self:decodeOctet(content)
     if response.smsc.len > 0 then
         local smscNumLen = response.smsc.len - 1
@@ -183,7 +205,7 @@ function pduString:decodePDU()
     response.msg.multipart = bit.band(response.type,0x04) == 0
     response.msg.has_udh = bit.band(response.type,0x40) ~= 0
     local typeBits = bit.band(response.type,0x03)
-    if     typeBits == 0 then
+    if typeBits == 0 then
         return self:decodeRXmsg(content,response)
     elseif typeBits == 1 then
         return self:decodeTXmsg(content,response)
