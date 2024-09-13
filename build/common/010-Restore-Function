@@ -6,26 +6,17 @@ restore_from_rom() {
   fi
   
   # Need to remove existing version or it doesn't get replaced??
-  for f in /usr/share/lua/luapdu.lua /usr/share/lua/luapdu/*;do
-    if [ -f "$f" ]; then
+  for f in /usr/sbin/traffichistory.lua /usr/share/lua/luapdu.lua /usr/share/lua/luapdu/* /usr/share/lua/luapdu; do
+    if [ -d "$d" ]; then
+      echo -e "[$SCRIPT]: Removing directory $d"
+      rmdir "$d"
+    elif [ -f "$f" ]; then
       echo -e "[$SCRIPT]: Removing $f"
       rm "$f"
     fi
   done
-  for d in /usr/share/lua/luapdu;do
-    if [ -d "$d" ]; then
-      echo -e "[$SCRIPT]: Removing directory $d"
-      rmdir "$d"
-    fi
-  done
-  if [ -f /usr/sbin/traffichistory.lua ]; then
-    if [ "$1" = "V" ]; then
-      echo -e "[$SCRIPT]: Removing file /usr/sbin/traffichistory.lua"
-    fi
-    rm /usr/sbin/traffichistory.lua
-  fi
-  grep -q "/usr/sbin/traffichistory.lua" /etc/crontabs/root
-  if [ $? -eq 0 ]; then
+  if grep -q "/usr/sbin/traffichistory.lua" /etc/crontabs/root; then
+    echo -e "[$SCRIPT]: Removing traffic history scheduled task"
     sed -e '/traffichistory.lua/d' -i /etc/crontabs/root
     SRV_cron=$(( $SRV_cron + 1 ))
   fi
