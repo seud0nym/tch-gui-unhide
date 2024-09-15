@@ -120,7 +120,7 @@ end
 function pduString:decode16bitPayload(content,length)
     local data = {}
     local octet1,octet2
-    while self ~= "" and length ~= 0 do
+    while self ~= "" and length > 0 do
         octet1,content = self:decodeOctet(content)
         octet2,content = self:decodeOctet(content)
         local val = bit.lshift(octet1,8)+octet2
@@ -137,6 +137,7 @@ function pduString:decode16bitPayload(content,length)
             data[#data+1] = string.char(0x80+bit.band(val,0x3F))                 -- 0b10YYYYYY
         end
         length = length - 2
+        --print(string.format("decode16bitPayload: length=%d data[#data]=%s",length,data[#data]))
     end
     return table.concat(data)
 end
@@ -160,7 +161,16 @@ function pduString:decodeSCTS2Date(str)
     time["hour"],str = self:decodeDecOctets(str,1)
     time["min"],str = self:decodeDecOctets(str,1)
     time["sec"],str = self:decodeDecOctets(str,1)
-    _,str = self:decodeDecOctets(str,1) -- Timezone. Tricky.
+    local tz
+    tz,str = self:decodeDecOctets(str,1)
+    tz = tonumber(tz, 16)
+    local sign_tz = bit.band(tz, 0x80) == 0
+    tz = bit.band(tz, 0x7F)
+    tz = tonumber(string.format('%.2X', tz))
+    if tz then
+      tz = tz / 4
+      if not sign_tz then tz = -tz end
+    end
     return string.format(os.date("%Y-%m-%d %H:%M:%S",os.time(time))),str
 end
 
