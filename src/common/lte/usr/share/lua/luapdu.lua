@@ -4,7 +4,11 @@ local pduString    = require('luapdu.pduString')
 
 local function decodePduSms(pduSmsString)
     local pduStr = pduString.new(pduSmsString)
-    return pduStr:decodePDU()
+    local result
+    if not pcall(function() result = pduStr:decodePDU() end) then
+        result = nil
+    end
+    return result
 end
 
 local luapdu = {
