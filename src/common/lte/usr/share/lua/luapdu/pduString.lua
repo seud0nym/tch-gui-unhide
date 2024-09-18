@@ -1,4 +1,5 @@
 local bit = require("bit")
+local mask = require("luapdu.mask")
 
 local pduString = {}
 pduString.__index = pduString
@@ -47,17 +48,28 @@ function pduString:decOctets(val)
 end
 
 function pduString:decodePayload(content,dcs,length,has_udh)
-    --print(string.format("decodePayload: content=%s dcs=%d length=%d has_udh=%s",content,dcs,length,has_udh and "true" or "false"))
     local bytes,align,udh = math.ceil(length * 7 / 8)
     if has_udh then
         udh = {}
         udh.length = tonumber("0x"..content:sub(1,2))
-        udh.content = content:sub(3,udh.length*2)
+        udh.content = content:sub(3,(udh.length+1)*2)
         content = content:sub(3+udh.length*2)
         bytes = bytes - udh.length
         align = 7 - (udh.length+1) % 7
         length = length - math.ceil((udh.length+1) * 8 / 7)
-        --print(string.format("decodePayload: udh.length=%d udh.content=%s content=%s",udh.length,udh.content,content))
+        udh.IEI = udh.content:sub(1,2)
+        local udh_octets = udh.content:sub(3)
+        udh.IEL_length,udh_octets = self:decodeOctet(udh_octets)
+        if udh.IEL_length == 3 then
+            udh.CSMS_reference,udh_octets = self:decodeOctet(udh_octets)
+        elseif udh.IEL_length == 4 then
+            local octet1,octet2
+            octet1,udh_octets = self:decodeOctet(udh_octets)
+            octet2,udh_octets = self:decodeOctet(udh_octets)
+            udh.CSMS_reference = bit.lshift(octet1,8)+octet2
+        end
+        udh.total_parts,udh_octets = self:decodeOctet(udh_octets)
+        udh.part_number,udh_octets = self:decodeOctet(udh_octets)
     end
     local dcsBits = bit.band(dcs,12)
     local payload
@@ -137,7 +149,6 @@ function pduString:decode16bitPayload(content,length)
             data[#data+1] = string.char(0x80+bit.band(val,0x3F))                 -- 0b10YYYYYY
         end
         length = length - 2
-        --print(string.format("decode16bitPayload: length=%d data[#data]=%s",length,data[#data]))
     end
     return table.concat(data)
 end
@@ -192,18 +203,16 @@ function pduString:decodeTXmsg(content,response)
         response.validity,content = self:decodeOctet(content)
     end
     response.msg.len,content = self:decodeOctet(content)
-    response.msg.content,response.msg.udh = self:decodePayload(content,response.dcs,response.msg.len)
+    response.msg.content,response.msg.udh = self:decodePayload(content,response.dcs,response.msg.len,response.msg.has_udh)
     return response
 end
 
 function pduString:decodeRXmsg(content,response)
-    local mask = { -1+2^1; -1+2^2; -1+2^3; -1+2^4; -1+2^5; -1+2^6; -1+2^7; }
     local function GetBits(octet,off,n)
         return bit.band(mask[n or 1],bit.rshift(octet,off));
     end
     response.sender = {}
     response.sender.len,content = self:decodeOctet(content)
-    --print(string.format("06: content=%s response.sender.len=%d",content,response.sender.len))
     response.sender.type,content = self:decodeOctet(content)
     local type = GetBits(response.sender.type,4,3)
     if type == 0 then
@@ -223,7 +232,6 @@ function pduString:decodeRXmsg(content,response)
     else -- type == 7
         response.sender.ton = "RESERVED"
     end
-    --print(string.format("07: content=%s response.sender.type=%d ton=%s",content,response.sender.type,response.sender.ton))
     if response.sender.len > 0 then
         local length = math.ceil(response.sender.len/2)
         if response.sender.ton == "ALPHANUMERIC" then
@@ -235,33 +243,23 @@ function pduString:decodeRXmsg(content,response)
                 response.sender.num = "+"..response.sender.num
             end
         end
-        --print(string.format("08: content=%s response.sender.num=%s",content,response.sender.num))
     end
     response.protocol,content = self:decodeOctet(content)
-    --print(string.format("09: content=%s response.protocol=%d",content,response.protocol))
     response.dcs,content = self:decodeOctet(content)
-    --print(string.format("10: content=%s response.dcs=%d",content,response.dcs))
     response.timestamp,content = self:decodeSCTS2Date(content)
-    --print(string.format("11: content=%s response.timestamp=%s",content,response.timestamp))
     response.msg.len,content = self:decodeOctet(content)
-    --print(string.format("12: content=%s response.msg.len=%d",content,response.msg.len))
     response.msg.content,response.msg.udh = self:decodePayload(content,response.dcs,response.msg.len,response.msg.has_udh)
-    --print(string.format("13: content=%s response.msg.content=%s","",response.msg.content))
     return response
 end
 
 function pduString:decodePDU()
     local content = self.str
     local response = {smsc={},msg={multipart=false,has_udh=false}}
-    --print(string.format("01: content=%s",content))
     response.smsc.len,content = self:decodeOctet(content)
-    --print(string.format("02: content=%s response.smsc.len=%d",content,response.smsc.len))
     if response.smsc.len > 0 then
         local smscNumLen = response.smsc.len - 1
         response.smsc.type,content = self:decodeOctet(content)
-        --print(string.format("03: content=%s response.smsc.type=%d",content,response.smsc.type))
         response.smsc.num,content = self:decodeDecOctets(content,smscNumLen)
-        --print(string.format("04: content=%s response.smsc.num=%s",content,response.smsc.num))
         if response.smsc.type == 0x91 then -- International format
             response.smsc.num = "+"..response.smsc.num
         end
@@ -269,7 +267,6 @@ function pduString:decodePDU()
         response.smsc = nil
     end
     response.type,content = self:decodeOctet(content)
-    --print(string.format("05: content=%s response.type=%d",content,response.type))
     response.msg.multipart = bit.band(response.type,0x04) == 0
     response.msg.has_udh = bit.band(response.type,0x40) ~= 0
     local typeBits = bit.band(response.type,0x03)

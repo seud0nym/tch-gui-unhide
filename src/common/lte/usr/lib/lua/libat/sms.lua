@@ -1,5 +1,6 @@
 local format, match, gmatch, tinsert = string.format, string.match, string.gmatch, table.insert
 
+local json = require("dkjson")
 local pdu = require("pdu")
 local log = require("tch.logger").new("libat.sms",7)
 local luapdu = require("luapdu")
@@ -10,7 +11,8 @@ function M.get_messages(device)
 	local messages = {}
 	local ret = device:send_sms_command("AT+CMGL=4", "+CMGL:")
 	if ret then
-		for _, line in pairs(ret) do
+		local multipart = {}
+		for _,line in pairs(ret) do
 			if line.response and line.pdu then
 				local message = luapdu.decode(line.pdu)
 				if message then
@@ -27,13 +29,67 @@ function M.get_messages(device)
 							message.status = "read"
 						end
 						message.id = id
-						log:notice('id="%d" status="%s" number="%s" date="%s" text="%s" pdu="%s"',message.id,message.status,message.number,message.date,message.text,line.pdu)
-						tinsert(messages, message)
+						log:notice('id="%d" pdu="%s" message=%s',message.id,line.pdu,json.encode(message))
+						if message.msg and message.msg.has_udh and message.msg.udh.total_parts > 1 then
+							local key = format("%s#%d",message.number,message.msg.udh.CSMS_reference)
+							if not multipart[key] then
+								multipart[key] = {
+									total_parts = 0,
+									parts_found = 0,
+									parts = {},
+								}
+							end
+							multipart[key].total_parts = message.msg.udh.total_parts
+							multipart[key].parts_found = multipart[key].parts_found + 1
+							multipart[key].parts[message.msg.udh.part_number] = message
+							log:notice('id="%d" added to multipart cache key "%s"',message.id,key)
+						else
+							tinsert(messages, message)
+							log:notice('id="%d" will be returned to caller',message.id)
+						end
 					end
 				else
 					log:error('Failed to decode "%s"',line.pdu)
 				end
 			end
+		end
+		local ids_to_delete = {}
+		for key,ref in pairs(multipart) do
+			log:notice('key="%s" total_parts=%d parts_found=%d',key,ref.total_parts,ref.parts_found)
+			if ref.total_parts == ref.parts_found then
+				local message
+				for i=1,ref.total_parts do
+					local part = ref.parts[i]
+					if part then
+						log:notice('id="%d" CSMS_reference="%d" part=%d/%d part=%s',part.id,part.msg.udh.CSMS_reference,part.msg.udh.part_number,part.msg.udh.total_parts,json.encode(part))
+						if not message then
+							message = {
+								id = part.id,
+								number = part.number,
+								date = part.date,
+								status = part.status,
+								last_part = i,
+							}
+						else
+							ids_to_delete[#ids_to_delete+1] = part.id
+							if message.status == "read" and part.status == "unread" then
+								message.status = part.status
+							end
+						end
+						for prior=message.last_part+1,i-1 do
+							message.text = format("%s[Part %s missing?]",message.text or "",prior)
+						end
+						message.text = (message.text or "") .. part.text
+						message.last_part = i
+					end
+				end
+				log:notice('id="%d" will be returned to caller: status="%s" number="%s" date="%s" text="%s" parts=%d',message.id,message.status,message.number,message.date,message.text,ref.total_parts)
+				tinsert(messages, message)
+			end
+		end
+		for i=1,#ids_to_delete do
+			log:notice('id="%d" from multipart message deleted',ids_to_delete[i])
+			M.delete(device,ids_to_delete[i])
 		end
 	end
 	return { messages = messages }
