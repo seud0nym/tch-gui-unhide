@@ -150,11 +150,15 @@ function pduSmsObject:encodePayload(alphabetOverride)
     local refNo = math.floor(math.random()*255)
     for _,part in ipairs(content) do
         local header = { }
+        local align
         if self.msg.multipart then
             self:encodeMultipartHeader(refNo, partNo, header)
             partNo = partNo + 1
         end
         header = table.concat(header)
+        if self.msg.multipart then
+            align = 7-(#header+1)%7
+        end
 
         local text = { }
         local length = 0
@@ -176,7 +180,7 @@ function pduSmsObject:encodePayload(alphabetOverride)
         elseif alphabetOverride == 8 then
             text, length = self:encode16bitPayload(part)
         elseif alphabetOverride == 0 then
-            text, length = self:encode7bitPayload(part,(7-(#header+1)%7))
+            text, length = self:encode7bitPayload(part,align)
         else
             error("Unimplemented payload encoding alphabet!")
         end
@@ -209,7 +213,7 @@ function pduSmsObject:contentProcessing()
         local content = self.msg.content
         while content:len() > 0 do
             self.msg.parts[#self.msg.parts+1] = content:sub(1,maxChars) --!todo >7bit characters take up more than 8 bits, so this vulgar method can accidentally split a LUA unicoded char in two
-            content = content:sub(maxChars)
+            content = content:sub(maxChars+1)
         end
     else
         self.type = bit.band(0xBF,self.type)    -- Unset UDH-Indicator bit
@@ -283,7 +287,7 @@ function pduSmsObject:encodeRx(response)
 end
 
 function pduSmsObject:encodeTx(response)
-    self.type = bit.bor(0x01, self.type)
+    self.type = bit.bor(0x11, self.type)
     response[#response+1] = pduString:octet(self.type)
     -- Message reference
     response[#response+1] = pduString:octet(self.msgReference)
@@ -293,6 +297,8 @@ function pduSmsObject:encodeTx(response)
     response[#response+1] = pduString:octet(0x00)
     -- Data Coding Scheme https://en.wikipedia.org/wiki/Data_Coding_Scheme
     response[#response+1] = pduString:octet(self.dcs)
+    -- Validity Period (96 hours)
+    response[#response+1] = pduString:octet(0xAA)
     -- Payload
     local payload = self:encodePayload()
     local data = table.concat(response)
@@ -322,11 +328,7 @@ function pduSmsObject:encode()
     for i,sms in ipairs(response) do
        pduParts[i] = table.concat(sms)
     end
-    if #pduParts == 1 then
-        return pduParts[1]
-    else
-        return pduParts
-    end
+    return pduParts
 end
 
 return pduSmsObject

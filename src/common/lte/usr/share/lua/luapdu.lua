@@ -25,6 +25,8 @@ local function encodeSmsPdu(recipient,content)
     local ok,errmsg = xpcall(function() pdu = smsObj:encode() end,printStackTrace)
     if not ok then
         pdu = nil
+    else
+        errmsg = nil
     end
     return pdu,errmsg
 end

@@ -53,12 +53,12 @@ GUI_SMS_.set = {
     return nil,"Number must be in international dialling format including leading + and country code"
   end,
   message = function(_,_,value,_)
-    if #value <= 160 then
+    if #value > 0 then
       sms.message = value
       return true
     end
     sms.message = ""
-    return nil,"Message must not exceed 160 characters"
+    return nil,"Message must not be empty"
   end,
   sent = function(_,_,value,_)
     if value == "1" then

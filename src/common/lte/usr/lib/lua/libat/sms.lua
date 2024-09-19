@@ -96,13 +96,23 @@ function M.get_messages(device)
 end
 
 function M.send(device, number, message)
-	local pdu_str, errMsg = pdu.encode(number, message)
-	if pdu_str then
-		-- Set tpLayerLength to half (hex encoding) of string length and subtract 1 for default SMSC added in PDU library
-		local tpLayerLength = ((#pdu_str/2) - 1)
-		return device:send_sms(format("AT+CMGS=%d", tpLayerLength), pdu_str, "+CMGS:", 60 * 1000) or nil, "Failed to send message"
+	local pdu_parts,errMsg = luapdu.encode(number, message)
+	local result
+	if not errMsg then
+		for _,pdu_str in ipairs(pdu_parts) do
+			-- Set tpLayerLength to half (hex encoding) of string length and subtract 1 for default SMSC added in PDU library
+			local tpLayerLength = ((#pdu_str/2) - 1)
+			local sent = device:send_sms(format("AT+CMGS=%d", tpLayerLength), pdu_str, "+CMGS:", 60 * 1000)
+			if sent then
+				result = sent
+			else
+				result = nil
+				errMsg = "Failed to send message"
+				break
+			end
+		end
 	end
-	return nil, errMsg
+	return result,errMsg
 end
 
 function M.delete(device, message_id)

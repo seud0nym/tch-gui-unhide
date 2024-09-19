@@ -232,13 +232,7 @@ sed \
       end\
       return valid,helpmsg\
     end,\
-    sms_msg = function(value, object, key)\
-      local valid,helpmsg = post_helper.validateNonEmptyString(value)\
-      if valid and #value > 160 then\
-        valid,helpmsg = nil,T"Message must not exceed 160 characters"\
-      end\
-      return valid,helpmsg\
-    end,\
+    sms_msg = post_helper.validateNonEmptyString,\
   }\
   local sms,helpmsg = post_helper.handleQuery(mapParams,mapValid)\
   message_helper.popMessages() -- remove changes saved message\
