@@ -121,7 +121,7 @@ end
 function pduString:decode8bitPayload(content,length)
     local data = {}
     local octet = 0
-    while content ~= "" and length ~=0 do
+    while content ~= "" and length > 0 do
         octet,content = self:decodeOctet(content)
         data[#data+1] = string.char(octet)
         length = length - 1

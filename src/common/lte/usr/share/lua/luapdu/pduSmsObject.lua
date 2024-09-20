@@ -117,7 +117,7 @@ function pduSmsObject:encode7bitPayload(content,align)
           filler = next_filler
         end
         if #bytes % 7 == 0 then
-          bytes[#bytes + 1] = filler
+          bytes[#bytes+1] = filler
         end
     end
     for i = 1, #bytes do
@@ -152,12 +152,12 @@ function pduSmsObject:encodePayload(alphabetOverride)
         local header = { }
         local align
         if self.msg.multipart then
-            self:encodeMultipartHeader(refNo, partNo, header)
+            self:encodeMultipartHeader(refNo,partNo,header)
             partNo = partNo + 1
         end
-        header = table.concat(header)
+        local udh = table.concat(header)
         if self.msg.multipart then
-            align = 7-(#header+1)%7
+            align = 7 - (#udh + 1) % 7
         end
 
         local text = { }
@@ -169,8 +169,7 @@ function pduSmsObject:encodePayload(alphabetOverride)
                 if byte1 > 127 then
                     local byte2 = part:byte(1)
                     part = part:sub(2)
-                    local asciiByte = bit.band( 0xFF, bit.rshift(byte1,6) +
-                                                bit.band(byte2,0x3F))
+                    local asciiByte = bit.band( 0xFF, bit.rshift(byte1,6) + bit.band(byte2,0x3F))
                     text[#text+1] = pduString:octet(asciiByte)
                 else
                     text[#text+1] = pduString:octet(byte1)
@@ -178,18 +177,21 @@ function pduSmsObject:encodePayload(alphabetOverride)
                 length = length + 1
             end
         elseif alphabetOverride == 8 then
-            text, length = self:encode16bitPayload(part)
+            text,length = self:encode16bitPayload(part)
         elseif alphabetOverride == 0 then
-            text, length = self:encode7bitPayload(part,align)
+            text,length = self:encode7bitPayload(part,align)
         else
             error("Unimplemented payload encoding alphabet!")
         end
         text = table.concat(text)
 
-        if self.msg.multipart then length = length + 6 end
-        local userData = {pduString:octet(length), header, text}
-        parts[#parts+1] = table.concat(userData)
+        if self.msg.multipart then
+            length = length + #header + 1 -- Not sure why we have to add 1 here, but if we don't, last char gets dropped on decode
+        end
+        local partContent = {pduString:octet(length),udh,text}
+        parts[#parts+1] = table.concat(partContent)
     end
+
     return parts
 end
 
