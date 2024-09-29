@@ -14,3 +14,8 @@ if grep -q acme-ipsec.sh /etc/crontabs/root; then
   sed -e 's/acme-ipsec.sh/acme-ddns.sh/' -i /etc/crontabs/root
   SRV_cron=$(( $SRV_cron + 1 ))
 fi
+
+if [ -e /root/.acme.sh/acme-ipsec.sh -a -e /root/.acme.sh/acme-ddns.sh ]; then
+  echo -e "[$SCRIPT]: Removed obsolete acme-ipsec.sh"
+  rm -f /root/.acme.sh/acme-ipsec.sh
+fi
