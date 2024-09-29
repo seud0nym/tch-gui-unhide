@@ -139,27 +139,35 @@ local ddns_columns = {
         attr = { input = { class="span3"} },
       },
       { --[13][5]
+        header = T"IP Network<span class='icon-question-sign' title='The network from which the IP address will be determined'></span>",
+        name = "IP_Network",
+        param = "ip_network",
+        type = "select",
+        values = { { "wan", T"wan"} },
+        readonly = true,
+      },
+      { --[13][6]
         header = T"Username",
         name = "Username",
         param = "username",
         type = "text",
         attr = { input = { class="span2" } },
       },
-      { --[13][6]
+      { --[13][7]
         header = T"Password/Token",
         name = "Password",
         param = "password",
         type = "password",
         attr = { input = { class="span2" } },
       },
-      { --[13][7]
+      { --[13][8]
         header = T"HTTPS<span class='icon-question-sign' title='HTTPS mode will enable encryption but NOT certificate-based authentication of Dynamic DNS service'></span>",
         name = "HTTPS",
         param = "use_https",
         default = "1",
         type = "switch",
       },
-      { --[13][8]
+      { --[13][9]
         header = T"Check Interval",
         name = "CheckInterval",
         param = "check_interval",
@@ -167,7 +175,7 @@ local ddns_columns = {
         attr = { input = { type = "number",min = "1",class = "span1" } },
         default = "10",
       },
-      { --[13][9]
+      { --[13][10]
         header = T"Retry Interval",
         name = "RetryInterval",
         param = "retry_interval",
@@ -175,7 +183,7 @@ local ddns_columns = {
         attr = { input = { type = "number",min = "1",class = "span1" } },
         default = "60",
       },
-      { --[13][10]
+      { --[13][11]
         header = T"Force Interval",
         name = "ForceInterval",
         param = "force_interval",
@@ -183,21 +191,21 @@ local ddns_columns = {
         attr = { input = { type = "number",min = "1",class = "span1" } },
         default = "72",
       },
-      { --[13][11]
+      { --[13][12]
         header = T"",
         name = "CheckUnit",
         param = "check_unit",
         type = "hidden",
         default = "minutes",
       },
-      { --[13][12]
+      { --[13][13]
         header = T"",
         name = "RetryUnit",
         param = "retry_unit",
         type = "hidden",
         default = "seconds",
       },
-      { --[13][13]
+      { --[13][14]
         header = T"",
         name = "ForceUnit",
         param = "force_unit",
@@ -234,7 +242,7 @@ local function onAddDDns(index,content)
   proxy.set(ddns_path..".cacert","IGNORE")
   proxy.set(ddns_path..".lookup_host",untaint(content.Domain))
   proxy.set(ddns_path..".interface",untaint(content.Interface))
-  proxy.set(ddns_path..".ip_network",untaint(content.Interface))
+  proxy.set(ddns_path..".ip_network",untaint(content.IP_Network))
   proxy.set(ddns_path..".ip_source","network")
   if content.Interface == "wan" then
     proxy.set(ddns_path..".use_ipv6","0")
@@ -247,7 +255,6 @@ end
 local function onUpdateDDns(index,content)
   local ddns_path = "uci.ddns.service.@"..index
   local domain = untaint(content.Domain)
-  local interface = untaint(content.Domain)
   local function getValue(path)
     local result = proxy.get(path)
     if result then
@@ -262,14 +269,6 @@ local function onUpdateDDns(index,content)
   local ddns_lookup_host = getValue(ddns_lookup_host_path)
   if domain and ddns_lookup_host and domain ~= ddns_lookup_host then
     proxy.set(ddns_lookup_host_path,untaint(content.Domain))
-  end
-  if not interface then
-    interface = getValue(ddns_path..".interface")
-  end
-  local ddns_ip_network_path = ddns_path..".ip_network"
-  local ddns_ip_network = getValue(ddns_ip_network_path)
-  if interface and ddns_ip_network and domain ~= ddns_ip_network then
-    proxy.set(ddns_ip_network_path,untaint(content.Interface))
   end
 end
 
@@ -323,6 +322,7 @@ local ddns_data,ddns_helpmsg = post_helper.handleTableQuery(ddns_columns,ddns_op
 if (action == "TABLE-NEW-LIST" and listid == "1") or ((action == "TABLE-EDIT" or action == "TABLE-MODIFY") and ddns_data[index][5] == "wan6") then
   ddns_columns[13].subcolumns[2].values = ddns_helper.valid_ipv6_services
   ddns_columns[13].subcolumns[3].values = { { "wan6", T"IPv6"} }
+  ddns_columns[13].subcolumns[5].values = { { "wan6", T"wan6"}, { "lan", T"lan"} }
   ddns_valid.Service = gVIES(ddns_helper.valid_ipv6_services)
 end
 
