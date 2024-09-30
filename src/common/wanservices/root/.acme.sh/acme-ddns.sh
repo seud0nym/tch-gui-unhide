@@ -118,17 +118,18 @@ for p in $(uci show ddns | grep '=service' | cut -d= -f1); do
   if [ -n "$DOMAIN" -a "$DOMAIN" != "yourhost.example.com" ]; then
     IFNAME="$(uci -q get ${p}.interface)"
     [ "!$DEBUG" = "!--debug" ] && _dbg " --> Found configured domain $DOMAIN using $IFNAME interface"
-    if [ "$IFNAME" = "wan" ]; then
-      if echo "$DOMAINS" | grep -q "\b$DOMAIN:AAAA"; then
-        DOMAINS="$(echo "$DOMAINS" | sed -e "s/\b$DOMAIN:AAAA\b/$DOMAIN:A/")"
+    if [ "$IFNAME" = "wan6" ]; then
+      if echo "$DOMAINS" | grep -q "\b$DOMAIN:A\b"; then
+        DOMAINS="$(echo "$DOMAINS" | sed -e "s/\b$DOMAIN:A\b/$DOMAIN:AAAA/")"
+        [ "!$DEBUG" = "!--debug" ] && _dbg " --> Found configured domain $DOMAIN using $IFNAME interface (switched from IPv4)"
+      else
+        DOMAINS="$(echo $DOMAINS $DOMAIN:AAAAA | xargs)"
+      fi
+    elif [ "$IFNAME" = "wan" ]; then
+      if echo "$DOMAINS" | grep -q "\b$DOMAIN:AAAA\b"; then
+        [ "!$DEBUG" = "!--debug" ] && _dbg " --> Ignored configured domain $DOMAIN using $IFNAME interface: IPv6 address already found"
       else
         DOMAINS="$(echo $DOMAINS $DOMAIN:A | xargs)"
-      fi
-    elif [ "$IFNAME" = "wan6" ]; then
-      if echo "$DOMAINS" | grep -q "\b$DOMAIN:A\b"; then
-        [ "!$DEBUG" = "!--debug" ] && _dbg " --> Ignored configured domain $DOMAIN using $IFNAME interface: IPv4 address already found"
-      else
-        DOMAINS="$(echo $DOMAINS $DOMAIN:AAAA | xargs)"
       fi
     fi
   fi
@@ -137,22 +138,24 @@ done
 for d in $DOMAINS; do
   DOMAIN=$(echo $d | cut -d: -f1)
   Q_TYPE=$(echo $d | cut -d: -f2)
+  [ "$Q_TYPE" = "A" ] && DNS="9.9.9.9" || DNS="2620:fe::9"
   _dbg ">> Found Dynamic DNS domain: $DOMAIN"
   _dbg "Attempting to resolve IP address of $DOMAIN..."
-  WAN_IP="$(dig +short -t $Q_TYPE $DOMAIN @9.9.9.9 2>/dev/null)"
+  WAN_IP="$(dig +short -t $Q_TYPE $DOMAIN @$DNS 2>/dev/null)"
   if [ -z "$WAN_IP" ]; then
-    _log user.warn "WARNING: Could not resolve the IP address of IPv4 Dynamic DNS domain: $DOMAIN"
+    _log user.warn "WARNING: DNS Server $DNS could not resolve the IP address of Dynamic DNS domain: $DOMAIN"
     DOMAINS="$(echo "$DOMAINS" | sed -e "s/\b$d\b//" | xargs)"
   else
     _dbg ">> $DOMAIN IP address is $WAN_IP"
     _dbg "Checking that IP address $WAN_IP is assigned to an interface"
-    IFNAME=$(ip -o address | grep "$WAN_IP" | cut -d' ' -f2)
+    IFNAME=$(ip -o address | grep "\b$WAN_IP\b" | cut -d' ' -f2)
     if [ -n "$IFNAME" ]; then
       _dbg ">> $DOMAIN IP address found on interface $IFNAME"
       [ "!$DEBUG" = "!--debug" ] && ip -o address | grep "$WAN_IP" | $LOGGER user.info
+      DOMAINS="$(echo "$DOMAINS" | sed -e "s/\b$d\b/&:$WAN_IP/" | xargs)"
     else
       _log user.warn "WARNING: IP address $WAN_IP for domain $DOMAIN is not in use on this device"
-      ip -o address | tr -s " " | cut -d" " -f2,4 | grep -v -E '^lo|^wl|lan' | $LOGGER user.info
+      ip -o address | tr -s " " | cut -d" " -f2,4 | grep -v -E '^lo|^wl' | $LOGGER user.info
       DOMAINS="$(echo "$DOMAINS" | sed -e "s/\b$d\b//" | xargs)"
     fi
   fi
@@ -327,47 +330,54 @@ _log user.info "Attempting to acquire execution lock..."
 lock /var/lock/$SCRIPT.run
 _dbg "Acquired execution lock on /var/lock/$SCRIPT.run"
 
-_dbg "Configuring environment variables for /etc/ra_forward.sh"
-# Additional variables required for /etc/ra_forward.sh
-ENABLED='1'
-RA_NAME='acme'
-LAN_PORT='61734'
-_log user.info "Opening WAN port $WAN_PORT..."
-. /etc/ra_forward.sh
-
-if [ $WAN_PORT = 80 ]; then
-  SOCAT="--standalone --httpport"
-else
-  SOCAT="--alpn --tlsport"
-fi
-
 if echo "$DOMAINS" | grep -q ":AAAA"; then
   _dbg "Stopping nginx server to free up port $WAN_PORT..."
   /etc/init.d/nginx stop
 fi
 
+_dbg "Configuring environment variables for /etc/ra_forward.sh"
+# Additional variables required for /etc/ra_forward.sh
+RA_NAME='acme'
+LAN_PORT='61734'
+
+_dbg "Domains = $DOMAINS"
 for d in $DOMAINS; do
+  unset WAN_IP WAN_IPv6
   DOMAIN=$(echo $d | cut -d: -f1)
   Q_TYPE=$(echo $d | cut -d: -f2)
   if [ "$Q_TYPE" = "A" ]; then
-    PORT=$LAN_PORT
     LSTN=4
+    WAN_IP=$(echo $d | cut -d: -f3-)
+    ADDRESS=$WAN_IP
   elif [ "$Q_TYPE" = "AAAA" ]; then
-    PORT=$WAN_PORT
     LSTN=6
+    WAN_IPv6=$(echo $d | cut -d: -f3-)
+    ADDRESS=$WAN_IPv6
+  else
+    _log user.error "Unknown Q_TYPE: $Q_TYPE !!!!"
+    break
+  fi
+  _dbg "Configuring environment variables for /etc/ra_forward.sh"
+  # Additional variables required for /etc/ra_forward.sh
+  ENABLED='1'
+  _log user.info "Opening WAN port $WAN_PORT..."
+  . /etc/ra_forward.sh
+  if [ $WAN_PORT = 80 ]; then
+    SOCAT="--standalone --httpport"
+  else
+    SOCAT="--alpn --tlsport"
   fi
   _dbg "Running acme.sh for domain $DOMAIN against CA server $SERVER..."
-  ./acme.sh --issue $SOCAT $PORT --listen-v$LSTN --server $SERVER -d $DOMAIN --syslog 6 $FORCE_RENEW $DEBUG $STAGING
+  ./acme.sh --issue $SOCAT $LAN_PORT --listen-v$LSTN --local-address $ADDRESS --server $SERVER -d $DOMAIN --syslog 6 $FORCE_RENEW $DEBUG $STAGING
+  _log user.info "Closing WAN port $WAN_PORT..."
+  ENABLED='0'
+  . /etc/ra_forward.sh
 done
 
 if echo "$DOMAINS" | grep -q ":AAAA"; then
   _dbg "Restarting nginx server..."
   /etc/init.d/nginx start
 fi
-
-_log user.info "Closing WAN port $WAN_PORT..."
-ENABLED='0'
-. /etc/ra_forward.sh
 
 lock -u /var/lock/$SCRIPT.run
 _dbg "Released execution lock"
