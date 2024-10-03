@@ -58,7 +58,7 @@ ngx.print(ui_helper.createHeader(T"Packages",false,true,nil),'\
             style = "display:block;white-space:pre;",
           },
         }
-          local opkg_last_update_attr = {
+        local opkg_last_update_attr = {
           span = {
             id = "opkg_last_update",
           },
