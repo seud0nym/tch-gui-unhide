@@ -23,8 +23,8 @@ local function initHelperFunction(name,type)
     return nil,"Invalid init process name"
   end
   local command = string.format("/etc/init.d/%s %s",name,type)
-  os.execute("logger rpc.gui.init: "..command)
-  os.execute(command.."|logger")
+  os.execute("logger -t rpc.gui.init Executing "..command)
+  return os.execute(command)
 end
 
 local function populate()
