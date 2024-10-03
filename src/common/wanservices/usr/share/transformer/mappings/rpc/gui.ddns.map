@@ -1,0 +1,51 @@
+local uci_helper = mapper("ucihelper")
+local gsub,sub = string.gsub,string.sub
+local popen = io.popen
+
+local GUI_DDNS_ = {
+  objectType = {
+    name = "rpc.gui.ddns.",
+    access = "readOnly",
+    minEntries = 1,
+    maxEntries = 1,
+    parameters = {
+      log = {
+        access = "readOnly",
+        type = "string"
+      },
+    }
+  }
+}
+
+GUI_DDNS_.get = {
+  log = function()
+    local persistentlog_enabled = false
+    local log_binding = {config="system",sectionname="log"}
+    uci_helper.foreach_on_uci(log_binding,function(s)
+      if s.path and s.size and s.rotate then
+        persistentlog_enabled = true
+        return false
+      end
+    end)
+    local source
+    if persistentlog_enabled then
+      source ='cat `ls -r /root/log/message*`'
+    else
+      source = '/sbin/logread'
+    end
+    local today = sub(tostring(os.date()),1,10)
+    local status = ""
+    local cmd = popen(source.." | grep -E '^"..today..".* user\\..* ddns-scripts' | tail -n 50","r")
+    if cmd then
+      status = cmd:read("*a")
+      cmd:close()
+    end
+    if status == "" then
+      return "<i>No recent log messages found</i>"
+    end
+    return gsub(status,"\n","<br>")
+  end,
+}
+
+register(GUI_DDNS_)
+

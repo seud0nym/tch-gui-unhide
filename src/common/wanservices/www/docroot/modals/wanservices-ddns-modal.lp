@@ -3,6 +3,7 @@
 -- Localization
 gettext.textdomain('webui-core')
 
+local content_helper = require("web.content_helper")
 local ddns_helper = require("wanservices-ddns_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
@@ -21,6 +22,14 @@ local function proxySet(path,value)
     end
   end
   return success
+end
+
+if ngx.req.get_method() == "POST" then
+	local action = untaint(ngx.req.get_post_args().action)
+	if action:match("restart_ddns") then
+    os.execute("logger -t ddns-scripts Service restart initiated from GUI...")
+    proxySet("rpc.gui.init.restart","ddns")
+	end
 end
 
 local uniqueKey = post_helper.getRandomKey()
@@ -337,9 +346,20 @@ if (action == "TABLE-NEW-LIST" and listid == "1") or ((action == "TABLE-EDIT" or
   ddns_valid.Service = gVIES(ddns_helper.valid_ipv6_services)
 end
 
-local info_box = {
-  alert = {
-    class = "alert-info"
+local log = {
+  msgs = "rpc.gui.ddns.log",
+}
+content_helper.getExactContent(log)
+
+local service_button = {
+  button = {
+    id = "btn-service"
+  }
+}
+local ddns_log_attr = {
+  span = {
+    id = "ddns_log",
+    style = "display:block;white-space:pre;",
   },
 }
 
@@ -348,9 +368,12 @@ ngx.print(ui_helper.createHeader(T"WAN Services",false,true),'\
   '); lp.include("tabs-wanservices.lp");ngx.print('\
   <form class="form-horizontal" method="post" action="modals/wanservices-ddns-modal.lp">\
   ',ui_helper.createMessages(message_helper.popMessages()),'\
-    <fieldset>\
-      <legend>',T"Dynamic DNS",'</legend>',
+    <fieldset><legend>',T"Dynamic DNS",'</legend>',
       ui_helper.createTable(ddns_columns,ddns_data,ddns_options,nil,ddns_helpmsg),'\
+    </fieldset>\
+    <fieldset><legend><small>',T"Service",'</small></legend>',
+      ui_helper.createButton("Restart Service","Restart","icon-cog",service_button),
+      ui_helper.createLabel(T"Log Messages",untaint(log["msgs"]),ddns_log_attr),'\
     </fieldset>\
     <script src="js/wanservices-ddns-modal.js"></script>\
     <script>\

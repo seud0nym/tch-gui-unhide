@@ -27,3 +27,25 @@ function addUnitSelect(prefix,dfltInterval,dfltUnit){
   c.append(s);
   u.remove();
 }
+$("#btn-service").on("click",function(){
+  var busy_msg = $(".loading-wrapper");
+  busy_msg.removeClass("hide");
+  busy_msg[0].scrollIntoView();
+  var t = $(".modal-body form"),
+      e = t.serializeArray();
+  e.push({
+    name: "action",
+    value: "restart_ddns"
+  },{
+    name: "fromModal",
+    value: "YES"
+  },{
+    name: "CSRFtoken",
+    value: $("meta[name=CSRFtoken]").attr("content")
+  });
+  tch.loadModal(t.attr("action"),e,function(){
+    busy_msg.addClass("hide");
+  });
+  return false;
+});
+$(".loading-wrapper").addClass("hide");
