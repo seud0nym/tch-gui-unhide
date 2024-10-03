@@ -337,27 +337,6 @@ if (action == "TABLE-NEW-LIST" and listid == "1") or ((action == "TABLE-EDIT" or
   ddns_valid.Service = gVIES(ddns_helper.valid_ipv6_services)
 end
 
-local acme_domain,acme_data,acme_helpmsg
-local acme_params = {
-  acme_enabled = "rpc.gui.acme.enabled",
-}
-local acme_valid = {
-  acme_enabled = vB
-}
-for k=1,#ddns_data do
-  if ddns_data[k][5] ~= "yourhost.example.com" then
-    acme_domain = vSIDN(ddns_data[k][5])
-    if acme_domain then
-      break
-    end
-  end
-end
-if acme_domain then
-  acme_data,acme_helpmsg = post_helper.handleQuery(acme_params,acme_valid)
-else
-  proxySet("rpc.gui.acme.enabled","0")
-end
-
 local info_box = {
   alert = {
     class = "alert-info"
@@ -380,17 +359,6 @@ ngx.print(ui_helper.createHeader(T"WAN Services",false,true),'\
       addUnitSelect("Force","',dfltForceInterval,'","',dfltForceUnit,'");\
     </script>\
     ');
-    if acme_domain then
-      ngx.print('\
-      <fieldset>\
-        <legend>',T"SSL Certificates",'</legend>',
-          ui_helper.createAlertBlock(T"Enable to automatically issue and renew SSL Certificates for the Dynamic DNS domains.<br>\
-            NOTE: You do <i>not</i> have to <i>enable</i> Dynamic DNS (e.g. if you have a static IP and your ISP provides DNS services) for a certificate to be generated,as long as you use a Domain that will resolve to the IP address of this device.",
-            info_box),
-          ui_helper.createSwitch(T"Server Certficate","acme_enabled",acme_data["acme_enabled"],nil,acme_helpmsg["acme_enabled"]),'\
-      </fieldset>\
-      ');
-    end
     ngx.print('\
   </form>\
 </div>',ui_helper.createFooter());

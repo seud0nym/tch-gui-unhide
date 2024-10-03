@@ -49,16 +49,8 @@ function M.getWANServicesCardHTML()
     dmz_blocked = "rpc.network.firewall.dmz.blocked",
     upnp_status = "uci.upnpd.config.enable_upnp",
     upnp_rules = "sys.upnp.RedirectNumberOfEntries",
-    acme_enabled = "rpc.gui.acme.enabled",
   }
   content_helper.getExactContent(wan_services_data)
-
-  local acme_status = '<span class="modal-link" data-toggle="modal" data-remote="/modals/wanservices-ddns-modal.lp" data-id="wanservices-ddns-modal">SSL Certificates %s</span>'
-  if wan_services_data["acme_enabled"] == "1" then
-    html[#html+1] = ui_helper.createSimpleLight("1",format(acme_status,"enabled"))
-  else
-    html[#html+1] = ui_helper.createSimpleLight("0",format(acme_status,"disabled"))
-  end
 
   local dmz_status = '<span class="modal-link" data-toggle="modal" data-remote="/modals/wanservices-dmz-modal.lp" data-id="wanservices-dmz-modal">DMZ %s</span>'
   if wan_services_data["dmz_blocked"] == "1" then

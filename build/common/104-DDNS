@@ -9,13 +9,7 @@ sed -e 's^"cat "^"sed -e \\"s/$(cat " .. adrFile ..")//\\" "^' -i /usr/share/tra
 echo -e "[$SCRIPT]: Add use_ipv6 flag to DDNS transformer mapping"
 sed -e 's/"cacert",$/& "use_ipv6",/' -i /usr/share/transformer/mappings/uci/ddns.map
 
-if grep -q acme-ipsec.sh /etc/crontabs/root; then
-  echo -e "[$SCRIPT]: Renamed acme-ipsec.sh to acme-ddns.sh"
-  sed -e 's/acme-ipsec.sh/acme-ddns.sh/' -i /etc/crontabs/root
-  SRV_cron=$(( $SRV_cron + 1 ))
-fi
-
-if [ -e /root/.acme.sh/acme-ipsec.sh -a -e /root/.acme.sh/acme-ddns.sh ]; then
-  echo -e "[$SCRIPT]: Removed obsolete acme-ipsec.sh"
-  rm -f /root/.acme.sh/acme-ipsec.sh
+if ! grep -q acme /etc/crontabs/root; then
+  echo -e "[$SCRIPT]: Removed server certificates scripts"
+  rm -rf /root/.acme.sh/
 fi
