@@ -4,9 +4,12 @@ local initModified = 0
 local initTable = {}
 
 local function getFromInit(file,type)
+  local res
   local comm = io.popen("grep -s /etc/init.d/"..file.." -e "..type,'r')
-  local res = comm:read()
-  comm:close()
+  if comm then
+    res = comm:read()
+    comm:close()
+  end
   return res and res:match("[0-9]+") or ""
 end
 
