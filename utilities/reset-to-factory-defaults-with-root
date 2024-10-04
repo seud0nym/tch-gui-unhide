@@ -447,7 +447,7 @@ if [ $SAVE_DEFAULTS = "Y" -o $SHOW_DEFAULTS = "Y" -o $YES = "N" ]; then
   show_default "--no-ula"         "Disable restore of IPv6 ULA and prefix" $__NO_ULA
   show_default "--no-sms-db"      "Disable restore of SMS messages" $__NO_SMSDB
   show_default "--restore-config" "Restore config from USB backup" $RESTORE_CONFIG
-  show_default "--i"              "Restore IP from USB backup" $RESTORE_IPADDR
+  show_default "--i"              "Override IP in USB backup" $RESTORE_IPADDR
   [ $SHOW_DEFAULTS = "Y" ] && exit
   [ $SAVE_DEFAULTS = "Y" ] && save_defaults
 fi
