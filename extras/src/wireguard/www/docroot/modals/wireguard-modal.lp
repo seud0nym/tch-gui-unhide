@@ -14,7 +14,7 @@ local proxy_helper = require("proxy_helper")
 
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
-local format,gsub,match,sub = string.format,string.gsub,string.match,string.sub
+local find,format,gsub,match,sub = string.find,string.format,string.gsub,string.match,string.sub
 
 local vB = post_helper.validateBoolean
 local vNES = post_helper.validateNonEmptyString
@@ -264,27 +264,19 @@ if config.log_level ~= "debug" then
   config.log_level = "none"
 end
 
+local server_addresses = {}
+local ddns_domains = 0
 if curintf == "wg0" then
-  local function getDomain(intf)
-    local ddns = proxy.getPN("uci.ddns.service.",true)
-    local disabled = nil
-    if ddns then
-      for k=1,#ddns do
-        local path = ddns[k].path
-        local ifname = proxy.get(path.."interface")[1].value
-        if ifname == intf then
-          local v = proxy.get(path.."domain",path.."enabled")
-          if v and v[1].value ~= "yourhost.example.com" and v[1].value ~= "" then
-            if v[2].value ~= "0" then
-              return untaint(v[1].value)
-            else
-              disabled = untaint(v[1].value)
-            end
-          end
-        end
-      end
+  local function addServerAddress(v,d)
+    local addr
+    if find(v,":",1,true) then
+      addr = format("[%s]",v)
+    else
+      addr = v
     end
-    return disabled
+    local index = #server_addresses+1
+    server_addresses[index] = { format("%s:%s",addr,config.listen_port),T(format("%s %s",v,d)) }
+    return index
   end
 
   if config.ipv6 == "" then
@@ -294,43 +286,73 @@ if curintf == "wg0" then
     config.listen_port = "51820"
   end
 
-  local wan_ip = proxy.get("rpc.network.interface.@wan.ipaddr")
-  if wan_ip and wan_ip[1].value ~= "" then
-    config.wan_ip = untaint(wan_ip[1].value)
-    config.domain = getDomain("wan") or config.wan_ip
-  end
-  if not config.wan_ip then
-    if config.ipv6 == "0" then
-      wan_ip = proxy.get("rpc.network.interface.@wwan_4.ipaddr")
-      if wan_ip and wan_ip[1].value ~= "" then
-        config.wan_ip = untaint(wan_ip[1].value)
-        config.domain = getDomain("wan") or config.wan_ip
-      end
-    else
-      local wan6_ip = proxy.get("rpc.network.interface.@wan6.ipv6uniqueglobaladdr")
-      if wan6_ip and wan6_ip[1].value ~= "" then
-        config.wan_ip = gsub(untaint(wan6_ip[1].value),"/%d+","")
-        config.domain = getDomain("wan6") or config.wan_ip
-      end
-      if not config.wan_ip then
-        wan6_ip = proxy.get("rpc.network.interface.@wwan_6.ipv6uniqueglobaladdr")
-        if wan6_ip and wan6_ip[1].value ~= "" then
-          config.wan_ip = gsub(untaint(wan6_ip[1].value),"/%d+","")
-          config.domain = getDomain("wan6") or config.wan_ip
+  local ddns = proxy.getPN("uci.ddns.service.",true)
+  if ddns then
+    local family = { wan = "IPv4", wan6 = "IPv6", both = "(IPv4/IPv6)", }
+    local disabled = {}
+    local server_index = {}
+    for k=1,#ddns do
+      local path = ddns[k].path
+      local v = proxy.get(path.."domain",path.."enabled",path.."interface")
+      if v and v[1].value ~= "yourhost.example.com" and v[1].value ~= "" then
+        local ifname = untaint(v[3].value)
+        if ifname == "wan" or (config.ipv6 == "1" and ifname == "wan6") then
+          local domain = untaint(v[1].value)
+          if v[2].value ~= "0" then
+            local index = server_index[domain]
+            if index then
+              local f = server_addresses[index][2]
+              if not find(untaint(f),family[ifname],1,true) then
+                server_addresses[index][2] = T(format("%s %s",domain,family.both))
+              end
+            else
+              server_index[domain] = addServerAddress(domain,"("..family[ifname]..")")
+            end
+          else
+            disabled[#disabled+1] = domain
+          end
         end
       end
     end
+    for k=1,#disabled do
+      if not server_index[disabled[k]] then
+        addServerAddress(disabled[k],"*DISABLED*")
+      end
+    end
+  end
+  ddns_domains = #server_addresses
+
+  if config.ipv6 == "1" then
+    local wan6_ip = proxy.get("rpc.network.interface.@wan6.ipv6uniqueglobaladdr")
+    if wan6_ip and wan6_ip[1].value ~= "" then
+      addServerAddress(gsub(untaint(wan6_ip[1].value),"/%d+",""),"(WAN)")
+    end
+    wan6_ip = proxy.get("rpc.network.interface.@wwan_6.ipv6uniqueglobaladdr")
+    if wan6_ip and wan6_ip[1].value ~= "" then
+      addServerAddress(gsub(untaint(wan6_ip[1].value),"/%d+",""),"(WAN)")
+    end
+    wan6_ip = proxy.get("rpc.network.interface.@lan.ipv6uniqueglobaladdr")
+    if wan6_ip and wan6_ip[1].value ~= "" then
+      addServerAddress(gsub(untaint(wan6_ip[1].value),"/%d+",""),"(LAN)")
+    end
+  end
+  local wan_ip = proxy.get("rpc.network.interface.@wan.ipaddr")
+  if wan_ip and wan_ip[1].value ~= "" then
+    addServerAddress(untaint(wan_ip[1].value),"(WAN)")
+  end
+  wan_ip = proxy.get("rpc.network.interface.@wwan_4.ipaddr")
+  if wan_ip and wan_ip[1].value ~= "" then
+    addServerAddress(untaint(wan_ip[1].value),"(WWAN)")
   end
 
-  if config.wan_ip and config.domain then
-    config.server_address = format("%s:%s",config.domain,config.listen_port)
-  else
-    config.domain = "No WAN IP found?"
+  if (#server_addresses - ddns_domains) < 1 then
     if config.enabled == "1" then
-      message_helper.pushMessage(T"Disabled because no WAN IP found","error")
+      message_helper.pushMessage(T"Disabled because no WAN IP found!","error")
       config.enabled = "0"
       proxy_helper.set("uci.wireguard.@"..curintf..".enabled",config.enabled)
     end
+  else
+    config.server_address = server_addresses[1][0]
   end
 end
 
@@ -341,8 +363,9 @@ if ngx.var.request_method == "POST" then
     if curintf == "wg0" then
       updateFirewall(args)
     end
+    config.server_address = args.server_address
     if args.new_peer_name and args.new_peer_name ~= "" then
-      if not config.server_address then
+      if (#server_addresses - ddns_domains) < 1 then
         helpmsg["new_peer_name"] = "Cannot add peer: No WAN IP found"
       else
         local peer_name = untaint(args.new_peer_name)
@@ -613,12 +636,15 @@ ngx.print(ui_helper.createHeader("WireGuard",false,true,refresh_seconds),'\
       if curintf == "wg0" then
         html[#html+1] = ui_helper.createInputText(T"Listen Port","listen_port",config["listen_port"],{ input = { type="number",min="0",max="65535",style="width:100px",} },helpmsg["listen_port"])
         html[#html+1] = ui_helper.createSwitch(T"IPv6 Enabled","ipv6",config["ipv6"],nil,helpmsg["ipv6"])
-        html[#html+1] = ui_helper.createLabel(T"Domain<span class='icon-question-sign' title='Configure the Domain name in WAN Services under Dynamic DNS'></span>",config.domain)
+        html[#html+1] = ui_helper.createInputSelect(T"Server Address<span class='icon-question-sign' title='Configure Domain names in WAN Services under Dynamic DNS'></span>","server_address",server_addresses,config.server_address)
       end
       html[#html+1] = ui_helper.createLabel(T"Private Key",config.private_key)
       html[#html+1] = ui_helper.createLabel(T"VPN Private IP",T(gsub(untaint(config.addresses),",","<br>")),private_ip_attr)
       html[#html+1] = ui_helper.createSwitch(T"Debugging","log_level",config["log_level"],log_level_attr,helpmsg["log_level"])
       html[#html+1] = "<legend><small>"..T"Peers".."</small></legend>"
+      if curintf == "wg0"  and #server_addresses > 1 then
+        html[#html+1] = ui_helper.createAlertBlock(T("Select the Server Address to be embedded in the configuration <i>before</i> creating a new Peer."),{ alert = { id = "new-peer-info",class = "alert-info" } })
+      end
       html[#html+1] = ui_helper.createTable(peer_columns,peer_data,peer_options,nil,peer_helpmsg)
       if new_peer then
         html[#html+1] = ui_helper.createAlertBlock(T("Peer configuration is ONLY displayed on creation, because peer private keys are not stored and therefore the configuration cannot be regenerated. Click 'refresh data' above to clear configuration and add another peer."),{ alert = { id = "new-peer-alert",class = "alert-danger" } })
@@ -641,11 +667,9 @@ ngx.print(ui_helper.createHeader("WireGuard",false,true,refresh_seconds),'\
         new QRCode("wg-qrcode",{ text:config,width:256,height:256,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M });\
         $("#new-peer-alert")[0].scrollIntoView();\
         </script>'
-      elseif curintf == "wg0" then
-        if config.server_address then
-          html[#html+1] = ui_helper.createInputText(T"Add new Peer","new_peer_name","",nil,helpmsg["new_peer_name"])
-          html[#html+1] = ui_helper.createCheckboxSwitch(T"Generate PSK<span class='icon-question-sign' title='Generate a unique Pre-Shared Key for the new Peer to increase security.'></span>","genpsk","0")
-        end
+      elseif curintf == "wg0" and (#server_addresses - ddns_domains) > 0 then
+        html[#html+1] = ui_helper.createInputText(T"Add new Peer","new_peer_name","",nil,helpmsg["new_peer_name"])
+        html[#html+1] = ui_helper.createCheckboxSwitch(T"Generate PSK<span class='icon-question-sign' title='Generate a unique Pre-Shared Key for the new Peer to increase security.'></span>","genpsk","0")
       else
         html[#html+1] = ui_helper.createCheckboxSwitch(T("Remove "..curintf),"del_iface","0")
       end
