@@ -1127,6 +1127,7 @@ local post_helper = require("web.post_helper")
 local ui_helper = require("web.ui_helper")
 local wireguard_helper = require("wireguard_helper")
 local proxy = require("datamodel")
+local proxy_helper = require("proxy_helper")
 
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
@@ -1140,16 +1141,6 @@ local vUN = post_helper.validateUciName
 local getargs = ngx.req.get_uri_args()
 local getintf = untaint(getargs.intf)
 local deleting = false
-
-local function proxySet(path,value)
-  local success,errors = proxy.set(path,value)
-  if not success then
-    for _,err in ipairs(errors) do
-      message_helper.pushMessage(T(format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)),"error")
-    end
-  end
-  return success
-end
 
 local function importInterface(new_if_name,content)
   local name_valid,name_invalid = vUN(new_if_name)
@@ -1173,7 +1164,7 @@ local function importInterface(new_if_name,content)
         else
           local commit = true
           for k,v in pairs(interface_config) do
-            if not proxySet(format("uci.wireguard.@%s.%s",iface,k),v) then
+            if not proxy_helper.set(format("uci.wireguard.@%s.%s",iface,k),v) then
               commit = false
               break
             end
@@ -1193,13 +1184,13 @@ local function importInterface(new_if_name,content)
                 break
               else
                 for k,v in pairs(t) do
-                  if not proxySet(format("uci.wireguard.@%s.peer.@%s.%s",iface,index,k),v) then
+                  if not proxy_helper.set(format("uci.wireguard.@%s.peer.@%s.%s",iface,index,k),v) then
                     commit = false
                     break
                   end
                 end
                 if commit then
-                  if not proxySet(format("uci.wireguard.@%s.peer.@%s.route_allowed_ips",iface,index),"1") then
+                  if not proxy_helper.set(format("uci.wireguard.@%s.peer.@%s.route_allowed_ips",iface,index),"1") then
                     commit = false
                   end
                 end
@@ -1251,7 +1242,7 @@ local function checkForMultipleEnabledClients()
       if intf.path ~= "uci.wireguard.@wg0." and intf.path ~= "uci.wireguard.@"..getintf.."." then
         local path = intf.path.."enabled"
         if proxy.get(path)[1].value == "1" then
-          if proxySet(path,"0") then
+          if proxy_helper.set(path,"0") then
             commit = true
           else
             break
@@ -1270,12 +1261,12 @@ local function updateFirewall(args)
   if fw then
     local applyfw = false
     if fw[1] and args.enabled and args.enabled ~= fw[1].value then
-      if proxySet("uci.firewall.rule.@wg0.enabled",untaint(args.enabled)) then
+      if proxy_helper.set("uci.firewall.rule.@wg0.enabled",untaint(args.enabled)) then
         applyfw = true
       end
     end
     if fw[2] and args.listen_port and args.listen_port ~= fw[2].value then
-      if proxySet("uci.firewall.rule.@wg0.dest_port",untaint(args.listen_port)) then
+      if proxy_helper.set("uci.firewall.rule.@wg0.dest_port",untaint(args.listen_port)) then
         applyfw = true
       end
     end
@@ -1287,7 +1278,7 @@ local function updateFirewall(args)
       elseif ipv6 == "0" and family ~= "ipv4" then
         family = "ipv4"
       end
-      if family and proxySet("uci.firewall.rule.@wg0.family",family) then
+      if family and proxy_helper.set("uci.firewall.rule.@wg0.family",family) then
         applyfw = true
       end
     end
@@ -1455,7 +1446,7 @@ if curintf == "wg0" then
     if config.enabled == "1" then
       message_helper.pushMessage(T"Disabled because no WAN IP found","error")
       config.enabled = "0"
-      proxySet("uci.wireguard.@"..curintf..".enabled",config.enabled)
+      proxy_helper.set("uci.wireguard.@"..curintf..".enabled",config.enabled)
     end
   end
 end
@@ -1515,10 +1506,10 @@ if ngx.var.request_method == "POST" then
                   end
                 end
               end
-              if  proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.public_key",peer_name),new_peer.public_key)
-              and proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.preshared_key",peer_name),new_peer.preshared_key)
-              and proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.allowed_ips",peer_name),new_peer.allowed_ips)
-              and proxySet(format("uci.wireguard.@"..curintf..".peer.@%s.route_allowed_ips",peer_name),"1")
+              if  proxy_helper.set(format("uci.wireguard.@"..curintf..".peer.@%s.public_key",peer_name),new_peer.public_key)
+              and proxy_helper.set(format("uci.wireguard.@"..curintf..".peer.@%s.preshared_key",peer_name),new_peer.preshared_key)
+              and proxy_helper.set(format("uci.wireguard.@"..curintf..".peer.@%s.allowed_ips",peer_name),new_peer.allowed_ips)
+              and proxy_helper.set(format("uci.wireguard.@"..curintf..".peer.@%s.route_allowed_ips",peer_name),"1")
               then
                 proxy.apply()
                 local config_template ="[Interface]\nPrivateKey = %s\nAddress = %s\nDNS = %s\n\n[Peer]\nPublicKey = %s\nPresharedKey = %s\nAllowedIPs = 0.0.0.0/0%s\nEndpoint = %s\n"

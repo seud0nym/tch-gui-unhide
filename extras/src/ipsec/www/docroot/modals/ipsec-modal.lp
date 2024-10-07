@@ -7,6 +7,7 @@ local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local ui_helper = require("web.ui_helper")
 local proxy = require("datamodel")
+local proxy_helper = require("proxy_helper")
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 local format = string.format
@@ -15,20 +16,7 @@ local vB = post_helper.validateBoolean
 local vNES = post_helper.validateNonEmptyString
 local gVIES = post_helper.getValidateInEnumSelect
 
-local function proxySet(path, value)
-  local success, errors = proxy.set(path, value)
-  if not success then
-    local err
-    ngx.log(ngx.ERR,"Error count:",#errors)
-    for _,err in ipairs(errors) do
-      local msg = format("Failed to set %s to '%s': %s (%s)",err.path,value,err.errmsg,err.errcode)
-      message_helper.pushMessage(T(msg), "error")
-    end
-  end
-  return success
-end
-
-local function validateAuto(value, object, key)
+local function validateAuto(value, _, _)
   if value == "add" or value == "ignore" then
     return true
   end
@@ -48,7 +36,7 @@ if ddns then
   end
 end
 if leftid and leftid ~= "" and leftid ~= leftid_was then
-  proxySet("rpc.gui.ipsec.conn.@tgu-responder-base.leftid", leftid)
+  proxy_helper.set("rpc.gui.ipsec.conn.@tgu-responder-base.leftid", leftid)
 end
 
 local mapParams = {
@@ -93,7 +81,7 @@ end
 -- Apply any uncomitted changes
 local changed = proxy.get("rpc.gui.ipsec.changed")
 if changed and changed[1].value == "1" then
-  proxySet("rpc.gui.ipsec.apply_changes", "1")
+  proxy_helper.set("rpc.gui.ipsec.apply_changes", "1")
 end
 
 local secret_type = {
@@ -134,8 +122,8 @@ local secret_valid = {
   secret = vNES,
 }
 
-local secret_apply = function(index, content)
-  proxySet("rpc.gui.ipsec.apply_changes", "1")
+local secret_apply = function(_, _)
+  proxy_helper.set("rpc.gui.ipsec.apply_changes", "1")
 end
 
 local secret_options = {
@@ -167,7 +155,6 @@ if ngx.var.request_method == "POST" then
   local vars = ngx.req.get_post_args()
   if vars["action"] == "SAVE" then
     if type(vars["regenpsk"]) == "table" then
-      local checked
       for _,checked in pairs(vars["regenpsk"]) do
         if checked == "_TRUE_" then
           psk = nil
@@ -179,8 +166,8 @@ if ngx.var.request_method == "POST" then
 end
 
 if not psk then
-  proxySet("rpc.gui.ipsec.regenpsk", "1")
-  proxySet("rpc.gui.ipsec.apply_changes", "1")
+  proxy_helper.set("rpc.gui.ipsec.regenpsk", "1")
+  proxy_helper.set("rpc.gui.ipsec.apply_changes", "1")
   secret_data,secret_helpmsg = post_helper.handleTableQuery(secret_columns,secret_options,secret_filter,nil,secret_valid)
 end
 

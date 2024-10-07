@@ -6,6 +6,7 @@ gettext.textdomain('webui-core')
 local ngx = ngx
 local content_helper = require("web.content_helper")
 local proxy = require("datamodel")
+local proxy_helper = require("proxy_helper")
 local post_helper = require("web.post_helper")
 local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
@@ -60,16 +61,6 @@ local function findPath(basepath,option)
   end
 end
 
-local function proxySet(p,v)
-  local success,errors = proxy.set(p,v)
-  if not success then
-    for _,err in ipairs(errors) do
-      message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,v,err.errmsg,err.errcode)),"error")
-    end
-  end
-  return success
-end
-
 findPath("uci.firewall.redirect.")
 findPath("uci.firewall.nat.")
 findPath("uci.firewall.rule.")
@@ -111,8 +102,8 @@ if dns_int then
     if enabledv6 == "1" and ipdetails.ip6addr == "" then
       enabledv6 = "0"
       dest_ipv6 = ""
-      proxySet(path["Intercept-DNSv6"].."enabled",enabledv6)
-      proxySet(path["Intercept-DNSv6"].."destIP",dest_ipv6)
+      proxy_helper.set(path["Intercept-DNSv6"].."enabled",enabledv6)
+      proxy_helper.set(path["Intercept-DNSv6"].."destIP",dest_ipv6)
     end
 
     if ngx.var.request_method == "POST" then
@@ -133,9 +124,9 @@ if dns_int then
 
         if validv4 then
           if new_enabledv4 == "0" then
-            proxySet(dns_int.."dest_ip","")
-            proxySet(path["Masquerade-DNS"].."enabled",new_enabledv4)
-            proxySet(path["Masquerade-DNS"].."dest_ip","")
+            proxy_helper.set(dns_int.."dest_ip","")
+            proxy_helper.set(path["Masquerade-DNS"].."enabled",new_enabledv4)
+            proxy_helper.set(path["Masquerade-DNS"].."dest_ip","")
             dest_ipv4 = ""
           elseif new_enabledv4 == "1" then
             local dhcp_option6_path
@@ -154,28 +145,28 @@ if dns_int then
               dhcp_option6_path = dhcp_options_path.."@"..index..".value"
             end
             if new_dest_ipv4 and new_dest_ipv4 ~= "" then
-              proxySet(dhcp_option6_path,"6,"..new_dest_ipv4)
-              proxySet(dns_int.."dest_ip",new_dest_ipv4)
-              proxySet(dns_int.."name","Redirect-DNS")
-              proxySet(path["Masquerade-DNS"].."dest_ip",new_dest_ipv4)
-              proxySet(path["Masquerade-DNS"].."enabled",new_enabledv4)
+              proxy_helper.set(dhcp_option6_path,"6,"..new_dest_ipv4)
+              proxy_helper.set(dns_int.."dest_ip",new_dest_ipv4)
+              proxy_helper.set(dns_int.."name","Redirect-DNS")
+              proxy_helper.set(path["Masquerade-DNS"].."dest_ip",new_dest_ipv4)
+              proxy_helper.set(path["Masquerade-DNS"].."enabled",new_enabledv4)
               if vSIDIP and vSIDIP(new_dest_ipv4) then
-                proxySet("rpc.gui.firewall.dns_intercept.add_exception",new_dest_ipv4)
+                proxy_helper.set("rpc.gui.firewall.dns_intercept.add_exception",new_dest_ipv4)
               end
               dest_ipv4 = new_dest_ipv4
             else
-              proxySet(dhcp_option6_path,"6,"..ipdetails.gw)
-              proxySet(dns_int.."dest_ip","")
-              proxySet(dns_int.."name","Intercept-DNS")
-              proxySet(path["Masquerade-DNS"].."dest_ip","")
-              proxySet(path["Masquerade-DNS"].."enabled","0")
+              proxy_helper.set(dhcp_option6_path,"6,"..ipdetails.gw)
+              proxy_helper.set(dns_int.."dest_ip","")
+              proxy_helper.set(dns_int.."name","Intercept-DNS")
+              proxy_helper.set(path["Masquerade-DNS"].."dest_ip","")
+              proxy_helper.set(path["Masquerade-DNS"].."enabled","0")
               dest_ipv4 = ""
             end
           end
-          proxySet(dns_int.."enabled",new_enabledv4)
+          proxy_helper.set(dns_int.."enabled",new_enabledv4)
           local paths = { "Allow-DoT","Allow-DoH","Deny-DoT","Deny-DoH","dns_xcptn","doh","/usr/sbin/ipsets-restore" }
           for _,p in ipairs(paths) do
-            proxySet(path[p].."enabled",new_enabledv4)
+            proxy_helper.set(path[p].."enabled",new_enabledv4)
           end
           enabledv4 = new_enabledv4
         end
@@ -197,8 +188,8 @@ if dns_int then
           if new_enabledv6 == "0" or (new_enabledv6 == "1" and ipdetails.ip6addr == "") then
             new_enabledv6 = "0"
             dest_ipv6 = ""
-            proxySet(path["Intercept-DNSv6"].."enabled",new_enabledv6)
-            proxySet(path["Intercept-DNSv6"].."destIP",dest_ipv6)
+            proxy_helper.set(path["Intercept-DNSv6"].."enabled",new_enabledv6)
+            proxy_helper.set(path["Intercept-DNSv6"].."destIP",dest_ipv6)
           elseif new_enabledv6 == "1" then
             local lan_dns_path = "uci.dhcp.dhcp.@lan.dns."
             local first_lan_dns_svr = lan_dns_path.."@1."
@@ -207,21 +198,21 @@ if dns_int then
             end
             if new_dest_ipv6 and new_dest_ipv6 ~= "" then
               local idx = proxy.add(lan_dns_path)
-              proxySet(lan_dns_path.."@"..idx..".value",new_dest_ipv6)
-              proxySet(path["Intercept-DNSv6"].."destIP",new_dest_ipv6)
+              proxy_helper.set(lan_dns_path.."@"..idx..".value",new_dest_ipv6)
+              proxy_helper.set(path["Intercept-DNSv6"].."destIP",new_dest_ipv6)
               local hosts = proxy.getPN("rpc.hosts.host.",true)
               for _,v in ipairs(hosts) do
                 local addresses = proxy.get(v.path..'IPv6')
                 if addresses and addresses[1].value:find(new_dest_ipv6) then
                   for address in addresses[1].value:gmatch('%S+') do
-                    proxySet("rpc.gui.firewall.dns6_intercept.add_exception",address)
+                    proxy_helper.set("rpc.gui.firewall.dns6_intercept.add_exception",address)
                   end
                   break
                 end
               end
               dest_ipv6 = new_dest_ipv6
             else
-              proxySet(path["Intercept-DNSv6"].."destIP","")
+              proxy_helper.set(path["Intercept-DNSv6"].."destIP","")
               local ula = proxy.get("rpc.network.interface.@lan.ipv6uniquelocaladdr")
               if ula and ula[1].value ~= "" then
                 local v = untaint(ula[1].value)
@@ -229,25 +220,25 @@ if dns_int then
                   v = string.match(v,"(.+)/%d+")
                 end
                 local idx = proxy.add(lan_dns_path)
-                proxySet(lan_dns_path.."@"..idx..".value",v)
+                proxy_helper.set(lan_dns_path.."@"..idx..".value",v)
               end
               dest_ipv6 = ""
             end
           end
           local paths = { "Intercept-DNSv6","dns6_xcptn","Allow-DoTv6","Allow-DoHv6","Deny-DoHv6","doh6" }
           for _,p in ipairs(paths) do
-            proxySet(path[p].."enabled",new_enabledv6)
+            proxy_helper.set(path[p].."enabled",new_enabledv6)
           end
           enabledv6 = new_enabledv6
         end
 
         local cron = "0"
         if new_enabledv4 == "1" or new_enabledv6 == "1" then
-          proxySet("rpc.gui.firewall.dns_intercept.populate_ipsets","1")
+          proxy_helper.set("rpc.gui.firewall.dns_intercept.populate_ipsets","1")
           cron="1"
         end
-        if proxy.get(cronjob.."enabled")[1].value ~= cron and proxySet(cronjob.."enabled",cron) then
-          proxySet("rpc.gui.cron.writecrontab","1")
+        if proxy.get(cronjob.."enabled")[1].value ~= cron and proxy_helper.set(cronjob.."enabled",cron) then
+          proxy_helper.set("rpc.gui.cron.writecrontab","1")
         end
 
         proxy.apply()
@@ -344,12 +335,12 @@ if dns_int and enabledv6 == "1" then
       local first = true
       for ip in splitter.each(record.ip) do
         if first then
-          proxySet("rpc.gui.firewall.dns6_intercept.exceptions."..index..".ip",ip)
+          proxy_helper.set("rpc.gui.firewall.dns6_intercept.exceptions."..index..".ip",ip)
           proxy.apply()
           first = false
         else
           local next = proxy.add("rpc.gui.firewall.dns6_intercept.exceptions.")
-          proxySet("rpc.gui.firewall.dns6_intercept.exceptions."..next..".ip",ip)
+          proxy_helper.set("rpc.gui.firewall.dns6_intercept.exceptions."..next..".ip",ip)
           proxy.apply()
         end
       end

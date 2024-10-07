@@ -12,6 +12,7 @@ local lp = require("web.lp")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
+local proxy_helper = require("proxy_helper")
 local ui_helper = require("web.ui_helper")
 local vlan_helper = require("ethernet-vlan_helper")
 
@@ -414,16 +415,6 @@ elseif (tonumber(content["dhcplogv6"]) or 0) < 4 then
   content["dhcplogv6"] = "4"
 end
 
-local function proxySet(p,v)
-  local success,errors = proxy.set(p,v)
-  if not success then
-    for _,err in ipairs(errors) do
-      message_helper.pushMessage(T(string.format("Failed to set %s to '%s': %s (%s)",err.path,v,err.errmsg,err.errcode)),"error")
-    end
-  end
-  return success
-end
-
 if ngx.var.request_method == "POST" then
   if isBridgedMode and cur_intf == "lan" then
     local proto = session:retrieve("old_proto")
@@ -437,18 +428,18 @@ if ngx.var.request_method == "POST" then
         content["localdevmask"] = bridged.maskCIDRToDottedDecimal(cur_ip[2].value)
       until content["localdevIP"] ~= ""
       if content["proto"] == "dhcp" then
-        proxySet("uci.network.interface.@lan.reqopts","1 3 6 43 51 58 59")
+        proxy_helper.set("uci.network.interface.@lan.reqopts","1 3 6 43 51 58 59")
       elseif content["proto"] == "static" then
         local uci_ipaddr = proxy.get("uci.network.interface.@lan.ipaddr")[1].value
         if uci_ipaddr == "" then
-          proxySet("uci.network.interface.@lan.ipaddr",content["localdevIP"])
+          proxy_helper.set("uci.network.interface.@lan.ipaddr",content["localdevIP"])
         else
           content["localdevIP"] = untaint(uci_ipaddr)
         end
         local uci_mask = proxy.get("uci.network.interface.@lan.netmask")[1].value
         if uci_mask == "" then
           content["localdevmask"] = uci_mask
-          proxySet("uci.network.interface.@lan.netmask",content["localdevmask"])
+          proxy_helper.set("uci.network.interface.@lan.netmask",content["localdevmask"])
         else
           content["localdevmask"] = untaint(uci_mask)
         end
