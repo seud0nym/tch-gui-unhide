@@ -124,6 +124,7 @@ local ddns_columns = {
         param = "enabled",
         type = "switch",
         default = "1",
+        attr = { switch = { class="no-save" } },
       },
       { --[13][2]
         header = T"Service",
@@ -131,7 +132,7 @@ local ddns_columns = {
         param = "service_name",
         type = "select",
         values = ddns_helper.valid_ipv4_services,
-        attr = { select = { class="span3" } },
+        attr = { select = { class="span3 no-save" } },
       },
       { --[13][3]
         header = T"Type",
@@ -139,14 +140,14 @@ local ddns_columns = {
         param = "interface",
         type = "select",
         values = { { "wan", T"IPv4"} },
-        readonly = true,
+        attr = { select = { class="no-save" } },
       },
       { --[13][4]
         header = T"Domain",
         name = "Domain",
         param = "domain",
         type = "text",
-        attr = { input = { class="span3"} },
+        attr = { input = { class="span3 no-save"} },
       },
       { --[13][5]
         header = T"IP Network<span class='icon-question-sign' title='The network from which the IP address will be determined'></span>",
@@ -154,21 +155,21 @@ local ddns_columns = {
         param = "ip_network",
         type = "select",
         values = { { "wan", T"wan"} },
-        readonly = true,
+        attr = { select = { class="no-save" } },
       },
       { --[13][6]
         header = T"Username",
         name = "Username",
         param = "username",
         type = "text",
-        attr = { input = { class="span2" } },
+        attr = { input = { class="span2 no-save" } },
       },
       { --[13][7]
         header = T"Password/Token",
         name = "Password",
         param = "password",
         type = "password",
-        attr = { input = { class="span2" } },
+        attr = { input = { class="span2 no-save" } },
       },
       { --[13][8]
         header = T"HTTPS<span class='icon-question-sign' title='HTTPS mode will enable encryption but NOT certificate-based authentication of Dynamic DNS service'></span>",
@@ -176,13 +177,14 @@ local ddns_columns = {
         param = "use_https",
         default = "1",
         type = "switch",
+        attr = { switch = { class="no-save" } },
       },
       { --[13][9]
         header = T"Check Interval",
         name = "CheckInterval",
         param = "check_interval",
         type = "text",
-        attr = { input = { type = "number",min = "1",class = "span1" } },
+        attr = { input = { type = "number",min = "1",class = "span1 no-save" } },
         default = "10",
       },
       { --[13][10]
@@ -190,7 +192,7 @@ local ddns_columns = {
         name = "RetryInterval",
         param = "retry_interval",
         type = "text",
-        attr = { input = { type = "number",min = "1",class = "span1" } },
+        attr = { input = { type = "number",min = "1",class = "span1 no-save" } },
         default = "60",
       },
       { --[13][11]
@@ -198,7 +200,7 @@ local ddns_columns = {
         name = "ForceInterval",
         param = "force_interval",
         type = "text",
-        attr = { input = { type = "number",min = "1",class = "span1" } },
+        attr = { input = { type = "number",min = "1",class = "span1 no-save" } },
         default = "72",
       },
       { --[13][12]
