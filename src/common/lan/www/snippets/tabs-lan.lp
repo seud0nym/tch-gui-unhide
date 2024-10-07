@@ -23,6 +23,7 @@ if dhcp then
   items[#items+1] = {"ethernet-static-leases-modal.lp",T"Static Leases"}
 end
 items[#items+1] = {"device-modal.lp",T"Connected Devices"}
+items[#items+1] = {"ethernet-mcsnooper-modal.lp",T"Multicast Snooping"}
 
 local uri = ngx.var.uri
 if uri == "/modals/ethernet-add-interface-modal.lp" then
