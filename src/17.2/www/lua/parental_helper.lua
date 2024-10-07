@@ -208,14 +208,14 @@ function M.getTod()
                 param = "enabled",
                 type = "switch",
                 default = "1",
-                attr = {switch = { class="inline" } },
+                attr = {switch = { class="inline no-save" } },
             },
             {   -- NOTE: don't foget update M.getTod() when change position
                 header = T"MAC address",
                 name = "id",
                 param = "id",
                 type = "text",
-                attr = { input = { class="span2",maxlength="17"},autocomplete=M.get_hosts_ac() },
+                attr = { input = { class="span2 no-save",maxlength="17"},autocomplete=M.get_hosts_ac() },
             },
             {
                 header = T"Mode",
@@ -224,7 +224,7 @@ function M.getTod()
                 type = "select",
                 values = todmodes,
                 default = "allow",
-                attr = { select = { class="span2" } },
+                attr = { select = { class="span2 no-save" } },
             },
             {
                 header = T"Start Time",
@@ -232,7 +232,7 @@ function M.getTod()
                 param = "start_time",
                 type = "text",
                 default = "00:00",
-                attr = { input = { class="span2",id="starttime",style="cursor:pointer;" } },
+                attr = { input = { class="span2 no-save",id="starttime",style="cursor:pointer;" } },
             },
             {
                 header = T"Stop Time",
@@ -240,7 +240,7 @@ function M.getTod()
                 param = "stop_time",
                 type = "text",
                 default = "23:59",
-                attr = { input = { class="span2",id="stoptime",style="cursor:pointer;" } },
+                attr = { input = { class="span2 no-save",id="stoptime",style="cursor:pointer;" } },
             },
             {
                 header = T"Day of week",
@@ -248,7 +248,7 @@ function M.getTod()
                 param = "weekdays",
                 type = "checkboxgroup",
                 values = theWeekdays(),
-                attr = { checkbox = { class="inline" } },
+                attr = { checkbox = { class="inline no-save" } },
             },
         }
     },--[7]
@@ -360,14 +360,14 @@ function M.getTodwifi()
                 param = "enabled",
                 type = "switch",
                 default = "1",
-                attr = { switch= { class="inline" } },
+                attr = { switch= { class="inline no-save" } },
             },
             {
                 header = T"Access Point",
                 name = "ap",
                 param = "ap",
                 type = "checkboxgroup",
-                attr = { input = { class="span2" } },
+                attr = { input = { class="span2 no-save" } },
             },
             {
                 header = T"AP State",
@@ -376,7 +376,7 @@ function M.getTodwifi()
                 type = "select",
                 values = wifimodes,
                 default = "on",
-                attr = { select = { class="span2" } },
+                attr = { select = { class="span2 no-save" } },
             },
             {
                 header = T"Start Time",
@@ -384,7 +384,7 @@ function M.getTodwifi()
                 param = "start_time",
                 type = "text",
                 default = "00:00",
-                attr = { input = { class="span2",id="starttime",style="cursor:pointer;" } },
+                attr = { input = { class="span2 no-save",id="starttime",style="cursor:pointer;" } },
             },
             {
                 header = T"Stop Time",
@@ -392,7 +392,7 @@ function M.getTodwifi()
                 param = "stop_time",
                 type = "text",
                 default = "23:59",
-                attr = { input = { class="span2",id="stoptime",style="cursor:pointer;" } },
+                attr = { input = { class="span2 no-save",id="stoptime",style="cursor:pointer;" } },
             },
             {
                 header = T"Day of week",
@@ -400,7 +400,7 @@ function M.getTodwifi()
                 param = "weekdays",
                 type = "checkboxgroup",
                 values = theWeekdays(),
-                attr = { checkbox = { class="inline" } },
+                attr = { checkbox = { class="inline no-save" } },
             },
         }
     },--[7]

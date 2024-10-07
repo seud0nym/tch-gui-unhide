@@ -113,6 +113,7 @@ local zone_columns = {
         param = "enabled",
         type = "switch",
         default = "1",
+        attr = { switch = { class="no-save"} },
       },
       { -- [2]
         header = T"Zone Name",
@@ -120,7 +121,7 @@ local zone_columns = {
         param = "name",
         type = "text",
         readonly = true,
-        attr = { input = { class="span2"} },
+        attr = { input = { class="span2 no-save"} },
         unique = true,
       },
       { -- [3]
@@ -129,7 +130,7 @@ local zone_columns = {
         param = "input",
         type = "select",
         values = fw_rules_helper.fwrules_targets,
-        attr = { select = { class="span2" } },
+        attr = { select = { class="span2 no-save" } },
         default = "DROP",
       },
       { -- [4]
@@ -138,7 +139,7 @@ local zone_columns = {
         param = "forward",
         type = "select",
         values = fw_rules_helper.fwrules_targets,
-        attr = { select = { class="span2" } },
+        attr = { select = { class="span2 no-save" } },
         default = "REJECT",
     },
       { -- [5]
@@ -147,7 +148,7 @@ local zone_columns = {
         param = "output",
         type = "select",
         values = fw_rules_helper.fwrules_targets,
-        attr = { select = { class="span2" } },
+        attr = { select = { class="span2 no-save" } },
         default = "ACCEPT",
       },
       { -- [6]
@@ -156,6 +157,7 @@ local zone_columns = {
         param = "network",
         type = "checkboxgroup",
         values = intfs,
+        attr = { input = { class="no-save"} },
       },
       { -- [7]
         header = "Masqueraded",
@@ -163,6 +165,7 @@ local zone_columns = {
         param = "masq",
         type = "switch",
         default = "0",
+        attr = { switch = { class="no-save"} },
       },
       { -- [8]
         header = "TCP MSS Clamping",
@@ -170,6 +173,7 @@ local zone_columns = {
         param = "mtu_fix",
         type = "switch",
         default = "1",
+        attr = { switch = { class="no-save"} },
       },
     },
   },

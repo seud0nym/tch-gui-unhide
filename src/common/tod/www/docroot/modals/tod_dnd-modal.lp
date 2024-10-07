@@ -139,7 +139,7 @@ local tod_columns = {
         param = "enabled",
         type = "switch",
         default = "1",
-        attr = { switch= { class="inline" } },
+        attr = { switch= { class="inline no-save" } },
       },
       {
         header = T"Number",
@@ -148,7 +148,7 @@ local tod_columns = {
         type = "select",
         values = profileName,
         default = "All",
-        attr = { select = { class="span2" } },
+        attr = { select = { class="span2 no-save" } },
       },
       {
         header = T"Start Time",
@@ -156,7 +156,7 @@ local tod_columns = {
         param = "start_time",
         type = "text",
         default = "00:00",
-        attr = { input = { class="span2",id="starttime",style="cursor:pointer; background-color:white" } },
+        attr = { input = { class="span2 no-save",id="starttime",style="cursor:pointer; background-color:white" } },
       },
       {
         header = T"Stop Time",
@@ -164,7 +164,7 @@ local tod_columns = {
         param = "stop_time",
         type = "text",
         default = "23:59",
-        attr = { input = { class="span2",id="stoptime",style="cursor:pointer; background-color:white" } },
+        attr = { input = { class="span2 no-save",id="stoptime",style="cursor:pointer; background-color:white" } },
       },
       {
         header = T"Day of week",
@@ -172,7 +172,7 @@ local tod_columns = {
         param = "weekdays",
         type = "checkboxgroup",
         values = tod_helper.weekdays,
-        attr = { checkbox = { class="inline" } },
+        attr = { checkbox = { class="inline no-save" } },
       },
     }
   }, --[7]
