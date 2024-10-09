@@ -19,17 +19,17 @@ PRERELEASE=''
 while getopts :pv:D option; do
   case $option in
     p)  PRERELEASE="Pre-";;
-    v)  echo $OPTARG | grep -q -E '^[0-9][0-9][0-9][0-9]\.[0-1][0-9]\.[0-3][0-9]$'
-        if [ $? -eq 1 ]; then
-          echo "${RED}ERROR: -v option requires a parameter in the format YYYY.MM.DD${NC}"
-          exit
+    v)  if echo $OPTARG | grep -q -E '^[0-9][0-9][0-9][0-9]\.[0-1][0-9]\.[0-3][0-9]$'; then
+          DATE_VERSION="$OPTARG"
+          FULL_VERSION="$DATE_VERSION@$(date +%H:%M)"
+          echo "${ORANGE}Overriding Release - using $FULL_VERSION${NC}"
+        elif echo $OPTARG | grep -q -E '^[0-9][0-9][0-9][0-9]\.[0-1][0-9]\.[0-3][0-9]@[0-2][0-9]:[0-5][0-9]$'; then
+          FULL_VERSION="$OPTARG"
+          DATE_VERSION="$(echo $OPTARG | cut -d@ -f1)"
+          echo "${ORANGE}Overriding Release - using $FULL_VERSION${NC}"
         else
-          if [ $DATE_VERSION != $OPTARG ]
-          then
-            DATE_VERSION="$OPTARG"
-            FULL_VERSION="$DATE_VERSION@$(date +%H:%M)"
-            echo "${ORANGE}Overriding Release - using $FULL_VERSION${NC}"
-          fi
+          echo "${RED}ERROR: -v option requires a parameter in the format YYYY.MM.DD or YYYY.MM.DD@hh:mm${NC}"
+          exit
         fi;;
     D)  DEBUG="-v";;
   esac
