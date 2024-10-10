@@ -1,3 +1,42 @@
+2024.10.10
+==========
+* tch-gui-unhide: Fixed broken bridge mode when internet connection is via ethernet WAN port
+* tch-gui-unhide: Fixed broken card display when no Dynamic DNS configured (#199)
+* tch-gui-unhide: Fixed broken Devices screen on FW 17.2 (#201)
+* tch-gui-unhide: Fixed access to DNS Configuration tab when AdGuard Home installed as local upstream DNS resolver
+* tch-gui-unhide: Fixed missing wait spinner on some modals
+* tch-gui-unhide: Fixed Devices list on FW 20.3.c to correctly handle genuine booster devices connected to backhaul (#203)
+* tch-gui-unhide: Fixed possible nil value error in Broadband (https://whrl.pl/RgJeVy)
+* tch-gui-unhide: Fixed bug that prevented adding new SSH keys (https://whrl.pl/RgJgbo)
+* tch-gui-unhide: Fixed bug that allowed changing IPv6 DNS servers on LAN Local Network screen when DNS hijacking enabled (#207)
+* tch-gui-unhide: Fixed minification bug on Wi-Fi modal in FW 21.4 (#209)
+* tch-gui-unhide: Fixed bug that prevented display and editing of Custom DHCP Options (https://whrl.pl/RgKjhX)
+* tch-gui-unhide: Fixed ability to assign WAN port to VLAN when WAN port in LAN bridge and not in bridged mode
+* tch-gui-unhide: Fixed handling and display of SMS messages that start with a User Data Header and/or contain emojis (emojis are not rendered correctly and never will be)
+* tch-gui-unhide: Fixed display of multipart SMS messages as a single message
+* tch-gui-unhide: Added Quad9 IPv6 and ECS Secured DNS Servers to default servers list
+* tch-gui-unhide: Added service restart button and recent log messages to Dynamic DNS tab
+* tch-gui-unhide: Added Multicast Snooping tab to Local Network
+* tch-gui-unhide: Speed up check for remote AP when using the wlassoclist extra
+* tch-gui-unhide: IP addresses in Devices list are now clickable
+* tch-gui-unhide: Disable Save button when Apply/Cancel buttons are active
+* tch-gui-unhide: Prettied the Wi-Fi Devices/Booster Devices tab in FW 20.3.c/20.4/21.4 and Wi-Fi Devices tab now available on all firmware releases
+* tch-gui-unhide: Re-worked DHCP settings visibility on lan interface Local Network screen when running in Bridged mode
+* tch-gui-unhide: Disabled ability to enable IPv6 hijacking if no IPv6 LAN address found (#207)
+* tch-gui-unhide: Allow SMS to numbers without leading +, and messages longer than 160 characters
+* tch-gui-unhide: Allow IPv6 address for Dynamic DNS to be determined from the LAN interface
+* tch-gui-unhide: Removed "Local" from WiFi count descripion on Devices card if count of AP/Mesh connected clients cannot be determined
+* tch-gui-unhide: Removed obsolete Network Map tab from Devices
+* tch-gui-unhide: Removed Server Certificates from WAN Services (scripts will be left in /root/.acme.sh/ if being used in a scheduled task)
+* tch-gui-unhide: Removed logging of service output when starting/stopping/restarting/enabling/disabling services through Init Scripts tab as it sometimes caused everything to hang
+* tch-gui-unhide: Upgraded tproxy-go to v2024.08.06-0-g7ea285b
+* tch-gui-unhide-xtra.adblock: Upgraded for adblock version 4.2.x (#212)
+* tch-gui-unhide-xtra.wireguard: Better handling when no Dynamic DNS defined and/or no current WAN/WWAN IP (#204)
+* tch-gui-unhide-xtra.wireguard: Added ability to choose domain or IP address to be included in peer config
+* de-telstra: Use opposite case to reverse Telstra configuration overrides (e.g. -kT -kC keeps all Telstra config except CWMP)
+* hijack-dns: Removed, because it duplicates GUI code and I don't want to maintain both
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Restore the SMS messages database unless the new --no-sms-db option is specified
+
 2024.05.31
 ==========
 * tch-gui-unhide: Fixed non-LAN interfaces listed in side menu on Local Network screen
