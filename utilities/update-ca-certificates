@@ -102,7 +102,7 @@ rm -f /tmp/ca-*.ipk
 SRC="https://downloads.openwrt.org/releases/${OPENWRT_LATEST}/arm_cortex-a9/base"
 for IPK in $(curl $CURL_OPT -s $SRC/Packages.gz | gunzip | grep '^Filename: ca-' | cut -d' ' -f2); do
   PKG="$(echo $IPK | grep -Eo '^ca-[^_]+')"
-  VER="$(echo $IPK | grep -Eo '[0-9][0-9-]+')"
+  VER="$(echo $IPK | grep -Eo '[0-9][-r0-9]+')"
   if [ $DE_TELSTRA = "N" -a "$(opkg list-installed 2>/dev/null | grep $PKG | cut -d- -f3- | xargs)" = "$VER" ]; then
     log user.info $PKG is up to date: Version $VER already installed
   else
@@ -127,7 +127,7 @@ if [ $DE_TELSTRA = "Y" ]; then
   for IPK in /tmp/ca-*.ipk; do
     log user.info Adding $IPK to $TARGET
     PKG="$(echo $IPK | grep -Eo 'ca-[^_]+')"
-    VER="$(echo $IPK | grep -Eo '[0-9][0-9-]+')"
+    VER="$(echo $IPK | grep -Eo '[0-9][-r0-9]+')"
     echo "  if ! opkg list-installed | grep -q '$PKG - $VER'; then" >> $TARGET
     echo "    #region (Source = $SRC/$(basename $IPK))" >> $TARGET
     echo "    echo '$(base64 $IPK)' | base64 -d > $IPK" >> $TARGET

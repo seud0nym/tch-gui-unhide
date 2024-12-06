@@ -23,12 +23,18 @@ if [ "$1" = "setup" ]; then
   adblock_installed="$(opkg list-installed | grep '^adblock ' | cut -d- -f2- | xargs)"
   ca_bundle_installed="$(opkg list-installed | grep '^ca-bundle ' | cut -d- -f3- | xargs)"
   ca_certificates_installed="$(opkg list-installed | grep '^ca-certificates ' | cut -d- -f3- | xargs)"
-  openwrt_latest="$(curl -skL https://downloads.openwrt.org/releases/ | grep -Eo 'packages-[0-9][0-9]\.[0-9.]+' | sort -ru | head -n1)"
-  adblock_current_filename="$(curl -skL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/packages/Packages | grep -E '^Filename: adblock_[0-9.-]+_all.ipk' | cut -d' ' -f2)"
-  adblock_current="$(echo $adblock_current_filename | grep -Eo '[0-9][0-9.-]+')"
+  openwrt_releases="$(curl -skL https://downloads.openwrt.org/releases/ | grep -Eo 'packages-[0-9][0-9]\.[0-9.]+' | sort -u)"
+  openwrt_latest="$(echo "$openwrt_releases" | tail -n1)"
+  i=1
+  while [ -z "$adblock_current_filename" -a $i -lt $(echo "$openwrt_releases" | wc -l) ]; do
+    openwrt_adblock="$(echo "$openwrt_releases" | tail -n$i | head -n1)"
+    adblock_current_filename="$(curl -skL https://downloads.openwrt.org/releases/${openwrt_adblock}/arm_cortex-a9/packages/Packages | grep -E "^Filename: adblock_$adblock_supported_version.[-r0-9.]+_all.ipk" | cut -d' ' -f2)"
+    i=$(( $i + 1 ))
+  done
+  adblock_current="$(echo $adblock_current_filename | grep -Eo '[0-9][-r0-9.]+')"
   ca_current="$(curl -skL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/base/Packages | grep 'Filename: ca-' | cut -d' ' -f2)"
-  ca_bundle_current="$(echo "$ca_current" | grep bundle | grep -Eo '[0-9][0-9-]+')"
-  ca_certificates_current="$(echo "$ca_current" | grep certificates | grep -Eo '[0-9][0-9-]+')"
+  ca_bundle_current="$(echo "$ca_current" | grep bundle | grep -Eo '[0-9][-r0-9]+')"
+  ca_certificates_current="$(echo "$ca_current" | grep certificates | grep -Eo '[0-9][-r0-9]+')"
   adblock_restart="n"
   if [ \( -n "$adblock_current" -a "$(echo $adblock_current | cut -d. -f1-2)" != $adblock_supported_version \) ]; then
     echo ">> Latest adblock version is $adblock_current but only version ${adblock_supported_version} is supported - unable to complete setup"
@@ -71,7 +77,7 @@ if [ "$1" = "setup" ]; then
     echo ">> Downloading adblock v$adblock_current"
     curl -kL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/packages/adblock_${adblock_current}_all.ipk -o /tmp/adblock_${adblock_current}_all.ipk || exit $?
     echo ">> Installing adblock v$adblock_current"
-    opkg --force-overwrite --nodeps install /tmp/adblock_${adblock_current}_all.ipk
+    opkg --force-overwrite --no install /tmp/adblock_${adblock_current}_all.ipk
     rm /tmp/adblock_${adblock_current}_all.ipk
     adblock_restart="y"
   fi
