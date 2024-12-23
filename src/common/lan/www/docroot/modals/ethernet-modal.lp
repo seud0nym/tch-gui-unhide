@@ -834,6 +834,19 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
               used.eth4={[".count"]=0}
               lastport = 4
             end
+            local none_vlan_label = vlan_helper.get_none_vlan_label(vlan_enabled[1].value)
+            local untagged = {}
+            if vlan_enabled[1].value == "1" then
+              for _,v in ipairs(switch_vlan) do
+                for i,state in gmatch(untaint(v.ports),"(%d)(%S*)") do
+                  if state ~= "t" then
+                    local base = format("eth%d",i)
+                    untagged[base] = untaint(v.vlan)
+                    used[base][".count"] = used[base][".count"] + 1
+                  end
+                end
+              end
+            end
             for _,v in ipairs(proxy.getPN("uci.network.interface.",true)) do
               local intf = match(v.path,"@([^%.]+)")
               for ifname in gmatch(untaint(proxy.get(v.path.."ifname")[1].value),"(%S+)") do
@@ -848,7 +861,6 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                 end
               end
             end
-            local none_vlan_label = vlan_helper.get_none_vlan_label(vlan_enabled[1].value)
             if none_vlan_label then
               ngx.print('<tr><td style="width:50%;text-align:right;">',none_vlan_label,'</td>')
               for i=0,lastport,1 do
@@ -862,14 +874,6 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
               ngx.print('<td style="width:50%;"></td></tr>')
             end
             if vlan_enabled[1].value == "1" then
-              local untagged = {}
-              for _,v in ipairs(switch_vlan) do
-                for i,state in gmatch(untaint(v.ports),"(%d)(%S*)") do
-                  if state ~= "t" then
-                    untagged[format("eth%d",i)] = untaint(v.vlan)
-                  end
-                end
-              end
               for _,v in ipairs(switch_vlan) do
                 local vlan = untaint(v.vlan)
                 local ports = untaint(v.ports)
