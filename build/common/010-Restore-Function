@@ -26,7 +26,7 @@ restore_from_rom() {
   mkdir -p /usr/share/tch-gui-unhide
   
   # Add individual files to be restored here
-  for t in /etc/init.d/power /usr/lib/lua/web/post_helper.lua /usr/lib/lua/libat/sms.lua; do
+  for t in /etc/init.d/firewall /etc/init.d/power /usr/lib/lua/web/post_helper.lua /usr/lib/lua/libat/sms.lua; do
     [ -f "${RESTORE_BASE}${t}" ] && s="${RESTORE_BASE}${t}" || s="/rom$t"
     if [ -f "$s" ]; then
       cmp -s "$s" "$t"

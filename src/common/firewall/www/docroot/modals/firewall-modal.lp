@@ -5,6 +5,7 @@ gettext.textdomain('webui-core')
 
 local ngx = ngx
 local proxy = require("datamodel")
+local proxy_helper = require("proxy_helper")
 local ui_helper = require("web.ui_helper")
 local post_helper = require("web.post_helper")
 local message_helper = require("web.uimessage_helper")
@@ -12,10 +13,27 @@ local message_helper = require("web.uimessage_helper")
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
+---@diagnostic disable-next-line: undefined-field
+local active = string.untaint(proxy.get("rpc.gui.init.files.@firewall.active")[1].value)
+local fw_enable = active
+
 if ngx.var.request_method == "POST" then
-  local action = ngx.req.get_post_args()["action"]
-  if action == "SAVE" or action == "TABLE-ADD" or action == "TABLE-MODIFY" or action == "TABLE-DELETE"  then
-    proxy.set("rpc.gui.firewall.clearCache","1")
+  local post_args = ngx.req.get_post_args()
+  if post_args.fw_enable and post_args.fw_enable ~= active then
+    fw_enable = post_args.fw_enable
+    if fw_enable == "0" then
+      proxy_helper.set("rpc.gui.init.stop","firewall")
+      proxy_helper.set("rpc.gui.init.disable","firewall")
+      proxy_helper.set("rpc.network.firewall.enable","0")
+    else
+      proxy_helper.set("rpc.gui.init.restart","firewall")
+      proxy_helper.set("rpc.gui.init.enable","firewall")
+      proxy_helper.set("rpc.network.firewall.enable","1")
+      proxy_helper.set("rpc.network.firewall.mode","normal")
+    end
+  end
+  if post_args.action == "SAVE" or post_args.action == "TABLE-ADD" or post_args.action == "TABLE-MODIFY" or post_args.action == "TABLE-DELETE"  then
+    proxy_helper.set("rpc.gui.firewall.clearCache","1")
   end
 end
 
@@ -32,7 +50,6 @@ local fw_levels = {
 }
 
 local fw_params = {
-  fw_enable = "rpc.network.firewall.enable",
   fw_level = "rpc.network.firewall.mode",
   fw_incoming_policy = "rpc.network.firewall.userincomingdefault",
   fw_ping = "rpc.network.firewall.internetpingipv4",
@@ -60,7 +77,6 @@ local function vPktsPerSec(value,object,_)
     return nil,"Invalid packets per second"
   end
 end
-
 
 local fw_valid = {
   fw_enable = vB,
@@ -125,14 +141,14 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
           class = "monitor-changes"
         }
       }
-      ngx.print(ui_helper.createSwitch(T"Enabled","fw_enable",content["fw_enable"],fwenable_attr))
+      ngx.print(ui_helper.createSwitch(T"Enabled","fw_enable",fw_enable,fwenable_attr))
 
       local enable_attr = {
         alert = {
           class = "alert-danger monitor-fw_enable monitor-0"
         },
       }
-      ngx.print(ui_helper.createAlertBlock(T("WARNING: Setting Enabled to OFF causes the firewall to ACCEPT all incoming connections from the WAN!<br>NOTE: You can only disable the firewall when the current level is <strong>Normal</strong>."),enable_attr)); ngx.print('\
+      ngx.print(ui_helper.createAlertBlock(T("Setting Enabled to OFF causes <B>ALL</B> firewall rules to be removed and the service to be disabled. <B>NO</B> firewall functions will be active!."),enable_attr)); ngx.print('\
       ');
       local html = {}
 

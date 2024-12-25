@@ -431,3 +431,7 @@ if [ -e /www/docroot/modals/dosprotect-modal.lp ]; then
     -i /www/docroot/modals/dosprotect-modal.lp
 fi
 
+echo -e "[$SCRIPT]: Only start/restart/reload firewall if service enabled"
+sed \
+  -e 's|fw3 [^f]|/etc/init.d/firewall enabled \&\& &|' \
+  -i /etc/init.d/firewall

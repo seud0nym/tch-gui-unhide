@@ -11,48 +11,50 @@ local function getOutputFrom(cmd,table,results)
   k = 0
 
   local cmdout = io.popen(cmd.." -nvL -t "..table,"r")
-  for line in cmdout:lines() do
-    if line == "" then
-      if k == 0 or results[format("%d",k)]["html"] ~= head then
-        k = k + 1
-      end
-      results[format("%d",k)] = {
-        html = tail
-      }
-    elseif line:sub(1,5) == "Chain" then
-      results[format("%d",k)] = {
-        html = "<tbody><tr class='iptables-chain'><th colspan='11'>"..line.."<th><tr>"
-      }
-    else
-      k = k + 1
-      local pkts,bytes,target,prot,opt,in_if,out_if,srce,dest,comment = line:match("^%s*(.-)%s*$"):match("([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+) +([opt -]+) +([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+) *(.*)")
-      local extra = ""
-      if not pkts then
-        pkts,bytes,prot,opt,in_if,out_if,srce,dest,comment = line:match("^%s*(.-)%s*$"):match("([^ ]+) +([^ ]+) +([^ ]+) +([opt -]+) +([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+) *(.*)")
-        target = ""
-      end
-      if target == "target" and prot == "prot" and opt == "opt" then
-        results[format("%d",k)] = {
-          html = head
-        }
-      else
-        if not comment then
-          comment = ""
-        elseif comment ~= "" and comment:sub(1,2) ~= "/*" then
-          if comment:find(" %/%*") then
-            extra,comment = comment:match("([^/]+)(/%*.+)")
-          else
-            extra = comment
-            comment = ""
-          end
+  if cmdout then
+    for line in cmdout:lines() do
+      if line == "" then
+        if k == 0 or results[format("%d",k)]["html"] ~= head then
+          k = k + 1
         end
         results[format("%d",k)] = {
-          html = format(fmt,pkts,bytes,target,prot,opt,in_if,out_if,srce,dest,extra or "",comment:gsub("%/%* ",""):gsub(" %*%/",""):gsub("!fw3:",""):gsub("!fw3",""):gsub("^ *",""))
+          html = tail
         }
+      elseif line:sub(1,5) == "Chain" then
+        results[format("%d",k)] = {
+          html = "<tbody><tr class='iptables-chain'><th colspan='11'>"..line.."<th><tr>"
+        }
+      else
+        k = k + 1
+        local pkts,bytes,target,prot,opt,in_if,out_if,srce,dest,comment = line:match("^%s*(.-)%s*$"):match("([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+) +([opt -]+) +([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+) *(.*)")
+        local extra = ""
+        if not pkts then
+          pkts,bytes,prot,opt,in_if,out_if,srce,dest,comment = line:match("^%s*(.-)%s*$"):match("([^ ]+) +([^ ]+) +([^ ]+) +([opt -]+) +([^ ]+) +([^ ]+) +([^ ]+) +([^ ]+) *(.*)")
+          target = ""
+        end
+        if target == "target" and prot == "prot" and opt == "opt" then
+          results[format("%d",k)] = {
+            html = head
+          }
+        else
+          if not comment then
+            comment = ""
+          elseif comment ~= "" and comment:sub(1,2) ~= "/*" then
+            if comment:find(" %/%*") then
+              extra,comment = comment:match("([^/]+)(/%*.+)")
+            else
+              extra = comment
+              comment = ""
+            end
+          end
+          results[format("%d",k)] = {
+            html = format(fmt,pkts,bytes,target,prot,opt,in_if,out_if,srce,dest,extra or "",comment:gsub("%/%* ",""):gsub(" %*%/",""):gsub("!fw3:",""):gsub("!fw3",""):gsub("^ *",""))
+          }
+        end
       end
     end
+    cmdout:close()
   end
-  cmdout:close()
 
   if k > 0 and results[format("%d",k)]["html"] ~= tail then
     k = k + 1
