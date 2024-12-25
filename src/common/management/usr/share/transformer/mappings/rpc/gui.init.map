@@ -24,7 +24,7 @@ local function initHelperFunction(name,type)
   end
   local command = string.format("/etc/init.d/%s %s",name,type)
   os.execute("logger -t rpc.gui.init Executing "..command)
-  return os.execute(command)
+  return os.execute("( "..command.." 2>&1 | logger -t rpc.gui.init ) &")
 end
 
 local function populate()
