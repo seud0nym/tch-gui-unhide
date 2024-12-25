@@ -5,12 +5,7 @@ gettext.textdomain('webui-core')
 
 local session = ngx.ctx.session
 local ui_helper = require("web.ui_helper")
-local proxy = require("datamodel")
 local modalPath = "/modals/dns-modal.lp"
-local adguard = proxy.get("rpc.gui.init.files.@AdGuardHome.active")
-if adguard and adguard[1].value == "1" then
-  modalPath = "/modals/dns-interceptd-modal.lp"
-end
 
 if session:hasAccess(modalPath) then
   ngx.print('\

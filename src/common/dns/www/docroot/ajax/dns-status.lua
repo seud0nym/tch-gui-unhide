@@ -17,6 +17,7 @@ local split = require("split").split
 
 local dns_servers = {}
 local rewrites_count = 0
+local if_type = isBridgedMode and "lan" or "wan"
 
 local dns_modal_link = ""
 if proxy.get(dnsmasq_path.."port")[1].value ~= "0" then
@@ -42,14 +43,13 @@ if proxy.get(dnsmasq_path.."port")[1].value ~= "0" then
   end
 
   local dnsservers_paths = {}
-  local type = isBridgedMode and "lan" or "wan"
   if #dns_servers == 0 or noresolv ~= "1" then
     local interface_pn = proxy.getPN("rpc.network.interface.",true) or {}
     for k=1,#interface_pn do
       local v = interface_pn[k]
       if v.path then
         local ifconfig = proxy.get(v.path.."type",v.path.."available",gsub(v.path,"^rpc","uci").."peerdns")
-        if ifconfig[1].value == type and ifconfig[2].value == "1" and ifconfig[3].value ~= "0" then
+        if ifconfig[1].value == if_type and ifconfig[2].value == "1" and ifconfig[3].value ~= "0" then
           dnsservers_paths[#dnsservers_paths + 1] = v.path.."dnsservers"
         end
       end
@@ -73,7 +73,7 @@ elseif adguard and adguard[1].value == "1" then
 end
 
 html[#html+1] = '<span class="simple-desc"><i>&nbsp</i>'
-html[#html+1] = format(N('<strong %s>%d</strong><span %s> DNS Server</span>','<strong %s>%d</strong><span %s> DNS Servers</span>',#dns_servers),dns_modal_link,#dns_servers,dns_modal_link)
+html[#html+1] = format(N('<strong %s>%d</strong><span %s> %s DNS Server</span>','<strong %s>%d</strong><span %s> %s DNS Servers</span>',#dns_servers),dns_modal_link,#dns_servers,dns_modal_link,string.upper(if_type))
 html[#html+1] = '</span><p class="subinfos" style="letter-spacing:-1px;font-size:12px;font-weight:bold;line-height:14px;margin-top:0px;margin-bottom:-3px">'
 
 local max_show = 2
@@ -101,25 +101,26 @@ if #dns_servers > max_show then
 end
 
 if not isBridgedMode then
-  local rewrites_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dns-rewrites-modal.lp" data-id="dns-rewrites-modal"'
+  local rewrites_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dns-modal.lp" data-id="dns-modal"'
   html[#html+1] = '</p><span class="simple-desc"><i>&nbsp</i>'
-  html[#html+1] = format(N('<strong%s >%d</strong><span %s> DNS Rewrite</span>','<strong %s>%d</strong><span %s> DNS Rewrites</span>',rewrites_count),rewrites_modal_link,rewrites_count,rewrites_modal_link)
+  html[#html+1] = format(N('<strong%s >%d</strong><span %s> LAN DNS Rewrite</span>','<strong %s>%d</strong><span %s> LAN DNS Rewrites</span>',rewrites_count),rewrites_modal_link,rewrites_count,rewrites_modal_link)
   html[#html+1] = '</span>'
 end
 
-local interceptd = proxy.get("uci.intercept.config.enabled","uci.intercept.dns.spoofip")
-local interceptd_enabled
-local interceptd_status
-if interceptd and interceptd[1].value == "0" then
-  interceptd_enabled = "0"
-  interceptd_status = "disabled"
-else
-  interceptd_enabled = "1"
-  interceptd_status = "enabled"
-end
-html[#html+1] = ui_helper.createSimpleLight(interceptd_enabled,T(format('<span class="modal-link" data-toggle="modal" data-remote="/modals/dns-interceptd-modal.lp" data-id="dns-interceptd-modal">Intercept Daemon %s</span>',interceptd_status)))
-
 if not isBridgedMode then
+  local rebind_state = proxy.get(dnsmasq_path.."rebind_protection")
+  if rebind_state then
+    local rebind_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dns-modal.lp" data-id="dns-modal"'
+    local rebind_text
+    if rebind_state[1].value ~= "0" then
+      rebind_state = "1"
+      rebind_text = "enabled"
+    else
+      rebind_state = "0"
+      rebind_text = "disabled"
+    end
+    html[#html+1] = ui_helper.createSimpleLight(rebind_state,T(format("<span %s>LAN Rebind Protection %s</span>",rebind_modal_link,rebind_text)))
+  end
   local dns6_int_state = proxy.get("uci.tproxy.rule.@dnsv6.enabled")
   local dns4_int_state = "0"
   local dns_int_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/firewall-dns_int-modal.lp" data-id="firewall-dns_int-modal"'
@@ -156,21 +157,19 @@ if not isBridgedMode then
     dns_int_family = ""
   end
   html[#html+1] = ui_helper.createSimpleLight(dns_int_state,T(format("<span %s>%s DNS Hijacking %s</span>",dns_int_modal_link,dns_int_family,dns_int_text)))
-
-  local rebind_state = proxy.get(dnsmasq_path.."rebind_protection")
-  if rebind_state then
-    local rebind_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dns-rebind-modal.lp" data-id="dns-rebind-modal"'
-    local rebind_text
-    if rebind_state[1].value ~= "0" then
-      rebind_state = "1"
-      rebind_text = "enabled"
-    else
-      rebind_state = "0"
-      rebind_text = "disabled"
-    end
-    html[#html+1] = ui_helper.createSimpleLight(rebind_state,T(format("<span %s>DNS Rebind Protection %s</span>",rebind_modal_link,rebind_text)))
-  end
 end
+
+local interceptd = proxy.get("uci.intercept.config.enabled","uci.intercept.dns.spoofip")
+local interceptd_enabled
+local interceptd_status
+if interceptd and interceptd[1].value == "0" then
+  interceptd_enabled = "0"
+  interceptd_status = "disabled"
+else
+  interceptd_enabled = "1"
+  interceptd_status = "enabled"
+end
+html[#html+1] = ui_helper.createSimpleLight(interceptd_enabled,T(format('<span class="modal-link" data-toggle="modal" data-remote="/modals/dns-interceptd-modal.lp" data-id="dns-interceptd-modal">Intercept Daemon %s</span>',interceptd_status)))
 
 local data = {
   html = table.concat(html,"\n"),

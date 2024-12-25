@@ -2,27 +2,42 @@
 
 -- Localization
 gettext.textdomain('webui-core')
-local ajax_helper = require("web.ajax_helper")
-local content_helper = require("web.content_helper")
 local dns_helper = require("dns_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
 local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
-local split = require("split").split
 
 local dns_list = require('dns_servers_helper').external
+
+local format,gsub,lower,match,upper = string.format,string.gsub,string.lower,string.match,string.upper
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
+
+local getargs = ngx.req.get_uri_args()
+local get_key = getargs.key
+local cur_key = "Main"
+local dnsmasq_paths = {}
+for _,dnsmidx in ipairs(proxy.getPN("uci.dhcp.dnsmasq.",true)) do
+  local dnsmasq_path = untaint(dnsmidx.path)
+  local key = gsub(match(dnsmasq_path,"^uci%.dhcp%.dnsmasq%.@([^%.]+)%."),"^%l",upper)
+  if key == get_key then
+    cur_key = key
+  end
+  dnsmasq_paths[#dnsmasq_paths+1] = {
+    path = dnsmasq_path,
+    key = key
+  }
+end
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
 
-local format,match = string.format,string.match
----@diagnostic disable-next-line: undefined-field
-local untaint = string.untaint
 local gOV = post_helper.getOptionalValidation
 local vB = post_helper.validateBoolean
 local vSII = post_helper.validateStringIsIP
 local vSIDN = post_helper.validateStringIsDomainName
+local vSIP = post_helper.validateStringIsPort
 
 local add_options = {
   { text = "Manually enter a custom DNS Server IP Address", values = {} },
@@ -30,47 +45,26 @@ local add_options = {
   { text = "Select from known IPv6 DNS Servers", values = {} },
 }
 
-local result = require("web.lte-utils").getContent("rpc.mobiled.DeviceNumberOfEntries")
-local devices = tonumber(result.DeviceNumberOfEntries) or 0
-
 local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
-local dnsmasq_path = dns_helper.dnsmasq_path
 
-local dns_params = {
-  logqueries = dnsmasq_path.."logqueries",
-  noresolv = dnsmasq_path.."noresolv",
+--region LAN Interfaces
+local interfaces_columns = {
+  {
+    header = T"Interface",
+    name = "value",
+    param = "value",
+    type = "text",
+  },
 }
-local dns_valid = {
-  logqueries = vB,
-  noresolv = vB,
+local interfaces_options = {
+  canEdit = false,
+  canAdd = false,
+  canDelete = false,
+  tableid = "interfaces",
 }
-if not isBridgedMode then
-  dns_params["uci_wan_peerdns"] = "uci.network.interface.@wan.peerdns"
-  dns_params["uci_wan6_peerdns"] = "uci.network.interface.@wan6.peerdns"
-  dns_valid["uci_wan_peerdns"] = vB
-  dns_valid["uci_wan6_peerdns"] = vB
-  if devices > 0 then
-    dns_params["uci_wwan_peerdns"] = "uci.network.interface.@wwan.peerdns"
-    dns_valid["uci_wwan_peerdns"] = vB
-  end
-end
+--endregion LAN Interfaces
 
-local dns_config,dns_config_helpmsg = post_helper.handleQuery(dns_params,dns_valid)
-if not isBridgedMode then
-  if dns_config["uci_wan_peerdns"] == "" then
-    dns_config["uci_wan_peerdns"] = "1"
-  end
-  if dns_config["uci_wan6_peerdns"] == "" then
-    dns_config["uci_wan6_peerdns"] = "1"
-  end
-  if devices > 0 and dns_config["uci_wwan_peerdns"] == "" then
-    dns_config["uci_wwan_peerdns"] = "1"
-  end
-end
-if not dns_config_helpmsg then
-  dns_config_helpmsg = {}
-end
-
+--region Custom DNS Servers
 local custom_dns_columns = {
   {
     header = T"Domain <span class='icon-question-sign' title='Specify a domain name to resolved against a specific server, or leave blank for all domains. The last server listed for duplicated domains will be used unless it does not respond,in which case the previous server will be queried.'></span>",
@@ -91,9 +85,6 @@ local custom_dns_options = {
   canEdit = true,
   canAdd = true,
   canDelete = true,
-  tableid = "custom_dns",
-  basepath = dnsmasq_path.."server.@.",
-  createMsg = T"Add Custom DNS Server",
   newList = add_options,
   sorted = function(a,b)
     return tonumber(a.paramindex) < tonumber(b.paramindex)
@@ -116,7 +107,6 @@ local custom_dns_valid = {
     return ret,err
   end
 }
-
 if ngx.var.request_method == "POST" then
   local content = ngx.req.get_post_args()
   local action = content.action
@@ -141,7 +131,6 @@ if ngx.var.request_method == "POST" then
     end
   end
 end
-
 local adguard = proxy.get("rpc.gui.init.files.@AdGuardHome.active")
 local function custom_dns_filter(data)
   if adguard and adguard[1].value == "1" then
@@ -151,223 +140,203 @@ local function custom_dns_filter(data)
   end
   return true
 end
+--endregion Custom DNS Servers
 
-local custom_dns_data,custom_dns_helpmsg = dns_helper.handleDNSTableQuery(custom_dns_columns,custom_dns_options,custom_dns_filter,nil,custom_dns_valid)
-
-local current_dns,ipv4DNScolumns,ipv4DNSoptions,ipv4DNSdata,ipv4DNShelpmsg,ipv6DNScolumns,ipv6DNSoptions,ipv6DNSdata,ipv6DNShelpmsg,wwanDNScolumns,wwanDNSoptions,wwanDNSdata,wwanDNShelpmsg
-
-local ipv4pattern = "^(((([1]?\\d)?\\d|2[0-4]\\d|25[0-5])\\.){3}(([1]?\\d)?\\d|2[0-4]\\d|25[0-5]))$"
-ipv4DNScolumns = {
+--region Rewrites
+local rewrites_columns = {
   {
-    header = T"DNS Server IPv4 Address",
-    name = "wanDnsParam",
+    header = T"Domain Address Query",
+    name = "domain",
+    type = "text",
+    attr = { input = { class="span2" } },
+  },
+  {
+    header = T"IPv4/IPv6 Address to Return",
+    name = "value",
     param = "value",
     type = "text",
-    attr = { input = { class="span2",maxlength="15",pattern=ipv4pattern } },
+    attr = { input = { class="span2" } },
   },
 }
-ipv4DNSoptions = {
+local rewrites_valid = {
+  domain = vSIDN,
+  value = function(value,object)
+    local ret,err = vSII(value)
+    if ret then
+      object.value = format("/%s/%s",object.domain,value)
+      return true
+    end
+    return ret,err
+  end
+}
+local rewrites_options = {
   canEdit = true,
   canAdd = true,
   canDelete = true,
-  tableid = "dns4server",
-  basepath = "uci.network.interface.@wan.dns.@.",
-  createMsg = T"Add IPv4 Interface DNS Server",
-  minEntries = 0,
-  maxEntries = 4,
+  createMsg = T"Add DNS rewrite",
+  tableid = "dns_rewrites",
   sorted = function(a,b)
-    return tonumber(a.paramindex) < tonumber(b.paramindex)
+    return lower(a.value) < lower(b.value)
   end
 }
-local ipv4DNSvalid = {
-  wanDnsParam =  post_helper.advancedIPValidation,
-}
-
-if not isBridgedMode then
-  ipv6DNScolumns = {
-    {
-      header = T"DNS Server IPv6 Address",
-      name = "wanDnsParam",
-      param = "value",
-      type = "text",
-      attr = { input = { class="span2",maxlength="39" } },
-    },
-  }
-  ipv6DNSoptions = {
-    canEdit = true,
-    canAdd = true,
-    canDelete = true,
-    tableid = "dns6server",
-    basepath = "uci.network.interface.@wan6.dns.@.",
-    createMsg = T"Add Interface IPv6 DNS Server",
-    minEntries = 0,
-    maxEntries = 4,
-    sorted = function(a,b)
-      return tonumber(a.paramindex) < tonumber(b.paramindex)
+local function rewrites_filter(data)
+  if data.value then
+    local domain,ip = match(untaint(data.value),"/([^/]+)/(.+)")
+    if domain and ip then
+      return true
     end
-  }
-  local ipv6DNSvalid = {
-    wanDnsParam =  post_helper.validateStringIsIPv6,
-  }
-  ipv6DNSdata,ipv6DNShelpmsg = post_helper.handleTableQuery(ipv6DNScolumns,ipv6DNSoptions,nil,nil,ipv6DNSvalid)
-  ipv4DNSdata,ipv4DNShelpmsg = post_helper.handleTableQuery(ipv4DNScolumns,ipv4DNSoptions,nil,nil,ipv4DNSvalid)
-
-  current_dns = {
-    ipv4 = "rpc.network.interface.@wan.dnsservers",
-    ipv6 = "rpc.network.interface.@wan6.dnsservers",
-  }
-
-  if devices > 0 then
-    wwanDNScolumns = {
-      {
-        header = T"DNS Server Address",
-        name = "wanDnsParam",
-        param = "value",
-        type = "text",
-        attr = { input = { class="span2",maxlength="39" } },
-      },
-    }
-    wwanDNSoptions = {
-      canEdit = true,
-      canAdd = true,
-      canDelete = true,
-      tableid = "dnsWWANserver",
-      basepath = "uci.network.interface.@wwan.dns.@.",
-      createMsg = T"Add WWAN Interface DNS Server",
-      minEntries = 0,
-      maxEntries = 4,
-      sorted = function(a,b)
-        return tonumber(a.paramindex) < tonumber(b.paramindex)
-      end
-    }
-    local wwanDNSvalid = {
-      wanDnsParam =  vSII,
-    }
-    wwanDNSdata,wwanDNShelpmsg = post_helper.handleTableQuery(wwanDNScolumns,wwanDNSoptions,nil,nil,wwanDNSvalid)
-
-    current_dns["wwan"] = "rpc.network.interface.@wwan.dnsservers"
   end
-
-  local dnstab = split(proxy.get("rpc.network.interface.@loopback.dnsservers")[1].value,"[^%,]+")
-  ajax_helper.handleAjaxQuery(current_dns,function(c)
-    local dnsv4,dnsv6,all = "","",""
-    for _,v in ipairs(dnstab) do
-      all = all..format("%s,",v)
-      if match(v,"^%d+%.%d+%.%d+%.%d+$") then
-        dnsv4 = dnsv4..format("%s,",v)
-      else
-        dnsv6 = dnsv6..format("%s,",v)
-      end
-    end
-    if #dnsv4 > 1 then
-      dnsv4 = string.sub(dnsv4,1,#dnsv4-1)
-    end
-    if #dnsv6 > 1 then
-      dnsv6 = string.sub(dnsv6,1,#dnsv6-1)
-    end
-    if #all > 1 then
-      all = string.sub(all,1,#all-1)
-    end
-    if proxy.get("uci.network.interface.@wan.auto")[1].value ~= "0" then
-      c["ipv4"] = content_helper.getMergedList(proxy.get("rpc.network.interface.@wan.dnsservers")[1].value,dnsv4)
-    else
-      c["ipv4"] = dnsv4
-    end
-    local ipv6_enabled = proxy.get("uci.network.interface.@wan.ipv6")
-    if ipv6_enabled and ipv6_enabled[1].value == "1" then
-      c["ipv6"] = content_helper.getMergedList(proxy.get("rpc.network.interface.@wan6.dnsservers")[1].value,dnsv6)
-    end
-    if devices > 0 then
-      local wwan_enabled = proxy.get("uci.network.interface.@wwan.enabled")
-      if wwan_enabled and wwan_enabled[1].value == "1" then
-        c["wwan"] = content_helper.getMergedList(proxy.get("rpc.network.interface.@wwan.dnsservers")[1].value,all)
-      end
-    end
-  end)
-  -- will stop in handleAjaxQuery if it is an actual AJAX query
-  content_helper.getExactContent(current_dns)
-  if current_dns["ipv4"] and current_dns["ipv4"]:len() > 0 then
-    current_dns["ipv4"] = current_dns["ipv4"]:gsub("%s+","")
-  end
-  if current_dns["ipv6"] and current_dns["ipv6"]:len() > 0 then
-    current_dns["ipv6"] = current_dns["ipv6"]:gsub("%s+","")
-  end
-  if current_dns["wwan"] and current_dns["wwan"]:len() > 0 then
-    current_dns["wwan"] = current_dns["wwan"]:gsub("%s+","")
-  end
+  return false
 end
+--endregion Rewrites
+
+--region Rebind Protection
+local domains_columns = {
+  {
+    header = T"Domain To Allow",
+    name = "value",
+    param = "value",
+    type = "text",
+    attr = { input = { class="span2" } },
+  },
+}
+local domains_valid = {
+  value = function(value,object)
+    local ret,err = vSIDN(value)
+    if ret then
+      object.value = format("/%s/",object.value)
+      return true
+    end
+    return ret,err
+  end
+}
+local domains_options = {
+  canEdit = true,
+  canAdd = true,
+  canDelete = true,
+  createMsg = T"Add Domain",
+  tableid = "rebind_domains",
+}
+local function domains_filter(data)
+  if data.value then
+    local domain = match(untaint(data.value),"/([^/]+)/")
+    if domain then
+      return true
+    end
+  end
+  return false
+end
+--endregion Rebind Protection
+
+--region Attributes
+local switch_class_enable = {
+  input = {
+    class = "monitor-changes",
+  }
+}
+local rebind_protection_visible_attr = {
+  group = {
+    class = "monitor-rebind_protection monitor-1",
+  }
+}
+local port_number_attr = {
+  input = { 
+    type = "number",
+    maxlength = "5",
+    min = "0",
+    max = "65535",
+    style = "width:100px",
+  } 
+}
+--endregion Attributes
 
 ngx.print(ui_helper.createHeader(T"DNS",true,true))   ngx.print('\
 <div class="modal-body update">\
 '); lp.include("tabs-dns.lp"); ngx.print('\
-  <form class="form-horizontal" method="post" action="modals/dns-modal.lp">\
-    ');
-    ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-    if not isBridgedMode then
+  <form class="form-horizontal" method="post" action="',ngx.var.request_uri,'">\
+    <div class="span2">\
+      <ul class="nav nav-list">\
+        <li class="nav-header">',T"Configuration",'</li>');
+        local dnsmasq_path
+        local html = {}
+        for i=1,#dnsmasq_paths do
+          local v = dnsmasq_paths[i]
+          local url = "modals/dns-modal.lp?key="..v.key
+          local active = ""
+          if v.key == cur_key then
+            active = "active"
+            dnsmasq_path = v.path
+            interfaces_options.basepath = dnsmasq_path.."interface.@."
+            rewrites_options.basepath = dnsmasq_path.."address.@."
+            domains_options.basepath = dnsmasq_path.."rebind_domain.@."
+          end
+          html[#html+1] = format('<li class="%s"><a id="%s" href="#" data-remote="%s">%s</a></li>',active,v.key,url,v.key)
+        end
+        ngx.print(html,'\
+      </ul>\
+    </div>\
+    <div class="span9">\
+      ',ui_helper.createMessages(message_helper.popMessages()),'\
+      ')
+      local dnsmasq_params = {
+        logqueries = dnsmasq_path.."logqueries",
+        port = dnsmasq_path.."port",
+        rebind_protection = dnsmasq_path.."rebind_protection",
+        rebind_localhost = dnsmasq_path.."rebind_localhost",
+      }
+      local dnsmasq_valid = {
+        logqueries = vB,
+        port = function(value,data,key)
+          if value == "" or value == "0" then
+            return true
+          end
+          return vSIP(value,data,key)
+        end,
+        rebind_protection = vB,
+        rebind_localhost = vB,
+      }
+      if not isBridgedMode then
+        dnsmasq_params["noresolv"] = dnsmasq_path.."noresolv"
+        dnsmasq_valid["noresolv"] = vB
+      end
+      local dnsmasq_config,dnsmasq_config_helpmsg = post_helper.handleQuery(dnsmasq_params,dnsmasq_valid)
+      if dnsmasq_config.port == "" then
+        dnsmasq_config.port = "53"
+      end
+      local interfaces_data = post_helper.handleTableQuery(interfaces_columns,interfaces_options,nil,nil,nil)
+      local rewrites_data,rewrites_helpmsg = dns_helper.handleDNSTableQuery(rewrites_columns,rewrites_options,rewrites_filter,nil,rewrites_valid)
+      local domains_data,domains_helpmsg = dns_helper.handleRebindTableQuery(domains_columns,domains_options,domains_filter,nil,domains_valid)
       ngx.print('\
       <fieldset>\
-        <legend>'); ngx.print(T"Configuration"); ngx.print('</legend>\
-        ');
-        ngx.print(ui_helper.createSwitch(T"Ignore Interface DNS<span class='icon-question-sign' title='When ON, do NOT fallback to the Interface DNS Servers if the Custom DNS Servers fail to respond.'></span>","noresolv",dns_config["noresolv"],nil,dns_config_helpmsg["noresolv"]))
-        ngx.print(ui_helper.createSwitch(T"Log Queries","logqueries",dns_config["logqueries"],nil,dns_config_helpmsg["logqueries"]))
-        ngx.print('\
-      </fieldset>\
-      ');
-    end
-    ngx.print('\
-    <fieldset>\
-      <legend>'); ngx.print(T"Custom DNS Servers"); ngx.print('</legend>\
-      ');
-      ngx.print(ui_helper.createTable(custom_dns_columns,custom_dns_data,custom_dns_options,nil,custom_dns_helpmsg))
-      ngx.print('\
-    </fieldset>\
-    ');
-    if isBridgedMode then
-      ipv4DNSoptions.basepath = "uci.network.interface.@lan.dns.@."
-      ipv4DNSdata,ipv4DNShelpmsg = post_helper.handleTableQuery(ipv4DNScolumns,ipv4DNSoptions,nil,nil,ipv4DNSvalid)
-      ngx.print("<legend>LAN Interface DNS Servers</legend>")
-      ngx.print(ui_helper.createTable(ipv4DNScolumns,ipv4DNSdata,ipv4DNSoptions,nil,ipv4DNShelpmsg))
-    else
-      local ajax_attr = {
-        span = {
-          ["data-ajaxrefresh"] = "5",
-        }
-      }
-      ngx.print('\
-      <fieldset class="interface-dns">\
-        <legend>'); ngx.print(T"Interface DNS Servers"); ngx.print('</legend>\
-        ');
-        ngx.print(ui_helper.createAlertBlock(T"If you turn off Auto-Discovery, you <b>MUST</b> add at least one Custom DNS Server, otherwise your setting will be ignored!",{alert={class="alert alert-warn"}}))
-        ngx.print('\
-          <legend><small>'); ngx.print(T"WAN Interface DNS Servers"); ngx.print('</small></legend>\
-        ');
-        ngx.print(ui_helper.createSwitch(T"Auto-Discover WAN DNS","uci_wan_peerdns",dns_config["uci_wan_peerdns"],nil,dns_config_helpmsg["uci_wan_peerdns"]))
-        ajax_attr.span.id = "ipv4"
-        ngx.print(ui_helper.createLabel(T"WAN DNS Servers",current_dns["ipv4"],ajax_attr))
-        ngx.print(ui_helper.createTable(ipv4DNScolumns,ipv4DNSdata,ipv4DNSoptions,nil,ipv4DNShelpmsg))
-        ngx.print('\
-          <legend><small>'); ngx.print(T"WAN6 Interface DNS Servers"); ngx.print('</small></legend>\
-        ');
-        ngx.print(ui_helper.createSwitch(T"Auto-Discover WAN6 DNS","uci_wan6_peerdns",dns_config["uci_wan6_peerdns"],nil,dns_config_helpmsg["uci_wan6_peerdns"]))
-        ajax_attr.span.id = "ipv6"
-        ngx.print(ui_helper.createLabel(T"WAN6 DNS Servers",current_dns["ipv6"],ajax_attr))
-        ngx.print(ui_helper.createTable(ipv6DNScolumns,ipv6DNSdata,ipv6DNSoptions,nil,ipv6DNShelpmsg))
-        if devices > 0 then
-          ngx.print('\
-            <legend><small>'); ngx.print(T"WWAN Interface DNS Servers"); ngx.print('</small></legend>\
-          ');
-          ngx.print(ui_helper.createSwitch(T"Auto-Discover WWAN DNS","uci_wwan_peerdns",dns_config["uci_wwan_peerdns"],nil,dns_config_helpmsg["uci_wwan_peerdns"]))
-          ajax_attr.span.id = "wwan"
-          ngx.print(ui_helper.createLabel(T"WWAN DNS Servers",current_dns["wwan"],ajax_attr))
-          ngx.print(ui_helper.createTable(wwanDNScolumns,wwanDNSdata,wwanDNSoptions,nil,wwanDNShelpmsg))
+        <legend>',T(cur_key),T" DNS Configuration"); ngx.print('</legend>');
+        ngx.print(
+          ui_helper.createInputText(T"Listen on Port<span class='icon-question-sign' title='Listening port for DNS queries (default=53). If set to 0, disables DNS server functionality.'></span>","port",dnsmasq_config["port"],port_number_attr,dnsmasq_config_helpmsg["port"]),'\
+          <div class="control-group">\
+            <label class="control-label">',T"Listen on Interfaces",'</label>\
+            <div class="controls">',
+              ui_helper.createTable(interfaces_columns,interfaces_data,interfaces_options,nil,nil),'\
+            </div>\
+          </div>')
+        if not isBridgedMode then
+          ngx.print(ui_helper.createSwitch(T"Ignore I/face DNS<span class='icon-question-sign' title='When ON, do NOT fallback to the Interface DNS Servers if the Custom DNS Servers fail to respond.'></span>","noresolv",dnsmasq_config["noresolv"],nil,dnsmasq_config_helpmsg["noresolv"]))
         end
+        ngx.print(ui_helper.createSwitch(T"Log Queries","logqueries",dnsmasq_config["logqueries"],nil,dnsmasq_config_helpmsg["logqueries"]))
+        custom_dns_options.tableid = cur_key.."_custom_dns"
+        custom_dns_options.basepath = dnsmasq_path.."server.@."
+        custom_dns_options.createMsg = T("Add "..cur_key.." Custom DNS Server")
+        local custom_dns_data,custom_dns_helpmsg = dns_helper.handleDNSTableQuery(custom_dns_columns,custom_dns_options,custom_dns_filter,nil,custom_dns_valid)
         ngx.print('\
+          <legend><small>',T"Custom Upstream DNS Servers",'</small></legend>',
+            ui_helper.createTable(custom_dns_columns,custom_dns_data,custom_dns_options,nil,custom_dns_helpmsg),'\
+          <legend><small>',T"DNS Rewrites",'</small></legend>',
+            ui_helper.createTable(rewrites_columns,rewrites_data,rewrites_options,nil,rewrites_helpmsg),'\
+          <legend><small>',T"DNS Rebind Protection",'</small></legend>',
+            ui_helper.createSwitch(T"Enabled","rebind_protection",dnsmasq_config["rebind_protection"],switch_class_enable,dnsmasq_config_helpmsg["rebind_protection"]),
+            ui_helper.createSwitch(T"Rebind localhost<span class='icon-question-sign' title='Allows upstream 127.0.0.0/8 responses (required for DNS based blacklist services).'></span>","rebind_localhost",dnsmasq_config["rebind_localhost"],rebind_protection_visible_attr,dnsmasq_config_helpmsg["rebind_localhost"]),
+            ui_helper.createTable(domains_columns,domains_data,domains_options,rebind_protection_visible_attr,domains_helpmsg),'\
       </fieldset>\
-      ');
-    end
-    ngx.print('\
+    </div>\
   </form>\
   <script src="/js/modal-busy.js"></script>\
 </div>\
-'); ngx.print(ui_helper.createFooter()); ngx.print('\
-');
+',ui_helper.createFooter());
