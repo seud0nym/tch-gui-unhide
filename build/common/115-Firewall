@@ -435,3 +435,13 @@ echo -e "[$SCRIPT]: Only start/restart/reload firewall if service enabled"
 sed \
   -e 's|fw3 [^f]|/etc/init.d/firewall enabled \&\& &|' \
   -i /etc/init.d/firewall
+
+if [ "$(exec_uci -q get firewall.fix_guest_access_to_port_forwards)" != "include" ]; then
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.fix_guest_access_to_port_forwards"
+  exec_uci set firewall.fix_guest_access_to_port_forwards='include'
+  exec_uci set firewall.fix_guest_access_to_port_forwards.type='script'
+  exec_uci set firewall.fix_guest_access_to_port_forwards.path='/usr/share/tch-gui-unhide/Fix-Guest-Access-To-Port-Forwards.sh'
+  exec_uci set firewall.fix_guest_access_to_port_forwards.reload='1'
+  exec_uci set firewall.fix_guest_access_to_port_forwards.enabled='1'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
