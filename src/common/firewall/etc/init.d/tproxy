@@ -169,9 +169,9 @@ start_service() { # PROCD implementation
     procd_set_param respawn
     procd_close_instance
   else
-    __log [start_service] No enabled rules found 
+    __debug [start_service] No enabled rules found 
     __del_divert
-    __log [start_service] Stopped "$PROG"
+    __debug [start_service] Stopped "$PROG"
   fi
 }
 
@@ -179,5 +179,5 @@ stop_service() { # PROCD implementation
   VERBOSE=$(uci_get tproxy config verbose 0)
   # Delete all existing rules
   __del_rules
-  __log [stop_service] Stopping "$PROG"
+  __debug [stop_service] Stopping "$PROG"
 }
