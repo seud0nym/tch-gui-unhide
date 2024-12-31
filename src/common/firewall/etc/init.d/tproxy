@@ -5,7 +5,7 @@ USE_PROCD=1
 PROG=$(which tproxy-go)
 
 RULE_COUNT=0
-VERBOSE=$(uci_get tproxy config enabled 0)
+VERBOSE=$(uci_get tproxy config verbose 0)
 
 __log() { # Writes the message to the syslog
   local priority="daemon.notice"
@@ -141,7 +141,7 @@ start_service() { # PROCD implementation
   # Delete all existing rules
   __del_rules
 
-  [ "$enabled" = "0" ] && { __log Disabled; return 1; }
+  [ "$enabled" = "0" ] && { __debug Disabled; return 1; }
 
   # Enable correct handling of the intercepted packets (both arriving and leaving)
   __exec [start_service] ip -f inet  rule  add fwmark 1 lookup 100
