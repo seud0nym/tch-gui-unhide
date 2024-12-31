@@ -13,11 +13,18 @@ sed \
  -e 's/-3", T"50%/-3", T"\&nbsp;-3 dBm/' \
  -e 's/-2", T"75%/-2", T"\&nbsp;-2 dBm/' \
  -e 's/0", T"100%/0", T"\&nbsp;0 dBm/' \
- -e "s|Output Power|Adjust Output Power<span class='icon-question-sign' title='Increase or decrease radio output transmission power. Increasing transmission power is NOT recommended. It will cause more interference in neighboring channels, and reduce component lifetime by increasing heat generated.'></span>|" \
+ -e "s|Output Power|&<span class='icon-question-sign' title='Increase or decrease radio output transmission power. Increasing transmission power is NOT recommended. It will cause more interference in neighboring channels, and reduce component lifetime by increasing heat generated.'></span>|" \
  -i /www/docroot/modals/wireless-modal.lp
 
 echo -e "[$SCRIPT]: Fix detection of Guest AP"
 sed \
  -e '/curiface = v.paramindex/a\            isguest = string.find(untaint(v.network),"Guest",1,true) and "1" or "0"' \
  -e '/isguest = v.ap_isolation/d' \
+ -i /www/docroot/modals/wireless-modal.lp
+
+echo -e "[$SCRIPT]: Add switch to modify AP Isolation"
+sed \
+ -e '/ap_enabled = pathap/a\    ap_isolation = pathap .. "ap_isolation",' \
+ -e 's/ap_enabled = \(gVChkbox\|vB\),/&\n    ap_isolation = \1,/' \
+ -e '/T"Broadcast SSID"/a\    html[#html + 1] = ui_helper.createSwitch(T"AP Isolation", "ap_isolation", content["ap_isolation"], advanced)' \
  -i /www/docroot/modals/wireless-modal.lp

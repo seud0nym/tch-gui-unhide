@@ -31,6 +31,14 @@ sed \
   -e 's/wpa_pskwl1:"wpa_pskwl1",/wpa_pskwl1:"wpa_pskwl0",/' \
   -i /www/docroot/modals/wireless-modal.lp
 
+echo -e "[$SCRIPT]: Add switch to modify AP Isolation"
+sed \
+ -e '/mapParams\["ap_broadcast_ssid"..curap\]/a\    mapParams["ap_isolation"..curap] = "rpc.wireless.ap.@" .. curap ..".ap_isolation"' \
+ -e '/mapValid\["ap_broadcast_ssid"..curap\]/a\    mapValid["ap_isolation"..curap] = validateBoolean' \
+ -e '/setTable\["rpc.wireless.ap.@"..mergeAP..".public"\]/a\          setTable["rpc.wireless.ap.@"..mergeAP..".ap_isolation"] = postargs["ap_isolation"..ap]' \
+ -e '/T"\(Broadcast\|Hide\) SSID"/a\    html[#html + 1] = ui_helper.createSwitch(T"AP Isolation", "ap_isolation"..curap, content["ap_isolation"..curap], advanced)' \
+ -i /www/docroot/modals/wireless-modal.lp
+
 if [ "$MINIFY" = y ]; then
   echo -e "[$SCRIPT]: Pre-minify fixes"
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/wireless-modal.lp"

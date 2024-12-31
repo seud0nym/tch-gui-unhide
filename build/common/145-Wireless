@@ -40,3 +40,7 @@ if [ $(exec_uci show network | grep -E '\.Guest.*=interface' | wc -l) -eq 0 ]; t
   sed -e '/^--check whether the.*guest1 exists/,/^$/d' -i /www/snippets/tabs-wifi.lp
 fi
 
+echo -e "[$SCRIPT]: Change transformer mapping to allow modification of AP Isolation"
+sed \
+ -e '/ap_isolation/{n; s/Only/Write/}' \
+ -i /usr/share/transformer/mappings/rpc/wireless.ap.map
