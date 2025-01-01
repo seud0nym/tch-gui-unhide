@@ -1,3 +1,17 @@
+2025.01.01
+==========
+* tch-gui-unhide: Fixed display of untagged VLAN ports on Local Network in FW 21.4
+* tch-gui-unhide: Fixed Guest network access to IPv6 pin holes
+* tch-gui-unhide: Fixed detection of Guest AP on Wireless tab so that it does not depend on the setting of ap_isolation (#218) (FW 17.2-20.3.c)
+* tch-gui-unhide: Fixed missing Wi-Fi Output Power adjustment on FW 20.4/21.4
+* tch-gui-unhide: Fixed incorrect setting name in tproxy service and reduced log messages
+* tch-gui-unhide: Allowed configuration of Guest interface DNS (#216)
+* tch-gui-unhide: Allowed modification of Wi-Fi AP Isolation
+* tch-gui-unhide: Re-organised DNS tabs and display content
+* tch-gui-unhide: Changed the way that the Enabled switch on Firewall works so that disabling the firewall disables and stops the firewall service
+* tch-gui-unhide-xtra.adblock: Allowed for release candidate packages in OpenWrt naming (#214)
+* update-ca-certificates: Allowed for release candidate packages in OpenWrt naming (#214)
+
 2024.10.10
 ==========
 * tch-gui-unhide: Fixed broken bridge mode when internet connection is via ethernet WAN port
