@@ -81,6 +81,18 @@ if [ "$1" = "setup" ]; then
     rm /tmp/adblock_${adblock_current}_all.ipk
     adblock_restart="y"
   fi
+  if [ -z "$(uci -q get adblock.global.adb_dns)" ]; then
+    echo ">> Fixing adb_dns global configuration option"
+    uci set adblock.global.adb_dns='dnsmasq'
+    uci commit adblock
+    adblock_restart="y"
+  fi
+  if [ -z "$(uci -q get adblock.global.adb_fetchutil)" ]; then
+    echo ">> Fixing adb_fetchutil global configuration option"
+    uci set adblock.global.adb_fetchutil='curl'
+    uci commit adblock
+    adblock_restart="y"
+  fi
   if [ -z "$(uci -q get adblock.global.adb_fetchparm)" ]; then
     echo ">> Fixing adb_fetchparm global configuration option"
     uci set adblock.global.adb_fetchparm="--cacert /etc/ssl/certs/ca-certificates.crt $(grep -FA2 '"curl"' /usr/bin/adblock.sh | grep -F adb_fetchparm | cut -d} -f2 | tr -d '"')"
