@@ -77,7 +77,7 @@ if [ "$1" = "setup" ]; then
     echo ">> Downloading adblock v$adblock_current"
     curl -kL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/packages/adblock_${adblock_current}_all.ipk -o /tmp/adblock_${adblock_current}_all.ipk || exit $?
     echo ">> Installing adblock v$adblock_current"
-    opkg --force-overwrite --no install /tmp/adblock_${adblock_current}_all.ipk
+    opkg --force-overwrite --nodeps install /tmp/adblock_${adblock_current}_all.ipk
     rm /tmp/adblock_${adblock_current}_all.ipk
     adblock_restart="y"
   fi
