@@ -637,7 +637,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
         <li class="nav-header">',T"LAN Interfaces",'</li>');
         local html = {}
         for _,v in ipairs(lan_intfs) do
-          if v.index ~= "loopback" and not (isBridgedMode and v.index == "lan6") then
+          if v.index ~= "loopback" and not (isBridgedMode and (v.index == "lan6" or v.index == "Guest6")) then
             local url = "modals/ethernet-modal.lp?intf="..v.index
             local active = v.index == cur_intf and "active" or ""
             html[#html+1] = format('<li class="%s"><a id="%s" href="#" data-remote="%s">',active,v.index,url)
@@ -733,12 +733,12 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
 
           ngx.print(ui_helper.createSwitch(T"IPv6 Enabled on Boot","localIPv6",content["localIPv6"],switch_class_enable))
           if content["localIPv6"] ~= "0" then
-            local ipv6addr
-            if cur_intf == "lan" then
-              ipv6addr = proxy.get("rpc.network.interface.@lan6.ip6addr")
-            end
-            if not ipv6addr then
-              ipv6addr = proxy.get("rpc.network.interface.@"..cur_intf..".ip6addr")
+            local ipv6addr = proxy.get("rpc.network.interface.@"..cur_intf..".ip6addr")
+            if ipv6addr and ipv6addr[1].value == "" and (cur_intf == "lan" or cur_intf == "Guest") then
+              local ip6addr = proxy.get(format("rpc.network.interface.@%s6.ip6addr",cur_intf))
+              if ip6addr then
+                ipv6addr = ip6addr
+              end
             end
             if ipv6addr then
               ngx.print(ui_helper.createLabel(T"Device IPv6 Address",ipv6addr[1].value,ipv6_attr))
