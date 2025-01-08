@@ -22,6 +22,8 @@ if session:hasAccess("/modals/firewall-modal.lp") then
     lanIpv6Enabled = "uci.network.interface.@lan.ipv6",
     pinholeEnabled = "uci.firewall.rulesgroup.@pinholerules.enabled",
     ip_enabled = "uci.intrusion_protect.config.enabled",
+    user_ipv4_rules = "uci.firewall.userruleNumberOfEntries",
+    user_ipv6_rules = "uci.firewall.userrule_v6NumberOfEntries",
   }
 
   content_helper.getExactContent(content)
@@ -64,6 +66,12 @@ if session:hasAccess("/modals/firewall-modal.lp") then
           ');
           local html = {}
           html[#html+1] = format(T"Firewall level: <strong>%s</strong><br>",modes[content.mode] or "")
+          if content.mode == "user" then
+            local usr_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/firewall-user-rules-modal.lp" data-id="firewall-user-rules-modal"'  
+            local usr_count = tonumber(content.user_ipv4_rules) + tonumber(content.user_ipv6_rules)
+            html[#html+1] = format(N("<strong %1$s>%2$d User rule</strong> defined","<strong %1$s>%2$d User rules</strong> defined",usr_count),usr_modal_link,usr_count)
+            html[#html+1] = "<br>"
+          end
 
           local fwd_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/firewall-port-forwarding-modal.lp" data-id="firewall-port-forwarding-modal"'
           local fwd_count = tonumber(content.fwd_ipv4_rules)
@@ -124,5 +132,3 @@ if session:hasAccess("/modals/firewall-modal.lp") then
 </div>\
 ');
 end
-  ngx.print('\
-');
