@@ -90,13 +90,11 @@ if easymesh_role == "Agent" then
     local path = v.path
     local values = proxy.get(path.."ssid",path.."device",path.."network",path.."backhaul")
     if values then
-      if values[3].value == "lan" then
-        local ssid = untaint(values[1].value)
-        local radio = untaint(values[2].value)
-        for _,credential in pairs(credentials) do
-          if credential.radio == radio and credential.ssid ~= ssid then
-            synced = synced + 1
-          end
+      local ssid = untaint(values[1].value)
+      local radio = untaint(values[2].value)
+      for _,credential in pairs(credentials) do
+        if credential.radio == radio and credential.ssid ~= ssid then
+          synced = synced + 1
         end
       end
     end
