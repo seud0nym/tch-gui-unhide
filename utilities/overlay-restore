@@ -4,7 +4,7 @@ SCRIPT="$(basename $0)"
 
 SERIAL=$(uci get env.var.serial)
 VERSION=$(uci get version.@version[0].version | cut -d- -f1)
-VARIANT=$(uci -q get env.var.variant_friendly_name)
+VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 [ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
 
 if [ -z "$(which bootmgr)" ]; then
@@ -72,6 +72,7 @@ RESTORE="./bank_1 ./bank_2"
 VERBOSE=""
 
 GREEN='\033[1;32m'
+GREY='\033[90m'
 ORANGE='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
@@ -149,6 +150,44 @@ echo -e "$(date +%F@%X): NOTE: Booted bank is ${GREEN}${BOOTED}${NC}"
 echo -e -n "$(date +%F@%X): ${GREEN}If you wish to commence the restore, enter y otherwise just press [Enter] to exit:${NC} "
 read
 [ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
+
+services="watchdog-tch \
+          adblock AdGuardHome autoreset \
+          bqos bulkdata \
+          cron cupsd cwmpd cwmpdboot \
+          ddns dlnad dosprotect dumaos dumaos_qos_tweaks \
+          hotspotd \
+          intercept iperf ipset iqos \
+          led ledfw lotagent lte-doctor-logger lxc lxc.mount \
+          minidlna miniupnpd-tch mmpbxbrcmdect mmpbxd mmpbxd_lite mmpbxfwctl mosquitto mqttjson-services mud multiap_agent multiap_controller multiap_vendorextensions mwan \
+          ndhttpd ndproxy nfcd nginx nqe \
+          pinholehelper \
+          qos qos_tch \
+          ra redirecthelper rsyncd \
+          samba samba-nmbd socat static-wan-routes-monitor supervision sync-adguard-home-data sysntpd \
+          telemetry-daemon tls-thor tod trafficmon transformer tproxy \
+          uhttpd \
+          wansensing wfa-testsuite-daemon wifi-doctor-agent wol \
+          xl2tpd"
+sp='/-\|'
+i=1
+c=0
+for service in $services; do
+  if [ -x /etc/init.d/$service ]; then
+    if /etc/init.d/$service enabled; then
+      echo -en "\r$(date +%F@%X): Stopping services: $(echo $sp | cut -c $i) ${GREY}$service${NC}"
+      c=$(( $c - ${#service} ))
+      while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done
+      c=${#service}
+      [ $i -lt 4 ] && i=$(( $i + 1 )) || i=1
+      /etc/init.d/$service stop >/dev/null 2>&1
+    fi
+  fi
+done
+echo -en "\r$(date +%F@%X): Stopped services"
+c=$(( $c + 31 - 26 ))
+while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done
+echo
 
 echo -e "$(date +%F@%X): ${ORANGE}REMOVING existing overlay...${NC}"
 cd /overlay
