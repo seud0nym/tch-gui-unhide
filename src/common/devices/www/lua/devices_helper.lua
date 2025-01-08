@@ -177,11 +177,21 @@ function M.filter(wifi,connected,cache,editing,wifionly)
 end
 
 function M.getInterfaceType(wifi,data)
-  local std = ""
+  local l2 = untaint(data.L2Interface)
+  local vlanid = match(l2,"^eth%d%.(%d+)")
+  local std
   if data.OperatingStandard and data.OperatingStandard ~= "" then
-    std = "<span class='devextinfo'>802.11"..data.OperatingStandard.."</span>"
+    if not vlanid then
+      std = "<span class='devextinfo'>802.11"..data.OperatingStandard.."</span>"
+    else
+      std = "<span class='devextinfo'>802.11"..data.OperatingStandard.." ("..l2..")</span>"
+    end
+  elseif vlanid then
+    std = "<span class='devextinfo'>("..l2..")</span>"
+  else
+    std = ""
   end
-  if data.Radio and data.Radio ~= "" and match(data.L2Interface,"^wl") then
+  if data.Radio and data.Radio ~= "" and match(l2,"^wl") then
     local key = untaint(data.Radio)
     local radio = radios[key]
     if radio then
@@ -189,24 +199,24 @@ function M.getInterfaceType(wifi,data)
     else
       return untaint(wifi.prefix.." - "..key..std),wifi.prefix
     end
-  elseif match(data.L2Interface,"^wl0") then
+  elseif find(l2,"^wl0") then
     return untaint(wifi.prefix.." - 2.4GHz"..std),wifi.prefix
-  elseif match(data.L2Interface,"^wl1") then
+  elseif find(l2,"^wl1") then
     return untaint(wifi.prefix.." - 5GHz"..std),wifi.prefix
-  elseif match(data.L2Interface,"^eth") then
+  elseif find(l2,"^eth") then
     local agentWiFiBand = wifi.agentSTA[untaint(data.MACAddress)]
     if agentWiFiBand then
       return untaint(agentWiFiBand[1]..std),agentWiFiBand[2]
     else
       if data.Port and data.Port ~= "" then
-        return "Ethernet - "..data.Port
+        return "Ethernet - "..untaint(data.Port)..std
       else
-        return "Ethernet"
+        return "Ethernet"..std
       end
     end
-  elseif match(data.L2Interface,"moca*") then
+  elseif find(l2,"^moca%d+") then
     return "MoCA"
-  elseif match(data.L2Interface,"^wds%d+") then
+  elseif find(l2,"^wds%d+") then
     return wifi.prefix,wifi.prefix
   else
     return data.L2Interface
@@ -221,7 +231,6 @@ function M.getWiFi()
   local bands = {}
   local macs = {}
   local remoteIP = {}
-  local bandPrefixLength
 
   local multiap = proxy.get(base_path)
   if multiap then
@@ -242,20 +251,15 @@ function M.getWiFi()
           end
           aliases[prefix] = untaint(v.value)
         elseif v.param == "OperatingFrequencyBand" then
-          bands[p] = v.value
-          bandPrefixLength = #p
+          bands[match(p,"Radio%.%d+")] = v.value
         elseif v.param == "BSSID2GHZ" then
           bands[untaint(v.value)] = "2.4GHz"
-          bandPrefixLength = #p
         elseif v.param == "BSSID5GHZ" then
           bands[untaint(v.value)] = "5GHz"
-          bandPrefixLength = #p
         elseif v.param == "BSSID2GHZ_Backhaul" then
           bands[untaint(v.value)] = "2.4GHz (BH)"
-          bandPrefixLength = #p
         elseif v.param == "BSSID5GHZ_Backhaul" then
           bands[untaint(v.value)] = "5GHz (BH)"
-          bandPrefixLength = #p
         elseif v.param == "BSSID" and find(p,"STA",skip_path_length,true) then
           bssid[p] = untaint(v.value)
         elseif v.param == "MACAddress" and find(p,sta_param,skip_path_length,true) then
@@ -269,7 +273,7 @@ function M.getWiFi()
     local v = macs[k]
     if not skipPath[v.prefix] then
       if aliases[v.prefix] then
-        local band = (sta_param == "AssociatedDevice") and bands[sub(v.path,1,bandPrefixLength)] or bands[bssid[v.path]]
+        local band = (sta_param == "AssociatedDevice") and bands[match(v.path,"Radio%.%d+")] or bands[bssid[v.path]]
         if not band then
           band = "???GHz"
           ngx.log(ngx.ERR,"Could not determine frequency band for ",v.mac," path=",v.path)
