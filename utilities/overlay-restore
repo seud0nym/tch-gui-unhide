@@ -115,10 +115,11 @@ MAC_UCI=$(mktemp)
 echo '#!/bin/sh
 /rom/etc/uci-defaults/tch_0000-ripcontent 
 /rom/etc/uci-defaults/tch_0010-generate-env
-/sbin/wireless_init_uci_env.sh
 '> $MAC_UCI
+which wireless_init_uci_env.sh >> $MAC_UCI
 uci show env | grep -v usb | grep "mac*.='[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]'" | cut -d"'" -f2 | sort -u > $MAC_TMP
-uci show | grep -v '^env\.' | grep -Ff $MAC_TMP | sed -e 's/^/uci -q set /' >> $MAC_UCI
+uci show | grep -v '^env\.' | grep -Ff $MAC_TMP | sed -e 's/^/uci set /' >> $MAC_UCI
+echo 'uci commit' >> $MAC_UCI
 rm -f $MAC_TMP
 chmod +x $MAC_UCI
 
@@ -175,7 +176,7 @@ c=0
 for service in $services; do
   if [ -x /etc/init.d/$service ]; then
     if /etc/init.d/$service enabled; then
-      echo -en "\r$(date +%F@%X): Stopping services: $(echo $sp | cut -c $i) ${GREY}$service${NC}"
+      echo -en "\r$(date +%F@%X): STOPPING service: $(echo $sp | cut -c $i) ${GREY}$service${NC}"
       c=$(( $c - ${#service} ))
       while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done
       c=${#service}
@@ -184,7 +185,7 @@ for service in $services; do
     fi
   fi
 done
-echo -en "\r$(date +%F@%X): Stopped services"
+echo -en "\r$(date +%F@%X): STOPPED services"
 c=$(( $c + 31 - 26 ))
 while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done
 echo
