@@ -247,6 +247,34 @@ if not content_helpmsg then
   content_helpmsg = {}
 end
 
+local system_vlan_data = {}
+local system_vlan_options = {}
+local switch_vlan,_,system_vlans = vlan_helper.get_switch_vlans(false,isBridgedMode)
+if system_vlans then
+  for i=1,#switch_vlan do
+    local type = switch_vlan[i].type
+    if type then
+      local v = {}
+      v[vlan_column_index.vlan] = switch_vlan[i].vlan
+      for port=0,3,1 do
+        v[vlan_column_index.p0+port] = "t"
+      end
+      v[vlan_column_index.p0+4] = isBridgedMode and "t" or "X"
+      v[vlan_column_index.usage] = (type == "guest") and "Guest" or "lan"
+      system_vlan_data[#system_vlan_data+1] = v
+    end
+  end
+  if #system_vlan_data then
+    system_vlan_options = {
+      canEdit = false,
+      canAdd = false,
+      canDelete = false,
+      tableid = "sysvlans",
+      sorted = "vlan",
+    }
+  end
+end
+
 local switch_class_enable = { input = { class = "monitor-changes", } }
 local enabled_visible_attr = { group = { class = "monitor-enabled monitor-1", } }
 
@@ -261,12 +289,21 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
     <fieldset>\
       <legend>',T"Switch Configuration",'</legend>',
         ui_helper.createSwitch(T"VLANs Enabled","enabled",content["enabled"],switch_class_enable,content_helpmsg["enabled"]),
-        ui_helper.createSwitch(T"Jumbo Frames","jumbo",content["jumbo"],enabled_visible_attr,content_helpmsg["jumbo"]))
+        ui_helper.createSwitch(T"Jumbo Frames","jumbo",content["jumbo"],enabled_visible_attr,content_helpmsg["jumbo"]),'\
+        <style>\
+          .socket{margin-right:6px !important;}\
+          #vlans th:nth-child(1),#vlans td:nth-child(1),#sysvlans th:nth-child(1),#sysvlans td:nth-child(1){text-align:right;}\
+        </style>')
         if content.enabled == "1" then
           ngx.print(
-            '<style>.socket{margin-right:6px !important;} #vlans th:nth-child(1),#vlans td:nth-child(1){text-align:right;}</style>',
-            '<legend>',T"VLANs",'</legend>',
+            '<legend>',T"User Defined VLANs",'</legend>',
             ui_helper.createTable(vlan_columns,vlan_data,vlan_options,enabled_visible_attr,vlan_helpmsg)
+          )
+        end
+        if #system_vlan_data > 0 then
+          ngx.print(
+            '<legend>',T"System VLANs",'</legend>',
+            ui_helper.createTable(vlan_columns,system_vlan_data,system_vlan_options,nil,nil)
           )
         end
         ngx.print('\

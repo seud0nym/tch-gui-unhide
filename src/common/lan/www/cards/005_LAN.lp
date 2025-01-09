@@ -34,12 +34,8 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
   end
   content_helper.getExactContent(lan)
 
-  local vlan = {
-    enabled = vlan_helper.get_switch_path("enable_vlan"),
-  }
-  content_helper.getExactContent(vlan)
-
-  local switch_vlan = vlan_helper.get_switch_vlans(false)
+  local vlan_enabled = vlan_helper.get_vlan_enabled()
+  local switch_vlan,_,sys_vlans = vlan_helper.get_switch_vlans(false,isBridgedMode)
 
   local adguard = {
     enabled = "rpc.gui.init.files.@AdGuardHome.active",
@@ -160,10 +156,11 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
             '</span>')
         end
       end
-      if vlan.enabled == "1" then
+      if vlan_enabled[1].value == "1" or sys_vlans > 0 then
+        local desc = (#switch_vlan == sys_vlans) and "System " or ""
         ngx.print(
           '<span class="simple-desc"><i class="icon-code-fork status-icon" style="color:#69c469;"></i>',
-            format('<strong>%d</strong><span class="modal-link" data-toggle="modal" data-remote="/modals/ethernet-vlan-modal.lp" data-id="vlan-modal"> %s defined</span>',#switch_vlan,N('VLAN','VLANs',#switch_vlan)),
+            format('<strong>%d</strong><span class="modal-link" data-toggle="modal" data-remote="/modals/ethernet-vlan-modal.lp" data-id="vlan-modal"> %s%s active</span>',#switch_vlan,desc,N('VLAN','VLANs',#switch_vlan)),
           '</span>')
       else
         ngx.print(ui_helper.createSimpleLight("0",'<span class="modal-link" data-toggle="modal" data-remote="/modals/ethernet-vlan-modal.lp" data-id="vlan-modal">VLANs disabled</span>'))

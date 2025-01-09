@@ -1,0 +1,9 @@
+echo -e "[$SCRIPT]: Add System VLAN conflict warning"
+sed \
+  -e '/Switch Configuration/a\        ui_helper.createAlertBlock(T"Manually creating VLANs is <B>NOT</B> recommended, because it can conflict with system generated VLANs and cause device instability.",{alert={class="alert alert-warn"}}),' \
+  -i /www/docroot/modals/ethernet-vlan-modal.lp
+
+echo -e "[$SCRIPT]: Add VLAN ID to Mesh Broker Credentials transformer mapping"
+sed \
+  -e 's/"wpa_psk_key"/&,"vlan_id"/' \
+  -i /usr/share/transformer/mappings/uci/meshbroker.map

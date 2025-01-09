@@ -42,8 +42,11 @@ if ngx.var.request_method == "POST" then
   end
 end
 
+local isBridgedMode = bridged.isBridgedMode()
+local lan_ula = ethernet_helper.get_lan_ula()
+
 local cur_intf,cur_dhcp_intf,all_intfs,lan_intfs,ppp_dev,ppp_intf,dnsmasq_path,wireless_radio = ethernet_helper.get_interfaces()
-local switch_vlan,valid_vlan_ifnames = vlan_helper.get_switch_vlans(false)
+local switch_vlan,valid_vlan_ifnames,sys_vlans = vlan_helper.get_switch_vlans(false,isBridgedMode)
 
 --We need to update IPv6 state only when user want to update the IPv6 state alone.
 if ngx.var.request_method == "POST" and ngx.req.get_post_args(0).iPv6StateOnlyChanged == "yes" then
@@ -60,9 +63,6 @@ end
 
 local dns_list = require('dns_servers_helper').all()
 local split = require("split").split
-
-local isBridgedMode = bridged.isBridgedMode()
-local lan_ula = ethernet_helper.get_lan_ula()
 
 local ipv42num = post_helper.ipv42num
 local vB = post_helper.validateBoolean
@@ -81,12 +81,7 @@ else
   local_dev_ip = proxy.get("rpc.network.interface.@"..cur_intf..".ipaddr")[1].value
 end
 
-local wanport = proxy.get("sys.eth.port.@eth4.status")
-if wanport and wanport[1].value then
-  wanport =  "eth4"
-else
-  wanport =  "eth3"
-end
+local wanport = vlan_helper.wanport
 
 local dnsIndex = 0
 local ntpIndex = 0
@@ -694,8 +689,8 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             ngx.print(ui_helper.createSwitch(T"IPv4 Enabled on Boot","auto",content["auto"],switch_class_enable))
           end
           ngx.print([[<div class="monitor-auto monitor-1 monitor-hidden-auto">]])
-          if isBridgedMode and cur_intf == "lan" then
-            local cur_ip = proxy.get("rpc.network.interface.@lan.ipaddr","rpc.network.interface.@lan.ipmask","rpc.network.interface.@lan.nexthop")
+          if isBridgedMode then
+            local cur_ip = proxy.get("rpc.network.interface.@"..cur_intf..".ipaddr","rpc.network.interface.@"..cur_intf..".ipmask","rpc.network.interface.@"..cur_intf..".nexthop")
             --region attributes
             local proto_attr = {
               input = {
@@ -788,7 +783,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
 
           --region LAN Ports
           local eth = vlan_helper.get_port_states()
-          local vlan_enabled = proxy.get(vlan_helper.get_switch_path("enable_vlan")) or {{value = "0"}}
+          local vlan_enabled = vlan_helper.get_vlan_enabled()
           --region functions
           local ifnames = {}
           for ifname in gmatch(untaint(content.ifnames) or "","(%S+)") do
@@ -798,7 +793,8 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             ngx.print('<td style="text-align:center;width:65px;"><input type="checkbox" name="lanport" value="',ifname,'" ',ifnames[ifname] and "checked" or "",'></td>')
             return true
           end
-          local ban_circle = "<td class='red' style='font-family:FontAwesome;text-align:center;'>&#xf05e;</td>"
+          local ban_circle = "<td class='red'style='font-family:FontAwesome;text-align:center;'>&#xf05e;</td>"
+          local ticked = "<td style='font-family:FontAwesome;text-align:center;'>&#xf046;</td>"
           --endregion functions
           --region header
           ngx.print(
@@ -809,7 +805,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
           <style>.socket{margin-right:6px !important;}</style>\
           <table id="portmap" class="table table-striped">\
             <tr>\
-              <th style="width:50%;text-align:right;vertical-align:bottom;">',vlan_enabled[1].value == "1" and T"VLAN ID" or "",'</th>\
+              <th style="width:50%;text-align:right;vertical-align:bottom;">',(vlan_enabled[1].value == "1" or sys_vlans > 0) and T"VLAN ID" or "",'</th>\
               <th style="width:65px;">',ui_helper.createSwitchPort("1",eth.state_0,eth.speed_0),'</th>\
               <th style="width:65px;">',ui_helper.createSwitchPort("2",eth.state_1,eth.speed_1),'</th>\
               <th style="width:65px;">',ui_helper.createSwitchPort("3",eth.state_2,eth.speed_2),'</th>')
@@ -836,7 +832,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             end
             local none_vlan_label = vlan_helper.get_none_vlan_label(vlan_enabled[1].value)
             local untagged = {}
-            if vlan_enabled[1].value == "1" then
+            if vlan_enabled[1].value == "1" or sys_vlans > 0 then
               for _,v in ipairs(switch_vlan) do
                 for i,state in gmatch(untaint(v.ports),"(%d)(%S*)") do
                   if state ~= "t" then
@@ -873,7 +869,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
               end
               ngx.print('<td style="width:50%;"></td></tr>')
             end
-            if vlan_enabled[1].value == "1" then
+            if vlan_enabled[1].value == "1" or sys_vlans > 0 then
               for _,v in ipairs(switch_vlan) do
                 local vlan = untaint(v.vlan)
                 local ports = untaint(v.ports)
@@ -886,10 +882,15 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                     filled = add_port_checkbox(vlan_ifname)
                   else
                     local at = find(ports,tostring(i),nil,true)
-                    if at and not used[base][cur_intf] then -- this port is configured in this vlan
+                    if at then -- this port is configured in this vlan
                       if sub(ports,at+1,at+1) == "t" then -- port is tagged, so can be multiple
-                        filled = add_port_checkbox(vlan_ifname)
-                      elseif untagged[base] == vlan then -- port is untagged...
+                        if not v.type then
+                          filled = add_port_checkbox(vlan_ifname)
+                        elseif (v.type ~= "guest" and cur_intf == "lan") or (v.type == "guest" and cur_intf == "Guest") then
+                          ngx.print(ticked)
+                          filled = true
+                        end
+                      elseif untagged[base] == vlan and not used[base][cur_intf] then -- port is untagged...
                         local untagged_used = false
                         for _,vid in pairs(used[base]) do
                           if vid == vlan or vid == "None" then
@@ -924,9 +925,6 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
         <legend>',T"DHCP Settings",'</legend>\
         <fieldset>');
           --region DHCP
-          if adguard then
-            ngx.print(ui_helper.createAlertBlock(format(T'DHCP <I>should</I> be disabled if you are using <a style="color:inherit;text-decoration:none;" target="_blank" href="http://%s:8008"><b>AdGuard Home</b></a> for DHCP!',content["localdevIP"]), { alert = { class = "alert-warn", } }))
-          end
           --region attributes
           local ignore_attr = { input = { class = "monitor-changes", }, }
           local switchDHCP = { values = { on = "server", off = "disabled", }, }
