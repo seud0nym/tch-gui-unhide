@@ -966,22 +966,20 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             ui_helper.createSwitch(T"DHCPv6 Server","dhcpv6State",content["dhcpv6State"],switchDHCP),
             ui_helper.createSwitch(T"SLAAC + RA<span class='icon-question-sign' title='IPv6 Stateless Address Auto-Configuration + Router Advertisement'></span>","slaacState",content["slaacState"],switchDHCP)
           )
-          if cur_dhcp_intf == "lan" then
-            local select_attr = {
-              select = { class = "span2", }
-            }
-            local dhcpv6LogLevel = {
-              {"4",T"Warnings and Errors only"},
-              {"5",T"Minimal"},
-              {"6",T"Standard"},
-              {"7",T"Detailed"},
-            }
-            ngx.print(ui_helper.createInputSelect(T"DHCPv6 Logging","dhcplogv6",dhcpv6LogLevel,content["dhcplogv6"],select_attr,helpmsg["dhcplogv6"]))
-          end
+          local select_attr = {
+            select = { class = "span2", }
+          }
+          local dhcpv6LogLevel = {
+            {"4",T"Warnings and Errors only"},
+            {"5",T"Minimal"},
+            {"6",T"Standard"},
+            {"7",T"Detailed"},
+          }
+          ngx.print(ui_helper.createInputSelect(T"DHCPv6 Logging","dhcplogv6",dhcpv6LogLevel,content["dhcplogv6"],select_attr,helpmsg["dhcplogv6"]))
           if dns_int_ipv6_ok and not helpmsg["dns_v6_pri"] and not helpmsg["dns_v6_sec"]  then
             local dns_v6_pri = gsub(untaint(content["dns_v6_pri"]),"-",":")
             if dns_v6_pri == "::1" then
-              local dhcp_dns_v6 = proxy.get("uci.dhcp.dhcp.@lan.dns.@1.value")
+              local dhcp_dns_v6 = proxy.get("uci.dhcp.dhcp.@"..cur_dhcp_intf..".dns.@1.value")
               if dhcp_dns_v6 then
                 dns_v6_pri = dhcp_dns_v6[1].value
               end
