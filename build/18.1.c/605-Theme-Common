@@ -36,12 +36,28 @@ if [ -f /www/docroot/landingpage.lp ];then
       -e 's/"-webkit-border-radius: 20px;-moz-border-radius: 20px;border-radius: 20px;width:50%;"/"display:block;margin-bottom:2px;width:220px;"/' \
       -e 's/"erroruserpass alert alert-error hide"/"erroruserpass alert alert-error hide" style="width:212px;margin:auto;padding:10px;"/' \
       -e 's/buttonborder linear-mobile" style="width:50%/linear-mobile" style="width:65px/' \
-      -e "/<\/head>\\\/i '); local lp = require(\"web.lp\"); lp.include(\"../snippets/theme-basic.lp\"); ngx.print('\\\\" \
+      -e "/<\/head>\\\/i '); local lpd = require(\"gatewaycard_helper\").getLandingPageData(); local lp = require(\"web.lp\"); lp.include(\"../snippets/theme-basic.lp\"); ngx.print('\\\\" \
       -e '/uci.versioncusto.override.fwversion_override/a \  unhide_version = "rpc.gui.UnhideVersion",' \
       -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         </tr>\\\\" \
       -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <tr>\\\\" \
       -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <td style=\"text-align:right;font-weight: 900;color:#${LP_TXT_COLOUR};\">tch-gui-unhide</td>\\\\" \
       -e "/ngx.print( cui\[\"firmware_version\"\] )/a \         <td style=\"text-align:left;color:#${LP_TXT_COLOUR};\">');  ngx.print( cui[\"unhide_version\"] ); ngx.print('</td>\\\\" \
+      -e "/ngx.print( cui\[\"product_name\"\] )/a \         </tr>\\\\ \
+         <tr>\\\\ \
+         <td style=\"text-align:right;font-weight: 900;color:#${LP_TXT_COLOUR};\">Up Time</td>\\\\ \
+         <td style=\"text-align:left;color:#${LP_TXT_COLOUR};\">');  ngx.print( lpd.uptime ); ngx.print('</td>\\\\ \
+         </tr>\\\\ \
+         <tr>\\\\ \
+         <td style=\"text-align:right;font-weight: 900;color:#${LP_TXT_COLOUR};\">CPU Utilisation</td>\\\\ \
+         <td style=\"text-align:left;color:#${LP_TXT_COLOUR};\">');  ngx.print( lpd.cpu ); ngx.print('</td>\\\\ \
+         </tr>\\\\ \
+         <tr>\\\\ \
+         <td style=\"text-align:right;font-weight: 900;color:#${LP_TXT_COLOUR};\">Load Average</td>\\\\ \
+         <td style=\"text-align:left;color:#${LP_TXT_COLOUR};\">');  ngx.print( lpd.load ); ngx.print('</td>\\\\ \
+         </tr>\\\\ \
+         <tr>\\\\ \
+         <td style=\"text-align:right;font-weight: 900;color:#${LP_TXT_COLOUR};\">RAM Available</td>\\\\ \
+         <td style=\"text-align:left;color:#${LP_TXT_COLOUR};\">');  ngx.print( lpd.ram_avail ); ngx.print('</td>\\\\" \
       -i /www/docroot/landingpage.lp
     echo -e "[$SCRIPT]: Removing hard-coded password on landing page"
     sed -e 's/id="srp_password" value="Telstra">/id="srp_password">/' -i /www/docroot/landingpage.lp

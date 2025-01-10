@@ -1,5 +1,5 @@
 local readfile = require("web.content_helper").readfile
-local floor,ipairs,match = math.floor,ipairs,string.match
+local floor,format,ipairs,match = math.floor,string.format,ipairs,string.match
 local ngx = ngx
 local TGU_CPU = ngx.shared.TGU_CPU
 
@@ -81,26 +81,26 @@ function M.getGatewayCardData()
   }
 end
 
-function M.secondsToTime(uptime)
+function M.secondsToTime(uptime,long)
   local d = floor(uptime/86400)
   local h = floor(uptime/3600)%24
   local m = floor(uptime/60)%60
   local s = floor(uptime%60)
-  local dDisplay = ""
-  local hDisplay = ""
-  local mDisplay = ""
+  local dW = d == 1 and "day" or "days"
+  local hW = long and (h == 1 and "hour" or "hours") or "hr"
+  local mW = long and (m == 1 and "minute" or "minutes") or "min"
+  local sW = long and (s == 1 and "second" or "seconds") or "sec"
+  return format("%d %s, %d %s, %d %s and %d %s",d,dW,h,hW,m,mW,s,sW)
+end
 
-  if d > 0 then
-    dDisplay = d..N(" day "," days ",d)
-  end
-  if h > 0 then
-    hDisplay = h.." hr "
-  end
-  if m > 0 then
-    mDisplay = m.." min "
-  end
-
-  return dDisplay..hDisplay..mDisplay..s.." sec"
+function M.getLandingPageData()
+  local data = M.getGatewayCardData()
+  return {
+    cpu = format("%d%%",data.cpu),
+    load = data.load,
+    uptime = M.secondsToTime(data.uptime,true),
+    ram_avail = format("%.2f%%",data.ram_avail/data.ram_total*100)
+  }
 end
 
 return M
