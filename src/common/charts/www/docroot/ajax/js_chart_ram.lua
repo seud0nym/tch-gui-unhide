@@ -54,10 +54,10 @@ if (ram_data != null) {\
     sessionStorage.removeItem("ram_data");\
   } else {\
     for (let i = 0; i < obj.available.length; i++) {\
-      ram_config.data.datasets[0].data[i] = Number(arr[i]);\
+      ram_config.data.datasets[0].data[i] = Number(obj.available[i]);\
     }\
     for (let i = 0; i < obj.used.length; i++) {\
-      ram_config.data.datasets[1].data[i] = Number(arr[i]);\
+      ram_config.data.datasets[1].data[i] = Number(obj.used[i]);\
     }\
   }\
 }\
