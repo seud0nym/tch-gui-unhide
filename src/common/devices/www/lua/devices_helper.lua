@@ -181,10 +181,11 @@ function M.getInterfaceType(wifi,data)
   local vlanid = match(l2,"^eth%d%.(%d+)")
   local std
   if data.OperatingStandard and data.OperatingStandard ~= "" then
+    local wifios = untaint(data.OperatingStandard)
     if not vlanid then
-      std = "<span class='devextinfo'>802.11"..data.OperatingStandard.."</span>"
+      std = "<span class='devextinfo'>802.11"..wifios.."</span>"
     else
-      std = "<span class='devextinfo'>802.11"..data.OperatingStandard.." ("..l2..")</span>"
+      std = "<span class='devextinfo'>802.11"..wifios.." ("..l2..")</span>"
     end
   elseif vlanid then
     std = "<span class='devextinfo'>("..l2..")</span>"
@@ -211,7 +212,7 @@ function M.getInterfaceType(wifi,data)
       if data.Port and data.Port ~= "" then
         return "Ethernet - "..untaint(data.Port)..std
       else
-        return "Ethernet"..std
+        return "Ethernet "..std
       end
     end
   elseif find(l2,"^moca%d+") then
