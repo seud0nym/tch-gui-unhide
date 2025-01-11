@@ -29,3 +29,9 @@ if [ "$(exec_uci -q get firewall.bwstats.enabled)" != '1' ]; then
   exec_uci commit firewall
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
+
+if ! grep -q rpc.gui.bwstats.zero_counters /etc/crontabs/root; then
+  echo -e "[$SCRIPT]: Reset device bandwidth counters at midnight"
+  echo '0 0 * * * /usr/bin/transformer-cli set rpc.gui.bwstats.zero_counters 1' >> /etc/crontabs/root
+  SRV_cron=$(( $SRV_cron + 1 ))
+fi
