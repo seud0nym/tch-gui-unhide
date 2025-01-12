@@ -4,6 +4,7 @@
 gettext.textdomain('webui-core')
 
 local ngx = ngx
+local isBridgedMode = require("bridgedmode_helper").isBridgedMode()
 local proxy = require("datamodel")
 local proxy_helper = require("proxy_helper")
 local ui_helper = require("web.ui_helper")
@@ -25,11 +26,13 @@ if ngx.var.request_method == "POST" then
       proxy_helper.set("rpc.gui.init.stop","firewall")
       proxy_helper.set("rpc.gui.init.disable","firewall")
       proxy_helper.set("rpc.network.firewall.enable","0")
-    else
+    elseif fw_enable == "1" then
       proxy_helper.set("rpc.gui.init.restart","firewall")
       proxy_helper.set("rpc.gui.init.enable","firewall")
       proxy_helper.set("rpc.network.firewall.enable","1")
       proxy_helper.set("rpc.network.firewall.mode","normal")
+    else
+      message_helper.pushMessage(T"Invalid value for Enabled??","error")
     end
   end
   if post_args.action == "SAVE" or post_args.action == "TABLE-ADD" or post_args.action == "TABLE-MODIFY" or post_args.action == "TABLE-DELETE"  then
@@ -79,7 +82,6 @@ local function vPktsPerSec(value,object,_)
 end
 
 local fw_valid = {
-  fw_enable = vB,
   fw_level = gVIES(fw_levels),
   fw_incoming_policy = gVIES(incomingpolicy),
   fw_ping = vB,
@@ -136,20 +138,25 @@ ngx.print(ui_helper.createHeader(T"Firewall",true,false))   ngx.print('\
       ngx.print(ui_helper.createMessages(message_helper.popMessages()))
       ngx.print('<legend>');  ngx.print( T"Firewall Configuration" ); ngx.print('</legend>');
 
-      local fwenable_attr = {
-        input = {
-          class = "monitor-changes"
+      if isBridgedMode or fw_enable == "0" then
+        local fwenable_attr = {
+          input = {
+            class = "monitor-changes"
+          }
         }
-      }
-      ngx.print(ui_helper.createSwitch(T"Enabled","fw_enable",fw_enable,fwenable_attr))
+        ngx.print(ui_helper.createSwitch(T"Enabled","fw_enable",fw_enable,fwenable_attr))
 
-      local enable_attr = {
-        alert = {
-          class = "alert-danger monitor-fw_enable monitor-0"
-        },
-      }
-      ngx.print(ui_helper.createAlertBlock(T("Setting Enabled to OFF causes <B>ALL</B> firewall rules to be removed and the service to be disabled. <B>NO</B> firewall functions will be active!."),enable_attr)); ngx.print('\
-      ');
+        local enable_attr = {
+          alert = {
+            class = "alert-danger monitor-fw_enable monitor-0"
+          },
+        }
+        ngx.print(ui_helper.createAlertBlock(T("Setting Enabled to OFF causes <B>ALL</B> firewall rules to be removed and the service to be disabled. <B>NO</B> firewall functions will be active!."),enable_attr)); ngx.print('\
+        ');
+      else
+        ngx.print(ui_helper.createLabel(T"Enabled","<small>ON</small>"))
+      end
+
       local html = {}
 
       local fwlevel_attr = {
