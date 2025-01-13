@@ -26,5 +26,9 @@ echo -e "[$SCRIPT]: Add switch to modify AP Isolation"
 sed \
  -e '/ap_enabled = pathap/a\    ap_isolation = pathap .. "ap_isolation",' \
  -e 's/ap_enabled = \(gVChkbox\|vB\),/&\n    ap_isolation = \1,/' \
- -e '/T"Broadcast SSID"/a\    html[#html + 1] = ui_helper.createSwitch(T"AP Isolation", "ap_isolation", content["ap_isolation"], advanced)' \
  -i /www/docroot/modals/wireless-modal.lp
+if grep -q 'ap_enabled = gVChkbox' /www/docroot/modals/wireless-modal.lp; then
+  sed -e '/T"Broadcast SSID"/a\    html[#html + 1] = ui_helper.createCheckboxSwitch(T"AP Isolation", "ap_isolation", content["ap_isolation"], advanced)' -i /www/docroot/modals/wireless-modal.lp
+else
+  sed -e '/T"Broadcast SSID"/a\    html[#html + 1] = ui_helper.createSwitch(T"AP Isolation", "ap_isolation", content["ap_isolation"], advanced)' -i /www/docroot/modals/wireless-modal.lp
+fi
