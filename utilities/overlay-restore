@@ -124,6 +124,7 @@ rm -f $MAC_TMP
 chmod +x $MAC_UCI
 
 echo -e "$(date +%F@%X): CHECKING ${GREEN}${FILENAME}${NC}..."
+echo -e "$(date +%F@%X):  ==> NOTE: Backup was taken ${GREEN}$(date -r $FILENAME)${NC}"
 [ "$(hexdump -e '/2 "%02x"' -n 2 $FILENAME)" = "8b1f" ] && { GZIP="z"; echo "$(date +%F@%X):  ==> NOTE: Backup is compressed"; } || { GZIP=""; echo "$(date +%F@%X):  ==> NOTE: Backup is NOT compressed"; }
 if basename $FILENAME | grep -qE '^[^-]+-[^-]+-[0-9a-z.]+-overlay-files-backup.tgz$'; then
   set -- $(basename $FILENAME | tr '-' ' ')
