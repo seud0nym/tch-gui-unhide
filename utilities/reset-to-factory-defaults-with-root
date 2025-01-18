@@ -113,9 +113,10 @@ Options:
                       specified).
  --no-leases        Bypass restore of static leases (ignored unless -i is
                       specified).
+ --no-rc.local      Bypass restore of /etc/rc.local.
+ --no-sms-db        Bypass restore of the SMS message database.
  --no-ula           Bypass restore of the IPv6 ULA and LAN prefix size (ignored 
                       unless -i is specified).
- --no-sms-db        Bypass restore of the SMS message database.
  --save-defaults    Saves the command line options (except -f/-s/-y) as defaults.
                       When specified, NO changes are applied to the device.
  --show-defaults    Shows the settings that would be applied (defaults and over-rides)
@@ -199,6 +200,7 @@ END
 [ -n "$NOEXEC_CFG" ]   && echo "$NOEXEC_CFG"
 [ -n "$KEYS_CFG" ]     && echo "$KEYS_CFG"
 [ -n "$SMSDB_CFG" ]    && echo "$SMSDB_CFG"
+[ -n "$RC_LOCAL_CFG" ] && echo "$RC_LOCAL_CFG"
 [ -n "$MOBILED_CFG" ]  && echo "$MOBILED_CFG"
 [ -n "$RESTORE_CFG" ]  && echo "$RESTORE_CFG"
 [ -n "$BOOTMGR" -a "$SWITCH_BANK" = "Y" ] && echo "bootmgr switch_over $PASSIVE"
@@ -255,6 +257,7 @@ set_defaults() {
   __NO_BANK_PLAN_CHK="N"
   __NO_FWD="N"
   __NO_LEASES="N"
+  __NO_RC_LOCAL="N"
   __NO_SMSDB="N"
   __NO_ULA="N"
 }
@@ -317,6 +320,7 @@ while getopts :bBcCdD:ef:h:iI:kl:mnp:svyU-: option; do
         no-forwards)    __NO_FWD="Y";;
         no-keys-check)  __NO_AUTH_KEYS_CHK="Y";;
         no-leases)      __NO_LEASES="Y";;
+        no-rc.local)    __NO_RC_LOCAL="Y";;
         no-sms-db)      __NO_SMSDB="Y";;
         no-ula)         __NO_ULA="Y";;
         restore-config) RESTORE_CONFIG="Y"; __BRIDGED="N"; __CWMP="Y"; __NOEXEC="Y"; __KEYS="Y"; __VERBOSE="Y"; [ -z "$__IPADDR" -o "$__IPADDR" = "DHCP" -o "$__IPADDR" = "dhcp" ] && __IPADDR="$LAN_IP_NOW"; __NO_FWD="Y"; __NO_LEASES="Y"; __NO_ULA="Y"; break;;
@@ -444,8 +448,9 @@ if [ $SAVE_DEFAULTS = "Y" -o $SHOW_DEFAULTS = "Y" -o $YES = "N" ]; then
   show_default "--no-forwards"    "Disable restore of port-forwards" $__NO_FWD
   show_default "--no-keys-check"  "Disable check for newer authorized_keys" $__NO_AUTH_KEYS_CHK
   show_default "--no-leases"      "Disable restore of static leases" $__NO_LEASES
-  show_default "--no-ula"         "Disable restore of IPv6 ULA and prefix" $__NO_ULA
+  show_default "--no-rc.local"    "Disable restore of /etc/rc.local" $__NO_RC_LOCAL
   show_default "--no-sms-db"      "Disable restore of SMS messages" $__NO_SMSDB
+  show_default "--no-ula"         "Disable restore of IPv6 ULA and prefix" $__NO_ULA
   show_default "--restore-config" "Restore config from USB backup" $RESTORE_CONFIG
   show_default "--i"              "Override IP in USB backup" $RESTORE_IPADDR
   [ $SHOW_DEFAULTS = "Y" ] && exit
@@ -862,6 +867,15 @@ if uci -q get mobiled.@profile[0] > /dev/null; then
     MOBILED_CFG="$MOBILED_CFG"$'\n'"uci set mobiled.@device[0].mnc='$(uci -q get mobiled.@device[0].mnc)'"
   else
     echo -e "${ORANGE}WARNING:  Mobile profiles and operators will ${RED}NOT${ORANGE} be restored!${NC}"
+  fi
+fi
+
+if ! cmp -s /rom/etc/rc.local /etc/rc.local; then
+  if [ "$__NO_RC_LOCAL" = "N" ]; then
+    echo -e "NOTE:     /etc/rc.local will be ${GREEN}restored${NC}"
+    RC_LOCAL_CFG="echo '$(tar -czf - -C / etc/rc.local | base64 | tr -d "$IFS")' | base64 -d | tar -xzvf - -C /"
+  else
+    echo -e "${ORANGE}WARNING:  /etc/rc.local will ${RED}NOT${ORANGE} be restored!${NC}"
   fi
 fi
 

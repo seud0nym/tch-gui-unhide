@@ -23,3 +23,6 @@ if [ "$DEVICE_VERSION" = "$BACKUP_VERSION" ]; then
   restore_file /etc/config/ledfw
 fi
 restore_file /etc/ledfw/stateMachines.lua
+
+log I "Restoring /etc/rc.local..."
+restore_file /etc/rc.local

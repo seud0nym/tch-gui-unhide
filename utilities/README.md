@@ -373,9 +373,10 @@ Options:
                       specified).
  --no-leases        Bypass restore of static leases (ignored unless -i is
                       specified).
+ --no-rc.local      Bypass restore of /etc/rc.local.
+ --no-sms-db        Bypass restore of the SMS message database.
  --no-ula           Bypass restore of the IPv6 ULA and LAN prefix size (ignored 
                       unless -i is specified).
- --no-sms-db        Bypass restore of the SMS message database.
  --save-defaults    Saves the command line options (except -f/-s/-y) as defaults.
                       When specified, NO changes are applied to the device.
  --show-defaults    Shows the settings that would be applied (defaults and over-rides)
