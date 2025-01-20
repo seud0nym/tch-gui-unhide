@@ -32,7 +32,7 @@ if not enabled_was then
 end
 
 local tagged_state = {
-  { "X",T"<span class='red' style='font-family:FontAwesome;'>&#xf05e;</span>" },
+  { "X",T"Off" },
   { untagged_flag,T"Untagged" },
   { "t",T"Tagged" },
 }
@@ -46,7 +46,7 @@ local vlan_columns = {
     name = "vlan",
     param = "vlan",
     type = "text",
-    attr = { input = { type="number",max="4095",min="100",step="1",class="span2" } },
+    attr = { input = { type="number",max="4095",min="2",step="1",class="span2" } },
     unique = true,
   },
   {
@@ -104,22 +104,47 @@ for k,v in ipairs(vlan_columns) do
   vlan_column_index[v.name] = k
 end
 
+local check_range = gVNIR(2,4095)
+local check_state = gVIES(tagged_state)
+--local check_vlans = vlan_helper.get_switch_vlans(true,isBridgedMode)
+
+local function validatePort(value) --,object,key)
+  local valid,errmsg = check_state(value)
+  --[[
+  if valid and value == untagged_flag then
+    local port = match(key,"p(%d)")
+    local vlan = object.vlan
+    for k=1,#check_vlans do
+      local v = check_vlans[k]
+      if v.vlan ~= vlan then
+        local at = find(v.ports,port,nil,true)
+        if at and sub(v.ports,at+1,at+1) ~= "t" then
+          valid = nil
+          errmsg = string.format("Port %d is already untagged in VLAN %s",tonumber(port)+1,v.vlan)
+          break
+        end
+      end
+    end
+  end
+  --]]
+  return valid,errmsg
+end
+
 local function validateVLANID(value)
   local post_data = ngx.req.get_post_args(0)
   if post_data.action == "TABLE-MODIFY" and not post_data.vlan then
     return true
   end
-  local check_range = gVNIR(100,4095)
   return check_range(value)
 end
 
 local vlan_valid = {
   vlan = validateVLANID,
-  p0 = gVIES(tagged_state),
-  p1 = gVIES(tagged_state),
-  p2 = gVIES(tagged_state),
-  p3 = gVIES(tagged_state),
-  p4 = gVIES(tagged_state),
+  p0 = validatePort,
+  p1 = validatePort,
+  p2 = validatePort,
+  p3 = validatePort,
+  p4 = validatePort,
 }
 
 local content,content_helpmsg
@@ -131,9 +156,9 @@ if ngx.var.request_method == "POST" then
   if post_data.tableid == "vlans" and post_data.action == "TABLE-EDIT" then
     vlan_columns[vlan_column_index.vlan].readonly = true
   end
-  if enabled_was[1].value == "0" and enabled_was[1].missing then
+  if enabled_was[1].value == "0" then
     local enabled = post_data["enabled"]
-    if enabled == "1" and enabled_was[1].value == "0" and enabled_was[1].missing then
+    if enabled == "1" and enabled_was[1].value == "0" then
       vlan_helper.add_switch(post_data["jumbo"] or "0")
     end
   end
@@ -145,13 +170,15 @@ if ngx.var.request_method == "POST" then
 end
 
 local vlan_options = {
-  canEdit = true,
   canAdd = true,
   canDelete = true,
+  canEdit = true,
   createMsg = T"Add VLAN",
   tableid = "vlans",
   basepath = "uci.network.switch_vlan.@.",
-  sorted = "vlan",
+  sorted = function (a,b)
+    return (tonumber(a.vlan) or -1) < (tonumber(b.vlan) or -1)
+  end,
 }
 
 if enabled_was[1].missing and ngx.var.request_method ~= "POST" then
@@ -176,7 +203,7 @@ else
   local function vlan_filter(data)
     if data.device == vlan_helper.get_switch_device() then
       local vlan_id = untaint(data.vlan)
-      if tonumber(vlan_id) <= 100 or (vlan_usage[vlan_id] and vlan_usage[vlan_id].count > 0) then
+      if vlan_usage[vlan_id] and vlan_usage[vlan_id].count > 0 then
         return { canDelete = false, canEdit = true }
       end
       return true
@@ -218,13 +245,14 @@ else
   session:store(tablesessionindexes,allowedIndexes)
 
   local vlan_data_index = {}
-  for k,v in ipairs(vlan_data) do
-    vlan_data_index[k] = v[vlan_column_index.vlan]
+  for k=1,#vlan_data do
+    vlan_data_index[k] = vlan_data[k][vlan_column_index.vlan]
   end
   session:store("vlan_data_index",vlan_data_index)
 
   local port_state_pattern = find("().%+-*?[^$",untagged_flag,nil,true) and "(%d)([%"..untagged_flag.."t]*)" or "(%d)(["..untagged_flag.."t]*)"
-  for _,v in ipairs(vlan_data) do
+  for k=1,#vlan_data do
+    local v = vlan_data[k]
     local vlan_id = untaint(v[vlan_column_index.vlan])
     local ports = untaint(v[vlan_column_index.ports])
     if vlan_usage[vlan_id] then
@@ -266,17 +294,20 @@ if system_vlans then
   end
   if #system_vlan_data then
     system_vlan_options = {
-      canEdit = false,
       canAdd = false,
       canDelete = false,
+      canEdit = false,
       tableid = "sysvlans",
-      sorted = "vlan",
+      sorted = function (a,b)
+        return (tonumber(a.vlan) or -1) < (tonumber(b.vlan) or -1)
+      end,
     }
   end
 end
 
 local switch_class_enable = { input = { class = "monitor-changes", } }
 local enabled_visible_attr = { group = { class = "monitor-enabled monitor-1", } }
+local info_attr = { alert = { class = "alert-info" },}
 
 local lp = require("web.lp")
 lp.setpath("/www/snippets/")
@@ -288,15 +319,20 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,false),'\
   ',ui_helper.createMessages(message_helper.popMessages()),'\
     <fieldset>\
       <legend>',T"Switch Configuration",'</legend>',
-        ui_helper.createSwitch(T"VLANs Enabled","enabled",content["enabled"],switch_class_enable,content_helpmsg["enabled"]),
-        ui_helper.createSwitch(T"Jumbo Frames","jumbo",content["jumbo"],enabled_visible_attr,content_helpmsg["jumbo"]),'\
-        <style>\
-          .socket{margin-right:6px !important;}\
-          #vlans th:nth-child(1),#vlans td:nth-child(1),#sysvlans th:nth-child(1),#sysvlans td:nth-child(1){text-align:right;}\
-        </style>')
+        ui_helper.createSwitch(T"User VLANs Enabled","enabled",content["enabled"],switch_class_enable,content_helpmsg["enabled"]))
+        if content.enabled == "1" then
+          ngx.print(ui_helper.createSwitch(T"Jumbo Frames","jumbo",content["jumbo"],enabled_visible_attr,content_helpmsg["jumbo"]))
+        end
+        if content.enabled == "1" or #system_vlan_data > 0 then
+          ngx.print(ui_helper.createAlertBlock(T("The purpose of a tagged port is to pass traffic for multiple VLANs, whereas an untagged port accepts traffic for only a single VLAN. Generally speaking, tagged ports will link switches, and untagged ports will link to end devices."),info_attr),'\
+          <style>\
+            .socket{margin-right:6px !important;}\
+            #vlans th:nth-child(1),#vlans td:nth-child(1),#sysvlans th:nth-child(1),#sysvlans td:nth-child(1){text-align:right;}\
+          </style>')
+        end
         if content.enabled == "1" then
           ngx.print(
-            '<legend>',T"User Defined VLANs",'</legend>',
+            '<legend>',T"User VLANs",'</legend>',
             ui_helper.createTable(vlan_columns,vlan_data,vlan_options,enabled_visible_attr,vlan_helpmsg)
           )
         end

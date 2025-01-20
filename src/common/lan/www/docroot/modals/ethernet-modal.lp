@@ -18,27 +18,29 @@ local vlan_helper = require("ethernet-vlan_helper")
 
 local ngx = ngx
 local session = ngx.ctx.session
-local ipairs,pairs,string = ipairs,pairs,string
+local string = string
+local find,format,gmatch,gsub,match = string.find,string.format,string.gmatch,string.gsub,string.match
 local tonumber,tostring = tonumber,tostring
-local find,format,gmatch,gsub,match,sub = string.find,string.format,string.gmatch,string.gsub,string.match,string.sub
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
 
+local post_data
 if ngx.var.request_method == "POST" then
-  local post_args = ngx.req.get_post_args(0)
-  if post_args.del_intf then
-    if post_args.del_intf == "lan" then
-      message_helper.pushMessage(T"Cannot remove the 'lan' LAN Interface!","error")
-    else
-      local errors,partial = require("ethernet-del-interface_helper").delete_interface(untaint(post_args.del_intf))
-      if errors == 0 then
-        message_helper.pushMessage(T(format("Successfully removed LAN Interface '%s'",post_args.del_intf)),"success")
-      elseif partial then
-        message_helper.pushMessage(T(format("Partially removed LAN Interface '%s' - Manually review network, dhcp and firewall configuration files!",post_args.del_intf)),"error")
-      end
-      ngx.print("<div class='loading-wrapper'><img src='/img/spinner.gif'/></div><script>tch.loadModal('/modals/ethernet-modal.lp?intf=lan');</script>")
-      ngx.exit(ngx.HTTP_OK)
-      end
+  post_data = ngx.req.get_post_args(0)
+end
+
+if post_data and post_data.del_intf then
+  if post_data.del_intf == "lan" then
+    message_helper.pushMessage(T"Cannot remove the 'lan' LAN Interface!","error")
+  else
+    local errors,partial = require("ethernet-del-interface_helper").delete_interface(untaint(post_data.del_intf))
+    if errors == 0 then
+      message_helper.pushMessage(T(format("Successfully removed LAN Interface '%s'",post_data.del_intf)),"success")
+    elseif partial then
+      message_helper.pushMessage(T(format("Partially removed LAN Interface '%s' - Manually review network, dhcp and firewall configuration files!",post_data.del_intf)),"error")
+    end
+    ngx.print("<div class='loading-wrapper'><img src='/img/spinner.gif'/></div><script>tch.loadModal('/modals/ethernet-modal.lp?intf=lan');</script>")
+    ngx.exit(ngx.HTTP_OK)
   end
 end
 
@@ -47,9 +49,11 @@ local lan_ula = ethernet_helper.get_lan_ula()
 
 local cur_intf,cur_dhcp_intf,all_intfs,lan_intfs,ppp_dev,ppp_intf,dnsmasq_path,wireless_radio = ethernet_helper.get_interfaces()
 local switch_vlan,valid_vlan_ifnames,sys_vlans = vlan_helper.get_switch_vlans(false,isBridgedMode)
+local local_dev_ip = post_data and post_data["localdevIP"] or proxy.get("rpc.network.interface.@"..cur_intf..".ipaddr")[1].value
+local wanport = vlan_helper.wanport
 
 --We need to update IPv6 state only when user want to update the IPv6 state alone.
-if ngx.var.request_method == "POST" and ngx.req.get_post_args(0).iPv6StateOnlyChanged == "yes" then
+if post_data and post_data.iPv6StateOnlyChanged == "yes" then
   local ipv6MapParam = {
     localIPv6 = "uci.network.interface.@"..cur_intf..".ipv6"
   }
@@ -72,16 +76,6 @@ local gVNIR = post_helper.getValidateNumberInRange
 local vNES = post_helper.validateNonEmptyString
 local vSIIP4 = post_helper.validateStringIsIPv4
 local vSIIP6 = post_helper.validateStringIsIPv6
-
-local local_dev_ip
-if ngx.var.request_method == "POST" then
-  local post_data = ngx.req.get_post_args(0)
-  local_dev_ip = post_data["localdevIP"]
-else
-  local_dev_ip = proxy.get("rpc.network.interface.@"..cur_intf..".ipaddr")[1].value
-end
-
-local wanport = vlan_helper.wanport
 
 local dnsIndex = 0
 local ntpIndex = 0
@@ -176,7 +170,6 @@ end
 
 local function validateDNSv4(value,object,key)
   local dns_str = ""
-  local post_data = ngx.req.get_post_args(0)
 
   -- handle IPv4 dns setting
   dns_servers[2] = value
@@ -257,7 +250,8 @@ local function validateInterfaceNames(value,object,key)
     end
   end
   if lanports then
-    for _,v in pairs(lanports) do
+    for k=1,#lanports do
+      local v = lanports[k]
       local ifname = untaint(v)
       local base = match(ifname,"(eth[0-4])")
       if base ~= ifname then
@@ -343,7 +337,8 @@ local dhcp_dns = {}
 -- Check if there is a custom DNS server, if so, then retrieve its index
 -- we'll update the parameters list to include it for retrieval
 content_helper.addListContent(dhcp,{ options = baseDHCPOptions })
-for i,v in ipairs(dhcp.options) do
+for i=1,#dhcp.options do
+  local v = dhcp.options[i]
   if v:find("^6,") == 1 then
     dnsIndex = i
     mapParams["dns_v4_pri"] = baseDHCPOptions.."@"..i..".value"
@@ -364,6 +359,7 @@ end
 
 local content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
 if not helpmsg then helpmsg = {} end
+--region Fix ethernet and QoS
 if not next(helpmsg) then
   local ifnames = split(content["ifnames"]," ")
   local wan_in_lan_bridge = false
@@ -385,7 +381,8 @@ if not next(helpmsg) then
     })
   end
 end
-
+--endregion Fix ethernet and QoS
+--region Set defaults
 if not content["auto"] or content["auto"] == "" then
   content["auto"] = "1"
 end
@@ -409,8 +406,9 @@ if not content["dhcplogv6"] or content["dhcplogv6"] == "" then
 elseif (tonumber(content["dhcplogv6"]) or 0) < 4 then
   content["dhcplogv6"] = "4"
 end
+--endregion Set defaults
 
-if ngx.var.request_method == "POST" then
+if post_data then
   if isBridgedMode and cur_intf == "lan" then
     local proto = session:retrieve("old_proto")
     session:store("old_proto",(content["proto"]))
@@ -457,7 +455,8 @@ if ngx.var.request_method == "POST" then
   if not next(helpmsg) then
     local dhcp_options_path = "uci.dhcp.dhcp.@"..cur_dhcp_intf..".dhcp_option."
     local dhcp_options = content_helper.convertResultToObject(dhcp_options_path,proxy.get(dhcp_options_path))
-    for _,v in ipairs(dhcp_options) do
+    for i=1,#dhcp_options do
+      local v = dhcp_options[i]
       if v.value:match("^3,") then
         proxy.del(dhcp_options_path..v.paramindex..".")
       elseif v.value:find("^6,") == 1 then
@@ -533,7 +532,9 @@ local dns_int_ipv4_dest_ip = ""
 local dns_int_ipv6 = false
 local dns_int_ipv6_dest_ip = ""
 if cur_intf == "lan" then
-  for _,v in ipairs(proxy.getPN("uci.firewall.redirect.",true)) do
+  local redirects = proxy.getPN("uci.firewall.redirect.",true)
+  for k=1,#redirects do
+    local v = redirects[k]
     local values = proxy.get(v.path.."name")
     if values then
       local name = untaint(values[1].value)
@@ -599,12 +600,12 @@ if content["leaseTime"] then
       session:store("networkAddr",network)
     end
   else
-    ipstart = ngx.req.get_post_args(0).dhcpStartAddress
-    ipend = ngx.req.get_post_args(0).dhcpEndAddress
+    ipstart = post_data.dhcpStartAddress
+    ipend = post_data.dhcpEndAddress
     network = session:retrieve("networkAddr")
   end
   if helpmsg["leaseTime"] then
-    content["leaseTime"] = ngx.req.get_post_args(0).leaseTime
+    content["leaseTime"] = post_data.leaseTime
   end
 end
 
@@ -630,20 +631,22 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
     <div class="span2">\
       <ul class="nav nav-list">\
         <li class="nav-header">',T"LAN Interfaces",'</li>');
-        local html = {}
-        for _,v in ipairs(lan_intfs) do
+        --region Interfaces menu
+        for k=1,#lan_intfs do
+          local v = lan_intfs[k]
           if v.index ~= "loopback" and not (isBridgedMode and (v.index == "lan6" or v.index == "Guest6")) then
             local url = "modals/ethernet-modal.lp?intf="..v.index
             local active = v.index == cur_intf and "active" or ""
-            html[#html+1] = format('<li class="%s"><a id="%s" href="#" data-remote="%s">',active,v.index,url)
-            html[#html+1] = ui_helper.createSimpleLight(v.up,v.name,{span={style="display:inline-block;"}})
+            ngx.print(format('<li class="%s"><a id="%s" href="#" data-remote="%s">',active,v.index,url))
+            ngx.print(ui_helper.createSimpleLight(v.up,v.name,{span={style="display:inline-block;"}}))
             if v.index ~= "lan" and not match(v.index,"^Guest") and v.index ~= "fonopen" then
-              html[#html+1] = format('<i title="Remove interface %s" id="remove-interface-%s" class="icon-remove-sign" style="float:right;cursor:pointer;"></i>',v.name,v.index)
+              ngx.print(format('<i title="Remove interface %s" id="remove-interface-%s" class="icon-remove-sign" style="float:right;cursor:pointer;"></i>',v.name,v.index))
             end
-            html[#html+1] = '</a></li>'
+            ngx.print('</a></li>')
           end
         end
-        ngx.print(html,'\
+        --endregion Interfaces menu
+        ngx.print('\
         <li><a id="add_new_intf" href="#" data-remote="modals/ethernet-add-interface-modal.lp"><i><small>',T"Add...",'</small></i></a></li>\
       </ul>\
     </div>\
@@ -780,22 +783,12 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
               end
             end
           end
-
+          --endregion Global
           --region LAN Ports
           local eth = vlan_helper.get_port_states()
           local vlan_enabled = vlan_helper.get_vlan_enabled()
-          --region functions
-          local ifnames = {}
-          for ifname in gmatch(untaint(content.ifnames) or "","(%S+)") do
-            ifnames[ifname] = true
-          end
-          local function add_port_checkbox(ifname)
-            ngx.print('<td style="text-align:center;width:65px;"><input type="checkbox" name="lanport" value="',ifname,'" ',ifnames[ifname] and "checked" or "",'></td>')
-            return true
-          end
           local ban_circle = "<td class='red'style='font-family:FontAwesome;text-align:center;'>&#xf05e;</td>"
           local ticked = "<td style='font-family:FontAwesome;text-align:center;'>&#xf046;</td>"
-          --endregion functions
           --region header
           ngx.print(
           '</fieldset>',
@@ -825,38 +818,38 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             --endregion header
             local lastport = 3
             local unused = 0
+            local untagged_flag = vlan_helper.get_untagged_flag()
             local used = {eth0={[".count"]=0},eth1={[".count"]=0},eth2={[".count"]=0},eth3={[".count"]=0},}
             if wanport == "eth4" then
               used.eth4={[".count"]=0}
               lastport = 4
             end
-            local none_vlan_label = vlan_helper.get_none_vlan_label(vlan_enabled[1].value)
-            local untagged = {}
-            if vlan_enabled[1].value == "1" or sys_vlans > 0 then
-              for _,v in ipairs(switch_vlan) do
-                for i,state in gmatch(untaint(v.ports),"(%d)(%S*)") do
-                  if state ~= "t" then
-                    local base = format("eth%d",i)
-                    untagged[base] = untaint(v.vlan)
-                    used[base][".count"] = used[base][".count"] + 1
-                  end
-                end
-              end
-            end
-            for _,v in ipairs(proxy.getPN("uci.network.interface.",true)) do
+            local interfaces = proxy.getPN("uci.network.interface.",true)
+            for k=1,#interfaces do
+              local v = interfaces[k]
               local intf = match(v.path,"@([^%.]+)")
               for ifname in gmatch(untaint(proxy.get(v.path.."ifname")[1].value),"(%S+)") do
                 local base = match(ifname,"(eth[0-4])")
                 if base then
-                  local vlan = match(ifname,"eth[0-4]%.(%d+)$")
-                  if not vlan and match(ifname,"^eth[0-4]$") then
-                    vlan = "None"
+                  local vlan = match(ifname,"eth[0-4]%.(%d+)$") or "None"
+                  used[base][intf] = vlan
+                  if valid_vlan_ifnames[ifname] == untagged_flag then
                     used[base][".count"] = used[base][".count"] + 1
                   end
-                  used[base][intf] = vlan
                 end
               end
             end
+            --region functions
+            local ifnames = {} -- table of interface names assigned to the current interface
+            for ifname in gmatch(untaint(content.ifnames) or "","(%S+)") do
+              ifnames[ifname] = true
+            end
+            local function add_port_checkbox(ifname)
+              ngx.print('<td style="text-align:center;width:65px;"><input type="checkbox" name="lanport" value="',ifname,'" ',ifnames[ifname] and "checked" or "",'></td>')
+              return true
+            end
+            --endregion functions
+            local none_vlan_label = vlan_helper.get_none_vlan_label(vlan_enabled[1].value)
             if none_vlan_label then
               ngx.print('<tr><td style="width:50%;text-align:right;">',none_vlan_label,'</td>')
               for i=0,lastport,1 do
@@ -870,39 +863,25 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
               ngx.print('<td style="width:50%;"></td></tr>')
             end
             if vlan_enabled[1].value == "1" or sys_vlans > 0 then
-              for _,v in ipairs(switch_vlan) do
+              for k=1,#switch_vlan do
+                local v = switch_vlan[k]
                 local vlan = untaint(v.vlan)
-                local ports = untaint(v.ports)
                 ngx.print('<tr><td style="width:50%;text-align:right;">',T(vlan),'</td>')
                 for i=0,lastport,1 do
                   local filled = false
                   local base = format("eth%d",i)
                   local vlan_ifname = format("%s.%s",base,vlan)
-                  if used[base][cur_intf] == vlan then -- Used in the current interface
+                  if ifnames[vlan_ifname] then -- Used in the current interface, so just display the checkbox no matter what
                     filled = add_port_checkbox(vlan_ifname)
-                  else
-                    local at = find(ports,tostring(i),nil,true)
-                    if at then -- this port is configured in this vlan
-                      if sub(ports,at+1,at+1) == "t" then -- port is tagged, so can be multiple
-                        if not v.type then
-                          filled = add_port_checkbox(vlan_ifname)
-                        elseif (v.type ~= "guest" and cur_intf == "lan") or (v.type == "guest" and cur_intf == "Guest") then
-                          ngx.print(ticked)
-                          filled = true
-                        end
-                      elseif untagged[base] == vlan and not used[base][cur_intf] then -- port is untagged...
-                        local untagged_used = false
-                        for _,vid in pairs(used[base]) do
-                          if vid == vlan or vid == "None" then
-                            untagged_used = true -- untagged port is used in another interface
-                            break
-                          end
-                        end
-                        if not untagged_used then
-                          filled = add_port_checkbox(vlan_ifname)
-                        end
-                      end
+                  elseif v[base] == "t" then -- port is tagged (so can be multiple)...
+                    if not v.type then -- FW 21.4 System VLANs
+                      filled = add_port_checkbox(vlan_ifname)
+                    elseif (v.type ~= "guest" and cur_intf == "lan") or (v.type == "guest" and cur_intf == "Guest") then
+                      ngx.print(ticked)
+                      filled = true
                     end
+                  elseif v[base] == untagged_flag and used[base][".count"] == 0 then -- port is untagged (and unused)...
+                    filled = add_port_checkbox(vlan_ifname)
                   end
                   if not filled then
                     ngx.print(ban_circle)
@@ -917,7 +896,6 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             ngx.print(ui_helper.createAlertBlock(T("You should enable VLANs to assign LAN ports to other interfaces!"),warn_attr))
           end
           --endregion LAN Ports
-          --endregion Global
             ngx.print('\
         </fieldset>\
       </div>\

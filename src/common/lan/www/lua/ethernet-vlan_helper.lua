@@ -17,6 +17,50 @@ local switch_config = "bcmsw_ext"
 local switch_device = "bcmsw_ext"
 local switch_path = "uci.network.switch.@bcmsw_ext."
 
+local M = {}
+
+local wanport = proxy.get("sys.eth.port.@eth4.status")
+if wanport and wanport[1].value then
+  M.wanport = "eth4"
+else
+  M.wanport = "eth3"
+end
+
+local function find_vlan_1_path()
+  local vlan_1
+  local values = proxy.getPN("uci.network.switch_vlan.",true)
+  for k=1,#values do
+    local v = values[k]
+    local vlan = proxy.get(v.path.."vlan")
+    if vlan and vlan[1].value == "1" then
+      vlan_1 = v.path
+      break
+    end
+  end
+  return vlan_1
+end
+
+local function make_vlan_1(vlan_1_path)
+  local ports
+  if M.wanport == "eth4" then
+    ports = "0"..untagged_flag.." 1"..untagged_flag.." 2"..untagged_flag.." 3"..untagged_flag.." "..cpu_port
+  else
+    ports = "0"..untagged_flag.." 1"..untagged_flag.." 2"..untagged_flag.." "..cpu_port
+  end
+  if vlan_1_path then
+    proxy_helper.set(vlan_1_path.."ports",ports)
+  else
+    local added,errmsg = proxy_helper.add("uci.network.switch_vlan.")
+    if added then
+      M.add_vlan(added,"1",ports)
+    else
+      log:error("Failed to add switch_vlan: %s",errmsg)
+      message_helper.pushMessage("Error creating VLAN ID 1: "..errmsg,"error")
+    end
+  end
+  return ports
+end
+
 local function p2ports(values)
   local ports = cpu_port
   for p=4,0,-1 do
@@ -48,18 +92,11 @@ local function update_ifnames(path,updated_ifnames)
   return proxy_helper.set("uci.network.interface.@"..interface..".type",type)
 end
 
-local M = {}
-
-local wanport = proxy.get("sys.eth.port.@eth4.status")
-if wanport and wanport[1].value then
-  M.wanport =  "eth4"
-else
-  M.wanport =  "eth3"
-end
-
 function M.add_switch(jumbo)
-  log:notice("Adding %s switch for device name %s (%s)",switch_config or 'unnamed',switch_device,switch_path)
-  proxy_helper.add("uci.network.switch.",switch_config)
+  if not proxy.getPN(switch_path,true) then
+    log:notice("Adding %s switch for device name %s (%s)",switch_config or 'unnamed',switch_device,switch_path)
+    proxy.add("uci.network.switch.",switch_config)
+  end
   proxy_helper.set(switch_path.."name",switch_device)
   proxy_helper.set(switch_path.."reset","1")
   proxy_helper.set(switch_path.."enable_vlan","1")
@@ -69,13 +106,8 @@ function M.add_switch(jumbo)
     proxy_helper.set(switch_path.."type","bcmsw")
     proxy_helper.set(switch_path.."unit","1")
   end
-  local added,errmsg = proxy_helper.add("uci.network.switch_vlan.")
-  if added then
-    M.add_vlan(added,"1","0"..untagged_flag.." 1"..untagged_flag.." 2"..untagged_flag.." 3"..untagged_flag.." "..cpu_port)
-  else
-    log:error("Failed to add switch_vlan: %s",errmsg)
-    message_helper.pushMessage("Error creating VLAN ID 1: "..errmsg,"error")
-  end
+  local vlan_1 = find_vlan_1_path()
+  make_vlan_1(vlan_1)
   proxy.apply()
 end
 
@@ -93,10 +125,7 @@ function M.get_cpu_port()
 end
 
 function M.get_none_vlan_label(enabled)
-  if enabled == "1" then
-    if allow_none_vlan then
-      return T"None"
-    end
+  if not allow_none_vlan and enabled == "1" then
     return nil
   end
   return T""
@@ -115,6 +144,10 @@ function M.get_port_states()
     state_4 = "sys.class.net.@eth4.operstate",
     speed_4 = "sys.class.net.@eth4.speed",
   }
+  if M.wanport == "eth3" then
+    port["state_4"] = nil
+    port["speed_4"] = nil
+  end
   content_helper.getExactContent(port)
   return port
 end
@@ -140,10 +173,13 @@ function M.get_switch_vlans(include_no_vlan,is_bridged_mode)
       local v = switch_vlan[k]
       local vlan_id = untaint(v.vlan)
       vlan_ids[vlan_id] = k
-      for port in gmatch(gsub(untaint(v.ports),cpu_port,""),"(%d)") do
-        valid_ifnames[format("eth%s.%s",port,vlan_id)] = true
+      for port,state in gmatch(gsub(untaint(v.ports),cpu_port,""),"(%d)(%S*)") do
+        valid_ifnames[format("eth%s.%s",port,vlan_id)] = state or untagged_flag
+        v[format("eth%s",port)] = state or untagged_flag
       end
     end
+  end
+  if include_no_vlan then
     local interfaces = proxy.getPN("uci.network.interface.",true)
     for i=1,#interfaces do
       local interface = interfaces[i]
@@ -152,37 +188,26 @@ function M.get_switch_vlans(include_no_vlan,is_bridged_mode)
         local ifnames = untaint(values[1].value)
         if find(ifnames,"eth[0-4]") then
           for ifname in gmatch(ifnames,"(%S+)") do
-            local vlan_id = nil
-            local index = match(ifname,"^eth([0-4])$")
-            if index and include_no_vlan then
-              vlan_id = "None"
-            elseif not index then
-              index,vlan_id = match(ifname,"^eth([0-4])%.(%d+)$")
-            end
-            if vlan_id then
-              local port
-              if vlan_id == "None" then
-                port = index..untagged_flag
-              else
-                port = index.."t"
+            local p = match(ifname,"^eth([0-4])$")
+            if p then
+              local base = format("eth%s",p)
+              local port = p..untagged_flag
+              valid_ifnames[base] = true
+              if not vlan_ids["None"] then
+                switch_vlan[#switch_vlan+1] = {vlan="None",ports=port}
+                vlan_ids["None"] = #switch_vlan
+              elseif not find(switch_vlan[vlan_ids["None"]].ports,port,1,true) then
+                switch_vlan[vlan_ids["None"]].ports = switch_vlan[vlan_ids["None"]].ports.." "..port
               end
-              valid_ifnames[format("eth%s.%s",index,vlan_id)] = true
-              if not vlan_ids[vlan_id] then
-                switch_vlan[#switch_vlan+1] = {vlan=vlan_id,ports=port}
-                vlan_ids[vlan_id] = #switch_vlan
-              else
-                if not find(switch_vlan[vlan_ids[vlan_id]].ports,port) then
-                  switch_vlan[vlan_ids[vlan_id]].ports = switch_vlan[vlan_ids[vlan_id]].ports.." "..port
-                end
-              end
+              switch_vlan[vlan_ids["None"]][base] = untagged_flag
             end
           end
         end
       end
     end
   end
-  local mesh_cred = content_helper.getMatchedContent("uci.mesh_broker.controller_credentials.")
   local sys_vlans = 0
+  local mesh_cred = content_helper.getMatchedContent("uci.mesh_broker.controller_credentials.")
   if mesh_cred or #mesh_cred > 0 then
     local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")
     local ports = (is_bridged_mode or (wan_ifname and wan_ifname[1].value ~= M.wanport)) and "0t 1t 2t 3t 4t" or "0t 1t 2t 3t"
@@ -193,10 +218,14 @@ function M.get_switch_vlans(include_no_vlan,is_bridged_mode)
         switch_vlan[#switch_vlan+1] = {vlan=vlan_id,ports=ports,type=credentials.type}
         vlan_ids[vlan_id] = #switch_vlan
         sys_vlans = sys_vlans + 1
+        for port,state in gmatch(ports,"(%d)(%S*)") do
+          valid_ifnames[format("eth%s.%s",port,vlan_id)] = true
+          switch_vlan[vlan_ids[vlan_id]][format("eth%s",port)] = state or untagged_flag
+        end
       end
     end
   end
-  table.sort(switch_vlan,function (a, b)
+  table.sort(switch_vlan,function (a,b)
     return (tonumber(a.vlan) or -1) < (tonumber(b.vlan) or -1)
   end)
   return switch_vlan,valid_ifnames,sys_vlans
@@ -215,7 +244,14 @@ function M.fix_ifnames(enabled_was,enabled)
   local vlan_usage = {}
   local vlan_ids = {}
   local apply = false
-  for _,interface in pairs(proxy.getPN("uci.network.interface.",true)) do
+  local vlan_1_path = find_vlan_1_path()
+  local vlan_1_ports
+  if vlan_1_path then
+    vlan_1_ports = untaint(proxy.get(vlan_1_path.."ports")[1].value)
+  end
+  local paths = proxy.getPN("uci.network.interface.",true)
+  for k=1,#paths do
+    local interface = paths[k]
     local values = proxy.get(interface.path.."ifname",gsub(interface.path,"^uci","rpc",1).."type")
     if values and values[2].value == "lan" then
       local ifnames = untaint(values[1].value)
@@ -233,11 +269,18 @@ function M.fix_ifnames(enabled_was,enabled)
                 ifnames_new = (ifnames_new and ifnames_new.." " or "")..ifname
               end
             elseif not allow_none_vlan then -- VLANs enabled and none VLAN not allowed, so move base interfaces to VLAN 1
+              if not vlan_1_ports then
+                vlan_1_ports = make_vlan_1(vlan_1_path)
+              end
               local base = match(ifname,"^(eth[0-4])$")
               if base then
-                ifname = base..".1"
+                if find(vlan_1_ports,match(ifname,"eth(%d)"),1,true) then
+                  ifname = base..".1"
+                  ifnames_new = (ifnames_new and ifnames_new.." " or "")..ifname
+                else
+                  log.warning("Dropping %s from %s.ifname - not found in VLAN ID 1 ports (%s)",base,interface.path,vlan_1_ports)
+                end
               end
-              ifnames_new = (ifnames_new and ifnames_new.." " or "")..ifname
             end
           end
           local index,vlan_id = match(ifname,"^eth([0-4])%.(%d+)$")
