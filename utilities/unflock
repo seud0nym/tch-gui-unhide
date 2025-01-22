@@ -19,16 +19,29 @@ Checks for and optionally removes stale service file locks.
 Usage: $0 [options]
 
 Options:
- -r   Removes any found stale locks
- -C   Adds or removes the scheduled cron job
+ -n secs  Sets the number of seconds to determine when a lock is stale.
+            Default if not specified is 60 seconds.
+            Ignored when adding the scheduled cron job.
+ -r       Removes any found stale locks.
+ -C       Adds or removes the scheduled cron job.
 
 EOH
 exit
 }
 
+__SECONDS=60
 __REMOVE=n
-while getopts :rC option; do
+while getopts :n:rC option; do
  case "${option}" in
+  n)  if [ -z "$(echo "$OPTARG" | grep -o '^[0-9]*$')" ]; then
+        echo "ERROR: Number of seconds for -n must be a number greater that 0"
+        exit
+      elif [ "$OPTARG" -lt 0 ]; then
+        echo "ERROR: Number of seconds for -n cannot be negative"
+        exit
+      else
+        __SECONDS="$OPTARG"
+      fi;;
   r)  __REMOVE=y;;
   C)  if grep -q "$SCRIPT" /etc/crontabs/root; then
         sed -e "/$SCRIPT/d" -i /etc/crontabs/root
@@ -46,7 +59,7 @@ done
 services=""
 for pid in $(pgrep flock); do
   blocked=$(( $(date '+%s') - $(date -r /proc/$pid '+%s') ))
-  if [ $blocked -ge 60 ]; then
+  if [ $blocked -ge $__SECONDS ]; then
     fd=$(sed -e 's/^.*flock//' /proc/$pid/cmdline | tr '\0' ' ' | xargs)
     if [ -n "$fd" ]; then
       if echo -n "$fd" | grep -E '[0-9]*'; then
