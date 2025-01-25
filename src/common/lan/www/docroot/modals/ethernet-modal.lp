@@ -709,6 +709,11 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             ngx.print(ui_helper.createInputRadio(T"IPv4 Address Source","proto",ethernet_helper.proto,content["proto"],proto_attr,helpmsg["proto"]))
             ngx.print(ui_helper.createAlertBlock(T"DHCP Assigned IP address should <I>only</I> be used on LAN bridges.",dhcp_warn_attr))
             if cur_ip and cur_ip[2].value ~= "" then
+              if content["proto"] == "dhcp" then
+                content["localdevIP"] = cur_ip[1].value
+                content["localdevmask"] = bridged.maskCIDRToDottedDecimal(cur_ip[2].value)
+                content["localgw"] = cur_ip[3].value
+              end
               ngx.print(
                 ui_helper.createLabel(T"Device IPv4 Address",cur_ip[1].value,dhcp_attr),
                 ui_helper.createLabel(T"Local Network Subnet",bridged.maskCIDRToDottedDecimal(cur_ip[2].value),dhcp_attr),
