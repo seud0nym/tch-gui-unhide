@@ -170,7 +170,7 @@ function M.getBoosterCardHTML(agent_enabled,controller_enabled)
   html[#html+1] = ui_helper.createSimpleLight(agent_enabled,agentStatus)
   if controller_enabled ~= "1" and synced > 0 then
     html[#html+1] = '<p class="subinfos">'
-    html[#html+1] = format("%d of %d SSIDs synced from controller",synced,#ssids)
+    html[#html+1] = format("%d of %d SSIDs synced",synced,#ssids)
     html[#html+1] = '</p>'
   end
   if backhaulStatus then
