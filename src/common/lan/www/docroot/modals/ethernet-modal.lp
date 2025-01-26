@@ -19,7 +19,7 @@ local vlan_helper = require("ethernet-vlan_helper")
 local ngx = ngx
 local session = ngx.ctx.session
 local string = string
-local find,format,gmatch,gsub,match = string.find,string.format,string.gmatch,string.gsub,string.match
+local find,format,gmatch,gsub,match,sub = string.find,string.format,string.gmatch,string.gsub,string.match,string.sub
 local tonumber,tostring = tonumber,tostring
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
@@ -634,7 +634,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
         --region Interfaces menu
         for k=1,#lan_intfs do
           local v = lan_intfs[k]
-          if v.index ~= "loopback" and not (isBridgedMode and (v.index == "lan6" or v.index == "Guest6")) then
+          if v.index ~= "loopback" and not (isBridgedMode and sub(v.index,-1) == "6") then
             local url = "modals/ethernet-modal.lp?intf="..v.index
             local active = v.index == cur_intf and "active" or ""
             ngx.print(format('<li class="%s"><a id="%s" href="#" data-remote="%s">',active,v.index,url))
