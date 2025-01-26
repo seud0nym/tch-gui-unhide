@@ -51,14 +51,16 @@ This script sets up the "booster" device in bridged mode. This configures *all* 
 This script will automate the following functions:
 - Sets the device to Bridged Mode
     - This removes the WAN interfaces and makes all the ethernet ports LAN ports, thereby giving you the ability to plug in up to four wired devices into the "booster" device.
+- Configures the LAN interface to get its IP address via DHCP from the network (usually your primary router)
+    - You can configure a static IP if required after rebooting
 - Disables the EasyMesh Controller
     - There must only be 1 controller on the LAN.
 - Optionally set the EasyMesh logging level (only applicable to Gen 1.1 and Gen 2 devices)
     - You can increase the logging level to troubleshoot issues.
 - Disables WAN Sensing 
-    - Not required, because if there are no alternative WAN interfaces in this scenario.
+    - Not required, because there are no alternative WAN interfaces in this scenario.
 - Disables WAN Supervision
-    - WAN supervision checks the WAN interface status. The primary device (acting as the WAN gateway in this configuration) will not respond correctly to the supervision requests.
+    - WAN supervision checks the WAN interface status, but there is no WAN connection in bridged mode.
 - Disables the 4G Mobile Backup
     - Not required, as there is no WAN connection in a bridged device.
 - Disables the IPv4 and IPv6 DHCP servers
@@ -69,46 +71,28 @@ This script will automate the following functions:
     - If you do not have a "real" Telstra Smart Wi-Fi Booster, the back-haul SSID is superfluous. It is only used for wireless back-haul.
 - Disables QoS
     - Not required as there will be no WAN interface.
-- Disables the DumaOS web servers
-    - To free up some memory
-
-The script can also restore your device from Bridged Mode to Routed Mode (with the -R option).
+- Disables other services (such as the DumaOS web server) not required in bridged/booster mode
+    - To free up some memory.
 
 ### Usage
 ```
 Usage: ./bridged-booster [options]
 
 Options:
- -d          Set LAN IP address, Subnet Mask and Gateway using DHCP
-              (This option is ignored if -R specified)
- -i n.n.n.n  Set LAN IP address to n.n.n.n (default is -i192.168.0.2)
-              The IP address must be in the same LAN subnet as the primary device
-              (This option is ignored if -d specified)
- -m n.n.n.n  Set LAN Subnet Mask to n.n.n.n (default is -m255.255.255.0)
-              The Subnet Mask must be the same as the LAN subnet mask configured 
-              on the primary device.
-              (This option is ignored if -d specified)
- -g n.n.n.n  Set LAN Gateway IP address to n.n.n.n (default is -g192.168.0.1)
-              This is the LAN IP address of the primary device.
-              (This option is ignored if -d or -R specified)
- -n n.n.n.n  Set LAN DNS Server IP address to n.n.n.n
-              Specify multiple times for multiple DNS servers. 
-              Default is the LAN Gateway IP address unless -d is specified, in
-              which case the DNS Servers will be obtained via DHCP.
-              (This option is ignored if -R specified)
- -6          Enable LAN IPv6
-              (This option is ignored if -R specified)
- -l 0-9      Set EasyMesh logging level (only applicable to Gen 1.1 and Gen 2 devices)
+ -6          Enable IPv6
+ -g          Do NOT disable the Guest $GUEST_NETWORK_TEXT
+ -l 0-9      Set EasyMesh logging level
               0=off 2=Default 9=very verbose
- -R          Restore to Routed Mode
- -r          Skip reboot (NOT recommended!)
+ -n          Skip reboot (NOT recommended!)
+ -s          Apply the Samba (NQE) fix to allow the booster device 
+              to run as a file server.
+ -S service  Do NOT disable the specified service
+              (May be specified multiple times)
  -y          Skip the confirmation prompt
 ```
 
 ### Primary Device (Controller) Configuration
-On the primary device, you must manually configure the following items:
-1. You must reserve a static lease for the "Booster" device if the IP address falls within your DHCP range.
-2. Disable the Back-haul SSID, unless you have a "real" Telstra Smart Wi-Fi Booster. It is only used for wireless back-haul, and these scripts configure wired back-haul only.
+On the primary device, you should manually disable the Back-haul SSID, unless you have a "real" Telstra Smart Wi-Fi Booster. It is only used for wireless back-haul, and this script can only configure wired back-haul.
 
 ### Booster Device (Agent) SSIDs Not Updated
 If the booster device does not acquire either or both of the SSIDs, disable and then re-enable the Agent on the booster device. This normally resolves the issue within a minute.
@@ -116,9 +100,12 @@ If the booster device does not acquire either or both of the SSIDs, disable and 
 ### Notes
 1. A reboot is recommended after running the script. (The script will automatically reboot the device unless you specify otherwise.)
 1. You should see the booster device registered on the primary device within 1 minute. 
-1. If the booster device does not report that 3 SSIDs have been synced and/or the controller doesn't recognise the booster, try disabling the Agent on the booster device, save, wait a minute or two, then re-enable.
+1. If the booster device does not report that all the SSIDs have been synced and/or the controller doesn't recognise the booster, try disabling the Agent on the booster device, save, wait a minute or two, then re-enable.
 1. After running the script, on _most_ devices you can move the cable from the LAN port to the WAN port if you wish. This is not mandatory, as when the device is running in bridged mode, all 5 ports are effectively LAN ports. 
     - **NOTE**: Some (maybe most?) Gen 3 devices will _not_ register as a booster when using the WAN port to connect to the controller. The WAN port can still be used as a LAN port; just not as the port to connect to the controller.
+
+### Restoring Booster Device 
+To undo the booster configuration and reset your device, use the [`reset-to-factory-defaults-with-root`](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#reset-to-factory-defaults-with-root) script.
 
 ### How to download and execute the script
 Execute this command on your device via a PuTTY session or equivalent (an active WAN/Internet connection is required):

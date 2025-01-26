@@ -2,12 +2,10 @@
 
 SCRIPT="$(basename $0)"
 GREEN='\033[1;32m'
+GREY='\033[90m'
 ORANGE='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
-
-NQE="$(which nqcsctrl)"
-[ -e /etc/config/qos_tch ] && QoS="qos_tch" || QoS="qos"
 
 # Make sure that we are running on Telstra firmware
 if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]; then
@@ -15,8 +13,12 @@ if [ "$(uci -q get env.var._provisioning_code)" != "Telstra" ]; then
   exit 1
 fi
 
+NQE="$(which nqcsctrl)"
+
 if [ -f /etc/config/multiap ]; then
   EASYMESH="multiap"
+  BHAUL_IF=$(uci show wireless | grep "backhaul='1'" | cut -d. -f2)
+  BHAUL_AP=$(uci show wireless | grep -E "wireless\.ap.*\.iface='$BHAUL_IF'" | cut -d. -f2)
 elif [ -f /etc/config/mesh_broker ]; then
   EASYMESH="airties"
 else
@@ -24,597 +26,331 @@ else
   exit 1
 fi
 
+[ "$(uci -q show network | grep =interface | grep -ci Guest)" = "1" ] && GUEST_NETWORK_TEXT=network || GUEST_NETWORK_TEXT=networks
+
+#region Usage
 usage() {
 cat <<EOH
 Configures the device to act as an EasyMesh "booster" node.
 
+This script will use DHCP to assign IPv4 configuration from the 
+network. You can configure a static IP address after rebooting
+if required.
+
 Usage: $0 [options]
 
 Options:
- -d          Set LAN IP address, Subnet Mask and Gateway using DHCP
-              (This option is ignored if -R specified)
- -i n.n.n.n  Set LAN IP address to n.n.n.n (default is -i$LAN_IP_ADDR)
-              The IP address must be in the same LAN subnet as the primary device
-              (This option is ignored if -d specified)
- -m n.n.n.n  Set LAN Subnet Mask to n.n.n.n (default is -m$LAN_NETMASK)
-              The Subnet Mask must be the same as the LAN subnet mask configured 
-              on the primary device.
-              (This option is ignored if -d specified)
- -g n.n.n.n  Set LAN Gateway IP address to n.n.n.n (default is -g$LAN_GATEWAY)
-              This is the LAN IP address of the primary device.
-              (This option is ignored if -d or -R specified)
- -n n.n.n.n  Set LAN DNS Server IP address to n.n.n.n
-              Specify multiple times for multiple DNS servers. 
-              Default is the LAN Gateway IP address unless -d is specified, in
-              which case the DNS Servers will be obtained via DHCP.
-              (This option is ignored if -R specified)
- -6          Enable LAN IPv6
-              (This option is ignored if -R specified)
+ -6          Enable IPv6
+ -g          Do NOT disable the Guest $GUEST_NETWORK_TEXT
  -l 0-9      Set EasyMesh logging level
               0=off 2=Default 9=very verbose
+ -n          Skip reboot (NOT recommended!)
 EOH
 if [ -n "$NQE" ]; then cat <<EOH
- -s          Apply the Samba (NQE) fix to allow the booster device to run as a
-              file server.
-              (This option is ignored if -R specified)
+ -s          Apply the Samba (NQE) fix to allow the booster device 
+              to run as a file server.
 EOH
 fi
 cat <<EOH
- -R          Restore to Routed Mode
- -r          Skip reboot (NOT recommended!)
+ -S service  Do NOT disable the specified service
+              (May be specified multiple times)
  -y          Skip the confirmation prompt
 
 EOH
 exit
 }
+#endregion Usage
 
-if [ $EASYMESH = multiap ]; then
-  BHAUL_IF=$(uci show wireless | grep "backhaul='1'" | cut -d. -f2)
-  BHAUL_AP=$(uci show wireless | grep -E "wireless\.ap.*\.iface='$BHAUL_IF'" | cut -d. -f2)
-fi
-
-IP_ADDR="$(uci get network.lan.ipaddr)"
-IP_ADDR_SET='n'
-NETMASK="$(uci get network.lan.netmask)"
-NETMASK_SET='n'
-LAN_IPv6="0"
-LAN_IP_ADDR="$IP_ADDR"
-LAN_NETMASK="$NETMASK"
-LAN_GATEWAY="$(echo $LAN_IP_ADDR | cut -d. -f1-3).1"
-LAN_DHCP='n'
-LAN_DNS=''
-MULTIAP_LOGGING_LEVEL=2
+#region Parameters
+GUEST='n'
+IPV6='n'
+LOGLVL='2'
 REBOOT='y'
-RESTORE='n'
 SAMBA='n'
 YES='n'
+for s in dlnad dsl_control dsl_md.sh dumaos firewall intercept iqos lotagent lte-doctor-logger lxc miniupnpd-tch mobiled mud ndhttpd odhcpd openwrt_dsl_agent openwrt_wifi_agent pinholehelper qos qos-tch redirecthelper supervision telemetry-daemon tproxy uhttpd wansensing xdsl
+do
+  [ -e /etc/init.d/$s ] && /etc/init.d/$s enabled 1>/dev/null 2>&1 && SERVICES="$(echo $SERVICES $s | xargs)"
+done
 
-[ "$LAN_IP_ADDR" = "$LAN_GATEWAY" ] && LAN_IP_ADDR="$(echo $LAN_IP_ADDR | cut -d. -f1-3).2"
-[ -f /etc/init.d/ndhttpd ] && NDHTTPD='/etc/init.d/ndhttpd' || NDHTTPD=''
-[ -f /etc/init.d/uhttpd ] && UHTTPD='/etc/init.d/uhttpd' || UHTTPD=''
-
-while getopts :6dg:i:l:m:n:rsyR option; do
+while getopts :6gl:nsSy option; do
   case "${option}" in
-    6)  LAN_IPv6="1";;
-    d)  LAN_DHCP='y';;
-    g)  LAN_GATEWAY="$OPTARG";;
-    i)  LAN_IP_ADDR="$OPTARG";IP_ADDR_SET='y';;
-    l)  MULTIAP_LOGGING_LEVEL="$OPTARG";;
-    m)  LAN_NETMASK="$OPTARG";;
-    n)  if [ -z "$LAN_DNS" ]; then
-          LAN_DNS="$OPTARG"
-        else
-          LAN_DNS="$LAN_DNS $OPTARG"
+    6)  IPv6='y';;
+    g)  GUEST='y';;
+    l)  if [ -n "$(echo "$OPTARG" | tr -d '0-9')" ]; then
+          echo -e "${RED}ERROR! Logging level must be a number between 0 and 9${NC}"
+          exit
+        fi
+        LOGLVL="$OPTARG"
+        if [ "$LOGLVL" -lt 0 -o "$LOGLVL" -gt 9 ]; then
+          echo -e "${RED}ERROR! Logging level must be between 0 and 9${NC}"
+          exit
         fi;;
-    r)  REBOOT='n';;
+    n)  REBOOT='n';;
     s)  [ -n "$NQE" ] && SAMBA='y' || usage;;
+    S)  SERVICES="$(echo $SERVICES | sed -e "s/\b${OPTARG}\b//g" | xargs)";;
     y)  YES='y';;
-    R)  RESTORE='y';;
     *)  usage;;
   esac
 done
+#endregion Parameters
 
-if [ $RESTORE = n ]; then
-  IPv4PATTERN="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-
-  echo "$LAN_IP_ADDR" | grep -q -E $IPv4PATTERN
-  if [ $? -eq 1 ]; then
-    echo -e "${RED}ERROR! Invalid LAN IP address: $LAN_IP_ADDR${NC}"
-    exit
-  fi
-  echo "$LAN_NETMASK" | grep -q -E $IPv4PATTERN
-  if [ $? -eq 1 ]; then
-    echo -e "${RED}ERROR! Invalid LAN Subnet Mask: $LAN_NETMASK${NC}"
-    exit
-  fi
-  echo "$LAN_GATEWAY" | grep -q -E $IPv4PATTERN
-  if [ $? -eq 1 ]; then
-    echo -e "${RED}ERROR! Invalid LAN Gateway IP address: $LAN_GATEWAY${NC}"
-    exit
-  fi
-  if [ "$(echo $LAN_IP_ADDR | cut -d. -f1-3)" != "$(echo $LAN_GATEWAY | cut -d. -f1-3)" ]; then
-    echo -e "${RED}ERROR! LAN IP address $LAN_IP_ADDR must be in the same subnet as the Gateway: $LAN_GATEWAY${NC}"
-    exit
-  fi
-  if [ -z "$LAN_DNS" ]; then
-    [ $LAN_DHCP = "n" ] && LAN_DNS="$LAN_GATEWAY"
-  else
-    for DNS in $LAN_DNS
-    do
-      echo "$DNS" | grep -q -E $IPv4PATTERN
-      if [ $? -eq 1 ]; then
-        echo -e "${RED}ERROR! Invalid DNS Server IP address: $DNS${NC}"
-        exit
-      fi
-    done
-    if [ "$MULTIAP_LOGGING_LEVEL" -lt 0 -o "$MULTIAP_LOGGING_LEVEL" -gt 9 ]; then
-      echo -e "${RED}ERROR! Logging level must be between 0 and 9${NC}"
-      exit
-    fi
-  fi
-
-  echo "About to:"
-  echo -e " - ${ORANGE}DISABLE WAN Sensing${NC}"
-  echo -e " - ${ORANGE}DISABLE WAN Supervision${NC}"
-  echo -e " - ${ORANGE}DISABLE 4G Mobile Backup${NC}"
-  echo -e " - ${ORANGE}DISABLE IPv4 and IPv6 DHCP servers${NC}"
-  echo -e " - ${ORANGE}DISABLE the intercept daemon${NC}"
-  echo -e " - ${ORANGE}DISABLE the Backhaul SSID${NC}"
-  echo -e " - ${ORANGE}DISABLE QoS${NC}"
-  [ -n "$UHTTPD" ] && echo -e " - ${ORANGE}DISABLE DumaOS UHTTP daemon${NC}"
-  [ -n "$NDHTTPD" ] && echo -e " - ${ORANGE}DISABLE DumaOS NDHTTP daemon${NC}"
-  if [ $LAN_DHCP = "y" ]; then
-    echo -e " - ${GREEN}Set LAN IP from DHCP${NC}"
-  else
-    [ $LAN_IP_ADDR != $IP_ADDR ] && echo -e " - ${GREEN}Set LAN IP address to $LAN_IP_ADDR${NC}"
-    [ $LAN_NETMASK != $NETMASK ] && echo -e " - ${GREEN}Set LAN Subnet Mask to $LAN_NETMASK${NC}"
-    echo -e " - ${GREEN}Set LAN Gateway IP address to $LAN_GATEWAY${NC}"
-  fi
-  [ $LAN_DHCP = "n" -a -z "$LAN_DNS" ] && echo -e " - ${GREEN}Set LAN DNS to $(echo $LAN_DNS | tr \"$IFS\" ' ')${NC}"
-  echo -e " - ${GREEN}ENABLE Bridged Mode${NC}"
-  [ "$LAN_IPv6" = "1" ] && echo -e " - ${GREEN}ENABLE LAN IPv6${NC}"
-  if [ -n "$NQE" ]; then
-    if [ $SAMBA = y ]; then
-      echo -e " - ${GREEN}Apply the SAMBA (NQE) fix${NC}"
-    else
-      echo -e " - ${ORANGE}Apply a partial fix for NQE bind errors${NC}"
-    fi
-  fi
-  echo -e " - ${ORANGE}DISABLE EasyMesh Controller${NC}"
-  echo -e " - ${GREEN}ENABLE EasyMesh Agent${NC}"
-  [ $EASYMESH = multiap ] && echo -e " - ${GREEN}ENABLE MultiAP on the bridge${NC}"
-  [ $EASYMESH = multiap ] && echo -e " - ${GREEN}Set MultiAP logging level to $MULTIAP_LOGGING_LEVEL${NC}"
-  echo -e " - ${GREEN}ENABLE MLD Multicast Snooping${NC}"
-  if [ $REBOOT = y ]; then
-    echo -e " - ${ORANGE}REBOOT to apply changes${NC}"
-  else
-    echo
-    echo -e "${RED}WARNING: The device will NOT be rebooted. This is NOT recommended!${NC}"
-  fi
-  if [ $YES = n ]; then
-    echo
-    echo -n "If you wish to proceed, enter y otherwise just press [Enter] to stop: "
-    read
-    [ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
-  fi
-
-  if [ $EASYMESH = multiap ]; then
-    echo -e "${ORANGE}Stop MultiAP agent whilst we reconfigure${NC}"
-    /etc/init.d/multiap_agent stop
-  fi
-
-  echo -e "${ORANGE}Disabling WAN Sensing${NC}"
-  uci set wansensing.global.autofailover='0'
-  uci set wansensing.global.enable='0'
-  uci commit wansensing
-  /etc/init.d/wansensing disable
-
-  echo -e "${ORANGE}Disabling WAN Supervision${NC}"
-  uci set supervision.global.enabled="0"
-  uci commit supervision
-  /etc/init.d/supervision disable
-
-  echo -e "${ORANGE}Disabling 4G Mobile Backup${NC}"
-  uci set mobiled.device_defaults.enabled="0"
-  uci set mobiled.@device[0].enabled="0"
-  uci commit mobiled
-  /etc/init.d/mobiled disable
-  uci set ltedoctor.config.enabled="0"
-  /etc/init.d/lte-doctor-logger disable
-
-  echo -e "${ORANGE}Disabling IPv4 and IPv6 DHCP servers${NC}"
-  uci set dhcp.lan.dhcpv4='disabled'
-  uci set dhcp.lan.dhcpv6='disabled'
-  uci set dhcp.lan.ra='disabled'
-  uci set dhcp.lan.ignore='1'
-  uci commit dhcp
-
-  echo -e "${ORANGE}Disabling intercept daemon${NC}"
-  uci set intercept.config.enabled='0'
-  uci commit intercept
-  /etc/init.d/intercept disable
-
-  echo -e "${ORANGE}Disabling Backhaul SSID${NC}"
-  if [ $EASYMESH = multiap ]; then
-    uci set wireless.$BHAUL_AP.state='0'
-    uci commit wireless
-  else
-    CRED="$(uci show mesh_broker | grep "backhaul='1'" | cut -d. -f1-2)"
-    uci set $CRED.state='0'
-    uci commit mesh_broker
-  fi
-
-  echo -e "${ORANGE}Disabling QoS${NC}"
-  for DEVICE in $(uci show $QoS | grep =device | tr = . | cut -d. -f2); do
-    uci set $QoS.$DEVICE.enable='0'
-  done
-  uci commit $QoS
-
-  if [ -n "$UHTTPD" ]; then
-    echo -e "${ORANGE}Disabling DumaOS UHTTP daemon${NC}"
-    $UHTTPD disable
-  fi
-  if [ -n "$NDHTTPD" ]; then
-    echo -e "${ORANGE}Disabling DumaOS NDHTTP daemon${NC}"
-    $NDHTTPD disable
-  fi
-
-  LAN_DHCP_REQOPTS='1 3 6 43 51 58 59'
-  if [ -n "$LAN_DNS" ]; then
-    echo -e "${GREEN}Setting LAN DNS${NC}"
-    uci -q delete network.lan.dns
-    for dns in $LAN_DNS; do
-      echo -e "${GREEN} -> Adding $dns${NC}"
-      uci add_list network.lan.dns="$dns"
-    done
-    LAN_DHCP_REQOPTS='1 3 43 51 58 59'
-  fi
-  if [ $LAN_DHCP = "y" ]; then
-    echo -e "${GREEN}Configuring LAN IP to be set by DHCP${NC}"
-    uci set network.lan.proto="dhcp"
-    uci set network.lan.reqopts="$LAN_DHCP_REQOPTS"
-  else
-    uci set network.lan.proto="static"
-    if [ $LAN_IP_ADDR != $IP_ADDR ]; then
-      echo -e "${GREEN}Setting LAN IP address to $LAN_IP_ADDR${NC}"
-      uci set network.lan.ipaddr="$LAN_IP_ADDR"
-    fi
-    if [ $LAN_NETMASK != $NETMASK ]; then
-      echo -e "${GREEN}Setting LAN Subnet Mask to $LAN_NETMASK${NC}"
-      uci set network.lan.netmask="$LAN_NETMASK"
-    fi
-    echo -e "${GREEN}Setting LAN Gateway IP address to $LAN_GATEWAY${NC}"
-    uci set network.lan.gateway="$LAN_GATEWAY"
-  fi
-  echo -e "${GREEN}Configuring bridged mode${NC}"
-  uci set network.config.wan_mode='bridge'
-  uci set network.lan.ifname="eth0 eth1 eth2 eth3 eth4"
-  for ifname in ppp ipoe wan wan6 wwan lan.pppoerelay; do
-    uci -q delete network.$ifname
-    uci -q delete dhcp.$ifname
-  done
-  uci -q delete network.@ppp_placeholder[0]
-  if [ "$LAN_IPv6" = "1" ]; then
-    echo -e "${GREEN}Enabling LAN IPv6${NC}"
-    uci set network.lan.ipv6='1'
-    if [ "$(uci -q get network.config.wan_mode)" = "bridge" -a -z "$(uci -q get network.lan6)" ]; then
-      uci set network.lan6=interface
-      uci set network.lan6.auto='0'
-      uci set network.lan6.defaultreqopts='0'
-      uci set network.lan6.forceprefix='0'
-      uci set network.lan6.iface_464xlat='0'
-      uci set network.lan6.ifname='br-lan'
-      uci set network.lan6.ipv6='1'
-      uci set network.lan6.noslaaconly='1'
-      uci set network.lan6.peerdns='1'
-      uci set network.lan6.proto='dhcpv6'
-      uci set network.lan6.reqaddress='force'
-      uci set network.lan6.reqopts='23 17'
-      uci set network.lan6.reqprefix='no'
-      uci set network.lan6.soltimeout='240'
-      uci -q del_list dhcp.main.interface='lan6'
-      uci -q add_list dhcp.main.interface='lan6'
-    fi
-  else
-    echo -e "${GREEN}Disabling LAN IPv6${NC}"
-    uci set network.lan.ipv6='0'
-  fi
-  if [ -n "$NQE" ]; then
-    uci set network.wan=interface
-    if [ $SAMBA = n ]; then
-      echo -e "${ORANGE}Applying partial fix for NQE bind errors${NC}"
-      uci set network.wan.auto='0'
-      uci set network.wan.ifname='lo'
-    else
-      echo -e "${GREEN}Applying SAMBA (NQE) fix${NC}"
-      local_wifi_mac=$(uci get env.var.local_wifi_mac)
-      uci set network.wan.ifname='atm_8_35'
-      uci set network.wan.proto='static'
-      uci set network.wan.netmask="255.255.255.0"
-      uci set network.wan.ipaddr="10.$(printf '%d' 0x$(echo $local_wifi_mac | cut -d: -f4)).$(printf '%d' 0x$(echo $local_wifi_mac | cut -d: -f5)).$(printf '%d' 0x$(echo $local_wifi_mac | cut -d: -f6))"
-      uci set network.wan.gateway="$LAN_GATEWAY"
-    fi
-  fi
-  uci commit network
-  uci commit dhcp
-  uci commit ethernet
-
-  echo -e "${ORANGE}Disabling traffic history${NC}"
-  sed -e '/traffichistory.lua/d' -i /etc/crontabs/root
-
-  if [ $EASYMESH = multiap ]; then
-    echo -e "${ORANGE}Disabling EasyMesh controller${NC}"
-    uci set multiap.controller.enabled='0'
-    echo -e "${GREEN}Enabling MultiAP on bridge${NC}"
-    uci set multiap.al_entity.interfaces="eth0,eth1,eth2,eth3,eth4,wl0,wl1,$BHAUL_IF,wds*"
-    echo -e "${GREEN}Enabling EasyMesh agent${NC}"
-    uci set multiap.agent.enabled='1'
-    echo -e "${GREEN}Set MultiAP logging level to $MULTIAP_LOGGING_LEVEL${NC}"
-    uci set multiap.logging.library="$MULTIAP_LOGGING_LEVEL"
-    uci set multiap.logging.ieee1905="$MULTIAP_LOGGING_LEVEL"
-    uci set multiap.logging.agent="$MULTIAP_LOGGING_LEVEL"
-    uci set multiap.logging.vendor_ipc="$MULTIAP_LOGGING_LEVEL"
-    uci commit multiap
-  else
-    echo -e "${ORANGE}Disabling EasyMesh controller${NC}"
-    uci set mesh_broker.mesh_common.controller_enabled='0'
-    echo -e "${GREEN}Enabling EasyMesh agent${NC}"
-    uci set mesh_broker.mesh_common.agent_enabled='1'
-    uci set wireless.agent.state='1'
-    echo -e "${GREEN}Enabling EasyMesh on bridge${NC}"
-    uci set mesh_broker.mesh_common.interfaces='^lo$|^eth[0-4]$|^wds(([0-9])+[.]){2}([0-9])+$'
-    echo -e "${GREEN}Set EasyMesh logging level to $MULTIAP_LOGGING_LEVEL${NC}"
-    uci set mesh_broker.mesh_broker.log_level="$MULTIAP_LOGGING_LEVEL"
-    uci set mesh_broker.logging.ieee1905="$MULTIAP_LOGGING_LEVEL"
-    uci set mesh_broker.logging.platform="$MULTIAP_LOGGING_LEVEL"
-    uci set mesh_broker.logging.controller="$MULTIAP_LOGGING_LEVEL"
-    uci set mesh_broker.logging.cloud_comm="$MULTIAP_LOGGING_LEVEL"
-    uci set mesh_broker.logging.steer_ng="$MULTIAP_LOGGING_LEVEL"
-    uci commit mesh_broker
-    uci commit wireless
-  fi
-  echo -e "${GREEN}Enabling MLD Multicast Snooping${NC}"
-  uci set mcastsnooping.lan.mld_snooping='1'
-  uci commit mcastsnooping
-
-  if [ $REBOOT = y ]; then
-    echo -e "${ORANGE}Rebooting...${NC}"
-    reboot
-  else
-    echo -e "${ORANGE}Stopping WAN Sensing daemon...${NC}"
-    /etc/init.d/wansensing stop
-    echo -e "${ORANGE}Stopping supervision daemon...${NC}"
-    /etc/init.d/supervision stop
-    echo -e "${ORANGE}Stopping 4G Backup daemons...${NC}"
-    /etc/init.d/mobiled stop
-    /etc/init.d/lte-doctor-logger stop
-    echo -e "${ORANGE}Applying DHCP server changes...${NC}"
-    /etc/init.d/dnsmasq restart
-    /etc/init.d/odhcpd reload
-    echo -e "${ORANGE}Stopping intercept daemon...${NC}"
-    /etc/init.d/intercept stop
-    echo -e "${ORANGE}Applying QoS changes...${NC}"
-    /etc/init.d/$QoS restart
-    if [ -n "$UHTTPD" ]; then
-      echo -e "${ORANGE}Stopping DumaOS UHTTP daemon...${NC}"
-      $UHTTPD stop
-    fi
-    if [ -n "$NDHTTPD" ]; then
-      echo -e "${ORANGE}Stopping DumaOS NDHTTP daemon${NC}"
-      $NDHTTPD stop
-    fi
-    echo -e "${ORANGE}Applying wireless changes...${NC}"
-    /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"
-    echo -e "${ORANGE}Applying network changes...${NC}"
-    /etc/init.d/ethernet reload
-    /etc/init.d/network reload
-    echo -e "${ORANGE}Applying cron changes...${NC}"
-    /etc/init.d/cron restart
-    if [ $EASYMESH = multiap ]; then
-      echo -e "${ORANGE}Applying EasyMesh changes...${NC}"
-      /etc/init.d/multiap_controller restart
-      echo -e "${ORANGE}Restarting EasyMesh agent...${NC}"
-      /etc/init.d/multiap_agent restart
-    else
-      echo -e "${ORANGE}Applying EasyMesh changes...${NC}"
-      /etc/init.d/mesh-broker restart && ubus call mesh_broker.config reload
-    fi
-    echo -e "${ORANGE}Applying Multicast Snooping changes...${NC}"
-    /etc/init.d/mcsnooper restart
-  fi
-else # RESTORE
-  if [ $IP_ADDR_SET = n ]; then
-    LAN_IP_ADDR="$IP_ADDR"
-  fi
-
-  echo "About to:"
-  echo -e " - ${ORANGE}DISABLE MLD Multicast Snooping${NC}"
-  echo -e " - ${GREEN}ENABLE EasyMesh Agent${NC}"
-  echo -e " - ${GREEN}ENABLE EasyMesh Controller${NC}"
-  [ $EASYMESH = multiap ] && echo -e " - ${GREEN}ENABLE MultiAP on the default interfaces${NC}"
-  [ $EASYMESH = multiap ] && echo -e " - ${GREEN}Set MultiAP logging level to $MULTIAP_LOGGING_LEVEL${NC}"
-  echo -e " - ${ORANGE}DISABLE Bridged Mode and revert to Routed Mode${NC}"
-  [ $LAN_IP_ADDR != $IP_ADDR ] && echo -e " - ${GREEN}Set LAN IP address to $LAN_IP_ADDR${NC}"
-  [ $LAN_NETMASK != $NETMASK ] && echo -e " - ${GREEN}Set LAN Subnet Mask to $LAN_NETMASK${NC}"
-  echo -e " - ${ORANGE}REMOVE LAN DNS"
-  echo -e " - ${ORANGE}REMOVE LAN Gateway IP address"
-  [ -n "$UHTTPD" ] && echo -e " - ${GREEN}ENABLE DumaOS UHTTP daemon${NC}"
-  [ -n "$NDHTTPD" ] && echo -e " - ${GREEN}ENABLE DumaOS NDHTTP daemon${NC}"
-  echo -e " - ${GREEN}ENABLE QoS${NC}"
-  echo -e " - ${GREEN}ENABLE the intercept daemon${NC}"
-  echo -e " - ${GREEN}ENABLE IPv4 and IPv6 DHCP servers${NC}"
-  echo -e " - ${GREEN}ENABLE 4G Mobile Backup${NC}"
-  echo -e " - ${GREEN}ENABLE WAN Supervision${NC}"
-  echo -e " - ${GREEN}ENABLE WAN Sensing${NC}"
-
-  if [ $REBOOT = y ]; then
-    echo -e " - ${ORANGE}REBOOT to apply changes${NC}"
-  else
-    echo
-    echo -e "${RED}WARNING: The device will NOT be rebooted. This is NOT recommended!${NC}"
-  fi
-  if [ $YES = n ]; then
-    echo
-    echo -n "If you wish to proceed, enter y otherwise just press [Enter] to stop: "
-    read
-    [ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
-  fi
-
-  echo -e "${ORANGE}Disabling MLD Multicast Snooping${NC}"
-  uci set mcastsnooping.lan.mld_snooping='0'
-  uci commit mcastsnooping
-  if [ $EASYMESH = multiap ]; then
-    echo -e "${GREEN}Enabling MultiAP agent${NC}"
-    uci set multiap.agent.enabled='1'
-    echo -e "${GREEN}Enabling MultiAP controller${NC}"
-    uci set multiap.controller.enabled='1'
-    echo -e "${GREEN}Enabling MultiAP on default interfaces${NC}"
-    uci set multiap.al_entity.interfaces="lo,eth0,eth1,eth2,eth3,wl0,wl1,$BHAUL_IF,wds*"
-    echo -e "${GREEN}Set MultiAP logging level to $MULTIAP_LOGGING_LEVEL${NC}"
-    uci set multiap.logging.library="$MULTIAP_LOGGING_LEVEL"
-    uci set multiap.logging.ieee1905="$MULTIAP_LOGGING_LEVEL"
-    uci set multiap.logging.agent="$MULTIAP_LOGGING_LEVEL"
-    uci set multiap.logging.vendor_ipc="$MULTIAP_LOGGING_LEVEL"
-    uci commit multiap
-  else
-    echo -e "${ORANGE}Enabling EasyMesh controller${NC}"
-    uci set mesh_broker.mesh_common.controller_enabled='1'
-    echo -e "${GREEN}Enabling EasyMesh agent${NC}"
-    uci set mesh_broker.mesh_common.agent_enabled='1'
-    uci set wireless.agent.state='1'
-    echo -e "${GREEN}Enabling EasyMesh on default interfaces${NC}"
-    uci set mesh_broker.mesh_common.interfaces='^lo$|^eth[0-3]$|^wds(([0-9])+[.]){2}([0-9])+$'
-    echo -e "${GREEN}Set EasyMesh logging level to $MULTIAP_LOGGING_LEVEL${NC}"
-    uci set mesh_broker.mesh_broker.log_level="$MULTIAP_LOGGING_LEVEL"
-    uci set mesh_broker.logging.ieee1905="$MULTIAP_LOGGING_LEVEL"
-    uci set mesh_broker.logging.platform="$MULTIAP_LOGGING_LEVEL"
-    uci set mesh_broker.logging.controller="$MULTIAP_LOGGING_LEVEL"
-    uci set mesh_broker.logging.cloud_comm="$MULTIAP_LOGGING_LEVEL"
-    uci set mesh_broker.logging.steer_ng="$MULTIAP_LOGGING_LEVEL"
-    uci commit mesh_broker
-    uci commit wireless
-  fi
-
-  if [ -f /usr/sbin/traffichistory.lua ]; then
-    grep -q "/usr/sbin/traffichistory.lua" /etc/crontabs/root
-    if [ $? -eq 1 ]; then
-      echo -e "${GREEN}Enabling traffic history${NC}"
-      echo "9,19,29,39,49,59 * * * * /usr/sbin/traffichistory.lua" >> /etc/crontabs/root
-    fi
-  fi
-
-  uci set network.lan.proto="static"
-  if [ $LAN_IP_ADDR != $IP_ADDR ]; then
-    echo -e "${GREEN}Setting LAN IP address to $LAN_IP_ADDR${NC}"
-    uci set network.lan.ipaddr="$LAN_IP_ADDR"
-  fi
-  if [ $LAN_NETMASK != $NETMASK ]; then
-    echo -e "${GREEN}Setting LAN Subnet Mask to $LAN_NETMASK${NC}"
-    uci set network.lan.netmask="$LAN_NETMASK"
-  fi
-  echo -e "${ORANGE}Removing LAN Gateway IP address"
-  uci -q delete network.lan.gateway
-  echo -e "${ORANGE}Removing LAN DNS${NC}"
-  uci -q delete network.lan.dns
-  echo -e "${ORANGE}Removing LAN6 interface${NC}"
-  uci -q delete network.lan6
-
-  echo -e "${GREEN}Configuring routed mode${NC}"
-  uci set network.lan.ifname="eth0 eth1 eth2 eth3"
-  uci set ethernet.eth4.wan='1'
-  uci -q delete network.wan
-  uci -q delete network.@ppp_placeholder[0]
-  sh /rom/etc/uci-defaults/tch_0030-network-wan
-  for ifname in ppp ipoe wan6 wwan; do
-    uci set dhcp.$ifname=dhcp
-    uci set dhcp.$ifname.interface="$ifname"
-    uci set dhcp.$ifname.ignore='1'
-  done
-  uci commit dhcp
-  uci commit ethernet
-
-  if [ -n "$UHTTPD" ]; then
-    echo -e "${GREEN}Enabling DumaOS UHTTP daemon${NC}"
-    $UHTTPD enable
-  fi
-  if [ -n "$NDHTTPD" ]; then
-    echo -e "${GREEN}Enabling DumaOS NDHTTP daemon${NC}"
-    $NDHTTPD enable
-  fi
-
-  echo -e "${GREEN}Enabling QoS${NC}"
-  for DEVICE in $(uci show $QoS | grep =device | tr = . | cut -d. -f2); do
-    uci set $QoS.$DEVICE.enable='1'
-  done
-  uci commit $QoS
-
-  echo -e "${GREEN}Enabling intercept daemon${NC}"
-  uci set intercept.config.enabled='1'
-  uci commit intercept
-  /etc/init.d/intercept enable
-
-  echo -e "${GREEN}Enabling IPv4 and IPv6 DHCP servers${NC}"
-  uci set dhcp.lan.dhcpv4='server'
-  uci set dhcp.lan.dhcpv6='server'
-  uci set dhcp.lan.ignore='0'
-  uci commit dhcp
-
-  echo -e "${GREEN}Enabling 4G Mobile Backup${NC}"
-  uci set mobiled.device_defaults.enabled="1"
-  uci set mobiled.@device[0].enabled="1"
-  uci commit mobiled
-  /etc/init.d/mobiled enable
-  uci set ltedoctor.config.enabled="1"
-  /etc/init.d/lte-doctor-logger enable
-
-  echo -e "${GREEN}Enabling WAN Supervision${NC}"
-  uci set supervision.global.enabled="1"
-  uci commit supervision
-  /etc/init.d/supervision enable
-
-  echo -e "${GREEN}Enabling WAN Sensing${NC}"
-  uci set wansensing.global.autofailover='1'
-  uci set wansensing.global.enable='1'
-  uci commit wansensing
-  /etc/init.d/wansensing enable
-
-  if [ $REBOOT = y ]; then
-    echo -e "${ORANGE}Rebooting...${NC}"
-    sync
-    reboot
-  else
-    echo -e "${GREEN}Starting WAN Sensing daemon...${NC}"
-    /etc/init.d/wansensing restart
-    echo -e "${GREEN}Starting supervision daemon...${NC}"
-    /etc/init.d/supervision restart
-    echo -e "${GREEN}Starting 4G Backup daemons...${NC}"
-    /etc/init.d/mobiled restart
-    /etc/init.d/lte-doctor-logger restart
-    echo -e "${GREEN}Applying DHCP server changes...${NC}"
-    /etc/init.d/dnsmasq restart
-    /etc/init.d/odhcpd reload
-    echo -e "${GREEN}Starting intercept daemon...${NC}"
-    /etc/init.d/intercept restart
-    echo -e "${GREEN}Applying QoS changes...${NC}"
-    /etc/init.d/$QoS restart
-    if [ -n "$UHTTPD" ]; then
-      echo -e "${GREEN}Starting DumaOS UHTTP daemon...${NC}"
-      $UHTTPD start
-    fi
-    if [ -n "$NDHTTPD" ]; then
-      echo -e "${GREEN}Starting DumaOS NDHTTP daemon${NC}"
-      $NDHTTPD start
-    fi
-    echo -e "${GREEN}Applying network changes...${NC}"
-    /etc/init.d/ethernet reload
-    /etc/init.d/network reload
-    echo -e "${GREEN}Applying cron changes...${NC}"
-    /etc/init.d/cron restart
-    echo -e "${GREEN}Applying MultiAP changes...${NC}"
-    /etc/init.d/multiap_controller restart
-    echo -e "${ORANGE}Applying Multicast Snooping changes...${NC}"
-    /etc/init.d/mcsnooper restart
-  fi
+echo -e  "INFO:     ${GREEN}About to configure this device as an EasyMesh booster...${NC}"
+[ $GUEST = n ]  && echo -e "WARNING:  ${ORANGE}The Guest $GUEST_NETWORK_TEXT will be DISABLED${NC}" \
+                || echo -e "INFO:     ${GREEN}The Guest $GUEST_NETWORK_TEXT will NOT be disabled${NC}"
+[ $IPv6 = n ]   && echo -e "INFO:     ${GREEN}IPv6 will NOT be enabled!${NC}" \
+                || echo -e "INFO:     ${GREEN}IPv6 will be enabled on the LAN$([ $GUEST = y ] && echo " and Guest $GUEST_NETWORK_TEXT")${NC}"
+if [ -n "$NQE" ]; then
+ [ $SAMBA = n ] && echo -e "WARNING:  ${ORANGE}The SAMBA fix to run as a File Server will NOT be applied${NC}" \
+                || echo -e "INFO:     ${GREEN}The SAMBA fix to run as a File Server will be applied${NC}"
+fi
+echo -e "WARNING:  ${ORANGE}The following services will be STOPPED and DISABLED:${NC} ${GREY}$SERVICES${NC}"
+echo -e "INFO:     ${GREEN}The EasyMesh logging level will be set to $LOGLVL${NC}"
+[ $REBOOT = n ] && echo -e "WARNING:  ${ORANGE}The device will NOT be rebooted. This is ${RED}NOT${NC} recommended!"
+if [ $YES = n ]; then
+  echo -en "ACTION:   ${GREEN}Enter y to continue, or anything else to exit now:${NC} "
+  read
+  [ "$REPLY" != "y" -a "$REPLY" != "Y" ] && exit
 fi
 
-echo -e "${GREEN}Done${NC}"
+#region wansensing
+echo -e "INFO:     ${ORANGE}Disabling WAN Sensing${NC}"
+uci set wansensing.global.autofailover='0'
+uci set wansensing.global.enable='0'
+uci commit wansensing
+#endregion wansensing
+
+#region supervision
+echo -e "INFO:     ${ORANGE}Disabling WAN Supervision${NC}"
+uci set supervision.global.enabled="0"
+uci commit supervision
+#endregion supervision
+
+#region mobiled
+echo -e "INFO:     ${ORANGE}Disabling 4G Mobile Backup${NC}"
+uci set mobiled.device_defaults.enabled="0"
+uci set mobiled.@device[0].enabled="0"
+uci commit mobiled
+uci set ltedoctor.config.enabled="0"
+#endregion mobiled
+
+#region dhcp
+for config in $(uci show dhcp | grep =dhcp | tr = . | cut -d. -f2); do
+  DHCP_IFNAME="$(uci -q get dhcp.$config.interface)"
+  if [ "$(uci -q get dhcp.$config.ignore)" != "1" ]; then
+    echo -e "INFO:     ${ORANGE}Disabling $DHCP_IFNAME DHCPv4 server ${GREY}($config)${NC}"
+    uci set dhcp.$config.dhcpv4='disabled'
+    echo -e "INFO:     ${ORANGE}Disabling $DHCP_IFNAME DHCPv6 server ${GREY}($config)${NC}"
+    uci set dhcp.$config.dhcpv6='disabled'
+    echo -e "INFO:     ${ORANGE}Disabling $DHCP_IFNAME SLAAC/RA ${GREY}($config)${NC}"
+    uci set dhcp.$config.ra='disabled'
+    echo -e "INFO:     ${ORANGE}Disabling $DHCP_IFNAME DHCP configuration ${GREY}($config)${NC}"
+    uci set dhcp.$config.ignore='1'
+    uci commit dhcp
+  fi
+done
+#endregion dhcp
+
+#region intercept
+echo -e "INFO:     ${ORANGE}Disabling intercept daemon${NC}"
+uci set intercept.config.enabled='0'
+uci commit intercept
+#endregion intercept
+
+#region qos
+[ -e /etc/config/qos_tch ] && QoS="qos_tch" || QoS="qos"
+for config in $(uci show $QoS | grep =device | tr = . | cut -d. -f2); do
+  echo -e "INFO:     ${ORANGE}Disabling QoS on device $config${NC}"
+  uci set $QoS.$config.enable='0'
+done
+uci commit $QoS
+#endregion qos
+
+add_ipv6_config() {
+  local config="$1"
+  local ifname="$2"
+  local dhcpcfg="$3"
+  uci set network.${config}.ipv6='1'
+  if [ -z "$(uci -q get network.${config}6)" ]; then
+    uci set network.${config}6=interface
+    uci set network.${config}6.auto='0'
+    uci set network.${config}6.defaultreqopts='0'
+    uci set network.${config}6.forceprefix='0'
+    uci set network.${config}6.iface_464xlat='0'
+    uci set network.${config}6.ifname="$ifname"
+    uci set network.${config}6.ipv6='1'
+    uci set network.${config}6.noslaaconly='1'
+    uci set network.${config}6.peerdns='1'
+    uci set network.${config}6.proto='dhcpv6'
+    uci set network.${config}6.reqaddress='force'
+    uci set network.${config}6.reqopts='23 17'
+    uci set network.${config}6.reqprefix='no'
+    uci set network.${config}6.soltimeout='240'
+    uci -q del_list dhcp.$dhcpcfg.interface="${config}6"
+    uci -q add_list dhcp.$dhcpcfg.interface="${config}6"
+    uci commit network
+    uci commit dhcp
+  fi
+}
+
+#region lan
+echo -e "INFO:     ${GREEN}Configuring LAN IPv4 to be set by DHCP${NC}"
+uci set network.lan.proto="dhcp"
+uci set network.lan.reqopts='1 3 6 43 51 58 59'
+if [ $IPv6 = y ]; then
+  echo -e "INFO:     ${GREEN}Enabling LAN IPv6${NC}"
+  uci set network.lan.ipv6='1'
+  add_ipv6_config "lan" "br-lan" "main"
+else
+  echo -e "INFO:     ${ORANGE}Disabling LAN IPv6${NC}"
+  uci set network.lan.ipv6='0'
+fi
+uci commit network
+#endregion lan
+
+#region guest
+for config in $(uci show network | grep '\.Guest[^6]*[^=]*=interface' | tr = . | cut -d. -f2); do
+  if [ $GUEST = n ]; then
+    echo -e "INFO:     ${ORANGE}Disabling $config IPv4 on boot${NC}"
+    uci set network.$config.auto='0'
+    echo -e "INFO:     ${ORANGE}Disabling $config IPv6 on boot${NC}"
+    uci set network.$config.ipv6='0'
+  elif [ $IPv6 = n ]; then
+    echo -e "INFO:     ${ORANGE}Disabling $config IPv6${NC}"
+    uci set network.$config.ipv6='0'
+  elif [ $IPv6 = y ]; then
+    echo -e "INFO:     ${ORANGE}Enabling $config IPv6${NC}"
+    uci set network.$config.ipv6='1'
+    add_ipv6_config "$config" "$(uci -q get network.$config.ifname)" "$(uci -q get dhcp | grep "interface=.*\b${config}\b" | cut -d. -f2)"
+  fi
+  uci commit network
+done
+#endregion guest
+
+#region bridging
+echo -e "INFO:     ${GREEN}Configuring bridged mode${NC}"
+uci set network.config.wan_mode='bridge'
+uci set network.lan.ifname="eth0 eth1 eth2 eth3 eth4"
+for ifname in ppp ipoe wan wan6 wwan lan.pppoerelay; do
+  uci -q delete network.$ifname
+  uci -q delete dhcp.$ifname
+done
+uci -q delete network.@ppp_placeholder[0]
+
+if [ -n "$NQE" ]; then
+  uci set network.wan=interface
+  if [ $SAMBA = n ]; then
+    echo -e "INFO:     ${ORANGE}Applying partial fix for NQE bind errors${NC}"
+    uci set network.wan.auto='0'
+    uci set network.wan.ifname='lo'
+  else
+    echo -e "INFO:     ${GREEN}Applying SAMBA (NQE) fix${NC}"
+    local_wifi_mac=$(uci get env.var.local_wifi_mac)
+    uci set network.wan.ifname='atm_8_35'
+    uci set network.wan.proto='static'
+    uci set network.wan.netmask="255.255.255.0"
+    uci set network.wan.ipaddr="10.$(printf '%d' 0x$(echo $local_wifi_mac | cut -d: -f4)).$(printf '%d' 0x$(echo $local_wifi_mac | cut -d: -f5)).$(printf '%d' 0x$(echo $local_wifi_mac | cut -d: -f6))"
+    uci set network.wan.gateway="$LAN_GATEWAY"
+  fi
+fi
+uci commit network
+uci commit dhcp
+
+if [ -e /etc/config/xdsl ]; then
+  echo -e "INFO:     ${ORANGE}Disabling xDSL${NC}"
+  uci set xdsl.dsl0.enabled='0'
+  uci commit xdsl
+fi
+
+echo -e "INFO:     ${ORANGE}Disabling traffic history${NC}"
+sed -e 's/^[^#].*traffichistory.lua.*$/#&/' -i /etc/crontabs/root
+sed -e '/traffichistory.lua/d' -i /etc/crontabs/root
+#endregion bridging
+
+#region easymesh
+if [ $EASYMESH = multiap ]; then
+  echo -e "INFO:     ${ORANGE}Disabling EasyMesh controller${NC}"
+  uci set multiap.controller.enabled='0'
+  echo -e "INFO:     ${GREEN}Enabling MultiAP on bridge${NC}"
+  uci set multiap.al_entity.interfaces="eth0,eth1,eth2,eth3,eth4,wl0,wl1,$BHAUL_IF,wds*"
+  echo -e "INFO:     ${GREEN}Enabling EasyMesh agent${NC}"
+  uci set multiap.agent.enabled='1'
+  echo -e "INFO:     ${GREEN}Set MultiAP logging level to $LOGLVL${NC}"
+  uci set multiap.logging.library="$LOGLVL"
+  uci set multiap.logging.ieee1905="$LOGLVL"
+  uci set multiap.logging.agent="$LOGLVL"
+  uci set multiap.logging.vendor_ipc="$LOGLVL"
+  uci commit multiap
+  echo -e "INFO:     ${ORANGE}Disabling Backhaul SSID${NC}"
+  uci set wireless.$BHAUL_AP.state='0'
+  uci commit wireless
+else
+  echo -e "INFO:     ${ORANGE}Disabling EasyMesh controller${NC}"
+  uci set mesh_broker.mesh_common.controller_enabled='0'
+  echo -e "INFO:     ${GREEN}Enabling EasyMesh agent${NC}"
+  uci set mesh_broker.mesh_common.agent_enabled='1'
+  uci set wireless.agent.state='1'
+  echo -e "INFO:     ${GREEN}Enabling EasyMesh on bridge${NC}"
+  uci set mesh_broker.mesh_common.interfaces='^lo$|^eth[0-4]$|^wds(([0-9])+[.]){2}([0-9])+$'
+  echo -e "INFO:     ${GREEN}Set EasyMesh logging level to $LOGLVL${NC}"
+  uci set mesh_broker.mesh_broker.log_level="$LOGLVL"
+  uci set mesh_broker.logging.ieee1905="$LOGLVL"
+  uci set mesh_broker.logging.platform="$LOGLVL"
+  uci set mesh_broker.logging.controller="$LOGLVL"
+  uci set mesh_broker.logging.cloud_comm="$LOGLVL"
+  uci set mesh_broker.logging.steer_ng="$LOGLVL"
+  echo -e "INFO:     ${ORANGE}Disabling Backhaul SSID${NC}"
+  CRED="$(uci show mesh_broker | grep "backhaul='1'" | cut -d. -f1-2)"
+  uci set $CRED.state='0'
+  uci commit mesh_broker
+  uci commit wireless
+fi
+#endregion easymesh
+
+#region mcastsnooping
+echo -e "INFO:     ${GREEN}Enabling MLD Multicast Snooping on LAN${NC}"
+uci set mcastsnooping.lan.mld_snooping='1'
+uci commit mcastsnooping
+#endregion mcastsnooping
+
+#region services
+if [ $REBOOT = n ]; then
+  echo -e "INFO:     ${ORANGE}Applying DHCP server changes...${NC}"
+  /etc/init.d/dnsmasq restart
+  /etc/init.d/odhcpd reload
+  echo -e "INFO:     ${ORANGE}Applying QoS changes...${NC}"
+  /etc/init.d/$QoS restart
+  echo -e "INFO:     ${ORANGE}Applying wireless changes...${NC}"
+  /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"
+  echo -e "INFO:     ${ORANGE}Applying network changes...${NC}"
+  /etc/init.d/network reload
+  echo -e "INFO:     ${ORANGE}Applying cron changes...${NC}"
+  /etc/init.d/cron restart
+  if [ $EASYMESH = multiap ]; then
+    echo -e "INFO:     ${ORANGE}Applying EasyMesh changes...${NC}"
+    /etc/init.d/multiap_controller restart
+    echo -e "INFO:     ${ORANGE}Restarting EasyMesh agent...${NC}"
+    /etc/init.d/multiap_agent restart
+  else
+    echo -e "INFO:     ${ORANGE}Applying EasyMesh changes...${NC}"
+    /etc/init.d/mesh-broker restart && ubus call mesh_broker.config reload
+  fi
+  echo -e "INFO:     ${ORANGE}Applying Multicast Snooping changes...${NC}"
+  /etc/init.d/mcsnooper restart
+fi
+for s in $SERVICES; do
+  if [ -e /etc/init.d/$s ]; then
+    echo -e "INFO:     ${ORANGE}Disabling and stopping $s service...${NC}"
+    /etc/init.d/$s disable
+    /etc/init.d/$s stop 1>/dev/null 2>&1
+  fi
+done
+#endregion services
+
+sync
+if [ $REBOOT = y ]; then
+  echo -e "INFO:     ${ORANGE}Rebooting...${NC}"
+  reboot
+fi
+
+echo -e "INFO:     ${GREEN}Done${NC}"
