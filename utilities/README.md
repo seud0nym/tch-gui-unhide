@@ -270,7 +270,7 @@ Options:
  -b             Only restore the booted bank overlay
  -p             Only restore the not booted bank overlay
  -v             Verbose mode (list files as they are restored)
- -R             Do NOT reboot after restore is completed
+ -n             Do NOT reboot after restore is completed
                   This is the default if only the not booted bank 
                   is being restored.
  -U             Download the latest version of $SCRIPT from GitHub

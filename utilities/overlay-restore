@@ -32,7 +32,7 @@ Options:
  -b             Only restore the booted bank overlay
  -p             Only restore the not booted bank overlay
  -v             Verbose mode (list files as they are restored)
- -R             Do NOT reboot after restore is completed
+ -n             Do NOT reboot after restore is completed
                   This is the default if only the not booted bank is being
                   restored.
  -U             Download the latest version of $SCRIPT from GitHub
@@ -77,14 +77,14 @@ ORANGE='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-while getopts :12bpvRU option; do
+while getopts :12bnpvU option; do
  case "${option}" in
   1)  RESTORE="./bank_1";;
   2)  RESTORE="./bank_2";;
   b)  RESTORE="./$BOOTED";;
+  n)  REBOOT="N";;
   p)  RESTORE="./$NOT_BOOTED";;
   v)  VERBOSE="v";;
-  R)  REBOOT="N";;
   U)  upgrade;;
   *)  usage;;
  esac
