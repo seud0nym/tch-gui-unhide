@@ -44,9 +44,6 @@ Options:
                    image has changed.
  -0              Skip backup of mtd0 if a backup already exists
                    (Ignored for UBIFS partitions)
- --no-drop-cache Skips flushing the RAM page cache after backup
- --no-devices    Skips backing up the mtd or ubifs device partitions
-                   (Ignored unless -c, -e and/or -o specified)
  -l              Write log messages to stderr as well as the system log
  -v              Verbose mode
  -y              Bypass confirmation prompt (answers 'y')
@@ -55,6 +52,10 @@ Options:
  -U              Download the latest version of $SCRIPT from GitHub
                    Do NOT specify any other parameters or options if doing 
                    a version upgrade.
+ --no-drop-cache Skips flushing the RAM page cache after backup
+ --no-devices    Skips backing up the mtd or ubifs device partitions
+                   (Ignored unless -c, -e and/or -o specified)
+ --overlay       Shortcut for -ovly --no-drop-cache --no-devices
 
 EOH
 exit
@@ -88,7 +89,7 @@ DUMP_DEV=Y
 DUMP_ENV=N
 DUMP_OVL=N
 FLUSH=Y
-LOGGER="/usr/bin/logger -t mtd-backup -p"
+LOGGER_OPT="-t mtd-backup -p"
 MTD0=Y
 PATH_ONLY=N
 RECALC_SHA=Y
@@ -99,6 +100,7 @@ while getopts :cd:elosvy0CPU-: option; do
   -)  case "${OPTARG}" in 
         no-devices) DUMP_DEV=N;;
         no-drop-cache) FLUSH=N;; 
+        overlay) DUMP_OVL=Y; DUMP_DEV=N; FLUSH=N; DEBUG=Y; LOGGER_OPT="-s $LOGGER_OPT"; YES=Y;;
         *) usage;; 
       esac;;
   C)  CRON=Y;;
@@ -106,7 +108,7 @@ while getopts :cd:elosvy0CPU-: option; do
   c)  DUMP_CFG=Y;;
   d)  DIR="$(echo $OPTARG | sed -e 's,/$,,')";;
   e)  DUMP_ENV=Y;;
-  l)  LOGGER="/usr/bin/logger -s -t mtd-backup -p";;
+  l)  LOGGER_OPT="-s $LOGGER_OPT";;
   o)  DUMP_OVL=Y;;
   s)  RECALC_SHA=N;;
   v)  DEBUG=Y;;
@@ -117,6 +119,8 @@ while getopts :cd:elosvy0CPU-: option; do
  esac
 done
 shift $((OPTIND-1))
+
+LOGGER="/usr/bin/logger $LOGGER_OPT"
 
 MOUNT_PATH=$(uci get mountd.mountd.path)
 USB="$(ls $MOUNT_PATH | head -n1)"
