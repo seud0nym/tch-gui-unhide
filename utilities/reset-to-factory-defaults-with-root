@@ -944,48 +944,6 @@ if [ -z "$__CWMP" -a -z "$__CWMP_DNS" ]; then
   fi
 fi
 
-if [ -n "$FIRMWARE" ]; then
-  echo -e  "INFO:     $(grep '^Mem\(Free\|Available\)' /proc/meminfo | xargs)"
-  services="watchdog-tch \
-            adblock AdGuardHome autoreset \
-            bqos bulkdata \
-            cron cupsd cwmpd cwmpdboot \
-            ddns dlnad dosprotect dumaos dumaos_qos_tweaks \
-            hotspotd \
-            intercept iperf ipset iqos \
-            led ledfw lotagent lte-doctor-logger lxc lxc.mount \
-            minidlna miniupnpd-tch mmpbxbrcmdect mmpbxd mmpbxd_lite mmpbxfwctl mosquitto mqttjson-services mud multiap_agent multiap_controller multiap_vendorextensions mwan \
-            ndhttpd ndproxy nfcd nginx nqe \
-            pinholehelper \
-            qos qos_tch \
-            ra redirecthelper rsyncd \
-            samba samba-nmbd socat static-wan-routes-monitor supervision sync-adguard-home-data sysntpd \
-            telemetry-daemon tls-thor tod trafficmon transformer tproxy \
-            uhttpd \
-            wansensing wfa-testsuite-daemon wifi-doctor-agent wol \
-            xl2tpd"
-  sp='/-\|'
-  i=1
-  c=0
-  for service in $services; do
-    if [ -x /etc/init.d/$service ]; then
-      if /etc/init.d/$service enabled; then
-        echo -en "\rINFO:     Stopping services: $(echo $sp | cut -c $i) ${GREY}$service${NC}"
-        c=$(( $c - ${#service} ))
-        while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done
-        c=${#service}
-        [ $i -lt 4 ] && i=$(( $i + 1 )) || i=1
-        /etc/init.d/$service stop >/dev/null 2>&1
-      fi
-    fi
-  done
-  echo -en "\rINFO:     Stopped services"
-  c=$(( $c + 31 - 26 ))
-  while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done
-  echo
-  echo -e  "INFO:     $(grep '^Mem\(Free\|Available\)' /proc/meminfo | xargs)"
-fi
-
 if echo "$FIRMWARE" | grep -qE '\.rbi$'; then
   if [ -z "$USB" ]; then
     target="/tmp/$(basename $FIRMWARE .rbi).bin"
@@ -1014,6 +972,42 @@ if echo "$FIRMWARE" | grep -qE '\.rbi$'; then
     exit
   fi
 fi
+
+echo -e  "INFO:     $(grep '^Mem\(Free\|Available\)' /proc/meminfo | xargs)"
+sp='/-\|'; i=1
+
+c=0
+for service in $(ls /etc/rc.d/K* | grep -v 'network\|umount'); do
+  exe=$(basename $(readlink $service))
+  echo -en "\rINFO:     Stopping services: $(echo $sp | cut -c $i) ${GREY}$exe${NC}"
+  c=$(( $c - ${#exe} ))
+  while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done
+  c=${#exe}
+  [ $i -lt 4 ] && i=$(( $i + 1 )) || i=1
+  [ "$exe" = "cwmpd" ] && kill -9 $(pgrep cwmpd) 1>/dev/null 2>&1
+  $service stop 1>/dev/null 2>&1
+done
+echo -en "\rINFO:     Stopped services"
+c=$(( $c + 31 - 26 ))
+while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done; echo
+
+c=0
+lsof /overlay |  awk '/ REG / {print $2}' | uniq  | while read p; do
+  if [ -d "/proc/$p" ]; then
+    exe=$(readlink /proc/$p/exe)
+    echo -en "\rINFO:     Killing writing processes: $(echo $sp | cut -c $i) ${GREY}$exe ($p)${NC}"
+    c=$(( $c - ${#exe} ))
+    while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done
+    c=${#exe}
+    [ $i -lt 4 ] && i=$(( $i + 1 )) || i=1
+    kill -9 $p
+  fi
+done
+echo -en "\rINFO:     Killed writing processes"
+c=$(( $c + 31 - 26 ))
+while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done; echo
+
+echo -e  "INFO:     $(grep '^Mem\(Free\|Available\)' /proc/meminfo | xargs)"
 
 if [ -n "$FIRMWARE" -a "$RBI" = "N" ]; then
   TARGET_BANK=/overlay/${NOT_BOOTED}
