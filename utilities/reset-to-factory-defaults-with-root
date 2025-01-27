@@ -170,6 +170,7 @@ comparable_version() {
 rtfd_script() {
 # Based on https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access
 cat <<END
+#!/bin/sh
 exec 1>/tmp/${UCI_DEFAULTS}.out 2>/tmp/${UCI_DEFAULTS}.err
 echo root:$__ROOTPWD | chpasswd
 sed -i 's#/root:.*\$#/root:/bin/ash#' /etc/passwd
@@ -177,17 +178,17 @@ sed -i -e 's/#//' -e 's#askconsole:.*\$#askconsole:/bin/ash#' /etc/inittab
 for r in \$(uci show firewall | grep "dest_port='22'" | cut -d. -f1-2); do 
   [ "\$(uci -q get \$r.target)" = DROP -a "\$(uci -q get \$r.src)" = lan -a -z "\$(uci -q get \$r.dest)" ] && uci -q set \$r.target='ACCEPT'
 done
-uci -q delete dropbear.afg
-uci add dropbear dropbear
-uci rename dropbear.@dropbear[-1]=afg
-uci set dropbear.afg.enable='1'
-uci set dropbear.afg.Interface='lan'
-uci set dropbear.afg.Port='22'
-uci set dropbear.afg.IdleTimeout='600'
-uci set dropbear.afg.PasswordAuth='on'
-uci set dropbear.afg.RootPasswordAuth='on'
-uci set dropbear.afg.RootLogin='1'
-uci set dropbear.lan.enable='0'
+if [ -z "\$(uci -q get dropbear.lan)" ]; then
+  uci add dropbear dropbear
+  uci rename dropbear.@dropbear[-1]=lan
+fi
+uci set dropbear.lan.enable='1'
+uci set dropbear.lan.Interface='lan'
+uci set dropbear.lan.Port='22'
+uci set dropbear.lan.IdleTimeout='600'
+uci set dropbear.lan.PasswordAuth='on'
+uci set dropbear.lan.RootPasswordAuth='on'
+uci set dropbear.lan.RootLogin='1'
 /etc/init.d/dropbear enable
 END
 [ -n "$BRIDGE_CFG" ]   && echo "$BRIDGE_CFG"
@@ -976,24 +977,52 @@ fi
 echo -e  "INFO:     $(grep '^Mem\(Free\|Available\)' /proc/meminfo | xargs)"
 sp='/-\|'; i=1
 
+for pid in $(pgrep flock); do
+  fd=$(sed -e 's/^.*flock//' /proc/$pid/cmdline | tr '\0' ' ' | xargs)
+  if [ -n "$fd" ]; then
+    if echo -n "$fd" | grep -E '[0-9]*'; then
+      lockfile=$(readlink /proc/$pid/fd/$fd)
+    else
+      lockfile="$fd"
+    fi
+    ppid=$(grep -i ^PPId /proc/$pid/status | cut -d: -f2 | xargs)
+    service=$(basename $(grep -oE '/etc/init.d/[^\0]*' /proc/$ppid/cmdline) 2>/dev/null)
+    if [ -n "$service" ]; then
+      if [ -e "$lockfile" ]; then
+        pids=$($LSOF $lockfile | grep $lockfile | grep -v "\b$pid\b\|\b$ppid\b" | tr -s ' ' | cut -d' ' -f2 | xargs echo $pid $ppid)
+      else
+        pids="$pid $ppid"
+      fi
+      echo -en "\033[2K\rINFO:     Clearing file lock on $service service ${GREY}($lockfile)${NC}"
+      rm $lockfile 1>/dev/null 2>&1
+      for p in $pids; do
+        kill -9 $pids 1>/dev/null 2>&1
+      done
+    fi
+  fi
+done
+echo -e "\033[2K\rINFO:     Cleared service file locks${NC}"
+
 for service in $(ls /etc/rc.d/K* | grep -v 'network\|umount'); do
-  exe=$(basename $(readlink $service))
+  exe=$(basename $(readlink $service) 2>/dev/null)
   echo -en "\033[2K\rINFO:     Stopping services: $(echo $sp | cut -c $i) ${GREY}$exe${NC}"
-  [ $i -lt 4 ] && i=$(( $i + 1 )) || i=1
   [ "$exe" = "cwmpd" ] && kill -9 $(pgrep cwmpd) 1>/dev/null 2>&1
   $service stop 1>/dev/null 2>&1
+  [ $i -lt 4 ] && i=$(( $i + 1 )) || i=1
 done
 echo -e "\033[2K\rINFO:     Stopped services"
 
-lsof /overlay |  awk '/ REG / {print $2}' | uniq  | while read p; do
-  if [ -d "/proc/$p" ]; then
-    exe=$(readlink /proc/$p/exe)
-    echo -en "\033[2K\rINFO:     Killing writing processes: $(echo $sp | cut -c $i) ${GREY}$exe ($p)${NC}"
-    [ $i -lt 4 ] && i=$(( $i + 1 )) || i=1
-    kill -9 $p
-  fi
-done
-echo -e "\033[2K\rINFO:     Killed writing processes"
+if [ -n "$(which lsof)" ]; then
+  lsof /overlay | awk '/ REG /{print $2}' | uniq | while read p; do
+    if [ -d "/proc/$p" ]; then
+      exe=$(readlink /proc/$p/exe)
+      echo -en "\033[2K\rINFO:     Killing writing processes: $(echo $sp | cut -c $i) ${GREY}$exe ($p)${NC}"
+      kill -9 $p
+      [ $i -lt 4 ] && i=$(( $i + 1 )) || i=1
+    fi
+  done
+  echo -e "\033[2K\rINFO:     Killed writing processes"
+fi
 
 echo -e  "INFO:     $(grep '^Mem\(Free\|Available\)' /proc/meminfo | xargs)"
 
