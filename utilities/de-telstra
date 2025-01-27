@@ -20725,7 +20725,7 @@ echo -e [$SCRIPT]: Applying service changes...${GREY}
 [ \( "$PS_NOW" = "0" -o "$__PRNTR" = "0" \) -a -e /etc/init.d/cupsd ] && { echo "[$SCRIPT]:  -> /etc/init.d/cupsd stop"; /etc/init.d/cupsd stop; } >$__STDOUT 2>&1
 [ "$PS_NOW" = "0" -a "$__PRNTR" = "1" -a -e /etc/init.d/cupsd ] && { echo "[$SCRIPT]:  -> /etc/init.d/cupsd enable"; /etc/init.d/cupsd enable; } >$__STDOUT 2>&1
 [ $SRV_bulkdata -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/bulkdata disable"; /etc/init.d/bulkdata disable; echo "[$SCRIPT]:  -> /etc/init.d/bulkdata stop"; /etc/init.d/bulkdata stop; } >$__STDOUT 2>&1
-[ $SRV_cwmp -gt 0 -a -e /etc/init.d/cwmpd ] && { echo "[$SCRIPT]:  -> /etc/init.d/cwmpd disable"; /etc/init.d/cwmpd disable; echo "[$SCRIPT]:  -> /etc/init.d/cwmpd stop"; /etc/init.d/cwmpd stop; } >$__STDOUT 2>&1
+[ $SRV_cwmp -gt 0 -a -e /etc/init.d/cwmpd ] && { echo "[$SCRIPT]:  -> /etc/init.d/cwmpd disable"; /etc/init.d/cwmpd disable; echo "[$SCRIPT]:  -> /etc/init.d/cwmpd stop"; kill -9 $(pgrep cwmpd) 1>/dev/null 2>&1; /etc/init.d/cwmpd stop; } >$__STDOUT 2>&1
 [ $SRV_dumaos -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/dumaos enable"; /etc/init.d/dumaos enable; } >$__STDOUT 2>&1
 [ $SRV_hotspot -gt 0 -a -e /etc/init.d/hotspotd ] && { echo "[$SCRIPT]:  -> /etc/init.d/hotspotd disable"; /etc/init.d/hotspotd disable; echo "[$SCRIPT]:  -> /etc/init.d/hotspotd stop"; /etc/init.d/hotspotd stop; } >$__STDOUT 2>&1
 [ $SRV_intercept -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/intercept enable"; /etc/init.d/intercept enable; } >$__STDOUT 2>&1
