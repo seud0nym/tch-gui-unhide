@@ -81,8 +81,9 @@ cat <<EOM
  Miscellaneous Options:
  -r               Restore changed GUI files to their original state (config changes are NOT restored)
                     When specifying the -r option, it must be the ONLY parameter specifed.
- -y               Bypass confirmation prompt (answers 'y')
  -V               Show the release number of this script, the current installed release, and the latest available release on GitHub
+                    When specifying the -V option, it must be the ONLY parameter specifed.
+ -y               Bypass confirmation prompt (answers 'y')
 
 NOTE #1: Options do not need to be re-specified when re-running the script: current state will be 'remembered'
          between executions (unless you execute with the -r option, which will remove all state information)
