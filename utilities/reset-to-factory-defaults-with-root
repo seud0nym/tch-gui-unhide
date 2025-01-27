@@ -976,36 +976,24 @@ fi
 echo -e  "INFO:     $(grep '^Mem\(Free\|Available\)' /proc/meminfo | xargs)"
 sp='/-\|'; i=1
 
-c=0
 for service in $(ls /etc/rc.d/K* | grep -v 'network\|umount'); do
   exe=$(basename $(readlink $service))
-  echo -en "\rINFO:     Stopping services: $(echo $sp | cut -c $i) ${GREY}$exe${NC}"
-  c=$(( $c - ${#exe} ))
-  while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done
-  c=${#exe}
+  echo -en "\033[2K\rINFO:     Stopping services: $(echo $sp | cut -c $i) ${GREY}$exe${NC}"
   [ $i -lt 4 ] && i=$(( $i + 1 )) || i=1
   [ "$exe" = "cwmpd" ] && kill -9 $(pgrep cwmpd) 1>/dev/null 2>&1
   $service stop 1>/dev/null 2>&1
 done
-echo -en "\rINFO:     Stopped services"
-c=$(( $c + 31 - 26 ))
-while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done; echo
+echo -e "\033[2K\rINFO:     Stopped services"
 
-c=0
 lsof /overlay |  awk '/ REG / {print $2}' | uniq  | while read p; do
   if [ -d "/proc/$p" ]; then
     exe=$(readlink /proc/$p/exe)
-    echo -en "\rINFO:     Killing writing processes: $(echo $sp | cut -c $i) ${GREY}$exe ($p)${NC}"
-    c=$(( $c - ${#exe} ))
-    while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done
-    c=${#exe}
+    echo -en "\033[2K\rINFO:     Killing writing processes: $(echo $sp | cut -c $i) ${GREY}$exe ($p)${NC}"
     [ $i -lt 4 ] && i=$(( $i + 1 )) || i=1
     kill -9 $p
   fi
 done
-echo -en "\rINFO:     Killed writing processes"
-c=$(( $c + 31 - 26 ))
-while [ $c -gt 0 ]; do echo -n " "; c=$(( $c - 1 )); done; echo
+echo -e "\033[2K\rINFO:     Killed writing processes"
 
 echo -e  "INFO:     $(grep '^Mem\(Free\|Available\)' /proc/meminfo | xargs)"
 
