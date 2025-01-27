@@ -89,9 +89,15 @@ fi
 echo -e "[$SCRIPT]: Preserving password files and SSH configuration to prevent root loss on RTFD"
 [ -f /etc/rtfd_persistent_filelist.conf ] || touch /etc/rtfd_persistent_filelist.conf
 for f in /etc/passwd /etc/shadow /etc/config/dropbear /etc/dropbear/* /etc/rc.d/*dropbear; do
-  grep -q -E "^$f$" /etc/rtfd_persistent_filelist.conf
-  if [ $? -eq 1 ]; then
+  if ! grep -qE "^$f$" /etc/rtfd_persistent_filelist.conf; then
     echo "$f">>/etc/rtfd_persistent_filelist.conf
   fi
 done
 
+handler="$(uci get button.reset.handler)"
+if ! echo "$handler" | grep -qe '--soft'; then
+  echo -e "[$SCRIPT]: Configuring reset button to do soft RTFD"
+  exec_uci set button.reset.handler="$(echo $handler | sed -e 's/rtfd/& --soft/')"
+  uci commit button
+fi
+unset handler
