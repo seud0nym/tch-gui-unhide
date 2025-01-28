@@ -14,7 +14,7 @@ local items = {
 if isBridgedMode then
   items[2][2] = T"LAN Interfaces"
 else
-  items[#items+1] = {"firewall-dns_int-modal.lp",T"Hijacking"}
+  items[#items+1] = {"dns-hijacking-modal.lp",T"Hijacking"}
 end
 
 local uri = ngx.var.uri

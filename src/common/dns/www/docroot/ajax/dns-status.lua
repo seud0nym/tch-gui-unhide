@@ -123,7 +123,7 @@ if not isBridgedMode then
   end
   local dns6_int_state = proxy.get("uci.tproxy.rule.@dnsv6.enabled")
   local dns4_int_state = "0"
-  local dns_int_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/firewall-dns_int-modal.lp" data-id="firewall-dns_int-modal"'
+  local dns_int_modal_link = 'class="modal-link" data-toggle="modal" data-remote="/modals/dns-hijacking-modal.lp" data-id="dns-hijacking-modal"'
   for _,v in ipairs(proxy.getPN("uci.firewall.redirect.",true)) do
     local path = v.path
     local values = proxy.get(path.."name",path.."enabled")

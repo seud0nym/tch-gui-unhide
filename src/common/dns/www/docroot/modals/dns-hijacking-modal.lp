@@ -370,7 +370,7 @@ local monitor6_attr = {
 ngx.print(ui_helper.createHeader(T"DNS",true,false),'\
 <div class="modal-body update">\
   '); lp.include("tabs-dns.lp"); ngx.print('\
-  <form class="form-horizontal" method="post" action="modals/firewall-dns_int-modal.lp">',
+  <form class="form-horizontal" method="post" action="modals/dns-hijacking-modal.lp">',
     ui_helper.createMessages(message_helper.popMessages()),'\
     <legend>',T"DNS Hijacking",'</legend>\
     <legend><small>',T"IPv4",'</small></legend>',
