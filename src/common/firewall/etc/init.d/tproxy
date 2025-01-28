@@ -31,19 +31,34 @@ __exec() { # Executes parameters 2 onwards after logging the parameters for debu
 
 __add_rule() { # Adds the rules as defined by the specified configuration 
   local cfg="$1"
-  local enabled family proto listenIP listenPort destIP destPort ipset_cfg ipset name direction cmd p created
+  local enabled family proto listenIP listenPort destIP destPort targetPort ipset_cfg ipset name direction cmd p created
 
-  config_get enabled "$cfg" enabled
+  config_get enabled "$cfg" enabled 0
 
   [ "$enabled" != "1" ] && return 1
 
-  config_get family "$cfg" family
-  config_get proto "$cfg" proto
-  config_get listenIP "$cfg" listenIP
-  config_get listenPort "$cfg" listenPort
-  config_get destIP "$cfg" destIP
-  config_get destPort "$cfg" destPort
-  config_get ipset_cfg "$cfg" ipset
+  ###############################################################################################################################################
+  # Configuration options:                                                                                                                      #
+  #                                                                                                                                             #
+  # family:     "ipv4" or "ipv6" (REQUIRED)                                                                                                     #
+  # proto:      "tcp", "udp" or "tcp udp" (REQUIRED)                                                                                            #
+  # listenIP:   The IP address on which tproxy should listen (OPTIONAL - Defaults to 127.0.0.1 or ::1 depending on family)                      #
+  # listenPort: The port on which tproxy should listen (REQUIRED)                                                                               #
+  # destIP:     The IP address to which tproxy should forward the proxied packets (OPTIONAL - Defaults to 127.0.0.1 or ::1 depending on family) #
+  # destPort:   The original destination port to which packets were originally sent (REQUIRED)                                                  #
+  # targetPort: The destination port to which tproxy should forward the proxied packets (OPTIONAL - Defaults to destPort if not specified)      #
+  # ipset:      The ipset configuration containing inclusion/exclusion IP src/dest addresses (OPTIONAL)                                         #
+  #               e.g. "!dns6_xcptn src" means exclude packets sourced from the IP addresses in the dns6_xcptn ipset                            #
+  ###############################################################################################################################################
+
+  config_get family "$cfg" "family"
+  config_get proto "$cfg" "proto"
+  config_get listenIP "$cfg" "listenIP"
+  config_get listenPort "$cfg" "listenPort"
+  config_get destIP "$cfg" "destIP"
+  config_get destPort "$cfg" "destPort"
+  config_get targetPort "$cfg" "targetPort" "$destPort"
+  config_get ipset_cfg "$cfg" "ipset"
 
   # Validate options
   [ "$proto" != "tcp" -a "$proto" != "udp" -a "$proto" != "tcp udp" ] && { __log "SKIPPED Rule $cfg: Invalid proto '$proto'"; return 1; }
@@ -68,6 +83,7 @@ __add_rule() { # Adds the rules as defined by the specified configuration
   esac
 
   [ -z "$(echo "$destPort" | grep -o '^[0-9]*$')" -o $destPort -lt 1 -o $destPort -gt 65535 ] && { __log "SKIPPED Rule $cfg: Invalid port number for destPort '$destPort'"; return 1; }
+  [ -z "$(echo "$targetPort" | grep -o '^[0-9]*$')" -o $targetPort -lt 1 -o $targetPort -gt 65535 ] && { __log "SKIPPED Rule $cfg: Invalid port number for targetPort '$targetPort'"; return 1; }
   [ -z "$(echo "$listenPort" | grep -o '^[0-9]*$')" -o $listenPort -lt 1 -o $listenPort -gt 65535 ] && { __log "SKIPPED Rule $cfg: Invalid port number for listenPort '$listenPort'"; return 1; }
 
   if [ -n "$ipset_cfg" ]; then
@@ -88,7 +104,7 @@ __add_rule() { # Adds the rules as defined by the specified configuration
   created=0
   for p in $proto; do
     # Mark all other (new) packets and use TPROXY to pass into handler
-    __exec [__add_rule] $cmd -t mangle -I PREROUTING --protocol $p --dport $destPort $ipset -m comment --comment "!tproxy-go/$cfg@$destIP" -j TPROXY --on-port $listenPort --on-ip $listenIP --tproxy-mark 0x1/0x1 && created=$(( $created + 1 ))
+    __exec [__add_rule] $cmd -t mangle -I PREROUTING --protocol $p --dport $destPort $ipset -m comment --comment "!tproxy-go/$cfg@$destIP@$targetPort" -j TPROXY --on-port $listenPort --on-ip $listenIP --tproxy-mark 0x1/0x1 && created=$(( $created + 1 ))
     # Use DIVERT to prevent existing connections going through TPROXY twice (We are INSERTing rather than ADDing rules, so we have to configure the DIVERT AFTER the TPROXY so that it ends up in the rule list FIRST!)
     __exec [__add_rule] $cmd -t mangle -I PREROUTING --protocol $p -m socket -m comment --comment "!tproxy-go/$cfg" -j DIVERT && created=$(( $created + 1 ))
   done
