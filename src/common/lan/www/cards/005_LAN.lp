@@ -35,7 +35,7 @@ if session:hasAccess("/modals/ethernet-modal.lp") then
   content_helper.getExactContent(lan)
 
   local vlan_enabled = vlan_helper.get_vlan_enabled()
-  local switch_vlan,_,sys_vlans = vlan_helper.get_switch_vlans(false,isBridgedMode)
+  local switch_vlan,_,sys_vlans = vlan_helper.get_switch_vlans(isBridgedMode)
 
   local adguard = {
     enabled = "rpc.gui.init.files.@AdGuardHome.active",

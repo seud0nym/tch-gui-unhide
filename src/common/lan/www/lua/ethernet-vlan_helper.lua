@@ -10,21 +10,15 @@ local find,format,gmatch,match,gsub = string.find,string.format,string.gmatch,st
 local untaint = string.untaint
 
 -- These constants are updated by 165-VLAN - DO NOT modify these lines without verifying that the substitutions will work correctly!
-local allow_none_vlan = false
 local cpu_port = "8t"
 local untagged_flag = "*"
 local switch_config = "bcmsw_ext"
 local switch_device = "bcmsw_ext"
 local switch_path = "uci.network.switch.@bcmsw_ext."
 
-local M = {}
-
-local wanport = proxy.get("sys.eth.port.@eth4.status")
-if wanport and wanport[1].value then
-  M.wanport = "eth4"
-else
-  M.wanport = "eth3"
-end
+local M = {
+  wanport = "eth4"
+}
 
 local function find_vlan_1_path()
   local vlan_1
@@ -41,12 +35,7 @@ local function find_vlan_1_path()
 end
 
 local function make_vlan_1(vlan_1_path)
-  local ports
-  if M.wanport == "eth4" then
-    ports = "0"..untagged_flag.." 1"..untagged_flag.." 2"..untagged_flag.." 3"..untagged_flag.." "..cpu_port
-  else
-    ports = "0"..untagged_flag.." 1"..untagged_flag.." 2"..untagged_flag.." "..cpu_port
-  end
+  local ports = "0"..untagged_flag.." 1"..untagged_flag.." 2"..untagged_flag.." 3"..untagged_flag.." "..cpu_port
   if vlan_1_path then
     proxy_helper.set(vlan_1_path.."ports",ports)
   else
@@ -125,8 +114,8 @@ function M.get_cpu_port()
 end
 
 function M.get_none_vlan_label(enabled)
-  if not allow_none_vlan and enabled == "1" then
-    return nil
+  if enabled == "1" then
+    return T"None"
   end
   return T""
 end
@@ -160,7 +149,7 @@ function M.get_switch_path(option)
   return switch_path..option
 end
 
-function M.get_switch_vlans(include_no_vlan,is_bridged_mode)
+function M.get_switch_vlans(is_bridged_mode)
   local vlan_ids = {}
   local valid_ifnames = {}
   local switch_vlan
@@ -176,33 +165,6 @@ function M.get_switch_vlans(include_no_vlan,is_bridged_mode)
       for port,state in gmatch(gsub(untaint(v.ports),cpu_port,""),"(%d)(%S*)") do
         valid_ifnames[format("eth%s.%s",port,vlan_id)] = state or untagged_flag
         v[format("eth%s",port)] = state or untagged_flag
-      end
-    end
-  end
-  if include_no_vlan then
-    local interfaces = proxy.getPN("uci.network.interface.",true)
-    for i=1,#interfaces do
-      local interface = interfaces[i]
-      local values = proxy.get(interface.path.."ifname",gsub(interface.path,"^uci","rpc",1).."type")
-      if values and values[2].value == "lan" then
-        local ifnames = untaint(values[1].value)
-        if find(ifnames,"eth[0-4]") then
-          for ifname in gmatch(ifnames,"(%S+)") do
-            local p = match(ifname,"^eth([0-4])$")
-            if p then
-              local base = format("eth%s",p)
-              local port = p..untagged_flag
-              valid_ifnames[base] = true
-              if not vlan_ids["None"] then
-                switch_vlan[#switch_vlan+1] = {vlan="None",ports=port}
-                vlan_ids["None"] = #switch_vlan
-              elseif not find(switch_vlan[vlan_ids["None"]].ports,port,1,true) then
-                switch_vlan[vlan_ids["None"]].ports = switch_vlan[vlan_ids["None"]].ports.." "..port
-              end
-              switch_vlan[vlan_ids["None"]][base] = untagged_flag
-            end
-          end
-        end
       end
     end
   end
@@ -268,7 +230,7 @@ function M.fix_ifnames(enabled_was,enabled)
                 used[ifname] = true
                 ifnames_new = (ifnames_new and ifnames_new.." " or "")..ifname
               end
-            elseif not allow_none_vlan then -- VLANs enabled and none VLAN not allowed, so move base interfaces to VLAN 1
+            elseif vlan_1_path then -- VLANs enabled, so move base interfaces to VLAN 1
               if not vlan_1_ports then
                 vlan_1_ports = make_vlan_1(vlan_1_path)
               end
@@ -278,7 +240,7 @@ function M.fix_ifnames(enabled_was,enabled)
                   ifname = base..".1"
                   ifnames_new = (ifnames_new and ifnames_new.." " or "")..ifname
                 else
-                  log.warning("Dropping %s from %s.ifname - not found in VLAN ID 1 ports (%s)",base,interface.path,vlan_1_ports)
+                  ifnames_new = (ifnames_new and ifnames_new.." " or "")..base
                 end
               end
             end
