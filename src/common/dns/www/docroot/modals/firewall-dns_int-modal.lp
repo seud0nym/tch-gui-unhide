@@ -261,159 +261,146 @@ if not vhelpmsg then
   vhelpmsg = {}
 end
 
-local ipv4cols,ipv4excdata,ipv4opts,ipv4exchelpmsg
-if dns_int and enabledv4 == "1" then
-  local ipv4pattern = "^(((([1]?\\d)?\\d|2[0-4]\\d|25[0-5])\\.){3}(([1]?\\d)?\\d|2[0-4]\\d|25[0-5]))$"
-  local ipv4validation = {
-    ip = vSIDIP,
-  }
-  ipv4cols = {
-    {
-      header = T"IPv4 Addresses Excluded from Hijacking",
-      name = "ip",
-      param = "ip",
-      type = "text",
-      attr = { input = { class="span2",maxlength="15",pattern = ipv4pattern },autocomplete=hosts_ac },
-      unique = true
-    },
-    {
-      header = T"Host Name",
-      param = "hostname",
-      readonly = true,
-    },
-  }
-  ipv4opts = {
-    canEdit = true,
-    canAdd = true,
-    canDelete = true,
-    tableid = "excludedIPv4",
-    basepath = "rpc.gui.firewall.dns_intercept.exceptions.@.",
-    createMsg = T"Add Excluded IPv4 Address",
-    onAdd = function(index,record)
-      proxy.set("rpc.gui.firewall.dns_intercept.exceptions."..index..".ip",record.ip)
-    end
-  }
-  ipv4excdata,ipv4exchelpmsg = post_helper.handleTableQuery(ipv4cols,ipv4opts,ip2hostnameFilter,nil,ipv4validation)
-end
+local ipv4pattern = "^(((([1]?\\d)?\\d|2[0-4]\\d|25[0-5])\\.){3}(([1]?\\d)?\\d|2[0-4]\\d|25[0-5]))$"
+local ipv4validation = {
+  ip = vSIDIP,
+}
+local ipv4cols = {
+  {
+    header = T"IPv4 Addresses Excluded from Hijacking",
+    name = "ip",
+    param = "ip",
+    type = "text",
+    attr = { input = { class="span2",maxlength="15",pattern = ipv4pattern },autocomplete=hosts_ac },
+    unique = true
+  },
+  {
+    header = T"Host Name",
+    param = "hostname",
+    readonly = true,
+  },
+}
+local ipv4opts = {
+  canEdit = true,
+  canAdd = true,
+  canDelete = true,
+  tableid = "excludedIPv4",
+  basepath = "rpc.gui.firewall.dns_intercept.exceptions.@.",
+  createMsg = T"Add Excluded IPv4 Address",
+  onAdd = function(index,record)
+    proxy.set("rpc.gui.firewall.dns_intercept.exceptions."..index..".ip",record.ip)
+  end
+}
+local ipv4excdata,ipv4exchelpmsg = post_helper.handleTableQuery(ipv4cols,ipv4opts,ip2hostnameFilter,nil,ipv4validation)
 
-local ipv6cols,ipv6excdata,ipv6opts,ipv6exchelpmsg
-if dns_int and enabledv6 == "1" then
-  local ipv6validation = {
-    ip = function(value)
-      for ip in splitter.each(value) do
-        local validv6,errmsg = vSIIP6(ip)
-        if not validv6 then
-          return nil,errmsg
-        end
-      end
-      return true
-    end,
-  }
-  ipv6cols = {
-    {
-      header = T"IPv6 Addresses Excluded from Hijacking",
-      name = "ip",
-      param = "ip",
-      type = "text",
-      attr = { input = { class="span3",placeholder="Multiple separated by spaces allowed" },autocomplete=hosts6_ac },
-      unique = true
-    },
-    {
-      header = T"Host Name",
-      param = "hostname",
-      readonly = true,
-    },
-  }
-  ipv6opts = {
-    canEdit = true,
-    canAdd = true,
-    canDelete = true,
-    tableid = "excludedIPv6",
-    basepath = "rpc.gui.firewall.dns6_intercept.exceptions.@.",
-    createMsg = T"Add Excluded IPv6 Address",
-    onAdd = function(index,record)
-      local first = true
-      for ip in splitter.each(record.ip) do
-        if first then
-          proxy_helper.set("rpc.gui.firewall.dns6_intercept.exceptions."..index..".ip",ip)
-          proxy.apply()
-          first = false
-        else
-          local next = proxy.add("rpc.gui.firewall.dns6_intercept.exceptions.")
-          proxy_helper.set("rpc.gui.firewall.dns6_intercept.exceptions."..next..".ip",ip)
-          proxy.apply()
-        end
+local ipv6validation = {
+  ip = function(value)
+    for ip in splitter.each(value) do
+      local validv6,errmsg = vSIIP6(ip)
+      if not validv6 then
+        return nil,errmsg
       end
     end
-  }
-  ipv6excdata,ipv6exchelpmsg = post_helper.handleTableQuery(ipv6cols,ipv6opts,ip2hostnameFilter,nil,ipv6validation)
-end
+    return true
+  end,
+}
+local ipv6cols = {
+  {
+    header = T"IPv6 Addresses Excluded from Hijacking",
+    name = "ip",
+    param = "ip",
+    type = "text",
+    attr = { input = { class="span3",placeholder="Multiple separated by spaces allowed" },autocomplete=hosts6_ac },
+    unique = true
+  },
+  {
+    header = T"Host Name",
+    param = "hostname",
+    readonly = true,
+  },
+}
+local ipv6opts = {
+  canEdit = true,
+  canAdd = true,
+  canDelete = true,
+  tableid = "excludedIPv6",
+  basepath = "rpc.gui.firewall.dns6_intercept.exceptions.@.",
+  createMsg = T"Add Excluded IPv6 Address",
+  onAdd = function(index,record)
+    local first = true
+    for ip in splitter.each(record.ip) do
+      if first then
+        proxy_helper.set("rpc.gui.firewall.dns6_intercept.exceptions."..index..".ip",ip)
+        proxy.apply()
+        first = false
+      else
+        local next = proxy.add("rpc.gui.firewall.dns6_intercept.exceptions.")
+        proxy_helper.set("rpc.gui.firewall.dns6_intercept.exceptions."..next..".ip",ip)
+        proxy.apply()
+      end
+    end
+  end
+}
+local ipv6excdata,ipv6exchelpmsg = post_helper.handleTableQuery(ipv6cols,ipv6opts,ip2hostnameFilter,nil,ipv6validation)
 
-ngx.print(ui_helper.createHeader(T"DNS",true,false))   ngx.print('\
+local enabled_attr = {
+  input = {
+    class = "monitor-changes"
+  }
+}
+local monitor_attr = {
+  group = {
+    class = "monitor-enabledv4 monitor-1"
+  },
+  input = {
+    class = "span2",
+    placeholder = "Leave blank for Device"
+  }
+}
+local monitor6_attr = {
+  group = {
+    class = "monitor-enabledv6 monitor-1"
+  },
+  input = {
+    class = "span3",
+    placeholder = "Leave blank for Device"
+  }
+}
+
+ngx.print(ui_helper.createHeader(T"DNS",true,false),'\
 <div class="modal-body update">\
-'); lp.include("tabs-dns.lp"); ngx.print('\
-  <form class="form-horizontal" method="post" action="modals/firewall-dns_int-modal.lp">\
-    ');
-    ngx.print(ui_helper.createMessages(message_helper.popMessages()))
-    ngx.print('<legend>'); ngx.print( T"DNS Hijacking" ); ngx.print('</legend>');
-    ngx.print('<legend><small>'); ngx.print( T"IPv4" ); ngx.print('</small></legend>');
-    local enabled_attr = {
-      input = {
-        class = "monitor-changes"
-      }
-    }
-    local monitor_attr = {
-      group = {
-        class = "monitor-enabledv4 monitor-1"
-      },
-      input = {
-        class = "span2",
-        placeholder = "Leave blank for Device"
-      }
-    }
-    local monitor6_attr = {
-      group = {
-        class = "monitor-enabledv6 monitor-1"
-      },
-      input = {
-        class = "span3",
-        placeholder = "Leave blank for Device"
-      }
-    }
-    ngx.print(ui_helper.createSwitch(T"Enabled","enabledv4",enabledv4,enabled_attr))
-    ngx.print(ui_helper.createInputText(T"DNS Server Address<span class='icon-question-sign' title='IPv4 address of the DNS server to which hijacked requests will be sent. Leave blank to have this device handle IPv4 DNS.'></span>","dest_ipv4",dest_ipv4,monitor_attr,helpmsg["dest_ipv4"]))
-    if dns_int and enabledv4 == "1" then
-      ngx.print(
-        '<div class="control-group monitor-enabledv4 monitor-1 monitor-show-enabledv4" style="display; block">',
-        '<label class="control-label">Excluded IPs</label><div class="controls">',
-        ui_helper.createTable(ipv4cols,ipv4excdata,ipv4opts,monitor_attr,ipv4exchelpmsg),
-        '</div></div>'
-      )
-    end
-    ngx.print('<legend><small>'); ngx.print( T"IPv6" ); ngx.print('</small></legend>');
+  '); lp.include("tabs-dns.lp"); ngx.print('\
+  <form class="form-horizontal" method="post" action="modals/firewall-dns_int-modal.lp">',
+    ui_helper.createMessages(message_helper.popMessages()),'\
+    <legend>',T"DNS Hijacking",'</legend>\
+    <legend><small>',T"IPv4",'</small></legend>',
+      ui_helper.createSwitch(T"Enabled","enabledv4",enabledv4,enabled_attr),
+      ui_helper.createInputText(T"DNS Server Address<span class='icon-question-sign' title='IPv4 address of the DNS server to which hijacked requests will be sent. Leave blank to have this device handle IPv4 DNS.'></span>","dest_ipv4",dest_ipv4,monitor_attr,helpmsg["dest_ipv4"]),'\
+      <div class="control-group" style="display; block">\
+      <label class="control-label">',T"Excluded IPs",'</label><div class="controls">',
+      ui_helper.createTable(ipv4cols,ipv4excdata,ipv4opts,nil,ipv4exchelpmsg),'\
+      </div></div>\
+    <legend><small>',T"IPv6",'</small></legend>');
     if ipdetails.ip6addr == "" then
       enabledv6 = "0"
-      ngx.print(ui_helper.createLabel(T"Enabled","No: No permanent IPv6 LAN address found"),
+      ngx.print(
+        ui_helper.createLabel(T"Disabled","No IPv6 LAN address"),
         ui_helper.createSimpleInputHidden("enabledv6",enabledv6),
         ui_helper.createSimpleInputHidden("dest_ipv6",""))
     else
-      ngx.print(ui_helper.createSwitch(T"Enabled","enabledv6",enabledv6,enabled_attr))
-      ngx.print(ui_helper.createInputText(T"DNS Server Address<span class='icon-question-sign' title='IPv6 address of the DNS server to which hijacked requests will be sent. Leave blank to have this device handle IPv6 DNS.'></span>","dest_ipv6",dest_ipv6,monitor6_attr,helpmsg["dest_ipv6"]))
-    end
-    if dns_int and enabledv6 == "1" then
-      ngx.print(ui_helper.createSwitch(T"Verbose Logging","verbose",content["verbose"],monitor6_attr,vhelpmsg["verbose"]))
       ngx.print(
-        '<div class="control-group monitor-enabledv6 monitor-1 monitor-show-enabledv6" style="display; block">',
-        '<label class="control-label">Excluded IPs</label><div class="controls">',
-        ui_helper.createTable(ipv6cols,ipv6excdata,ipv6opts,monitor6_attr,ipv6exchelpmsg),
-        '</div></div>'
-      )
+        ui_helper.createSwitch(T"Enabled","enabledv6",enabledv6,enabled_attr),
+        ui_helper.createInputText(T"DNS Server Address<span class='icon-question-sign' title='IPv6 address of the DNS server to which hijacked requests will be sent. Leave blank to have this device handle IPv6 DNS.'></span>","dest_ipv6",dest_ipv6,monitor6_attr,helpmsg["dest_ipv6"]),
+        ui_helper.createSwitch(T"Verbose Logging","verbose",content["verbose"],monitor6_attr,vhelpmsg["verbose"]),'\
+        <div class="control-group" style="display; block">\
+        <label class="control-label">',T"Excluded IPs",'</label><div class="controls">',
+        ui_helper.createTable(ipv6cols,ipv6excdata,ipv6opts,nil,ipv6exchelpmsg),'\
+        </div></div>')
     end
     ngx.print('\
   </form>\
   <script src="/js/modal-busy.js"></script>\
-</div>\
-');
+</div>');
 if dns_int then
   if enabledv4 == "1" and dest_ipv4 ~= "" then
     ngx.print('<script>$("#excludedIPv4 td:contains('); ngx.print(T(dest_ipv4)); ngx.print(')").siblings(":last").children(".btn-table-edit,.btn-table-delete").hide();</script>');
