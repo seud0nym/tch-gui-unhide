@@ -48,7 +48,7 @@ local isBridgedMode = bridged.isBridgedMode()
 local lan_ula = ethernet_helper.get_lan_ula()
 
 local cur_intf,cur_dhcp_intf,all_intfs,lan_intfs,ppp_dev,ppp_intf,dnsmasq_path,wireless_radio = ethernet_helper.get_interfaces()
-local switch_vlan,valid_vlan_ifnames,sys_vlans = vlan_helper.get_switch_vlans(false,isBridgedMode)
+local switch_vlan,valid_vlan_ifnames,sys_vlans = vlan_helper.get_switch_vlans(isBridgedMode)
 local local_dev_ip = post_data and post_data["localdevIP"] or proxy.get("rpc.network.interface.@"..cur_intf..".ipaddr")[1].value
 local wanport = vlan_helper.wanport
 
@@ -700,14 +700,8 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                 class = "monitor-changes",
               },
             }
-            local dhcp_warn_attr = {
-              alert = {
-                class = "monitor-proto monitor-dhcp alert-warn",
-              },
-            }
             --endregion attributes
             ngx.print(ui_helper.createInputRadio(T"IPv4 Address Source","proto",ethernet_helper.proto,content["proto"],proto_attr,helpmsg["proto"]))
-            ngx.print(ui_helper.createAlertBlock(T"DHCP Assigned IP address should <I>only</I> be used on LAN bridges.",dhcp_warn_attr))
             if cur_ip and cur_ip[2].value ~= "" then
               if content["proto"] == "dhcp" then
                 content["localdevIP"] = cur_ip[1].value
@@ -806,29 +800,16 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
               <th style="width:50%;text-align:right;vertical-align:bottom;">',(vlan_enabled[1].value == "1" or sys_vlans > 0) and T"VLAN ID" or "",'</th>\
               <th style="width:65px;">',ui_helper.createSwitchPort("1",eth.state_0,eth.speed_0),'</th>\
               <th style="width:65px;">',ui_helper.createSwitchPort("2",eth.state_1,eth.speed_1),'</th>\
-              <th style="width:65px;">',ui_helper.createSwitchPort("3",eth.state_2,eth.speed_2),'</th>')
-              if wanport == "eth3" then
-                ngx.print('\
-                  <th>',ui_helper.createSwitchPort("WAN",eth.state_3,eth.speed_3,{socket={class="red"}}),'</th>\
-                ')
-              else
-                ngx.print('\
-                  <th style="width:65px;">',ui_helper.createSwitchPort("4",eth.state_3,eth.speed_3),'</th>\
-                  <th>',ui_helper.createSwitchPort("WAN",eth.state_4,eth.speed_4,{socket={class="red"}}),'</th>\
-                ')
-              end
-              ngx.print('\
+              <th style="width:65px;">',ui_helper.createSwitchPort("3",eth.state_2,eth.speed_2),'</th>\
+              <th style="width:65px;">',ui_helper.createSwitchPort("4",eth.state_3,eth.speed_3),'</th>\
+              <th>',ui_helper.createSwitchPort("WAN",eth.state_4,eth.speed_4,{socket={class="red"}}),'</th>\
               <th style="width:50%;"></th>\
             </tr>')
             --endregion header
-            local lastport = 3
+            local lastport = 4
             local unused = 0
             local untagged_flag = vlan_helper.get_untagged_flag()
-            local used = {eth0={[".count"]=0},eth1={[".count"]=0},eth2={[".count"]=0},eth3={[".count"]=0},}
-            if wanport == "eth4" then
-              used.eth4={[".count"]=0}
-              lastport = 4
-            end
+            local used = {eth0={[".count"]=0},eth1={[".count"]=0},eth2={[".count"]=0},eth3={[".count"]=0},eth4={[".count"]=0}}
             local interfaces = proxy.getPN("uci.network.interface.",true)
             for k=1,#interfaces do
               local v = interfaces[k]
@@ -855,18 +836,16 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             end
             --endregion functions
             local none_vlan_label = vlan_helper.get_none_vlan_label(vlan_enabled[1].value)
-            if none_vlan_label then
-              ngx.print('<tr><td style="width:50%;text-align:right;">',none_vlan_label,'</td>')
-              for i=0,lastport,1 do
-                local base = format("eth%d",i)
-                if used[base][cur_intf] == "None" or used[base][".count"] == 0 then
-                  add_port_checkbox(base)
-                else
-                  ngx.print(ban_circle)
-                end
+            ngx.print('<tr><td style="width:50%;text-align:right;">',none_vlan_label,'</td>')
+            for i=0,lastport,1 do
+              local base = format("eth%d",i)
+              if used[base][cur_intf] == "None" then
+                add_port_checkbox(base)
+              else
+                ngx.print(ban_circle)
               end
-              ngx.print('<td style="width:50%;"></td></tr>')
             end
+            ngx.print('<td style="width:50%;"></td></tr>')
             if vlan_enabled[1].value == "1" or sys_vlans > 0 then
               for k=1,#switch_vlan do
                 local v = switch_vlan[k]

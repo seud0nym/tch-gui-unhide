@@ -23,12 +23,10 @@ local gVNIR = post_helper.getValidateNumberInRange
 
 local cpu_port = vlan_helper.get_cpu_port()
 local untagged_flag = vlan_helper.get_untagged_flag()
-local wan_ifname = proxy.get("uci.network.interface.@wan.ifname")
-local wan_port_available = isBridgedMode or not wan_ifname or wan_ifname[1].value ~= "eth4"
 
 local enabled_was = proxy.get(vlan_helper.get_switch_path("enable_vlan"))
 if not enabled_was then
-  enabled_was = {{value = "0", missing = true}}
+  enabled_was = {{value="0",missing=true}}
 end
 
 local tagged_state = {
@@ -37,7 +35,7 @@ local tagged_state = {
   { "t",T"Tagged" },
 }
 
-local tagged_state_attr = { select = { class="span2", style="font-family:FontAwesome,Roboto,Noto,sans-serif;" } }
+local tagged_state_attr = {select={class="span2",style="font-family:FontAwesome,Roboto,Noto,sans-serif;"}}
 local eth = vlan_helper.get_port_states()
 
 local vlan_columns = {
@@ -78,14 +76,6 @@ local vlan_columns = {
     attr = tagged_state_attr,
   },
   {
-    header = concat(ui_helper.createSwitchPort("WAN",eth.state_4,eth.speed_4,{socket={class="red"}})),
-    name = "p4",
-    type = "select",
-    values = tagged_state,
-    attr = tagged_state_attr,
-    readonly = not wan_port_available,
-  },
-  {
     header = "Used By",
     name = "usage",
     type = "text",
@@ -106,19 +96,18 @@ end
 
 local check_range = gVNIR(2,4095)
 local check_state = gVIES(tagged_state)
---local check_vlans = vlan_helper.get_switch_vlans(true,isBridgedMode)
+local check_vlans = vlan_helper.get_switch_vlans(isBridgedMode)
 
-local function validatePort(value) --,object,key)
+local function validatePort(value,object,key)
   local valid,errmsg = check_state(value)
-  --[[
   if valid and value == untagged_flag then
     local port = match(key,"p(%d)")
+    local base = "eth"..port
     local vlan = object.vlan
     for k=1,#check_vlans do
       local v = check_vlans[k]
       if v.vlan ~= vlan then
-        local at = find(v.ports,port,nil,true)
-        if at and sub(v.ports,at+1,at+1) ~= "t" then
+        if v[base] and v[base] ~= "t" then
           valid = nil
           errmsg = string.format("Port %d is already untagged in VLAN %s",tonumber(port)+1,v.vlan)
           break
@@ -126,7 +115,6 @@ local function validatePort(value) --,object,key)
       end
     end
   end
-  --]]
   return valid,errmsg
 end
 
@@ -144,7 +132,6 @@ local vlan_valid = {
   p1 = validatePort,
   p2 = validatePort,
   p3 = validatePort,
-  p4 = validatePort,
 }
 
 local content,content_helpmsg
@@ -258,7 +245,7 @@ else
     if vlan_usage[vlan_id] then
       v[vlan_column_index.usage] = vlan_usage[vlan_id].interfaces
     end
-    for port=0,4,1 do
+    for port=0,3,1 do
       v[vlan_column_index.p0+port] = "X"
     end
     for p in gmatch(ports,"(%S+)") do
@@ -277,7 +264,7 @@ end
 
 local system_vlan_data = {}
 local system_vlan_options = {}
-local switch_vlan,_,system_vlans = vlan_helper.get_switch_vlans(false,isBridgedMode)
+local switch_vlan,_,system_vlans = vlan_helper.get_switch_vlans(isBridgedMode)
 if system_vlans then
   for i=1,#switch_vlan do
     local type = switch_vlan[i].type
@@ -287,7 +274,6 @@ if system_vlans then
       for port=0,3,1 do
         v[vlan_column_index.p0+port] = "t"
       end
-      v[vlan_column_index.p0+4] = isBridgedMode and "t" or "X"
       v[vlan_column_index.usage] = (type == "guest") and "Guest" or "lan"
       system_vlan_data[#system_vlan_data+1] = v
     end

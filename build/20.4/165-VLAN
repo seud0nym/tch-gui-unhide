@@ -1,6 +1,5 @@
 echo -e "[$SCRIPT]: Updating VLAN constants"
 sed \
-  -e 's/^\(local allow_none_vlan =\).*$/\1 true/' \
   -e 's/^\(local cpu_port =\).*$/\1 "5t"/' \
   -e 's/^\(local untagged_flag =\).*$/\1 ""/' \
   -e 's/^\(local switch_config =\).*$/\1 nil/' \

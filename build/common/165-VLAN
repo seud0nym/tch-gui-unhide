@@ -11,3 +11,15 @@ sed \
   -e 's/\(vlan_\)\(eth[0-4]\)\(_\)\([[:digit:]]*\)/\2.\4/g' \
   -i /etc/config/network
 SRV_network=$(( $SRV_network + 1 ))
+
+if uci show network | grep -qE 'eth4\.[0-9]+\b'; then
+  echo -e "[$SCRIPT]: Moving WAN port out of VLANs"
+  sed -Ee 's/eth4\.[0-9]+\b/eth4/g' -i /etc/config/network
+  SRV_network=$(( $SRV_network + 1 ))
+  for switch_vlan in $(uci show network | grep -E "\.ports='.*4" | cut -d. -f1-2); do
+    ports=$(uci -q get ${switch_vlan}.ports)
+    exec_uci set ${switch_vlan}.ports="$(echo "$ports" | sed -e 's/4[^ ]*//' | xargs)"
+    exec_uci commit network
+    SRV_network=$(( $SRV_network + 1 ))
+  done
+fi
