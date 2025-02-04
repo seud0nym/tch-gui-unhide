@@ -86,7 +86,7 @@ local dest_ipv4
 local dest_ipv6
 local dns_int = path["Intercept-DNS"] or path["Redirect-DNS"]
 if dns_int then
-  if cronjob and path["Masquerade-DNS"] and path["Allow-DoT"] and path["Allow-DoTv6"] and path["Deny-DoT"] and path["Allow-DoH"] and path["Allow-DoHv6"] and path["Deny-DoH"] and path["Deny-DoHv6"] and path["dns_xcptn"] and path["doh"] and path["doh6"] and path["/usr/sbin/ipsets-restore"] and path["dns6_xcptn"] and path["/usr/sbin/tproxy-firewall"] and path["Intercept-DNSv6"] then
+  if cronjob and path["Masquerade-DNS"] and path["Allow-DoT"] and path["Allow-DoTv6"] and path["Deny-DoT"] and path["Allow-DoH"] and path["Allow-DoHv6"] and path["Deny-DoH"] and path["Deny-DoHv6"] and path["dns_xcptn"] and path["doh"] and path["doh6"] and path["/usr/sbin/ipsets-restore"] and path["dns6_xcptn"] and path["/usr/sbin/tproxy-firewall"] and path["Intercept-DNSv6"] and path["/usr/share/tch-gui-unhide/No-Hijack-DHCP-DNSv4.sh"] then
     local state = proxy.get(dns_int.."enabled",path["Masquerade-DNS"].."dest_ip",path["Intercept-DNSv6"].."enabled",path["Intercept-DNSv6"].."destIP")
     if state then
       if state[1].value and state[1].value ~= "0" then
@@ -124,28 +124,10 @@ if dns_int then
 
         if validv4 then
           if new_enabledv4 == "0" then
-            proxy_helper.set(dns_int.."dest_ip","")
             proxy_helper.set(path["Masquerade-DNS"].."enabled",new_enabledv4)
-            proxy_helper.set(path["Masquerade-DNS"].."dest_ip","")
             dest_ipv4 = ""
           elseif new_enabledv4 == "1" then
-            local dhcp_option6_path
-            local dhcp_options_path = "uci.dhcp.dhcp.@lan.dhcp_option."
-            local dhcp_options = proxy.get(dhcp_options_path)
-            if dhcp_options then
-              for _,o in ipairs(dhcp_options) do
-                if find(untaint(o.value),"^6,") == 1 then
-                  dhcp_option6_path = o.path.."value"
-                  break
-                end
-              end
-            end
-            if not dhcp_option6_path then
-              local index = proxy.add(dhcp_options_path)
-              dhcp_option6_path = dhcp_options_path.."@"..index..".value"
-            end
-            if new_dest_ipv4 and new_dest_ipv4 ~= "" then
-              proxy_helper.set(dhcp_option6_path,"6,"..new_dest_ipv4)
+            if new_dest_ipv4 then
               proxy_helper.set(dns_int.."dest_ip",new_dest_ipv4)
               proxy_helper.set(dns_int.."name","Redirect-DNS")
               proxy_helper.set(path["Masquerade-DNS"].."dest_ip",new_dest_ipv4)
@@ -155,16 +137,13 @@ if dns_int then
               end
               dest_ipv4 = new_dest_ipv4
             else
-              proxy_helper.set(dhcp_option6_path,"6,"..ipdetails.gw)
-              proxy_helper.set(dns_int.."dest_ip","")
               proxy_helper.set(dns_int.."name","Intercept-DNS")
-              proxy_helper.set(path["Masquerade-DNS"].."dest_ip","")
               proxy_helper.set(path["Masquerade-DNS"].."enabled","0")
               dest_ipv4 = ""
             end
           end
           proxy_helper.set(dns_int.."enabled",new_enabledv4)
-          local paths = { "Allow-DoT","Allow-DoH","Deny-DoT","Deny-DoH","dns_xcptn","doh","/usr/sbin/ipsets-restore" }
+          local paths = { "Allow-DoT","Allow-DoH","Deny-DoT","Deny-DoH","dns_xcptn","doh","/usr/sbin/ipsets-restore","/usr/share/tch-gui-unhide/No-Hijack-DHCP-DNSv4.sh" }
           for _,p in ipairs(paths) do
             proxy_helper.set(path[p].."enabled",new_enabledv4)
           end
@@ -187,18 +166,9 @@ if dns_int then
         if validv6 then
           if new_enabledv6 == "0" or (new_enabledv6 == "1" and ipdetails.ip6addr == "") then
             new_enabledv6 = "0"
-            dest_ipv6 = ""
             proxy_helper.set(path["Intercept-DNSv6"].."enabled",new_enabledv6)
-            proxy_helper.set(path["Intercept-DNSv6"].."destIP",dest_ipv6)
           elseif new_enabledv6 == "1" then
-            local lan_dns_path = "uci.dhcp.dhcp.@lan.dns."
-            local first_lan_dns_svr = lan_dns_path.."@1."
-            while (proxy.get(first_lan_dns_svr)) do
-              proxy.del(first_lan_dns_svr)
-            end
-            if new_dest_ipv6 and new_dest_ipv6 ~= "" then
-              local idx = proxy.add(lan_dns_path)
-              proxy_helper.set(lan_dns_path.."@"..idx..".value",new_dest_ipv6)
+            if new_dest_ipv6 then
               proxy_helper.set(path["Intercept-DNSv6"].."destIP",new_dest_ipv6)
               local hosts = proxy.getPN("rpc.hosts.host.",true)
               for _,v in ipairs(hosts) do
@@ -212,15 +182,12 @@ if dns_int then
               end
               dest_ipv6 = new_dest_ipv6
             else
-              proxy_helper.set(path["Intercept-DNSv6"].."destIP","")
               local ula = proxy.get("rpc.network.interface.@lan.ipv6uniquelocaladdr")
               if ula and ula[1].value ~= "" then
                 local v = untaint(ula[1].value)
                 if v:find("/") then
                   v = string.match(v,"(.+)/%d+")
                 end
-                local idx = proxy.add(lan_dns_path)
-                proxy_helper.set(lan_dns_path.."@"..idx..".value",v)
               end
               dest_ipv6 = ""
             end
@@ -366,18 +333,25 @@ local monitor6_attr = {
     placeholder = "Leave blank for Device"
   }
 }
+local warn_attr = {
+  alert = {
+    class = "alert-warn",
+    style = "text-align:center",
+  },
+}
 
 ngx.print(ui_helper.createHeader(T"DNS",true,false),'\
 <div class="modal-body update">\
   '); lp.include("tabs-dns.lp"); ngx.print('\
   <form class="form-horizontal" method="post" action="modals/dns-hijacking-modal.lp">',
     ui_helper.createMessages(message_helper.popMessages()),'\
-    <legend>',T"DNS Hijacking",'</legend>\
+    <legend>',T"DNS Hijacking",'</legend>',
+      ui_helper.createAlertBlock(T("DNS Requests to servers defined on the Local Network lan interface screen will <B>NOT</B> be hijacked!"),warn_attr),'\
     <legend><small>',T"IPv4",'</small></legend>',
       ui_helper.createSwitch(T"Enabled","enabledv4",enabledv4,enabled_attr),
       ui_helper.createInputText(T"DNS Server Address<span class='icon-question-sign' title='IPv4 address of the DNS server to which hijacked requests will be sent. Leave blank to have this device handle IPv4 DNS.'></span>","dest_ipv4",dest_ipv4,monitor_attr,helpmsg["dest_ipv4"]),'\
       <div class="control-group" style="display; block">\
-      <label class="control-label">',T"Excluded IPs",'</label><div class="controls">',
+      <label class="control-label">',T"Excluded LAN IPs",'</label><div class="controls">',
       ui_helper.createTable(ipv4cols,ipv4excdata,ipv4opts,nil,ipv4exchelpmsg),'\
       </div></div>\
     <legend><small>',T"IPv6",'</small></legend>');
@@ -393,7 +367,7 @@ ngx.print(ui_helper.createHeader(T"DNS",true,false),'\
         ui_helper.createInputText(T"DNS Server Address<span class='icon-question-sign' title='IPv6 address of the DNS server to which hijacked requests will be sent. Leave blank to have this device handle IPv6 DNS.'></span>","dest_ipv6",dest_ipv6,monitor6_attr,helpmsg["dest_ipv6"]),
         ui_helper.createSwitch(T"Verbose Logging","verbose",content["verbose"],monitor6_attr,vhelpmsg["verbose"]),'\
         <div class="control-group" style="display; block">\
-        <label class="control-label">',T"Excluded IPs",'</label><div class="controls">',
+        <label class="control-label">',T"Excluded LAN IPs",'</label><div class="controls">',
         ui_helper.createTable(ipv6cols,ipv6excdata,ipv6opts,nil,ipv6exchelpmsg),'\
         </div></div>')
     end

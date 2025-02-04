@@ -119,6 +119,16 @@ if [ "$(exec_uci -q get firewall.dns6_xcptn)" != "ipset" ]; then
   exec_uci set firewall.dns6_xcptn.enabled='0'
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
+if [ "$(exec_uci -q get firewall.dns_dhcp_xcptn)" != "include" ]; then
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.dns_dhcp_xcptn"
+  exec_uci set firewall.dns_dhcp_xcptn='include'
+  exec_uci set firewall.dns_dhcp_xcptn.type='script'
+  exec_uci set firewall.dns_dhcp_xcptn.family='ipv4'
+  exec_uci set firewall.dns_dhcp_xcptn.path='/usr/share/tch-gui-unhide/No-Hijack-DHCP-DNSv4.sh'
+  exec_uci set firewall.dns_dhcp_xcptn.reload='1'
+  exec_uci set firewall.dns_dhcp_xcptn.enabled="$(exec_uci -q get firewall.dns_int.enabled)"
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
 if [ ! -e /etc/firewall.ipset.dns6_xcptn ]; then
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating file /etc/firewall.ipset.dns6_xcptn"
   echo -n > /etc/firewall.ipset.dns6_xcptn
@@ -352,6 +362,9 @@ if [ $(grep doh-ipsets-maintain /etc/crontabs/root | wc -l) -eq 0 ]; then
   echo "#$mm $hh * * 6 /usr/sbin/doh-ipsets-maintain" >> /etc/crontabs/root
   SRV_cron=$(( $SRV_cron + 1 ))
 fi
+echo -e "[$SCRIPT]: Updating DHCP commit/apply"
+echo '^dhcp%.dhcp%.[^%.]+%.dhcp_option /usr/share/tch-gui-unhide/No-Hijack-DHCP-DNSv4.sh'>>/usr/share/transformer/commitapply/uci_dhcp.ca
+echo '^dhcp%.dhcp%.[^%.]+%.dns /usr/share/tch-gui-unhide/No-Hijack-DHCP-DNSv6.sh'>>/usr/share/transformer/commitapply/uci_dhcp.ca
 
 echo -e "[$SCRIPT]: Checking firewall configuration for Intrusion Protection"
 chmod +x /usr/share/intrusion-protection/firewall.sh
