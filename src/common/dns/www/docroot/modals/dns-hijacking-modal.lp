@@ -86,7 +86,7 @@ local dest_ipv4
 local dest_ipv6
 local dns_int = path["Intercept-DNS"] or path["Redirect-DNS"]
 if dns_int then
-  if cronjob and path["Masquerade-DNS"] and path["Allow-DoT"] and path["Allow-DoTv6"] and path["Deny-DoT"] and path["Allow-DoH"] and path["Allow-DoHv6"] and path["Deny-DoH"] and path["Deny-DoHv6"] and path["dns_xcptn"] and path["doh"] and path["doh6"] and path["/usr/sbin/ipsets-restore"] and path["dns6_xcptn"] and path["/usr/sbin/tproxy-firewall"] and path["Intercept-DNSv6"] and path["/usr/share/tch-gui-unhide/No-Hijack-DHCP-DNSv4.sh"] then
+  if cronjob and path["Masquerade-DNS"] and path["Allow-DoT"] and path["Allow-DoTv6"] and path["Deny-DoT"] and path["Allow-DoH"] and path["Allow-DoHv6"] and path["Deny-DoH"] and path["Deny-DoHv6"] and path["dns_xcptn"] and path["doh"] and path["doh6"] and path["/usr/sbin/ipsets-restore"] and path["dns6_xcptn"] and path["/usr/sbin/tproxy-firewall"] and path["Intercept-DNSv6"] and path["/usr/share/tch-gui-unhide/DNSv4-Hijacking.sh"] then
     local state = proxy.get(dns_int.."enabled",path["Masquerade-DNS"].."dest_ip",path["Intercept-DNSv6"].."enabled",path["Intercept-DNSv6"].."destIP")
     if state then
       if state[1].value and state[1].value ~= "0" then
@@ -143,7 +143,7 @@ if dns_int then
             end
           end
           proxy_helper.set(dns_int.."enabled",new_enabledv4)
-          local paths = { "Allow-DoT","Allow-DoH","Deny-DoT","Deny-DoH","dns_xcptn","doh","/usr/sbin/ipsets-restore","/usr/share/tch-gui-unhide/No-Hijack-DHCP-DNSv4.sh" }
+          local paths = { "Allow-DoT","Allow-DoH","Deny-DoT","Deny-DoH","dns_xcptn","doh","/usr/sbin/ipsets-restore","/usr/share/tch-gui-unhide/DNSv4-Hijacking.sh" }
           for _,p in ipairs(paths) do
             proxy_helper.set(path[p].."enabled",new_enabledv4)
           end
