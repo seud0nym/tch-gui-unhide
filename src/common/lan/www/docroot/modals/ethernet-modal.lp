@@ -45,12 +45,12 @@ if post_data and post_data.del_intf then
 end
 
 local isBridgedMode = bridged.isBridgedMode()
-local lan_ula = ethernet_helper.get_lan_ula()
 
 local cur_intf,cur_dhcp_intf,all_intfs,lan_intfs,ppp_dev,ppp_intf,dnsmasq_path,wireless_radio = ethernet_helper.get_interfaces()
 local switch_vlan,valid_vlan_ifnames,sys_vlans = vlan_helper.get_switch_vlans(isBridgedMode)
 local local_dev_ip = post_data and post_data["localdevIP"] or proxy.get("rpc.network.interface.@"..cur_intf..".ipaddr")[1].value
 local wanport = vlan_helper.wanport
+local cur_intf_local_ipv6 = ethernet_helper.get_local_ipv6(cur_intf)
 
 --We need to update IPv6 state only when user want to update the IPv6 state alone.
 if post_data and post_data.iPv6StateOnlyChanged == "yes" then
@@ -117,11 +117,11 @@ local function validateDNSv6(value,object,key)
   end
 
   if object["dns_v6_pri"] == "" and object["dns_v6_sec"] ~= "" then
-    return nil,"Primary should not be empty"
+    return nil,"Primary cannot be empty"
   end
 
   if object["dns_v6_pri"] == object["dns_v6_sec"] and object["dns_v6_pri"] ~= "" then
-    return nil,"Primary and secondary DNS servers should not be same"
+    return nil,"Primary and secondary DNS servers cannot be same"
   end
 
   if value == "" then
@@ -147,7 +147,7 @@ local function validateDNSv6(value,object,key)
       object["dns_v6_pri"] = ""
       return true
     else
-      dns_ip = lan_ula
+      dns_ip = cur_intf_local_ipv6
     end
   end
 
@@ -502,7 +502,7 @@ if dns_servers[3] ~= nil and ethernet_helper.find_dns(dns_servers[3],dns_list[1]
 end
 
 if content["dns_v6_pri"] ~= nil and content["dns_v6_pri"] ~= "" then
-  if content["dns_v6_pri"] == lan_ula then
+  if content["dns_v6_pri"] == cur_intf_local_ipv6 then
     content["dns_v6_pri"] = "::1"
   end
   content["dns_v6_pri"] = content["dns_v6_pri"]:gsub(":","-")
@@ -515,7 +515,7 @@ if content["dns_v6_pri"] ~= nil and content["dns_v6_pri"] ~= "" and content["dns
 end
 
 if content["dns_v6_sec"] ~= nil then
-  if content["dns_v6_sec"] == lan_ula then
+  if content["dns_v6_sec"] == cur_intf_local_ipv6 then
     content["dns_v6_sec"] = "::1"
   end
   content["dns_v6_sec"] = content["dns_v6_sec"]:gsub(":","-")

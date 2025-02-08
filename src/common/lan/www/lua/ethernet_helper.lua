@@ -170,13 +170,16 @@ function M.get_interfaces()
   return cur_intf,cur_dhcp_intf,all_intfs,lan_intfs,ppp_dev,ppp_intf,dnsmasq_path,wireless_radio
 end
 
-function M.get_lan_ula()
-  local ula = proxy.get("rpc.network.interface.@lan.ipv6uniquelocaladdr")
-  if ula == nil or ula[1].value == nil then
+function M.get_local_ipv6(cur_intf)
+  local ula = proxy.get("rpc.network.interface.@"..cur_intf..".ipv6uniquelocaladdr")
+  if ula ~= nil and ula[1].value ~= "" then
+    return split(format("%s",ula[1].value),"/")[1] or ""
+  end
+  local lla = proxy.get("rpc.network.interface.@"..cur_intf..".ipv6linklocaladdr")
+  if lla == nil or lla[1].value == nil then
     return ""
   end
-
-  return split(format("%s",ula[1].value),"&")[1] or ""
+  return untaint(lla[1].value)
 end
 
 function M.validateByPass(_,_,_)
