@@ -173,7 +173,7 @@ end
 function M.get_local_ipv6(cur_intf)
   local ula = proxy.get("rpc.network.interface.@"..cur_intf..".ipv6uniquelocaladdr")
   if ula ~= nil and ula[1].value ~= "" then
-    return split(format("%s",ula[1].value),"/")[1] or ""
+    return split(format("%s",ula[1].value),"&")[1] or ""
   end
   local lla = proxy.get("rpc.network.interface.@"..cur_intf..".ipv6linklocaladdr")
   if lla == nil or lla[1].value == nil then
