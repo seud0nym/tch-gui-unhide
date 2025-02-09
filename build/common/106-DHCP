@@ -88,3 +88,18 @@ if [ -z "$(exec_uci -q get dhcp.relay)" ]; then
     exec_uci commit dhcp
     SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
 fi
+
+echo -e "[$SCRIPT]: Checking IPv6 DHCP DNS Servers..."
+for c in $(exec_uci show dhcp | grep -E '^dhcp\.(lan|Guest.*)=dhcp$' | tr '=' '.' | cut -d. -f2); do
+  if [ "$(exec_uci -q get dhcp.${c}.ignore)" != "1" -a "$(exec_uci -q get dhcp.${c}.dhcpv6)" = "server" -a -z "$(exec_uci -q get dhcp.${c}.dns)" ]; then
+    ifname="$(exec_uci -q get dhcp.${c}.interface)"
+    ula="$(transformer-cli get rpc.network.interface.@${ifname}. | grep -E 'ipv6(unique|link)localaddr.* = f[cde]' | tr -d ' ' | tr '/' '=' | cut -d= -f2 | head -n1)"
+    if [ -n "$ula" ]; then
+      echo -e "[$SCRIPT]:  ==> Fixing $c IPv6 DHCP DNS Server"
+      exec_uci -q del_list dhcp.${c}.dns="$ula"
+      exec_uci add_list dhcp.${c}.dns="$ula"
+      exec_uci commit dhcp
+      SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
+    fi
+  fi
+done
