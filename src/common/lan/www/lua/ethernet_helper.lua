@@ -171,15 +171,17 @@ function M.get_interfaces()
 end
 
 function M.get_local_ipv6(cur_intf)
+  local retval = ""
   local ula = proxy.get("rpc.network.interface.@"..cur_intf..".ipv6uniquelocaladdr")
-  if ula ~= nil and ula[1].value ~= "" then
-    return split(format("%s",ula[1].value),"&")[1] or ""
+  if ula ~= nil and ula[1].value ~= "" and match(untaint(ula[1].value),"^f[cde]") then
+    retval = split(format("%s",ula[1].value),"&")[1] or ""
+  else
+    local lla = proxy.get("rpc.network.interface.@"..cur_intf..".ipv6linklocaladdr")
+    if lla ~= nil and lla[1].value ~= "" then
+      retval = untaint(lla[1].value)
+    end
   end
-  local lla = proxy.get("rpc.network.interface.@"..cur_intf..".ipv6linklocaladdr")
-  if lla == nil or lla[1].value == nil then
-    return ""
-  end
-  return untaint(lla[1].value)
+  return retval,string.gsub(retval,":","-")
 end
 
 function M.validateByPass(_,_,_)

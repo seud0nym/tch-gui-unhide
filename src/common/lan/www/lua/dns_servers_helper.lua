@@ -1,27 +1,7 @@
-local proxy = require("datamodel")
-local string = string
-local format,gsub = string.format,string.gsub
----@diagnostic disable-next-line: undefined-field
-local untaint = string.untaint
-
-local M = {}
-
-local ipaddr = proxy.get("uci.network.interface.@lan.ipaddr")
-local name = proxy.get("uci.env.var.variant_friendly_name")
-local variant
-if not name then
-  name = proxy.get("env.var.prod_friendly_name")
-  variant = gsub(untaint(name[1].value),"Technicolor ","")
-else
-  variant = gsub(untaint(name[1].value),"TLS","")
-end
-local lan_ip = untaint(ipaddr[1].value)
-
 local dns_servers = {
   { -- IPv4 DNS servers
-    {"",T""},
+    {"",T("")},
     {"custom",T"Enter Custom IP Address"},
-    {lan_ip,T(format("%s (%s)",variant,lan_ip))},
     -- insert ipv4-DNS-Servers file content here (Do NOT change or remove this comment - used by 105-DNS)
     {"8.8.8.8",T"Google (8.8.8.8)"},
     {"8.8.4.4",T"Google (8.8.4.4)"},
@@ -75,7 +55,7 @@ local dns_servers = {
     {"185.228.169.9", T"CleanBrowsing Security (185.228.169.9)"},
   },
   { -- IPv6 DNS servers
-    {"",T""},
+    {"",T("")},
     {"custom",T"Enter Custom IP Address"},
     -- insert ipv6-DNS-Servers file content here (Do NOT change or remove this comment - used by 105-DNS)
     {"2001-4860-4860--8888",T"Google (2001:4860:4860::8888)"},
@@ -115,6 +95,8 @@ local dns_servers = {
   }
 }
 
+local M = {}
+
 -- ethernet-modal.lp can dynamically add items, so return a copy
 function M.all()
   local copy = { {}, {} }
@@ -130,10 +112,7 @@ end
 M.external = { {}, {} }
 for i=1,2,1 do
   for k=1,#dns_servers[i] do
-    local addr = dns_servers[i][k][1]
-    if addr ~= "" and addr ~= "custom" and addr ~= lan_ip then
-      M.external[i][#M.external[i]+1]=dns_servers[i][k]
-    end
+    M.external[i][#M.external[i]+1]=dns_servers[i][k]
   end
 end
 
