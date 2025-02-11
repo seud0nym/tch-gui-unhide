@@ -69,96 +69,33 @@ echo -e "[$SCRIPT]: Add transformer mapping for uci.firewall.nat."
 sed -n '/-- uci.firewall.redirect/,/MultiMap/p' /usr/share/transformer/mappings/uci/firewall.map | sed -e 's/redirect/nat/g' >> /usr/share/transformer/mappings/uci/firewall.map
 
 echo -e "[$SCRIPT]: Checking firewall configuration for DNS hijacking"
-if [ "$(exec_uci -q get firewall.dns_xcptn)" != "ipset" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.dns_xcptn"
-  exec_uci set firewall.dns_xcptn='ipset'
-  exec_uci set firewall.dns_xcptn.name='dns_xcptn'
-  exec_uci set firewall.dns_xcptn.family='ipv4'
-  exec_uci set firewall.dns_xcptn.storage='hash'
-  exec_uci set firewall.dns_xcptn.match='ip'
-  exec_uci set firewall.dns_xcptn.enabled='0'
-  SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ ! -e /etc/firewall.ipset.dns_xcptn ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating file /etc/firewall.ipset.dns_xcptn"
-  echo -n > /etc/firewall.ipset.dns_xcptn
-fi
-if [ "$(exec_uci -q get firewall.dns_int)" != "redirect" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.dns_int"
-  exec_uci set firewall.dns_int='redirect'
-  exec_uci set firewall.dns_int.name='Intercept-DNS'
-  exec_uci set firewall.dns_int.family='ipv4'
-  exec_uci set firewall.dns_int.src='lan'
-  exec_uci set firewall.dns_int.src_dport='53'
-  exec_uci set firewall.dns_int.proto='tcp udp'
-  exec_uci set firewall.dns_int.dest='wan'
-  exec_uci set firewall.dns_int.target='DNAT'
-  exec_uci set firewall.dns_int.ipset='!dns_xcptn src'
-  exec_uci set firewall.dns_int.enabled='0'
-  SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ "$(exec_uci -q get firewall.dns_masq)" != "nat" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.dns_masq"
-  exec_uci set firewall.dns_masq='nat'
-  exec_uci set firewall.dns_masq.name='Masquerade-DNS'
-  exec_uci set firewall.dns_masq.family='ipv4'
-  exec_uci set firewall.dns_masq.src='lan'
-  exec_uci set firewall.dns_masq.dest_port='53'
-  exec_uci set firewall.dns_masq.proto='tcp udp'
-  exec_uci set firewall.dns_masq.target='MASQUERADE'
-  exec_uci set firewall.dns_masq.enabled='0'
-  SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ "$(exec_uci -q get firewall.dns6_xcptn)" != "ipset" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.dns6_xcptn"
-  exec_uci set firewall.dns6_xcptn='ipset'
-  exec_uci set firewall.dns6_xcptn.name='dns6_xcptn'
-  exec_uci set firewall.dns6_xcptn.family='ipv6'
-  exec_uci set firewall.dns6_xcptn.storage='hash'
-  exec_uci set firewall.dns6_xcptn.match='ip'
-  exec_uci set firewall.dns6_xcptn.enabled='0'
-  SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ "$(exec_uci -q get firewall.dns_dhcp_xcptn)" != "include" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.dns_dhcp_xcptn"
-  exec_uci set firewall.dns_dhcp_xcptn='include'
-  exec_uci set firewall.dns_dhcp_xcptn.type='script'
-  exec_uci set firewall.dns_dhcp_xcptn.family='ipv4'
-  exec_uci set firewall.dns_dhcp_xcptn.path='/usr/share/tch-gui-unhide/DNSv4-Hijacking.sh'
-  exec_uci set firewall.dns_dhcp_xcptn.reload='1'
-  exec_uci set firewall.dns_dhcp_xcptn.enabled="$(exec_uci -q get firewall.dns_int.enabled)"
-  SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ ! -e /etc/firewall.ipset.dns6_xcptn ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating file /etc/firewall.ipset.dns6_xcptn"
-  echo -n > /etc/firewall.ipset.dns6_xcptn
-fi
+#region tproxy
 if pgrep /usr/sbin/tproxy-go > /dev/null; then
   /etc/init.d/tproxy stop
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if grep -q ':.*ARMv7' /proc/cpuinfo; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Extracting /tmp/tproxy-go.armv5.bz2 to /usr/sbin/tproxy-go"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Extracting /tmp/tproxy-go.armv5.bz2 to /usr/sbin/tproxy-go"
   bzcat /tmp/tproxy-go.armv5.bz2 > /usr/sbin/tproxy-go
 elif grep -q ':.*Broadcom BMIPS4350' /proc/cpuinfo; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Extracting /tmp/tproxy-go.mips.bz2 to /usr/sbin/tproxy-go"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Extracting /tmp/tproxy-go.mips.bz2 to /usr/sbin/tproxy-go"
   bzcat /tmp/tproxy-go.mips.bz2 > /usr/sbin/tproxy-go
 elif grep -q 'BCM63144' /proc/socinfo; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Extracting /tmp/tproxy-go.arm64.bz2 to /usr/sbin/tproxy-go"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Extracting /tmp/tproxy-go.arm64.bz2 to /usr/sbin/tproxy-go"
   bzcat /tmp/tproxy-go.arm64.bz2 > /usr/sbin/tproxy-go
 else
-  echo -e "[$SCRIPT]: ${RED}ERROR! Unable to identify device architecture for tproxy-go executable??${NC}"
+  echo -e "[$SCRIPT]:  ==> ${RED}ERROR! Unable to identify device architecture for tproxy-go executable??${NC}"
 fi
 rm -f /tmp/tproxy-go*.bz2
 if [ -e /usr/sbin/tproxy-go ]; then
   chmod +x /usr/sbin/tproxy-go
-  echo -e "[$SCRIPT]: Prevent reboot on tproxy-go core dump"
+  echo -e "[$SCRIPT]:  ==> Prevent reboot on tproxy-go core dump"
   uci -q del_list system.@coredump[0].reboot_exceptions='tproxy-go'
   uci -q add_list system.@coredump[0].reboot_exceptions='tproxy-go'
   uci commit system
   SRV_system=$(( $SRV_system + 1 ))
   if [ ! -e /etc/config/tproxy ]; then
-    echo -e "[$SCRIPT]: Creating tproxy config for IPv6 DNS hijacking"
+    echo -e "[$SCRIPT]:  ==> Creating tproxy config for IPv6 DNS hijacking"
     cat <<TPROXY > /etc/config/tproxy
 config tproxy 'config'
         option enabled '1'
@@ -169,23 +106,23 @@ TPROXY
     /etc/init.d/tproxy enable
   fi
   if [ "$(exec_uci -q get tproxy.dnsv6)" != "rule" ]; then
-    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration tproxy.dnsv6"
+    echo -e "[$SCRIPT]:  ==> Creating configuration tproxy.dnsv6"
     exec_uci set tproxy.dnsv6=rule
     exec_uci set tproxy.dnsv6.enabled='0'
-    exec_uci set tproxy.dnsv6.name='Intercept-DNSv6'
+    exec_uci set tproxy.dnsv6.name='Hijack-DNSv6'
     exec_uci set tproxy.dnsv6.family='ipv6'
     exec_uci set tproxy.dnsv6.proto='tcp udp'
     exec_uci set tproxy.dnsv6.listenPort='8053'
     exec_uci set tproxy.dnsv6.destPort='53'
     exec_uci set tproxy.dnsv6.ipset='!dns6_xcptn src'
     exec_uci commit tproxy
-  elif [ "$(exec_uci -q get tproxy.dnsv6.name)" != "Intercept-DNSv6" ]; then
-    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Setting tproxy.dnsv6.name to Intercept-DNSv6"
-    exec_uci set tproxy.dnsv6.name='Intercept-DNSv6'
+  elif [ "$(exec_uci -q get tproxy.dnsv6.name)" != "Hijack-DNSv6" ]; then
+    echo -e "[$SCRIPT]:  ==> Setting tproxy.dnsv6.name to Hijack-DNSv6"
+    exec_uci set tproxy.dnsv6.name='Hijack-DNSv6'
     exec_uci commit tproxy
   fi
   if [ "$(exec_uci -q get firewall.tproxy)" != "include" ]; then
-    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.tproxy"
+    echo -e "[$SCRIPT]:  ==> Creating configuration firewall.tproxy"
     exec_uci set firewall.tproxy='include'
     exec_uci set firewall.tproxy.type='script'
     exec_uci set firewall.tproxy.path='/usr/sbin/tproxy-firewall'
@@ -194,65 +131,38 @@ TPROXY
     SRV_firewall=$(( $SRV_firewall + 1 ))
   fi
 fi
-if [ "$(exec_uci -q get firewall.dot_fwd_xcptn)" != "rule" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.dot_fwd_xcptn"
-  exec_uci set firewall.dot_fwd_xcptn='rule'
-  exec_uci set firewall.dot_fwd_xcptn.name='Allow-DoT'
-  exec_uci set firewall.dot_fwd_xcptn.src='lan'
-  exec_uci set firewall.dot_fwd_xcptn.dest='wan'
-  exec_uci set firewall.dot_fwd_xcptn.dest_port='853'
-  exec_uci set firewall.dot_fwd_xcptn.proto='tcp udp'
-  exec_uci set firewall.dot_fwd_xcptn.target='ACCEPT'
-  exec_uci set firewall.dot_fwd_xcptn.family='ipv4'
-  exec_uci set firewall.dot_fwd_xcptn.ipset='dns_xcptn src'
-  exec_uci set firewall.dot_fwd_xcptn.enabled='0'
+#endregion
+#region ipsets
+if [ "$(exec_uci -q get firewall.dns_xcptn)" != "ipset" ]; then
+  echo -e "[$SCRIPT]:  ==> Creating configuration firewall.dns_xcptn"
+  exec_uci set firewall.dns_xcptn='ipset'
+  exec_uci set firewall.dns_xcptn.name='dns_xcptn'
+  exec_uci set firewall.dns_xcptn.family='ipv4'
+  exec_uci set firewall.dns_xcptn.storage='hash'
+  exec_uci set firewall.dns_xcptn.match='ip'
+  exec_uci set firewall.dns_xcptn.enabled='0'
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
-if [ "$(exec_uci -q get firewall.dot6_fwd_xcptn)" != "rule" ]; then
-  if [ "$(exec_uci -q get firewall.dot_fwd)" = "rule" ]; then
-    dot_fwd_enabled="$(exec_uci -q get firewall.dot_fwd.enabled)"
-    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Removing firewall.dot_fwd to ensure rule sequencing is correct"
-    exec_uci -q delete firewall.dot_fwd
-    exec_uci commit firewall
-  else
-    dot_fwd_enabled='0'
-  fi
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.dot6_fwd_xcptn"
-  exec_uci set firewall.dot6_fwd_xcptn='rule'
-  exec_uci set firewall.dot6_fwd_xcptn.name='Allow-DoTv6'
-  exec_uci set firewall.dot6_fwd_xcptn.src='lan'
-  exec_uci set firewall.dot6_fwd_xcptn.dest='wan'
-  exec_uci set firewall.dot6_fwd_xcptn.dest_port='853'
-  exec_uci set firewall.dot6_fwd_xcptn.proto='tcp udp'
-  exec_uci set firewall.dot6_fwd_xcptn.target='ACCEPT'
-  exec_uci set firewall.dot6_fwd_xcptn.family='ipv6'
-  exec_uci set firewall.dot6_fwd_xcptn.ipset='dns6_xcptn src'
-  exec_uci set firewall.dot6_fwd_xcptn.enabled="$(exec_uci get tproxy.dnsv6.enabled)"
+if [ ! -e /etc/firewall.ipset.dns_xcptn ]; then
+  echo -e "[$SCRIPT]:  ==> Creating file /etc/firewall.ipset.dns_xcptn"
+  echo -n > /etc/firewall.ipset.dns_xcptn
+fi
+if [ "$(exec_uci -q get firewall.dns6_xcptn)" != "ipset" ]; then
+  echo -e "[$SCRIPT]:  ==> Creating configuration firewall.dns6_xcptn"
+  exec_uci set firewall.dns6_xcptn='ipset'
+  exec_uci set firewall.dns6_xcptn.name='dns6_xcptn'
+  exec_uci set firewall.dns6_xcptn.family='ipv6'
+  exec_uci set firewall.dns6_xcptn.storage='hash'
+  exec_uci set firewall.dns6_xcptn.match='ip'
+  exec_uci set firewall.dns6_xcptn.enabled='0'
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
-if [ "$(exec_uci -q get firewall.dot_fwd)" != "rule" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.dot_fwd"
-  exec_uci set firewall.dot_fwd='rule'
-  exec_uci set firewall.dot_fwd.name='Deny-DoT'
-  exec_uci set firewall.dot_fwd.src='lan'
-  exec_uci set firewall.dot_fwd.dest='wan'
-  exec_uci set firewall.dot_fwd.dest_port='853'
-  exec_uci set firewall.dot_fwd.proto='tcp udp'
-  exec_uci set firewall.dot_fwd.target='REJECT'
-  exec_uci set firewall.dot_fwd.enabled="$dot_fwd_enabled"
-  SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ "$(exec_uci -q get firewall.dot_fwd.family)" != "" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Removing family configuration from firewall.dot_fwd"
-  exec_uci -q delete firewall.dot_fwd.family
-  SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ ! -e /etc/firewall.ipset.doh ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating file /etc/firewall.ipset.doh"
-  echo -n > /etc/firewall.ipset.doh
+if [ ! -e /etc/firewall.ipset.dns6_xcptn ]; then
+  echo -e "[$SCRIPT]:  ==> Creating file /etc/firewall.ipset.dns6_xcptn"
+  echo -n > /etc/firewall.ipset.dns6_xcptn
 fi
 if [ "$(exec_uci -q get firewall.doh)" != "ipset" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.doh"
+  echo -e "[$SCRIPT]:  ==> Creating configuration firewall.doh"
   exec_uci set firewall.doh='ipset'
   exec_uci set firewall.doh.name='doh'
   exec_uci set firewall.doh.family='ipv4'
@@ -261,12 +171,12 @@ if [ "$(exec_uci -q get firewall.doh)" != "ipset" ]; then
   exec_uci set firewall.doh.enabled='0'
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
-if [ ! -e /etc/firewall.ipset.doh6 ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating file /etc/firewall.ipset.doh6"
-  echo -n > /etc/firewall.ipset.doh6
+if [ ! -e /etc/firewall.ipset.doh ]; then
+  echo -e "[$SCRIPT]:  ==> Creating file /etc/firewall.ipset.doh"
+  echo -n > /etc/firewall.ipset.doh
 fi
 if [ "$(exec_uci -q get firewall.doh6)" != "ipset" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.doh"
+  echo -e "[$SCRIPT]:  ==> Creating configuration firewall.doh6"
   exec_uci set firewall.doh6='ipset'
   exec_uci set firewall.doh6.name='doh6'
   exec_uci set firewall.doh6.family='ipv6'
@@ -275,101 +185,216 @@ if [ "$(exec_uci -q get firewall.doh6)" != "ipset" ]; then
   exec_uci set firewall.doh6.enabled='0'
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
+if [ ! -e /etc/firewall.ipset.doh6 ]; then
+  echo -e "[$SCRIPT]:  ==> Creating file /etc/firewall.ipset.doh6"
+  echo -n > /etc/firewall.ipset.doh6
+fi
 if [ "$(exec_uci -q get firewall.ipsets_restore)" != "include" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.ipsets_restore"
+  echo -e "[$SCRIPT]:  ==> Creating configuration firewall.ipsets_restore"
   exec_uci set firewall.ipsets_restore='include'
   exec_uci set firewall.ipsets_restore.type='script'
   exec_uci set firewall.ipsets_restore.path='/usr/sbin/ipsets-restore'
   exec_uci set firewall.ipsets_restore.reload='1'
-  exec_uci set firewall.ipsets_restore.enabled='0'
+  exec_uci set firewall.ipsets_restore.enabled='1'
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
-if [ "$(exec_uci -q get firewall.ipsets_restore.reload)" != "1" ]; then
-  exec_uci set firewall.ipsets_restore.reload='1'
-  SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ "$(exec_uci -q get firewall.doh_fwd_xcptn)" != "rule" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.doh_fwd_xcptn"
-  exec_uci set firewall.doh_fwd_xcptn='rule'
-  exec_uci set firewall.doh_fwd_xcptn.name='Allow-DoH'
-  exec_uci set firewall.doh_fwd_xcptn.src='lan'
-  exec_uci set firewall.doh_fwd_xcptn.dest='wan'
-  exec_uci set firewall.doh_fwd_xcptn.dest_port='443'
-  exec_uci set firewall.doh_fwd_xcptn.proto='tcp udp'
-  exec_uci set firewall.doh_fwd_xcptn.family='ipv4'
-  exec_uci set firewall.doh_fwd_xcptn.ipset='dns_xcptn src'
-  exec_uci set firewall.doh_fwd_xcptn.target='ACCEPT'
-  exec_uci set firewall.doh_fwd_xcptn.enabled='0'
-  SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ "$(exec_uci -q get firewall.doh_fwd)" != "rule" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.doh_fwd"
-  exec_uci set firewall.doh_fwd='rule'
-  exec_uci set firewall.doh_fwd.name='Deny-DoH'
-  exec_uci set firewall.doh_fwd.src='lan'
-  exec_uci set firewall.doh_fwd.dest='wan'
-  exec_uci set firewall.doh_fwd.dest_port='443'
-  exec_uci set firewall.doh_fwd.proto='tcp udp'
-  exec_uci set firewall.doh_fwd.family='ipv4'
-  exec_uci set firewall.doh_fwd.ipset='doh dest'
-  exec_uci set firewall.doh_fwd.target='REJECT'
-  exec_uci set firewall.doh_fwd.enabled='0'
-  SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ "$(exec_uci -q get firewall.doh6_fwd_xcptn)" != "rule" ]; then
-  if [ "$(exec_uci -q get firewall.doh6_fwd)" = "rule" ]; then
-    doh6_fwd_enabled="$(exec_uci -q get firewall.doh6_fwd.enabled)"
-    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Removing firewall.doh6_fwd to ensure rule sequencing is correct"
-    exec_uci -q delete firewall.doh6_fwd
-    exec_uci commit firewall
-  else
-    doh6_fwd_enabled='0'
-  fi
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.dot6_fwd_xcptn"
-  exec_uci set firewall.doh6_fwd_xcptn='rule'
-  exec_uci set firewall.doh6_fwd_xcptn.name='Allow-DoHv6'
-  exec_uci set firewall.doh6_fwd_xcptn.src='lan'
-  exec_uci set firewall.doh6_fwd_xcptn.dest='wan'
-  exec_uci set firewall.doh6_fwd_xcptn.dest_port='443'
-  exec_uci set firewall.doh6_fwd_xcptn.proto='tcp udp'
-  exec_uci set firewall.doh6_fwd_xcptn.family='ipv6'
-  exec_uci set firewall.doh6_fwd_xcptn.ipset='dns6_xcptn src'
-  exec_uci set firewall.doh6_fwd_xcptn.target='ACCEPT'
-  exec_uci set firewall.doh6_fwd_xcptn.enabled="$doh6_fwd_enabled"
-  SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ "$(exec_uci -q get firewall.doh6_fwd)" != "rule" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.doh6_fwd"
-  exec_uci set firewall.doh6_fwd='rule'
-  exec_uci set firewall.doh6_fwd.name='Deny-DoHv6'
-  exec_uci set firewall.doh6_fwd.src='lan'
-  exec_uci set firewall.doh6_fwd.dest='wan'
-  exec_uci set firewall.doh6_fwd.dest_port='443'
-  exec_uci set firewall.doh6_fwd.proto='tcp udp'
-  exec_uci set firewall.doh6_fwd.family='ipv6'
-  exec_uci set firewall.doh6_fwd.ipset='doh6 dest'
-  exec_uci set firewall.doh6_fwd.target='REJECT'
-  exec_uci set firewall.doh6_fwd.enabled="$doh6_fwd_enabled"
-  SRV_firewall=$(( $SRV_firewall + 1 ))
-fi
-if [ "$(exec_uci -q get firewall.doh6_fwd.name)" != "Deny-DoHv6" ]; then
-  exec_uci set firewall.doh6_fwd.name='Deny-DoHv6'
-fi
+[ "$(uci -q get firewall.ipsets_restore.enabled)" = '1' ] || { exec_uci set firewall.ipsets_restore.enabled='1'; SRV_firewall=$(( $SRV_firewall + 1 )); }
+[ "$(uci -q get firewall.ipsets_restore.reload)" = "1" ] || { exec_uci set firewall.ipsets_restore.reload='1'; SRV_firewall=$(( $SRV_firewall + 1 )); }
 if [ $(grep doh-ipsets-maintain /etc/crontabs/root | wc -l) -eq 0 ]; then
   mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
   hh=$(awk 'BEGIN{srand();print int(rand()*2)+3;}')
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Adding /usr/sbin/doh-ipsets-maintain cron task for Sunday at $hh:$mm"
+  echo -e "[$SCRIPT]:  ==> Adding /usr/sbin/doh-ipsets-maintain cron task for Sunday at $hh:$mm"
   echo "#$mm $hh * * 6 /usr/sbin/doh-ipsets-maintain" >> /etc/crontabs/root
   SRV_cron=$(( $SRV_cron + 1 ))
 fi
-echo -e "[$SCRIPT]: Updating DHCP commit/apply"
+#endregion
+#region redirect, nat and filter rules
+dns_int_enabled="$(uci -q get firewall.dns_int.enabled || echo '0')"
+dns_masq_enabled="$(uci -q get firewall.dns_masq.enabled || echo '0')"
+tproxy_dnsv6_enabled="$(uci -q get tproxy.dnsv6.enabled || echo '0')"
+zones="lan"
+for path in $(exec_uci show firewall | grep =zone | cut -d= -f1); do
+  zone="$(exec_uci -q get $path.name)"
+  [ "$zone" = "loopback" -o "$zone" = "lan" ] && continue
+  enabled="$(exec_uci -q get $path.enabled)"
+  [ "$enabled" != "0" ] || continue
+  wan="$(exec_uci -q get $path.wan)"
+  [ "$wan" = "1" ] && continue
+  zones="$zones $zone"
+done
+for zone in $zones; do
+  [ $zone = lan ] && cnfg_suffix="" || cnfg_suffix="_$zone"
+  [ $zone = lan ] && name_suffix="" || name_suffix="-$zone"
+  for rule in doh_fwd doh6_fwd dot_fwd dot6_fwd; do
+    accept="$( (grep -n "config rule '${rule}_xcptn${cnfg_suffix}'" /etc/config/firewall || echo '999999:') | cut -d: -f1)"
+    reject="$( (grep -n "config rule '${rule}${cnfg_suffix}'" /etc/config/firewall || echo '0:') | cut -d: -f1)"
+    if [ $accept -gt $reject -a $reject -ne 0 ]; then
+      [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Removing firewall.${rule}${cnfg_suffix} to ensure rule sequencing is correct"
+      exec_uci -q delete firewall.${rule}${cnfg_suffix}
+    fi
+  done
+  if [ "$(exec_uci -q get firewall.dns_int${cnfg_suffix})" != "redirect" ]; then
+    echo -e "[$SCRIPT]:  ==> Creating configuration firewall.dns_int${cnfg_suffix}"
+    exec_uci set firewall.dns_int${cnfg_suffix}='redirect'
+    exec_uci set firewall.dns_int${cnfg_suffix}.family='ipv4'
+    exec_uci set firewall.dns_int${cnfg_suffix}.src="$zone"
+    exec_uci set firewall.dns_int${cnfg_suffix}.src_dport='53'
+    exec_uci set firewall.dns_int${cnfg_suffix}.proto='tcp udp'
+    exec_uci set firewall.dns_int${cnfg_suffix}.dest='wan'
+    exec_uci set firewall.dns_int${cnfg_suffix}.target='DNAT'
+    exec_uci set firewall.dns_int${cnfg_suffix}.ipset='!dns_xcptn src'
+    exec_uci set firewall.dns_int${cnfg_suffix}.enabled="$dns_int_enabled"
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+  if [ "$(exec_uci -q get firewall.dns_masq${cnfg_suffix})" != "nat" ]; then
+    echo -e "[$SCRIPT]:  ==> Creating configuration firewall.dns_masq${cnfg_suffix}"
+    exec_uci set firewall.dns_masq${cnfg_suffix}='nat'
+    exec_uci set firewall.dns_masq${cnfg_suffix}.family='ipv4'
+    exec_uci set firewall.dns_masq${cnfg_suffix}.src="$zone"
+    exec_uci set firewall.dns_masq${cnfg_suffix}.dest_port='53'
+    exec_uci set firewall.dns_masq${cnfg_suffix}.proto='tcp udp'
+    exec_uci set firewall.dns_masq${cnfg_suffix}.target='MASQUERADE'
+    exec_uci set firewall.dns_masq${cnfg_suffix}.enabled="$dns_masq_enabled"
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+  if [ "$(exec_uci -q get firewall.doh_fwd_xcptn${cnfg_suffix})" != "rule" ]; then
+    echo -e "[$SCRIPT]:  ==> Creating configuration firewall.doh_fwd_xcptn${cnfg_suffix}"
+    exec_uci set firewall.doh_fwd_xcptn${cnfg_suffix}='rule'
+    exec_uci set firewall.doh_fwd_xcptn${cnfg_suffix}.src="$zone"
+    exec_uci set firewall.doh_fwd_xcptn${cnfg_suffix}.dest='wan'
+    exec_uci set firewall.doh_fwd_xcptn${cnfg_suffix}.dest_port='443'
+    exec_uci set firewall.doh_fwd_xcptn${cnfg_suffix}.proto='tcp'
+    exec_uci set firewall.doh_fwd_xcptn${cnfg_suffix}.family='ipv4'
+    exec_uci set firewall.doh_fwd_xcptn${cnfg_suffix}.ipset='dns_xcptn src'
+    exec_uci set firewall.doh_fwd_xcptn${cnfg_suffix}.target='ACCEPT'
+    exec_uci set firewall.doh_fwd_xcptn${cnfg_suffix}.enabled="$dns_int_enabled"
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+  if [ "$(exec_uci -q get firewall.doh_fwd${cnfg_suffix})" != "rule" ]; then
+    echo -e "[$SCRIPT]:  ==> Creating configuration firewall.doh_fwd${cnfg_suffix}"
+    exec_uci set firewall.doh_fwd${cnfg_suffix}='rule'
+    exec_uci set firewall.doh_fwd${cnfg_suffix}.src="$zone"
+    exec_uci set firewall.doh_fwd${cnfg_suffix}.dest='wan'
+    exec_uci set firewall.doh_fwd${cnfg_suffix}.dest_port='443'
+    exec_uci set firewall.doh_fwd${cnfg_suffix}.proto='tcp'
+    exec_uci set firewall.doh_fwd${cnfg_suffix}.family='ipv4'
+    exec_uci set firewall.doh_fwd${cnfg_suffix}.ipset='doh dest'
+    exec_uci set firewall.doh_fwd${cnfg_suffix}.target='REJECT'
+    exec_uci set firewall.doh_fwd${cnfg_suffix}.enabled="$dns_int_enabled"
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+  if [ "$(exec_uci -q get firewall.doh6_fwd_xcptn${cnfg_suffix})" != "rule" ]; then
+    echo -e "[$SCRIPT]:  ==> Creating configuration firewall.dot6_fwd_xcptn${cnfg_suffix}"
+    exec_uci set firewall.doh6_fwd_xcptn${cnfg_suffix}='rule'
+    exec_uci set firewall.doh6_fwd_xcptn${cnfg_suffix}.src="$zone"
+    exec_uci set firewall.doh6_fwd_xcptn${cnfg_suffix}.dest='wan'
+    exec_uci set firewall.doh6_fwd_xcptn${cnfg_suffix}.dest_port='443'
+    exec_uci set firewall.doh6_fwd_xcptn${cnfg_suffix}.proto='tcp udp'
+    exec_uci set firewall.doh6_fwd_xcptn${cnfg_suffix}.family='ipv6'
+    exec_uci set firewall.doh6_fwd_xcptn${cnfg_suffix}.ipset='dns6_xcptn src'
+    exec_uci set firewall.doh6_fwd_xcptn${cnfg_suffix}.target='ACCEPT'
+    exec_uci set firewall.doh6_fwd_xcptn${cnfg_suffix}.enabled="$tproxy_dnsv6_enabled"
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+  if [ "$(exec_uci -q get firewall.doh6_fwd${cnfg_suffix})" != "rule" ]; then
+    echo -e "[$SCRIPT]:  ==> Creating configuration firewall.doh6_fwd${cnfg_suffix}"
+    exec_uci set firewall.doh6_fwd${cnfg_suffix}='rule'
+    exec_uci set firewall.doh6_fwd${cnfg_suffix}.src="$zone"
+    exec_uci set firewall.doh6_fwd${cnfg_suffix}.dest='wan'
+    exec_uci set firewall.doh6_fwd${cnfg_suffix}.dest_port='443'
+    exec_uci set firewall.doh6_fwd${cnfg_suffix}.proto='tcp udp'
+    exec_uci set firewall.doh6_fwd${cnfg_suffix}.family='ipv6'
+    exec_uci set firewall.doh6_fwd${cnfg_suffix}.ipset='doh6 dest'
+    exec_uci set firewall.doh6_fwd${cnfg_suffix}.target='REJECT'
+    exec_uci set firewall.doh6_fwd${cnfg_suffix}.enabled="$tproxy_dnsv6_enabled"
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+  if [ "$(exec_uci -q get firewall.dot_fwd_xcptn${cnfg_suffix})" != "rule" ]; then
+    echo -e "[$SCRIPT]:  ==> Creating configuration firewall.dot_fwd_xcptn${cnfg_suffix}"
+    exec_uci set firewall.dot_fwd_xcptn${cnfg_suffix}='rule'
+    exec_uci set firewall.dot_fwd_xcptn${cnfg_suffix}.src="$zone"
+    exec_uci set firewall.dot_fwd_xcptn${cnfg_suffix}.dest='wan'
+    exec_uci set firewall.dot_fwd_xcptn${cnfg_suffix}.dest_port='853'
+    exec_uci set firewall.dot_fwd_xcptn${cnfg_suffix}.proto='tcp udp'
+    exec_uci set firewall.dot_fwd_xcptn${cnfg_suffix}.target='ACCEPT'
+    exec_uci set firewall.dot_fwd_xcptn${cnfg_suffix}.family='ipv4'
+    exec_uci set firewall.dot_fwd_xcptn${cnfg_suffix}.ipset='dns_xcptn src'
+    exec_uci set firewall.dot_fwd_xcptn${cnfg_suffix}.enabled="$dns_int_enabled"
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+  if [ "$(exec_uci -q get firewall.dot_fwd${cnfg_suffix})" != "rule" ]; then
+    echo -e "[$SCRIPT]:  ==> Creating configuration firewall.dot_fwd${cnfg_suffix}"
+    exec_uci set firewall.dot_fwd${cnfg_suffix}='rule'
+    exec_uci set firewall.dot_fwd${cnfg_suffix}.src="$zone"
+    exec_uci set firewall.dot_fwd${cnfg_suffix}.dest='wan'
+    exec_uci set firewall.dot_fwd${cnfg_suffix}.dest_port='853'
+    exec_uci set firewall.dot_fwd${cnfg_suffix}.proto='tcp udp'
+    exec_uci set firewall.dot_fwd${cnfg_suffix}.family='ipv4'
+    exec_uci set firewall.dot_fwd${cnfg_suffix}.target='REJECT'
+    exec_uci set firewall.dot_fwd${cnfg_suffix}.enabled="$dns_int_enabled"
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+  if [ "$(exec_uci -q get firewall.dot6_fwd_xcptn${cnfg_suffix})" != "rule" ]; then
+    echo -e "[$SCRIPT]:  ==> Creating configuration firewall.dot6_fwd_xcptn${cnfg_suffix}"
+    exec_uci set firewall.dot6_fwd_xcptn${cnfg_suffix}='rule'
+    exec_uci set firewall.dot6_fwd_xcptn${cnfg_suffix}.src="$zone"
+    exec_uci set firewall.dot6_fwd_xcptn${cnfg_suffix}.dest='wan'
+    exec_uci set firewall.dot6_fwd_xcptn${cnfg_suffix}.dest_port='853'
+    exec_uci set firewall.dot6_fwd_xcptn${cnfg_suffix}.proto='tcp udp'
+    exec_uci set firewall.dot6_fwd_xcptn${cnfg_suffix}.target='ACCEPT'
+    exec_uci set firewall.dot6_fwd_xcptn${cnfg_suffix}.family='ipv6'
+    exec_uci set firewall.dot6_fwd_xcptn${cnfg_suffix}.ipset='dns6_xcptn src'
+    exec_uci set firewall.dot6_fwd_xcptn${cnfg_suffix}.enabled="$tproxy_dnsv6_enabled"
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+  if [ "$(exec_uci -q get firewall.dot6_fwd${cnfg_suffix})" != "rule" ]; then
+    echo -e "[$SCRIPT]:  ==> Creating configuration firewall.dot6_fwd${cnfg_suffix}"
+    exec_uci set firewall.dot6_fwd${cnfg_suffix}='rule'
+    exec_uci set firewall.dot6_fwd${cnfg_suffix}.src="$zone"
+    exec_uci set firewall.dot6_fwd${cnfg_suffix}.dest='wan'
+    exec_uci set firewall.dot6_fwd${cnfg_suffix}.dest_port='853'
+    exec_uci set firewall.dot6_fwd${cnfg_suffix}.proto='tcp udp'
+    exec_uci set firewall.dot6_fwd${cnfg_suffix}.family='ipv6'
+    exec_uci set firewall.dot6_fwd${cnfg_suffix}.target='REJECT'
+    exec_uci set firewall.dot6_fwd${cnfg_suffix}.enabled="$dns_int_enabled"
+    SRV_firewall=$(( $SRV_firewall + 1 ))
+  fi
+  echo -e "[$SCRIPT]:  ==> Fix any incorrect $zone zone rule options"
+  [ "$(uci -q get firewall.dns_int${cnfg_suffix}.name)" = "Hijack-DNS${name_suffix}" ] || { exec_uci set firewall.dns_int${cnfg_suffix}.name="Hijack-DNS${name_suffix}"; SRV_firewall=$(( $SRV_firewall + 1 )); }
+  [ "$(uci -q get firewall.dns_masq${cnfg_suffix}.name)" = "Hijack-Masquerade-DNS${name_suffix}" ] || { exec_uci set firewall.dns_masq${cnfg_suffix}.name="Hijack-Masquerade-DNS${name_suffix}"; SRV_firewall=$(( $SRV_firewall + 1 )); }
+  [ "$(uci -q get firewall.doh_fwd_xcptn${cnfg_suffix}.name)" = "Hijack-Allow-DoH${name_suffix}" ] || { exec_uci set firewall.doh_fwd_xcptn${cnfg_suffix}.name="Hijack-Allow-DoH${name_suffix}"; SRV_firewall=$(( $SRV_firewall + 1 )); }
+  [ "$(uci -q get firewall.doh_fwd${cnfg_suffix}.name)" = "Hijack-Block-DoH${name_suffix}" ] || { exec_uci set firewall.doh_fwd${cnfg_suffix}.name="Hijack-Block-DoH${name_suffix}"; SRV_firewall=$(( $SRV_firewall + 1 )); }
+  [ "$(uci -q get firewall.doh6_fwd_xcptn${cnfg_suffix}.name)" = "Hijack-Allow-DoHv6${name_suffix}" ] || { exec_uci set firewall.doh6_fwd_xcptn${cnfg_suffix}.name="Hijack-Allow-DoHv6${name_suffix}"; SRV_firewall=$(( $SRV_firewall + 1 )); }
+  [ "$(uci -q get firewall.doh6_fwd${cnfg_suffix}.name)" = "Hijack-Block-DoHv6${name_suffix}" ] || { exec_uci set firewall.doh6_fwd${cnfg_suffix}.name="Hijack-Block-DoHv6${name_suffix}"; SRV_firewall=$(( $SRV_firewall + 1 )); }
+  [ "$(uci -q get firewall.dot_fwd_xcptn${cnfg_suffix}.name)" = "Hijack-Allow-DoT${name_suffix}" ] || { exec_uci set firewall.dot_fwd_xcptn${cnfg_suffix}.name="Hijack-Allow-DoT${name_suffix}"; SRV_firewall=$(( $SRV_firewall + 1 )); }
+  [ "$(uci -q get firewall.dot_fwd${cnfg_suffix}.name)" = "Hijack-Block-DoT${name_suffix}" ] || { exec_uci set firewall.dot_fwd${cnfg_suffix}.name="Hijack-Block-DoT${name_suffix}"; SRV_firewall=$(( $SRV_firewall + 1 )); }
+  [ "$(uci -q get firewall.dot6_fwd_xcptn${cnfg_suffix}.name)" = "Hijack-Allow-DoTv6${name_suffix}" ] || { exec_uci set firewall.dot6_fwd_xcptn${cnfg_suffix}.name="Hijack-Allow-DoTv6${name_suffix}"; SRV_firewall=$(( $SRV_firewall + 1 )); }
+  [ "$(uci -q get firewall.dot6_fwd${cnfg_suffix}.name)" = "Hijack-Block-DoTv6${name_suffix}" ] || { exec_uci set firewall.dot6_fwd${cnfg_suffix}.name="Hijack-Block-DoTv6${name_suffix}"; SRV_firewall=$(( $SRV_firewall + 1 )); }
+  [ "$(uci -q get firewall.dot_fwd${cnfg_suffix}.family)" = "ipv4" ] || { exec_uci set firewall.dot_fwd${cnfg_suffix}.family="ipv4"; SRV_firewall=$(( $SRV_firewall + 1 )); }
+  [ "$(uci -q get firewall.doh_fwd_xcptn${cnfg_suffix}.proto)" = "tcp" ] || { exec_uci set firewall.doh_fwd_xcptn${cnfg_suffix}.proto='tcp'; SRV_firewall=$(( $SRV_firewall + 1 )); }
+  [ "$(uci -q get firewall.doh_fwd${cnfg_suffix}.proto)" = "tcp" ] || { exec_uci set firewall.doh_fwd${cnfg_suffix}.proto='tcp'; SRV_firewall=$(( $SRV_firewall + 1 )); }
+  [ "$(uci -q get firewall.doh6_fwd_xcptn${cnfg_suffix}.proto)" = "tcp" ] || { exec_uci set firewall.doh6_fwd_xcptn${cnfg_suffix}.proto='tcp'; SRV_firewall=$(( $SRV_firewall + 1 )); }
+  [ "$(uci -q get firewall.doh6_fwd${cnfg_suffix}.proto)" = "tcp" ] || { exec_uci set firewall.doh6_fwd${cnfg_suffix}.proto='tcp'; SRV_firewall=$(( $SRV_firewall + 1 )); }
+done
+#endregion
+if [ "$(exec_uci -q get firewall.dns_dhcp_xcptn)" != "include" ]; then
+  echo -e "[$SCRIPT]:  ==> Creating configuration firewall.dns_dhcp_xcptn"
+  exec_uci set firewall.dns_dhcp_xcptn='include'
+  exec_uci set firewall.dns_dhcp_xcptn.type='script'
+  exec_uci set firewall.dns_dhcp_xcptn.family='ipv4'
+  exec_uci set firewall.dns_dhcp_xcptn.path='/usr/share/tch-gui-unhide/DNSv4-Hijacking.sh'
+  exec_uci set firewall.dns_dhcp_xcptn.reload='1'
+  exec_uci set firewall.dns_dhcp_xcptn.enabled="$(exec_uci -q get firewall.dns_int.enabled)"
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
+echo -e "[$SCRIPT]:  ==> Updating DHCP commit/apply"
 echo '^dhcp%.dhcp%.[^%.]+%.dhcp_option /usr/share/tch-gui-unhide/DNSv4-Hijacking.sh'>>/usr/share/transformer/commitapply/uci_dhcp.ca
 echo '^dhcp%.dhcp%.[^%.]+%.dns /usr/share/tch-gui-unhide/DNSv6-Hijacking.sh'>>/usr/share/transformer/commitapply/uci_dhcp.ca
 
 echo -e "[$SCRIPT]: Checking firewall configuration for Intrusion Protection"
 chmod +x /usr/share/intrusion-protection/firewall.sh
 if [ ! -e /etc/config/intrusion_protect ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating /etc/config/intrusion_protect"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Creating /etc/config/intrusion_protect"
   cat <<IP_CONFIG > /etc/config/intrusion_protect
 config intrusion_protect 'config'
         option enabled '0'
@@ -409,7 +434,7 @@ IP_CONFIG
   chmod 644 /etc/config/intrusion_protect
 fi
 if [ "$(exec_uci -q get firewall.intrusion_protect)" != "include" ]; then
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.intrusion_protect"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Creating configuration firewall.intrusion_protect"
   exec_uci set firewall.intrusion_protect='include'
   exec_uci set firewall.intrusion_protect.type='script'
   exec_uci set firewall.intrusion_protect.family='IPv4'
@@ -429,7 +454,7 @@ fi
 if [ $(grep /usr/share/intrusion-protection/firewall.sh /etc/crontabs/root | wc -l) -eq 0 ]; then
   mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
   hh=$(awk 'BEGIN{srand();print int(rand()*2)+3;}')
-  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Adding /usr/share/intrusion-protection/firewall.sh cron task every day at $hh:$mm"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Adding /usr/share/intrusion-protection/firewall.sh cron task every day at $hh:$mm"
   echo "$mm $hh * * * /usr/share/intrusion-protection/firewall.sh update" >> /etc/crontabs/root
   SRV_cron=$(( $SRV_cron + 1 ))
 fi

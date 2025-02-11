@@ -129,7 +129,7 @@ if not isBridgedMode then
     local values = proxy.get(path.."name",path.."enabled")
     if values then
       local name = values[1].value
-      if name == "Redirect-DNS" or name == "Intercept-DNS" then
+      if name == "Hijack-DNS" then
         if values[2] and values[2].value ~= "0" then
           dns4_int_state = "1"
         end
