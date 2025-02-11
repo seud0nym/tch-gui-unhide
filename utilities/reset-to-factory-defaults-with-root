@@ -43,7 +43,7 @@ check_location() {
       echo -e "${GREY}"
       echo "cp -p $SCRIPT /tmp"
       echo "cd /tmp"
-      echo "sh $SCRIPT $*"
+      echo "sh $SCRIPT"
       echo -e "${NC}"
       exit 2
     fi
