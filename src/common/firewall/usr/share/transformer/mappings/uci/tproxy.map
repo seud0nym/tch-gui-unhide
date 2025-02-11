@@ -17,7 +17,7 @@ mapper("uci_1to1").registerSimpleMap(tproxy_global)
 local tproxy_rule = {
   config = config_tproxy,
   type = "rule",
-  options = { "enabled", "name", "family", "proto", "listenIP", "listenPort", "destIP", "destPort", "ipset" }
+  options = { "enabled", "name", "family", "proto", "listenIP", "listenPort", "destIP", "destPort", "ipset", "targetPort" }
 }
 
 mapper("uci_1to1").registerNamedMultiMap(tproxy_rule)
