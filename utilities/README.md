@@ -524,7 +524,7 @@ Options:
 
 **NOTE:** You must not run this script from the overlay filesystem. Only run it from the /tmp directory or a USB disk. e.g.
 ```
-cp -p safe-firmware-upgrade /tmp
+cp -p safe-firmware-upgrade reset-to-factory-defaults-with-root /tmp
 cd /tmp
 sh safe-firmware-upgrade [options] filename
 ```
