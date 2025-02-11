@@ -17,6 +17,7 @@ MOUNT_PATH="$(uci get mountd.mountd.path)"
 USB="$(ls $MOUNT_PATH | head -n1)"
 UCI_DEFAULTS="zzz-9999-reroot"
 BOOTMGR="$(which bootmgr)"
+LSOF="$(which lsof)"
 
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
 [ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //' -e 's/TLS//')
@@ -34,6 +35,21 @@ fi
 [ $BOOTED = bank_1 ] && PASSIVE=2 || PASSIVE=1
 
 #region usage()
+check_location() {
+  if [ -n "$LSOF" ]; then
+    if $LSOF /overlay | grep -qE "\b$$\b|$SCRIPT"; then
+      echo -e "${RED}ERROR:    You CANNOT run this script from this location!${NC}"
+      echo "          Copy it to /tmp or USB and run from there. e.g."
+      echo -e "${GREY}"
+      echo "cp -p $SCRIPT /tmp"
+      echo "cd /tmp"
+      echo "sh $SCRIPT $*"
+      echo -e "${NC}"
+      exit 2
+    fi
+  fi
+}
+
 usage() {
 cat <<EOH
 Resets the device to factory defaults, and prepares a run-once root access
@@ -140,6 +156,7 @@ Options:
                       specified.
 EOH
 echo
+check_location
 exit
 }
 #endregion
@@ -377,6 +394,8 @@ while getopts :bBcCdD:ef:h:iI:kl:mnp:svyU-: option; do
 done
 shift $((OPTIND-1))
 #endregion Options
+
+check_location
 
 TARGET_BANK=/overlay/${BOOTED}
 TARGET_MTD=${BOOTED}
@@ -977,33 +996,35 @@ fi
 echo -e  "INFO:     $(grep '^Mem\(Free\|Available\)' /proc/meminfo | xargs)"
 sp='/-\|'; i=1
 
-for pid in $(pgrep flock); do
-  fd=$(sed -e 's/^.*flock//' /proc/$pid/cmdline | tr '\0' ' ' | xargs)
-  if [ -n "$fd" ]; then
-    if echo -n "$fd" | grep -E '[0-9]*'; then
-      lockfile=$(readlink /proc/$pid/fd/$fd)
-    else
-      lockfile="$fd"
-    fi
-    ppid=$(grep -i ^PPId /proc/$pid/status | cut -d: -f2 | xargs)
-    service=$(basename $(grep -oE '/etc/init.d/[^\0]*' /proc/$ppid/cmdline) 2>/dev/null)
-    if [ -n "$service" ]; then
-      if [ -e "$lockfile" ]; then
-        pids=$($LSOF $lockfile | grep $lockfile | grep -v "\b$pid\b\|\b$ppid\b" | tr -s ' ' | cut -d' ' -f2 | xargs echo $pid $ppid)
+if [ -n "$LSOF" ]; then
+  for pid in $(pgrep flock); do
+    fd=$(sed -e 's/^.*flock//' /proc/$pid/cmdline | tr '\0' ' ' | xargs)
+    if [ -n "$fd" ]; then
+      if echo -n "$fd" | grep -E '[0-9]*'; then
+        lockfile=$(readlink /proc/$pid/fd/$fd)
       else
-        pids="$pid $ppid"
+        lockfile="$fd"
       fi
-      echo -en "\033[2K\rINFO:     Clearing file lock on $service service ${GREY}($lockfile)${NC}"
-      rm $lockfile 1>/dev/null 2>&1
-      for p in $pids; do
-        kill -9 $pids 1>/dev/null 2>&1
-      done
+      ppid=$(grep -i ^PPId /proc/$pid/status | cut -d: -f2 | xargs)
+      service=$(basename $(grep -oE '/etc/init.d/[^\0]*' /proc/$ppid/cmdline) 2>/dev/null)
+      if [ -n "$service" ]; then
+        if [ -e "$lockfile" ]; then
+          pids=$($LSOF $lockfile | grep $lockfile | grep -v "\b$pid\b\|\b$ppid\b" | tr -s ' ' | cut -d' ' -f2 | xargs echo $pid $ppid)
+        else
+          pids="$pid $ppid"
+        fi
+        echo -en "\033[2K\rINFO:     Clearing file lock on $service service ${GREY}($lockfile)${NC}"
+        rm $lockfile 1>/dev/null 2>&1
+        for p in $pids; do
+          kill -9 $pids 1>/dev/null 2>&1
+        done
+      fi
     fi
-  fi
-done
-echo -e "\033[2K\rINFO:     Cleared service file locks${NC}"
+  done
+  echo -e "\033[2K\rINFO:     Cleared service file locks${NC}"
+fi
 
-for service in $(ls /etc/rc.d/K* | grep -v 'network\|umount'); do
+for service in $(ls /etc/rc.d/K* | grep -v 'dropbear\|network\|umount'); do
   exe=$(basename $(readlink $service) 2>/dev/null)
   echo -en "\033[2K\rINFO:     Stopping services: $(echo $sp | cut -c $i) ${GREY}$exe${NC}"
   [ "$exe" = "cwmpd" ] && kill -9 $(pgrep cwmpd) 1>/dev/null 2>&1
@@ -1012,8 +1033,8 @@ for service in $(ls /etc/rc.d/K* | grep -v 'network\|umount'); do
 done
 echo -e "\033[2K\rINFO:     Stopped services"
 
-if [ -n "$(which lsof)" ]; then
-  lsof /overlay | awk '/ REG /{print $2}' | uniq | while read p; do
+if [ -n "$LSOF" ]; then
+  $LSOF /overlay | awk '/ REG /{print $2}' | uniq | while read p; do
     if [ -d "/proc/$p" ]; then
       exe=$(readlink /proc/$p/exe)
       echo -en "\033[2K\rINFO:     Killing writing processes: $(echo $sp | cut -c $i) ${GREY}$exe ($p)${NC}"

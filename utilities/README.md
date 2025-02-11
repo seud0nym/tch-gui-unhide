@@ -282,6 +282,13 @@ Parameters:
                   /mnt/usb/FIRST USB DEVICE/backups/VARIANT-SERIAL-VERSION-overlay-files-backup.tgz
 ```
 
+**NOTE:** You must not run this script from the overlay filesystem. Only run it from the /tmp directory or a USB disk. e.g.
+```
+cp -p overlay-restore /tmp
+cd /tmp
+sh overlay-restore [options] [filename]
+```
+
 ## ptree
 Similar to the `ps` command, but shows child processes in a tree-like structure.
 ```
@@ -302,6 +309,7 @@ Parameters:
 This script can be used to reset the device to factory defaults whilst preserving root access. It can also (optionally) automatically re-apply some important configuration after the reset.
 
 It is an updated and more exhaustive implementation of the commands from https://hack-technicolor.readthedocs.io/en/stable/Upgrade/#preserving-root-access.
+
 ```
 Usage: ./reset-to-factory-defaults-with-root [options]
 
@@ -398,6 +406,13 @@ Options:
                       not specified, the IP address used will be the one found in the 
                       configuration backup. Ignored unless --restore-config is also 
                       specified.
+```
+
+**NOTE:** You must not run this script from the overlay filesystem. Only run it from the /tmp directory or a USB disk. e.g.
+```
+cp -p reset-to-factory-defaults-with-root /tmp
+cd /tmp
+sh reset-to-factory-defaults-with-root [options]
 ```
 
 ## safe-firmware-upgrade
@@ -505,6 +520,13 @@ Options:
                       not specified, the IP address used will be the one found in the 
                       configuration backup. Ignored unless --restore-config is also 
                       specified.
+```
+
+**NOTE:** You must not run this script from the overlay filesystem. Only run it from the /tmp directory or a USB disk. e.g.
+```
+cp -p safe-firmware-upgrade /tmp
+cd /tmp
+sh safe-firmware-upgrade [options] filename
 ```
 
 ## set-optimal-bank-plan

@@ -8,6 +8,7 @@ ORANGE='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+LSOF="$(which lsof)"
 SERIAL=$(uci get env.var.serial)
 VERSION=$(uci get version.@version[0].version | cut -d- -f1)
 VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//')
@@ -22,6 +23,21 @@ else
 fi
 
 #region usage
+check_location() {
+  if [ -n "$LSOF" ]; then
+    if $LSOF /overlay | grep -qE "\b$$\b|$SCRIPT"; then
+      echo -e "${RED}ERROR:    You CANNOT run this script from this location!${NC}"
+      echo "          Copy it to /tmp or USB and run from there. e.g."
+      echo -e "${GREY}"
+      echo "cp -p $SCRIPT /tmp"
+      echo "cd /tmp"
+      echo "sh $SCRIPT $*"
+      echo -e "${NC}"
+      exit 2
+    fi
+  fi
+}
+
 usage() {
 cat <<EOH
 Restores an overlay tar backup. By default, both bank_1 and bank_2 
@@ -51,6 +67,7 @@ Parameters:
                   {USB Path}/backups/$VARIANT-$SERIAL-$VERSION-overlay-files-backup.tgz
 
 EOH
+check_location
 exit
 }
 #endregion
@@ -94,6 +111,8 @@ while getopts :12bnpvU option; do
  esac
 done
 [ "$REBOOT" = "Y" -a "$RESTORE" = "./$NOT_BOOTED" ] && REBOOT="N"
+
+check_location
 
 #region filename
 shift $((OPTIND-1))
@@ -162,33 +181,35 @@ read
 
 sp='/-\|'; i=1
 
-for pid in $(pgrep flock); do
-  fd=$(sed -e 's/^.*flock//' /proc/$pid/cmdline | tr '\0' ' ' | xargs)
-  if [ -n "$fd" ]; then
-    if echo -n "$fd" | grep -E '[0-9]*'; then
-      lockfile=$(readlink /proc/$pid/fd/$fd)
-    else
-      lockfile="$fd"
-    fi
-    ppid=$(grep -i ^PPId /proc/$pid/status | cut -d: -f2 | xargs)
-    service=$(basename $(grep -oE '/etc/init.d/[^\0]*' /proc/$ppid/cmdline) 2>/dev/null)
-    if [ -n "$service" ]; then
-      if [ -e "$lockfile" ]; then
-        pids=$($LSOF $lockfile | grep $lockfile | grep -v "\b$pid\b\|\b$ppid\b" | tr -s ' ' | cut -d' ' -f2 | xargs echo $pid $ppid)
+if [ -n "$LSOF" ]; then
+  for pid in $(pgrep flock); do
+    fd=$(sed -e 's/^.*flock//' /proc/$pid/cmdline | tr '\0' ' ' | xargs)
+    if [ -n "$fd" ]; then
+      if echo -n "$fd" | grep -E '[0-9]*'; then
+        lockfile=$(readlink /proc/$pid/fd/$fd)
       else
-        pids="$pid $ppid"
+        lockfile="$fd"
       fi
-      echo -en "\033[2K\rINFO:     CLEARING file lock on $service service ${GREY}($lockfile)${NC}"
-      rm $lockfile 1>/dev/null 2>&1
-      for p in $pids; do
-        kill -9 $pids 1>/dev/null 2>&1
-      done
+      ppid=$(grep -i ^PPId /proc/$pid/status | cut -d: -f2 | xargs)
+      service=$(basename $(grep -oE '/etc/init.d/[^\0]*' /proc/$ppid/cmdline) 2>/dev/null)
+      if [ -n "$service" ]; then
+        if [ -e "$lockfile" ]; then
+          pids=$($LSOF $lockfile | grep $lockfile | grep -v "\b$pid\b\|\b$ppid\b" | tr -s ' ' | cut -d' ' -f2 | xargs echo $pid $ppid)
+        else
+          pids="$pid $ppid"
+        fi
+        echo -en "\033[2K\rINFO:     CLEARING file lock on $service service ${GREY}($lockfile)${NC}"
+        rm $lockfile 1>/dev/null 2>&1
+        for p in $pids; do
+          kill -9 $pids 1>/dev/null 2>&1
+        done
+      fi
     fi
-  fi
-done
-echo -e "\033[2K\rINFO:     CLEARED service file locks${NC}"
+  done
+  echo -e "\033[2K\rINFO:     CLEARED service file locks${NC}"
+fi
 
-for service in $(ls /etc/rc.d/K* | grep -v 'network\|umount'); do
+for service in $(ls /etc/rc.d/K* | grep -v 'dropbear\|network\|umount'); do
   exe=$(basename $(readlink $service) 2>/dev/null)
   echo -en "\033[2K\rINFO:     STOPPING services: $(echo $sp | cut -c $i) ${GREY}$exe${NC}"
   [ "$exe" = "cwmpd" ] && kill -9 $(pgrep cwmpd) 1>/dev/null 2>&1
@@ -197,7 +218,7 @@ for service in $(ls /etc/rc.d/K* | grep -v 'network\|umount'); do
 done
 echo -e "\033[2K\rINFO:     STOPPED services"
 
-if [ -n "$(which lsof)" ]; then
+if [ -n "$LSOF" ]; then
   lsof /overlay | awk '/ REG /{print $2}' | uniq | while read p; do
     if [ -d "/proc/$p" ]; then
       exe=$(readlink /proc/$p/exe)
