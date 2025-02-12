@@ -62,7 +62,7 @@ for pid in $(pgrep flock); do
   if [ $blocked -ge $__SECONDS ]; then
     fd=$(sed -e 's/^.*flock//' /proc/$pid/cmdline | tr '\0' ' ' | xargs)
     if [ -n "$fd" ]; then
-      if echo -n "$fd" | grep -E '[0-9]*'; then
+      if echo -n "$fd" | grep -qE '[0-9]*'; then
         lockfile=$(readlink /proc/$pid/fd/$fd)
       else
         lockfile="$fd"
