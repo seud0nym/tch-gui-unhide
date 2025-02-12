@@ -698,6 +698,10 @@ if [ -n "$FIRMWARE" ]; then
     if echo "$FIRMWARE" | grep -qE '\.pkgtb$'; then
       echo -e "NOTE:     ${GREEN}$(basename $FIRMWARE)${NC} will be flashed into ${GREEN}$NOT_BOOTED${NC} by sysupgrade${NC}"
       RBI="N"
+      if [ "$NOT_BOOTED" = "bank_1" ]; then
+        echo -e "${RED}WARNING:  Bank plan will NOT be optimal after reboot!${NC}"
+        echo -e "${ORANGE}          Are you REALLY, REALLY sure you wish to proceed?"
+      fi
     else
       if echo "$FIRMWARE" | grep -qE '\.rbi$'; then
         if [ -z "$USB" ]; then
