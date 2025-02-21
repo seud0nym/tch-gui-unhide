@@ -210,7 +210,7 @@ local ipv4_columns = {
    param = "enabled",
    type = "switch",
    default = "1",
-   attr = { switch = { ["data-placement"] = "right" }}
+   attr = { switch = { ["data-placement"] = "right",class = "no-save" }}
  },
  {
    header = T"Name",
@@ -218,7 +218,7 @@ local ipv4_columns = {
    param = "name",
    type = "text",
    unique = true,
-   attr = { input = { class="span2" } },
+   attr = { input = { class="span2 no-save" } },
  },
  {
    header = T"Protocol",
@@ -227,28 +227,28 @@ local ipv4_columns = {
    default = "tcp",
    type = "select",
    values = ipv4_protocol_list,
-   attr = { select = { class="span2" } },
+   attr = { select = { class="span2 no-save" } },
  },
  {
    header = T"WAN Port",
    name = "wanport",
    param = "src_dport",
    type = "text",
-   attr = { input = { class="span1",maxlength="11" },autocomplete = allowed_portlist },
+   attr = { input = { class="span1 no-save",maxlength="11" },autocomplete = allowed_portlist },
  },
  {
    header = T"LAN Port",
    name = "lanport",
    param = "dest_port",
    type = "text",
-   attr = { input = { class="span1",maxlength="11" },autocomplete = ports_list },
+   attr = { input = { class="span1 no-save",maxlength="11" },autocomplete = ports_list },
  },
  {
    header = T"Destination IP",
    name = "destinationip",
    param = "dest_ip",
    type = "text",
-   attr = { input = { class="span2",maxlength="15" },autocomplete = ipv4_hosts_ac },
+   attr = { input = { class="span2 no-save",maxlength="15" },autocomplete = ipv4_hosts_ac },
  },
  {
    header = T"Destination MAC",
@@ -256,7 +256,6 @@ local ipv4_columns = {
    param = "dest_mac",
    type = "text",
    readonly = true,
-   attr = {  },
  },
 }
 
@@ -413,7 +412,7 @@ local ipv6_columns = {
     param = "enabled",
     type = "switch",
     default = "1",
-    attr = { switch = { ["data-placement"] = "right" }}
+    attr = { switch = { ["data-placement"] = "right",class = "no-save" }}
   },
   {
     header = T"Name",
@@ -421,7 +420,7 @@ local ipv6_columns = {
     param = "name",
     type = "text",
     unique = true,
-    attr = { input = { class="span2" } },
+    attr = { input = { class="span2 no-save" } },
   },
   {
     header = T"Protocol",
@@ -430,21 +429,21 @@ local ipv6_columns = {
     default = "tcp",
     type = "select",
     values = ipv6_protocol_list,
-    attr = { select = { class="span2" } },
+    attr = { select = { class="span2 no-save" } },
   },
   {
     header = T"Destination Port",
     name = "wanport",
     param = "dest_port",
     type = "text",
-    attr = { input = { class="span1",maxlength="11" },autocomplete = ports_list },
+    attr = { input = { class="span1 no-save",maxlength="11" },autocomplete = ports_list },
   },
   {
     header = T"Destination IP",
     name = "dest_ip_v6",
     param = "dest_ip",
     type = "text",
-    attr = { input = { class="span2",maxlength="39" },autocomplete = ipv6_hosts_ac },
+    attr = { input = { class="span2 no-save",maxlength="39" },autocomplete = ipv6_hosts_ac },
   },
   {
     header = T"Destination MAC",
@@ -452,7 +451,6 @@ local ipv6_columns = {
     param = "dest_mac",
     type = "text",
     readonly = true,
-    attr = {  },
   },
 }
 

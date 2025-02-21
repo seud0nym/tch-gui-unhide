@@ -28,7 +28,7 @@ local shaper_columns = {
     name = "swshaper",
     param = "paramindex",
     type = "text",
-    attr = { input = { class = "span2"} },
+    attr = { input = { class = "span2 no-save"} },
   },
   { -- 2
     header = T"Max Rate (Mbit/s)",
@@ -36,14 +36,14 @@ local shaper_columns = {
     param = "max_bit_rate",
     type = "text",
     default = "40",
-    attr = { input = { type = "number",min = "0",step = "1",class = "span2" } },
+    attr = { input = { type = "number",min = "0",step = "1",class = "span2 no-save" } },
   },
   { -- 3
     header = T"Enabled",
     name = "enable",
     param = "enable",
     type = "switch",
-    attr = { switch = { ["data-placement"] = "center" }},
+    attr = { switch = { ["data-placement"] = "center",class = "no-save" }},
   },
   { -- 4
     header = T"Applied to Device?",

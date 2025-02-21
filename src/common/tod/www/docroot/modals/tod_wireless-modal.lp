@@ -41,6 +41,7 @@ if #tod_columns[7].subcolumns == 5 then
     header = T"Access Point",
     name = "ap",
     param = "ap",
+    attr = { input = { class="no-save" } },
   })
 end
 tod_columns[7].subcolumns[2].type = "checkboxgroup"

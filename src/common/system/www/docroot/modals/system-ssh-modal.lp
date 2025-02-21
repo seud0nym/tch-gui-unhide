@@ -148,7 +148,7 @@ local authorized_keys_columns = {
     name = "authorized_key",
     param = "authorized_key",
     type = "text",
-    attr = { input = { class="span7" } },
+    attr = { input = { class="span7 no-save" } }
   },
 }
 local authorized_keys_valid = {

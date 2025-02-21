@@ -67,6 +67,7 @@ local helper_columns = {
     name = "enable",
     param = "enable",
     type = "switch",
+    attr = { switch = { ["data-placement"] = "center",class = "no-save" }},
   },
 }
 

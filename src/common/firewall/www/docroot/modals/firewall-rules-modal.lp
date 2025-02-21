@@ -57,7 +57,7 @@ local fw_includes_columns = {
     param = "enabled",
     type = "switch",
     default = "1",
-    attr = { switch = { ["data-placement"] = "right" }},
+    attr = { switch = { ["data-placement"] = "right",class = "no-save" }},
   },
   { -- [2]
     header = T"Type",

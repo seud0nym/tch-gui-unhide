@@ -296,6 +296,7 @@ local boot_columns = {
     name = "networkid",
     param = "networkid",
     type = "text",
+    attr = { input = { class="no-save" } },
     unique = true,
   },
   {
@@ -303,21 +304,21 @@ local boot_columns = {
     name = "filename",
     param = "filename",
     type = "text",
-    attr = { input = { class="span3" } },
+    attr = { input = { class="span3 no-save" } },
   },
   {
     header = T"Server Address",
     name = "serveraddress",
     param = "serveraddress",
     type = "text",
-    attr = { input = { class="span2",maxlength="15",placeholder="Leave blank for Gateway" },autocomplete=hosts_ac },
+    attr = { input = { class="span2 no-save",maxlength="15",placeholder="Leave blank for Gateway" },autocomplete=hosts_ac },
   },
   {
     header = T"Server Name",
     name = "servername",
     param = "servername",
     type = "text",
-    attr = { input = { class="span2",placeholder="Leave blank for Gateway" } },
+    attr = { input = { class="span2 no-save",placeholder="Leave blank for Gateway" } },
   },
 }
 if ngx.var.request_method == "POST" then

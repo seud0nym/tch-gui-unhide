@@ -36,7 +36,7 @@ local whitelist_columns = {
     name = "whitelist_ip",
     param = "value",
     type = "text",
-    attr = { input = { class="span2",maxlength="18" } },
+    attr = { input = { class="span2 no-save",maxlength="18" } },
   },
 }
 local whitelist_options = {
@@ -61,7 +61,7 @@ local blacklist_columns = {
     name = "blacklist_ip",
     param = "value",
     type = "text",
-    attr = { input = { class="span2",maxlength="18" } },
+    attr = { input = { class="span2 no-save",maxlength="18" } },
   },
 }
 local blacklist_options = {
@@ -86,12 +86,14 @@ local blocklist_columns = {
     name = "enabled",
     param = "enabled",
     type = "switch",
+    attr = { switch = { class="no-save" }},
   },
   {
     header = T"Logging",
     name = "logging",
     param = "logging",
     type = "switch",
+    attr = { switch = { class="no-save" }},
   },
   {
     header = T"Name",

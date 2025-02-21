@@ -35,7 +35,6 @@ local codec_columns = {
     param = "Codec",
     type = "text",
     readonly = true,
-    attr = { input = { class="span2" } },
   },
   { --[2]
     header = T"State",
@@ -43,14 +42,14 @@ local codec_columns = {
     param = "Enable",
     type = "select",
     values = choice2,
-    attr = { select = { class="span2" } },
+    attr = { select = { class="span2 no-save" } },
   },
   { --[3]
     header = T"Priority",
     name = "priority",
     param = "Priority",
     type = "text",
-    attr = { input = { class="span2" } },
+    attr = { input = { class="span2 no-save" } },
   },
   { --[4]
     header = T"Packetization Period",
@@ -58,7 +57,6 @@ local codec_columns = {
     param = "PacketizationPeriod",
     type = "text",
     readonly = true,
-    attr = { input = { class="span2" } },
   },
   { --[5]
     header = T"Bit Rate",
@@ -66,7 +64,6 @@ local codec_columns = {
     param = "BitRate",
     type = "text",
     readonly = true,
-    attr = { input = { class="span2" } },
   },
   { --[6]
     header = T"Silence Suppression",
@@ -74,7 +71,7 @@ local codec_columns = {
     param = "SilenceSuppression",
     type = "select",
     values = choice2,
-    attr = { select = { class="span2" } },
+    attr = { select = { class="span2 no-save" } },
   },
 }
 

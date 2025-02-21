@@ -77,7 +77,7 @@ local label_columns = {
     name = "qosLabel",
     param = "paramindex",
     type = "text",
-    attr = { input = { class="span2"} },
+    attr = { input = { class="span2 no-save"} },
   },
   {
     header = T"Traffic ID",
@@ -85,7 +85,7 @@ local label_columns = {
     param = "trafficid",
     type = "select",
     values = options_trafficid,
-    attr = { select = { class="span1"} },
+    attr = { select = { class="span1 no-save"} },
   },
   {
     header = T"DSCP",
@@ -93,7 +93,7 @@ local label_columns = {
     param = "dscp",
     type = "select",
     values = options_dscp_select,
-    attr = { input = { class="span1" } },
+    attr = { input = { class="span1 no-save" } },
   },
 }
 

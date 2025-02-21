@@ -203,7 +203,6 @@ local classes_columns = {
     param = "paramindex",
     type = "text",
     readonly = true,
-    attr = { input = { class="span2" } },
   },
   { --2
     header = T"Priority",
@@ -211,7 +210,6 @@ local classes_columns = {
     param = "priority",
     type = "text",
     readonly = true,
-    attr = { input = { class="span1" } },
   },
   { --3
     header = T"Weight",
@@ -219,14 +217,12 @@ local classes_columns = {
     param = "weight",
     type = "text",
     readonly = true,
-    attr = { input = { class="span1" } },
   },
   { --4
     header = T"Traffic ID",
     name = "trafficid",
     type = "text",
     readonly = true,
-    attr = { input = { class="span1" } },
   },
   { --5
     header = "",
@@ -240,14 +236,14 @@ local classes_columns = {
         name = "priority",
         param = "priority",
         type = "text",
-        attr = { input = { class="span2" } },
+        attr = { input = { class="span2 no-save" } },
       },
       {
         header = T"Weight",
         name = "weight",
         param = "weight",
         type = "text",
-        attr = { input = { class="span2" } },
+        attr = { input = { class="span2 no-save" } },
       },
       {
         header = T"Traffic ID",
@@ -255,7 +251,7 @@ local classes_columns = {
         param = "trafficid",
         type = "checkboxgroup",
         values = trafficid_options,
-        attr = { checkbox = { class="inline" } },
+        attr = { checkbox = { class="inline no-save" } },
       },
     },
   },--[5]

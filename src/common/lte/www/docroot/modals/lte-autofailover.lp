@@ -59,7 +59,7 @@ local l2state_columns = {
     name = "timeout",
     param = "timeout",
     type = "text",
-    attr = { input = { type = "number",min = "1",max = "300",class="span2",style = "width:50px" } },
+    attr = { input = { type = "number",min = "1",max = "300",class="span2 no-save",style = "width:50px" } },
   },
 }
 
@@ -86,7 +86,7 @@ l3state_columns[#l3state_columns+1] = { -- [5]
   name = "fasttimeout",
   param = "fasttimeout",
   type = "text",
-  attr = { input = { type = "number",min = "1",max = "300",class="span2",style = "width:50px" } },
+  attr = { input = { type = "number",min = "1",max = "300",class="span2 no-save",style = "width:50px" } },
 }
 
 local l3state_options = {

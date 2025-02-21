@@ -25,7 +25,7 @@ local uniqueKey = post_helper.getRandomKey()
 local session = ngx.ctx.session
 
 tod_columns[7].subcolumns[2].type = "text"
-tod_columns[7].subcolumns[2].attr = { input = { class="span2", maxlength="17"}, autocomplete=parental_helper.get_hosts_ac() }
+tod_columns[7].subcolumns[2].attr = { input = { class="span2 no-save", maxlength="17"}, autocomplete=parental_helper.get_hosts_ac() }
 
 if not tod.days then
   tod.days = tod_columns[6].values

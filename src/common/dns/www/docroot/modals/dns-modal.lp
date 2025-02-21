@@ -70,14 +70,14 @@ local custom_dns_columns = {
     header = T"Domain <span class='icon-question-sign' title='Specify a domain name to resolved against a specific server, or leave blank for all domains. The last server listed for duplicated domains will be used unless it does not respond,in which case the previous server will be queried.'></span>",
     name = "domain",
     type = "text",
-    attr = { input = { class="span3",placeholder="Leave blank for all domains" } },
+    attr = { input = { class="span3 no-save",placeholder="Leave blank for all domains" } },
   },
   {
     header = T"DNS Server IPv4/IPv6 Address",
     name = "value",
     param = "value",
     type = "text",
-    attr = { input = { class="span3" } },
+    attr = { input = { class="span3 no-save" } },
     unique = true,
   },
 }
@@ -148,14 +148,14 @@ local rewrites_columns = {
     header = T"Domain Address Query",
     name = "domain",
     type = "text",
-    attr = { input = { class="span2" } },
+    attr = { input = { class="span2 no-save" } },
   },
   {
     header = T"IPv4/IPv6 Address to Return",
     name = "value",
     param = "value",
     type = "text",
-    attr = { input = { class="span2" } },
+    attr = { input = { class="span2 no-save" } },
   },
 }
 local rewrites_valid = {
@@ -197,7 +197,7 @@ local domains_columns = {
     name = "value",
     param = "value",
     type = "text",
-    attr = { input = { class="span2" } },
+    attr = { input = { class="span2 no-save" } },
   },
 }
 local domains_valid = {

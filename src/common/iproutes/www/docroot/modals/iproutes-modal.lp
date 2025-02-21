@@ -115,28 +115,28 @@ local ipv4_sta_route_columns = {
     name = "Destination",
     param = "target",
     type = "text",
-    attr = { input = { class="span2 centered" } },
+    attr = { input = { class="span2 centered no-save" } },
   },
   {
     header = T"Mask",
     name = "Mask",
     param = "netmask",
     type = "text",
-    attr = { input = { class="span2 centered" } },
+    attr = { input = { class="span2 centered no-save" } },
   },
   {
     header = T"Gateway",
     name = "Gateway",
     param = "gateway",
     type = "text",
-    attr = { input = { class="span2 centered",id ="iproutesmodal_gateway" }},
+    attr = { input = { class="span2 centered no-save",id ="iproutesmodal_gateway" }},
   },
   {
     header = T"Metric",
     name = "Metric",
     param = "metric",
     type = "text",
-    attr = { input = { class="span2 centered" } },
+    attr = { input = { class="span2 centered no-save" } },
   },
   {
     header = T"Interface",
@@ -144,7 +144,7 @@ local ipv4_sta_route_columns = {
     param = "interface",
     type = "select",
     values = wan_intfs,
-    attr = { select = { class="span2 centered" } },
+    attr = { select = { class="span2 centered no-save" } },
   },
 }
 local ipv4_sta_route_options = {
@@ -241,21 +241,21 @@ if lan_ipv6 then
       name = "Destination",
       param = "target",
       type = "text",
-      attr = { input = { class="span2 centered" } },
+      attr = { input = { class="span2 centered no-save" } },
     },
     {
       header = T"Gateway",
       name = "Gateway",
       param = "gateway",
       type = "text",
-      attr = { input = { class="span2 centered",id ="iproutesmodal_gateway" }},
+      attr = { input = { class="span2 centered no-save",id ="iproutesmodal_gateway" }},
     },
     {
       header = T"Metric",
       name = "Metric",
       param = "metric",
       type = "text",
-      attr = { input = { class="span2 centered" } },
+      attr = { input = { class="span2 centered no-save" } },
     },
     {
       header = T"Interface",
@@ -263,7 +263,7 @@ if lan_ipv6 then
       param = "interface",
       type = "select",
       values = wan6_intfs,
-      attr = { select = { class="span2 centered" } },
+      attr = { select = { class="span2 centered no-save" } },
     },
   }
   ipv6_sta_route_options = {

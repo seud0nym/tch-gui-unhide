@@ -35,7 +35,7 @@ local tagged_state = {
   { "t",T"Tagged" },
 }
 
-local tagged_state_attr = {select={class="span2",style="font-family:FontAwesome,Roboto,Noto,sans-serif;"}}
+local tagged_state_attr = {select={class="span2 no-save",style="font-family:FontAwesome,Roboto,Noto,sans-serif;"}}
 local eth = vlan_helper.get_port_states()
 
 local vlan_columns = {
@@ -44,7 +44,7 @@ local vlan_columns = {
     name = "vlan",
     param = "vlan",
     type = "text",
-    attr = { input = { type="number",max="4095",min="2",step="1",class="span2" } },
+    attr = { input = { type="number",max="4095",min="2",step="1",class="span2 no-save" } },
     unique = true,
   },
   {

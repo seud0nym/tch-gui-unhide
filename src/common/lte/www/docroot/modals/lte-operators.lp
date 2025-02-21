@@ -40,7 +40,7 @@ local operator_columns = {
     name = "name",
     param = "name",
     type = "text",
-    attr = { input = { class="span2",maxlength="127" } }
+    attr = { input = { class="span2 no-save",maxlength="127" } }
   },
   {
     header = T"Mobile Country Code",
@@ -48,14 +48,14 @@ local operator_columns = {
     param = "mcc",
     type = "text",
     default = "505",
-    attr = { input = { type="number",minlength="3",maxlength="3" } }
+    attr = { input = { type="number",minlength="3",maxlength="3",class="no-save" } }
   },
   {
     header = T"Mobile Network Code",
     name = "mnc",
     param = "mnc",
     type = "text",
-    attr = { input = { type="number",minlength="2",maxlength="3" } }
+    attr = { input = { type="number",minlength="2",maxlength="3",class="no-save" } }
   },
   {
     header = T"In Use",

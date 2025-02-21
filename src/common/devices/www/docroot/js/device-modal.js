@@ -23,8 +23,8 @@ $("tr.line-edit>td>span.maccell").each(function(){
 });
 $("tr.line-edit>td>span.typecell").each(function(){
   var state = $(this).text();
-  var switchClass = "switch";
-  var switcherClass = "switcher"
+  var switchClass = "switch no-save";
+  var switcherClass = "switcher no-save"
   var v = "0";
   if (state == "Static") {
     switchClass += " switchOn";

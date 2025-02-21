@@ -46,6 +46,7 @@ local filter_columns = {
     name = "filter_string",
     param = "value",
     type = "text",
+    attr = { input = { class="no-save" } },
   }
 }
 local filter_valid = {

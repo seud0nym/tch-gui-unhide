@@ -65,7 +65,7 @@ local device_columns = {
     name = "device_name",
     param = "paramindex",
     type = "text",
-    attr = { input = { class="span2" } },
+    attr = { input = { class="span2 no-save" } },
   },
   { --[2]
     header = T"MAC Address",
@@ -73,7 +73,7 @@ local device_columns = {
     param = "mac",
     type = "select",
     values = hosts_mac,
-    attr = { input = { class="span2",maxlength="17",id="lease_mac" },autocomplete=hosts_mac },
+    attr = { input = { class="span2 no-save",maxlength="17",id="lease_mac" },autocomplete=hosts_mac },
     unique = true,
   },
   { --[3]
@@ -81,20 +81,21 @@ local device_columns = {
     name = "download",
     param = "download",
     type = "text",
-    attr = { input = { type = "number",min = "1",max = content["bqos_download"],class="span2",style = "width:50px" } },
+    attr = { input = { type = "number",min = "1",max = content["bqos_download"],class="span2 no-save",style = "width:50px" } },
   },
   { --[4]
     header = T"Max Upload (Mbit/s)",
     name = "upload",
     param = "upload",
     type = "text",
-    attr = { input = { type = "number",min = "1",max = content["bqos_upload"],class="span2",style = "width:50px" } },
+    attr = { input = { type = "number",min = "1",max = content["bqos_upload"],class="span2 no-save",style = "width:50px" } },
   },
   { --[5]
     header = T"Enabled",
     name = "enabled",
     param = "enabled",
     type = "switch",
+    attr = { switch = { ["data-placement"] = "center",class = "no-save" }},
     default = "1",
   },
 }

@@ -185,6 +185,7 @@ local dns_columns = {
         name = "dns_server",
         param = "value",
         type = "text",
+        attr = { input = { class="no-save" } },
     }
 }
 

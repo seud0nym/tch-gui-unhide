@@ -37,7 +37,7 @@ local mcsnooper_columns = {
     name = "paramindex",
     param = "paramindex",
     type = "select",
-    attr = { input = { class="span1" } },
+    attr = { input = { class="span1 no-save" } },
     values = lan_intfs,
   },
   { --[2]
@@ -45,36 +45,42 @@ local mcsnooper_columns = {
     name = "igmp_snooping",
     param = "igmp_snooping",
     type = "switch",
+    attr = { switch = { ["data-placement"] = "left",class="no-save" }},
   },
   { --[3]
     header = T"MLD<br>Snooping",
     name = "mld_snooping",
     param = "mld_snooping",
     type = "switch",
+    attr = { switch = { ["data-placement"] = "left",class="no-save" }},
   },
   { --[4]
     header = T"IGMP LAN-LAN<br>Snooping",
     name = "igmplan2lan_snooping",
     param = "igmplan2lan_snooping",
     type = "switch",
+    attr = { switch = { ["data-placement"] = "left",class="no-save" }},
   },
   { --[5]
     header = T"MLD LAN-LAN<br>Snooping",
     name = "mldlan2lan_snooping",
     param = "mldlan2lan_snooping",
     type = "switch",
+    attr = { switch = { ["data-placement"] = "left",class="no-save" }},
   },
   { --[6]
     header = T"Multicast<br>Flooding",
     name = "mcast_flooding",
     param = "mcast_flooding",
     type = "switch",
+    attr = { switch = { ["data-placement"] = "left",class="no-save" }},
   },
   { --[7]
     header = T"Multicast 6<br>Flooding",
     name = "mcast6_flooding",
     param = "mcast6_flooding",
     type = "switch",
+    attr = { switch = { ["data-placement"] = "left",class="no-save" }},
   },
 }
 

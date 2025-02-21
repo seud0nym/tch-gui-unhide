@@ -84,7 +84,7 @@ local devices_columns = {
     name = "FriendlyName",
     param = "FriendlyName",
     type = "text",
-    attr = { input = { class="span3" } },
+    attr = { input = { class="span3 no-save" } },
   },
   {--[3]
     header = T"IPv4",
@@ -141,7 +141,7 @@ local devices_columns = {
     name = "priority",
     param = "Priority",
     type = "switch",
-    attr = { input = { class="span3" } },
+    attr = { input = { class="span3 no-save" } },
   },
   {--[11]
     header = T"",

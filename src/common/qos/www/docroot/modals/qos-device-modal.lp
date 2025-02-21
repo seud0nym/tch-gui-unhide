@@ -60,7 +60,7 @@ local device_columns = {
     param = "paramindex",
     type = "select",
     values = options_if,
-    attr = { input = { class="span1" } },
+    attr = { input = { class="span1 no-save" } },
   },
   { -- 2
     header = T"Description",
@@ -80,7 +80,7 @@ local device_columns = {
     param = "classgroup",
     type = "select",
     values = options_group,
-    attr = { switch = { ["data-placement"] = "center" }},
+    attr = { switch = { ["data-placement"] = "center",class = "no-save" }},
   },
   {-- 5
     header = T"In Use",
@@ -95,7 +95,7 @@ local device_columns = {
     name = "enable",
     param = "enable",
     type = "switch",
-    attr = { switch = { ["data-placement"] = "center" }},
+    attr = { switch = { ["data-placement"] = "center",class = "no-save" }},
   },
 }
 
