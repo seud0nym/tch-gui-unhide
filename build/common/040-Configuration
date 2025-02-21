@@ -94,10 +94,15 @@ for f in /etc/passwd /etc/shadow /etc/config/dropbear /etc/dropbear/* /etc/rc.d/
   fi
 done
 
-handler="$(uci get button.reset.handler)"
-if ! echo "$handler" | grep -qe '--soft'; then
-  echo -e "[$SCRIPT]: Configuring reset button to do soft RTFD"
-  exec_uci set button.reset.handler="$(echo $handler | sed -e 's/rtfd/& --soft/')"
-  uci commit button
-fi
-unset handler
+for button in reset easy_reset; do
+  handler="$(uci -q get button.${button}.handler)"
+  if [ -n "$handler" ]; then
+    if ! echo "$handler" | grep -qe '--soft'; then
+      echo -e "[$SCRIPT]: Configuring ${button} button to do soft RTFD"
+      exec_uci set button.${button}.handler="$(echo $handler | sed -e 's/rtfd/& --soft/')"
+      exec_uci commit button
+    fi
+  fi
+  unset handler
+done
+unset button
