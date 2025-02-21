@@ -19886,6 +19886,30 @@ else
   done
   echo [$SCRIPT]: Reset to Factory Defaults root protection $(status2text $__ROOT_PROTECT)
 fi
+PINHOLE_RESET_NOW=$(grep -q '\brtfd --soft\b' /etc/config/button && echo 1 || echo 0)
+if [ "$__ROOT_PROTECT" = "u" -o "$PINHOLE_RESET_NOW" = "$__ROOT_PROTECT" ]; then
+  echo [$SCRIPT]: Pin-hole Reset root protection unchanged \[$(status2text $PINHOLE_RESET_NOW)\]
+else
+  for button in reset easy_reset; do
+    handler="$(uci -q get button.${button}.handler)"
+    if [ -n "$handler" ]; then
+      if [ "$__ROOT_PROTECT" = "1" ]; then
+        if ! echo "$handler" | grep -qe '--soft'; then
+          exec_uci set button.${button}.handler="$(echo $handler | sed -e 's/rtfd/& --soft/')"
+          exec_uci commit button
+        fi
+      else
+        if echo "$handler" | grep -qe '--soft'; then
+          exec_uci set button.${button}.handler="$(echo $handler | sed -e 's/ --soft//')"
+          exec_uci commit button
+        fi
+      fi
+    fi
+    unset handler
+  done
+  unset button
+  echo [$SCRIPT]: Pin-hole Reset root protection $(status2text $PINHOLE_RESET_NOW)
+fi
 if [ "$__ROOT_PROTECT" = "0" ]; then
   echo -e "[$SCRIPT]:${GREEN} NOTE: Installation of tch-gui-unhide will ALWAYS enable RTFD protection!${NC}"
 fi
