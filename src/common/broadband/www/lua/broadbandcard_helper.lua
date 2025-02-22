@@ -141,6 +141,7 @@ function M.getBroadbandCardHTML(wansensing)
     -- wan status data
     local wan_data = {
       wan_ifname        = "uci.network.interface.@wan.ifname",
+      wan_uptime        = "rpc.network.interface.@wan.uptime",
       dsl_status        = "sys.class.xdsl.@line0.Status",
       dsl_linerate_up   = "sys.class.xdsl.@line0.UpstreamCurrRate",
       dsl_linerate_down = "sys.class.xdsl.@line0.DownstreamCurrRate",
@@ -170,7 +171,7 @@ function M.getBroadbandCardHTML(wansensing)
       if not wired or (wan_ifname and (find(wan_ifname,"ptm") or find(wan_ifname,"atm"))) then
         if wan_data["dsl_status"] == "Up" then
           up = true
-          html[#html+1] = ui_helper.createSimpleLight("1","Fixed DSL connected")
+          html[#html+1] = ui_helper.createSimpleLight("1","Fixed DSL up "..common.secondsToTime(untaint(wan_data.wan_uptime)))
           -- After disabling broadband the page immediately refreshes. At this time the state is still up but the line
           -- rate is already cleared.
           local rate_up = tonumber(wan_data["dsl_linerate_up"])
@@ -195,7 +196,7 @@ function M.getBroadbandCardHTML(wansensing)
       if not wired or (wan_ifname and find(wan_ifname,"eth")) then
         if wan_data["ethwan_status"] == "up" then
           up = true
-          html[#html+1] = ui_helper.createSimpleLight("1","Fixed Ethernet connected")
+          html[#html+1] = ui_helper.createSimpleLight("1","Fixed Ethernet up "..common.secondsToTime(untaint(wan_data.wan_uptime)))
           status = "up"
         else
           html[#html+1] = ui_helper.createSimpleLight("4","Fixed Ethernet disconnected")
@@ -223,7 +224,7 @@ function M.getBroadbandCardHTML(wansensing)
       end
     end
     if mobiled_state["mob_session_state"] == "connected" then
-      html[#html+1] = ui_helper.createSimpleLight("1","Mobile SIM connected")
+      html[#html+1] = ui_helper.createSimpleLight("1","Mobile SIM up "..common.secondsToTime(untaint(proxy.get("rpc.network.interface.@wwan.uptime")[1].value)))
       status = "up"
     elseif mobile then
       html[#html+1] = ui_helper.createSimpleLight("4","Mobile SIM disconnected")
