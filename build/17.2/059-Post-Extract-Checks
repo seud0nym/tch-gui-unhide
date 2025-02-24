@@ -1,0 +1,1 @@
+[ -e /usr/bin/transformer-cli -a ! -x /usr/bin/transformer-cli ] && chmod +x /usr/bin/transformer-cli

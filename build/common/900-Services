@@ -10,7 +10,6 @@ if [ "$THEME_ONLY" = n -a "$REBOOT" = n ]; then
 
   if [ -e /usr/bin/transformer-cli ]; then
     echo -e "[$SCRIPT]: Waiting for transformer service to finish loading..."
-    [ -x /usr/bin/transformer-cli ] || chmod +x /usr/bin/transformer-cli
     /usr/bin/transformer-cli get rpc.gui.UnhideVersion > /dev/null
   fi
 fi
