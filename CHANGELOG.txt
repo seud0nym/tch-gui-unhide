@@ -1,4 +1,4 @@
-2025.02.11
+2025.02.25
 ==========
 * tch-gui-unhide: Fixed initial display of RAM chart (was showing CPU values instead of RAM history)
 * tch-gui-unhide: Fixed count of synced SSIDs to include Guest SSIDs (FW 20.4+)
@@ -8,17 +8,19 @@
 * tch-gui-unhide: Fixed Firewall enabled switch so that it can only be disabled when in bridged mode
 * tch-gui-unhide: Fixed setting of IPv6 DNS server over DHCP when using the device DNS proxy instead of specific IPv6 DNS Servers
 * tch-gui-unhide: Fixed Content sharing modifications (user management) missing in FW 20.4/21.4
+* tch-gui-unhide: Fixed editing of table fields so that they do not enable the screen Save button (use the tick icon in the last column save a table row)
 * tch-gui-unhide: Added VLAN interface to connected Devices list (if able to determine)
 * tch-gui-unhide: Added count of user defined firewall rules to Firewall card when mode is User Defined
 * tch-gui-unhide: Added support for Guest6 interface in bridged mode
 * tch-gui-unhide: Added system generated VLANs to Local Network card and VLAN Filtering tab (FW 21.4)
-* tch-gui-unhide: Added current (non-updating) Up Time, CPU Utilisation, Load Average and RAM Available percentage to Landing Page (FW 18.1.c and later)
+* tch-gui-unhide: Added current (non-updating) Up Time, CPU Utilisation, Load Average and RAM Available percentage to Landing Page (FW 18.1.c+)
+* tch-gui-unhide: Added WAN/WWAN uptime to Broadband card
 * tch-gui-unhide: Automatically reset device bandwidth counters at midnight
 * tch-gui-unhide: Improved handling of VLAN port check boxes on Local Network screen
-* tch-gui-unhide: When device is in bridged mode and configured for DHCP, switching to static will default to current (DHCP obtained) IP/mask/gateway
-* tch-gui-unhide: Forces protection against loss of root when doing a factory reset using the reset button by preserving the password files and dropbear (SSH) configuration
 * tch-gui-unhide: Excluded eth4 (WAN) port from VLANs, because it is on a different switch
 * tch-gui-unhide: Allowed VLAN IDs between 2 and 99
+* tch-gui-unhide: When device is in bridged mode and configured for DHCP, switching to static will default to current (DHCP obtained) IP/mask/gateway
+* tch-gui-unhide: Forces protection against loss of root when doing a pin-hole factory reset by preserving the password files and dropbear (SSH) configuration
 * tch-gui-unhide: Allowed editing of DNS Hijacking exclusion lists even if hijacking disabled
 * tch-gui-unhide: DNS Hijacking no longer overrides DNS Servers defined on the Local Network interface screen and will always allow DNS requests to those DNS Servers
 * tch-gui-unhide: DNS Hijacking now logs all requests that were hijacked or blocked
@@ -26,16 +28,18 @@
 * tch-gui-unhide: DNS Hijacking target DNS server can now be running on a non-standard port
 * tch-gui-unhide: Upgraded tproxy-go to v2025.02.08-0-gd6105fb
 * de-telstra: Upgraded ca-bundle and ca-certificates packages to version 20240203-r1
+* de-telstra: The -F option now adds protection against loss of root when doing a pin-hole factory reset by preserving the password files and dropbear (SSH) configuration
 * overlay-restore: Fixed bug that caused the restored MAC configuration to not be committed
 * overlay-restore: Fixed automatic backup file detection on devices with TLS in variant name
 * overlay-restore: Stopped services before restoring overlay
 * overlay-restore: Kill any writing processes before attempting to restore overlay (FW 18.1.c+)
 * overlay-restore: Removes any stale service file locks before shutting down services (FW 18.1.c+)
-* overlay-restore: Fixed skip reboot option to match other scripts (-n)
+* overlay-restore: Changed skip reboot option to match other scripts (now -n)
 * reset-to-factory-defaults-with-root/safe-firmware-upgrade: Restore /etc/rc.local (if changed) unless the new --no-rc.local option is specified
 * reset-to-factory-defaults-with-root/safe-firmware-upgrade: Kill any writing processes before attempting to delete overlay (FW 18.1.c+)
 * reset-to-factory-defaults-with-root/safe-firmware-upgrade: Removes any stale service file locks before shutting down services (FW 18.1.c+)
-* unflock: Add -n option to override the number of seconds used to determine if a lock is stale
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Added warning if firmware upgrade will result in sub-optimal bank plan (FW 20.4+)
+* unflock: Add -s option to override the number of seconds used to determine if a lock is stale
 
 2025.01.01
 ==========
