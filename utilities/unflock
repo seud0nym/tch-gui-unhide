@@ -19,7 +19,7 @@ Checks for and optionally removes stale service file locks.
 Usage: $0 [options]
 
 Options:
- -n secs  Sets the number of seconds to determine when a lock is stale.
+ -s secs  Sets the number of seconds to determine when a lock is stale.
             Default if not specified is 60 seconds.
             Ignored when adding the scheduled cron job.
  -r       Removes any found stale locks.
@@ -31,13 +31,13 @@ exit
 
 __SECONDS=60
 __REMOVE=n
-while getopts :n:rC option; do
+while getopts :s:rC option; do
  case "${option}" in
-  n)  if [ -z "$(echo "$OPTARG" | grep -o '^[0-9]*$')" ]; then
-        echo "ERROR: Number of seconds for -n must be a number greater that 0"
+  s)  if [ -z "$(echo "$OPTARG" | grep -o '^[0-9]*$')" ]; then
+        echo "ERROR: Number of seconds for -s must be a number greater that 0"
         exit
       elif [ "$OPTARG" -lt 0 ]; then
-        echo "ERROR: Number of seconds for -n cannot be negative"
+        echo "ERROR: Number of seconds for -s cannot be negative"
         exit
       else
         __SECONDS="$OPTARG"

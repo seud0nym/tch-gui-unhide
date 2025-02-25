@@ -602,7 +602,7 @@ Checks for and optionally removes stale service file locks.
 Usage: ./unflock [options]
 
 Options:
- -n secs  Sets the number of seconds to determine when a lock is stale.
+ -s secs  Sets the number of seconds to determine when a lock is stale.
             Default if not specified is 60 seconds.
             Ignored when adding the scheduled cron job.
  -r       Removes any found stale locks.
