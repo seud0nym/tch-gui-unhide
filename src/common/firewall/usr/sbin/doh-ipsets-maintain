@@ -54,9 +54,10 @@ download() {
   RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' $SOURCE)
   if [ "$RESPONSE_CODE" = 200 ]; then
     curl -kLs -o $TMP_TARGET $SOURCE
+    echo "INFO:  - Source contains $(cat $TMP_TARGET | wc -l) lines"
     if [ -n "$AWK_PROGRAM" ]; then
-      echo "INFO:  - Removing comments"
-      awk -e "$AWK_PROGRAM" $TMP_TARGET >> $TMP_CONVERTED
+      echo "INFO:  - Stripping comments and blank lines"
+      awk -e "$AWK_PROGRAM" $TMP_TARGET | awk -e "/^[[:blank:]]*$/{next;}{print \$1;}0" >> $TMP_CONVERTED
       if [ $? -ne 0 ]; then
         echo "ERROR: - Conversion failed! (awk -e '$AWK_PROGRAM' $TMP_TARGET)"
         return 2
@@ -65,9 +66,12 @@ download() {
     else
       mv $TMP_TARGET $TMP_CONVERTED
     fi
+    echo -n "INFO:  - Source contains $(cat $TMP_CONVERTED | wc -l) "
     if [ -z "$DIG_TYPE" ]; then
+      echo "addresses"
       cat $TMP_CONVERTED >> $TARGET
     else
+      echo "hostnames"
       echo "INFO:  - Converting hostnames to IP addresses (this can take a while)"
       dig +short -t $DIG_TYPE -f $TMP_CONVERTED | grep -v '\.$' >> $TARGET
       [ $? -ne 0 ] && echo "ERROR: - Conversion failed!"
@@ -87,12 +91,12 @@ update_ipset() {
   local IPSET="$1"
   local SOURCE="$2"
   local FAMILY="IPv4"
-  [ "$SOURCE" = "$IPv4_INTERMEDIATE" ] && FAMILY="IPv6"
+  [ "$IPSET" = "doh6" ] && FAMILY="IPv6"
 
   echo "INFO:  Converting intermediate file to ipset $IPSET backup"
-  sort -u $SOURCE | awk -e "/^[[:blank:]]*$/||/0\.0\.0\.0/||/::/||/Last/{next;}{print \"add $IPSET \" \$1;}0" > /etc/firewall.ipset.$IPSET
+  sort -u $SOURCE | awk -e "/^[[:blank:]]*$/{next;}{print \"add $IPSET \" \$1;}0" > /etc/firewall.ipset.$IPSET
   rm $SOURCE
-  echo "INFO:  Updating ipset $IPSET to block $(cat /etc/firewall.ipset.$IPSET | wc -l) DoH $FAMILY addresses"
+  echo "INFO:  Updating ipset $IPSET to block $(cat /etc/firewall.ipset.$IPSET | wc -l) unique DoH $FAMILY addresses"
   ipset flush $IPSET
   ipset -f /etc/firewall.ipset.$IPSET restore
 }
@@ -103,6 +107,8 @@ if [ "$(uci -q get firewall.doh)" = "ipset" ];then
   add_single_hostname doh.umbrella.com A
   download https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv4.txt $IPv4_INTERMEDIATE "{print \$1}0"
   download https://raw.githubusercontent.com/oneoffdallas/dohservers/master/iplist.txt $IPv4_INTERMEDIATE "/^#/{next;}1"
+  download https://raw.githubusercontent.com/crypt0rr/public-doh-servers/refs/heads/main/ipv4.list $IPv4_INTERMEDIATE
+# download https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/domains/doh.txt $IPv4_INTERMEDIATE "/^#/{next;}1" A
   update_ipset doh $IPv4_INTERMEDIATE
 fi
 
@@ -110,6 +116,8 @@ if [ "$(uci -q get firewall.doh6)" = "ipset" ]; then
   add_single_hostname doh.umbrella.com AAAA
   download https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv6.txt $IPv6_INTERMEDIATE "{print \$1}0"
   download https://raw.githubusercontent.com/oneoffdallas/dohservers/master/ipv6list.txt $IPv6_INTERMEDIATE "/^#/{next;}1"
+  download https://raw.githubusercontent.com/crypt0rr/public-doh-servers/refs/heads/main/ipv6.list $IPv6_INTERMEDIATE
+# download https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/domains/doh.txt $IPv6_INTERMEDIATE "/^#/{next;}1" AAAA
   update_ipset doh6 $IPv6_INTERMEDIATE
 fi
 
