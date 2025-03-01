@@ -1,7 +1,4 @@
 if [ "$THEME_ONLY" = n -a "$REBOOT" = n ]; then
-  echo -e "[$SCRIPT]: Waiting for background job to finish..."
-  fg 2>/dev/null
-  
   apply_service_changes
 
   # acme-ipsec.sh was broken in release 2021.12.06, and leaves processes waiting on shared lock
@@ -15,5 +12,8 @@ if [ "$THEME_ONLY" = n -a "$REBOOT" = n ]; then
     echo -e "[$SCRIPT]: Waiting for transformer service to finish loading..."
     /usr/bin/transformer-cli get rpc.gui.UnhideVersion > /dev/null
   fi
+
+  echo -e "[$SCRIPT]: Waiting for background job to finish..."
+  fg 2>/dev/null
 fi
 
