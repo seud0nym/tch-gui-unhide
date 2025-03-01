@@ -1,0 +1,153 @@
+#!/bin/sh
+
+. $IPKG_INSTROOT/lib/functions.sh
+
+_DNS4=""
+_ZONES=""
+_IP=""
+
+
+find_dhcp_option() {
+  local value="$1"
+  local ip="${value#6,}"
+  [ "$ip" = "$value" ] && return
+  _DNS4="${_DNS4},${ip}"
+}
+
+find_dns_servers() {
+  local config="$1"
+  local dns dhcp_option interface before
+  config_get interface "$config" "interface" "dummy"
+  _DNS4="$_DNS4 $interface"
+  before="$_DNS4"
+  config_list_foreach "$config" "dhcp_option" find_dhcp_option
+  if [ "$_DNS4" = "$before" ]; then
+    local ip
+    config_get ip "$config" "ipddr"
+    [ -n "$ip" ] && _DNS4="${_DNS4},${ip}"
+  fi
+}
+
+add_zone_network() {
+  local network="$1"
+  _ZONES="${_ZONES},${network}"
+}
+
+find_guest_zones() {
+  local config="$1"
+  local zone enabled wan ifname
+  config_get zone "$config" "name"
+  [ "$zone" = "loopback" ] && return
+  config_get enabled "$config" "enabled" "1"
+  [ "$enabled" != "0" ] || return
+  config_get wan "$config" "wan" "0"
+  [ "$wan" = "1" ] && return
+  _ZONES="$_ZONES ${zone}"
+  config_list_foreach "$config" network add_zone_network
+}
+
+find_ip_address() {
+  local config="$1"
+  [ "$config" = "loopback" ] && return
+  local proto ipaddr
+  config_get proto "$config" "proto"
+  [ "$proto" = "static" ] || return
+  config_get ipaddr "$config" "ipaddr"
+  _IP="$_IP ${config},${ipaddr}"
+}
+
+# Delete any existing rules
+for table in nat filter; do
+  iptables -t $table -S | grep "DNSv4-Hijacking" | while read action params; do
+    not_quoted=$(echo "$params" | cut -d'"' -f1)
+    quoted=$(echo "$params" | cut -d'"' -f2)
+    if [ "$not_quoted" = "$quoted" ]; then
+      iptables -t $table -D $not_quoted || echo -e "params=$params\ncommand=iptables -t $table -D $not_quoted"
+    else
+      iptables -t $table -D $not_quoted "$quoted" || echo -e "params=$params\ncommand=iptables -t $table -D $not_quoted $quoted"
+    fi
+  done
+done
+
+# See if IPv4 DNS Hijacking is enabled
+config_load dns_hijacking
+config_get _HIJACK4 "config" "enabled" "0"
+  
+[ "$_HIJACK4" = "1" ] || exit
+
+# Configure the NAT jump target
+config_get _DEST_PORT "config" "dest_port" "53"
+config_get _DEST_IP "config" "dest_ip" ""
+
+# Make sure the required IP sets exist and are populated
+for defn in doh:ip hijack_xcptn:mac; do
+  set=$(echo $defn | cut -d: -f1)
+  ipset -q -n list $set >/dev/null 2>&1 || ipset create $set hash:$(echo $defn | cut -d: -f2)
+  if [ -f /etc/firewall.ipset.$set ]; then
+    ipset flush $set
+    ipset -f /etc/firewall.ipset.$set restore
+  fi
+done
+
+# Find Guest zones
+config_load firewall
+config_foreach find_guest_zones "zone"
+
+# Find interface IP addresses
+config_load network
+config_foreach find_ip_address "interface"
+
+# Load the IP addresses of DNS servers configured via DHCP
+config_load dhcp
+config_foreach find_dns_servers "dhcp"
+
+# Insert the filter rules in REVERSE order to ensure they end up in the correct sequence at the top of the chain
+# (otherwise the default processing inserts a catch-all accept that these rules end up appended after and therefore never get applied)
+for z in $_ZONES; do
+  zone=$(echo "$z" | cut -d, -f1)
+  # DoH
+  iptables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 443 -m set --match-set hijack_xcptn src -m comment --comment "DNSv4-Hijacking-Allow-DoH" -j zone_wan_dest_ACCEPT
+  iptables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 443 -m set --match-set doh dst -m comment --comment "DNSv4-Hijacking-Block-DoH" -j LOG --log-prefix "==BLOCKED== "
+  iptables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 443 -m set --match-set doh dst -m comment --comment "DNSv4-Hijacking-Block-DoH" -j zone_wan_dest_DROP
+  # DoT
+  iptables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 853 -m set --match-set hijack_xcptn src -m comment --comment "DNSv4-Hijacking-Allow-DoT" -j zone_wan_dest_ACCEPT
+  iptables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 853 -m comment --comment "DNSv4-Hijacking-Block-DoT" -j LOG --log-prefix "==BLOCKED== "
+  iptables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 853 -m comment --comment "DNSv4-Hijacking-Block-DoT" -j zone_wan_dest_DROP
+  # DoQ
+  iptables -t filter -A forwarding_${zone}_rule -p udp -m udp --dport 853 -m set --match-set hijack_xcptn src -m comment --comment "DNSv4-Hijacking-Allow-DoQ" -j zone_wan_dest_ACCEPT
+  iptables -t filter -A forwarding_${zone}_rule -p udp -m udp --dport 853 -m comment --comment "DNSv4-Hijacking-Block-DoQ" -j LOG --log-prefix "==BLOCKED== "
+  iptables -t filter -A forwarding_${zone}_rule -p udp -m udp --dport 853 -m comment --comment "DNSv4-Hijacking-Block-DoQ" -j zone_wan_dest_DROP
+done
+
+# Create the nat rules
+for z in $_ZONES; do
+  zone=$(echo "$z" | cut -d, -f1)
+  networks=$(echo "$z" | cut -d, -f2-)
+  for network in $(echo $networks | tr ',' ' '); do
+    # Always accept defined DNS servers
+    d=$(echo "$_DNS4" | grep -oE "\b${network},[^ ]*" | cut -d, -f2-)
+    [ -z "$d" ] && d=$(echo "$_IP" | grep -oE "\b${network},[^ ]*" | cut -d, -f2-)
+    for dns in $(echo "$d" | tr ',' ' '); do
+      for proto in tcp udp; do
+        iptables -t nat -A prerouting_${zone}_rule -d $dns/32 -p $proto -m $proto --dport 53 -m comment --comment "DNSv4-Hijacking-Allow-DHCP-DNS" -j ACCEPT 2>/dev/null
+      done
+    done
+  done
+  for proto in tcp udp; do
+    if [ -n "$_DEST_IP" ]; then
+      # Redirect
+      iptables -t nat -A prerouting_${zone}_rule -p $proto -m $proto --dport 53 -m set ! --match-set hijack_xcptn src -m comment --comment "DNSv4-Hijacking-Redirect" -j LOG --log-prefix "==HIJACKED== "
+      iptables -t nat -A prerouting_${zone}_rule -p $proto -m $proto --dport 53 -m set ! --match-set hijack_xcptn src -m comment --comment "DNSv4-Hijacking-Redirect" -j DNAT --to-destination ${_DEST_IP}:${_DEST_PORT}
+      # Masquerade
+      iptables -t nat -A postrouting_${zone}_rule -d ${_DEST_IP}/32 -p $proto -m $proto --dport 53 -m comment --comment "DNSv4-Hijacking-Masquerade" -j MASQUERADE
+    else
+      # Redirect
+      iptables -t nat -A prerouting_${zone}_rule -p $proto -m $proto --dport 53 -m set ! --match-set hijack_xcptn src -m comment --comment "DNSv4-Hijacking-Redirect" -j LOG --log-prefix "==HIJACKED== "
+      iptables -t nat -A prerouting_${zone}_rule -p $proto -m $proto --dport 53 -m set ! --match-set hijack_xcptn src -m comment --comment "DNSv4-Hijacking-Redirect" -j REDIRECT --to-ports $_DEST_PORT
+      # Masquerade
+      iptables -t nat -A postrouting_${zone}_rule -p $proto -m $proto --dport 53 -m comment --comment "DNSv4-Hijacking-Masquerade" -j MASQUERADE
+    fi
+  done
+done
+
+exit

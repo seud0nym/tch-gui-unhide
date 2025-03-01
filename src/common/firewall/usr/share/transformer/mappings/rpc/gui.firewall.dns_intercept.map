@@ -1,10 +1,8 @@
 local lfs = require("lfs")
-local dns_xcptn = "/etc/firewall.ipset.dns_xcptn"
-local dns6_xcptn = "/etc/firewall.ipset.dns6_xcptn"
+local hijack_xcptn = "/etc/firewall.ipset.hijack_xcptn"
 local match = string.match
 local adding = {
-  [dns_xcptn] = nil,
-  [dns6_xcptn] = nil,
+  [hijack_xcptn] = nil,
 }
 
 local function ipsetName(ipset_file)
@@ -12,15 +10,15 @@ local function ipsetName(ipset_file)
 end
 
 local function readExceptions(ipset_file)
-  local ips = {}
+  local macs = {}
   if lfs.attributes(ipset_file, "mode") then
     local f,errmsg = io.open(ipset_file, "r")
     if f then
       local pattern = "add "..ipsetName(ipset_file).." (%S+)"
       for l in f:lines() do
-        local ip = match(l, pattern)
-        if ip then
-          ips[#ips+1] = ip
+        local mac = match(l, pattern)
+        if mac then
+          macs[#macs+1] = mac
         end
       end
       f:close()
@@ -28,14 +26,14 @@ local function readExceptions(ipset_file)
       return nil,errmsg
     end
   end
-  return ips
+  return macs
 end
 
-local function writeExceptions(ipset_file,ips)
+local function writeExceptions(ipset_file,macs)
   local f,errmsg = io.open(ipset_file, "w+")
   if f then
     local ipset_name = ipsetName(ipset_file)
-    for _,v in pairs(ips) do
+    for _,v in pairs(macs) do
       if v then
         f:write("add ")
         f:write(ipset_name)
@@ -55,18 +53,18 @@ end
 
 local function addException(ipset_file,value)
   if value and value ~= "" then
-    local ips,errmsg = readExceptions(ipset_file)
-    if ips then
+    local macs,errmsg = readExceptions(ipset_file)
+    if macs then
       local found
-      for _,v in pairs(ips) do
+      for _,v in pairs(macs) do
         if v == value then
           found = true
           break
         end
       end
       if not found then
-        ips[#ips+1] = value
-        return writeExceptions(ipset_file,ips)
+        macs[#macs+1] = value
+        return writeExceptions(ipset_file,macs)
       end
       return true
     end
@@ -76,12 +74,12 @@ local function addException(ipset_file,value)
 end
 
 local function delException(ipset_file,value)
-  local ips,errmsg = readExceptions(ipset_file)
-  if ips then
-    for k,v in pairs(ips) do
+  local macs,errmsg = readExceptions(ipset_file)
+  if macs then
+    for k,v in pairs(macs) do
       if v == value then
-        ips[k] = nil
-        return writeExceptions(ipset_file,ips)
+        macs[k] = nil
+        return writeExceptions(ipset_file,macs)
       end
     end
     return false
@@ -90,10 +88,10 @@ local function delException(ipset_file,value)
 end
 
 local function getEntries(ipset_file)
-  local ips,errmsg = readExceptions(ipset_file)
-  if ips then
+  local macs,errmsg = readExceptions(ipset_file)
+  if macs then
     local res = {}
-    for key in pairs(ips) do
+    for key in pairs(macs) do
       res[#res+1]=tostring(key)
     end
     if adding[ipset_file] then
@@ -109,36 +107,36 @@ local function getEntries(ipset_file)
 end
 
 local function addEntry(ipset_file)
-  local ips,errmsg = readExceptions(ipset_file)
-  if ips then
-    adding[ipset_file] = #ips+1
+  local macs,errmsg = readExceptions(ipset_file)
+  if macs then
+    adding[ipset_file] = #macs+1
     return "@"..tostring(adding[ipset_file])
   end
   return nil,errmsg
 end
 
 local function delEntry(ipset_file,key)
-  local ips,errmsg = readExceptions(ipset_file)
-  if ips then
-    ips[tonumber(key)] = nil
-    return writeExceptions(ipset_file,ips)
+  local macs,errmsg = readExceptions(ipset_file)
+  if macs then
+    macs[tonumber(key)] = nil
+    return writeExceptions(ipset_file,macs)
   end
   return nil,errmsg
 end
 
 local function getEntry(ipset_file,key)
-  local ips,errmsg = readExceptions(ipset_file)
-  if ips then
-    return ips[tonumber(key)] or ""
+  local macs,errmsg = readExceptions(ipset_file)
+  if macs then
+    return macs[tonumber(key)] or ""
   end
   return nil,errmsg
 end
 
 local function setEntry(ipset_file,value,key)
-  local ips,errmsg = readExceptions(ipset_file)
-  if ips then
-    ips[tonumber(key)] = value
-    return writeExceptions(ipset_file,ips)
+  local macs,errmsg = readExceptions(ipset_file)
+  if macs then
+    macs[tonumber(key)] = value
+    return writeExceptions(ipset_file,macs)
   end
   return nil,errmsg
 end
@@ -187,20 +185,20 @@ GUI_FIREWALL_DNS_INT_.get = {
 
 GUI_FIREWALL_DNS_INT_.set = {
   add_exception = function(_,_,value,_)
-    return addException(dns_xcptn,value)
+    return addException(hijack_xcptn,value)
   end,
   delete_exception = function(_,_,value,_)
-    return delException(dns_xcptn,value)
+    return delException(hijack_xcptn,value)
   end,
   delete_all_exceptions = function(_,_,value,_)
     if value == "1" then
-      return writeExceptions(dns_xcptn,{})
+      return writeExceptions(hijack_xcptn,{})
     end
     return true
   end,
   populate_ipsets = function(_,_,value,_)
     if value == "1" then
-      os.execute("nohup /usr/sbin/doh-ipsets-maintain >/dev/null 2>&1 &")
+      os.execute("nohup /usr/share/tch-gui-unhide/update-doh-ipsets >/dev/null 2>&1 &")
     end
     return true
   end,
@@ -216,7 +214,7 @@ local GUI_FIREWALL_DNS_INT_i_ = {
     minEntries = 0,
     maxEntries = math.huge,
     parameters = {
-      ip = {
+      mac = {
         access = "readWrite",
         type = "string",
       },
@@ -225,116 +223,27 @@ local GUI_FIREWALL_DNS_INT_i_ = {
 }
 
 GUI_FIREWALL_DNS_INT_i_.entries = function(_)
-  return getEntries(dns_xcptn)
+  return getEntries(hijack_xcptn)
 end
 
 GUI_FIREWALL_DNS_INT_i_.add = function(_)
-  return addEntry(dns_xcptn)
+  return addEntry(hijack_xcptn)
 end
 
 GUI_FIREWALL_DNS_INT_i_.delete = function(_,key)
-  return delEntry(dns_xcptn,key)
+  return delEntry(hijack_xcptn,key)
 end
 
 GUI_FIREWALL_DNS_INT_i_.get = {
-  ip = function(_,_,key)
-    return getEntry(dns_xcptn,key)
+  mac = function(_,_,key)
+    return getEntry(hijack_xcptn,key)
   end
 }
 
 GUI_FIREWALL_DNS_INT_i_.set = {
-  ip = function(_,_,value,key)
-    return setEntry(dns_xcptn,value,key)
+  mac = function(_,_,value,key)
+    return setEntry(hijack_xcptn,value,key)
   end
 }
 
 register(GUI_FIREWALL_DNS_INT_i_)
-
-
-local GUI_FIREWALL_DNS6_INT_ = {
-  objectType = {
-    name = "rpc.gui.firewall.dns6_intercept.",
-    access = "readOnly",
-    minEntries = 1,
-    maxEntries = 1,
-    parameters = {
-      add_exception = {
-        access = "readWrite",
-        type = "string"
-      },
-      delete_exception = {
-        access = "readWrite",
-        type = "string"
-      },
-      delete_all_exceptions = {
-        access = "readWrite",
-        type = "boolean"
-      },
-    }
-  }
-}
-
-GUI_FIREWALL_DNS6_INT_.get = {
-  add_exception = returnEmptyString,
-  delete_exception = returnEmptyString,
-  delete_all_exceptions = returnZero,
-}
-
-GUI_FIREWALL_DNS6_INT_.set = {
-  add_exception = function(_,_,value,_)
-    return addException(dns6_xcptn,value)
-  end,
-  delete_exception = function(_,_,value,_)
-    return delException(dns6_xcptn,value)
-  end,
-  delete_all_exceptions = function(_,_,value,_)
-    if value == "1" then
-      return writeExceptions(dns6_xcptn,{})
-    end
-    return true
-  end,
-}
-
-register(GUI_FIREWALL_DNS6_INT_)
-
-local GUI_FIREWALL_DNS6_INT_i_ = {
-  objectType = {
-    name = "rpc.gui.firewall.dns6_intercept.exceptions.@.",
-    access = "readWrite",
-    numEntriesParameter = "ExceptionNumberOfEntries",
-    minEntries = 0,
-    maxEntries = math.huge,
-    parameters = {
-      ip = {
-        access = "readWrite",
-        type = "string",
-      },
-    }
-  }
-}
-
-GUI_FIREWALL_DNS6_INT_i_.entries = function(_)
-  return getEntries(dns6_xcptn)
-end
-
-GUI_FIREWALL_DNS6_INT_i_.add = function(_)
-  return addEntry(dns6_xcptn)
-end
-
-GUI_FIREWALL_DNS6_INT_i_.delete = function(_,key)
-  return delEntry(dns6_xcptn,key)
-end
-
-GUI_FIREWALL_DNS6_INT_i_.get = {
-  ip = function(_,_,key)
-    return getEntry(dns6_xcptn,key)
-  end
-}
-
-GUI_FIREWALL_DNS6_INT_i_.set = {
-  ip = function(_,_,value,key)
-    return setEntry(dns6_xcptn,value,key)
-  end
-}
-
-register(GUI_FIREWALL_DNS6_INT_i_)

@@ -48,7 +48,7 @@ __add_rule() { # Adds the rules as defined by the specified configuration
   # destPort:   The original destination port to which packets were originally sent (REQUIRED)                                                  #
   # targetPort: The destination port to which tproxy should forward the proxied packets (OPTIONAL - Defaults to destPort if not specified)      #
   # ipset:      The ipset configuration containing inclusion/exclusion IP src/dest addresses (OPTIONAL)                                         #
-  #               e.g. "!dns6_xcptn src" means exclude packets sourced from the IP addresses in the dns6_xcptn ipset                            #
+  #               e.g. "!hijack_xcptn src" means exclude packets sourced from the MAC addresses in the hijack_xcptn ipset                       #
   ###############################################################################################################################################
 
   config_get family "$cfg" "family"

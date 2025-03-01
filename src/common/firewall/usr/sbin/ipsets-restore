@@ -1,9 +1,0 @@
-#!/bin/sh
-for set in $(ipset -n list)
-do
-  if [ -f /etc/firewall.ipset.$set ]
-  then
-    ipset flush $set
-    ipset -f /etc/firewall.ipset.$set restore
-  fi
-done

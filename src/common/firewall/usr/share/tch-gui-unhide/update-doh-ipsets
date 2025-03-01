@@ -2,22 +2,27 @@
 
 SCRIPT=$(basename $0)
 LOCK="/var/run/${SCRIPT}"
+QUIET="$1"
+
+log() {
+  [ "$QUIET" = "-q" ] || echo $*
+}
+
 unlock() { 
   if [ "$1" != "normally" ]; then
-    echo
-    echo "WARN:  Ctrl-C caught...performing clean up"
+    log
+    log "WARN:  Ctrl-C caught...performing clean up"
   fi
 
-  echo "INFO:  Releasing lock on $LOCK..."
+  log "INFO:  Releasing lock on $LOCK..."
   lock -u $LOCK
   [ -f $LOCK ] && rm $LOCK
 
   [ "$1" = "normally" ] && exit || exit 2
 }
 trap "unlock" 2
-echo "INFO:  Attempting to acquire lock on $LOCK..."
+log "INFO:  Attempting to acquire lock on $LOCK..."
 lock $LOCK
-
 
 TMP_TARGET=/tmp/ipset.downloaded
 TMP_CONVERTED=/tmp/ipset.downloaded.ip.list
@@ -30,7 +35,7 @@ add_single_hostname() {
   local TARGET="$IPv4_INTERMEDIATE"
   [ $DIG_TYPE = AAAA ] && TARGET="$IPv6_INTERMEDIATE"  
 
-  echo "INFO:  Adding $HOSTNAME"
+  log "INFO:  Adding $HOSTNAME"
   dig +short -t $DIG_TYPE $HOSTNAME | grep -v '\.$' >> $TARGET
 }
 
@@ -50,38 +55,38 @@ download() {
   [ -f $TMP_TARGET ] && rm $TMP_TARGET
   [ -f $TMP_CONVERTED ] && rm $TMP_CONVERTED
 
-  echo "INFO:  Downloading $SOURCE"
+  log "INFO:  Downloading $SOURCE"
   RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' $SOURCE)
   if [ "$RESPONSE_CODE" = 200 ]; then
     curl -kLs -o $TMP_TARGET $SOURCE
-    echo "INFO:  - Source contains $(cat $TMP_TARGET | wc -l) lines"
+    log "INFO:  - Source contains $(cat $TMP_TARGET | wc -l) lines"
     if [ -n "$AWK_PROGRAM" ]; then
-      echo "INFO:  - Stripping comments and blank lines"
+      log "INFO:  - Stripping comments and blank lines"
       awk -e "$AWK_PROGRAM" $TMP_TARGET | awk -e "/^[[:blank:]]*$/{next;}{print \$1;}0" >> $TMP_CONVERTED
       if [ $? -ne 0 ]; then
-        echo "ERROR: - Conversion failed! (awk -e '$AWK_PROGRAM' $TMP_TARGET)"
+        log "ERROR: - Conversion failed! (awk -e '$AWK_PROGRAM' $TMP_TARGET)"
         return 2
       fi
       rm $TMP_TARGET
     else
       mv $TMP_TARGET $TMP_CONVERTED
     fi
-    echo -n "INFO:  - Source contains $(cat $TMP_CONVERTED | wc -l) "
+    log -n "INFO:  - Source contains $(cat $TMP_CONVERTED | wc -l) "
     if [ -z "$DIG_TYPE" ]; then
-      echo "addresses"
+      log "addresses"
       cat $TMP_CONVERTED >> $TARGET
     else
-      echo "hostnames"
-      echo "INFO:  - Converting hostnames to IP addresses (this can take a while)"
+      log "hostnames"
+      log "INFO:  - Converting hostnames to IP addresses (this can take a while)"
       dig +short -t $DIG_TYPE -f $TMP_CONVERTED | grep -v '\.$' >> $TARGET
-      [ $? -ne 0 ] && echo "ERROR: - Conversion failed!"
+      [ $? -ne 0 ] && log "ERROR: - Conversion failed!"
     fi
   elif [ "$RESPONSE_CODE" = 404 ]; then
-    echo "ERROR: $SOURCE was not found???"
+    log "ERROR: $SOURCE was not found???"
   elif [ "$RESPONSE_CODE" = 000 ]; then
-    echo "ERROR: Failed to download $SOURCE - No Internet connection???"
+    log "ERROR: Failed to download $SOURCE - No Internet connection???"
   else
-    echo "ERROR: Failed to download $SOURCE - Unknown response code $RESPONSE_CODE"
+    log "ERROR: Failed to download $SOURCE - Unknown response code $RESPONSE_CODE"
   fi
   [ -f "$TMP_TARGET" ] && rm "$TMP_TARGET"
   return 1
@@ -93,10 +98,10 @@ update_ipset() {
   local FAMILY="IPv4"
   [ "$IPSET" = "doh6" ] && FAMILY="IPv6"
 
-  echo "INFO:  Converting intermediate file to ipset $IPSET backup"
+  log "INFO:  Converting intermediate file to ipset $IPSET backup"
   sort -u $SOURCE | awk -e "/^[[:blank:]]*$/{next;}{print \"add $IPSET \" \$1;}0" > /etc/firewall.ipset.$IPSET
   rm $SOURCE
-  echo "INFO:  Updating ipset $IPSET to block $(cat /etc/firewall.ipset.$IPSET | wc -l) unique DoH $FAMILY addresses"
+  log "INFO:  Updating ipset $IPSET to block $(cat /etc/firewall.ipset.$IPSET | wc -l) unique DoH $FAMILY addresses"
   ipset flush $IPSET
   ipset -f /etc/firewall.ipset.$IPSET restore
 }

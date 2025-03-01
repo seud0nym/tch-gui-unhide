@@ -1,0 +1,3 @@
+#!/bin/sh
+/etc/init.d/tproxy restart
+/usr/share/tch-gui-unhide/hijack-ipv6-dns

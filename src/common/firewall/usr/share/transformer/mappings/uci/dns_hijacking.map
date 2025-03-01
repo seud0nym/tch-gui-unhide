@@ -1,0 +1,14 @@
+local config_dns_hijacking = "dns_hijacking"
+
+-- uci.dns_hijacking
+mapper("uci_1to1").registerConfigMap(config_dns_hijacking)
+
+-- uci.dns_hijacking.config
+local dns_hijacking_global = {
+  config = config_dns_hijacking,
+  section = "config",
+  type = "dns_hijacking",
+  options = { "enabled", "dest_ip", "dest_port" }
+}
+
+mapper("uci_1to1").registerSimpleMap(dns_hijacking_global)
