@@ -2,7 +2,7 @@ if [ $RESTORE = y ]; then
   XTRAS_REMOVE=Y
   for s in $(ls tch-gui-unhide-xtra.* 2>/dev/null); do
     chmod +x $s
-    echo -en "[$SCRIPT]: Executing extra feature script for $(echo $s | cut -d. -f2-):"
+    echo -en "[$SCRIPT]: Removing $(echo $s | cut -d. -f2-) extra feature:"
     . ./$s
   done
 
