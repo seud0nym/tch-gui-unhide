@@ -262,6 +262,8 @@ if tar -x${GZIP}${VERBOSE} -f $FILENAME -C /overlay $RESTORE; then
     fi
     sleep 5
   else
+    echo "INFO:     Remounting filesystem..."
+    mount -o remount /
     echo -e "${ORANGE}WARNING:  Outstanding configuration changes not yet applied!${NC}"
     echo -e "INFO:     ${ORANGE}You should reboot as soon as possible.${NC}"
   fi
