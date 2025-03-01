@@ -28,19 +28,30 @@ TMP_TARGET=/tmp/ipset.downloaded
 TMP_CONVERTED=/tmp/ipset.downloaded.ip.list
 IPv4_INTERMEDIATE=/tmp/ipset.intermediate.ipv4
 IPv6_INTERMEDIATE=/tmp/ipset.intermediate.ipv6
+HOST_INTERMEDIATE=/tmp/ipset.intermediate.hosts
 
 add_single_hostname() {
   local HOSTNAME="$1"
   local DIG_TYPE="$2"
+  local IP ADDR
   local TARGET="$IPv4_INTERMEDIATE"
   [ $DIG_TYPE = AAAA ] && TARGET="$IPv6_INTERMEDIATE"  
 
-  log "INFO:  Adding $HOSTNAME"
-  dig +short -t $DIG_TYPE $HOSTNAME | grep -v '\.$' >> $TARGET
+  IP=$(dig +short -t $DIG_TYPE $HOSTNAME | grep -v '\.$' | xargs) 
+  if [ -n "$IP" ]; then
+    for ADDR in $IP; do
+      if [ "$ADDR" != "0.0.0.0" -a "$ADDR" != "::" ]; then
+        if ! grep -q $ADDR $TARGET; then
+          log "INFO:  Adding $HOSTNAME ($ADDR)"
+          echo "$ADDR">>$TARGET
+        fi
+      fi
+    done
+  fi
 }
 
 cleanup() {
-  for f in $TMP_TARGET $TMP_CONVERTED $IPv4_INTERMEDIATE $IPv6_INTERMEDIATE; do
+  for f in $TMP_TARGET $TMP_CONVERTED $IPv4_INTERMEDIATE $IPv6_INTERMEDIATE $HOST_INTERMEDIATE; do
     [ -f "$f" ] && rm "$f"
   done
 }
@@ -49,7 +60,7 @@ download() {
   local SOURCE="$1"
   local TARGET="$2"
   local AWK_PROGRAM="$3"
-  local DIG_TYPE="$4"
+  local SOURCE_TYPE="$4"
   local RESPONSE_CODE RETURN_CODE HOSTNAME IGNORED IP
 
   [ -f $TMP_TARGET ] && rm $TMP_TARGET
@@ -61,6 +72,16 @@ download() {
     curl -kLs -o $TMP_TARGET $SOURCE
     log "INFO:  - Source contains $(cat $TMP_TARGET | wc -l) lines"
     if [ -n "$AWK_PROGRAM" ]; then
+      if [ "$SOURCE_TYPE" != "hosts" ]; then
+        log "INFO:  - Extracting hostnames from comments"
+        NEW_HOSTS=$(mktemp)
+        grep -oE '# *[-A-Za-z0-9]+\.[-\.A-Za-z0-9]+' $TMP_TARGET | sed -e 's/^# *//' | sort -u > $NEW_HOSTS
+        TMP_HOSTS=$(mktemp)
+        grep -vFf $NEW_HOSTS $HOST_INTERMEDIATE > $TMP_HOSTS
+        mv $TMP_HOSTS $HOST_INTERMEDIATE
+        rm $NEW_HOSTS
+        log "INFO:  - Now $(cat $HOST_INTERMEDIATE | wc -l) Hostnames to resolve"
+      fi
       log "INFO:  - Stripping comments and blank lines"
       awk -e "$AWK_PROGRAM" $TMP_TARGET | awk -e "/^[[:blank:]]*$/{next;}{print \$1;}0" >> $TMP_CONVERTED
       if [ $? -ne 0 ]; then
@@ -71,14 +92,13 @@ download() {
     else
       mv $TMP_TARGET $TMP_CONVERTED
     fi
-    log -n "INFO:  - Source contains $(cat $TMP_CONVERTED | wc -l) "
     if [ -z "$DIG_TYPE" ]; then
-      log "addresses"
+      log "INFO:  - Source contains $(cat $TMP_CONVERTED | wc -l) addresses"
       cat $TMP_CONVERTED >> $TARGET
     else
-      log "hostnames"
+      log "INFO:  - Source contains $(cat $TMP_CONVERTED | wc -l) hostnames"
       log "INFO:  - Converting hostnames to IP addresses (this can take a while)"
-      dig +short -t $DIG_TYPE -f $TMP_CONVERTED | grep -v '\.$' >> $TARGET
+      grep -vFf $HOST_INTERMEDIATE $TMP_CONVERTED | dig +short -t $DIG_TYPE -f - | grep -v '\.$' >> $TARGET
       [ $? -ne 0 ] && log "ERROR: - Conversion failed!"
     fi
   elif [ "$RESPONSE_CODE" = 404 ]; then
@@ -95,6 +115,12 @@ download() {
 update_ipset() {
   local IPSET="$1"
   local SOURCE="$2"
+
+  if [ ! -f "$SOURCE" ]; then
+    log "ERROR: $SOURCE not found?"
+    return
+  fi
+
   local FAMILY="IPv4"
   [ "$IPSET" = "doh6" ] && FAMILY="IPv6"
 
@@ -108,21 +134,35 @@ update_ipset() {
 
 cleanup
 
+download https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/domains/doh.txt $HOST_INTERMEDIATE "/^#/{next;}1" hosts
+
 if [ "$(uci -q get firewall.doh)" = "ipset" ];then
-  add_single_hostname doh.umbrella.com A
   download https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv4.txt $IPv4_INTERMEDIATE "{print \$1}0"
   download https://raw.githubusercontent.com/oneoffdallas/dohservers/master/iplist.txt $IPv4_INTERMEDIATE "/^#/{next;}1"
   download https://raw.githubusercontent.com/crypt0rr/public-doh-servers/refs/heads/main/ipv4.list $IPv4_INTERMEDIATE
-# download https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/domains/doh.txt $IPv4_INTERMEDIATE "/^#/{next;}1" A
+  log "INFO:  Converting hostnames to IPv4 addresses..."
+  if [ -f $HOST_INTERMEDIATE ]; then
+    for host in $(cat $HOST_INTERMEDIATE | sort -u); do
+      add_single_hostname $host A
+    done
+  else 
+    log "ERROR: $HOST_INTERMEDIATE not found?"
+  fi
   update_ipset doh $IPv4_INTERMEDIATE
 fi
 
 if [ "$(uci -q get firewall.doh6)" = "ipset" ]; then
-  add_single_hostname doh.umbrella.com AAAA
   download https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv6.txt $IPv6_INTERMEDIATE "{print \$1}0"
   download https://raw.githubusercontent.com/oneoffdallas/dohservers/master/ipv6list.txt $IPv6_INTERMEDIATE "/^#/{next;}1"
   download https://raw.githubusercontent.com/crypt0rr/public-doh-servers/refs/heads/main/ipv6.list $IPv6_INTERMEDIATE
-# download https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/domains/doh.txt $IPv6_INTERMEDIATE "/^#/{next;}1" AAAA
+  if [ -f $HOST_INTERMEDIATE ]; then
+    log "INFO:  Converting hostnames to IPv6 addresses..."
+    for host in $(cat $HOST_INTERMEDIATE | sort -u); do
+      add_single_hostname $host AAAA
+    done
+  else 
+    log "ERROR: $HOST_INTERMEDIATE not found?"
+  fi
   update_ipset doh6 $IPv6_INTERMEDIATE
 fi
 
