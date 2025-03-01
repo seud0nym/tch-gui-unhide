@@ -86,6 +86,7 @@ done
 echo "echo -e \"\${GREY}BLD/069:\${NC} Deploy theme files\"" > /tmp/themes.b64
 echo "echo '$(tar --owner=root --group=root --mode=644 --transform='s/^\./www/' --exclude=README.md --exclude=./ -cf - -C /tmp/tch-gui-unhide/themes . | bzip2 --best | base64 -w0)' | base64 -d | bzcat | tar -xf - -C /" >> /tmp/themes.b64
 echo "" >> /tmp/themes.b64
+find /tmp/tch-gui-unhide/themes -type f | sed -e 's|/tmp/tch-gui-unhide/themes|www|' > /tmp/themes.filelist
 cleanup /tmp/tch-gui-unhide/themes
 
 for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
@@ -147,6 +148,12 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
     done
   fi
   
+  tmp_filelist=$(mktemp)
+  grep -hroEe '(-i +|> *)/[-/.A-Za-z0-9_]+/[-.A-Za-z0-9_]+' common/ $MAJOR/ | sed -e 's/^\(-i *\|> *\)//' -e '/^\/\(dev\|etc\|proc\)\//d' > $tmp_filelist
+  find /tmp/tch-gui-unhide/$MAJOR -type f | sed -e "/\/tmp\/tch-gui-unhide\/$MAJOR\/tmp/d" -e "s|/tmp/tch-gui-unhide/$MAJOR/||" >> $tmp_filelist
+  cat $tmp_filelist /tmp/themes.filelist | sed -e 's|//|/|' | sort -u > /tmp/tch-gui-unhide-$MAJOR.filelist
+  rm -f $tmp_filelist
+
   TARGET=../tch-gui-unhide-$MAJOR
   echo "${GREEN}Writing $TARGET...${NC}"
   echo "#!/bin/sh" > $TARGET
@@ -200,11 +207,14 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
           next;
         }
         1' "$DIRECTORY/$FILENAME" >> $TARGET
+      if [ $FILENAME = "010-Restore-Function" ]; then
+        sed -e "/done <<EOF/r /tmp/tch-gui-unhide-$MAJOR.filelist" -i $TARGET
+      fi
     fi
   done
 done
 
 echo "${GREEN}Cleaning up..${NC}"
-cleanup /tmp/tch-gui-unhide /tmp/*.b64
+cleanup /tmp/tch-gui-unhide /tmp/*.b64 /tmp/*.filelist
 
 echo "${GREEN}Build Complete @ $(date +%H:%M:%S) for ${PRERELEASE}Release $FULL_VERSION${NC}"

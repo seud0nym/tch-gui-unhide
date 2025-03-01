@@ -4,69 +4,74 @@ restore_from_rom() {
     echo -e "[$SCRIPT]: Removing /usr/share/transformer/mappings/iperf.map"
     rm /usr/share/transformer/mappings/iperf.map
   fi
-  
-  # Need to remove existing version or it doesn't get replaced??
-  for f in /usr/sbin/traffichistory.lua /usr/share/lua/luapdu.lua /usr/share/lua/luapdu/* /usr/share/lua/luapdu; do
-    if [ -d "$d" ]; then
-      echo -e "[$SCRIPT]: Removing directory $d"
-      rmdir "$d"
-    elif [ -f "$f" ]; then
-      echo -e "[$SCRIPT]: Removing $f"
-      rm "$f"
-    fi
-  done
-  if grep -q "/usr/sbin/traffichistory.lua" /etc/crontabs/root; then
-    echo -e "[$SCRIPT]: Removing traffic history scheduled task"
-    sed -e '/traffichistory.lua/d' -i /etc/crontabs/root
-    SRV_cron=$(( $SRV_cron + 1 ))
-  fi
-  
-  # Remove stuff that will be replaced with latest versions
-  [ -d /usr/share/tch-gui-unhide ] && rm -rf /usr/share/tch-gui-unhide
-  mkdir -p /usr/share/tch-gui-unhide
-  
-  # Add individual files to be restored here
-  for t in /etc/init.d/firewall /etc/init.d/power /usr/lib/lua/web/post_helper.lua /usr/lib/lua/libat/sms.lua; do
-    [ -f "${RESTORE_BASE}${t}" ] && s="${RESTORE_BASE}${t}" || s="/rom$t"
-    if [ -f "$s" ]; then
-      cmp -s "$s" "$t"
-      if [ $? -ne 0 ]; then
-        echo -e "[$SCRIPT]: Restoring file $t"
-        mkdir -p "$(dirname $t)"
-        cp -f -p "$s" "$t"
-      fi
-    fi
-  done
-  
-  # Add directories to be restored here
-  for d in www/cards www/docroot www/lua www/snippets usr/share/transformer/commitapply usr/share/transformer/mappings/rpc usr/share/transformer/mappings/uci; do
-    echo -e "[$SCRIPT]: Restoring directory /$d"
-    for s in $(find $RESTORE_BASE/$d -type f | grep -vE "^$RESTORE_BASE/www/docroot/help"); do
-      t=${s#$RESTORE_BASE}
-      cmp -s "$s" "$t"
-      if [ $? -ne 0 ]; then
-        if [ "$1" = "V" ]; then
-          echo -e "[$SCRIPT]: Restoring file $t"
-        fi
-        mkdir -p "$(dirname $t)"
-        cp -f -p "$s" "$t"
-        if [ $d = "usr/share/transformer" ]; then
-          SRV_transformer=$(( $SRV_transformer + 1 ))
-        fi
-      fi
-    done
 
-    # Delete extra files
-    for f in $(find /$d -type f ! -path '/www/docroot/help*');do
-      if [ ! -f "/rom$f" -a -f "$f" ]; then
-        if [ "$1" = "V" ]; then
-          echo -e "[$SCRIPT]: Removing file $f"
-        fi
-        rm -f "$f"
-        if [ $d = "usr/share/transformer" ]; then
-          SRV_transformer=$(( $SRV_transformer + 1 ))
-        fi
+  local overlay d f s t
+  [ -z "$(which bootmgr)" ] && overlay="/overlay/$(cat /proc/banktable/booted 2>/dev/null)" || overlay="/overlay/bank_$(bootmgr partition booted)"
+  
+  echo -e "[$SCRIPT]: Removing any previous installation..."
+  local directories=""
+  while read -r filepath; do
+    t="/$filepath"
+    s="${RESTORE_BASE}${t}"
+    d="$(dirname $t)"
+    f="$(basename $t)"
+    if [ -f "$s" ]; then
+      if [ "$s" = "/rom${t}" -a -f "${overlay}${t}" ]; then
+        [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $t by removing from $overlay${NC}"
+        rm "${overlay}${t}"
+        mount -o remount /
+      elif ! cmp -s "$s" "$t"; then
+        [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $t${NC}"
+        mkdir -p "$(dirname $t)"
+        cp -f -p "$s" "$t"
       fi
-    done
+    elif [ -f "$t" ]; then
+      if [ $d = "/etc/init.d" ]; then
+        [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Stopping and disabling $t${NC}"
+        $t stop 1>/dev/null 2>&1
+        $t disable 1>/dev/null 2>&1
+      elif echo "$d" | grep -q '^/usr/share/transformer'; then
+        SRV_transformer=$(( $SRV_transformer + 1 ))
+      fi
+      [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing file $t${NC}"
+      rm -f "$t"
+      [ -z "$directories" ] || directories="${directories}${IFS}"
+      directories="${directories}${d}"
+      if grep -q "\b${f}\b" /etc/crontabs/root; then
+        [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing $f scheduled task${NC}"
+        sed -e "/\b${f}\b/d" -i /etc/crontabs/root
+        SRV_cron=$(( $SRV_cron + 1 ))
+      fi
+    fi
+  done <<EOF
+EOF
+
+  for d in $(echo "$directories" | sort -u); do
+    if [ ! -d ${RESTORE_BASE}${d} -a $(ls $d | wc -l) = 0 ]; then
+      [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} Removing empty directory $d${NC}"
+      rmdir "$d"
+    else
+      [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} Restoring directory $d"
+      for s in $(find ${RESTORE_BASE}${d} -type f | grep -vE "^$RESTORE_BASE/www/docroot/help"); do
+        t=${s#$RESTORE_BASE}
+        if [ "$s" = "/rom${t}" -a -f "${overlay}${t}" ]; then
+          [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $t by removing from $overlay${NC}"
+          rm "${overlay}${t}"
+          mount -o remount /
+        elif ! cmp -s "$s" "$t"; then
+          [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $t${NC}"
+          mkdir -p "$(dirname $t)"
+          cp -f -p "$s" "$t"
+          echo "$d" | grep -q '^/usr/share/transformer' && SRV_transformer=$(( $SRV_transformer + 1 ))
+        fi
+      done
+      for f in $(find $d -type f ! -path '/www/docroot/help*');do
+        if [ ! -f "${RESTORE_BASE}${f}" -a -f "$f" ]; then
+          [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing file $f${NC}"
+          rm -f "$f"
+          echo "$d" | grep -q '^/usr/share/transformer' && SRV_transformer=$(( $SRV_transformer + 1 ))
+        fi
+      done
+    fi
   done
 }
