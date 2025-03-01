@@ -53,7 +53,7 @@ sed -n '/-- uci.firewall.redirect/,/MultiMap/p' /usr/share/transformer/mappings/
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
 # Version 2021.02.22 set an incorrect value for synflood_rate, so have to fix it
-synflood_rate="$(exec_uci -q get firewall.@defaults[0].synflood_rate)"
+synflood_rate="$(uci -q get firewall.@defaults[0].synflood_rate)"
 if [ -n "$synflood_rate" ]; then
   echo $synflood_rate | grep -q -E '^[0-9]+/s$'
   if [ $? = 1 ]; then
@@ -64,7 +64,7 @@ if [ -n "$synflood_rate" ]; then
   fi
 fi
 # Version 2021.02.22 allowed setting of tcp_syncookies but it is not enabled in kernel, so have to remove it
-if [ -n "$(exec_uci -q get firewall.@defaults[0].tcp_syncookies)" ]; then
+if [ -n "$(uci -q get firewall.@defaults[0].tcp_syncookies)" ]; then
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Deleting configuration firewall.@defaults[0].tcp_syncookies"
   exec_uci -q delete firewall.@defaults[0].tcp_syncookies
   SRV_firewall=$(( $SRV_firewall + 1 ))
@@ -75,7 +75,7 @@ sed \
   -e 's|fw3 [^f]|/etc/init.d/firewall enabled \&\& &|' \
   -i /etc/init.d/firewall
 
-if [ "$(exec_uci -q get firewall.fix_guest_access_to_port_forwards)" != "include" ]; then
+if [ "$(uci -q get firewall.fix_guest_access_to_port_forwards)" != "include" ]; then
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.fix_guest_access_to_port_forwards"
   exec_uci set firewall.fix_guest_access_to_port_forwards='include'
   exec_uci set firewall.fix_guest_access_to_port_forwards.type='script'

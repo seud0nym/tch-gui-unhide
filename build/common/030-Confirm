@@ -191,5 +191,4 @@ fi
 echo -e "[$SCRIPT]: Attempting to acquire lock on $LOCK..."
 lock $LOCK
 
-echo -e "[$SCRIPT]: IMPORTANT NOTE - You can restore changed GUI files to their original state by running: ${GREEN}$0 -r${NC}"
-
+START_DATE=$(date +%s)

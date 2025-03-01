@@ -16,10 +16,10 @@ for f in /etc/config/iperf /etc/init.d/iperf; do
     sed -e 's/\benable\b/enabled/' -i "$f"
   fi
 done
-IPERF_ENABLED=$(exec_uci -q get iperf.iperf.enable)
+IPERF_ENABLED=$(uci -q get iperf.iperf.enable)
 if [ -n "$IPERF_ENABLED" ]; then
   echo -e "[$SCRIPT]: Fixing iperf enabled configuration"
-  [ -z "$(exec_uci -q get iperf.iperf.enabled)" ] && exec_uci -q set iperf.iperf.enabled="$IPERF_ENABLED"
+  [ -z "$(uci -q get iperf.iperf.enabled)" ] && exec_uci -q set iperf.iperf.enabled="$IPERF_ENABLED"
   exec_uci -q delete iperf.iperf.enable
   exec_uci -q commit iperf
   SRV_iperf=$(( $SRV_iperf + 1 ))

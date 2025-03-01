@@ -292,7 +292,7 @@ fi
 if [ -e /etc/config/mobiled ]; then
   echo -e "[$SCRIPT]: Removing any duplicate mobile operators"
   for cfg in $(exec_uci show mobiled | grep =operator | cut -d= -f1); do
-    plmn="$(exec_uci -q get $cfg.mcc)$(exec_uci -q get $cfg.mnc)"
+    plmn="$(uci -q get $cfg.mcc)$(uci -q get $cfg.mnc)"
     tmp="$(eval echo \$__$plmn)"
     if [ -z "$tmp" ]; then
       eval __$plmn=$cfg
@@ -309,7 +309,7 @@ if [ -e /etc/config/mobiled ]; then
   while read mcc mnc name; do
     path=""
     for cfg in $(exec_uci show mobiled | grep =operator | cut -d= -f1); do
-      if [ "$(exec_uci -q get ${cfg}.mcc)" = "$mcc" -a "$(exec_uci -q get ${cfg}.mnc)" = "$mnc" ]; then
+      if [ "$(uci -q get ${cfg}.mcc)" = "$mcc" -a "$(uci -q get ${cfg}.mnc)" = "$mnc" ]; then
         path=$cfg
         break
       fi

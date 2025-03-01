@@ -22,8 +22,8 @@ for ifname in $(grep -rhE "uci *set *network\.(ppp|ipoe|wan|eth4|atm_8_35|ptm0).
     -i /www/lua/bridgedmode_helper.lua
 done
 
-if [ "$(exec_uci -q get network.config.wan_mode)" = "bridge" ]; then
-  if [ -z "$(exec_uci -q get network.lan6)" ]; then
+if [ "$(uci -q get network.config.wan_mode)" = "bridge" ]; then
+  if [ -z "$(uci -q get network.lan6)" ]; then
     echo -e "[$SCRIPT]: Creating missing lan6 interface"
     exec_uci set network.lan6=interface
     exec_uci set network.lan6.defaultreqopts='0'
@@ -43,7 +43,7 @@ if [ "$(exec_uci -q get network.config.wan_mode)" = "bridge" ]; then
   exec_uci commit network
   SRV_network=$(( $SRV_network + 2 ))
 
-  if [ "$(exec_uci -q get ethernet.eth4.wan)" = "0" ]; then
+  if [ "$(uci -q get ethernet.eth4.wan)" = "0" ]; then
     echo -e "[$SCRIPT]: Fixing incorrect WAN port configuration"
     exec_uci set ethernet.eth4.wan='1'
     exec_uci commit ethernet

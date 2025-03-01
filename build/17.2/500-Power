@@ -4,7 +4,7 @@ check_pwr_setting() {
   local option="$2"
   local text="$3"
   if echo $PWR_OPTIONS | grep -qe "--$option\b"; then
-    if [ -z "$(exec_uci -q get power.$section.$option)" ]; then
+    if [ -z "$(uci -q get power.$section.$option)" ]; then
       pwrctl show | grep "$text" | grep -q DISABLED
       value=$?
       [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - power.$section.$option=$value"
@@ -22,11 +22,11 @@ check_pwr_setting() {
 }
 
 echo -e "[$SCRIPT]: Checking power saving settings..."
-if [ -z "$(exec_uci -q get power.cpu)" ];then
+if [ -z "$(uci -q get power.cpu)" ];then
   exec_uci set power.cpu='cpu'
 fi
 
-if [ -z "$(exec_uci -q get power.cpu.cpuspeed)" ]; then
+if [ -z "$(uci -q get power.cpu.cpuspeed)" ]; then
   case "$(pwrctl show | grep "CPU Speed Divisor" | tr -s " " | cut -d" " -f4)" in
     1) exec_uci set power.cpu.cpuspeed="1";;
     2) exec_uci set power.cpu.cpuspeed="2";;

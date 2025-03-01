@@ -39,7 +39,7 @@ config blocklist 'BlockListDE'
 IP_CONFIG
   chmod 644 /etc/config/intrusion_protect
 fi
-if [ "$(exec_uci -q get firewall.intrusion_protect)" != "include" ]; then
+if [ "$(uci -q get firewall.intrusion_protect)" != "include" ]; then
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Creating configuration firewall.intrusion_protect"
   exec_uci set firewall.intrusion_protect='include'
   exec_uci set firewall.intrusion_protect.type='script'

@@ -9,7 +9,7 @@ do
   lsmod | grep -q "^$module "
   if [ $? -eq 0 ]; then
     path="$(echo $m | cut -d. -f1-2)"
-    name="$(exec_uci -q get ${path}.name)"
+    name="$(uci -q get ${path}.name)"
     if [ -n "$name" ]; then
       sed -e "/local available/a\  available['$name'] = true" -i /www/cards/092_natalghelper.lp
       sed -e "/local available/a\available['$name'] = true" -i /www/docroot/modals/nat-alg-helper-modal.lp

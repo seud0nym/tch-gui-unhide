@@ -6,6 +6,7 @@ else
   echo -e "[$SCRIPT]: SKIPPED clearing page cache"
 fi
 
+echo -e "[$SCRIPT]: Execution took $(( $(date +%s) - $START_DATE )) seconds"
 if [ "$THEME_ONLY" = y ]; then
   echo -e "[$SCRIPT]: ${GREEN}Theme change for tch-gui-unhide Release $RELEASE applied!!!${NC}"
 else

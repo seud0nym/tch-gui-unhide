@@ -40,13 +40,13 @@ for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal
     exec_uci set web.$RULE.normally_hidden='1'
     exec_uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 4 ))
-  elif [ "$(exec_uci -q get web.$RULE.roles)" != "admin" ]; then
+  elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]; then
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing Rule $RULE: target=/modals/$MODAL Setting role to admin"
     exec_uci -q delete web.$RULE.roles
     exec_uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 2 ))
   fi
-  exec_uci -q get web.ruleset_main.rules | grep -qE "\b${RULE}\b" || exec_uci add_list web.ruleset_main.rules=$RULE
+  uci -q get web.ruleset_main.rules | grep -qE "\b${RULE}\b" || exec_uci add_list web.ruleset_main.rules=$RULE
 done
 
 echo -e "[$SCRIPT]: Checking ajax visibility"
@@ -66,13 +66,13 @@ for f in $(find /www/docroot/ajax -type f | grep -vE 'internet.lua|wirelesscard.
     exec_uci set web.$RULE.normally_hidden='1'
     exec_uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 4 ))
-  elif [ "$(exec_uci -q get web.$RULE.roles)" != "admin" ]; then
+  elif [ "$(uci -q get web.$RULE.roles)" != "admin" ]; then
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing Rule $RULE: target=/ajax/$AJAX Setting role to admin"
     exec_uci -q delete web.$RULE.roles
     exec_uci add_list web.$RULE.roles='admin'
     SRV_nginx=$(( $SRV_nginx + 2 ))
   fi
-  exec_uci -q get web.ruleset_main.rules | grep -qE "\b${RULE}\b" || exec_uci add_list web.ruleset_main.rules=$RULE
+  uci -q get web.ruleset_main.rules | grep -qE "\b${RULE}\b" || exec_uci add_list web.ruleset_main.rules=$RULE
 done
 
 echo -e "[$SCRIPT]: Checking configured web rules exist"

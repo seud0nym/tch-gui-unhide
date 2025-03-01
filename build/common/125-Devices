@@ -9,11 +9,11 @@ BWSTATS
   chmod 644 /etc/config/bwstats
 fi
 chmod 755 /usr/share/tch-gui-unhide/bwstats.*
-if [ -z "$(exec_uci -q get bwstats.config.log_unmatched)" ]; then
+if [ -z "$(uci -q get bwstats.config.log_unmatched)" ]; then
   exec_uci set bwstats.config.log_unmatched='0'
 fi
 
-if [ "$(exec_uci -q get firewall.bwstats)" != "include" ]; then
+if [ "$(uci -q get firewall.bwstats)" != "include" ]; then
   echo -e "[$SCRIPT]: Creating configuration firewall.bwstats"
   exec_uci set firewall.bwstats='include'
   exec_uci set firewall.bwstats.type='script'
@@ -23,7 +23,7 @@ if [ "$(exec_uci -q get firewall.bwstats)" != "include" ]; then
   exec_uci commit firewall
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
-if [ "$(exec_uci -q get firewall.bwstats.enabled)" != '1' ]; then
+if [ "$(uci -q get firewall.bwstats.enabled)" != '1' ]; then
   [ "$VERBOSE" = "V" ] && echo -e "[$SCRIPT]: Enabling firewall.bwstats"
   exec_uci set firewall.bwstats.enabled='1'
   exec_uci commit firewall

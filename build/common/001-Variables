@@ -26,17 +26,17 @@ exec_uci() {
   fi
   local path="$(echo "$arguments" | cut -d= -f1)"
   local value="$(echo "$arguments" | cut -d= -f2-)"
-  local quiet="-q"
+  local quiet="-q "
   local retval
 
   [ "$command" = "set" ] && quiet=""
 
   if [ "$path" = "$value" ]; then
-    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: ${GREY} -> uci $quiet ${command} ${path}${NC}" 1>&2
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: ${GREY} -> uci $quiet${command} ${path}${NC}" 1>&2
     uci -q ${command} ${path} 2> /dev/null
     retval=$?
   else
-    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: ${GREY} -> uci $quiet ${command} ${path}=\"$value\"${NC}" 1>&2
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: ${GREY} -> uci $quiet${command} ${path}=\"$value\"${NC}" 1>&2
     uci -q ${command} ${path}="$value"
     retval=$?
   fi
@@ -46,7 +46,7 @@ exec_uci() {
   return $retval
 }
 
-[ "$(exec_uci -q get env.var._provisioning_code)" = "Telstra" ] || abort_install "This script is only intended for devices with Telstra firmware"
+[ "$(uci -q get env.var._provisioning_code)" = "Telstra" ] || abort_install "This script is only intended for devices with Telstra firmware"
 
 TARGET_VERSION=""
 for x in $(basename $0 | tr '-' "$IFS"); do
@@ -55,12 +55,12 @@ done
 echo "$TARGET_VERSION" | grep -q '\.' || abort_install "Unable to determine Target Version! Did the script get renamed??"
 SCRIPT=$(basename $0 | sed "s/-$TARGET_VERSION//")
 
-FW_BASE=$(exec_uci -q get version.@version[0].marketing_version)
-HOSTNAME=$(exec_uci -q get system.@system[0].hostname)
-MAC_HEX=$(exec_uci -q get env.var.ssid_mac_postfix_r0)
-VERSION=$(exec_uci -q get version.@version[0].version | cut -d- -f1)
-VARIANT=$(exec_uci -q get env.var.variant_friendly_name | sed -e 's/TLS//' -e 's/vac//')
-[ -z "$VARIANT" ] && VARIANT=$(exec_uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
+FW_BASE=$(uci -q get version.@version[0].marketing_version)
+HOSTNAME=$(uci -q get system.@system[0].hostname)
+MAC_HEX=$(uci -q get env.var.ssid_mac_postfix_r0)
+VERSION=$(uci -q get version.@version[0].version | cut -d- -f1)
+VARIANT=$(uci -q get env.var.variant_friendly_name | sed -e 's/TLS//' -e 's/vac//')
+[ -z "$VARIANT" ] && VARIANT=$(uci -q get env.var.prod_friendly_name | sed -e 's/Technicolor //')
 
 [ -n "$FW_BASE" ]  || abort_install "Failed to determine device base firmware (marketing) version?"
 [ -n "$HOSTNAME" ] || abort_install "Failed to determine device hostname?"
@@ -68,8 +68,8 @@ VARIANT=$(exec_uci -q get env.var.variant_friendly_name | sed -e 's/TLS//' -e 's
 [ -n "$VERSION" ]  || abort_install "Failed to determine device firmware version?"
 [ -n "$VARIANT" ]  || abort_install "Failed to determine device variant?"
 
-DFLT_USR=$(exec_uci -q get web.uidefault.defaultuser)
-FW_UPGRD=$(exec_uci -q get web.uidefault.upgradefw)
+DFLT_USR=$(uci -q get web.uidefault.defaultuser)
+FW_UPGRD=$(uci -q get web.uidefault.upgradefw)
 
 INSTALLED_RELEASE="$(grep -o -m 1 -E '[0-9][0-9][0-9][0-9]\.[0-9][0-9]\.[0-9][0-9]@[0-9][0-9]:[0-9][0-9]' /usr/share/transformer/mappings/rpc/gui.map 2>/dev/null)"
 TITLE="$(grep -o 'title>.*</title' /www/docroot/gateway.lp | cut -d'>' -f2 | cut -d'<' -f1 | grep -v 'ngx.print')"
@@ -103,10 +103,10 @@ if [ -f /etc/tch-gui-unhide.theme ]; then
   exec_uci commit tch_gui_unhide
   rm -f /etc/tch-gui-unhide.theme
 else
-  THEME="$(exec_uci -q get tch_gui_unhide.theme.name)"
-  COLOR="$(exec_uci -q get tch_gui_unhide.theme.colour)"
-  ICONS="$(exec_uci -q get tch_gui_unhide.theme.icons)"
-  KEEPLP="$(exec_uci -q get tch_gui_unhide.theme.keep_landing_page)"
+  THEME="$(uci -q get tch_gui_unhide.theme.name)"
+  COLOR="$(uci -q get tch_gui_unhide.theme.colour)"
+  ICONS="$(uci -q get tch_gui_unhide.theme.icons)"
+  KEEPLP="$(uci -q get tch_gui_unhide.theme.keep_landing_page)"
 fi
 if [ -z "$THEME" ]; then
   KEEPLP='0'
@@ -173,17 +173,17 @@ fi
 FIX_DFLT_USR=n
 FIX_FW_UPGRD=n
 
-if [ "$(exec_uci -q get dropbear.lan.enable)" = "1" -a "$(exec_uci -q get dropbear.lan.PasswordAuth)" = "on" -a "$(exec_uci -q get dropbear.lan.RootPasswordAuth)" = "on" -a "$(exec_uci -q get dropbear.lan.RootLogin)" = "1" ]; then
+if [ "$(uci -q get dropbear.lan.enable)" = "1" -a "$(uci -q get dropbear.lan.PasswordAuth)" = "on" -a "$(uci -q get dropbear.lan.RootPasswordAuth)" = "on" -a "$(uci -q get dropbear.lan.RootLogin)" = "1" ]; then
   FIX_SSH=n
 else
   FIX_SSH=y
 fi
-if [ "$(exec_uci -q get system.config.export_plaintext)" = "1" -a "$(exec_uci -q get system.config.export_unsigned)" = "1" -a "$(exec_uci -q get system.config.import_plaintext)" = "1" -a "$(exec_uci -q get system.config.import_unsigned)" = "1" ]; then
+if [ "$(uci -q get system.config.export_plaintext)" = "1" -a "$(uci -q get system.config.export_unsigned)" = "1" -a "$(uci -q get system.config.import_plaintext)" = "1" -a "$(uci -q get system.config.import_unsigned)" = "1" ]; then
   FIX_CFG_PORT=n
 else
   FIX_CFG_PORT=y
 fi
-echo "$(exec_uci -q get web.parentalblock.roles)" | grep -q "admin"
+echo "$(uci -q get web.parentalblock.roles)" | grep -q "admin"
 if [ $? -eq 0 ]; then
   FIX_PARENT_BLK=n
 else
@@ -196,9 +196,9 @@ if [ -z "$INSTALLED_RELEASE" ]; then
     . ./.defaults.tch-gui-unhide
   fi
 else
-  if [ "$(exec_uci -q get web.card_Charts.hide)" = "0" ]; then
+  if [ "$(uci -q get web.card_Charts.hide)" = "0" ]; then
     CHART_CARDS="s"
-  elif [ $(exec_uci -q show web | grep -E "card_(CPU|RAM|WANDown|WANUp).hide='0'" | wc -l) -gt 0 ]; then
+  elif [ $(uci -q show web | grep -E "card_(CPU|RAM|WANDown|WANUp).hide='0'" | wc -l) -gt 0 ]; then
     CHART_CARDS="i"
   else
     CHART_CARDS="n"

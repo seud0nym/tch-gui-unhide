@@ -5,11 +5,11 @@ dns_masq_dest_ip="$(uci -q get firewall.dns_masq.dest_ip)"
 #region remove deprecated hijacking
 configs="dns_xcptn:ipset dns6_xcptn:ipset ipsets_restore:include dns_dhcp_xcptn:include tproxy:include"
 for path in $(exec_uci show firewall | grep =zone | cut -d= -f1); do
-  zone="$(exec_uci -q get $path.name)"
+  zone="$(uci -q get $path.name)"
   [ "$zone" = "loopback" ] && continue
-  enabled="$(exec_uci -q get $path.enabled)"
+  enabled="$(uci -q get $path.enabled)"
   [ "$enabled" != "0" ] || continue
-  wan="$(exec_uci -q get $path.wan)"
+  wan="$(uci -q get $path.wan)"
   [ "$wan" = "1" ] && continue
   [ $zone = lan ] && cnfg_suffix="" || cnfg_suffix="_$zone"
   configs="$configs dns_int${cnfg_suffix}:redirect"
@@ -19,24 +19,24 @@ for path in $(exec_uci show firewall | grep =zone | cut -d= -f1); do
   done
   zones="$zones $zone"
 done
-echo -e "[$SCRIPT]:  ==> Deleting any deprecated hijacking configuration from firewall"
+[ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Deleting any deprecated hijacking configuration from firewall"
 for cfg in $configs; do
   name=$(echo $cfg | cut -d: -f1)
   type=$(echo $cfg | cut -d: -f2)
-  if [ "$(exec_uci -q get firewall.${name})" = "$type" ]; then
-    echo -e "[$SCRIPT]:    --> Deleting configuration firewall.${name}"
+  if [ "$(uci -q get firewall.${name})" = "$type" ]; then
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:    --> Deleting configuration firewall.${name}"
     exec_uci delete firewall.${name}
     SRV_firewall=$(( $SRV_firewall + 1 ))
   fi
   if [ "$type" = "ipset" -a -e /etc/firewall.ipset.${name} ]; then
-    echo -e "[$SCRIPT]:    --> Deleting file /etc/firewall.ipset.${name}"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:    --> Deleting file /etc/firewall.ipset.${name}"
     rm /etc/firewall.ipset.${name}
   fi
 done
 #endregion
 #region ipsets
 if [ ! -s /etc/firewall.ipset.hijack_xcptn -o \( -s /etc/firewall.ipset.hijack_xcptn -a \( -s /etc/firewall.ipset.dns_xcptn -o -s /etc/firewall.ipset.dns6_xcptn \) \) ]; then
-  echo -e "[$SCRIPT]:  ==> Creating file /etc/firewall.ipset.hijack_xcptn"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Creating file /etc/firewall.ipset.hijack_xcptn"
   echo -n > /etc/firewall.ipset.hijack_xcptn
   [ -e /tmp/firewall.ipset.hijack_xcptn ] && rm /tmp/firewall.ipset.hijack_xcptn
   [ -s /etc/firewall.ipset.dns_xcptn ]    && for ip in $(cut -d' ' -f3 /etc/firewall.ipset.dns_xcptn);  do ip -4 neigh | grep -v FAILED | grep $ip | cut -d' ' -f5; done >> /tmp/firewall.ipset.hijack_xcptn
@@ -44,8 +44,8 @@ if [ ! -s /etc/firewall.ipset.hijack_xcptn -o \( -s /etc/firewall.ipset.hijack_x
   [ -s /tmp/firewall.ipset.hijack_xcptn ] && sort -u /tmp/firewall.ipset.hijack_xcptn | sed -e '/^$/d' -e 's/^/add hijack_xcptn /' >> /etc/firewall.ipset.hijack_xcptn
   [ -e /tmp/firewall.ipset.hijack_xcptn ] && rm /tmp/firewall.ipset.hijack_xcptn
 fi
-if [ "$(exec_uci -q get firewall.doh)" != "ipset" ]; then
-  echo -e "[$SCRIPT]:  ==> Creating configuration firewall.doh"
+if [ "$(uci -q get firewall.doh)" != "ipset" ]; then
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Creating configuration firewall.doh"
   exec_uci set firewall.doh='ipset'
   exec_uci set firewall.doh.name='doh'
   exec_uci set firewall.doh.family='ipv4'
@@ -55,11 +55,11 @@ if [ "$(exec_uci -q get firewall.doh)" != "ipset" ]; then
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ ! -e /etc/firewall.ipset.doh ]; then
-  echo -e "[$SCRIPT]:  ==> Creating file /etc/firewall.ipset.doh"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Creating file /etc/firewall.ipset.doh"
   echo -n > /etc/firewall.ipset.doh
 fi
-if [ "$(exec_uci -q get firewall.doh6)" != "ipset" ]; then
-  echo -e "[$SCRIPT]:  ==> Creating configuration firewall.doh6"
+if [ "$(uci -q get firewall.doh6)" != "ipset" ]; then
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Creating configuration firewall.doh6"
   exec_uci set firewall.doh6='ipset'
   exec_uci set firewall.doh6.name='doh6'
   exec_uci set firewall.doh6.family='ipv6'
@@ -69,7 +69,7 @@ if [ "$(exec_uci -q get firewall.doh6)" != "ipset" ]; then
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 if [ ! -e /etc/firewall.ipset.doh6 ]; then
-  echo -e "[$SCRIPT]:  ==> Creating file /etc/firewall.ipset.doh6"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Creating file /etc/firewall.ipset.doh6"
   echo -n > /etc/firewall.ipset.doh6
 fi
 grep -q "doh-ipsets-maintain" /etc/crontabs/root && sed -e 's|/usr/sbin/doh-ipsets-maintain|/usr/share/tch-gui-unhide/update-doh-ipsets|' -i /etc/crontabs/root
@@ -78,14 +78,14 @@ chmod +x /usr/share/tch-gui-unhide/update-doh-ipsets
 if ! grep -q "update-doh-ipsets" /etc/crontabs/root; then
   mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
   hh=$(awk 'BEGIN{srand();print int(rand()*2)+3;}')
-  echo -e "[$SCRIPT]:  ==> Adding /usr/share/tch-gui-unhide/update-doh-ipsets cron task for Sunday at $hh:$mm"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Adding /usr/share/tch-gui-unhide/update-doh-ipsets cron task for Sunday at $hh:$mm"
   echo "#$mm $hh * * 6 /usr/share/tch-gui-unhide/update-doh-ipsets" >> /etc/crontabs/root
   SRV_cron=$(( $SRV_cron + 1 ))
 fi
 #endregion
 #region hijackv4
 if [ ! -e /etc/config/dns_hijacking ]; then
-  echo -e "[$SCRIPT]:  ==> Creating dns_hijacking config for IPv6 DNS hijacking"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Creating dns_hijacking config for IPv6 DNS hijacking"
   cat <<HIJACKV4 > /etc/config/dns_hijacking
 config dns_hijacking 'config'
         option enabled '$dns_int_enabled'
@@ -95,17 +95,17 @@ config dns_hijacking 'config'
 HIJACKV4
   chmod 644 /etc/config/dns_hijacking
 fi
-if [ "$(exec_uci -q get firewall.hijackv4)" != "include" ]; then
-  echo -e "[$SCRIPT]:  ==> Creating configuration firewall.hijackv4"
+if [ "$(uci -q get firewall.hijackv4)" != "include" ]; then
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Creating configuration firewall.hijackv4"
   exec_uci set firewall.hijackv4='include'
   exec_uci set firewall.hijackv4.type='script'
   exec_uci set firewall.hijackv4.family='ipv4'
   exec_uci set firewall.hijackv4.reload='1'
-  exec_uci set firewall.hijackv4.enabled="$(exec_uci -q get firewall.dns_int.enabled)"
+  exec_uci set firewall.hijackv4.enabled="$(uci -q get firewall.dns_int.enabled)"
   SRV_firewall=$(( $SRV_firewall + 1 ))
 fi
 exec_uci set firewall.hijackv4.path='/usr/share/tch-gui-unhide/hijack-ipv4-dns'
-echo -e "[$SCRIPT]:  ==> Updating DHCP commit/apply"
+[ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Updating DHCP commit/apply"
 echo '^dhcp%.dhcp%.[^%.]+%.dhcp_option /usr/share/tch-gui-unhide/hijack-ipv4-dns'>>/usr/share/transformer/commitapply/uci_dhcp.ca
 #endregion
 #region hijackv6 (tproxy)
@@ -128,7 +128,7 @@ fi
 rm -f /tmp/tproxy-go*.bz2
 if [ -e /usr/sbin/tproxy-go ]; then
   chmod +x /usr/sbin/tproxy-go
-  echo -e "[$SCRIPT]:  ==> Prevent reboot on tproxy-go core dump"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Prevent reboot on tproxy-go core dump"
   uci -q del_list system.@coredump[0].reboot_exceptions='tproxy-go'
   uci -q add_list system.@coredump[0].reboot_exceptions='tproxy-go'
   uci commit system
@@ -144,8 +144,8 @@ TPROXY
     chmod 644 /etc/config/tproxy
     /etc/init.d/tproxy enable
   fi
-  if [ "$(exec_uci -q get tproxy.dnsv6)" != "rule" ]; then
-    echo -e "[$SCRIPT]:  ==> Creating configuration tproxy.dnsv6"
+  if [ "$(uci -q get tproxy.dnsv6)" != "rule" ]; then
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Creating configuration tproxy.dnsv6"
     exec_uci set tproxy.dnsv6=rule
     exec_uci set tproxy.dnsv6.enabled='0'
     exec_uci set tproxy.dnsv6.name='Hijack-DNSv6'
@@ -155,14 +155,14 @@ TPROXY
     exec_uci set tproxy.dnsv6.destPort='53'
     exec_uci set tproxy.dnsv6.ipset='!hijack_xcptn src'
     exec_uci commit tproxy
-  elif [ "$(exec_uci -q get tproxy.dnsv6.name)" != "Hijack-DNSv6" ]; then
-    echo -e "[$SCRIPT]:  ==> Setting tproxy.dnsv6.name to Hijack-DNSv6"
+  elif [ "$(uci -q get tproxy.dnsv6.name)" != "Hijack-DNSv6" ]; then
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Setting tproxy.dnsv6.name to Hijack-DNSv6"
     exec_uci set tproxy.dnsv6.name='Hijack-DNSv6'
     exec_uci commit tproxy
   fi
   [ "$(uci -q get tproxy.dnsv6.ipset)" = "!hijack_xcptn src" ] || { exec_uci set tproxy.dnsv6.ipset="!hijack_xcptn src"; SRV_firewall=$(( $SRV_firewall + 1 )); }
-  if [ "$(exec_uci -q get firewall.hijackv6)" != "include" ]; then
-    echo -e "[$SCRIPT]:  ==> Creating configuration firewall.hijackv6"
+  if [ "$(uci -q get firewall.hijackv6)" != "include" ]; then
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Creating configuration firewall.hijackv6"
     exec_uci set firewall.hijackv6='include'
     exec_uci set firewall.hijackv6.type='script'
     exec_uci set firewall.hijackv6.reload='1'
@@ -170,7 +170,7 @@ TPROXY
     SRV_firewall=$(( $SRV_firewall + 1 ))
   fi
   exec_uci set firewall.hijackv6.path='/usr/share/tch-gui-unhide/tproxy-ipv6-dns'
-  echo -e "[$SCRIPT]:  ==> Updating DHCP commit/apply"
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Updating DHCP commit/apply"
   echo '^dhcp%.dhcp%.[^%.]+%.dns /usr/share/tch-gui-unhide/hijack-ipv6-dns'>>/usr/share/transformer/commitapply/uci_dhcp.ca
 fi
 #endregion

@@ -19,13 +19,13 @@ for CARD_PATH in $(find /www/cards/ -maxdepth 1 -type f -name '*.lp' | sort); do
   CARD_RULE="card_$CARD"
   MODAL=$(grep -o 'createCardHeader[^(]*([^)]*)' $CARD_PATH | grep -o "modals/[^.]*\.lp")
   MODAL_RULE=""
-  HIDDEN=$(exec_uci -q get web.${CARD_RULE}.hide)
+  HIDDEN=$(uci -q get web.${CARD_RULE}.hide)
   if [ -z "$MODAL" ]; then
     MODAL=$(grep -o "\(modalPath\|modal_link\)[^\"']*[\"'][^\"']*.lp[\"']" $CARD_PATH | grep -m 1 -o "modals/[^.]*\.lp")
   fi
   if [ -n "$MODAL" ]; then
     MODAL_RULE=$(exec_uci show web | grep $MODAL | grep -m 1 -v card_ | cut -d. -f2)
-    if [ -n "$MODAL_RULE" -a -n "$(exec_uci -q get web.$MODAL_RULE.roles | grep -v -E 'admin|guest')" ]; then
+    if [ -n "$MODAL_RULE" -a -n "$(uci -q get web.$MODAL_RULE.roles | grep -v -E 'admin|guest')" ]; then
       echo -e "[$SCRIPT]:  - Converting $CARD card visibility from modal-based visibility"
       HIDDEN=1
       exec_uci add_list web.$MODAL_RULE.roles='admin'
@@ -34,25 +34,25 @@ for CARD_PATH in $(find /www/cards/ -maxdepth 1 -type f -name '*.lp' | sort); do
   elif [ "$CARD_RULE" = "card_Charts" ]; then
     MODAL_RULE='gatewaymodal'
     if [ -z "$HIDDEN" ]; then
-      [ "$(exec_uci -q get web.card_gateway.hide)" = "0" -o "$(exec_uci -q get web.card_broadband.hide)" = "0"  ] && HIDDEN="0" || HIDDEN="1"
+      [ "$(uci -q get web.card_gateway.hide)" = "0" -o "$(uci -q get web.card_broadband.hide)" = "0"  ] && HIDDEN="0" || HIDDEN="1"
     fi
   elif [ "$CARD_RULE" = "card_CPU" ]; then
     MODAL_RULE='gatewaymodal'
-    [ -z "$HIDDEN" ] && HIDDEN=$(exec_uci -q get web.card_gateway.hide)
+    [ -z "$HIDDEN" ] && HIDDEN=$(uci -q get web.card_gateway.hide)
   elif [ "$CARD_RULE" = "card_RAM" ]; then
     MODAL_RULE='gatewaymodal'
-    [ -z "$HIDDEN" ] && HIDDEN=$(exec_uci -q get web.card_gateway.hide)
+    [ -z "$HIDDEN" ] && HIDDEN=$(uci -q get web.card_gateway.hide)
   elif [ "$CARD_RULE" = "card_WANDown" ]; then
     MODAL_RULE='broadbandmodal'
-    [ -z "$HIDDEN" ] && HIDDEN=$(exec_uci -q get web.card_broadband.hide)
+    [ -z "$HIDDEN" ] && HIDDEN=$(uci -q get web.card_broadband.hide)
   elif [ "$CARD_RULE" = "card_WANUp" ]; then
     MODAL_RULE='broadbandmodal'
-    [ -z "$HIDDEN" ] && HIDDEN=$(exec_uci -q get web.card_broadband.hide)
+    [ -z "$HIDDEN" ] && HIDDEN=$(uci -q get web.card_broadband.hide)
   fi
   if [ -z "$HIDDEN" -o \( "$HIDDEN" != "0" -a "$HIDDEN" != "1" \) ]; then
     HIDDEN=0
   fi
-  if [ "$(exec_uci -q get web.${CARD_RULE})" != "card" ]; then
+  if [ "$(uci -q get web.${CARD_RULE})" != "card" ]; then
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Card Rule $CARD_RULE: card=$CARD_FILE hide=$HIDDEN modal=$MODAL_RULE"
     exec_uci set web.${CARD_RULE}=card
     exec_uci set web.${CARD_RULE}.card="$CARD_FILE"
@@ -82,7 +82,7 @@ apply_chart_card_visibiity() {
           echo -e "[$SCRIPT]: Showing summary chart card"
           exec_uci -q set web.card_Charts.hide='0'
           ;;
-      i)  if [ "$(exec_uci -q get network.config.wan_mode)" = "bridge" ]; then
+      i)  if [ "$(uci -q get network.config.wan_mode)" = "bridge" ]; then
             echo -e "[$SCRIPT]: Showing CPU and RAM chart cards"
             exec_uci -q set web.card_CPU.hide='0'
             exec_uci -q set web.card_RAM.hide='0'
@@ -112,7 +112,7 @@ else
   apply_chart_card_visibiity
   echo -e "[$SCRIPT]: Applying configured card sequence"
   for CARD_RULE in $(exec_uci show web | grep '=card' | cut -d= -f1); do
-    CARD=$(exec_uci -q get ${CARD_RULE}.card)
+    CARD=$(uci -q get ${CARD_RULE}.card)
     CARD_FILE=$(ls /www/cards/???_${CARD#*_} 2>/dev/null)
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Card Rule $CARD_RULE: card=$CARD search=/www/cards/???_${CARD#*_} found=$CARD_FILE"
     if [ -z "$CARD_FILE" ]; then
