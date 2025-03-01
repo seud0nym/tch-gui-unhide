@@ -3,7 +3,7 @@ local message_helper = require("web.uimessage_helper")
 local proxy = require("datamodel")
 local post_helper = require("web.post_helper")
 local pairs,string,ipairs,ngx = pairs,string,ipairs,ngx
-local find,format,gmatch,gsub,match,tolower,toupper = string.find,string.format,string.gmatch,string.gsub,string.match,string.lower,string.upper
+local find,format,gmatch,gsub,match,sub,tolower,toupper = string.find,string.format,string.gmatch,string.gsub,string.match,string.sub,string.lower,string.upper
 ---@diagnostic disable-next-line: undefined-field
 local istainted,untaint = string.istainted,string.untaint
 
@@ -32,13 +32,17 @@ function M.get_mac_list(hosts_ac)
   local hosts_mac = {}
   for k,_ in pairs(hosts_ac) do
     local hostname,mac = match(k,"([%w%s%p]+) %[([%x:]+)%]$")
-    if not hosts_mac[mac] then
+    if mac and not hosts_mac[mac] then
+      local bracket = find(hostname," (",1,true)
+      if bracket then
+        hostname = sub(hostname,1,bracket-1)
+      end
       local description = T(mac.." ["..hostname.."]")
-      mac_list[#mac_list+1] = {mac,description,toupper(hostname)}
+      mac_list[#mac_list+1] = {mac,description,hostname}
       hosts_mac[mac] = description
     end
   end
-  table.sort(mac_list,function(k1,k2) return k1[3] < k2[3] end)
+  table.sort(mac_list,function(k1,k2) return toupper(k1[3]) < toupper(k2[3]) end)
   mac_list[#mac_list+1] = {"custom",T"custom"}
   return mac_list,hosts_mac
 end
