@@ -70,7 +70,7 @@ function M.add(p,v,quiet)
 end
 
 function M.set(p,v)
-  log:notice("Setting %s to '%s'",p,v)
+  log:notice("Setting %s to '%s'",p,v or "nil")
   local success,errors = proxy.set(p,v)
   if not success then
     for _,err in ipairs(errors) do
