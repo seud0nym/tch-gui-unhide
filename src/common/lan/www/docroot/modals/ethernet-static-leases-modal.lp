@@ -25,7 +25,7 @@ local gAV = post_helper.getAndValidation
 local gOV = post_helper.getOptionalValidation
 local vSIIP4 = post_helper.validateStringIsIPv4
 
-local sleases_mac_attr = { class="span2",maxlength="17",id="lease_mac",style="width:115px" }
+local sleases_mac_attr = { class="span2 no-save",maxlength="17",style="width:115px" }
 
 -- Static Leases
 local sleases_columns = {
@@ -35,7 +35,7 @@ local sleases_columns = {
     param = "mac",
     type = "select",
     values = mac_list,
-    attr = { select = sleases_mac_attr,class="no-save" },
+    attr = { select = sleases_mac_attr },
     unique = true,
   },
   {
