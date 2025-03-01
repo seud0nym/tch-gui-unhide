@@ -6,6 +6,7 @@ if [ "x$1" = "x-p" ]; then
   VERSION=$(date +%Y.%m.%d)
   PR_TEXT="Pre-Release"
   PR_OPTN="-p"
+  shift
 else
   VERSION="$(head -n 1 ../VERSION.txt)"
   PR_TEXT="Release"
