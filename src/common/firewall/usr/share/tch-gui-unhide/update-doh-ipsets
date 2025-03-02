@@ -5,7 +5,7 @@ LOCK="/var/run/${SCRIPT}"
 QUIET="$1"
 
 log() {
-  [ "$QUIET" = "-q" ] || echo $*
+  [ "$QUIET" = "-q" ] || echo "$*"
 }
 
 unlock() { 
@@ -115,14 +115,17 @@ download() {
 update_ipset() {
   local IPSET="$1"
   local SOURCE="$2"
+  local FAMILY="$3"
 
   if [ ! -f "$SOURCE" ]; then
     log "ERROR: $SOURCE not found?"
     return
   fi
 
-  local FAMILY="IPv4"
-  [ "$IPSET" = "doh6" ] && FAMILY="IPv6"
+  if ! ipset -n list $IPSET >/dev/null 2>&1; then
+    log "WARN:  ipset $IPSET not found?? Creating..."
+    ipset create $IPSET hash:ip family $FAMILY
+  fi
 
   log "INFO:  Converting intermediate file to ipset $IPSET backup"
   sort -u $SOURCE | awk -e "/^[[:blank:]]*$/{next;}{print \"add $IPSET \" \$1;}0" > /etc/firewall.ipset.$IPSET
@@ -148,7 +151,7 @@ if [ "$(uci -q get firewall.doh)" = "ipset" ];then
   else 
     log "ERROR: $HOST_INTERMEDIATE not found?"
   fi
-  update_ipset doh $IPv4_INTERMEDIATE
+  update_ipset doh $IPv4_INTERMEDIATE inet
 fi
 
 if [ "$(uci -q get firewall.doh6)" = "ipset" ]; then
@@ -163,7 +166,7 @@ if [ "$(uci -q get firewall.doh6)" = "ipset" ]; then
   else 
     log "ERROR: $HOST_INTERMEDIATE not found?"
   fi
-  update_ipset doh6 $IPv6_INTERMEDIATE
+  update_ipset doh6 $IPv6_INTERMEDIATE inet6
 fi
 
 cleanup
