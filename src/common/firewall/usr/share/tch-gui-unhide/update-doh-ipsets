@@ -137,14 +137,19 @@ update_ipset() {
 
 cleanup
 
-download https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/domains/doh.txt $HOST_INTERMEDIATE "/^#/{next;}1" hosts
+enabledv4="$(uci -q get dns_hijacking.config.enabled)"
+enabledv6="$(uci -q get tproxy.dnsv6.enabled)"
 
-if [ "$(uci -q get firewall.doh)" = "ipset" ];then
+if [ "$enabledv4" = "1" -o "$enabledv6" = "1" ]; then
+  download https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/domains/doh.txt $HOST_INTERMEDIATE "/^#/{next;}1" hosts
+fi
+
+if [ "$enabledv4" = "1" ];then
   download https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv4.txt $IPv4_INTERMEDIATE "{print \$1}0"
   download https://raw.githubusercontent.com/oneoffdallas/dohservers/master/iplist.txt $IPv4_INTERMEDIATE "/^#/{next;}1"
   download https://raw.githubusercontent.com/crypt0rr/public-doh-servers/refs/heads/main/ipv4.list $IPv4_INTERMEDIATE
   log "INFO:  Converting hostnames to IPv4 addresses..."
-  if [ -f $HOST_INTERMEDIATE ]; then
+  if [ -s $HOST_INTERMEDIATE ]; then
     for host in $(cat $HOST_INTERMEDIATE | sort -u); do
       add_single_hostname $host A
     done
@@ -154,11 +159,11 @@ if [ "$(uci -q get firewall.doh)" = "ipset" ];then
   update_ipset doh $IPv4_INTERMEDIATE inet
 fi
 
-if [ "$(uci -q get firewall.doh6)" = "ipset" ]; then
+if [ "$enabledv6" = "1" ]; then
   download https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv6.txt $IPv6_INTERMEDIATE "{print \$1}0"
   download https://raw.githubusercontent.com/oneoffdallas/dohservers/master/ipv6list.txt $IPv6_INTERMEDIATE "/^#/{next;}1"
   download https://raw.githubusercontent.com/crypt0rr/public-doh-servers/refs/heads/main/ipv6.list $IPv6_INTERMEDIATE
-  if [ -f $HOST_INTERMEDIATE ]; then
+  if [ -s $HOST_INTERMEDIATE ]; then
     log "INFO:  Converting hostnames to IPv6 addresses..."
     for host in $(cat $HOST_INTERMEDIATE | sort -u); do
       add_single_hostname $host AAAA
