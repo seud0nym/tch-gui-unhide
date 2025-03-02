@@ -74,12 +74,16 @@ if [ ! -e /etc/firewall.ipset.doh6 ]; then
 fi
 grep -q "doh-ipsets-maintain" /etc/crontabs/root && sed -e 's|/usr/sbin/doh-ipsets-maintain|/usr/share/tch-gui-unhide/update-doh-ipsets|' -i /etc/crontabs/root
 chmod +x /usr/share/tch-gui-unhide/update-doh-ipsets
-[ $(cat /etc/firewall.ipset.doh6 2>/dev/null | wc -l) -lt 1000 ] && /usr/share/tch-gui-unhide/update-doh-ipsets -q &
 if ! grep -q "update-doh-ipsets" /etc/crontabs/root; then
   mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
   hh=$(awk 'BEGIN{srand();print int(rand()*2)+3;}')
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Adding /usr/share/tch-gui-unhide/update-doh-ipsets cron task for Sunday at $hh:$mm"
-  echo "#$mm $hh * * 6 /usr/share/tch-gui-unhide/update-doh-ipsets" >> /etc/crontabs/root
+  echo "$mm $hh * * 6 /usr/share/tch-gui-unhide/update-doh-ipsets" >> /etc/crontabs/root
+  SRV_cron=$(( $SRV_cron + 1 ))
+fi
+if grep -q '^#.*update-doh-ipsets' /etc/crontabs/root; then
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Enabling /usr/share/tch-gui-unhide/update-doh-ipsets cron task"
+  sed -e 's/^#\(.*update-doh-ipsets\)/\1/' -i /etc/crontabs/root
   SRV_cron=$(( $SRV_cron + 1 ))
 fi
 #endregion
@@ -176,6 +180,8 @@ fi
 #endregion
 
 [ $SRV_firewall -gt 0 ] && exec_uci commit firewall
+
+nohup sh -c '/usr/share/tch-gui-unhide/update-doh-ipsets 2>&1 | logger -t update-doh-ipsets' >/dev/null 2>&1 &
 
 chmod +x /usr/share/tch-gui-unhide/hijack-ipv4-dns
 chmod +x /usr/share/tch-gui-unhide/hijack-ipv6-dns
