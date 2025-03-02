@@ -4,6 +4,7 @@
 gettext.textdomain('webui-core')
 
 local ngx = ngx
+local content_helper = require("web.content_helper")
 local leases_helper = require("ethernet-static-leases_helper")
 local proxy = require("datamodel")
 local proxy_helper = require("proxy_helper")
@@ -34,6 +35,12 @@ for k=1,(#mac_list-1) do
 end
 --endregion
 
+local status = {
+  enabledv4 = "uci.dns_hijacking.config.enabled",
+  enabledv6 = "uci.tproxy.rule.@dnsv6.enabled",
+}
+content_helper.getExactContent(status)
+
 local mapParams = {
   enabledv4 = "uci.dns_hijacking.config.enabled",
   dest_ipv4 = "uci.dns_hijacking.config.dest_ip",
@@ -55,6 +62,10 @@ local mapValid = {
 local content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
 if not helpmsg then
   helpmsg = {}
+end
+
+if (status.enabledv4 == "0" and content.enabledv4 == "1") or (status.enabledv6 == "0" and content.enabledv6 == "1") then
+  proxy_helper.set("rpc.gui.firewall.dns_intercept.populate_ipsets","1")
 end
 
 local ip6addr = proxy.get("rpc.network.interface.@lan.ip6addr")[1].value
