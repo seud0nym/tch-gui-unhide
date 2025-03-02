@@ -15,17 +15,21 @@ restore_from_rom() {
     s="${RESTORE_BASE}${t}"
     d="$(dirname $t)"
     f="$(basename $t)"
-    if [ -f "$s" ]; then
-      if [ "$s" = "/rom${t}" -a -f "${overlay}${t}" ]; then
-        [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $t by removing from $overlay${NC}"
-        rm "${overlay}${t}"
-        mount -o remount /
+    if [ -e "$s" ]; then
+      if [ "$s" = "/rom${t}" ]; then
+        if [ -e "${overlay}${t}" ]; then
+          [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $t by removing from $overlay${NC}"
+          rm "${overlay}${t}"
+          mount -o remount /
+        else
+          [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Skipped file $t - ${overlay}${t} not found${NC}"
+        fi
       elif ! cmp -s "$s" "$t"; then
         [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $t${NC}"
         mkdir -p "$(dirname $t)"
         cp -f -p "$s" "$t"
       fi
-    elif [ -f "$t" ]; then
+    elif [ -e "$t" ]; then
       if [ $d = "/etc/init.d" ]; then
         [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Stopping and disabling $t${NC}"
         $t stop 1>/dev/null 2>&1
@@ -54,10 +58,14 @@ EOF
       [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} Restoring directory $d"
       for s in $(find ${RESTORE_BASE}${d} -type f 2>/dev/null | grep -vE "^$RESTORE_BASE/www/docroot/help"); do
         t=${s#$RESTORE_BASE}
-        if [ "$s" = "/rom${t}" -a -f "${overlay}${t}" ]; then
-          [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $t by removing from $overlay${NC}"
-          rm "${overlay}${t}"
-          mount -o remount /
+        if [ "$s" = "/rom${t}" ]; then
+          if [ -e "${overlay}${t}" ]; then
+            [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $t by removing from $overlay${NC}"
+            rm "${overlay}${t}"
+            mount -o remount /
+          else
+            [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Skipped file $t - ${overlay}${t} not found${NC}"
+          fi
         elif ! cmp -s "$s" "$t"; then
           [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $t${NC}"
           mkdir -p "$(dirname $t)"
@@ -66,7 +74,7 @@ EOF
         fi
       done
       for f in $(find $d -type f ! -path '/www/docroot/help*' 2>/dev/null);do
-        if [ ! -f "${RESTORE_BASE}${f}" -a -f "$f" ]; then
+        if [ ! -e "${RESTORE_BASE}${f}" -a -f "$f" ]; then
           [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing file $f${NC}"
           rm -f "$f"
           echo "$d" | grep -q '^/usr/share/transformer' && SRV_transformer=$(( $SRV_transformer + 1 ))
