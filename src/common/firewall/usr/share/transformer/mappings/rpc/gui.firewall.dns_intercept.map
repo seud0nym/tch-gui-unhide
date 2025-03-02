@@ -198,7 +198,7 @@ GUI_FIREWALL_DNS_INT_.set = {
   end,
   populate_ipsets = function(_,_,value,_)
     if value == "1" then
-      os.execute("nohup /usr/share/tch-gui-unhide/update-doh-ipsets >/dev/null 2>&1 &")
+      os.execute("nohup sh -c '/usr/share/tch-gui-unhide/update-doh-ipsets 2>&1 | logger -t update-doh-ipsets' >dev/null 2>&1 &")
     end
     return true
   end,
