@@ -8,7 +8,7 @@ if [ "$BG_RFRSH" = "false" ]; then
 fi
 
 echo -e "[$SCRIPT]: Checking card visibility"
-ALLCARDRULES="$(exec_uci show web | grep =card)"
+ALLCARDRULES="$(uci -q show web | grep =card)"
 for CARD_PATH in $(find /www/cards/ -maxdepth 1 -type f -name '*.lp' | sort); do
   CARD_FILE="$(basename $CARD_PATH)"
   if [ "$CARD_FILE" = "016_speedservice.lp" ]; then
@@ -24,7 +24,7 @@ for CARD_PATH in $(find /www/cards/ -maxdepth 1 -type f -name '*.lp' | sort); do
     MODAL=$(grep -o "\(modalPath\|modal_link\)[^\"']*[\"'][^\"']*.lp[\"']" $CARD_PATH | grep -m 1 -o "modals/[^.]*\.lp")
   fi
   if [ -n "$MODAL" ]; then
-    MODAL_RULE=$(exec_uci show web | grep $MODAL | grep -m 1 -v card_ | cut -d. -f2)
+    MODAL_RULE=$(uci -q show web | grep $MODAL | grep -m 1 -v card_ | cut -d. -f2)
     if [ -n "$MODAL_RULE" -a -n "$(uci -q get web.$MODAL_RULE.roles | grep -v -E 'admin|guest')" ]; then
       echo -e "[$SCRIPT]:  - Converting $CARD card visibility from modal-based visibility"
       HIDDEN=1
@@ -53,7 +53,7 @@ for CARD_PATH in $(find /www/cards/ -maxdepth 1 -type f -name '*.lp' | sort); do
     HIDDEN=0
   fi
   if [ "$(uci -q get web.${CARD_RULE})" != "card" ]; then
-    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Card Rule $CARD_RULE: card=$CARD_FILE hide=$HIDDEN modal=$MODAL_RULE"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: ${GREY} -> Card Rule $CARD_RULE: card=$CARD_FILE hide=$HIDDEN modal=$MODAL_RULE${NC}"
     exec_uci set web.${CARD_RULE}=card
     exec_uci set web.${CARD_RULE}.card="$CARD_FILE"
   fi
@@ -111,16 +111,16 @@ if [ -z "$ALLCARDRULES" -a -f tch-gui-unhide-cards ]; then
 else
   apply_chart_card_visibiity
   echo -e "[$SCRIPT]: Applying configured card sequence"
-  for CARD_RULE in $(exec_uci show web | grep '=card' | cut -d= -f1); do
+  for CARD_RULE in $(uci -q show web | grep '=card' | cut -d= -f1); do
     CARD=$(uci -q get ${CARD_RULE}.card)
     CARD_FILE=$(ls /www/cards/???_${CARD#*_} 2>/dev/null)
-    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Card Rule $CARD_RULE: card=$CARD search=/www/cards/???_${CARD#*_} found=$CARD_FILE"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: ${GREY} -> Card Rule $CARD_RULE: card=$CARD search=/www/cards/???_${CARD#*_} found=$CARD_FILE${NC}"
     if [ -z "$CARD_FILE" ]; then
-      [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Removing obsolete configuration $CARD_RULE"
+      [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing obsolete configuration $CARD_RULE${NC}"
       exec_uci delete $CARD_RULE
       SRV_nginx=$(( $SRV_nginx + 1 ))
     elif [ "$CARD" != "$(basename $CARD_FILE)" ]; then
-      [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Renaming $CARD_FILE to /www/cards/$CARD"
+      [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: ${GREY} -> Renaming $CARD_FILE to /www/cards/$CARD${NC}"
       mv $CARD_FILE /www/cards/$CARD
     fi
   done
@@ -128,12 +128,12 @@ else
 fi
 
 echo -e "[$SCRIPT]: Checking all configured cards exist"
-for CARD_FILE in $(exec_uci show web | grep '^web\.card_.*\.card=')
+for CARD_FILE in $(uci -q show web | grep '^web\.card_.*\.card=')
 do
   CARD_PATH=/www/cards/$(echo "$CARD_FILE" | cut -d"'" -f2)
   if [ ! -f "$CARD_PATH" ]; then
     CARD_RULE=$(echo $CARD_FILE | cut -d. -f2)
-    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Deleting card configuration $CARD_RULE for missing card $CARD_PATH"
+    [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: ${GREY} -> Deleting card configuration $CARD_RULE for missing card $CARD_PATH${NC}"
     exec_uci -q delete web.$CARD_RULE
     SRV_nginx=$(( $SRV_nginx + 1 ))
   fi

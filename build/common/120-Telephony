@@ -38,7 +38,7 @@ sed \
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
 echo -e "[$SCRIPT]: Provision the Do Not Disturb service"
-for p in $(exec_uci show mmpbx | grep "service.*\.type='DND'" | cut -d. -f 1-2); do 
+for p in $(uci -q show mmpbx | grep "service.*\.type='DND'" | cut -d. -f 1-2); do 
   if [ "$(uci -q get $p.provisioned)" != "1" ]; then
     [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Provisioning $p"
     exec_uci set $p.provisioned='1'

@@ -1,4 +1,4 @@
-if [ $(exec_uci show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | wc -l) -eq 0 ]
+if [ $(uci -q show wireless | grep -E ssid=\'\(Fon\|Telstra\ Air\) | wc -l) -eq 0 ]
 then
   echo -e "[$SCRIPT]: Telstra Air and Fon SSIDs not found - Removing from GUI"
   [ -f /www/cards/010_fon.lp ] && rm /www/cards/010_fon.lp
@@ -26,7 +26,7 @@ fi
 echo -e "[$SCRIPT]: Checking modal visibility"
 for f in $(find /www/docroot/modals -type f | grep -vE \(diagnostics-airiq-modal.lp\|mmpbx-sipdevice-modal.lp\|speedservice-modal.lp\)); do
   MODAL=$(basename $f)
-  RULE=$(exec_uci show web | grep "/modals/$MODAL" | grep -m 1 -v card_ | cut -d. -f2)
+  RULE=$(uci -q show web | grep "/modals/$MODAL" | grep -m 1 -v card_ | cut -d. -f2)
   if [ -z "$RULE" ]; then
     CREATE_RULE=y
     RULE=$(basename $f .lp | sed -e 's/-//g')
@@ -52,7 +52,7 @@ done
 echo -e "[$SCRIPT]: Checking ajax visibility"
 for f in $(find /www/docroot/ajax -type f | grep -vE 'internet.lua|wirelesscard.lua'); do
   AJAX=$(basename $f)
-  RULE=$(exec_uci show web | grep "/ajax/$AJAX" | grep -m 1 -v card_ | cut -d. -f2)
+  RULE=$(uci -q show web | grep "/ajax/$AJAX" | grep -m 1 -v card_ | cut -d. -f2)
   if [ -z "$RULE" ]; then
     CREATE_RULE=y
     RULE="$(basename $f .lua | sed -e 's/-//g')ajax"
@@ -76,7 +76,7 @@ for f in $(find /www/docroot/ajax -type f | grep -vE 'internet.lua|wirelesscard.
 done
 
 echo -e "[$SCRIPT]: Checking configured web rules exist"
-for c in $(exec_uci show web | grep '^web\..*\.target=' | grep -vE 'dumaos|homepage')
+for c in $(uci -q show web | grep '^web\..*\.target=' | grep -vE 'dumaos|homepage')
 do
   f=/www/docroot$(echo "$c" | cut -d"'" -f2)
   if [ ! -f "$f" ]; then

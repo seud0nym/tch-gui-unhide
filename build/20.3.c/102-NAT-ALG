@@ -3,7 +3,7 @@ sed -e 's/\("proto",\)$/\1 "description",/' -i /usr/share/transformer/mappings/u
 SRV_transformer=$(( $SRV_transformer + 1 ))
 
 echo -e "[$SCRIPT]: Check firewall helpers module availability"
-for m in $(exec_uci show firewall_helpers | grep '\.module=')
+for m in $(uci -q show firewall_helpers | grep '\.module=')
 do
   module=$(echo $m | cut -d"'" -f2)
   lsmod | grep -q "^$module "
@@ -18,8 +18,8 @@ do
 done
 
 echo -e "[$SCRIPT]: Fix any incorrectly configured helpers"
-LAN_ZONE=$(exec_uci show firewall | grep @zone | grep -m 1 "name='lan'" | cut -d. -f1-2)
-WAN_ZONE=$(exec_uci show firewall | grep @zone | grep -m 1 "wan='1'" | cut -d. -f1-2)
+LAN_ZONE=$(uci -q show firewall | grep @zone | grep -m 1 "name='lan'" | cut -d. -f1-2)
+WAN_ZONE=$(uci -q show firewall | grep @zone | grep -m 1 "wan='1'" | cut -d. -f1-2)
 LAN_HELP=$(uci -qd"$IFS" get $LAN_ZONE.helper | sort | xargs)
 WAN_HELP=$(uci -qd"$IFS" get $WAN_ZONE.helper | sort | xargs)
 if [ "$LAN_HELP" != "$WAN_HELP" ]; then

@@ -4,7 +4,7 @@ dns_int_dest_port="$(uci -q get firewall.dns_int.dest_port)"
 dns_masq_dest_ip="$(uci -q get firewall.dns_masq.dest_ip)"
 #region remove deprecated hijacking
 configs="dns_xcptn:ipset dns6_xcptn:ipset ipsets_restore:include dns_dhcp_xcptn:include tproxy:include"
-for path in $(exec_uci show firewall | grep =zone | cut -d= -f1); do
+for path in $(uci -q show firewall | grep =zone | cut -d= -f1); do
   zone="$(uci -q get $path.name)"
   [ "$zone" = "loopback" ] && continue
   enabled="$(uci -q get $path.enabled)"

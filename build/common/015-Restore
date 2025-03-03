@@ -25,13 +25,13 @@ if [ $RESTORE = y ]; then
       rmdir "$d"
     fi
   done
-  for s in $(exec_uci show web | grep normally_hidden | cut -d. -f2); do
+  for s in $(uci -q show web | grep normally_hidden | cut -d. -f2); do
     echo -e "[$SCRIPT]: Removing config entry web.$s"
     exec_uci -q delete web.$s
     exec_uci -q del_list web.ruleset_main.rules="$s"
     SRV_nginx=$(( $SRV_nginx + 2 ))
   done
-  for s in $(exec_uci show web | grep '=card' | cut -d= -f1); do
+  for s in $(uci -q show web | grep '=card' | cut -d= -f1); do
     echo -e "[$SCRIPT]: Removing config entry $s"
     exec_uci -q delete $s
     SRV_nginx=$(( $SRV_nginx + 1 ))

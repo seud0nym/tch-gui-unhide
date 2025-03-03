@@ -90,7 +90,7 @@ if [ -z "$(uci -q get dhcp.relay)" ]; then
 fi
 
 echo -e "[$SCRIPT]: Checking IPv6 DHCP DNS Servers..."
-for c in $(exec_uci show dhcp | grep -E '^dhcp\.(lan|Guest.*)=dhcp$' | tr '=' '.' | cut -d. -f2); do
+for c in $(uci -q show dhcp | grep -E '^dhcp\.(lan|Guest.*)=dhcp$' | tr '=' '.' | cut -d. -f2); do
   if [ "$(uci -q get dhcp.${c}.ignore)" != "1" -a "$(uci -q get dhcp.${c}.dhcpv6)" = "server" -a -z "$(uci -q get dhcp.${c}.dns)" ]; then
     ifname="$(uci -q get dhcp.${c}.interface)"
     ula="$(transformer-cli get rpc.network.interface.@${ifname}. | grep -E 'ipv6(unique|link)localaddr.* = f[cde]' | tr -d ' ' | tr '/' '=' | cut -d= -f2 | head -n1)"
