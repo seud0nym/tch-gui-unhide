@@ -105,18 +105,17 @@ config_foreach find_dns_servers "dhcp"
 # (otherwise the default processing inserts a catch-all accept that these rules end up appended after and therefore never get applied)
 for z in $_ZONES; do
   zone=$(echo "$z" | cut -d, -f1)
-  # DoH
-  iptables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 443 -m set --match-set hijack_xcptn src -m comment --comment "DNSv4-Hijacking-Allow-DoH" -j zone_wan_dest_ACCEPT
-  iptables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 443 -m set --match-set doh dst -m comment --comment "DNSv4-Hijacking-Block-DoH" -j LOG --log-prefix "==BLOCKED== "
-  iptables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 443 -m set --match-set doh dst -m comment --comment "DNSv4-Hijacking-Block-DoH" -j zone_wan_dest_DROP
-  # DoT
-  iptables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 853 -m set --match-set hijack_xcptn src -m comment --comment "DNSv4-Hijacking-Allow-DoT" -j zone_wan_dest_ACCEPT
-  iptables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 853 -m comment --comment "DNSv4-Hijacking-Block-DoT" -j LOG --log-prefix "==BLOCKED== "
-  iptables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 853 -m comment --comment "DNSv4-Hijacking-Block-DoT" -j zone_wan_dest_DROP
-  # DoQ
-  iptables -t filter -A forwarding_${zone}_rule -p udp -m udp --dport 853 -m set --match-set hijack_xcptn src -m comment --comment "DNSv4-Hijacking-Allow-DoQ" -j zone_wan_dest_ACCEPT
-  iptables -t filter -A forwarding_${zone}_rule -p udp -m udp --dport 853 -m comment --comment "DNSv4-Hijacking-Block-DoQ" -j LOG --log-prefix "==BLOCKED== "
-  iptables -t filter -A forwarding_${zone}_rule -p udp -m udp --dport 853 -m comment --comment "DNSv4-Hijacking-Block-DoQ" -j zone_wan_dest_DROP
+  for port in 443 853; do
+    for proto in tcp udp; do
+      [ $port = 443 -a $proto = tcp ] && desc="DNS-over-HTTPS"
+      [ $port = 443 -a $proto = udp ] && desc="DNS-over-HTTPS/3"
+      [ $port = 853 -a $proto = tcp ] && desc="DNS-over-TLS"
+      [ $port = 853 -a $proto = udp ] && desc="DNS-over-QUIC"
+      iptables -t filter -A forwarding_${zone}_rule -p $proto -m $proto --dport $port -m set --match-set hijack_xcptn src -m comment --comment "DNSv4-Hijacking-Exception" -j zone_wan_dest_ACCEPT
+      iptables -t filter -A forwarding_${zone}_rule -p $proto -m $proto --dport $port -m set --match-set doh dst -m comment --comment "DNSv4-Hijacking-Block-$desc" -j LOG --log-prefix "==BLOCKED== "
+      iptables -t filter -A forwarding_${zone}_rule -p $proto -m $proto --dport $port -m set --match-set doh dst -m comment --comment "DNSv4-Hijacking-Block-$desc" -j zone_wan_dest_DROP
+    done
+  done
 done
 
 # Create the nat rules

@@ -77,18 +77,17 @@ config_foreach find_guest_zones "zone"
 # Insert the filter rules in REVERSE order to ensure they end up in the correct sequence at the top of the chain
 # (otherwise the default processing inserts a catch-all accept that these rules end up appended after and therefore never get applied)
 for zone in $_ZONES; do
-  # DoH
-  ip6tables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 443 -m set --match-set hijack_xcptn src -m comment --comment "DNSv6-Hijacking-Allow-DoHv6" -j zone_wan_dest_ACCEPT
-  ip6tables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 443 -m set --match-set doh6 dst -m comment --comment "DNSv6-Hijacking-Block-DoHv6" -j LOG --log-prefix "==BLOCKED== "
-  ip6tables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 443 -m set --match-set doh6 dst -m comment --comment "DNSv6-Hijacking-Block-DoHv6" -j reject
-  # DoT
-  ip6tables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 853 -m set --match-set hijack_xcptn src -m comment --comment "DNSv6-Hijacking-Allow-DoTv6" -j zone_wan_dest_ACCEPT
-  ip6tables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 853 -m comment --comment "DNSv6-Hijacking-Block-DoTv6" -j LOG --log-prefix "==BLOCKED== "
-  ip6tables -t filter -A forwarding_${zone}_rule -p tcp -m tcp --dport 853 -m comment --comment "DNSv6-Hijacking-Block-DoTv6" -j reject
-  # DoQ
-  ip6tables -t filter -A forwarding_${zone}_rule -p udp -m udp --dport 853 -m set --match-set hijack_xcptn src -m comment --comment "DNSv6-Hijacking-Allow-DoQv6" -j zone_wan_dest_ACCEPT
-  ip6tables -t filter -A forwarding_${zone}_rule -p udp -m udp --dport 853 -m comment --comment "DNSv6-Hijacking-Block-DoQv6" -j LOG --log-prefix "==BLOCKED== "
-  ip6tables -t filter -A forwarding_${zone}_rule -p udp -m udp --dport 853 -m comment --comment "DNSv6-Hijacking-Block-DoQv6" -j reject
+  for port in 443 853; do
+    for proto in tcp udp; do
+      [ $port = 443 -a $proto = tcp ] && desc="DNS-over-HTTPS"
+      [ $port = 443 -a $proto = udp ] && desc="DNS-over-HTTPS/3"
+      [ $port = 853 -a $proto = tcp ] && desc="DNS-over-TLS"
+      [ $port = 853 -a $proto = udp ] && desc="DNS-over-QUIC"
+      ip6tables -t filter -A forwarding_${zone}_rule -p $proto -m $proto --dport $port -m set --match-set hijack_xcptn src -m comment --comment "DNSv6-Hijacking-Exception" -j zone_wan_dest_ACCEPT
+      ip6tables -t filter -A forwarding_${zone}_rule -p $proto -m $proto --dport $port -m set --match-set doh6 dst -m comment --comment "DNSv6-Hijacking-Block-$desc" -j LOG --log-prefix "==BLOCKED== "
+      ip6tables -t filter -A forwarding_${zone}_rule -p $proto -m $proto --dport 4$port43 -m set --match-set doh6 dst -m comment --comment "DNSv6-Hijacking-Block-$desc" -j reject
+    done
+  done
 done
 
 # Create the rules to always accept defined DNS servers
