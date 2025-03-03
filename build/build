@@ -149,7 +149,7 @@ for MAJOR in $(ls -d */ | grep -E '^[1-2]' | cut -d/ -f1); do
   fi
   
   tmp_filelist=$(mktemp)
-  grep -hroEe '(-i *|> *)/[-/.A-Za-z0-9_]+/[-.A-Za-z0-9_]+' common/ $MAJOR/ $(cat $MAJOR/.include | sed -e '/#/d' -e 's|\([^/]*\)/\(.*\)|\2/\1|') | sed -e 's/^\(-i *\|> *\)\///' -e '/^\(dev\|etc\|proc\)\//d' > $tmp_filelist
+  grep -hroEe '(-i *|> *)/[-/.A-Za-z0-9_]+/[-.A-Za-z0-9_]+' common/ $MAJOR/ $(cat $MAJOR/.include 2>/dev/null | sed -e '/#/d' -e 's|\([^/]*\)/\(.*\)|\2/\1|') | sed -e 's/^\(-i *\|> *\)\///' -e '/^\(dev\|etc\|proc\)\//d' > $tmp_filelist
   find /tmp/tch-gui-unhide/$MAJOR -type f | sed -e "/\/tmp\/tch-gui-unhide\/$MAJOR\/tmp/d" -e "s|/tmp/tch-gui-unhide/$MAJOR/||" >> $tmp_filelist
   cat $tmp_filelist /tmp/themes.filelist | sed -e 's|//|/|' | sort -u > /tmp/tch-gui-unhide-$MAJOR.filelist
   rm -f $tmp_filelist
