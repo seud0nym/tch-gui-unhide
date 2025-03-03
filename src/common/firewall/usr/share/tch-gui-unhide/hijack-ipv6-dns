@@ -85,7 +85,7 @@ for zone in $_ZONES; do
       [ $port = 853 -a $proto = udp ] && desc="DNS-over-QUIC"
       ip6tables -t filter -A forwarding_${zone}_rule -p $proto -m $proto --dport $port -m set --match-set hijack_xcptn src -m comment --comment "DNSv6-Hijacking-Exception" -j zone_wan_dest_ACCEPT
       ip6tables -t filter -A forwarding_${zone}_rule -p $proto -m $proto --dport $port -m set --match-set doh6 dst -m comment --comment "DNSv6-Hijacking-Block-$desc" -j LOG --log-prefix "==BLOCKED== "
-      ip6tables -t filter -A forwarding_${zone}_rule -p $proto -m $proto --dport 4$port43 -m set --match-set doh6 dst -m comment --comment "DNSv6-Hijacking-Block-$desc" -j reject
+      ip6tables -t filter -A forwarding_${zone}_rule -p $proto -m $proto --dport $port -m set --match-set doh6 dst -m comment --comment "DNSv6-Hijacking-Block-$desc" -j reject
     done
   done
 done
