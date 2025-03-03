@@ -9,7 +9,6 @@ restore_from_rom() {
   [ -z "$(which bootmgr)" ] && overlay="/overlay/$(cat /proc/banktable/booted 2>/dev/null)" || overlay="/overlay/bank_$(bootmgr partition booted)"
   
   echo -e "[$SCRIPT]: Removing any previous installation..."
-  local directories=""
   while read -r filepath; do
     t="/$filepath"
     s="${RESTORE_BASE}${t}"
@@ -39,8 +38,6 @@ restore_from_rom() {
       fi
       [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing file $t${NC}"
       rm -f "$t"
-      [ -z "$directories" ] || directories="${directories}${IFS}"
-      directories="${directories}${d}"
       if grep -q "\b${f}\b" /etc/crontabs/root; then
         [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing $f scheduled task${NC}"
         sed -e "/\b${f}\b/d" -i /etc/crontabs/root
@@ -50,36 +47,27 @@ restore_from_rom() {
   done <<EOF
 EOF
 
-  for d in $(echo "$directories" | sort -u); do
-    if [ ! -d ${RESTORE_BASE}${d} -a $(ls $d | wc -l) = 0 ]; then
-      [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} Removing empty directory $d${NC}"
-      rmdir "$d"
-    else
-      [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} Restoring directory $d"
-      for s in $(find ${RESTORE_BASE}${d} -type f 2>/dev/null | grep -vE "^$RESTORE_BASE/www/docroot/help"); do
-        t=${s#$RESTORE_BASE}
-        if [ "$s" = "/rom${t}" ]; then
-          if [ -e "${overlay}${t}" ]; then
-            [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $t by removing from $overlay${NC}"
-            rm "${overlay}${t}"
-            mount -o remount /
-          else
-            [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Skipped file $t - ${overlay}${t} not found${NC}"
-          fi
-        elif ! cmp -s "$s" "$t"; then
-          [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $t${NC}"
-          mkdir -p "$(dirname $t)"
-          cp -f -p "$s" "$t"
-          echo "$d" | grep -q '^/usr/share/transformer' && SRV_transformer=$(( $SRV_transformer + 1 ))
+  for d in www/cards www/docroot www/lua www/snippets usr/share/transformer/commitapply usr/share/transformer/mappings/rpc usr/share/transformer/mappings/uci; do
+    # Delete extra files
+    for f in $(find ${overlay}/$d -type f ! -path "${overlay}/www/docroot/help*");do
+      s="${RESTORE_BASE}${f##$overlay}"
+      if [ ! -e "$s" -a -f "$f" ]; then
+        [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing extra file $f${NC}"
+        rm -f "$f"
+        mount -o remount /
+        if [ $d = "usr/share/transformer" ]; then
+          SRV_transformer=$(( $SRV_transformer + 1 ))
         fi
-      done
-      for f in $(find $d -type f ! -path '/www/docroot/help*' 2>/dev/null);do
-        if [ ! -e "${RESTORE_BASE}${f}" -a -f "$f" ]; then
-          [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing file $f${NC}"
-          rm -f "$f"
-          echo "$d" | grep -q '^/usr/share/transformer' && SRV_transformer=$(( $SRV_transformer + 1 ))
-        fi
-      done
-    fi
+      fi
+    done
+    # Restore deleted files
+    for f in $(find ${overlay}/$d -type c ! -path "${overlay}/www/docroot/help*");do
+      [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring deleted file $f${NC}"
+      rm -f "$f"
+      mount -o remount /
+      if [ $d = "usr/share/transformer" ]; then
+        SRV_transformer=$(( $SRV_transformer + 1 ))
+      fi
+    done
   done
 }
