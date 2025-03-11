@@ -99,6 +99,27 @@ config dns_hijacking 'config'
 HIJACKV4
   chmod 644 /etc/config/dns_hijacking
 fi
+if [ "$(uci -q get dns_hijacking.@doh_list[0])" != "doh_list" ]; then
+  for list in host,https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/domains/doh.txt \
+              ipv4,https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv4.txt \
+              ipv4,https://raw.githubusercontent.com/oneoffdallas/dohservers/master/iplist.txt \
+              ipv4,https://raw.githubusercontent.com/crypt0rr/public-doh-servers/refs/heads/main/ipv4.list \
+              ipv6,https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv6.txt \
+              ipv6,https://raw.githubusercontent.com/oneoffdallas/dohservers/master/ipv6list.txt \
+              ipv6,https://raw.githubusercontent.com/crypt0rr/public-doh-servers/refs/heads/main/ipv6.list 
+  do
+    type=$(echo "$list" | cut -d, -f1)
+    url=$(echo "$list" | cut -d, -f2)
+    if [ -n "$url" -a \( $type = "host" -o "$type" = "ipv4" -o "$type" = "ipv6" \) ]; then
+      [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Adding DoH hijacking source list $url"
+      cfg="$(exec_uci add dns_hijacking doh_list)"
+      exec_uci set dns_hijacking.$cfg.url="$url"
+      exec_uci set dns_hijacking.$cfg.type="$type"
+      exec_uci set dns_hijacking.$cfg.enabled='1'
+    fi
+  done
+  exec_uci commit dns_hijacking
+fi
 if [ "$(uci -q get firewall.hijackv4)" != "include" ]; then
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Creating configuration firewall.hijackv4"
   exec_uci set firewall.hijackv4='include'

@@ -24,11 +24,13 @@ trap "unlock" 2
 log "INFO:  Attempting to acquire lock on $LOCK..."
 lock $LOCK
 
-TMP_TARGET=/tmp/ipset.downloaded
-TMP_CONVERTED=/tmp/ipset.downloaded.ip.list
-IPv4_INTERMEDIATE=/tmp/ipset.intermediate.ipv4
-IPv6_INTERMEDIATE=/tmp/ipset.intermediate.ipv6
-HOST_INTERMEDIATE=/tmp/ipset.intermediate.hosts
+rm -rf /tmp/ipset.*
+
+TMP_TARGET=$(mktemp /tmp/ipset.downloaded.XXXXXX)
+TMP_CONVERTED=$(mktemp /tmp/ipset.downloaded.ip.list.XXXXXX)
+IPv4_INTERMEDIATE=$(mktemp /tmp/ipset.intermediate.ipv4.XXXXXX)
+IPv6_INTERMEDIATE=$(mktemp /tmp/ipset.intermediate.ipv6.XXXXXX)
+HOST_INTERMEDIATE=$(mktemp /tmp/ipset.intermediate.hosts.XXXXXX)
 
 add_single_hostname() {
   local HOSTNAME="$1"
@@ -59,8 +61,7 @@ cleanup() {
 download() {
   local SOURCE="$1"
   local TARGET="$2"
-  local AWK_PROGRAM="$3"
-  local SOURCE_TYPE="$4"
+  local SOURCE_TYPE="$3"
   local RESPONSE_CODE RETURN_CODE HOSTNAME IGNORED IP
 
   [ -f $TMP_TARGET ] && rm $TMP_TARGET
@@ -71,36 +72,28 @@ download() {
   if [ "$RESPONSE_CODE" = 200 ]; then
     curl -kLs -o $TMP_TARGET $SOURCE
     log "INFO:  - Source contains $(cat $TMP_TARGET | wc -l) lines"
-    if [ -n "$AWK_PROGRAM" ]; then
-      if [ "$SOURCE_TYPE" != "hosts" ]; then
-        log "INFO:  - Extracting hostnames from comments"
-        NEW_HOSTS=$(mktemp)
-        grep -oE '# *[-A-Za-z0-9]+\.[-\.A-Za-z0-9]+' $TMP_TARGET | sed -e 's/^# *//' | sort -u > $NEW_HOSTS
-        TMP_HOSTS=$(mktemp)
-        grep -vFf $NEW_HOSTS $HOST_INTERMEDIATE > $TMP_HOSTS
-        mv $TMP_HOSTS $HOST_INTERMEDIATE
-        rm $NEW_HOSTS
-        log "INFO:  - Now $(cat $HOST_INTERMEDIATE | wc -l) Hostnames to resolve"
-      fi
-      log "INFO:  - Stripping comments and blank lines"
-      awk -e "$AWK_PROGRAM" $TMP_TARGET | awk -e "/^[[:blank:]]*$/{next;}{print \$1;}0" >> $TMP_CONVERTED
-      if [ $? -ne 0 ]; then
-        log "ERROR: - Conversion failed! (awk -e '$AWK_PROGRAM' $TMP_TARGET)"
-        return 2
-      fi
-      rm $TMP_TARGET
-    else
-      mv $TMP_TARGET $TMP_CONVERTED
+    if [ "$SOURCE_TYPE" != "host" -a -s $HOST_INTERMEDIATE ]; then
+      log "INFO:  - Extracting any hostnames from comments"
+      NEW_HOSTS=$(mktemp)
+      grep -oE '# *[-A-Za-z0-9]+\.[-\.A-Za-z0-9]+' $TMP_TARGET | sed -e 's/^# *//' | sort -u > $NEW_HOSTS
+      TMP_HOSTS=$(mktemp)
+      grep -vFf $NEW_HOSTS $HOST_INTERMEDIATE > $TMP_HOSTS
+      mv $TMP_HOSTS $HOST_INTERMEDIATE
+      rm $NEW_HOSTS
+      log "INFO:  - Now $(cat $HOST_INTERMEDIATE | wc -l) Hostnames to resolve"
     fi
-    if [ -z "$DIG_TYPE" ]; then
+    log "INFO:  - Stripping comments and blank lines"
+    awk -e "/^[[:blank:]]*$/{next;}/^#/{next;}{print \$1;}0" $TMP_TARGET >> $TMP_CONVERTED
+    if [ $? -ne 0 ]; then
+      log "ERROR: - Conversion failed! (awk -e '$AWK_PROGRAM' $TMP_TARGET)"
+      return 2
+    fi
+    if [ "$SOURCE_TYPE" != "host" ]; then
       log "INFO:  - Source contains $(cat $TMP_CONVERTED | wc -l) addresses"
-      cat $TMP_CONVERTED >> $TARGET
     else
       log "INFO:  - Source contains $(cat $TMP_CONVERTED | wc -l) hostnames"
-      log "INFO:  - Converting hostnames to IP addresses (this can take a while)"
-      grep -vFf $HOST_INTERMEDIATE $TMP_CONVERTED | dig +short -t $DIG_TYPE -f - | grep -v '\.$' >> $TARGET
-      [ $? -ne 0 ] && log "ERROR: - Conversion failed!"
     fi
+    cat $TMP_CONVERTED >> $TARGET
   elif [ "$RESPONSE_CODE" = 404 ]; then
     log "ERROR: $SOURCE was not found???"
   elif [ "$RESPONSE_CODE" = 000 ]; then
@@ -109,7 +102,6 @@ download() {
     log "ERROR: Failed to download $SOURCE - Unknown response code $RESPONSE_CODE"
   fi
   [ -f "$TMP_TARGET" ] && rm "$TMP_TARGET"
-  return 1
 }
 
 update_ipset() {
@@ -139,37 +131,45 @@ cleanup
 
 enabledv4="$(uci -q get dns_hijacking.config.enabled)"
 enabledv6="$(uci -q get tproxy.dnsv6.enabled)"
+doresolve="n"
 
 if [ "$enabledv4" = "1" -o "$enabledv6" = "1" ]; then
-  download https://raw.githubusercontent.com/hagezi/dns-blocklists/refs/heads/main/domains/doh.txt $HOST_INTERMEDIATE "/^#/{next;}1" hosts
+  touch $HOST_INTERMEDIATE
+  for cfg in $(uci -q show dns_hijacking | grep '=doh_list' | cut -d= -f1); do
+    if [ "$(uci -q get $cfg.enabled)" = "1" ]; then
+      source="$(uci -q get $cfg.url)"
+      if [ -n "$source" ]; then
+        type="$(uci -q get $cfg.type)"
+        case "$type" in
+          host) target=$HOST_INTERMEDIATE; doresolve="y";;
+          ipv4) target=$IPv4_INTERMEDIATE;;
+          ipv6) target=$IPv6_INTERMEDIATE;;
+          *)    target="";;
+        esac
+        if [ -n "$target" ]; then
+          download $source $target $type
+        fi
+      fi
+    fi
+  done
 fi
 
 if [ "$enabledv4" = "1" ];then
-  download https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv4.txt $IPv4_INTERMEDIATE "{print \$1}0"
-  download https://raw.githubusercontent.com/oneoffdallas/dohservers/master/iplist.txt $IPv4_INTERMEDIATE "/^#/{next;}1"
-  download https://raw.githubusercontent.com/crypt0rr/public-doh-servers/refs/heads/main/ipv4.list $IPv4_INTERMEDIATE
-  log "INFO:  Converting hostnames to IPv4 addresses..."
-  if [ -s $HOST_INTERMEDIATE ]; then
+  if [ "$doresolve" = "y" -a -s $HOST_INTERMEDIATE ]; then
+    log "INFO:  Converting hostnames to IPv4 addresses..."
     for host in $(cat $HOST_INTERMEDIATE | sort -u); do
       add_single_hostname $host A
     done
-  else 
-    log "ERROR: $HOST_INTERMEDIATE not found?"
   fi
   update_ipset doh $IPv4_INTERMEDIATE inet
 fi
 
 if [ "$enabledv6" = "1" ]; then
-  download https://raw.githubusercontent.com/dibdot/DoH-IP-blocklists/master/doh-ipv6.txt $IPv6_INTERMEDIATE "{print \$1}0"
-  download https://raw.githubusercontent.com/oneoffdallas/dohservers/master/ipv6list.txt $IPv6_INTERMEDIATE "/^#/{next;}1"
-  download https://raw.githubusercontent.com/crypt0rr/public-doh-servers/refs/heads/main/ipv6.list $IPv6_INTERMEDIATE
-  if [ -s $HOST_INTERMEDIATE ]; then
+  if [ "$doresolve" = "y" -a -s $HOST_INTERMEDIATE ]; then
     log "INFO:  Converting hostnames to IPv6 addresses..."
     for host in $(cat $HOST_INTERMEDIATE | sort -u); do
       add_single_hostname $host AAAA
     done
-  else 
-    log "ERROR: $HOST_INTERMEDIATE not found?"
   fi
   update_ipset doh6 $IPv6_INTERMEDIATE inet6
 fi

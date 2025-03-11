@@ -12,3 +12,12 @@ local dns_hijacking_global = {
 }
 
 mapper("uci_1to1").registerSimpleMap(dns_hijacking_global)
+
+-- uci.dns_hijacking.doh_list.{i}
+local dns_hijacking_doh_list = {
+  config = config_dns_hijacking,
+  type = "doh_list",
+  options = { "enabled", "url", "type" }
+}
+
+mapper("uci_1to1").registerNamedMultiMap(dns_hijacking_doh_list)
