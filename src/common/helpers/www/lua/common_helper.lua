@@ -28,7 +28,7 @@ function M.secondsToTime(time)
   if (time_no and time_no >= 0) then
     return format("%dd %02d:%02d:%02d",floor(time_no/86400),floor(time_no/3600)%24,floor(time_no/60)%60,floor(time_no)%60)
   end
-  return nil,T"Positive number expected."
+  return "unknown",T"Positive number expected."
 end
 
 return M
