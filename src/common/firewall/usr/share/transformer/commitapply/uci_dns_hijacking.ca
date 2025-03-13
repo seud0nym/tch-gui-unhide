@@ -1,1 +1,2 @@
-^dns_hijacking /usr/share/tch-gui-unhide/hijack-ipv4-dns
+^dns_hijacking%.config%.enabled /usr/share/tch-gui-unhide/hijack-ipv4-dns; /usr/share/tch-gui-unhide/update-doh-ipsets
+^dns_hijacking%.doh_list%..+%.enabled /usr/share/tch-gui-unhide/update-doh-ipsets

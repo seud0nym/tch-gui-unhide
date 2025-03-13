@@ -22,6 +22,7 @@ local gOV = post_helper.getOptionalValidation
 local vSIIP4 = post_helper.validateStringIsIPv4
 local vSIIP6 = post_helper.validateStringIsIPv6
 local vSIP = post_helper.validateStringIsPort
+local gVIES = post_helper.getValidateInEnumSelect
 local vB = post_helper.validateBoolean
 
 --region host names
@@ -77,7 +78,7 @@ end
 local macvalidation = {
   excluded_mac_address = leases_helper.validateStaticLeaseMAC,
 }
-local maccols = {
+local mac_cols = {
   {
     header = T"MAC Address Excluded from Hijacking",
     name = "excluded_mac_address",
@@ -94,10 +95,10 @@ local maccols = {
   },
 }
 if #mac_list <= 1 then
-  maccols[1].type = "text"
-  maccols[1].attr = { input = { class="span3 no-save",maxlength="17" }, autocomplete = hosts_mac }
+  mac_cols[1].type = "text"
+  mac_cols[1].attr = { input = { class="span3 no-save",maxlength="17" }, autocomplete = hosts_mac }
 end
-local macopts = {
+local mac_opts = {
   tableid = "excluded_macs",
   basepath = "rpc.gui.firewall.dns_intercept.exceptions.@.",
   canEdit = true,
@@ -106,8 +107,70 @@ local macopts = {
   createMsg = T"Add Excluded MAC Address",
   onAdd = function(index,record)
     proxy_helper.set("rpc.gui.firewall.dns_intercept.exceptions."..index..".mac",record.excluded_mac_address)
-  end}
-local macexcdata,macexchelpmsg = post_helper.handleTableQuery(maccols,macopts,mac2hostnameFilter,nil,macvalidation)
+  end,
+}
+local mac_data,mac_helpmsg = post_helper.handleTableQuery(mac_cols,mac_opts,mac2hostnameFilter,nil,macvalidation)
+
+local doh_blocklists_types = {
+  { "host",T"Host Names"},
+  { "ipv4",T"IPv4 Addresses"},
+  { "ipv6",T"IPv6 Addresses"},
+}
+
+local doh_blocklists_cols = {
+  {
+    header = "",
+    name = "enabled",
+    param = "enabled",
+    type = "switch",
+    default = "1",
+  },
+  {
+    header = T"Block List URL",
+    name = "url",
+    param = "url",
+    type = "text",
+    attr = { input = { class="span7 no-save" } },
+    unique = true
+  },
+  { -- [3]
+    header = T"List Type",
+    name = "type",
+    param = "type",
+    type = "select",
+    values =  doh_blocklists_types,
+    attr = { select = { class="span2 no-save" } },
+  },
+}
+
+local function validate_doh_blocklist_url(value,_,_)
+  if not value or value == "" then
+    return nil,T"Missing URL"
+  end
+  local protocol = string.match(value,"^([%w]+)://")
+  if protocol == "http" or protocol == "https" then
+    return post_helper.validateURL(value,protocol)
+  end
+  return nil,T"URL must be either an http:// or https:// address"
+end
+
+local doh_blocklists_validation = {
+  enabled = vB,
+  url = validate_doh_blocklist_url,
+  type = gVIES(doh_blocklists_types),
+}
+
+local doh_blocklists_opts = {
+  tableid = "doh_blocklists",
+  basepath = "uci.dns_hijacking.doh_list.@.",
+  canEdit = true,
+  canAdd = true,
+  canDelete = true,
+  createMsg = T"Add DNS-over-HTTPS block list",
+}
+
+local doh_blocklists_data,doh_blocklists_helpmsg = post_helper.handleTableQuery(doh_blocklists_cols,doh_blocklists_opts,nil,nil,doh_blocklists_validation)
+
 
 local enabled_attr = {
   input = { class = "monitor-changes" }
@@ -162,7 +225,9 @@ ngx.print(ui_helper.createHeader(T"DNS",true,false),'\
     end
     ngx.print('\
       <legend>',T"Excluded MAC Addresses",'</legend>',
-      ui_helper.createTable(maccols,macexcdata,macopts,nil,macexchelpmsg),'\
+      ui_helper.createTable(mac_cols,mac_data,mac_opts,nil,mac_helpmsg),'\
+      <legend>',T"DNS-over-HTTPS Block Lists",'</legend>',
+      ui_helper.createTable(doh_blocklists_cols,doh_blocklists_data,doh_blocklists_opts,nil,doh_blocklists_helpmsg),'\
   </form>\
   <script src="/js/modal-busy.js"></script>\
 </div>');
