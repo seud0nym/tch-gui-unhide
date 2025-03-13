@@ -5,7 +5,7 @@ This is where extra functionality scripts can be found. These are not incorporat
 Extras scripts that rely on packages to be installed require `opkg` to be configured correctly on your device. See **opkg Configuration** [`below`](https://github.com/seud0nym/tch-gui-unhide/tree/master/extras#opkg-Configuration).
 
 ## tch-gui-unhide-xtra.adblock
-Creates a GUI interface for the [`Adblock`](https://openwrt.org/packages/pkgdata/adblock) package that allows you to block ads at the router level.
+Creates a GUI interface for the [`Adblock`](https://openwrt.org/packages/pkgdata/adblock) package that allows you to block ads at the router level. Note that the latest version supported of adblock is 4.2.3-3. Later versions require OpenWrt features not present in Technicolor firmware.
 #### Firmware Applicability
 Should be applicable to all firmware versions supported by `tch-gui-unhide`.
 #### Prerequisites
@@ -18,8 +18,9 @@ Make sure you are in the directory in which the `tch-gui-unhide` script in insta
 `sh tch-gui-unhide-xtra.adblock setup`
 #### Removal Instructions
 1. Run: `sh tch-gui-unhide-xtra.adblock remove`
-2. Delete `tch-gui-unhide-xtra.adblock`
-3. Re-run `tch-gui-unhide` to remove the GUI changes, and the additional transformer mappings
+2. Delete `/etc/config/adblock`
+3. Delete `tch-gui-unhide-xtra.adblock`
+4. Re-run `tch-gui-unhide` to remove the GUI changes, and the additional transformer mappings
 
 ## tch-gui-unhide-xtra.minidlna
 Replaces the stock DLNA server management in the GUI so that it supports OpenWRT minidlna.
