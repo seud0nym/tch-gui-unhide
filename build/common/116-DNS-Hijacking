@@ -110,7 +110,7 @@ if [ "$(uci -q get dns_hijacking.@doh_list[0])" != "doh_list" ]; then
   do
     type=$(echo "$list" | cut -d, -f1)
     url=$(echo "$list" | cut -d, -f2)
-    if [ -n "$url" -a \( $type = "host" -o "$type" = "ipv4" -o "$type" = "ipv6" \) ]; then
+    if [ -n "$url" -a \( "$type" = "host" -o "$type" = "ipv4" -o "$type" = "ipv6" \) ]; then
       [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]:  ==> Adding DoH hijacking source list $url"
       cfg="$(exec_uci add dns_hijacking doh_list)"
       exec_uci set dns_hijacking.$cfg.url="$url"
