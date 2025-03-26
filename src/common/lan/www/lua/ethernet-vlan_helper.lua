@@ -176,7 +176,7 @@ function M.get_switch_vlans(is_bridged_mode)
     for i=1,#mesh_cred do
       local credentials = mesh_cred[i]
       local vlan_id = untaint(credentials.vlan_id)
-      if not vlan_ids[vlan_id] then
+      if vlan_id and not vlan_ids[vlan_id] then
         switch_vlan[#switch_vlan+1] = {vlan=vlan_id,ports=ports,type=credentials.type}
         vlan_ids[vlan_id] = #switch_vlan
         sys_vlans = sys_vlans + 1
