@@ -130,7 +130,7 @@ fi
 # The tch-gui-unhide-xtra scripts should output a single line to indicate success or failure
 # as the calling script has left a hanging echo -n. Include a leading space for clarity.
 
-if [ -f /etc/init.d/adblock -a -z "$XTRAS_REMOVE" -a "$(opkg list-installed | grep adblock | cut -d' ' -f3 | cut -d. -f1-2)" = $adblock_supported_version ]; then
+if [ -f /etc/init.d/adblock -a -z "$XTRAS_REMOVE" -a "$(opkg list-installed | grep adblock | cut -d' ' -f3)" = $adblock_supported_version ]; then
   echo " Adding adblock support..."
 
   if [ ! -f /usr/share/transformer/commitapply/uci_adblock.ca ]; then
