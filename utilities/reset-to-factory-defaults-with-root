@@ -119,6 +119,7 @@ Options:
                       force a new backup to overwrite the previous backup.
  --no-bank-check    Bypass adding the login notification about whether the bank
                       plan is optimal or not.
+ --no-ddns          Bypass restore of Dynamic DDNS configuration.
  --no-keys-check    Bypass check for updated authorized_keys file.
                       By default if -k is specified, and an authorized_keys file
                       exists in the current directory, and the default
@@ -273,6 +274,7 @@ set_defaults() {
   __VERBOSE="N"
   __NO_AUTH_KEYS_CHK="N"
   __NO_BANK_PLAN_CHK="N"
+  __NO_DDNS="N"
   __NO_FWD="N"
   __NO_LEASES="N"
   __NO_RC_LOCAL="N"
@@ -333,8 +335,9 @@ while getopts :bBcCdD:ef:h:iI:kl:mnp:svyU-: option; do
         i)              RESTORE_IPADDR="Y";;
         force-backup)   FORCE_BACKUP="Y";;
         no-backup)      NO_BACKUP="Y";;
-        no-defaults)    set_defaults;;
         no-bank-check)  __NO_BANK_PLAN_CHK="Y";;
+        no-defaults)    set_defaults;;
+        no-ddns)        __NO_DDNS="Y";;
         no-forwards)    __NO_FWD="Y";;
         no-keys-check)  __NO_AUTH_KEYS_CHK="Y";;
         no-leases)      __NO_LEASES="Y";;
@@ -465,6 +468,7 @@ if [ $SAVE_DEFAULTS = "Y" -o $SHOW_DEFAULTS = "Y" -o $YES = "N" ]; then
   show_default "-p" "Root password" $__ROOTPWD
   show_default "-s" "Switch bank" $SWITCH_BANK
   show_default "--no-bank-check"  "Disable bank plan message on login" $__NO_BANK_PLAN_CHK
+  show_default "--no-ddns"        "Disable restore of Dynamic DNS" $__NO_DDNS
   show_default "--no-forwards"    "Disable restore of port-forwards" $__NO_FWD
   show_default "--no-keys-check"  "Disable check for newer authorized_keys" $__NO_AUTH_KEYS_CHK
   show_default "--no-leases"      "Disable restore of static leases" $__NO_LEASES
@@ -910,6 +914,14 @@ if [ -e /etc/sms.db ]; then
   else
     echo -e "${ORANGE}WARNING:  SMS messages database will ${RED}NOT${ORANGE} be restored!${NC}"
   fi
+fi
+
+if [ $__NO_DDNS = "N" ]; then
+  CFG_DDNS="echo '$(cat /etc/config/ddns | gzip | base64 | tr -d "$IFS")' | base64 -d | gunzip > /etc/config/ddns"
+  echo -e "NOTE:     Dynamic DNS settings will be ${GREEN}restored${NC}"
+  LAN_CFG="$LAN_CFG"$'\n'"$CFG_DDNS"
+else
+    echo -e "${ORANGE}WARNING: Dynamic DNS settings will ${RED}NOT${ORANGE} be restored!${NC}"
 fi
 
 if [ -n "$__SYSLOG_IP" ]; then

@@ -372,6 +372,7 @@ Options:
  --no-backup        Ignore the -b option if a backup was already taken today.
  --no-bank-check    Bypass adding the login notification about whether the bank
                       plan is optimal or not.
+ --no-ddns          Bypass restore of Dynamic DDNS configuration.
  --no-keys-check    Bypass check for updated authorized_keys file.
                       By default if -k is specified, and an authorized_keys file
                       exists in the current directory, and the default
@@ -485,6 +486,7 @@ Options:
  --no-backup        Ignore the -b option if a backup was already taken today.
  --no-bank-check    Bypass adding the login notification about whether the bank
                       plan is optimal or not.
+ --no-ddns          Bypass restore of Dynamic DDNS configuration.
  --no-keys-check    Bypass check for updated authorized_keys file.
                       By default if -k is specified, and an authorized_keys file
                       exists in the current directory, and the default

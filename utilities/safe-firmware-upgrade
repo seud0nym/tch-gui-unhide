@@ -92,6 +92,7 @@ Options:
                       force a new backup to overwrite the previous backup.
  --no-bank-check    Bypass adding the login notification about whether the bank
                       plan is optimal or not.
+ --no-ddns          Bypass restore of Dynamic DDNS configuration.
  --no-keys-check    Bypass check for updated authorized_keys file.
                       By default if -k is specified, and an authorized_keys file
                       exists in the current directory, and the default
@@ -168,7 +169,7 @@ RESTORE_CONFIG="N"
 while getopts :bcCdD:eh:iI:kmnp:svyU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
-        i|force-backup|no-backup|no-bank-check|no-keys-check|no-forwards|no-leases|no-ula|no-sms-db) OPTIONS="$OPTIONS --${OPTARG}";;
+        i|force-backup|no-backup|no-bank-check|no-ddns|no-keys-check|no-forwards|no-leases|no-ula|no-sms-db) OPTIONS="$OPTIONS --${OPTARG}";;
         restore-config) RESTORE_CONFIG="Y";;
         save-defaults) SAVE_DEFAULTS="Y";;
         no-defaults) OPTIONS="--no-defaults";;
