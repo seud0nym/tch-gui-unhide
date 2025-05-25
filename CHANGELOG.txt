@@ -1,3 +1,17 @@
+2025.05.25
+==========
+* tch-gui-unhide: Fixed bug on Broadband card when connection reported as UP, but no uptime available (https://whrl.pl/RgNGbB)
+* tch-gui-unhide: Fixed bug on Local Network card on FW 20.4 (#227)
+* tch-gui-unhide: Fixed IPv6 DNS-over-HTTP servers incorrectly removed from source lists (https://whrl.pl/RgNoXp)
+* tch-gui-unhide: Reworked DNS Hijacking so that exceptions are specifed by MAC address rather than IP
+* tch-gui-unhide: DNS-over-HTTP block lists for DNS Hijacking are now configurable
+* tch-gui-unhide: DNS Hijacking now blocks DNS-over-HTTP/3 (UDP port 443)
+* tch-gui-unhide: Improved MAC address auto-complete
+* tch-gui-unhide: Reworked pre-install restore to reduce overlay usage and reworked build to identify files to be restored
+* tch-gui-unhide-xtra.adblock: Adblock Card Not Showing in UI (#229)
+* overlay-restore: Now remounts root filesystem after restore if no reboot option specified to correctly apply overlay changes
+* reset-to-factory-defaults-with-root/safe-firmware-upgrade: Restore DDNS settings unless the new --no-ddns option is specified (#231)
+
 2025.02.25
 ==========
 * tch-gui-unhide: Fixed initial display of RAM chart (was showing CPU values instead of RAM history)

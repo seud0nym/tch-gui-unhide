@@ -1,5 +1,6 @@
 .personal/*
 *.b64
 *.tar.gz
+*.tar.gz.sha256
 deploy
 wifi-booster/wl.txt
