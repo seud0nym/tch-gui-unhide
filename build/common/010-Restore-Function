@@ -48,25 +48,28 @@ restore_from_rom() {
 EOF
 
   for d in www/cards www/docroot www/lua www/snippets usr/share/transformer/commitapply usr/share/transformer/mappings/rpc usr/share/transformer/mappings/uci; do
-    # Delete extra files
-    for f in $(find ${overlay}/$d -type f ! -path "${overlay}/www/docroot/help*");do
+    # Restore deleted files
+    for f in $(find ${overlay}/$d -type c ! -path "${overlay}/www/docroot/help*" 2>/dev/null);do
+      [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring deleted file ${f##$overlay} by removing from $overlay${NC}"
+      rm -f "$f"
+      mount -o remount /
+      if [ $d = "usr/share/transformer" ]; then
+        SRV_transformer=$(( $SRV_transformer + 1 ))
+      fi
+    done
+    # Delete extra files, or restore deleted files
+    for f in $(find ${overlay}/$d -type f ! -path "${overlay}/www/docroot/help*" 2>/dev/null);do
+      t="${f##$overlay}"
       s="${RESTORE_BASE}${f##$overlay}"
-      if [ ! -e "$s" -a -f "$f" ]; then
-        [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing extra file $f${NC}"
+      if [ ! -e "$s" -o ! -e "$t" ]; then
+        if [ "$1" = "V" ]; then
+          [ ! -e "$s" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing extra file $t${NC}" || echo -e "[$SCRIPT]: ${GREY} -> Restoring deleted file $t by removing from $overlay${NC}"
+        fi
         rm -f "$f"
         mount -o remount /
         if [ $d = "usr/share/transformer" ]; then
           SRV_transformer=$(( $SRV_transformer + 1 ))
         fi
-      fi
-    done
-    # Restore deleted files
-    for f in $(find ${overlay}/$d -type c ! -path "${overlay}/www/docroot/help*");do
-      [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring deleted file $f${NC}"
-      rm -f "$f"
-      mount -o remount /
-      if [ $d = "usr/share/transformer" ]; then
-        SRV_transformer=$(( $SRV_transformer + 1 ))
       fi
     done
   done
