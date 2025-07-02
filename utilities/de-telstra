@@ -348,6 +348,12 @@ show_default() {
   elif [ "$1" = 'O' ]; then
     _DFLT="$HOMEWARE"
     [ -z "$3" ] && _OPT="O$HOMEWARE"
+  elif [ "$1" = 'M' ]; then
+    case "$3" in
+      y) _DFLT="Yes";;
+      n) _DFLT="No";;
+      R) _DFLT="Restore"; _ESC=9;;
+    esac
   else
     case "$3" in
       u) _DFLT=Unchanged;;
@@ -20868,6 +20874,27 @@ fi
 #endregion Guest Wi-Fi
 
 #region Services
+apply_service_action() {
+  [ -z "$__VERBOSE" ] && echo -e "[$SCRIPT]:  -> apply_service_action $*"
+  local service="$1"
+  local when="$2"
+  [ "$when" = "if_enabled" -o "$when" = "always" ] || { echo -e "[$SCRIPT]: ${RED}Second parameter to apply_service_action function must be either 'if_enabled' or 'always' (service=$service)${NC}"; exit 1; }
+  shift 2
+  local action
+  if [ -e /etc/init.d/$service ]; then
+    if [ "$when" = "if_enabled" ]; then
+      /etc/init.d/$service enabled || { [ -z "$__VERBOSE" ] && echo "[$SCRIPT]:  -> /etc/init.d/$service is disabled"; return 0; }
+    fi
+    while [ -n "$1" ]; do
+      action=$1
+      shift
+      echo "[$SCRIPT]:  -> /etc/init.d/$service $action"
+      /etc/init.d/$service $action >$__STDOUT 2>&1
+    done
+  else
+    [ -z "$__VERBOSE" ] && echo -e "[$SCRIPT]:  -> /etc/init.d/$service does not exist, skipping"
+  fi
+}
 echo [$SCRIPT]: Checking for services blocked on a file lock...
 services=$(mktemp)
 for pid in $(pgrep flock); do
@@ -20885,64 +20912,65 @@ cat $services | while read service pids; do
   kill $pids
 done
 echo -e [$SCRIPT]: Applying service changes...${GREY}
-[ "$__LITE" = 'R' ] && {
-  for s in cupsd dumaos mesh_broker mmpbxfwctl mmpbxd mmpbxbrcmdect mud multiap_agent multiap_controller multiap_vendorextensions ndhttpd telemetry-daemon xl2tpd; do
-    [ -e /etc/init.d/$s -a ! $(/etc/init.d/$s enabled) ] && { echo "[$SCRIPT]:  -> /etc/init.d/$s enable"; /etc/init.d/$s enable; echo "[$SCRIPT]:  -> /etc/init.d/$s start"; /etc/init.d/$s start; } >$__STDOUT 2>&1
+if [ "$__LITE" = 'R' ]; then
+  for s in cupsd dumaos mesh_broker mmpbxfwctl mmpbxd mmpbxbrcmdect mud multiap_agent multiap_controller multiap_vendorextensions ndhttpd telemetry-daemon; do
+    apply_service_action $s if_enabled restart
   done
-}
-{ echo "[$SCRIPT]:  -> /etc/init.d/watchdog-tch reload"; /etc/init.d/watchdog-tch reload; } >$__STDOUT 2>&1
-[ "$DECT_NOW" = "0" -o "$__DECT" = "0" ] && { echo "[$SCRIPT]:  -> /etc/init.d/mmpbxbrcmdect stop"; /etc/init.d/mmpbxbrcmdect stop; } >$__STDOUT 2>&1
-[ "$DECT_NOW" = "0" -a "$__DECT" = "1" ] && { echo "[$SCRIPT]:  -> /etc/init.d/mmpbxbrcmdect enable"; /etc/init.d/mmpbxbrcmdect enable; } >$__STDOUT 2>&1
-[ "$DLNA_NOW" = "0" -o "$__DLNAD" = "0" ] && { echo "[$SCRIPT]:  -> /etc/init.d/mud stop"; /etc/init.d/mud stop; } >$__STDOUT 2>&1
-[ "$DLNA_NOW" = "0" -a "$__DLNAD" = "1" ] && { echo "[$SCRIPT]:  -> /etc/init.d/mud enable"; /etc/init.d/mud enable; } >$__STDOUT 2>&1
-[ \( "$PS_NOW" = "0" -o "$__PRNTR" = "0" \) -a -e /etc/init.d/cupsd ] && { echo "[$SCRIPT]:  -> /etc/init.d/cupsd stop"; /etc/init.d/cupsd stop; } >$__STDOUT 2>&1
-[ "$PS_NOW" = "0" -a "$__PRNTR" = "1" -a -e /etc/init.d/cupsd ] && { echo "[$SCRIPT]:  -> /etc/init.d/cupsd enable"; /etc/init.d/cupsd enable; } >$__STDOUT 2>&1
-[ $SRV_bulkdata -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/bulkdata disable"; /etc/init.d/bulkdata disable; echo "[$SCRIPT]:  -> /etc/init.d/bulkdata stop"; /etc/init.d/bulkdata stop; } >$__STDOUT 2>&1
-[ $SRV_cwmp -gt 0 -a -e /etc/init.d/cwmpd ] && { echo "[$SCRIPT]:  -> /etc/init.d/cwmpd disable"; /etc/init.d/cwmpd disable; echo "[$SCRIPT]:  -> /etc/init.d/cwmpd stop"; kill -9 $(pgrep cwmpd) 1>/dev/null 2>&1; /etc/init.d/cwmpd stop; } >$__STDOUT 2>&1
-[ $SRV_dumaos -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/dumaos enable"; /etc/init.d/dumaos enable; } >$__STDOUT 2>&1
-[ $SRV_hotspot -gt 0 -a -e /etc/init.d/hotspotd ] && { echo "[$SCRIPT]:  -> /etc/init.d/hotspotd disable"; /etc/init.d/hotspotd disable; echo "[$SCRIPT]:  -> /etc/init.d/hotspotd stop"; /etc/init.d/hotspotd stop; } >$__STDOUT 2>&1
-[ $SRV_intercept -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/intercept enable"; /etc/init.d/intercept enable; } >$__STDOUT 2>&1
-[ $SRV_mesh_broker -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/mesh-broker enable"; /etc/init.d/mesh-broker enable; } >$__STDOUT 2>&1
-[ $SRV_mmpbxd -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/mmpbxd enable"; /etc/init.d/mmpbxd enable; echo "[$SCRIPT]:  -> /etc/init.d/mmpbxfwctl enable"; /etc/init.d/mmpbxfwctl enable; } >$__STDOUT 2>&1
-[ $SRV_monitor -gt 0 -a -e /etc/init.d/autoreset ] && { echo "[$SCRIPT]:  -> /etc/init.d/autoreset disable"; /etc/init.d/autoreset disable; echo "[$SCRIPT]:  -> /etc/init.d/autoreset stop"; /etc/init.d/autoreset stop; } >$__STDOUT 2>&1
-[ $SRV_monitor -gt 0 -a -e /etc/init.d/tls-thor ] && { echo "[$SCRIPT]:  -> /etc/init.d/tls-thor disable"; /etc/init.d/tls-thor disable; echo "[$SCRIPT]:  -> /etc/init.d/tls-thor stop"; /etc/init.d/tls-thor stop; } >$__STDOUT 2>&1
-[ $SRV_multiap -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/multiap_controller enable"; /etc/init.d/multiap_controller enable; echo "[$SCRIPT]:  -> /etc/init.d/multiap_agent enable"; /etc/init.d/multiap_agent enable; echo "[$SCRIPT]:  -> /etc/init.d/multiap_vendorextensions enable"; /etc/init.d/multiap_vendorextensions enable; } >$__STDOUT 2>&1
-[ $SRV_samba -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/samba enable"; /etc/init.d/samba enable; } >$__STDOUT 2>&1
-[ $SRV_samba -gt 0 -a -e /etc/init.d/samba-nmbd ] && { echo "[$SCRIPT]:  -> /etc/init.d/samba-nmbd enable"; /etc/init.d/samba-nmbd enable; } >$__STDOUT 2>&1
-[ $SRV_upnp -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/miniupnpd-tch enable"; /etc/init.d/miniupnpd-tch enable; } >$__STDOUT 2>&1
+fi
+apply_service_action watchdog-tch always reload
+if [ $SRV_dumaos -ge 0 ]; then 
+  for s in dumaos ndhttpd telemetry-daemon; do
+    [ "$__DUMAOS" = "0" ] && apply_service_action $s always disable stop || apply_service_action $s always enable
+  done
+fi
+[ "$DECT_NOW" = "0" -o "$__DECT" = "0" ] && apply_service_action mmpbxbrcmdect always stop
+[ "$DECT_NOW" = "0" -a "$__DECT" = "1" ] && apply_service_action mmpbxbrcmdect always enable
+[ "$DLNA_NOW" = "0" -o "$__DLNAD" = "0" ] && apply_service_action mud always stop
+[ "$DLNA_NOW" = "0" -a "$__DLNAD" = "1" ] && apply_service_action mud always enable
+[ "$PS_NOW" = "0" -o "$__PRNTR" = "0" ] && apply_service_action cupsd always stop
+[ "$PS_NOW" = "0" -a "$__PRNTR" = "1" ] && apply_service_action cupsd always enable
+[ $SRV_bulkdata -gt 0 ] && apply_service_action bulkdata always disable stop
+[ $SRV_cwmp -gt 0 ] && { apply_service_action cwmpd always disable stop; kill -9 $(pgrep cwmpd) 1>/dev/null 2>&1; apply_service_action cwmpd always stop; }
+[ $SRV_hotspot -gt 0 ] && apply_service_action hotspotd always disable stop
+[ $SRV_intercept -gt 0 ] && apply_service_action intercept always enable
+[ $SRV_mesh_broker -gt 0 ] && apply_service_action mesh-broker always enable
+[ $SRV_mmpbxd -gt 0 ] && { apply_service_action mmpbxd always enable; apply_service_action mmpbxfwctl always enable; }
+[ $SRV_monitor -gt 0 ] && { apply_service_action autoreset always disable stop; apply_service_action tls-thor always disable stop; }
+[ $SRV_multiap -gt 0 ] && { apply_service_action multiap_controller always enable; multiap_agent always enable; apply_service_action multiap_vendorextensions always enable; }
+[ $SRV_samba -gt 0 ] && { apply_service_action samba always enable >$__STDOUT 2>&1; apply_service_action samba-nmbd always enable; }
+[ $SRV_upnp -gt 0 ] && apply_service_action miniupnpd-tch always enable
 echo -en ${NC}
 if [ $RESTART_SERVICES = n ]; then
   echo -e "[$SCRIPT]: \e[0;33mSkipping service restarts\e[0m"
 else
-  echo -e [$SCRIPT]: Restarting services...${GREY}
-  [ "$DECT_NOW" = "0" -a "$__DECT" = "1" ] && { echo "[$SCRIPT]:  -> /etc/init.d/mmpbxbrcmdect restart"; /etc/init.d/mmpbxbrcmdect restart; } >$__STDOUT 2>&1
-  [ "$DLNA_NOW" = "0" -a "$__DLNAD" = "1" ] && { echo "[$SCRIPT]:  -> /etc/init.d/mud restart"; /etc/init.d/mud restart; } >$__STDOUT 2>&1
-  [ "$PS_NOW" = "0" -a "$__PRNTR" = "1" ] && { echo "[$SCRIPT]:  -> /etc/init.d/cupsd restart"; /etc/init.d/cupsd restart; } >$__STDOUT 2>&1
-  [ $SRV_dhcp -gt 0 -a ! -e /etc/init.d/AdGuardHome ] && { echo "[$SCRIPT]:  -> /etc/init.d/dnsmasq reload"; /etc/init.d/dnsmasq reload; } >$__STDOUT 2>&1
-  [ $SRV_dlna -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/dlnad restart"; /etc/init.d/dlnad restart; } >$__STDOUT 2>&1
-  [ $SRV_dropbear -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/dropbear reload"; /etc/init.d/dropbear reload; } >$__STDOUT 2>&1
-  [ $SRV_dumaos -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/dumaos restart"; /etc/init.d/dumaos restart; } >$__STDOUT 2>&1
-  [ $SRV_iqos -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/iqos restart"; /etc/init.d/iqos restart; } >$__STDOUT 2>&1
-  [ $SRV_intercept -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/intercept restart"; /etc/init.d/intercept restart; } >$__STDOUT 2>&1
-  [ $SRV_ledfw -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/ledfw restart"; /etc/init.d/ledfw restart; } >$__STDOUT
-  [ $SRV_mesh_broker -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/mesh-broker restart"; /etc/init.d/mesh-broker restart; } >$__STDOUT 2>&1
-  [ $SRV_mmpbxd -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/mmpbxd restart"; /etc/init.d/mmpbxd restart; echo "[$SCRIPT]:  -> /etc/init.d/mmpbxfwctl restart"; /etc/init.d/mmpbxfwctl restart; } >$__STDOUT 2>&1
-  [ $SRV_monitor -gt 0 -a -e /etc/init.d/wifi-doctor-agent ] && { echo "[$SCRIPT]:  -> /etc/init.d/wifi-doctor-agent reload"; /etc/init.d/wifi-doctor-agent reload; } >$__STDOUT 2>&1
-  [ $SRV_multiap -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/multiap_controller restart"; /etc/init.d/multiap_controller restart; echo "[$SCRIPT]:  -> /etc/init.d/multiap_agent restart"; /etc/init.d/multiap_agent restart; echo "[$SCRIPT]:  -> /etc/init.d/multiap_vendorextensions restart"; /etc/init.d/multiap_vendorextensions restart; } >$__STDOUT 2>&1
+  echo -e "[$SCRIPT]: Restarting services...${GREY}"
+  [ "$__DUMAOS" != "0" -a $SRV_dumaos -gt 0 ] && { apply_service_action dumaos always restart; apply_service_action telemetry-daemon always restart; }
+  [ "$DECT_NOW" = "0" -a "$__DECT" = "1" ] && apply_service_action mmpbxbrcmdect always restart
+  [ "$DLNA_NOW" = "0" -a "$__DLNAD" = "1" ] && apply_service_action mud always restart
+  [ "$PS_NOW" = "0" -a "$__PRNTR" = "1" ] && apply_service_action cupsd always restart
+  [ $SRV_dhcp -gt 0 -a ! -e /etc/init.d/AdGuardHome ] && apply_service_action dnsmasq always reload
+  [ $SRV_dlna -gt 0 ] && apply_service_action dlnad always restart
+  [ $SRV_dropbear -gt 0 ] && apply_service_action dropbear always reload
+  [ $SRV_iqos -gt 0 ] && apply_service_action iqos always restart
+  [ $SRV_intercept -gt 0 ] && apply_service_action intercept always restart
+  [ $SRV_ledfw -gt 0 ] && apply_service_action ledfw always restart
+  [ $SRV_mesh_broker -gt 0 ] && apply_service_action mesh-broker always restart
+  [ $SRV_mmpbxd -gt 0 ] && { apply_service_action mmpbxd always restart; apply_service_action mmpbxfwctl always restart; }
+  [ $SRV_monitor -gt 0 ] && apply_service_action wifi-doctor-agent always reload
+  [ $SRV_multiap -gt 0 ] && { apply_service_action multiap_controller always restart; apply_service_action multiap_agent always restart; apply_service_action multiap_vendorextensions always restart; }
   [ $SRV_nginx -gt 0 ] && /etc/init.d/nginx restart
-  [ $SRV_qos -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/qos reload"; /etc/init.d/qos reload; } >$__STDOUT 2>&1
-  [ $SRV_qos_tch -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/qos_tch reload"; /etc/init.d/qos_tch reload; } >$__STDOUT 2>&1
-  [ $SRV_nfc -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/nfcd restart"; /etc/init.d/nfcd restart; } >$__STDOUT 2>&1
-  [ $SRV_ntp -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/sysntpd restart"; /etc/init.d/sysntpd restart; } >$__STDOUT 2>&1
-  [ $SRV_samba -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/samba reload"; /etc/init.d/samba reload; } >$__STDOUT 2>&1
-  [ $SRV_samba -gt 0 -a -e /etc/init.d/samba-nmbd ] && { echo "[$SCRIPT]:  -> /etc/init.d/samba-nmbd reload"; /etc/init.d/samba-nmbd reload; } >$__STDOUT 2>&1
-  [ $SRV_supervision -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/supervision reload"; /etc/init.d/supervision reload; } >$__STDOUT 2>&1
-  [ $SRV_system -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/system reload"; /etc/init.d/system reload; } >$__STDOUT 2>&1
-  [ $SRV_upnp -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/miniupnpd-tch restart"; /etc/init.d/miniupnpd-tch restart; } >$__STDOUT 2>&1
-  [ $SRV_wifi -gt 0 -a -e /etc/init.d/hostapd ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}"; } >$__STDOUT 2>&1 || { ubus call wireless reload && ubus send config "{'reload':'wireless'}"; } >$__STDOUT 2>&1
-  [ $SRV_network -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/network reload"; /etc/init.d/network reload; } >$__STDOUT 2>&1
-  [ $SRV_fw -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/firewall reload"; /etc/init.d/firewall reload; } >$__STDOUT 2>&1
-  [ $SRV_wansensing -gt 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/wansensing restart"; /etc/init.d/wansensing restart; } >$__STDOUT 2>&1
+  [ $SRV_qos -gt 0 ] && apply_service_action qos always reload
+  [ $SRV_qos_tch -gt 0 ] && apply_service_action qos_tch always reload
+  [ $SRV_nfc -gt 0 ] && apply_service_action nfcd always restart
+  [ $SRV_ntp -gt 0 ] && apply_service_action sysntpd always restart
+  [ $SRV_samba -gt 0 ] && { apply_service_action samba always reload; apply_service_action samba-nmbd always reload; }
+  [ $SRV_supervision -gt 0 ] && apply_service_action supervision always reload
+  [ $SRV_system -gt 0 ] && apply_service_action system always reload
+  [ $SRV_upnp -gt 0 ] && apply_service_action miniupnpd-tch always restart
+  [ $SRV_wifi -gt 0 -a -e /etc/init.d/hostapd ] && { /etc/init.d/hostapd reload && ubus send config "{'reload':'wireless'}" >$__STDOUT 2>&1; } || { ubus call wireless reload && ubus send config "{'reload':'wireless'}"; }
+  [ $SRV_network -gt 0 ] && apply_service_action network always reload
+  [ $SRV_fw -gt 0 ] && apply_service_action firewall always reload
+  [ $SRV_wansensing -gt 0 ] && apply_service_action wansensing always restart
   echo -en ${NC}
 fi
 if [ $SRV_mountd -gt 0 ]; then
@@ -20954,20 +20982,17 @@ if [ $SRV_mountd -gt 0 ]; then
 fi
 if [ "$__LITE" = 'y' ]; then
   echo -e [$SCRIPT]: Disabling services to save memory...${GREY}
-  [ "$__DECT" = "0" ] && { echo "[$SCRIPT]:  -> /etc/init.d/mmpbxbrcmdect disable"; /etc/init.d/mmpbxbrcmdect disable; echo "[$SCRIPT]:  -> /etc/init.d/mmpbxbrcmdect stop"; /etc/init.d/mmpbxbrcmdect stop; } >$__STDOUT 2>&1
-  [ "$__DLNAD" = "0" ] && { echo "[$SCRIPT]:  -> /etc/init.d/dlnad disable"; /etc/init.d/dlnad disable; echo "[$SCRIPT]:  -> /etc/init.d/dlnad stop"; /etc/init.d/dlnad stop; echo "[$SCRIPT]:  -> /etc/init.d/mud disable"; /etc/init.d/mud disable; echo "[$SCRIPT]:  -> /etc/init.d/mud stop"; /etc/init.d/mud stop; } >$__STDOUT 2>&1
-  [ "$__DUMAOS" = "0" -a $SRV_dumaos -ge 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/dumaos disable"; /etc/init.d/dumaos disable; echo "[$SCRIPT]:  -> /etc/init.d/ndhttpd disable"; /etc/init.d/ndhttpd disable; echo "[$SCRIPT]:  -> /etc/init.d/dumaos stop"; /etc/init.d/dumaos stop; echo "[$SCRIPT]:  -> /etc/init.d/ndhttpd stop"; /etc/init.d/ndhttpd stop; } >$__STDOUT 2>&1
-  [ "$__DUMAOS" = "0" -a $SRV_dumaos -ge 0 -a -e /etc/init.d/telemetry-daemon ] && { echo "[$SCRIPT]:  -> /etc/init.d/telemetry-daemon disable"; /etc/init.d/telemetry-daemon disable; echo "[$SCRIPT]:  -> /etc/init.d/telemetry-daemon stop"; /etc/init.d/telemetry-daemon stop; } >$__STDOUT 2>&1
-  [ "$__INTERCEPT" = "0" ] && { echo "[$SCRIPT]:  -> /etc/init.d/intercept disable"; /etc/init.d/intercept disable; echo "[$SCRIPT]:  -> /etc/init.d/intercept stop"; /etc/init.d/intercept stop; } >$__STDOUT 2>&1
-  [ "$__MMPBX" = "0" ] && { echo "[$SCRIPT]:  -> /etc/init.d/mmpbxd disable"; /etc/init.d/mmpbxd disable; echo "[$SCRIPT]:  -> /etc/init.d/mmpbxfwctl disable"; /etc/init.d/mmpbxfwctl disable; echo "[$SCRIPT]:  -> /etc/init.d/mmpbxd stop"; /etc/init.d/mmpbxd stop; echo "[$SCRIPT]:  -> /etc/init.d/mmpbxfwctl stop"; /etc/init.d/mmpbxfwctl stop; } >$__STDOUT 2>&1
-  [ "$__NFC" = "0" ] && { echo "[$SCRIPT]:  -> /etc/init.d/nfcd disable"; /etc/init.d/nfcd disable; echo "[$SCRIPT]:  -> /etc/init.d/nfcd stop"; /etc/init.d/nfcd stop; } >$__STDOUT 2>&1
-  [ "$__MULTIAP" = "0" -a $SRV_mesh_broker -ge 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/mesh-broker disable"; /etc/init.d/mesh-broker disable; echo "[$SCRIPT]:  -> /etc/init.d/mesh-broker stop"; /etc/init.d/mesh-broker stop; } >$__STDOUT 2>&1
-  [ "$__MULTIAP" = "0" -a $SRV_multiap -ge 0 ] && { echo "[$SCRIPT]:  -> /etc/init.d/multiap_controller disable"; /etc/init.d/multiap_controller disable; echo "[$SCRIPT]:  -> /etc/init.d/multiap_agent disable"; /etc/init.d/multiap_agent disable; echo "[$SCRIPT]:  -> /etc/init.d/multiap_vendorextensions disable"; /etc/init.d/multiap_vendorextensions disable; echo "[$SCRIPT]:  -> /etc/init.d/multiap_controller stop"; /etc/init.d/multiap_controller stop; echo "[$SCRIPT]:  -> /etc/init.d/multiap_agent stop"; /etc/init.d/multiap_agent stop; echo "[$SCRIPT]:  -> /etc/init.d/multiap_vendorextensions stop"; /etc/init.d/multiap_vendorextensions stop; } >$__STDOUT 2>&1
-  [ "$__PRNTR" = "0" ] && { echo "[$SCRIPT]:  -> /etc/init.d/cupsd disable"; /etc/init.d/cupsd disable; echo "[$SCRIPT]:  -> /etc/init.d/cupsd stop"; /etc/init.d/cupsd stop; } >$__STDOUT 2>&1
-  [ "$__SAMBA" = "0" -a -e /etc/init.d/samba ] && { echo "[$SCRIPT]:  -> /etc/init.d/samba disable"; /etc/init.d/samba disable; echo "[$SCRIPT]:  -> /etc/init.d/samba stop"; /etc/init.d/samba stop; } >$__STDOUT 2>&1
-  [ "$__SAMBA" = "0" -a -e /etc/init.d/samba-nmbd ] && { echo "[$SCRIPT]:  -> /etc/init.d/samba-nmbd disable"; /etc/init.d/samba-nmbd disable; echo "[$SCRIPT]:  -> /etc/init.d/samba-nmbd stop"; /etc/init.d/samba-nmbd stop; } >$__STDOUT 2>&1
-  [ "$__UPNP" = "0" ] && { echo "[$SCRIPT]:  -> /etc/init.d/miniupnpd-tch disable"; /etc/init.d/miniupnpd-tch disable; echo "[$SCRIPT]:  -> /etc/init.d/miniupnpd-tch stop"; /etc/init.d/miniupnpd-tch stop; } >$__STDOUT 2>&1
-  [ ! -e /etc/ipsec.conf -a -e /etc/init.d/xl2tpd ] && { echo "[$SCRIPT]:  -> /etc/init.d/xl2tpd disable"; /etc/init.d/xl2tpd disable; echo "[$SCRIPT]:  -> /etc/init.d/xl2tpd stop"; /etc/init.d/xl2tpd stop; } >$__STDOUT 2>&1
+  [ "$__DECT" = "0" ] && apply_service_action mmpbxbrcmdect always disable stop
+  [ "$__DLNAD" = "0" ] && { apply_service_action dlnad always disable stop; apply_service_action mud always disable stop; }
+  [ "$__INTERCEPT" = "0" ] && apply_service_action intercept always disable stop
+  [ "$__MMPBX" = "0" ] && { apply_service_action mmpbxd always disable stop; apply_service_action mmpbxfwctl always disable stop; }
+  [ "$__NFC" = "0" ] && apply_service_action nfcd always disable stop
+  [ "$__MULTIAP" = "0" -a $SRV_mesh_broker -ge 0 ] && apply_service_action mesh-broker always disable stop
+  [ "$__MULTIAP" = "0" -a $SRV_multiap -ge 0 ] && { apply_service_action multiap_controller always disable stop; apply_service_action multiap_agent always disable stop; apply_service_action multiap_vendorextensions always disable stop; }
+  [ "$__PRNTR" = "0" ] && apply_service_action cupsd always disable stop
+  [ "$__SAMBA" = "0" ] && { apply_service_action samba always disable stop; apply_service_action samba-nmbd always disable stop; }
+  [ "$__UPNP" = "0" ] && apply_service_action miniupnpd-tch always disable stop
+  [ ! -e /etc/ipsec.conf ] && apply_service_action xl2tpd always disable stop
   echo -en ${NC}
 fi
 #endregion Services
