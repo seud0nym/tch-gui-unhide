@@ -307,11 +307,6 @@ fi
 
 if [ $DUMP_OVL = Y ]; then
   $LOGGER user.info "FINDING unchanged overlay contents to exclude"
-  if [ -z "$(which bootmgr)" ]; then
-    BOOTED="$(cat /proc/banktable/booted 2>/dev/null)"
-  else
-    BOOTED="bank_$(bootmgr partition booted)"
-  fi
   rm -f /tmp/exclude_from_overlay_backup
   echo "./$BOOTED/etc/config/env" > /tmp/exclude_from_overlay_backup
   for OVL_FILE in $(find /overlay/$BOOTED ! -type c -a ! -type d -a ! -type l | grep -v "./$BOOTED/etc/config/env" | sort); do 
@@ -319,7 +314,7 @@ if [ $DUMP_OVL = Y ]; then
     if [ -e $SOURCE ]; then
       if cmp -s $OVL_FILE $SOURCE; then # Unchanged
         echo $OVL_FILE | sed "s|^/overlay|.|" >> /tmp/exclude_from_overlay_backup
-      elif echo $OVL_FILE | grep -q "^/overlay/$BOOTED/etc/config"; then
+      elif echo $OVL_FILE | grep -q "^/overlay/$BOOTED/etc/config" && grep -q $SERIAL $OVL_FILE; then
         CONFIG="$(basename $OVL_FILE)"
         TMP_CONFIG="$(mktemp)"
         uci -c /rom/etc/config show $CONFIG | sort > $TMP_CONFIG
