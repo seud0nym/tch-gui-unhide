@@ -1,4 +1,52 @@
-restore_from_rom() {
+get_restore_file_list() {
+  local overlay="$1"
+  local type="$2"
+  local d
+  find ${overlay}/www/docroot -type $type ! -path "${overlay}/www/docroot/help*" 2>/dev/null
+  for d in www/cards www/lua www/snippets usr/share/transformer/commitapply usr/share/transformer/mappings/rpc usr/share/transformer/mappings/uci; do
+    find ${overlay}/$d -type $type 2>/dev/null
+  done
+}
+
+restore_individual_file() {
+  local target="$1"
+  local source="$2"
+  local overlay="$3"
+  local verbose="$4"
+  local directory="$(dirname $target)"
+  local filename="$(basename $target)"
+  if [ -e "$source" ]; then
+    if [ "$source" = "/rom${target}" ]; then
+      if [ -e "${overlay}${target}" ]; then
+        [ "$verbose" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $target by removing from $overlay${NC}"
+        rm "${overlay}${target}"
+        mount -o remount /
+      fi
+    elif ! cmp -s "$source" "$target"; then
+      [ "$verbose" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $target${NC}"
+      mkdir -p "$(dirname $target)"
+      cp -f -p "$source" "$target"
+    fi
+  elif [ -e "$target" ]; then
+    if [ $directory = "/etc/init.d" ]; then
+      [ "$verbose" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Stopping and disabling $target${NC}"
+      $target stop 1>/dev/null 2>&1
+      $target disable 1>/dev/null 2>&1
+    elif echo "$directory" | grep -q '^/usr/share/transformer'; then
+      SRV_transformer=$(( $SRV_transformer + 1 ))
+    fi
+    [ "$verbose" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing file $target${NC}"
+    rm -f "$target"
+    if grep -q "\b${filename}\b" /etc/crontabs/root; then
+      [ "$verbose" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing $filename scheduled task${NC}"
+      sed -e "/\b${filename}\b/d" -i /etc/crontabs/root
+      SRV_cron=$(( $SRV_cron + 1 ))
+    fi
+  fi
+}
+
+restore_to_factory_gui() {
+  local verbose="$1"
   # File deployed to incorect location by releases prior to 2021.02.06
   if [ -f /usr/share/transformer/mappings/iperf.map ]; then
     echo -e "[$SCRIPT]: Removing /usr/share/transformer/mappings/iperf.map"
@@ -8,69 +56,25 @@ restore_from_rom() {
   local overlay d f s t
   [ -z "$(which bootmgr)" ] && overlay="/overlay/$(cat /proc/banktable/booted 2>/dev/null)" || overlay="/overlay/bank_$(bootmgr partition booted)"
   
-  echo -e "[$SCRIPT]: Removing any previous installation..."
-  while read -r filepath; do
-    t="/$filepath"
-    s="${RESTORE_BASE}${t}"
-    d="$(dirname $t)"
-    f="$(basename $t)"
-    if [ -e "$s" ]; then
-      if [ "$s" = "/rom${t}" ]; then
-        if [ -e "${overlay}${t}" ]; then
-          [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $t by removing from $overlay${NC}"
-          rm "${overlay}${t}"
-          mount -o remount /
-        else
-          [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Skipped file $t - ${overlay}${t} not found${NC}"
-        fi
-      elif ! cmp -s "$s" "$t"; then
-        [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $t${NC}"
-        mkdir -p "$(dirname $t)"
-        cp -f -p "$s" "$t"
-      fi
-    elif [ -e "$t" ]; then
-      if [ $d = "/etc/init.d" ]; then
-        [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Stopping and disabling $t${NC}"
-        $t stop 1>/dev/null 2>&1
-        $t disable 1>/dev/null 2>&1
-      elif echo "$d" | grep -q '^/usr/share/transformer'; then
-        SRV_transformer=$(( $SRV_transformer + 1 ))
-      fi
-      [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing file $t${NC}"
-      rm -f "$t"
-      if grep -q "\b${f}\b" /etc/crontabs/root; then
-        [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing $f scheduled task${NC}"
-        sed -e "/\b${f}\b/d" -i /etc/crontabs/root
-        SRV_cron=$(( $SRV_cron + 1 ))
-      fi
-    fi
+  echo -e "[$SCRIPT]: Removing any previous installation by restoring from ${RESTORE_BASE}..."
+  while read -r f; do
+    restore_individual_file "$f" "$RESTORE_BASE$f" "$overlay" "$verbose"
   done <<EOF
 EOF
 
-  for d in www/cards www/docroot www/lua www/snippets usr/share/transformer/commitapply usr/share/transformer/mappings/rpc usr/share/transformer/mappings/uci; do
-    # Restore deleted files
-    for f in $(find ${overlay}/$d -type c ! -path "${overlay}/www/docroot/help*" 2>/dev/null);do
-      [ "$1" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring deleted file ${f##$overlay} by removing from $overlay${NC}"
+  if [ "${RESTORE_BASE}" = "/rom" ]; then
+    # Restore deleted files from overlay
+    for f in $(get_restore_file_list "${overlay}" "c");do
+      [ "$verbose" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring deleted file ${f##$overlay} by removing from $overlay${NC}"
       rm -f "$f"
       mount -o remount /
-      if [ $d = "usr/share/transformer" ]; then
+      if echo "$f" | grep -q '^/usr/share/transformer'; then
         SRV_transformer=$(( $SRV_transformer + 1 ))
       fi
     done
-    # Delete extra files, or restore deleted files
-    for f in $(find ${overlay}/$d -type f ! -path "${overlay}/www/docroot/help*" 2>/dev/null);do
-      t="${f##$overlay}"
-      s="${RESTORE_BASE}${f##$overlay}"
-      if [ ! -e "$s" -o ! -e "$t" ]; then
-        if [ "$1" = "V" ]; then
-          [ ! -e "$s" ] && echo -e "[$SCRIPT]: ${GREY} -> Removing extra file $t${NC}" || echo -e "[$SCRIPT]: ${GREY} -> Restoring deleted file $t by removing from $overlay${NC}"
-        fi
-        rm -f "$f"
-        mount -o remount /
-        if [ $d = "usr/share/transformer" ]; then
-          SRV_transformer=$(( $SRV_transformer + 1 ))
-        fi
-      fi
-    done
+  fi
+  # Delete extra files, or restore deleted files
+  for f in $(get_restore_file_list "" "f");do
+    restore_individual_file "$f" "$RESTORE_BASE$f" "$overlay" "$verbose"
   done
 }

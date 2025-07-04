@@ -1,3 +1,3 @@
 # Do the restore
-restore_from_rom $([ -n "$VERBOSE" ] && echo "V")
+restore_to_factory_gui $([ -n "$VERBOSE" ] && echo "V")
 echo -e "[$SCRIPT]: Pre-update restore completed"
