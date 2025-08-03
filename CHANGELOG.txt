@@ -1,3 +1,10 @@
+2025.08.03
+==========
+* tch-gui-unhide: Fixed issues with pre-install restore that could cause subsequent installation errors (#236/#237)
+* de-telstra: telemetry-daemon not stopped/disabled when DumaOS disabled (https://whrl.pl/RgPtGQ)
+* de-telstra: Fixed display of services being updated and restarted
+* mtd-backup: Fixed bug that did not back-up some config files into the overlay backup
+
 2025.05.25
 ==========
 * tch-gui-unhide: Fixed bug on Broadband card when connection reported as UP, but no uptime available (https://whrl.pl/RgNGbB)
