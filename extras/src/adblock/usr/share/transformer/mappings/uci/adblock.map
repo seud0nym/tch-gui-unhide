@@ -17,7 +17,7 @@ local adblock_global = {
     "adb_safesearch", "adb_safesearchlist", "adb_safesearchmod",
     "adb_mail", "adb_mailreceiver", "adb_mailsender", "adb_mailtopic", "adb_mailprofile", "adb_mailcnt",
     "adb_jail", "adb_jaildir", },
-  lists = { "adb_sources" },
+  lists = { "adb_sources", "adb_hag_sources", "adb_hst_sources", "adb_stb_sources", "adb_utc_sources" },
 }
 
 mapper("uci_1to1").registerSimpleMap(adblock_global)

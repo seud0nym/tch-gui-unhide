@@ -2,11 +2,27 @@ local dkjson = require("dkjson")
 local lfs = require("lfs")
 local uci_helper = mapper("ucihelper")
 local socket = require("socket")
+local logger = require("tch.logger")
+local log = logger.new("rpc.adblock",4)
 local format,match = string.format,string.match
+
+local function split(input,delimiter)
+  local result = {}
+  for m in (input .. delimiter):gmatch("(.-)" .. delimiter) do
+    table.insert(result,m)
+  end
+  return result
+end
 
 local adding = {
   black = nil,
   white = nil,
+}
+
+local categories_cache = {
+  values = {},
+  keys = {},
+  updated = 0
 }
 
 local sources_cache = {
@@ -87,20 +103,62 @@ local function getAdblockCachedValue(param,level)
   return status_cache[param]
 end
 
+local function getAdblockCategories(key)
+  local catsfile = "/etc/adblock/adblock.categories"
+  local modified = lfs.attributes(catsfile,"modification")
+  if modified then
+    if modified > categories_cache.updated then
+      log:notice("Reading %s",catsfile)
+      local f,errmsg = io.open(catsfile,"r")
+      if not f then
+        return nil,nil,errmsg
+      end
+      categories_cache.values = {
+        hag = {},
+        hst = {},
+        stb = {},
+        utc = {},
+      }
+      categories_cache.keys = {
+        hag = {},
+        hst = {},
+        stb = {},
+        utc = {},
+      }
+      for line in f:lines() do
+        log:notice("Contents of %s: line=%s",catsfile,line)
+        local v = split(line,";")
+        local k = v[1]
+        local index = #categories_cache.keys[k] + 1
+        categories_cache.keys[k][index] = tostring(index)
+        categories_cache.values[k][index] = { category = v[2] }
+        categories_cache.values[k][index]["file"] = #v > 2 and v[3] or ""
+        log:notice(" -> key=%s category=%s",k,v[2])
+      end
+      f:close()
+      categories_cache.updated = modified
+    end
+  end
+  return categories_cache.values[key],categories_cache.keys[key]
+end
+
 local function getAdblockSources()
   local srcsfile = "/etc/adblock/adblock.sources.gz"
   local modified = lfs.attributes(srcsfile,"modification")
   if modified then
     if modified > sources_cache.updated then
+      log:notice("Reading %s",srcsfile)
       local f,errmsg = io.popen("zcat "..srcsfile,"r")
       if not f then
         return nil,nil,errmsg
       end
       local j = f:read("*a")
       f:close()
+      log:notice("Contents of %s: %s",srcsfile,j)
       sources_cache.keys = {}
       sources_cache.sources = dkjson.decode(j) or {}
       for k in pairs(sources_cache.sources) do
+        log:notice("Adding key %s",k)
         sources_cache.keys[#sources_cache.keys+1] = k
       end
       sources_cache.updated = modified
@@ -225,6 +283,226 @@ GUI_ADBLOCK_SOURCES_i_.set = function(_,_,_)
 end
 
 register(GUI_ADBLOCK_SOURCES_i_)
+
+
+local GUI_ADBLOCK_CAT_HAG_i_ = {
+  objectType = {
+    name = "rpc.adblock.cat_hagezi.@.",
+    access = "readWrite",
+    numEntriesParameter = "cat_hagNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      category = {
+        access = "readOnly",
+        type = "string",
+      },
+      file = {
+        access = "readOnly",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_ADBLOCK_CAT_HAG_i_.entries = function(_)
+  local _,keys,errmsg = getAdblockCategories("hag")
+  if keys then
+    return keys
+  end
+  return nil,errmsg
+end
+
+GUI_ADBLOCK_CAT_HAG_i_.add = function(_,_,_)
+  return nil,"add not supported"
+end
+
+GUI_ADBLOCK_CAT_HAG_i_.delete = function(_,_,_)
+  return nil,"delete not supported"
+end
+
+GUI_ADBLOCK_CAT_HAG_i_.get = function(_,param,k)
+  local sources,_,errmsg = getAdblockCategories("hag")
+  if sources then
+    local key = tonumber(k)
+    if sources[key] then
+      return sources[key][param] or ""
+    end
+    return nil,"Invalid key: " .. key
+  end
+  return nil,errmsg
+end
+
+GUI_ADBLOCK_CAT_HAG_i_.set = function(_,_,_)
+  return nil,"set not supported"
+end
+
+register(GUI_ADBLOCK_CAT_HAG_i_)
+
+
+local GUI_ADBLOCK_CAT_HST_i_ = {
+  objectType = {
+    name = "rpc.adblock.cat_1hosts.@.",
+    access = "readWrite",
+    numEntriesParameter = "cat_hstNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      category = {
+        access = "readOnly",
+        type = "string",
+      },
+      file = {
+        access = "readOnly",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_ADBLOCK_CAT_HST_i_.entries = function(_)
+  local _,keys,errmsg = getAdblockCategories("hst")
+  if keys then
+    return keys
+  end
+  return nil,errmsg
+end
+
+GUI_ADBLOCK_CAT_HST_i_.add = function(_,_,_)
+  return nil,"add not supported"
+end
+
+GUI_ADBLOCK_CAT_HST_i_.delete = function(_,_,_)
+  return nil,"delete not supported"
+end
+
+GUI_ADBLOCK_CAT_HST_i_.get = function(_,param,k)
+  local sources,_,errmsg = getAdblockCategories("hst")
+  if sources then
+    local key = tonumber(k)
+    if sources[key] then
+      return sources[key][param] or ""
+    end
+    return nil,"Invalid key: " .. key
+  end
+  return nil,errmsg
+end
+
+GUI_ADBLOCK_CAT_HST_i_.set = function(_,_,_)
+  return nil,"set not supported"
+end
+
+register(GUI_ADBLOCK_CAT_HST_i_)
+
+
+local GUI_ADBLOCK_CAT_STB_i_ = {
+  objectType = {
+    name = "rpc.adblock.cat_stevenblack.@.",
+    access = "readWrite",
+    numEntriesParameter = "cat_stbNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      category = {
+        access = "readOnly",
+        type = "string",
+      },
+      file = {
+        access = "readOnly",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_ADBLOCK_CAT_STB_i_.entries = function(_)
+  local _,keys,errmsg = getAdblockCategories("stb")
+  if keys then
+    return keys
+  end
+  return nil,errmsg
+end
+
+GUI_ADBLOCK_CAT_STB_i_.add = function(_,_,_)
+  return nil,"add not supported"
+end
+
+GUI_ADBLOCK_CAT_STB_i_.delete = function(_,_,_)
+  return nil,"delete not supported"
+end
+
+GUI_ADBLOCK_CAT_STB_i_.get = function(_,param,k)
+  local sources,_,errmsg = getAdblockCategories("stb")
+  if sources then
+    local key = tonumber(k)
+    if sources[key] then
+      return sources[key][param] or ""
+    end
+    return nil,"Invalid key: " .. key
+  end
+  return nil,errmsg
+end
+
+GUI_ADBLOCK_CAT_STB_i_.set = function(_,_,_)
+  return nil,"set not supported"
+end
+
+register(GUI_ADBLOCK_CAT_STB_i_)
+
+
+local GUI_ADBLOCK_CAT_UTC_i_ = {
+  objectType = {
+    name = "rpc.adblock.cat_utcapitole.@.",
+    access = "readWrite",
+    numEntriesParameter = "cat_utcNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      category = {
+        access = "readOnly",
+        type = "string",
+      },
+      file = {
+        access = "readOnly",
+        type = "string",
+      },
+    }
+  }
+}
+
+GUI_ADBLOCK_CAT_UTC_i_.entries = function(_)
+  local _,keys,errmsg = getAdblockCategories("utc")
+  if keys then
+    return keys
+  end
+  return nil,errmsg
+end
+
+GUI_ADBLOCK_CAT_UTC_i_.add = function(_,_,_)
+  return nil,"add not supported"
+end
+
+GUI_ADBLOCK_CAT_UTC_i_.delete = function(_,_,_)
+  return nil,"delete not supported"
+end
+
+GUI_ADBLOCK_CAT_UTC_i_.get = function(_,param,k)
+  local sources,_,errmsg = getAdblockCategories("utc")
+  if sources then
+    local key = tonumber(k)
+    if sources[key] then
+      return sources[key][param] or ""
+    end
+    return nil,"Invalid key: " .. key
+  end
+  return nil,errmsg
+end
+
+GUI_ADBLOCK_CAT_UTC_i_.set = function(_,_,_)
+  return nil,"set not supported"
+end
+
+register(GUI_ADBLOCK_CAT_UTC_i_)
 
 local filepattern = "/etc/adblock/adblock.%slist"
 

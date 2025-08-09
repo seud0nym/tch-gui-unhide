@@ -7,56 +7,43 @@ local content_helper = require("web.content_helper")
 local ui_helper = require("web.ui_helper")
 local message_helper = require("web.uimessage_helper")
 local proxy = require("datamodel")
-local format,match = string.format,string.match
+local format,match,sub = string.format,string.match,string.sub
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
+
+local category = { ["1hosts"] = "hst", ["hagezi"] = "hag", ["stevenblack"] = "stb", ["utcapitole"] = "utc"}
 
 if ngx.req.get_method() == "POST" then
   local args = ngx.req.get_post_args()
   local apply_changes = false
 
-  local enabled_source = {}
-  local deleted_source = {}
-  for _,source in ipairs(content_helper.convertResultToObject("uci.adblock.global.adb_sources.", proxy.get("uci.adblock.global.adb_sources."))) do
-    enabled_source[untaint(source.value)] = format("uci.adblock.global.adb_sources.%s.",source.paramindex)
-  end
-
   for k,v in pairs(args) do
-    local source = match(untaint(k),"^adb_src_@(.+)_enabled$")
-    if source then
-      if v == "1" and not enabled_source[source] then
-        local key,add_errmsg = proxy.add("uci.adblock.global.adb_sources.")
+    local name = untaint(k)
+    if name == "adb_sources" or match(name,"^adb_..._sources$") then
+      local selected = type(v) == "table" and v or {v}
+      local path = "uci.adblock.global."..name.."."
+      local retval = proxy.del(path.."@1.")
+      while retval do
+        retval = proxy.del(path.."@1.")
+      end
+      for _,value in ipairs(selected) do
+        local key,add_errmsg = proxy.add(path)
         if not key then
           for _,err in ipairs(add_errmsg) do
-            message_helper.pushMessage(T(format("Failed to enable source %s: add failed with error %s (%s)",source,err.errmsg,err.errcode)),"error")
+            message_helper.pushMessage(T(format("Failed to add %s to %s (%s)",value,name,err.errmsg,err.errcode)),"error")
           end
         else
-          local result,set_errmsg = proxy.set("uci.adblock.global.adb_sources.@"..key..".value",source)
+          local result,set_errmsg = proxy.set(path.."@"..key..".value",value)
           if result then
-            message_helper.pushMessage(T("Enabled source "..source),"success")
             apply_changes = true
           else
             for _,err in ipairs(set_errmsg) do
-              message_helper.pushMessage(T(format("Failed to enable source %s: set failed with error %s (%s)",source,err.errmsg,err.errcode)),"error")
+              message_helper.pushMessage(T(format("Failed to add %s to '%s': %s (%s)",value,path,err.errmsg,err.errcode)),"error")
             end
           end
         end
-      elseif v == "0" and enabled_source[source] then
-        deleted_source[#deleted_source+1] = { path = enabled_source[source], source = source }
       end
-    end
-  end
-
-  if #deleted_source > 0 then
-    table.sort(deleted_source,function(a,b) return b.path < a.path end)
-    for _,p in ipairs(deleted_source) do
-      local retval,errmsg = proxy.del(p.path)
-      if not retval then
-        message_helper.pushMessage(T(format("Failed to disable source %s : %s",p.source,errmsg)),"error")
-      else
-        message_helper.pushMessage(T("Disabled source "..p.source),"success")
-        apply_changes = true
-      end
+      apply_changes = true
     end
   end
 
@@ -68,7 +55,7 @@ end
 local sources_data = content_helper.convertResultToObject("rpc.adblock.source.",proxy.get("rpc.adblock.source."),"paramindex")
 local enabled_source = {}
 for _,source in ipairs(content_helper.convertResultToObject("uci.adblock.global.adb_sources.", proxy.get("uci.adblock.global.adb_sources."))) do
-  enabled_source["@"..untaint(source.value)] = untaint(source.paramindex)
+  enabled_source[untaint(source.value)] = true
 end
 
 local warn_box = {
@@ -90,6 +77,7 @@ ngx.print(ui_helper.createHeader("Adblock",false,true),'\
     if true then
       ngx.print(ui_helper.createAlertBlock(T"Do not enable too many lists,or you could run out or memory!",warn_box))
     end ngx.print('\
+      <style>.unbreakable{display:inline-block;}</style>\
       <div class="control-group">\
         <table id="adb_sources" class="table table-striped">\
           <thead>\
@@ -104,18 +92,35 @@ ngx.print(ui_helper.createHeader("Adblock",false,true),'\
           </thead>\
           <tbody>')
           for _,source in ipairs(sources_data) do
-            ngx.print('<tr>')
-            local paramindex = untaint(source.paramindex)
-            local enabled = enabled_source[paramindex] and "1" or "0"
-            ngx.print(
-              '<td>',ui_helper.createSimpleSwitch("adb_src_"..paramindex.."_enabled",enabled),'</td>',
-              '<td>',source.paramindex,'</td>',
+           local name = sub(source.paramindex,2)
+            local checked = enabled_source[name] and " checked" or ""
+            local categories = category[name] ~= nil
+            ngx.print('<tr>',
+              '<td',categories and ' rowspan="2"' or '','><input type="checkbox" name="adb_sources" value="',name,'"',checked,'></td>',
+              '<td',categories and ' rowspan="2"' or '','>',name,'</td>',
               '<td style="whitespace:nowrap">',source.url,'</td>',
               '<td>',source.size,'</td>',
               '<td>',source.focus,'</td>',
-              '<td style="whitespace:nowrap"><a target="_blank" href="',source.descurl,'">',source.descurl,'&nbsp;<i class="icon-external-link"></i></a></td>'
+              '<td style="whitespace:nowrap"',categories and ' rowspan="2"' or '','><a target="_blank" href="',source.descurl,'">',source.descurl,'&nbsp;<i class="icon-external-link"></i></a></td>',
+              '</tr>'
             )
-            ngx.print('</tr>')
+            if categories then
+              ngx.print('<tr><td colspan="3">')
+                local sources = "adb_"..category[name].."_sources"
+                local rpc_path = "rpc.adblock.cat_"..name.."."
+                local uci_path = "uci.adblock.global."..sources.."."
+                local cat_data = content_helper.convertResultToObject(rpc_path,proxy.get(rpc_path),"category")
+                local enabled_cat = {}
+                for _,cat in ipairs(content_helper.convertResultToObject(uci_path, proxy.get(uci_path))) do
+                  enabled_cat[untaint(cat.value)] = "checked"
+                end
+                for _,cat in ipairs(cat_data) do
+                  local value = untaint((cat.file and cat.file ~= "") and cat.file or cat.category)
+                  ngx.print(format("<span class='unbreakable'><input type='checkbox' id='cat_%s' name='%s' value='%s' %s>&nbsp;",category[name],sources,value,enabled_cat[value] or ""))
+                  ngx.print(format("<label for='cat_%s'>%s</label>&nbsp;</span>",category[name],cat.category))
+                end
+              ngx.print('</td></tr>')
+            end
           end
           ngx.print('\
           </tbody>\
@@ -140,8 +145,8 @@ ngx.print(ui_helper.createHeader("Adblock",false,true),'\
       waiting_action(this);\
     });\
   });\
-  $(document).off("change",\'table .switch input[type\\x3d"hidden"]\');\
-  $(document).on("change",\'table .switch input[type\\x3d"hidden"]\', function(){\
+  $(document).off("change",\'input[type\\x3d"checkbox"]\');\
+  $(document).on("change",\'input[type\\x3d"checkbox"]\', function(){\
     $("#modal-no-change").addClass("hide");\
     $("#modal-changes").removeClass("hide");\
   });\
