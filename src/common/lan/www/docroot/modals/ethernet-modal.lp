@@ -109,6 +109,8 @@ local mapParams = {
 
 local function validateDNSv6(value,object,key)
   local dns_v6_pri = value == "" and "" or gsub(untaint(value),"-",":")
+  local dns_v6_sec = object["dns_v6_sec"] == "" and "" or gsub(untaint(object["dns_v6_sec"]),"-",":")
+
   if dns_v6_pri ~= "" and not vSIIP6(dns_v6_pri) then
     if mapParams[key] ~= nil then
       proxy.del(mapParams[key]:sub(1,-6))
@@ -120,16 +122,16 @@ local function validateDNSv6(value,object,key)
     return true
   end
 
-  if dns_v6_pri == "" and object["dns_v6_sec"] ~= "" then
+  if dns_v6_pri == "" and dns_v6_sec ~= "" then
     return nil,"Primary cannot be empty"
   end
 
-  if dns_v6_pri == object["dns_v6_sec"] and dns_v6_pri ~= "" then
+  if dns_v6_pri == dns_v6_sec and dns_v6_pri ~= "" then
     return nil,"Primary and secondary DNS servers cannot be same"
   end
 
   if dns_v6_pri == "" then -- Localhost as DNS server
-    if object["dns_v6_sec"] == "" then
+    if dns_v6_sec == "" then
      -- only localhost
       if mapParams["dns_v6_sec"] ~= nil then
         proxy.del(mapParams["dns_v6_sec"]:sub(1,-6))
@@ -145,7 +147,7 @@ local function validateDNSv6(value,object,key)
       mapParams["dns_v6_pri"] = baseDHCPDNS.."@1.value"
     end
   end
-  if object["dns_v6_sec"] ~= nil and object["dns_v6_sec"] ~= "" and mapParams["dns_v6_sec"] == nil then
+  if dns_v6_sec ~= nil and dns_v6_sec ~= "" and mapParams["dns_v6_sec"] == nil then
     local index = proxy_helper.add(baseDHCPDNS)
     if index == "2" then
       mapParams["dns_v6_sec"] = baseDHCPDNS.."@2.value"
@@ -153,6 +155,7 @@ local function validateDNSv6(value,object,key)
   end
 
   object[key] = dns_v6_pri
+  object["dns_v6_sec"] = dns_v6_sec
   return true
 end
 

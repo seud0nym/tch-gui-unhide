@@ -103,3 +103,10 @@ for c in $(uci -q show dhcp | grep -E '^dhcp\.(lan|Guest.*)=dhcp$' | tr '=' '.' 
     fi
   fi
 done
+
+if grep -qE "list dns '.*-.*'" /etc/config/dhcp; then
+  echo -e "[$SCRIPT]: Fixing IPv6 LAN DNS Servers ..."
+  sed -e '/list dns/s/-/:/g' -i /etc/config/dhcp
+  SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
+fi
+
