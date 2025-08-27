@@ -1,3 +1,8 @@
+2025.08.27 (Test Release)
+==========
+* tch-gui-unhide: Fixed a bug in handling of the secondary IPv6 DNS server on the Local Network screen that may have caused LAN IPv6 issues (#242)
+* tch-gui-unhide: Fixed yet another potential issues with pre-install restore that could cause subsequent installation errors
+
 2025.08.03
 ==========
 * tch-gui-unhide: Fixed issues with pre-install restore that could cause subsequent installation errors (#236/#237)
