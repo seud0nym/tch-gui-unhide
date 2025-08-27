@@ -16,12 +16,10 @@ restore_individual_file() {
   local directory="$(dirname $target)"
   local filename="$(basename $target)"
   if [ -e "$source" ]; then
-    if [ "$source" = "/rom${target}" ]; then
-      if [ -e "${overlay}${target}" ]; then
-        [ "$verbose" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $target by removing from $overlay${NC}"
-        rm "${overlay}${target}"
-        mount -o remount /
-      fi
+    if [ "$source" = "/rom${target}" -a -e "${overlay}${target}" ]; then
+      [ "$verbose" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $target by removing from $overlay${NC}"
+      rm "${overlay}${target}"
+      mount -o remount /
     elif ! cmp -s "$source" "$target"; then
       [ "$verbose" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Restoring file $target${NC}"
       mkdir -p "$(dirname $target)"
@@ -76,5 +74,9 @@ EOF
   # Delete extra files, or restore deleted files
   for f in $(get_restore_file_list "" "f");do
     restore_individual_file "$f" "$RESTORE_BASE$f" "$overlay" "$verbose"
+  done
+  for f in $(get_restore_file_list "$RESTORE_BASE" "f");do
+    t="${f##$RESTORE_BASE}"
+    restore_individual_file "$t" "$f" "$overlay" "$verbose"
   done
 }
