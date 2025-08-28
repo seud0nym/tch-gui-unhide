@@ -1,6 +1,6 @@
 echo -e "[$SCRIPT]: Creating QoS Reclassify Rules modal"
 sed \
-  -e 's/\(classify[\.-_%]\)/re\1/g' \
+  -e 's/\(classify[-\._%]\)/re\1/g' \
   -e 's/Classify/Reclassify/' \
   /www/docroot/modals/qos-classify-modal.lp > /www/docroot/modals/qos-reclassify-modal.lp
 
