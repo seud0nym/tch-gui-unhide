@@ -1,6 +1,8 @@
-2025.08.27 (Test Release)
+2025.10.14
 ==========
 * tch-gui-unhide: Fixed a bug in handling of the secondary IPv6 DNS server on the Local Network screen that may have caused LAN IPv6 issues (#242)
+* tch-gui-unhide: Fixed bug that prevented modification of QoS Reclassify Rules
+* tch-gui-unhide: Removed unsupported Priority column from Devices list on FW 17.2 & 18.1.c 
 * tch-gui-unhide: Fixed yet another potential issues with pre-install restore that could cause subsequent installation errors
 
 2025.08.03
