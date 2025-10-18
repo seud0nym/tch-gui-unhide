@@ -85,7 +85,7 @@ The following optional configuration parameters may be specified **after** the d
 - -i
   - Install AdGuard Home on INTERNAL storage rather than USB.
   - This is the default if the internal storage filesystem is _NOT_ jffs2.
-- -u username
+- -n username
   - The AdGuard Home web user name.
   - If not specified, the user name defaults to: root
 - -p password
