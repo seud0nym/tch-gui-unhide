@@ -1,0 +1,88 @@
+#!/bin/sh
+
+SCRIPT="$(basename $0)"
+
+usage() {
+cat <<EOH
+Analyses the AdGuard Home query logs to determine which block lists are
+being used.
+
+Usage: $SCRIPT [-U]
+
+Parameters:
+ -U           Download the latest version of $SCRIPT from GitHub
+
+EOH
+exit
+}
+
+upgrade() {
+  RESPONSE_CODE=$(curl -kLsI -o /dev/null -w '%{http_code}' https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/adguard/$SCRIPT)
+  if [ "$RESPONSE_CODE" = 200 ]
+  then
+    curl -kL -o $SCRIPT https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/adguard/$SCRIPT
+    if [ $? -eq 0 ]
+    then
+      chmod +x $SCRIPT
+      echo "[$SCRIPT] Successfully downloaded $SCRIPT."
+    else
+      echo "[$SCRIPT] Failed to download $SCRIPT."
+    fi
+  elif [ "$RESPONSE_CODE" = 404 ]
+  then
+    echo "[$SCRIPT] ERROR! Not found on GitHub???"
+  elif [ "$RESPONSE_CODE" = 000 ]
+  then
+    echo "[$SCRIPT] ERROR! No Internet connection???"
+  else
+    echo "[$SCRIPT] ERROR! Unknown response code $RESPONSE_CODE"
+  fi
+  exit
+}
+
+while getopts :U option; do
+ case "${option}" in
+  U)  upgrade;;
+  *)  usage;;
+ esac
+done
+shift $((OPTIND-1))
+
+AGH_YAML=$(grep -o -m 1 -E '"-c" "/.*/AdGuardHome/AdGuardHome.yaml"' /etc/init.d/AdGuardHome | cut -d'"' -f4)
+if [ $? -ne 0 ]; then
+  echo "[$SCRIPT] ERROR: Unable to locate AdGuard Home configuration file!"
+  exit 2
+fi
+
+cd "$(dirname "$AGH_YAML")" || { echo "[$SCRIPT] ERROR: Unable to change to AdGuard Home directory ($(dirname "$AGH_YAML"))!"; exit 2; }
+
+FILES=$(find . -type f -name 'querylog.*')
+
+get_first_and_last_times() {
+  for file in $FILES; do
+    { head -n 1; tail -n 1; } < $file | grep -hoE '"T":"[^"]+"' | cut -d'"' -f4
+  done
+}
+
+echo Analysing AdGuard Home query logs...
+echo
+get_first_and_last_times | sort | sed -n '1p;$p' | cut -d. -f1 | xargs -n 2 echo Date Range:
+echo 
+
+FORMAT='%-40s %12s (%s)\n'
+printf "${FORMAT}---------------------------------------- ------------ ------------\n" "Block List Name" "Count" "ID"
+USAGE=$(grep '"IsFiltered":true' $FILES | grep -hoE '"FilterListID":[0-9]+' | cut -d: -f2 | sort | uniq -c | sort -r | tr -s ' ')
+FILTERS=$(awk '
+  /^[^ ]/{f=/^filters:/; name=""; id="";  next;} 
+  f && /name:/{sub($1 FS,""); name=$0; if (id=="") next; else {print id, name; name=""; id="";}}  
+  f && /id:/{sub($1 FS,""); id=$0; if (name=="") next; else {print id, name; name=""; id="";}}
+' AdGuardHome.yaml | tr -s ' ')
+echo "$USAGE" | while read COUNT ID; do
+  NAME=$(echo "$FILTERS" | grep "\b$ID\b" | cut -d' ' -f3-)
+  [ -z "$NAME" ] && NAME='[DELETED LIST]'
+  printf "$FORMAT" "$NAME" $COUNT $ID
+done
+
+echo 
+
+exit 0

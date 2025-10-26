@@ -156,10 +156,36 @@ Use the `-u` option instead of `-r` to prevent deleting the AdGuard Home directo
 # Other Utilities
 These utility scripts will be automatically downloaded to the AdGuardHome directory (unless you specify the **-xu** or **-xx** installation options).
 
+## agh-analyse-block-lists
+Analyses the AdGuard Home query logs to determine which block lists are
+being used.
+
+Usage: sh agh-analyse-block-lists [-U]
+
+Parameters:
+ - -U
+    - Download the latest version of agh-analyse-block-lists from GitHub
+
+This script allows you to assess the effectiveness of your selected lists. For example:
+
+```
+Analysing AdGuard Home query logs...
+
+Date Range: 2025-10-24T22:49:09 2025-10-26T14:04:11
+
+Block List Name                                 Count (ID)
+---------------------------------------- ------------ ------------
+WindowsSpyBlocker - Hosts spy rules             10249 (1626696445)
+AdGuard DNS filter                               5558 (1)
+Steven Black Hosts List                          5256 (1626916178)
+Developer Dan's Ads and Tracking List            1713 (1626696453)
+AdAway Default Blocklist                           54 (2)
+```
+
 ## agh-change-password
 Allows you to change the AdGuard Home password and optionally the user name.
 
-Usage: agh-change-password [parameters]
+Usage: sh agh-change-password [parameters]
 
 Parameters:
  - -p password
@@ -186,7 +212,7 @@ Updates AdGuard Home with the latest blocklists from https://firebog.net/. It al
 
 You can configure the update to run automatically every Saturday morning by specifying the -C option.
 
-Usage: agh-lists-update [-p password [-C]]|[-U]
+Usage: sh agh-lists-update [-p password [-C]]|[-U]
 
 Parameters:
  - -p password
@@ -207,7 +233,7 @@ Checks the installed version of AdGuard Home against the latest version availabl
 
 You can configure the update to run automatically every month by specifying the -C option. (This is done automatically by the setup, unless the `-xs` option was specified.)
 
-Usage: agh-update [-C]]|[-U]
+Usage: sh agh-update [-C]]|[-U]
 
 Parameters:
  - -C

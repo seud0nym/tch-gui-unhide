@@ -919,7 +919,7 @@ if [ $AGH_RUNNING = 'true' ]; then
   fi
 
   if [ $UTILITIES = Y ]; then
-    for s in agh-change-password agh-lists-update agh-update; do
+    for s in agh-analyse-block-lists agh-change-password agh-lists-update agh-update; do
       echo -e "${GREEN}[$SCRIPT] Downloading utility script: $s to $INSTALL_ROOT/AdGuardHome ${NC}"
       curl -kL -o AdGuardHome/$s https://raw.githubusercontent.com/seud0nym/tch-gui-unhide/master/supplemental/adguard/$s
       chmod +x AdGuardHome/$s
