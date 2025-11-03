@@ -753,7 +753,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             local lastport = 4
             local unused = 0
             local untagged_flag = vlan_helper.get_untagged_flag()
-            local used = {eth0={[".count"]=0},eth1={[".count"]=0},eth2={[".count"]=0},eth3={[".count"]=0},eth4={[".count"]=0}}
+            local used = {eth0={[".count"]=0,[".untagged"]=0},eth1={[".count"]=0,[".untagged"]=0},eth2={[".count"]=0,[".untagged"]=0},eth3={[".count"]=0,[".untagged"]=0},eth4={[".count"]=0,[".untagged"]=0}}
             local interfaces = proxy.getPN("uci.network.interface.",true)
             for k=1,#interfaces do
               local v = interfaces[k]
@@ -763,8 +763,9 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                 if base then
                   local vlan = match(ifname,"eth[0-4]%.(%d+)$") or "None"
                   used[base][intf] = vlan
+                  used[base][".count"] = used[base][".count"] + 1
                   if valid_vlan_ifnames[ifname] == untagged_flag then
-                    used[base][".count"] = used[base][".count"] + 1
+                    used[base][".untagged"] = used[base][".untagged"] + 1
                   end
                 end
               end
@@ -783,7 +784,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
             ngx.print('<tr><td style="width:50%;text-align:right;">',none_vlan_label,'</td>')
             for i=0,lastport,1 do
               local base = format("eth%d",i)
-              if used[base][cur_intf] == "None" then
+              if used[base][cur_intf] == "None" or used[base][".count"] == 0 then
                 add_port_checkbox(base)
               else
                 ngx.print(ban_circle)
@@ -808,7 +809,7 @@ ngx.print(ui_helper.createHeader(T"Local Network",true,true),'\
                       ngx.print(ticked)
                       filled = true
                     end
-                  elseif v[base] == untagged_flag and used[base][".count"] == 0 then -- port is untagged (and unused)...
+                  elseif v[base] == untagged_flag and used[base][".untagged"] == 0 then -- port is untagged (and unused)...
                     filled = add_port_checkbox(vlan_ifname)
                   end
                   if not filled then
