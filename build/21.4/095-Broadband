@@ -1,0 +1,6 @@
+echo -e "[$SCRIPT]: Update ADSL UCI paths"
+sed \
+    -e "s/uci\.xtm\.atmdevice\./uci.dsl.atmlink./" \
+    -e 's/".enc"/".encmode"/' \
+    -i /www/snippets/broadband-adsl-advanced.lp
+
