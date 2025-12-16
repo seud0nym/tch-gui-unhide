@@ -42,7 +42,6 @@ exit
 __COPYTO=""
 __DELETE=n
 __EXTRACT=y
-__FW_OVERRIDE=n
 __FW_VERSION="$(uci -q get version.@version[0].marketing_version)"
 __GUI=n
 __HARDEN=n
@@ -55,7 +54,7 @@ __TGU_VERSION="latest"
 while getopts :df:ghkpruv:X option; do
  case "${option}" in
   d)  __DELETE=y;;
-  f)  __FW_VERSION="$OPTARG"; __FW_OVERRIDE=y;;
+  f)  __FW_VERSION="$OPTARG";;
   g)  __GUI=y;;
   h)  __HARDEN=y;;
   k)  __KEEP=y;;
@@ -118,8 +117,8 @@ if [ "$__RESPONSE_CODE" = 200 ]; then
   fi
 elif [ "$__RESPONSE_CODE" = 404 ]; then
   echo -e "${RED}ERROR:    ${NC}$__URL ${RED}NOT FOUND${NC}!"
+  echo -e "${RED}          ${NC}Firmware version ${ORANGE}${__FW_VERSION}${NC} is ${RED}not${NC} supported by tch-gui-unhide"
   [ $__TGU_OVERRIDE = y ] && echo -e "${ORANGE}CHECK:    ${NC}Are you sure version ${ORANGE}${__TGU_VERSION}${NC} is correct???"
-  [ $__FW_OVERRIDE = y ] && echo -e "${ORANGE}ERROR:    ${NC}Firmware version ${ORANGE}${__FW_VERSION}${NC} may be unsupported??"
   exit
 elif [ "$__RESPONSE_CODE" = 000 ]; then
   echo -e "${RED}ERROR:    ${NC}No Internet connection???"
