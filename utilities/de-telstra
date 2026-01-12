@@ -132,6 +132,10 @@ Options:
  -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
  -w u|y|n              WPS:                     u=unchanged y=Enable n=Disable
                          (on non-Guest and non-Backhaul SSIDs)
+ -z u|a|d|country/zone Set the time zone:       u=unchanged a=Auto-detect d=Default
+                          country/zone = e.g. "Australia/Sydney"
+                          NOTE: Requires Internet access to auto-detect time zone
+                                OR if country is not Australia
  -y                    Bypass the confirmation prompt (answers 'y')
  -A                    Equivalent to: -hd -dg -an -cn -fn -ln -in -rn -sd -un -wn -Fy
  -S                    Equivalent to: -hs -dg -an -cn -fn -ln -in -rn -sd -un -wn -Fy
@@ -176,6 +180,17 @@ exit
 RESTART_SERVICES=y
 SAVE_DEFAULTS=n
 SHOW_DEFAULTS=n
+TIMEZONES="Australia/Adelaide,ACST-9:30ACDT,M10.1.0,M4.1.0/3
+Australia/Brisbane,AEST-10
+Australia/Broken_Hill,ACST-9:30ACDT,M10.1.0,M4.1.0/3
+Australia/Currie,AEST-10AEDT,M10.1.0,M4.1.0/3
+Australia/Darwin,ACST-9:30
+Australia/Eucla,<+0845>-8:45
+Australia/Hobart,AEST-10AEDT,M10.1.0,M4.1.0/3
+Australia/Lindeman,AEST-10
+Australia/Lord_Howe,<+1030>-10:30<+11>-11,M10.1.0,M4.1.0
+Australia/Melbourne,AEST-10AEDT,M10.1.0,M4.1.0/3
+Australia/Perth,AWST-8"
 
 set_defaults() {
   __ALG='u'
@@ -207,6 +222,7 @@ set_defaults() {
   __SUPERVISION='u'
   __UPNP='u'
   __WPS='u'
+  __TZ='u'
   # Overrides
   __AIR='n'
   __CWMP='n'
@@ -249,7 +265,7 @@ upgrade() {
   exit
 }
 
-while getopts :a:b:c:d:e:f:g:h:i:k:l:m:n:op:q:r:s:t:u:w:yAC:F:GI:MO:RSU-: option; do
+while getopts :a:b:c:d:e:f:g:h:i:k:l:m:n:op:q:r:s:t:u:w:yz:AC:F:GI:MO:RSU-: option; do
  case "${option}" in
   -)  case "${OPTARG}" in
         debug) __VERBOSE=""; __STDOUT="/dev/tty";;
@@ -288,6 +304,17 @@ while getopts :a:b:c:d:e:f:g:h:i:k:l:m:n:op:q:r:s:t:u:w:yAC:F:GI:MO:RSU-: option
   u)  case "${OPTARG}" in y) __UPNP='1';; n) __UPNP='0';; u) __UPNP='u';; *) echo 'ERROR: -u valid options are y, n, or u'; exit 1;; esac;;
   w)  case "${OPTARG}" in y) __WPS='1';; n) __WPS='0';; u) __WPS='u';; *) echo 'ERROR: -w valid options are y, n, or u'; exit 1;; esac;;
   y)  __YES='y';;
+  z)  case "${OPTARG}" in 
+        a) __TZ='a';; 
+        d) __TZ='d';; 
+        u) __TZ='u';; 
+        *)  if echo "${OPTARG}" | grep -qE "^[A-Za-z]+\/[A-Za-z_]+$"; then
+              __TZ="${OPTARG}"
+            else 
+              echo "ERROR! Invalid timezone: $OPTARG"
+              exit 1
+            fi;;
+      esac;;
   A)  __HOST='d'; __DOMAIN='gateway'; __ALG='0'; __DLNAD='0'; __SAMBA='0'; __PRNTR='0'; __UPNP='0'; __WPS='0'; __ROOT_PROTECT='1'; __SUPERVISION='DNS'; __INTERCEPT='0'; __LED_LOG='0';;
   C)  case "${OPTARG}" in y) __COREDUMP_REBOOT='1';; n) __COREDUMP_REBOOT='0';; u) __COREDUMP_REBOOT='u';; *) echo 'ERROR: -C valid options are y, n, or u'; exit 1;; esac;;
   F)  case "${OPTARG}" in y) __ROOT_PROTECT='1';; n) __ROOT_PROTECT='0';; u) __ROOT_PROTECT='u';; *) echo 'ERROR: -F valid options are y, n, or u'; exit 1;; esac;;
@@ -342,6 +369,13 @@ show_default() {
       o) _DFLT="OpenDNS";;
       u) _DFLT="Unchanged";; 
       *) _DFLT="$3";;
+    esac
+  elif [ "$1" = 'z' ]; then
+    case "$3" in
+      a) _DFLT="Auto-detect";;
+      d) _DFLT="Default";;
+      u) _DFLT="Unchanged";;
+      *) _DFLT="";;
     esac
   elif [ "$1" = 'I' ]; then
     [ -z "$3" ] && _DFLT=Unchanged || _DFLT="$3"
@@ -422,6 +456,7 @@ if [ $SAVE_DEFAULTS = y -o $SHOW_DEFAULTS = y -o $__YES = n ]; then
   [ $__MMPBX = "1" -a "$__MMPBX_SRV" = "d" ] && show_default "t"  "Telephony Services" "m"
   show_default "u"  "UPnP" $__UPNP
   show_default "w"  "WPS" $__WPS
+  show_default "z"  "TimeZone" $__TZ
   show_default "F"  "RTFD root protection" $__ROOT_PROTECT
   show_default "M"  "Minimum memory mode" $__LITE
   show_default "G"  "Remove Guest Wi-Fi" $__GUEST
@@ -488,11 +523,10 @@ exec_uci() {
   return $retval
 }
 
-upgrade_certificates() {
-  rm -f /tmp/ca-*_all.ipk
-  if ! opkg list-installed | grep -q 'ca-bundle - 20240203-r1'; then
-    #region (Source = https://downloads.openwrt.org/releases/packages-24.10/arm_cortex-a9/base/ca-bundle_20240203-r1_all.ipk)
-    echo 'H4sIAAAAAAAAA+y4Q7AwTBCud2zbtm3btm3b+o5t27Zt27ZtI39uqlKVu8juJlnkWbzdu+6Zqneq
+rm -f /tmp/ca-*_all.ipk
+if ! opkg list-installed | grep -q 'ca-bundle - 20240203-r1'; then
+  #region (Source = https://downloads.openwrt.org/releases/packages-24.10/arm_cortex-a9/base/ca-bundle_20240203-r1_all.ipk)
+  echo 'H4sIAAAAAAAAA+y4Q7AwTBCud2zbtm3btm3b+o5t27Zt27ZtI39uqlKVu8juJlnkWbzdu+6Zqneq
 e+joTUyNLA3taI0s7QydPAH+V8DwH2wsLP8j/sf/HP+DBYCRhZWdnZGRjZGBFYDhP2FmBCBg+F/S
 zf+Eq7OLoRMBwf8Tpf6/CBMdA9T/2z38//y/Bx29iaGLId1/HqAz9/pfVOP/1v/M7AysLAz/s///
 S/5///8/AX4UxP+RAF/3bDRWjbeSps/5iPZOUYnSe5SDf+KBFCJ2L0T0IvL6+Ba0ZIWvI57lOttt
@@ -2741,11 +2775,11 @@ cf82+Eb092bzFxKQ0sk4ldvRmTGu5692Cu6FX+AnL2ytblzIdLi6m37+9htHll9vbizZ08eTO3M2
 d/MebbMaVv/gGubY3TSQi3uvf9WJJc68LXniOrLdPJBmqhotB3J60tbTZ9sWMm7LO1LnkanlSZdb
 KFzobCd6fl569EJfuseOZZTxp8nPpfzPCurFHyj3qk9TV902rFAMAUTw/1ISyD5AO0OleQEo/v97
 Ff/H//gf/+N//I//8T/+x//4H/83838AhljV+gAIAgA=' | base64 -d > /tmp/ca-bundle_20240203-r1_all.ipk
-    #endregion
-  fi
-  if ! opkg list-installed | grep -q 'ca-certificates - 20240203-r1'; then
-    #region (Source = https://downloads.openwrt.org/releases/packages-24.10/arm_cortex-a9/base/ca-certificates_20240203-r1_all.ipk)
-    echo 'H4sIAAAAAAAAA+z6U3wk7Rc1gMa2bU5sOxNMOLE5sTOxOjYnnBgTTDyxbdu2bXSd9/+du+/i3B1c
+  #endregion
+fi
+if ! opkg list-installed | grep -q 'ca-certificates - 20240203-r1'; then
+  #region (Source = https://downloads.openwrt.org/releases/packages-24.10/arm_cortex-a9/base/ca-certificates_20240203-r1_all.ipk)
+  echo 'H4sIAAAAAAAAA+z6U3wk7Rc1gMa2bU5sOxNMOLE5sTOxOjYnnBgTTDyxbdu2bXSd9/+du+/i3B1c
 nHVReLqqa/ez11p7P78uVrYfFmY2po4sZjaOpq7eEP/vAPt/4OXm/j/7//B/7/8DNwQHNw8fHwcH
 Lwc7DwT7fxsuDggK9v+3RPN/wf2nm6krBcX/Jx71/4vgZGVH+v92DP9//H8PrGw/TN1MWf/TAKuV
 z/+bnvH/Uv/cHLycPHz/t/45ePn+//r//wTIYxD+nwfQFznrv8rl0gPf10pP3qM36RB/9wyCkkgG
@@ -5187,14 +5221,13 @@ Yv8TyWsyGFR7krebVLoou9rpWuZwBGmDtFwCNFHTwMjWE29jPMFMyAusJ8Rud+9835snp+xwadfU
 FRSUNm0iCkZhYqLukYefH/YgpaQdSXJ2Fc2ZvIjwwfntqG9zVuqjv8zh5tbJAd12FyQat9bPfKql
 KFAuAE5Q3x1bGEPqgnVcKh1+A+yxDxCQUgEQ1xcHvVxcsskqqHiDIInzH1as2AOP0wSvBMP8/1aA
 //AP//AP//AP//A/zn8BSsbr5AAwAgA=' | base64 -d > /tmp/ca-certificates_20240203-r1_all.ipk
-    #endregion
-  fi
-  if [ $(ls /tmp/ca-*_all.ipk 2>/dev/null | wc -l) -gt 0 ]; then
-    echo [$SCRIPT]: - Upgrading CA certificates for repository access...
-    opkg --force-overwrite install /tmp/ca-*.ipk
-    rm /tmp/ca-*_all.ipk
-  fi
-}
+  #endregion
+fi
+if [ $(ls /tmp/ca-*_all.ipk 2>/dev/null | wc -l) -gt 0 ]; then
+  echo [$SCRIPT]: - Upgrading CA certificates for HTTPS access...
+  opkg --force-overwrite install /tmp/ca-*.ipk
+  rm /tmp/ca-*_all.ipk
+fi
 
 upgrade_wget() {
   local target="/usr/bin/wget"
@@ -20784,7 +20817,6 @@ if [ "$__OPKG" = "y" -o $OPKG_DEP -gt 0 ]; then
       echo [$SCRIPT]: - opkg custom feeds for tch-static already configured
     fi
     upgrade_wget            
-    upgrade_certificates
   fi
 fi
 #endregion Package Repository
@@ -20872,6 +20904,47 @@ if [ $SRV_mesh_broker -lt 0 -a $(uci -q show network | grep -E '\.Guest.*=interf
   fi
 fi
 #endregion Guest Wi-Fi
+
+#region TimeZone
+TZ_NOW="$(uci -q get system.@system[0].zonename)"
+if [ "$__TZ" = "u" -o "$__TZ" = "$TZ_NOW" ]; then
+  echo [$SCRIPT]: Time Zone unchanged \[$TZ_NOW\]
+elif [ "$__TZ" = "d" ]; then
+  echo [$SCRIPT]: Resetting Time Zone to default...
+  NETWORK_TZ="$(uci -c /rom/etc/config get system.@system[0].network_timezone)"
+  exec_uci set system.@system[0].network_timezone="$NETWORK_TZ"
+  exec_uci set system.@system[0].timezone="$(uci -c /rom/etc/config get system.@system[0].timezone)"
+  exec_uci set system.@system[0].zonename="$(uci -c /rom/etc/config get system.@system[0].zonename)"
+  exec_uci commit system
+  SRV_system=$(( $SRV_system + 1 ))
+  echo "[$SCRIPT]: Time Zone reset to $(uci get system.@system[0].zonename) ($(uci get system.@system[0].timezone)) and Network Timezone [$([ $NETWORK_TZ -eq 0 ] && echo 'Disabled' || echo 'Enabled')]"
+else
+  if [ "$__TZ" = "a" ]; then
+    __TZ=$(curl -s https://ipapi.co/timezone)
+    if [ -z "$__TZ" ]; then
+      echo -e "[$SCRIPT]:${RED} Time Zone auto-detection failed, please specify Time Zone manually${NC}"
+    fi
+  fi
+  if echo "$__TZ" | grep -qE "^[A-Za-z]+\/[A-Za-z_]+$"; then
+    TZ_POSIX=$(echo "$TIMEZONES" | grep -qE "^${__TZ}$")
+    if [ -z "$TZ_POSIX" ]; then
+      TZ_POSIX=$( curl -s https://raw.githubusercontent.com/nayarsystems/posix_tz_db/refs/heads/master/zones.csv | grep "$__TZ" | cut -d, -f2- | tr -d '"')
+    fi
+    if [ -n "$TZ_POSIX" ]; then
+      exec_uci set system.@system[0].network_timezone="0"
+      exec_uci set system.@system[0].timezone="$TZ_POSIX"
+      exec_uci set system.@system[0].zonename="$__TZ"
+      exec_uci commit system
+      SRV_system=$(( $SRV_system + 1 ))
+      echo "[$SCRIPT]: Time Zone set to $__TZ ($TZ_POSIX) and Network Timezone [Disabled]"
+    else
+      echo -e "[$SCRIPT]:${RED} Time Zone $__TZ conversion to POSIX format failed!!! Time Zone not modified${NC}"
+    fi
+  elif [ "$__TZ" != "a" ]; then
+    echo -e "[$SCRIPT]:${RED} Invalid Time Zone format: $__TZ (must be in 'Area/Location' format)!!! Time Zone not modified${NC}"
+  fi
+fi
+#endregion TimeZone
 
 #region Services
 apply_service_action() {

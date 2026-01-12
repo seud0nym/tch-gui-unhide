@@ -122,6 +122,10 @@ Options:
  -u u|y|n              UPnP Service:            u=unchanged y=Enable n=Disable
  -w u|y|n              WPS:                     u=unchanged y=Enable n=Disable
                          (on non-Guest and non-Backhaul SSIDs)
+ -z u|a|d|country/zone Set the time zone:       u=unchanged a=Auto-detect d=Default
+                          country/zone = e.g. "Australia/Sydney"
+                          NOTE: Requires Internet access to auto-detect time zone
+                                OR if country is not Australia
  -y                    Bypass the confirmation prompt (answers 'y')
  -A                    Equivalent to: -hd -dg -an -cn -fn -ln -in -rn -sd -un -wn -Fy
  -S                    Equivalent to: -hs -dg -an -cn -fn -ln -in -rn -sd -un -wn -Fy
