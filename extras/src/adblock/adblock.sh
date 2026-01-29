@@ -23,11 +23,9 @@ if [ "$1" = "setup" ]; then
   adblock_installed="$(opkg list-installed | grep '^adblock ' | cut -d- -f2- | xargs)"
   ca_bundle_installed="$(opkg list-installed | grep '^ca-bundle ' | cut -d- -f3- | xargs)"
   ca_certificates_installed="$(opkg list-installed | grep '^ca-certificates ' | cut -d- -f3- | xargs)"
-  openwrt_releases="$(curl -skL https://downloads.openwrt.org/releases/ | grep -Eo 'packages-[0-9][0-9]\.[0-9.]+' | sort -u)"
-  openwrt_latest="$(echo "$openwrt_releases" | tail -n1)"
   adblock_current_filename="$(curl -skL https://downloads.openwrt.org/releases/packages-23.05/arm_cortex-a9/packages/Packages | grep -E "^Filename: adblock_$adblock_supported_version[-r0-9.]*_all.ipk" | cut -d' ' -f2)"
   adblock_current="$(echo $adblock_current_filename | grep -Eo '[0-9][-r0-9.]+')"
-  ca_current="$(curl -skL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/base/Packages | grep 'Filename: ca-' | cut -d' ' -f2)"
+  ca_current="$(curl -skL https://downloads.openwrt.org/releases/packages-24.10/arm_cortex-a9/base/Packages | grep 'Filename: ca-' | cut -d' ' -f2)"
   ca_bundle_current="$(echo "$ca_current" | grep bundle | grep -Eo '[0-9][-r0-9]+')"
   ca_certificates_current="$(echo "$ca_current" | grep certificates | grep -Eo '[0-9][-r0-9]+')"
   adblock_restart="n"
@@ -56,14 +54,14 @@ if [ "$1" = "setup" ]; then
   fi
   if [ -n "$ca_bundle_current" -a "$ca_bundle_current" != "$ca_bundle_installed" ]; then
     echo ">> Downloading ca-bundle v$ca_bundle_current"
-    curl -kL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/base/ca-bundle_${ca_bundle_current}_all.ipk -o /tmp/ca-bundle_${ca_bundle_current}_all.ipk || exit $?
+    curl -kL https://downloads.openwrt.org/releases/packages-24.10/arm_cortex-a9/base/ca-bundle_${ca_bundle_current}_all.ipk -o /tmp/ca-bundle_${ca_bundle_current}_all.ipk || exit $?
     echo ">> Installing ca-bundle v$ca_bundle_current"
     opkg --force-overwrite install /tmp/ca-bundle_${ca_bundle_current}_all.ipk
     rm /tmp/ca-bundle_${ca_bundle_current}_all.ipk
   fi
   if [ -n "$ca_certificates_current" -a "$ca_certificates_current" != "$ca_certificates_installed" ]; then
     echo ">> Downloading ca-certificates v$ca_certificates_current"
-    curl -kL https://downloads.openwrt.org/releases/${openwrt_latest}/arm_cortex-a9/base/ca-certificates_${ca_certificates_current}_all.ipk -o /tmp/ca-certificates_${ca_certificates_current}_all.ipk || exit $?
+    curl -kL https://downloads.openwrt.org/releases/packages-24.10/arm_cortex-a9/base/ca-certificates_${ca_certificates_current}_all.ipk -o /tmp/ca-certificates_${ca_certificates_current}_all.ipk || exit $?
     echo ">> Installing ca-certificates v$ca_certificates_current"
     opkg --force-overwrite install /tmp/ca-certificates_${ca_certificates_current}_all.ipk
     rm /tmp/ca-certificates_${ca_certificates_current}_all.ipk

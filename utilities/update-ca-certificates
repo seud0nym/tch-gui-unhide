@@ -91,11 +91,7 @@ if [ $DE_TELSTRA = "N" -a $CRON = "Y" ]; then
   exit
 fi
 
-log user.info Determining latest OpenWrt release...
-OPENWRT_LATEST="$(curl $CURL_OPT -s https://downloads.openwrt.org/releases/ | grep -Eo 'packages-[0-9][0-9]\.[0-9.]+' | sort -ru | head -n1)"
-if [ -z "$OPENWRT_LATEST" ]; then
-  log user.err Failed to determine latest OpenWrt release???
-fi
+OPENWRT_LATEST="packages-24.10"
 
 rm -f /tmp/ca-*.ipk
 
