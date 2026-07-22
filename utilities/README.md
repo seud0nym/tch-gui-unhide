@@ -426,6 +426,12 @@ Applies a new firmware to the device, without losing root access.
 It is basically the same as the procedure as described in http://hack-technicolor.rtfd.io/en/stable/Upgrade/#preserving-root-access and http://hack-technicolor.rtfd.io/en/stable/Upgrade/#flashing-firmware but with many additional options.
 
 This script has a dependency on the `reset-to-factory-defaults-with-root` script. If that script does not exist, or is not the latest version, it will be downloaded as needed.
+
+> [!TIP]
+> Use [unpack-rbi](https://github.com/seud0nym/tch-gui-unhide/tree/master/utilities#unpack-rbi) to extract the binary (`.bin`) version of the firmware from the `.rbi` file and then pass the **binary** file to `safe-firmware-upgrade`. This will allow you to verify that the firmware is valid before undertaking the firmware upgrade. `safe-firmware-upgrade` will perform a simple check after it extracts the binary firmware, but it cannot evaluate the messages that the parser and unsealing programs produce when errors are detected, and _could_ upload corrupted firmware under rare circumstances.
+>
+> This tip does _not_ apply to Telstra Smart Modem Gen 3 `.pkgtb` files.
+
 ```
 Usage: ./safe-firmware-upgrade [options] filename
 
