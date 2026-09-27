@@ -52,6 +52,8 @@ function M.getNetworkDevices()
       local radio_band = match(untaint(proxy.get("rpc.wireless.radio.@"..radio_name..".band")[1].value),"^([245%.]+G)Hz$")
       if radio_band then
         ssid[device] = wlname.." ("..radio_band..")"
+      else
+        ssid[device] = wlname
       end
     end
   end
