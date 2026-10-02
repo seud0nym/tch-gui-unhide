@@ -3,6 +3,7 @@
 -- Enable localization
 gettext.textdomain('webui-core')
 
+local common = require("common_helper")
 local devices_helper = require("devices_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
@@ -100,6 +101,15 @@ local devices_columns = {
     readonly = true,
   },
 }
+
+-- post_helper.convertData is not available before 20.4
+local convertData = post_helper.convertData or function(bytes)
+  if bytes then
+    local _,text = common.bytes2string(bytes)
+    return text
+  end
+end
+
 local devices_column_index = {}
 for k=1,#devices_columns do
   local v = devices_columns[k]
@@ -141,8 +151,8 @@ for i=1,#devices_data do
   end
   local tx_bytes = token1[1]
   local rx_bytes = token1[2]
-  tx_bytes = tx_bytes and post_helper.convertData(tonumber(tx_bytes)) or ""
-  rx_bytes = rx_bytes and post_helper.convertData(tonumber(rx_bytes)) or ""
+  tx_bytes = tx_bytes and convertData(tonumber(tx_bytes)) or ""
+  rx_bytes = rx_bytes and convertData(tonumber(rx_bytes)) or ""
   if tx_bytes ~= "" and rx_bytes ~= "" then
     row[devices_column_index["databytes"]] = format("%s / %s ",tx_bytes,rx_bytes)
   else
