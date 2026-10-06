@@ -19785,7 +19785,7 @@ if [ "$__MONITORING" = 'n' ]; then
     echo [$SCRIPT]: - bulkdata collection already disabled
   fi
   grep -q bulkdata /etc/crontabs/root
-  if [ $? -eq 1 ]; then
+  if [ $? -eq 0 ]; then
     echo [$SCRIPT]: - Removing bulkdata cron job
     sed -e '/bulkdata/d' -i /etc/crontabs/root
   else
