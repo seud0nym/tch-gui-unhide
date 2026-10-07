@@ -21,10 +21,10 @@ if grep -qE 'tr143|autoreset|wifi-doctor-agent'  $BASE/.installed; then
   grep -E 'tr143|autoreset|wifi-doctor-agent' $BASE/.packages | grep -q '^c' || options="${options} -km"
 fi
 if $UCI -q get system.ntp.server | grep -q 'telstra'; then
-  options="${options} -kq"
+  options="${options} -kn"
 fi
 if $UCI show qos | grep -E "$($UCI show qos | grep =reclassify | cut -d= -f1 | xargs | tr " " "|")" | grep -q 'VoWiFi'; then
-  options="${options} -kn"
+  options="${options} -kq"
 fi
 if $UCI -q show mountd | grep -qE 'mountd\.(ext[2-4]|fat|hfsplus(journal)*|ntfs)\.options=.*noexec.*'; then
   options="${options} -kx"
