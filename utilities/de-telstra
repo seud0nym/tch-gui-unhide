@@ -20027,7 +20027,7 @@ else
   [ ! -e /etc/rtfd_persistent_filelist.conf ] && touch /etc/rtfd_persistent_filelist.conf
   for f in /etc/passwd /etc/shadow /etc/config/dropbear /etc/dropbear/* /etc/rc.d/*dropbear; do
     if [ "$__ROOT_PROTECT" = "1" ]; then
-      if grep -q -E "^$f$" /etc/rtfd_persistent_filelist.conf; then
+      if ! grep -q -E "^$f$" /etc/rtfd_persistent_filelist.conf; then
         echo "$f">>/etc/rtfd_persistent_filelist.conf
       fi
     else
