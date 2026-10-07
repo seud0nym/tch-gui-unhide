@@ -44,3 +44,46 @@ echo -e "[$SCRIPT]: Change transformer mapping to allow modification of AP Isola
 sed \
  -e '/ap_isolation/{n; s/Only/Write/}' \
  -i /usr/share/transformer/mappings/rpc/wireless.ap.map
+
+if grep -q '^local secmodes = {}$' /www/docroot/modals/wireless-modal.lp \
+&& grep -q '^local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)$' /www/docroot/modals/wireless-modal.lp \
+&& grep -q 'security = gVIES(secmodes),' /www/docroot/modals/wireless-modal.lp \
+&& ! grep -q 'current_security' /www/docroot/modals/wireless-modal.lp; then
+  echo -e "[$SCRIPT]: Fix Wi-Fi security mode falling back to None when the current mode is not offered"
+  sed \
+    -e '/^local content, helpmsg = post_helper.handleQuery(mapParams, mapValid)$/i\
+-- Always list the current security mode of the access point. If it is missing (WEP is not offered on 20.3.c), the\
+-- select shows the first entry (None), and the next save would turn the access point into an open network.\
+-- Legacy modes that the firmware offers stay available for older devices, labelled as such.\
+do\
+  local legacy_modes = {\
+    ["wep"] = T"WEP (not recommended)",\
+    ["wpa-psk"] = T"WPA PSK (TKIP)",\
+    ["wpa-wpa2-psk"] = T"WPA+WPA2 PSK (TKIP)",\
+    ["wpa"] = T"WPA (TKIP)",\
+    ["wpa-wpa2"] = T"WPA+WPA2 (TKIP)",\
+  }\
+  local current_security = mapParams["security"] and proxy.get(mapParams["security"])\
+  current_security = current_security and current_security[1] and untaint(current_security[1].value) or ""\
+  local listed = current_security == ""\
+  for _,v in ipairs(secmodes) do\
+    if v[1] == current_security then\
+      listed = true\
+    end\
+    if legacy_modes[v[1]] then\
+      v[2] = legacy_modes[v[1]]\
+    end\
+  end\
+  if not listed then\
+    secmodes[#secmodes+1] = { current_security, legacy_modes[current_security] or T(string.upper(current_security)) }\
+  end\
+end' \
+    -e '/createAlertBlock(T"WEP is known to be flawed as a wireless security mode, usage of a more secure mode based on WPA2 is recommended.",wep_warning)$/a\
+        local tkip_warning = {\
+            alert = {\
+                class = "alert-error monitor-security monitor-wpa-psk monitor-wpa-wpa2-psk monitor-wpa monitor-wpa-wpa2"\
+            },\
+        }\
+        html[#html + 1] = ui_helper.createAlertBlock(T"TKIP, used by WPA and allowed by WPA+WPA2, is deprecated, less secure and limits Wi-Fi speed. Use it only for devices that do not support WPA2. WPA2 PSK is recommended.",tkip_warning)' \
+    -i /www/docroot/modals/wireless-modal.lp
+fi
