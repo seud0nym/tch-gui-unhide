@@ -20600,7 +20600,7 @@ if [ $SRV_multiap -ge 0 ]; then
     [ "$__MULTIAP_AGT" != "u" ] && { exec_uci set multiap.agent.enabled="$__MULTIAP_AGT"; SRV_multiap=$(( $SRV_multiap + 1 )); }
     [ "$__MULTIAP_CTL" != "u" ] && { exec_uci set multiap.controller.enabled="$__MULTIAP_CTL"; SRV_multiap=$(( $SRV_multiap + 1 )); }
     [ $SRV_multiap -gt 0 ] && exec_uci commit multiap
-    [ "$__MULTIAP_VND" != "u" ] && { exec_uci set vendorextensions.multiap_vendorextensions.enable="$__MULTIAP_VND"; SRV_multiap=$(( $SRV_multiap + 1 )); }
+    [ "$__MULTIAP_VND" != "u" ] && { exec_uci set vendorextensions.multiap_vendorextensions.enable="$__MULTIAP_VND"; exec_uci commit vendorextensions; SRV_multiap=$(( $SRV_multiap + 1 )); }
     if [ "$__MULTIAP_BKH" != "u" ]; then
       exec_uci set wireless.$BHAUL_AP.state="$__MULTIAP_BKH"
       exec_uci set wireless.$BHAUL_IF.state="$__MULTIAP_BKH"
