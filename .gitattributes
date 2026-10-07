@@ -7,3 +7,4 @@
 *.png binary eol=unset
 
 tproxy-go binary eol=unset
+*.bz2 binary eol=unset
