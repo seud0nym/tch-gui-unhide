@@ -40,6 +40,47 @@ if [ $(uci -q show network | grep -E '\.Guest.*=interface' | wc -l) -eq 0 ]; the
   sed -e '/^--check whether the.*guest1 exists/,/^$/d' -i /www/snippets/tabs-wifi.lp
 fi
 
+if grep -q '^local bandsteer_rssi_threshold = {' /www/docroot/modals/wireless-modal.lp \
+&& [ $(grep -c -e 'rssi_threshold = gVIES(bandsteer_rssi_threshold),' -e 'rssi_5g_threshold = gVIES(bandsteer_rssi_threshold),' -e '"rssi_threshold", bandsteer_rssi_threshold,' -e '"rssi_5g_threshold", bandsteer_rssi_threshold,' /www/docroot/modals/wireless-modal.lp) -eq 4 ]; then
+  echo -e "[$SCRIPT]: Fix Band Steering thresholds being reset to 10% on save"
+  sed \
+    -e '/^local bandsteer_rssi_threshold = {/,/^}/{/^}/a\
+-- Give each band steering threshold slider its own list that includes its configured value. The default\
+-- 2.4GHz threshold (-65) is not in the stock list, so the slider would show 10% and the next save would\
+-- write -10, which stops band steering.\
+local function bandsteerThresholdList(option)\
+  local list = {}\
+  for i,v in ipairs(bandsteer_rssi_threshold) do\
+    list[i] = v\
+  end\
+  local configured = proxy.get("uci.wireless.wifi-bandsteer.@"..bandsteer_helper.getBandSteerId(curiface).."."..option)\
+  configured = configured and configured[1] and tonumber(configured[1].value)\
+  if configured then\
+    local found,pos = false,#list+1\
+    for i=#list,1,-1 do\
+      local value = tonumber(list[i][1])\
+      if value == configured then\
+        found = true\
+      elseif value < configured then\
+        pos = i\
+      end\
+    end\
+    if not found then\
+      table.insert(list,pos,{tostring(configured),format("%d%%",-configured)})\
+    end\
+  end\
+  return list\
+end\
+local bandsteer_rssi_threshold_2g = bandsteerThresholdList("rssi_threshold")\
+local bandsteer_rssi_threshold_5g = bandsteerThresholdList("rssi_5g_threshold")
+}' \
+    -e 's/\(rssi_threshold = gVIES(bandsteer_rssi_threshold\)),/\1_2g),/' \
+    -e 's/\(rssi_5g_threshold = gVIES(bandsteer_rssi_threshold\)),/\1_5g),/' \
+    -e 's/\("rssi_threshold", bandsteer_rssi_threshold\),/\1_2g,/' \
+    -e 's/\("rssi_5g_threshold", bandsteer_rssi_threshold\),/\1_5g,/' \
+    -i /www/docroot/modals/wireless-modal.lp
+fi
+
 echo -e "[$SCRIPT]: Change transformer mapping to allow modification of AP Isolation"
 sed \
  -e '/ap_isolation/{n; s/Only/Write/}' \
