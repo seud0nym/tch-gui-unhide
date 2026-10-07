@@ -20193,6 +20193,7 @@ if uci -q get dhcp.main.hostname | grep -q "\b$(echo $FQDN | sed -e 's/\./\\./')
 else
   echo [$SCRIPT]: Adding FQDN $FQDN as hostname
   exec_uci add_list dhcp.main.hostname="$FQDN"
+  exec_uci commit dhcp
   SRV_dnsmasq=$(( $SRV_dnsmasq + 1 ))
 fi
 #endregion Domain Name
