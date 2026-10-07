@@ -25,6 +25,10 @@ if [ $RESTORE = y ]; then
       rmdir "$d"
     fi
   done
+  if [ -L /etc/rc.d/K88lsyslogd ]; then
+    echo -e "[$SCRIPT]: Removing /etc/rc.d/K88lsyslogd"
+    rm /etc/rc.d/K88lsyslogd
+  fi
   for s in $(uci -q show web | grep normally_hidden | cut -d. -f2); do
     echo -e "[$SCRIPT]: Removing config entry web.$s"
     exec_uci -q delete web.$s

@@ -106,3 +106,14 @@ for button in reset easy_reset; do
   unset handler
 done
 unset button
+
+# The stock lsyslogd init script flushes the buffered system log to /root/log/messages.log in stop(), but has no
+# STOP, so it never runs on reboot and the last lines (up to 4KB, such as the postmortem lines before a crash
+# reboot) are lost. Only link it where stop() flushes with a bounded wait (20.3.c onwards).
+if [ -f /etc/init.d/lsyslogd ] && ls /etc/rc.d/S??lsyslogd >/dev/null 2>&1 && ! ls /etc/rc.d/K??lsyslogd >/dev/null 2>&1 \
+&& ! grep -q '^STOP=' /etc/init.d/lsyslogd \
+&& sed -n '/^stop()/,/^}/p' /etc/init.d/lsyslogd | grep -q 'syncbuf' \
+&& sed -n '/^syncbuf()/,/^}/p' /etc/init.d/lsyslogd | grep -q 'count -lt'; then
+  echo -e "[$SCRIPT]: Flush the buffered system log to flash on reboot"
+  ln -s ../init.d/lsyslogd /etc/rc.d/K88lsyslogd
+fi
