@@ -19,6 +19,10 @@ usage() {
   echo "  $0 start 50 20                  # Total bandwidth: down 50Mbit/s up 20Mbit/s"
   echo "  $0 add xx:xx:xx:xx:xx:xx 10 2   # Limit a MAC:     down 10Mbit/s up  2Mbit/s"
   echo
+  echo "IPv4 and IPv6 are both shaped. Traffic of devices without a limit shares the"
+  echo "total bandwidth in class 2:${DEFAULT_CLASS}. A limited device gets class 2:<last 4 hex digits of"
+  echo "its MAC> (the next free id if that one is taken)."
+  echo
   echo -e "Kernel messages like '${RED}HTB: quantum of class 20001 is big. Consider r2q change.${NC}'"
   echo "can be resolved by specifying a new r2q value after <dl_rate> <up_rate>. The"
   echo -e "default value is ${GREEN}35${NC}. Increase by ${GREEN}5${NC} and stop/restart until the kernel message"
@@ -34,17 +38,42 @@ usage() {
   exit 2
 }
 
-TCF_PATTTERN="tc filter add dev %s parent 2: protocol ip prio 5 u32 match u16 0x0800 0xFFFF at -2"
+TCF_PATTTERN="tc filter add dev %s parent 2: protocol all prio 5 u32"
 NUM_PATTERN='^[0-9]*$'
 MAC_PATTERN='^[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]:[0-9a-f][0-9a-f]$'
 
 DEV='br-lan'
+DEFAULT_CLASS='10'                          # leaf for unclassified traffic (hex minor id)
+RESERVED_IDS=' 0000 0001 0002 0010 ffff '   # class 2:1, qdisc handles 2:, 10: and ffff:
+STATE="${BQOS_STATE:-/var/run/bqos.classes}" # totals, then one "<mac> <class id>" per device
+
+# Broadcom flow cache: accelerated flows bypass every qdisc. Evicting them sends
+# existing connections back through the stack, where HTB's dequeue keeps them off
+# the cache again (blog_skip). Absent on other platforms, so it is optional.
+flush_flowcache() {
+  command -v fcctl >/dev/null 2>&1 && fcctl flush >/dev/null 2>&1
+  return 0
+}
+
+# Assured rate (kbit/s) of a leaf: 1% of the total, at most the leaf's ceiling.
+# Leaves borrow the rest from 2:1, so the total never exceeds the configured rate,
+# and share it equally (same quantum on every leaf).
+leaf_rate() {
+  local RATE=$(( $1 * 10 ))
+  [ $(( $2 * 1000 )) -lt ${RATE} ] && RATE=$(( $2 * 1000 ))
+  [ ${RATE} -lt 8 ] && RATE=8
+  echo ${RATE}
+}
 
 stop_qos() {
+  local ACTIVE=1
+  ip link show dev ${DEV}-ifb >/dev/null 2>&1 || ACTIVE=0
   tc qdisc del dev ${DEV} root 2>/dev/null
   tc qdisc del dev ${DEV} ingress 2>/dev/null
   tc qdisc del dev ${DEV}-ifb root 2>/dev/null
   ip link del dev ${DEV}-ifb 2>/dev/null
+  rm -f "${STATE}"
+  return $(( 1 - ACTIVE ))
 }
 
 start_qos() {
@@ -55,19 +84,36 @@ start_qos() {
   [ -z "${QL}" ] && QL=1000
   [ -z "${R2Q}" ] && R2Q=35
 	
-  tc qdisc add dev ${DEV} root handle 2: htb r2q ${R2Q} default 1
+  tc qdisc add dev ${DEV} root handle 2: htb r2q ${R2Q} default ${DEFAULT_CLASS}
   tc class add dev ${DEV} parent 2: classid 2:1 htb rate ${DL}mbit
-  tc qdisc add dev ${DEV} parent 2:1 handle 10: fq_codel
+  tc class add dev ${DEV} parent 2:1 classid 2:${DEFAULT_CLASS} htb rate $(leaf_rate ${DL} ${DL})kbit ceil ${DL}mbit quantum 1514
+  tc qdisc add dev ${DEV} parent 2:${DEFAULT_CLASS} handle ${DEFAULT_CLASS}: fq_codel
 	
   ip link add dev ${DEV}-ifb name ${DEV}-ifb txqueuelen ${QL} type ifb
   ip link set dev ${DEV}-ifb up
 	
-  tc qdisc add dev ${DEV}-ifb root handle 2: htb r2q ${R2Q} default 1
+  tc qdisc add dev ${DEV}-ifb root handle 2: htb r2q ${R2Q} default ${DEFAULT_CLASS}
   tc class add dev ${DEV}-ifb parent 2: classid 2:1 htb rate ${UP}mbit
-  tc qdisc add dev ${DEV}-ifb parent 2:1 handle 10: fq_codel
+  tc class add dev ${DEV}-ifb parent 2:1 classid 2:${DEFAULT_CLASS} htb rate $(leaf_rate ${UP} ${UP})kbit ceil ${UP}mbit quantum 1514
+  tc qdisc add dev ${DEV}-ifb parent 2:${DEFAULT_CLASS} handle ${DEFAULT_CLASS}: fq_codel
 	
   tc qdisc add dev ${DEV} ingress
-  tc filter add dev ${DEV} parent ffff: protocol ip u32 match u32 0 0 flowid 2:1 action mirred egress redirect dev ${DEV}-ifb
+  tc filter add dev ${DEV} parent ffff: protocol all u32 match u32 0 0 flowid 2:1 action mirred egress redirect dev ${DEV}-ifb
+
+  echo "${DL} ${UP}" > "${STATE}"
+}
+
+# Class id of a device: the last two MAC octets, so it does not depend on the
+# order devices are added. A reserved or already used id moves to the next one.
+class_id() {
+  local ID=$(grep "^$1 " "${STATE}" | cut -d' ' -f2)
+  if [ -z "${ID}" ]; then
+    ID=$2
+    while echo "${RESERVED_IDS}" | grep -q " ${ID} " || grep -q ":[0-9a-f][0-9a-f] ${ID}$" "${STATE}"; do
+      ID=$(printf '%04x' $(( (0x${ID} + 1) & 0xffff )))
+    done
+  fi
+  echo ${ID}
 }
 
 add_mac() {
@@ -76,17 +122,32 @@ add_mac() {
   local M2=$(echo $1 | cut -d: -f5)$(echo $1 | cut -d: -f6)
   local DL="$2"
   local UP="$3"
-  local NXT=$(tc class show dev ${DEV} | wc -l)
+  local MAC=$(echo $1 | tr 'A-F' 'a-f')
+  local TOTALS=$(head -n 1 "${STATE}" 2>/dev/null)
+  if [ -z "${TOTALS}" ]; then
+    echo -e "${RED}ERROR: bqos is not started${NC}"
+    exit 1
+  fi
+  local ID=$(class_id ${MAC} $(echo ${M2} | tr 'A-F' 'a-f'))
 
-  tc class add dev ${DEV} parent 2:1 classid 2:1${NXT} htb rate ${DL}mbit ceil ${DL}mbit
-  tc qdisc add dev ${DEV} parent 2:1${NXT} handle 1${NXT}: fq_codel
-  tc class add dev ${DEV}-ifb parent 2:1 classid 2:1${NXT} htb rate ${UP}mbit ceil ${UP}mbit
-  tc qdisc add dev ${DEV}-ifb parent 2:1${NXT} handle 1${NXT}: fq_codel
+  if grep -q "^${MAC} " "${STATE}"; then
+    # Already added: only change the rates (class id and filters stay)
+    tc class change dev ${DEV} parent 2:1 classid 2:${ID} htb rate $(leaf_rate ${TOTALS% *} ${DL})kbit ceil ${DL}mbit quantum 1514
+    tc class change dev ${DEV}-ifb parent 2:1 classid 2:${ID} htb rate $(leaf_rate ${TOTALS#* } ${UP})kbit ceil ${UP}mbit quantum 1514
+    return
+  fi
+  echo "${MAC} ${ID}" >> "${STATE}"
 
+  tc class add dev ${DEV} parent 2:1 classid 2:${ID} htb rate $(leaf_rate ${TOTALS% *} ${DL})kbit ceil ${DL}mbit quantum 1514
+  tc qdisc add dev ${DEV} parent 2:${ID} handle ${ID}: fq_codel
+  tc class add dev ${DEV}-ifb parent 2:1 classid 2:${ID} htb rate $(leaf_rate ${TOTALS#* } ${UP})kbit ceil ${UP}mbit quantum 1514
+  tc qdisc add dev ${DEV}-ifb parent 2:${ID} handle ${ID}: fq_codel
+
+  # MAC matches (source at -8, destination at -14) work for IPv4, IPv6 and ARP alike
   for D in ${DEV} ${DEV}-ifb; do
     TCF=$(printf "${TCF_PATTTERN}" ${D})
-    $TCF match u16 0x${M2} 0xFFFF at -4 match u32 0x${M0}${M1} 0xFFFFFFFF at -8 flowid 2:1${NXT}
-    $TCF match u32 0x${M1}${M2} 0xFFFFFFFF at -12 match u16 0x${M0} 0xFFFF at -14 flowid 2:1${NXT}
+    $TCF match u16 0x${M2} 0xFFFF at -4 match u32 0x${M0}${M1} 0xFFFFFFFF at -8 flowid 2:${ID}
+    $TCF match u32 0x${M1}${M2} 0xFFFFFFFF at -12 match u16 0x${M0} 0xFFFF at -14 flowid 2:${ID}
   done
 }
 
@@ -101,7 +162,9 @@ validate() {
 
 case "$1" in
   "stop")
-    stop_qos
+    if stop_qos; then
+      flush_flowcache
+    fi
     ;;
   "start")
     [ $# -lt 3 ] && usage
@@ -110,6 +173,7 @@ case "$1" in
     [ -n "$4" ] && validate "r2q" "$4" "${NUM_PATTERN}"
     stop_qos
     start_qos $2 $3 $4
+    flush_flowcache
     ;;
   "add")
     [ $# -ne 4 ] && usage
