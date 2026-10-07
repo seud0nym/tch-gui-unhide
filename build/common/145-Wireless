@@ -17,6 +17,37 @@ sed \
      html[#html+1] = format("<script>$(\\"#btn-qrcode\\").click(function(){tch.loadModal(\\"/modals/wireless-qrcode-modal.lp?iface=%s&ap=%s\\");})</script>",curiface,curap)' \
   -i /www/docroot/modals/wireless-modal.lp
 
+if grep -q '^ *allowed_channels_5G = list5g\[content\["requested_channel_width"\]\] or list5g\["auto"\]$' /www/docroot/modals/wireless-modal.lp \
+&& ! grep -q 'configured_channel' /www/docroot/modals/wireless-modal.lp; then
+  echo -e "[$SCRIPT]: Fix 5GHz channel being reset to Auto on save"
+  sed \
+    -e '/^ *allowed_channels_5G = list5g\[content\["requested_channel_width"\]\] or list5g\["auto"\]$/a\
+               -- The list for each channel width offers only some primary channels (36 52 100 132 149 at 80MHz),\
+               -- but any allowed channel can be configured. If the configured channel is missing, the select\
+               -- shows Auto and the next save writes it, so add it to a copy of the list.\
+               local configured_channel = untaint(content["requested_channel"] or "")\
+               local channels,listed = {},configured_channel == ""\
+               for i,v in ipairs(allowed_channels_5G) do\
+                 channels[i] = v\
+                 listed = listed or v[1] == configured_channel\
+               end\
+               if not listed then\
+                 local number,pos = tonumber(configured_channel),#channels+1\
+                 for i=#channels,2,-1 do\
+                   if number and tonumber(channels[i][1]) and tonumber(channels[i][1]) > number then\
+                     pos = i\
+                   end\
+                 end\
+                 local label = configured_channel\
+                 if number and number >= 52 and number <= 144 then\
+                   label = label.."(DFS)"\
+                 end\
+                 table.insert(channels,pos,{configured_channel,label})\
+               end\
+               allowed_channels_5G = channels' \
+    -i /www/docroot/modals/wireless-modal.lp
+fi
+
 if [ "$MINIFY" = y ]; then
   echo -e "[$SCRIPT]: Pre-minify fixes"
   [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: - Fixing /www/docroot/modals/wireless-modal.lp"
