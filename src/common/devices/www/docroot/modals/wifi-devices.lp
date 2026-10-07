@@ -3,12 +3,16 @@
 -- Enable localization
 gettext.textdomain('webui-core')
 
+local common = require("common_helper")
 local devices_helper = require("devices_helper")
 local message_helper = require("web.uimessage_helper")
 local post_helper = require("web.post_helper")
+local proxy = require("datamodel")
 local ui_helper = require("web.ui_helper")
 local string,ngx = string,ngx
 local match,format,gmatch,lower,sub = string.match,string.format,string.gmatch,string.lower,string.sub
+---@diagnostic disable-next-line: undefined-field
+local untaint = string.untaint
 
 --region get args
 local getargs = ngx.req.get_uri_args()
@@ -100,6 +104,15 @@ local devices_columns = {
     readonly = true,
   },
 }
+
+-- post_helper.convertData is not available before 20.4
+local convertData = post_helper.convertData or function(bytes)
+  if bytes then
+    local _,text = common.bytes2string(bytes)
+    return text
+  end
+end
+
 local devices_column_index = {}
 for k=1,#devices_columns do
   local v = devices_columns[k]
@@ -117,6 +130,34 @@ local devices_options = {
 }
 
 local devices_data,devices_helpmsg = post_helper.handleTableQuery(devices_columns,devices_options,devices_helper.filter(wifi,"Active",getargs.cache,false,true),nil,nil)
+
+-- Firmware without the Rssi, MaxPhyRate and TxRxBytes host parameters reports them per access point station.
+-- They are only read when a host is missing one of them.
+local stations
+local function getStations()
+  if not stations then
+    stations = {}
+    local aps = proxy.getPN("rpc.wireless.ap.",true) or {}
+    for k=1,#aps do
+      local sta_paths = proxy.getPN(aps[k].path.."station.",true) or {}
+      for s=1,#sta_paths do
+        local path = sta_paths[s].path
+        local values = proxy.get(path.."state",path.."rssi",path.."tx_phy_rate",path.."tx_bytes",path.."rx_bytes")
+        if values then
+          local sta = {}
+          for v=1,#values do
+            sta[values[v].param] = untaint(values[v].value)
+          end
+          if sta.state ~= "Disconnected" and sta.state ~= "Authenticated" then
+            stations[lower(untaint(match(path,"@([^@%.]+)%.$")))] = sta
+          end
+        end
+      end
+    end
+  end
+  return stations
+end
+
 local group_data = {}
 group_data[wifi.multiap and devices_helper.hostname or "Wireless"] = {}
 for i=1,#devices_data do
@@ -133,7 +174,17 @@ for i=1,#devices_data do
   local signalstrength = row[devices_column_index["signalstrength"]]
   local linkrate = row[devices_column_index["linkrate"]]
   local databytes = row[devices_column_index["databytes"]]
-  row[devices_column_index["signalstrength"]] = signalstrength and signalstrength ~= "" and (tonumber(signalstrength)/2)-110 .. " dBm" or ""
+  local sta
+  if not signalstrength or signalstrength == "" or not linkrate or linkrate == "" or not databytes or databytes == "" then
+    sta = getStations()[lower(match(untaint(row[devices_column_index["macaddress"]]),"%x%x:%x%x:%x%x:%x%x:%x%x:%x%x") or "")]
+  end
+  if sta and (not linkrate or linkrate == "") then
+    linkrate = sta.tx_phy_rate
+  end
+  if sta and (not databytes or databytes == "") then
+    databytes = format("%s/%s",sta.tx_bytes,sta.rx_bytes)
+  end
+  row[devices_column_index["signalstrength"]] = signalstrength and signalstrength ~= "" and (tonumber(signalstrength)/2)-110 .. " dBm" or sta and sta.rssi and sta.rssi ~= "" and sta.rssi.." dBm" or ""
   row[devices_column_index["linkrate"]] = linkrate and linkrate ~= "" and tonumber(linkrate)/1000 .. "Mbps" or ""
   local token1 = {}
   for token in gmatch(databytes,"[^/]+") do
@@ -141,8 +192,8 @@ for i=1,#devices_data do
   end
   local tx_bytes = token1[1]
   local rx_bytes = token1[2]
-  tx_bytes = tx_bytes and post_helper.convertData(tonumber(tx_bytes)) or ""
-  rx_bytes = rx_bytes and post_helper.convertData(tonumber(rx_bytes)) or ""
+  tx_bytes = tx_bytes and convertData(tonumber(tx_bytes)) or ""
+  rx_bytes = rx_bytes and convertData(tonumber(rx_bytes)) or ""
   if tx_bytes ~= "" and rx_bytes ~= "" then
     row[devices_column_index["databytes"]] = format("%s / %s ",tx_bytes,rx_bytes)
   else
