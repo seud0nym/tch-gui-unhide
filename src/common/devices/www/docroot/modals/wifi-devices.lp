@@ -131,24 +131,31 @@ local devices_options = {
 
 local devices_data,devices_helpmsg = post_helper.handleTableQuery(devices_columns,devices_options,devices_helper.filter(wifi,"Active",getargs.cache,false,true),nil,nil)
 
--- Firmware without the Rssi, MaxPhyRate and TxRxBytes host parameters reports them per access point station
-local stations = {}
-local aps = proxy.getPN("rpc.wireless.ap.",true) or {}
-for k=1,#aps do
-  local sta_paths = proxy.getPN(aps[k].path.."station.",true) or {}
-  for s=1,#sta_paths do
-    local path = sta_paths[s].path
-    local values = proxy.get(path.."state",path.."rssi",path.."tx_phy_rate",path.."tx_bytes",path.."rx_bytes")
-    if values then
-      local sta = {}
-      for v=1,#values do
-        sta[values[v].param] = untaint(values[v].value)
-      end
-      if sta.state ~= "Disconnected" and sta.state ~= "Authenticated" then
-        stations[lower(untaint(match(path,"@([^@%.]+)%.$")))] = sta
+-- Firmware without the Rssi, MaxPhyRate and TxRxBytes host parameters reports them per access point station.
+-- They are only read when a host is missing one of them.
+local stations
+local function getStations()
+  if not stations then
+    stations = {}
+    local aps = proxy.getPN("rpc.wireless.ap.",true) or {}
+    for k=1,#aps do
+      local sta_paths = proxy.getPN(aps[k].path.."station.",true) or {}
+      for s=1,#sta_paths do
+        local path = sta_paths[s].path
+        local values = proxy.get(path.."state",path.."rssi",path.."tx_phy_rate",path.."tx_bytes",path.."rx_bytes")
+        if values then
+          local sta = {}
+          for v=1,#values do
+            sta[values[v].param] = untaint(values[v].value)
+          end
+          if sta.state ~= "Disconnected" and sta.state ~= "Authenticated" then
+            stations[lower(untaint(match(path,"@([^@%.]+)%.$")))] = sta
+          end
+        end
       end
     end
   end
+  return stations
 end
 
 local group_data = {}
@@ -167,7 +174,10 @@ for i=1,#devices_data do
   local signalstrength = row[devices_column_index["signalstrength"]]
   local linkrate = row[devices_column_index["linkrate"]]
   local databytes = row[devices_column_index["databytes"]]
-  local sta = stations[lower(match(untaint(row[devices_column_index["macaddress"]]),"%x%x:%x%x:%x%x:%x%x:%x%x:%x%x") or "")]
+  local sta
+  if not signalstrength or signalstrength == "" or not linkrate or linkrate == "" or not databytes or databytes == "" then
+    sta = getStations()[lower(match(untaint(row[devices_column_index["macaddress"]]),"%x%x:%x%x:%x%x:%x%x:%x%x:%x%x") or "")]
+  end
   if sta and (not linkrate or linkrate == "") then
     linkrate = sta.tx_phy_rate
   end
