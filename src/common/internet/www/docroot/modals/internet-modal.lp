@@ -81,8 +81,8 @@ if not tabdata.current.ajax then
   </div>\
   ');
   ngx.print(ui_helper.createFooter());
-  local args = ngx.req.get_post_args()
-  if args.action == "SWITCH_MODE" then
+  -- get_post_args() runs the CSRF check, which fails (403) on a GET, so only read it for a POST.
+  if ngx.req.get_method() == "POST" and ngx.req.get_post_args().action == "SWITCH_MODE" then
     ngx.print('<script language ="javascript">$(document).ready(function(){$("#modal-no-change").hide(); $("#modal-changes").show();});</script>')
   end
 end

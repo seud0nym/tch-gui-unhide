@@ -72,7 +72,7 @@ fi
 
 echo -e "[$SCRIPT]: Only start/restart/reload firewall if service enabled"
 sed \
-  -e 's|fw3 [^f]|/etc/init.d/firewall enabled \&\& &|' \
+  -e '/\/etc\/init.d\/firewall enabled/!s|fw3 [^f]|/etc/init.d/firewall enabled \&\& &|' \
   -i /etc/init.d/firewall
 
 if [ "$(uci -q get firewall.fix_guest_access_to_port_forwards)" != "include" ]; then

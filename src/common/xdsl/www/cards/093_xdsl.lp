@@ -33,7 +33,7 @@ if session:hasAccess(modalPath) and lfs.attributes("/etc/config/xdsl", "mode") =
 
     local enabled = (content.dsl0_enabled and content.dsl0_enabled == "1") and "1" or "0"
     local line_status = (content.line_status and content.line_status == "Up") and "1" or "0"
-    local xdsl_status = (content.xdsl_status and content.xdsl_status == "Idle") and "1" or "0"
+    local xdsl_status = (content.xdsl_status and content.xdsl_status == "Showtime") and "1" or "0"
 
     if not content.dslam_chipset then
       content.dslam_chipset = T"Not Up"

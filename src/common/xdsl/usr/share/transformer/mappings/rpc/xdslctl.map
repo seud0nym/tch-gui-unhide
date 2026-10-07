@@ -114,7 +114,7 @@ local function pbParams_find(bandtype)
 			if (bandtype == "Ds") then
 				local _ = pbfile:read("*l")
 			end
-			pbstring = pbfile:read("*l")
+			pbstring = pbfile:read("*l") or ""
 			break
 		elseif pbline:match("VDSL Port Details") then
 			break
@@ -124,9 +124,9 @@ local function pbParams_find(bandtype)
 	pbfile:close()
 
 	if (bandtype == "Us") then
-		local First_US_band = tonumber((pbstring:match("%([0-9]+,"):gsub("%(", ""):gsub(",", "")))
+		local First_US_band = tonumber(pbstring:match("%(([0-9]+),"))
 		local Us_band_num = select(2, pbstring:gsub("%(", ""))
-		if (Us_band_num == 3) and (First_US_band > 100) then
+		if (Us_band_num == 3) and First_US_band and (First_US_band > 100) then
 			pbstring = pbstring:gsub(":", ": (0,32)") --handle strange case when onu disable US0
 		end
 	end
