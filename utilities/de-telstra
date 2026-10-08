@@ -21121,7 +21121,7 @@ fi
 [ $SRV_mesh_broker -gt 0 ] && apply_service_action mesh-broker always enable
 [ $SRV_mmpbxd -gt 0 ] && { apply_service_action mmpbxd always enable; apply_service_action mmpbxfwctl always enable; }
 [ $SRV_monitor -gt 0 ] && { apply_service_action autoreset always disable stop; apply_service_action tls-thor always disable stop; }
-[ $SRV_multiap -gt 0 ] && { apply_service_action multiap_controller always enable; multiap_agent always enable; apply_service_action multiap_vendorextensions always enable; }
+[ $SRV_multiap -gt 0 ] && { apply_service_action multiap_controller always enable; apply_service_action multiap_agent always enable; apply_service_action multiap_vendorextensions always enable; }
 [ $SRV_samba -gt 0 ] && { apply_service_action samba always enable >$__STDOUT 2>&1; apply_service_action samba-nmbd always enable; }
 [ $SRV_upnp -gt 0 ] && apply_service_action miniupnpd-tch always enable
 echo -en ${NC}
