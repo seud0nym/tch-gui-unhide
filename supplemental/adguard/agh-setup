@@ -231,7 +231,9 @@ configure_dnmasq() {
       uci -q set dhcp.@dnsmasq[$i].port="$DNS_PORT"
       if [ "$DNSMASQ" = "enable" ]; then
         uci -q delete dhcp.@dnsmasq[$i].cachesize
-        uci -q del_list dhcp.@dnsmasq[$i].server="127.0.0.1#$AGH_PORT"
+        # AGH_PORT is only 53535 when -k is given again, so remove the upstream for either port
+        uci -q del_list dhcp.@dnsmasq[$i].server="127.0.0.1#53"
+        uci -q del_list dhcp.@dnsmasq[$i].server="127.0.0.1#53535"
       elif [ $KEEP_DNSMASQ = Y ]; then
         uci -q set dhcp.@dnsmasq[$i].cachesize='0'
         uci -q delete dhcp.@dnsmasq[$i].server
