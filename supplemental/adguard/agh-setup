@@ -858,7 +858,7 @@ EXTRA_COMMANDS="uninstall"
 EXTRA_HELP="    uninstall Removes the cron job and disables this init script"
 boot() {
   logger -t sync-adguard-home-data Creating sync directories
-  [ ! -d /root/AdGuardHomeWork ] && { mkdir -p /root/AdGuardHomeWork; echo "This directory is automatically synced between /root/AdGuardHomeWork and $WORKING_DIR. DO NOT DELETE!">/root/AdGuardHomeWork; }
+  [ ! -d /root/AdGuardHomeWork ] && mkdir -p /root/AdGuardHomeWork
   [ ! -d $WORKING_DIR ] && mkdir -p $WORKING_DIR
   logger -t sync-adguard-home-data Restoring AdGuardHome data directory
   rsync -qa --delete /root/AdGuardHomeWork/ $WORKING_DIR/
