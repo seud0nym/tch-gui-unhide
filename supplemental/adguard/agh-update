@@ -37,6 +37,17 @@ upgrade() {
   exit
 }
 
+# Download $1 to $2 (- for stdout), verifying the server certificate against the updated system CA certificates
+# when they are available. Falls back to an unverified download (as before) with a warning.
+agh_fetch() {
+  local ca=/etc/ssl/certs/ca-certificates.crt
+  if [ -s $ca ] && curl -sfL --cacert $ca -o $2 $1; then
+    return 0
+  fi
+  echo "[AdGuard-Home-Update] WARNING: Could not verify the certificate of $(echo $1 | cut -d/ -f3) - downloading without verification" >&2
+  curl -sfkL -o $2 $1
+}
+
 AGHDIR=$(dirname $(grep -o -m 1 -E '/.*/AdGuardHome/AdGuardHome ' /etc/init.d/AdGuardHome))
 [ -z "$AGHDIR" ] && { echo "[AdGuard-Home-Update] ERROR! Could not determine AdGuardHome installation directory. Aborting..."; exit 2; }
 
@@ -86,9 +97,29 @@ if [ $CURRENT != $LATEST ]; then
 
   cd /tmp
   echo "[AdGuard-Home-Update] Downloading $URL"
-  curl -kLSO "$URL"
+  SUM="$(agh_fetch $(dirname $URL)/checksums.txt - | grep " \./$FILENAME\$" | cut -d' ' -f1)"
+  if [ -z "$SUM" ]; then
+    echo "[AdGuard-Home-Update] ERROR! Failed to download the AdGuard Home checksums. Aborting..."
+    exit 2
+  fi
+  if ! agh_fetch "$URL" "$FILENAME"; then
+    rm -f "$FILENAME"
+    echo "[AdGuard-Home-Update] ERROR! Failed to download $URL. Aborting..."
+    exit 2
+  fi
+  if [ "$(sha256sum "$FILENAME" | cut -d' ' -f1)" != "$SUM" ]; then
+    rm -f "$FILENAME"
+    echo "[AdGuard-Home-Update] ERROR! Downloaded $FILENAME does not match the published checksum. Aborting..."
+    exit 2
+  fi
+  echo "[AdGuard-Home-Update] Verified $FILENAME (sha256 $SUM)"
   echo "[AdGuard-Home-Update] Extracting $FILENAME into /tmp"
-  tar -zxvf "$FILENAME"
+  rm -rf /tmp/AdGuardHome
+  if ! tar -zxvf "$FILENAME" || [ ! -x /tmp/AdGuardHome/AdGuardHome ]; then
+    rm -rf "/tmp/$FILENAME" /tmp/AdGuardHome
+    echo "[AdGuard-Home-Update] ERROR! Failed to extract $FILENAME. Aborting..."
+    exit 2
+  fi
   cd $AGHDIR
   echo "[AdGuard-Home-Update] Stopping AdGuard Home $CURRENT..."
   ./AdGuardHome -s stop
