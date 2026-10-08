@@ -35,6 +35,18 @@ if [ "$MINIFY" = y ]; then
     -i /www/docroot/modals/wireless-client-modal.lp
 fi
 
+if grep -q -E '^(local )?pmfList = \{$' /www/docroot/modals/wireless-modal.lp \
+&& grep -q 'pmf = gVIES(pmfList)' /www/docroot/modals/wireless-modal.lp \
+&& ! grep -q '{"required", T"Required"}' /www/docroot/modals/wireless-modal.lp; then
+  echo -e "[$SCRIPT]: Add Required to Protected Management Frames"
+  sed \
+    -e '/^\(local \)\{0,1\}pmfList = {$/,/^}/{/^}/i\
+  {"required", T"Required"},
+}' \
+    -e 's/createInputSelect(T"Protected Management Frames", "pmf", pmfList/createInputSelect(T"Protected Management Frames<span class='"'"'icon-question-sign'"'"' title='"'"'Required: only devices that support PMF (802.11w) can connect. It applies to WPA2 (AES) security only.'"'"'><\/span>", "pmf", pmfList/' \
+    -i /www/docroot/modals/wireless-modal.lp
+fi
+
 if [ $(uci -q show network | grep -E '\.Guest.*=interface' | wc -l) -eq 0 ]; then
   echo -e "[$SCRIPT]: Fixed Basic view Wi-Fi tabs when Guest Wi-Fi removed"
   sed -e '/^--check whether the.*guest1 exists/,/^$/d' -i /www/snippets/tabs-wifi.lp
