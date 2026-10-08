@@ -56,7 +56,7 @@ while getopts :p:z:CU option
 do
  case "${option}" in
   p)  PASSWORD="$OPTARG";;
-  z)  PASSWORD="$(echo $OPTARG | base64 -d | gzip -d)";;
+  z)  PASSWORD="$(echo "$OPTARG" | base64 -d | gzip -d)";;
   C)  CRON=Y;;
   U)  upgrade;;
   *)  usage;;
@@ -85,13 +85,20 @@ if [ -z "$USERNAME" ]; then
   exit 2
 fi
 
-HOST=$(grep '^bind_host:' $AGH_YAML | cut -d: -f2 | xargs)
+# Since configuration schema 20, AdGuard Home keeps the web address as http: address: host:port
+ADDRESS=$(awk '/^http:/{h=1;next} /^[^ ]/{h=0} h&&/^  address:/{print $2;exit}' $AGH_YAML)
+if [ -n "$ADDRESS" ]; then
+  HOST="${ADDRESS%:*}"
+  PORT="${ADDRESS##*:}"
+else
+  HOST=$(grep '^bind_host:' $AGH_YAML | cut -d: -f2 | xargs)
+  PORT=$(grep '^bind_port:' $AGH_YAML | cut -d: -f2 | xargs)
+fi
 if [ -z "$HOST" ]; then
   echo "[$SCRIPT] ERROR: Unable to retrieve IP address from $AGH_YAML???"
   exit 2
 fi
 
-PORT=$(grep '^bind_port:' $AGH_YAML | cut -d: -f2 | xargs)
 if [ -z "$PORT" ]; then
   echo "[$SCRIPT] ERROR: Unable to retrieve port number from $AGH_YAML???"
   exit 2
@@ -107,21 +114,30 @@ then
   else
     mm=$(awk 'BEGIN{srand();print int(rand()*59);}')
     hh=$(awk 'BEGIN{srand();print int(rand()*3)+2;}')
-    echo "$mm $hh * * 6 $(cd $(dirname $0); pwd)/$SCRIPT -z '$(echo $PASSWORD | gzip | base64)'" >> /etc/crontabs/root
+    echo "$mm $hh * * 6 $(cd $(dirname $0); pwd)/$SCRIPT -z '$(printf '%s' "$PASSWORD" | gzip | base64 | tr -d '\n')'" >> /etc/crontabs/root
     echo "[$SCRIPT] Block list update has been scheduled to execute at $hh:$(printf '%02d' $mm)am every Saturday."
   fi
   exit
 fi
+
+# Pass the credentials to curl in a config file, so that any characters work and they are not on a command line
+CURL_CFG=$(mktemp)
+trap "rm -f $CURL_CFG" EXIT
+printf 'user = "%s"\n' "$(printf '%s' "$USERNAME:$PASSWORD" | sed 's/[\\"]/\\&/g')" > $CURL_CFG
 
 lua -e "
   json=require('dkjson')
   popen=io.popen
   blocklists={}
   whitelists={}
-  curl=popen('curl -su \"$USERNAME:$PASSWORD\" http://$HOST:$PORT/control/filtering/status')
+  curl=popen('curl -s -K $CURL_CFG http://$HOST:$PORT/control/filtering/status')
   raw=curl:read('*a')
   curl:close()
   status=json.decode(raw)
+  if type(status) ~= 'table' or type(status.filters) ~= 'table' then
+    print('[$SCRIPT] ERROR: Unable to read the AdGuard Home filters from http://$HOST:$PORT (wrong password?)')
+    os.exit(2)
+  end
   for i,filter in pairs(status.filters) do
     blocklists[filter.url]=true
   end
@@ -143,7 +159,7 @@ lua -e "
   end
   for _,list in pairs(toadd) do
     data=json.encode(list):gsub('\"', '\\\\\"')
-    add_url='curl -u \"$USERNAME:$PASSWORD\" -X POST --data \"'..data..'\" http://$HOST:$PORT/control/filtering/add_url'
+    add_url='curl -s -K $CURL_CFG -H \"Content-Type: application/json\" -X POST --data \"'..data..'\" http://$HOST:$PORT/control/filtering/add_url'
     print(string.format('Adding %s %s',(list.whitelist and 'whitelist' or 'blocklist'),list.url))
     os.execute(add_url)
   end
