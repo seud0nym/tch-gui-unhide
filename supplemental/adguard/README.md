@@ -89,17 +89,14 @@ The following optional configuration parameters may be specified **after** the d
   - The AdGuard Home web user name.
   - If not specified, the user name defaults to: root
 - -p password
-  - The plain text AdGuard Home web password.
+  - The plain text AdGuard Home web password (at least 8 characters).
   - If not specified, the password defaults to: agh-admin
-  - The password will be hashed by calling https://bcrypt.org/api/generate-hash.json
+  - The password will be hashed on the device by the downloaded AdGuard Home.
 - -h 'hash'
   - The Bcrypt password hash representing the AdGuard Home web password.
   - If not specified, the password defaults to: agh-admin
   - NOTE: The hash value **MUST** be specified within single quotes.
-  - You can generate the hash using an online generator, such as:
-    - https://bcrypt.org/
-    - https://www.appdevtools.com/bcrypt-generator
-    - https://wtools.io/bcrypt-generator-online
+  - You can generate the hash on a computer with Apache htpasswd: `htpasswd -nbBC 10 "" 'password' | tr -d ':\n'`
   - If you supply a password hash, you *must* also use the `-p` option to specify the matching password, so that AdGuard Home can be checked post-installation and any static leases currently defined in dnsmasq can be loaded.
 - -v 'version'
   - The version of AdGuard Home to be installed (e.g. v0.107.7).
@@ -189,15 +186,12 @@ Usage: sh agh-change-password [parameters]
 
 Parameters:
  - -p password
-    - The new plain text AdGuard Home web password. The password will be hashed by calling https://bcrypt.org/api/generate-hash.json
+    - The new plain text AdGuard Home web password (at least 8 characters). The password will be hashed on the device by the installed AdGuard Home.
     - This option is ignored if -h is specified.
  - -h 'hash'
     - The Bcrypt password hash representing new the AdGuard Home web password.
     - The hash value **MUST** be specified within single quotes.
-    - You can generate the hash using an online generator, such as:
-      - https://bcrypt.org/
-      - https://www.appdevtools.com/bcrypt-generator
-      - https://wtools.io/bcrypt-generator-online
+    - You can generate the hash on a computer with Apache htpasswd: `htpasswd -nbBC 10 "" 'password' | tr -d ':\n'`
  - -n username
     - The new AdGuard Home web user name.
  - -U

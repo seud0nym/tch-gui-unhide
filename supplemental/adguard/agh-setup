@@ -13,16 +13,15 @@ Usage: agh-setup [options]
 options:
  -n username       The AdGuard Home web user name.
                       If not specified, the user name defaults to: root
- -p password       The plain text AdGuard Home web password. The password will be
-                      hashed by calling https://bcrypt.org/api/generate-hash.json
+ -p password       The plain text AdGuard Home web password (at least 8 characters).
+                      The password will be hashed on this device by the downloaded
+                      AdGuard Home.
  -h 'hash'         The Bcrypt password hash representing the AdGuard Home web
                       password. If not specified and -p is also not specifed, the
                       password defaults to: agh-admin
                       The hash value MUST be specified within single quotes.
-                      You can generate the hash using an online generator, such as:
-                        - https://bcrypt.org/
-                        - https://www.appdevtools.com/bcrypt-generator
-                        - https://wtools.io/bcrypt-generator-online
+                      You can generate the hash on a computer with Apache htpasswd:
+                        htpasswd -nbBC 10 "" 'password' | tr -d ':\n'
                       If you supply a password hash, you should use the -p option
                       to specify the matching password, so that AdGuard Home status
                       can be checked post-installation, and any static leases
@@ -341,6 +340,10 @@ if [ -z "$PWD_HASH" ]; then
     echo -e "${RED}[$SCRIPT] No password hash specified! Aborting...${NC}"
     exit 2
   fi
+  if [ ${#PASSWORD} -lt 8 ]; then
+    echo -e "${RED}[$SCRIPT] The password must be at least 8 characters long! Aborting...${NC}"
+    exit 2
+  fi
 else
   echo "$PWD_HASH" | grep -q -E '^\$2[a-z]\$[0-9][0-9]\$'
   if [ $? -ne 0 ];then
@@ -422,36 +425,40 @@ if [ $EXTERNAL = N -a $OVERLAY_FS = jffs2 ]; then
   fi
 fi
 
-if [ -z "$PWD_HASH" -a -n "$PASSWORD" ]; then
-  echo -e "${GREEN}[$SCRIPT] Generating password hash...${NC}"
-  JSON=$(curl -skLX POST --data "password=$PASSWORD&cost=10" https://bcrypt.org/api/generate-hash.json)
-  JSON_RC=$?
-  if [ $JSON_RC -eq 6 ]; then
-    HASHD_OK="0"
-    HASH_MSG="curl: (6) Could not resolve host: bcrypt.org"
-  elif [ $JSON_RC -ne 0 ]; then
-    HASHD_OK="0"
-    HASH_MSG="curl: ($JSON_RC) Failed to generate hash from bcrypt.org"
-  else
+# Sets PWD_HASH to the bcrypt hash of PASSWORD, generated on this device by the downloaded AdGuard Home itself: a
+# temporary instance listening only on loopback is set up through its first-run API, and the hash is read from the
+# configuration file it writes. The password is not sent off the device.
+agh_hash_password() {
+  local dir=/tmp/agh-hash.$$ web_port=38008 dns_port=38053 pid code n=0
+  rm -rf $dir
+  mkdir -m 700 $dir || return 1
+  $INSTALL_ROOT/AdGuardHome/AdGuardHome --no-check-update -c $dir/AdGuardHome.yaml -w $dir -h 127.0.0.1 -p $web_port > $dir/log 2>&1 &
+  pid=$!
+  while [ $n -lt 60 ] && kill -0 $pid 2>/dev/null; do
+    curl -s -o /dev/null http://127.0.0.1:$web_port/control/install/get_addresses && break
+    sleep 1
+    n=$((n+1))
+  done
+  ( umask 077
     . /usr/share/libubox/jshn.sh
-    json_load "$JSON"
-    json_get_var HASHD_OK ok
-    json_get_var CHCK_PWD password
-    json_get_var NEW_HASH hash
-    json_get_var HASH_MSG msg
+    json_init
+    json_add_object web; json_add_string ip 127.0.0.1; json_add_int port $web_port; json_close_object
+    json_add_object dns; json_add_string ip 127.0.0.1; json_add_int port $dns_port; json_close_object
+    json_add_string username "$USERNAME"
+    json_add_string password "$PASSWORD"
+    json_dump > $dir/request.json )
+  code=$(curl -s -o $dir/response -w '%{http_code}' -H 'Content-Type: application/json' --data-binary @$dir/request.json http://127.0.0.1:$web_port/control/install/configure)
+  rm -f $dir/request.json
+  [ "$code" = 200 ] && PWD_HASH=$(grep -o -m 1 '\$2[aby]\$[0-9][0-9]\$[./0-9A-Za-z]\{53\}' $dir/AdGuardHome.yaml)
+  kill $pid 2>/dev/null
+  wait $pid 2>/dev/null
+  if [ -z "$PWD_HASH" ]; then
+    echo -e "${RED}[$SCRIPT] Password hash failed with message: ${NC}$(cat $dir/response 2>/dev/null || tail -n 1 $dir/log)"
+    rm -rf $dir
+    return 1
   fi
-  if [ "$HASHD_OK" = "1" ]; then
-    if [ "$CHCK_PWD" = "$PASSWORD" ]; then
-      PWD_HASH="$NEW_HASH"
-    else
-      echo -e "${RED}[$SCRIPT] Returned password ($CHCK_PWD) is not the same as the sent password ($PASSWORD)??? Aborting...${NC}"
-      exit 2
-    fi
-  else
-    echo -e "${RED}[$SCRIPT] Password hash failed with message: ${NC}${HASH_MSG}${RED} Aborting...${NC}"
-    exit 2
-  fi
-fi
+  rm -rf $dir
+}
 
 if [ $DOWNLOAD = Y -o ! -d AdGuardHome ]; then
   if [ -z "$AGH_VER" ]; then
@@ -475,6 +482,14 @@ if [ $DOWNLOAD = Y -o ! -d AdGuardHome ]; then
 fi
 
 [ ! -d $WORKING_DIR ] && mkdir -p $WORKING_DIR
+
+if [ -z "$PWD_HASH" -a -n "$PASSWORD" ]; then
+  echo -e "${GREEN}[$SCRIPT] Generating password hash...${NC}"
+  if ! agh_hash_password; then
+    echo -e "${RED}[$SCRIPT] Aborting...${NC}"
+    exit 2
+  fi
+fi
 
 echo -e "${GREEN}[$SCRIPT] Disabling dnsmasq to free up RAM and port 53...${NC}"
 configure_dnmasq disable
@@ -891,7 +906,7 @@ AGH_RUNNING='false'
 STATUS_CHK=0
 while [ $STATUS_CHK -lt 15 ]; do
   echo -n "."
-  curl -su $USERNAME:$PASSWORD http://${GATEWAY}:8008/control/status | grep -q '"running":true'
+  curl -su "$USERNAME:$PASSWORD" http://${GATEWAY}:8008/control/status | grep -q '"running":true'
   if [ $? -eq 0 ]; then
     AGH_RUNNING='true'
     break
@@ -911,7 +926,7 @@ if [ $AGH_RUNNING = 'true' ]; then
       SLEASE_NAME="$(uci -q get $host.name)"
       if [ -n "$SLEASE_IP" -a -n "$SLEASE_MAC" -a -n "$SLEASE_NAME" ]; then
         echo -e "[$SCRIPT] Loading static lease for $SLEASE_IP ($SLEASE_MAC - $SLEASE_NAME)"
-        curl -u $USERNAME:$PASSWORD -X POST -H 'Content-Type: application/json' --data "{ \"mac\":\"$SLEASE_MAC\", \"ip\":\"$SLEASE_IP\", \"hostname\":\"$SLEASE_NAME\" }" http://${GATEWAY}:8008/control/dhcp/add_static_lease
+        curl -u "$USERNAME:$PASSWORD" -X POST -H 'Content-Type: application/json' --data "{ \"mac\":\"$SLEASE_MAC\", \"ip\":\"$SLEASE_IP\", \"hostname\":\"$SLEASE_NAME\" }" http://${GATEWAY}:8008/control/dhcp/add_static_lease
       else
         echo -e "${ORANGE}[$SCRIPT] SKIPPED loading static lease - missing parameter (MAC=$SLEASE_MAC: IP=$SLEASE_IP HOST NAME=$SLEASE_NAME)${NC}"
       fi
