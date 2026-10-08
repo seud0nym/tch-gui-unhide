@@ -131,6 +131,7 @@ The following optional configuration parameters may be specified **after** the d
   - This will continue to use dnsmasq for DHCP, at the expense of some additional RAM.
 - -k
   - Specifies that you do want to keep dnsmasq as the primary DNS Server, but AdGuard Home will be used to resolve the DNS queries.
+  - AdGuard Home will only accept DNS queries from 127.0.0.1 (dnsmasq).
   - This will come at the expense of some additional RAM.
 
 # Post-Installation
