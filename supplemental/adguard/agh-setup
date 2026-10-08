@@ -303,6 +303,7 @@ if [ $REMOVE = Y ]; then
     echo -e "${GREEN}[$SCRIPT] Removing data directory sync hack...${NC}"
     /etc/init.d/sync-adguard-home-data uninstall
     rm /etc/init.d/sync-adguard-home-data
+    [ $DEL_AGH = Y ] && rm -rf /root/AdGuardHomeWork /tmp/AdGuardHomeWork
   fi
 
   if [ -e /etc/hotplug.d/mount/00-adguardhome ]; then
