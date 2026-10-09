@@ -30,6 +30,8 @@ FMT=" -> ${ORANGE}%-16s${NC} : %s "
 
 ACTIVE_BANK=""
 BOOTED_BANK=""
+INACTIVE_BANK=""
+NOTBOOTED_BANK=""
 OPTIMAL=0
 
 test_optimal() {
@@ -47,15 +49,15 @@ handle_content() {
   local config="$1"
   local content="$2"
   if [ $QUIET = N ]; then
-    if [ "$config" = "activeversion" -a -n "$content" -a "/$content/" != "Unknown" -a -n "$ACTIVE_BANK" -a -e /overlay/$ACTIVE_BANK/etc/config/versioncusto ]; then
+    if [ "$config" = "activeversion" -a -n "$content" -a "$content" != "Unknown" -a -n "$ACTIVE_BANK" -a -e /overlay/$ACTIVE_BANK/etc/config/versioncusto ]; then
       content="$(echo $content | cut -d- -f1)$(uci -c /overlay/$ACTIVE_BANK/etc/config -q get versioncusto.override.fwversion_suffix)"
-    elif [ "$config" = "bootedversion" -a -n "$content" -a "/$content/" != "Unknown" -a -n "$BOOTED_BANK" -a -e /overlay/$BOOTED_BANK/etc/config/versioncusto ]; then
+    elif [ "$config" = "bootedversion" -a -n "$content" -a "$content" != "Unknown" -a -n "$BOOTED_BANK" -a -e /overlay/$BOOTED_BANK/etc/config/versioncusto ]; then
       content="$(echo $content | cut -d- -f1)$(uci -c /overlay/$BOOTED_BANK/etc/config -q get versioncusto.override.fwversion_suffix)"
-    elif [ \( "$config" = "passiveversion" -o "$config" = "notbootedversion" \) -a -n "$content" -a "/$content/" != "Unknown" -a -n "$BOOTED_BANK" ]; then
-      local passive="bank_1"
+    elif [ \( "$config" = "passiveversion" -o "$config" = "notbootedversion" \) -a -n "$content" -a "$content" != "Unknown" ]; then
+      local passive="$INACTIVE_BANK"
+      [ "$config" = "notbootedversion" ] && passive="$NOTBOOTED_BANK"
       content="$(echo $content | cut -d- -f1)"
-      [ "$BOOTED_BANK" = "bank_1" -a "$BOOTED_BANK" != "$ACTIVE_BANK" ] && passive="bank_2"
-      [ -e /overlay/$passive/etc/config/versioncusto ] && content="$content$(uci -c /overlay/$passive/etc/config -q get versioncusto.override.fwversion_suffix)"
+      [ -n "$passive" -a -e /overlay/$passive/etc/config/versioncusto ] && content="$content$(uci -c /overlay/$passive/etc/config -q get versioncusto.override.fwversion_suffix)"
     fi
     printf "$FMT" "$config" "$content"
   fi
@@ -66,6 +68,8 @@ handle_content() {
     BOOTED_BANK="$content"
     test_optimal "$content" "$BOOTED_OPTIMAL"
   else
+    [ "$config" = "inactive" ] && INACTIVE_BANK="$content"
+    [ "$config" = "notbooted" ] && NOTBOOTED_BANK="$content"
     [ $QUIET = N ] && echo
   fi
 }
