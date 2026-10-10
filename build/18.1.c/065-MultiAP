@@ -39,3 +39,52 @@ fi
 echo -e "[$SCRIPT]: Fixing 'sh: missing ]' bug in /etc/init.d/multiap_controller"
 sed -e 's/al_mac"\]/al_mac" ]/' -i /etc/init.d/multiap_controller
 
+
+if [ -f /etc/init.d/multiap_controller -a -f /etc/init.d/multiap_agent ]; then
+  echo -e "[$SCRIPT]: Scoping the bare 'uci commit' calls in the MultiAP init scripts"
+  sed \
+    -e '/^set_supported_security_mode/,/^}/s/^\([ 	]*\)uci commit$/\1uci commit wireless/' \
+    -e 's/^\([ 	]*\)uci commit$/\1uci commit multiap/' \
+    -i /etc/init.d/multiap_controller
+  sed -e 's/^\([ 	]*\)uci commit$/\1uci commit multiap/' -i /etc/init.d/multiap_agent
+
+  echo -e "[$SCRIPT]: Quoting the model name passed to the MultiAP daemons"
+  sed -e 's/env MAP_MODEL_NAME=\$model_name$/env MAP_MODEL_NAME="$model_name"/' -i /etc/init.d/multiap_controller /etc/init.d/multiap_agent
+
+  echo -e "[$SCRIPT]: Removing the IEEE 1905 ebtables rules when the MultiAP daemons stop"
+  if ! grep -q 'tch-gui-unhide: 1905 broute cleanup' /etc/init.d/multiap_controller; then
+    cat >> /etc/init.d/multiap_controller <<'EOC'
+
+# tch-gui-unhide: 1905 broute cleanup (redefines the stop_service above)
+stop_service(){
+  add_or_remove_domain_name_entry_for_boosters "del_list"
+  /etc/init.d/multiap_vendorextensions stop
+  local mac
+  config_load multiap
+  config_get mac controller macaddress
+  [ -n "$mac" ] && ebtables -t broute -D BROUTING -p 0x893a -d "$mac" -j DROP 2>/dev/null
+  # keep the shared multicast rule while the agent still has its own rule (the stock agent ignores SIGTERM and
+  # lingers ~5 s after stop, so a process check would be wrong)
+  local other; config_get other agent macaddress; other=$(echo "$other" | tr A-F a-f | sed -e 's/^0//' -e 's/:0/:/g')
+  [ -n "$other" ] && ebtables -t broute -L BROUTING | grep -q -- "-d $other " || ebtables -t broute -D BROUTING -p 0x893a -d 1:80:c2:0:0:13 -j DROP 2>/dev/null
+  return 0
+}
+EOC
+  fi
+  if ! grep -q 'tch-gui-unhide: 1905 broute cleanup' /etc/init.d/multiap_agent; then
+    cat >> /etc/init.d/multiap_agent <<'EOC'
+
+# tch-gui-unhide: 1905 broute cleanup
+stop_service(){
+  local mac
+  config_load multiap
+  config_get mac agent macaddress
+  [ -n "$mac" ] && ebtables -t broute -D BROUTING -p 0x893a -d "$mac" -j DROP 2>/dev/null
+  # keep the shared multicast rule while the controller still has its own rule
+  local other; config_get other controller macaddress; other=$(echo "$other" | tr A-F a-f | sed -e 's/^0//' -e 's/:0/:/g')
+  [ -n "$other" ] && ebtables -t broute -L BROUTING | grep -q -- "-d $other " || ebtables -t broute -D BROUTING -p 0x893a -d 1:80:c2:0:0:13 -j DROP 2>/dev/null
+  return 0
+}
+EOC
+  fi
+fi
