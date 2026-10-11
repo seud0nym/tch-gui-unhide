@@ -453,6 +453,17 @@ if [ -z "$PWD_HASH" -a -n "$PASSWORD" ]; then
   fi
 fi
 
+# Download $1 to $2 (- for stdout), verifying the server certificate against the updated system CA certificates
+# when they are available. Falls back to an unverified download (as before) with a warning.
+agh_fetch() {
+  local ca=/etc/ssl/certs/ca-certificates.crt
+  if [ -s $ca ] && curl -sfL --cacert $ca -o $2 $1; then
+    return 0
+  fi
+  echo -e "${ORANGE}[$SCRIPT] WARNING: Could not verify the certificate of $(echo $1 | cut -d/ -f3) - downloading without verification${NC}" >&2
+  curl -sfkL -o $2 $1
+}
+
 if [ $DOWNLOAD = Y -o ! -d AdGuardHome ]; then
   if [ -z "$AGH_VER" ]; then
     echo -e "${GREEN}[$SCRIPT] Downloading latest release of AdGuard Home...${NC}"
@@ -467,11 +478,30 @@ if [ $DOWNLOAD = Y -o ! -d AdGuardHome ]; then
     *)        echo -e "${RED}[$SCRIPT] Unable to handle $(uname -m) archictecture! Aborting...${NC}"; exit 2;;
   esac
   AGH_URL="${AGH_URL}${ARCH}.tar.gz"
-  curl -kL $AGH_URL | tar -xzf -
-  if [ $? -ne 0 ]; then
+  AGH_TGZ="/tmp/$(basename $AGH_URL)"
+  AGH_SUM="$(agh_fetch $(dirname $AGH_URL)/checksums.txt - | grep " \./$(basename $AGH_URL)\$" | cut -d' ' -f1)"
+  if [ -z "$AGH_SUM" ]; then
+    echo -e "${RED}[$SCRIPT] Failed to download the AdGuard Home checksums! Aborting...${NC}"
+    exit 2
+  fi
+  if ! agh_fetch $AGH_URL $AGH_TGZ; then
+    rm -f $AGH_TGZ
     echo -e "${RED}[$SCRIPT] Failed to download AdGuard Home! Aborting...${NC}"
     exit 2
   fi
+  if [ "$(sha256sum $AGH_TGZ | cut -d' ' -f1)" != "$AGH_SUM" ]; then
+    rm -f $AGH_TGZ
+    echo -e "${RED}[$SCRIPT] Downloaded AdGuard Home does not match the published checksum! Aborting...${NC}"
+    exit 2
+  fi
+  echo "[$SCRIPT] Verified $(basename $AGH_URL) (sha256 $AGH_SUM)"
+  tar -xzf $AGH_TGZ
+  if [ $? -ne 0 ]; then
+    rm -f $AGH_TGZ
+    echo -e "${RED}[$SCRIPT] Failed to extract AdGuard Home! Aborting...${NC}"
+    exit 2
+  fi
+  rm -f $AGH_TGZ
 fi
 
 [ ! -d $WORKING_DIR ] && mkdir -p $WORKING_DIR
