@@ -63,7 +63,7 @@ exit
 
 #region Parameters
 GUEST='n'
-IPV6='n'
+IPv6='n'
 LOGLVL='2'
 REBOOT='y'
 SAMBA='n'
