@@ -56,7 +56,9 @@ fi
 
 cd "$(dirname "$AGH_YAML")" || { echo "[$SCRIPT] ERROR: Unable to change to AdGuard Home directory ($(dirname "$AGH_YAML"))!"; exit 2; }
 
-FILES=$(find . -type f -name 'querylog.*')
+# The query logs are in the working directory (-w), which is /tmp/AdGuardHomeWork on jffs2 internal storage
+WORK_DIR=$(grep -o -m 1 -E '"-w" "[^"]+"' /etc/init.d/AdGuardHome | cut -d'"' -f4)
+FILES=$(find "$(pwd)" $WORK_DIR -type f -name 'querylog.*' 2>/dev/null | sort -u)
 
 get_first_and_last_times() {
   for file in $FILES; do
