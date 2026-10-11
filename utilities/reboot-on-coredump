@@ -45,7 +45,8 @@ else
           echo Already enabled!!
         fi;;
     off)
-        if [ "$ENABLED" = "1" ]
+        # The option is not set by default, and core-handler then reboots
+        if [ "$ENABLED" != "0" ]
         then
           uci set system.@coredump[0].reboot='0'
           uci commit system
