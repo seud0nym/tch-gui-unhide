@@ -1,4 +1,5 @@
 local uci_helper = mapper("ucihelper")
+local commitapply = commitapply
 local format = string.format
 
 local fmt = "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"
@@ -99,6 +100,10 @@ local GUI_FIREWALL_ = {
         access = "readWrite",
         type = "boolean"
       },
+      dosprotect_ratelimit = {
+        access = "readWrite",
+        type = "boolean"
+      },
     }
   }
 }
@@ -120,6 +125,17 @@ GUI_FIREWALL_.get = {
   clearCache = function()
     return "0"
   end,
+  dosprotect_ratelimit = function()
+    -- A ratelimit section is applied unless its enabled option is 0
+    local enabled = "0"
+    uci_helper.foreach_on_uci({config="dosprotect",sectionname="ratelimit"},function(s)
+      if s.enabled ~= "0" then
+        enabled = "1"
+        return false
+      end
+    end)
+    return enabled
+  end,
 }
 
 GUI_FIREWALL_.set = {
@@ -134,7 +150,18 @@ GUI_FIREWALL_.set = {
       ip6tables["mangle"] = {}
       ip6tables["raw"] = {}
     end
-  end
+  end,
+  dosprotect_ratelimit = function(_,_,value,_)
+    local sections = {}
+    uci_helper.foreach_on_uci({config="dosprotect",sectionname="ratelimit"},function(s)
+      sections[#sections+1] = s[".name"]
+    end)
+    for _,name in ipairs(sections) do
+      uci_helper.set_on_uci({config="dosprotect",sectionname=name,option="enabled"},value)
+    end
+    uci_helper.commit({config="dosprotect"})
+    commitapply:newset("dosprotect.ratelimit")
+  end,
 }
 
 register(GUI_FIREWALL_)
