@@ -64,7 +64,7 @@ done
 
 echo -e "${ORANGE}[$SCRIPT] Checking free space...${NC}"
 [ -e /tmp/ost.tgz ] && rm -f /tmp/ost.tgz
-TMP_FREE=$(df -Pm /tmp | tail -n +2 | tr -s ' ' | cut -d' ' -f2)
+TMP_FREE=$(df -Pm /tmp | tail -n +2 | tr -s ' ' | cut -d' ' -f4)
 if [ -z "$TMP_FREE" ]; then
   echo -e "${RED}[$SCRIPT] Unable to determine free space on /tmp filesystem! Aborting...${NC}"
   exit 2
@@ -74,7 +74,7 @@ else
   echo -e "${RED}[$SCRIPT] /tmp filesystem has insufficient space (${TMP_FREE}Mb) to download OpenSpeedTest Server${NC}"
   exit 2
 fi
-ROOT_FREE=$(df -Pm / | tail -n +2 | tr -s ' ' | cut -d' ' -f2)
+ROOT_FREE=$(df -Pm / | tail -n +2 | tr -s ' ' | cut -d' ' -f4)
 if [ -z "$ROOT_FREE" ]; then
   echo -e "${RED}[$SCRIPT] Unable to determine free space on / filesystem! Aborting...${NC}"
   exit 2
