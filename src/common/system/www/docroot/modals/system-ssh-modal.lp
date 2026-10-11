@@ -74,9 +74,11 @@ end
 local ssh_data,ssh_helpmsg = post_helper.handleQuery(ssh_params,ssh_valid)
 for k,v in pairs(ssh_data) do
   if match(k,"^ssh_.+_pwd_auth$") then
-    if v == "0" or v == "" then
+    -- dropbear reads these as UCI booleans that default to on, so show any false spelling as off and
+    -- anything else (including unset) as on, rather than leaving the select without a matching option
+    if v == "0" or v == "off" or v == "no" or v == "false" or v == "disabled" then
       ssh_data[k] = "off"
-    elseif v == "1" then
+    else
       ssh_data[k] = "on"
     end
   end
