@@ -23,6 +23,8 @@ if [ -f /usr/bin/wireguard-go -a -f /usr/bin/wg-go -a -f /lib/netifd/proto/wireg
 
   cat <<"HP" > /etc/hotplug.d/net/10-wg0-peer-firewall
 HP
+  cat <<"SYS" > /etc/sysctl.d/90-wireguard-go.conf
+SYS
   cat <<"FW" > /usr/share/tch-gui-unhide/wg0-peer-firewall.sh
 FW
   cat <<"CA" > /usr/share/transformer/commitapply/uci_wireguard.ca
@@ -47,6 +49,7 @@ MOD
 HLP
 
   chmod 755 /etc/hotplug.d/net/10-wg0-peer-firewall
+  chmod 644 /etc/sysctl.d/90-wireguard-go.conf
   chmod 755 /usr/share/tch-gui-unhide/wg0-peer-firewall.sh
   chmod 644 /usr/share/transformer/commitapply/uci_wireguard.ca
   chmod 644 /usr/share/transformer/mappings/rpc/gui.wireguard.map
@@ -58,6 +61,9 @@ HLP
   chmod 644 /www/docroot/js/qrcode.min.js
   chmod 644 /www/docroot/modals/wireguard-modal.lp
   chmod 644 /www/lua/wireguard_helper.lua
+
+  # Applied at boot by /etc/init.d/sysctl. Apply now as well; a running tunnel uses it from its next start.
+  sysctl -e -p /etc/sysctl.d/90-wireguard-go.conf >/dev/null 2>&1
 
   [ -e /etc/hotplug.d/net/10-wireguard-peer-firewall ] && /etc/hotplug.d/net/10-wireguard-peer-firewall
 
@@ -172,6 +178,11 @@ ngx.timer.at(0, preLoadWG)' -i $f
   SRV_system=$(( $SRV_system + 2 ))
 else
   WG_INSTALLED=0
+
+  if [ -e /etc/sysctl.d/90-wireguard-go.conf ]; then
+    WG_INSTALLED=1
+    rm /etc/sysctl.d/90-wireguard-go.conf
+  fi
 
   if uci -q get $FW_LAN_ZONE.network | grep -qE "\bwg0\b"; then
     WG_INSTALLED=1
