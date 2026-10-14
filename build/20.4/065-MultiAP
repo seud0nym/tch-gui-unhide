@@ -70,3 +70,9 @@ stop_service() {
 EOC
   fi
 fi
+
+if [ -f /airties-edge/usr/sbin/mesh_broker_launcher.sh ] && grep -q '^uci set mesh_broker\.' /airties-edge/usr/sbin/mesh_broker_launcher.sh \
+&& grep -q '^[ 	]*uci commit$' /airties-edge/usr/sbin/mesh_broker_launcher.sh; then
+  echo -e "[$SCRIPT]: Scoping the bare 'uci commit' in the mesh-broker launcher"
+  sed -e 's/^\([ 	]*\)uci commit$/\1uci commit mesh_broker/' -i /airties-edge/usr/sbin/mesh_broker_launcher.sh
+fi
