@@ -471,13 +471,24 @@ else
     ap="$(find_next ap)"
     config_network_and_firewall "Guest1_5GHz" "192.168.2.254" "255.255.255.128" "2" "129" "125" "$wl" "drop-Guest5G_2_hotspot"
     config_wifi_technicolor     "Guest1_5GHz" "$wl" "radio_5G" "$ap" "r1_s1" "Guest1-5G"
-    if [ "$wl" = "wl1_1" -a "$(uci -q get wireless.wl1_2)" = "wifi-iface" ]; then
-      # The radio creates its interfaces in configuration order, so wl1_2 must follow wl1_1 as it does by default
-      echo -e "${GREEN}INFO${NC}:     Moving wireless interface ${ORANGE}wl1_2${NC} after ${ORANGE}wl1_1${NC}..."
-      count=$(uci -q show wireless | grep -c '^wireless\.[^.]*=')
-      exec_uci reorder $(uci -q show wireless | grep "iface='wl1_2'" | cut -d. -f1-2)=$count
-      exec_uci reorder wireless.wl1_2=$count
-    fi
+  fi
+  # The radio creates its interfaces in the order of the wifi-iface sections, and the netdev names follow that order.
+  # A restored guest is added at the end, after any later interface (the backhaul wl1_2, or the Telstra AIR/Fon wl0_2,
+  # wl0_3 and wl1_3), so put the interfaces (and their access points) back in name order, as in the factory file.
+  ifaces=$(uci -q show wireless | sed -n 's/^wireless\.\(wl[0-9][0-9]*\(_[0-9][0-9]*\)\{0,1\}\)=wifi-iface$/\1/p')
+  sorted=$(echo "$ifaces" | sort -t_ -k1,1 -k2,2n)
+  unordered=n
+  for radio in $(echo "$ifaces" | cut -d_ -f1 | sort -u); do
+    [ "$(echo "$ifaces" | grep -E "^${radio}(_|$)" | xargs)" = "$(echo "$sorted" | grep -E "^${radio}(_|$)" | xargs)" ] || unordered=y
+  done
+  if [ $unordered = y ]; then
+    echo -e "${GREEN}INFO${NC}:     Restoring the order of the wireless interfaces..."
+    count=$(uci -q show wireless | grep -c '^wireless\.[^.]*=')
+    for wl in $sorted; do
+      ap=$(uci -q show wireless | grep "\.iface='$wl'$" | cut -d. -f1-2)
+      [ -n "$ap" ] && exec_uci reorder $ap=$count
+      exec_uci reorder wireless.$wl=$count
+    done
   fi
 fi
 
