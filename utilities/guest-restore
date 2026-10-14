@@ -164,7 +164,13 @@ config_dhcp() {
   exec_uci set dhcp.guest.authoritative="1"
   exec_uci set dhcp.guest.readethers="1"
   exec_uci set dhcp.guest.leasefile="/tmp/dhcp.leases"
-  exec_uci set dhcp.guest.resolvfile="/tmp/resolv.conf.d/resolv.conf.auto"
+  # 20.3.c and later keep the resolver list in /tmp/resolv.conf.d (created by /etc/init.d/boot); 17.2 and 18.1.c
+  # use /tmp/resolv.conf.auto
+  if [ -d /tmp/resolv.conf.d ] || grep -qs '/tmp/resolv.conf.d' /etc/init.d/boot; then
+    exec_uci set dhcp.guest.resolvfile="/tmp/resolv.conf.d/resolv.conf.auto"
+  else
+    exec_uci set dhcp.guest.resolvfile="/tmp/resolv.conf.auto"
+  fi
   exec_uci set dhcp.guest.strictorder="1"
   exec_uci set dhcp.guest.dhcpscript="/lib/dnsmasq/dhcp-event.sh"
   exec_uci set dhcp.guest.domain="modem"
