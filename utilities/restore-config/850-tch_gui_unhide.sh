@@ -14,6 +14,23 @@ for cfg in $($UCI show web | grep 'web\.card_'); do
 done
 uci_set web.usr_admin.srp_salt
 uci_set web.usr_admin.srp_verifier
+# Firmware with this flag (e.g. 20.3.c MR22.1) pre-fills the default password on the login pages while it is 0
+# Set it from the restored verifier (the backup may predate the flag, or hold a stale 0), with the same check as the
+# firmware's own upgrade conversion (/usr/lib/parameter_conversion/verify_password_change.lua)
+if [ -n "$(uci -q get web.usr_admin.password_changed)" ]; then
+  if lua -e '
+    local srp = require("srp")
+    local salt = io.popen("uci -q get web.usr_admin.srp_salt"):read("*l")
+    local verifier = io.popen("uci -q get web.usr_admin.srp_verifier"):read("*l")
+    if not salt or not verifier then os.exit(1) end
+    local user, A = srp.User("admin", "Telstra")
+    local server, B = srp.Verifier("admin", salt, verifier, A)
+    local _, err = server:verify(user:get_M(salt, B))
+    os.exit(err and 0 or 1)'; then
+    log V " ++ Setting web.usr_admin.password_changed='1' (restored password is not the default)"
+    uci set web.usr_admin.password_changed='1'
+  fi
+fi
 uci -q commit web
 
 uci -q revert system
