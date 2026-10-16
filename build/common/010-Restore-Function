@@ -26,6 +26,12 @@ restore_individual_file() {
       cp -f -p "$source" "$target"
     fi
   elif [ -e "$target" ]; then
+    # Files installed by an opkg package (listed in /usr/lib/opkg/info/*.list) belong to that package, not to a
+    # previous installation of tch-gui-unhide, so leave them in place
+    if [ -n "$OPKG_OWNED" ] && grep -qxF "$target" "$OPKG_OWNED"; then
+      [ "$verbose" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Keeping $target (installed by an opkg package)${NC}"
+      return
+    fi
     if [ $directory = "/etc/init.d" ]; then
       [ "$verbose" = "V" ] && echo -e "[$SCRIPT]: ${GREY} -> Stopping and disabling $target${NC}"
       $target stop 1>/dev/null 2>&1
@@ -54,6 +60,9 @@ restore_to_factory_gui() {
   local overlay d f s t
   [ -z "$(which bootmgr)" ] && overlay="/overlay/$(cat /proc/banktable/booted 2>/dev/null)" || overlay="/overlay/bank_$(bootmgr partition booted)"
   
+  OPKG_OWNED=/tmp/tch-gui-unhide-opkg-owned.lst
+  cat /usr/lib/opkg/info/*.list 2>/dev/null | sort -u > $OPKG_OWNED
+
   echo -e "[$SCRIPT]: Removing any previous installation by restoring from ${RESTORE_BASE}..."
   while read -r f; do
     restore_individual_file "$f" "$RESTORE_BASE$f" "$overlay" "$verbose"
@@ -79,4 +88,6 @@ EOF
     t="${f##$RESTORE_BASE}"
     restore_individual_file "$t" "$f" "$overlay" "$verbose"
   done
+  rm -f $OPKG_OWNED
+  unset OPKG_OWNED
 }
