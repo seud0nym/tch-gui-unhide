@@ -25,3 +25,54 @@ sed \
 if [ "$VERSION" = "20.4.0319" ]; then
   sed -e 's/rpc.wifi.multiap.deviceNumberOfEntries/Device.WiFi.MultiAP.APDeviceNumberOfEntries/' -i /www/cards/005_Easymesh.lp
 fi
+
+if [ -f /etc/init.d/mesh-broker ] && grep -q '^update_ebtable_rule() {$' /etc/init.d/mesh-broker && grep -q '^stop_service() {$' /etc/init.d/mesh-broker; then
+  echo -e "[$SCRIPT]: Scoping the bare 'uci commit' calls in the mesh-broker init script"
+  sed -e 's/^\([ 	]*\)uci commit$/\1uci commit mesh_broker/' -i /etc/init.d/mesh-broker
+
+  if ! grep -q 'tch-gui-unhide: 1905 broute cleanup' /etc/init.d/mesh-broker; then
+    echo -e "[$SCRIPT]: Removing the IEEE 1905 ebtables rules when mesh-broker stops, and not adding them again on each start"
+    sed \
+      -e 's/^update_ebtable_rule() {$/stock_update_ebtable_rule() {/' \
+      -e 's/^stop_service() {$/stock_stop_service() {/' \
+      -i /etc/init.d/mesh-broker
+  fi
+  if ! grep -q 'tch-gui-unhide: 1905 broute cleanup' /etc/init.d/mesh-broker \
+  && grep -q '^stock_update_ebtable_rule() {$' /etc/init.d/mesh-broker && grep -q '^stock_stop_service() {$' /etc/init.d/mesh-broker; then
+    cat >> /etc/init.d/mesh-broker <<'EOC'
+
+# tch-gui-unhide: 1905 broute cleanup
+# The stock update_ebtable_rule inserts the two 1905 (ethertype 0x893a) broute rules on every start without deleting
+# them first, and the stock stop_service never deletes them. Delete them (every copy) before inserting, and on stop.
+delete_1905_broute_rules() {
+  local mac n
+  for mac in 01:80:c2:00:00:13 $1; do
+    n=0
+    while [ $n -lt 16 ] && ebtables -t broute -D BROUTING -p 0x893a -d $mac -j DROP 2>/dev/null; do
+      n=$((n + 1))
+    done
+  done
+  return 0
+}
+
+update_ebtable_rule() {
+  delete_1905_broute_rules "$CONTROLLER_AL_MAC"
+  stock_update_ebtable_rule
+}
+
+stop_service() {
+  stock_stop_service
+  local mac
+  config_load mesh_broker
+  config_get mac mesh_common controller_almac
+  delete_1905_broute_rules "$mac"
+}
+EOC
+  fi
+fi
+
+if [ -f /airties-edge/usr/sbin/mesh_broker_launcher.sh ] && grep -q '^uci set mesh_broker\.' /airties-edge/usr/sbin/mesh_broker_launcher.sh \
+&& grep -q '^[ 	]*uci commit$' /airties-edge/usr/sbin/mesh_broker_launcher.sh; then
+  echo -e "[$SCRIPT]: Scoping the bare 'uci commit' in the mesh-broker launcher"
+  sed -e 's/^\([ 	]*\)uci commit$/\1uci commit mesh_broker/' -i /airties-edge/usr/sbin/mesh_broker_launcher.sh
+fi
