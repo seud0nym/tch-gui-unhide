@@ -55,6 +55,7 @@ local secmodes = setmetatable({
   ["wpa2-psk"] = "WPA",
   ["wpa-wpa2-psk"] = "WPA",
   ["wpa2-wpa3-psk"] = "WPA",
+  ["wpa3-psk"] = "WPA",
   ["wpa2"] = "WPA",
   ["wpa-wpa2"] =  "WPA",
   ["wep"] =  "WEP",
@@ -65,6 +66,7 @@ local keypassphrases = setmetatable({
   ["wpa2-psk"] = content.wpakey,
   ["wpa-wpa2-psk"] = content.wpakey,
   ["wpa2-wpa3-psk"] = content.wpakey,
+  ["wpa3-psk"] = content.wpakey,
   ["wep"] = content.wepkey,
 },untaint_mt)
 
