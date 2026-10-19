@@ -156,11 +156,12 @@ apply_defaults() {
 apply_minimal() {
   TMP=""
   for CARD in $(echo "$CARDS" | tr ' ' ';'); do
+    HIDE=$(echo "$CARD" | cut -d'|' -f1)
+    SEQ=$(echo "$CARD" | cut -d'|' -f2)
     HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
     FILE=$(echo "$CARD" | cut -d'|' -f4)
     MODAL=$(echo "$CARD" | cut -d'|' -f5)
     TITLE=$(echo "$CARD" | cut -d'|' -f6 | tr ';' ' ')
-    HIDE=$HIDDEN
     case "${FILE#*_}" in
       contentsharing.lp)      [ "$(uci -q get dlnad.config.enabled)" != "1" -a "$(uci -q get samba.samba.filesharing)" != "1" ] && HIDE=1;;
       cwmpconf.lp)            [ ! -f /etc/init.d/cwmpd ] && HIDE=1;;
@@ -174,7 +175,6 @@ apply_minimal() {
       system.lp)              HIDE=1;;
       wanservices.lp)         [ "$(uci -q get firewall.dmzredirects.enabled)" != "1" -a "$(uci -q get ddns.myddns_ipv4.enabled)" != "1" -a "$(uci -q get ddns.myddns_ipv6.enabled)" != "1" -a "$(uci -q get upnpd.config.enable_natpmp)" != "1" -a "$(uci -q get upnpd.config.enable_upnp)" != "1" ] && HIDE=1;;
       wireless_boosters.lp)   [ "$(uci -q get multiap.agent.enabled)" != "1" -a "$(uci -q get multiap.controller.enabled)" != "1" ] && HIDE=1;;
-      *) SEQ=$(basename $FILE | cut -c1-3);;
     esac
     if [ -z "$TMP" ]; then
       TMP="$HIDE|$SEQ|$HIDDEN|$FILE|$MODAL|$TITLE|"
@@ -248,6 +248,7 @@ apply_suggested() {
 apply_visible() {
   TMP=""
   for CARD in $(echo "$CARDS" | tr ' ' ';'); do
+    SEQ=$(echo "$CARD" | cut -d'|' -f2)
     HIDDEN=$(echo "$CARD" | cut -d'|' -f3)
     FILE=$(echo "$CARD" | cut -d'|' -f4)
     MODAL=$(echo "$CARD" | cut -d'|' -f5)
