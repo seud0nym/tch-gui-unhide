@@ -21,10 +21,13 @@ local content = {
   broker = "uci.mesh_broker.global.@mesh_broker.enable",
   agent = "uci.wireless.map-agent.@agent.state",
   controller = "uci.mesh_broker.meshapp.@mesh_common.controller_enabled",
-  backhaul_state = "uci.wireless.wifi-iface.@wl0_1.state",
 }
 
 content_helper.getExactContent(content)
+
+-- Read the backhaul state on its own: 20.4 has no wl0_1 section, and one missing path empties the whole query above.
+local backhaul_state = proxy.get("uci.wireless.wifi-iface.@wl0_1.state")
+content.backhaul_state = backhaul_state and backhaul_state[1] and untaint(backhaul_state[1].value)
 
 local easymesh_role
 local easymesh_state = "1"
@@ -124,7 +127,10 @@ ngx.print('\
         '</p>'
         )
       end
-      ngx.print(ui_helper.createSimpleLight(content.backhaul_state,T(format("Backhaul %s",state_map(content.backhaul_state)))),'\
+      if content.backhaul_state then
+        ngx.print(ui_helper.createSimpleLight(content.backhaul_state,T(format("Backhaul %s",state_map(content.backhaul_state)))))
+      end
+      ngx.print('\
     </div>\
   </div>\
 </div>\
