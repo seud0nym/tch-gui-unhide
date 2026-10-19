@@ -35,6 +35,65 @@ if grep -q '^        local allowed_channels_5G = list5g\[content\["channelwidth"
     -i /www/docroot/modals/wireless-radio.lp
 fi
 
+if grep -q '^      basepath = format("rpc.X_AIRTIES_Obj.MultiAPController.SSIDProfile."..paramIndex..".MACAclList"),$' /www/docroot/modals/wireless-modal.lp; then
+  echo -e "[$SCRIPT]: Fix adding MAC addresses to the main Wi-Fi Access Control List"
+  # The main network's whitelist and blacklist tables use a single SSIDProfile parameter as their base path, so
+  # adding an entry always fails. Use the access point's own UCI lists, as the Guest network tables do.
+  sed \
+    -e '/^    acl_whitelist_options = {$/,/^    }$/s|^      basepath = format("rpc.X_AIRTIES_Obj.MultiAPController.SSIDProfile."..paramIndex..".MACAclList"),$|      basepath = format("uci.wireless.wifi-iface.@%s.acl_accept_list.@.",curap),|' \
+    -e '/^    acl_blacklist_options = {$/,/^    }$/s|^      basepath = format("rpc.X_AIRTIES_Obj.MultiAPController.SSIDProfile."..paramIndex..".MACAclList"),$|      basepath = format("uci.wireless.wifi-iface.@%s.acl_deny_list.@.",curap),|' \
+    -i /www/docroot/modals/wireless-modal.lp
+fi
+
+if grep -q '^     mapParams\["pmf"..curap\] = "rpc.X_AIRTIES_Obj.MultiAPController.SSIDProfile."..paramIndex..".PMF"$' /www/docroot/modals/wireless-modal.lp; then
+  echo -e "[$SCRIPT]: Fix Protected Management Frames being saved to the wrong band"
+  # paramIndex is set once for the last access point, so both bands' PMF selects use the same SSIDProfile, and
+  # without EasyMesh that profile writes both bands. Use each access point's own profile with EasyMesh, and its
+  # own UCI option without EasyMesh.
+  # A merged save copies PMF to the other band only for WPA2-PSK; the PMF row is also shown for WPA2/WPA3.
+  sed \
+    -e 's/^          if postargs\["security"..ap\] == "wpa2-psk" then$/          if postargs["security"..ap] == "wpa2-psk" or postargs["security"..ap] == "wpa2-wpa3-psk" then/' \
+    -e 's|^     mapParams\["pmf"..curap\] = "rpc.X_AIRTIES_Obj.MultiAPController.SSIDProfile."..paramIndex..".PMF"$|     if multiap_enabled then mapParams["pmf"..curap] = "rpc.X_AIRTIES_Obj.MultiAPController.SSIDProfile."..indexTable[curap]..".PMF" else mapParams["pmf"..curap] = piface .. "@" .. curap .. ".pmf" end|' \
+    -i /www/docroot/modals/wireless-modal.lp
+fi
+
+if grep -q '^  if splitMode ~= postargs.split_ssid then$' /www/docroot/modals/wireless-modal.lp \
+&& grep -q '^  if postargs.split_ssid == "1" then$' /www/docroot/modals/wireless-modal.lp \
+&& grep -q '^        local ssidList = proxy.get(format("rpc.wireless.ssid.@%s.ssid", interface_list\[2\]))$' /www/docroot/modals/wireless-modal.lp \
+&& ! grep -q 'tch-gui-unhide: keep split' /www/docroot/modals/wireless-modal.lp; then
+  echo -e "[$SCRIPT]: Fix the Wi-Fi Split switch when EasyMesh is off"
+  # Without EasyMesh the split state is read from web.network.<type>.splitssid, but nothing saved it, and saving
+  # with Split on failed (the merged page has one interface, so interface_list[2] is nil). The -5GHz suffix was
+  # also appended to the 5GHz SSID on every save; like 21.4, add it only when the networks are being split.
+  sed \
+    -e '/^  if splitMode ~= postargs.split_ssid then$/i\
+  -- tch-gui-unhide: keep split state without EasyMesh\
+  if not multiap_enabled and not next(helpmsg) and (postargs.split_ssid == "0" or postargs.split_ssid == "1") then\
+    proxy.set("uci.web.network.@"..gettype..".splitssid", postargs.split_ssid)\
+    proxy.apply()\
+  end' \
+    -e 's/^  if postargs.split_ssid == "1" then$/  if postargs.split_ssid == "1" and split_ssid == "0" then/' \
+    -e 's/^        local ssidList = proxy.get(format("rpc.wireless.ssid.@%s.ssid", interface_list\[2\]))$/        local ssidList = proxy.get(format("rpc.wireless.ssid.@%s.ssid", aplists[2]))/' \
+    -e 's/^        ssidVal = interface_list\[2\] and ssidList and ssidList\[1\].value or ""$/        ssidVal = aplists[2] and ssidList and ssidList[1].value or ""/' \
+    -e 's/^        local path = multiap_enabled and "uci.mesh_broker.controller_credentials.@"..untaint(credential_list\[2\])..".ssid" or format("rpc.wireless.ssid.@%s.ssid", interface_list\[2\])$/        local path = multiap_enabled and "uci.mesh_broker.controller_credentials.@"..untaint(credential_list[2])..".ssid" or format("rpc.wireless.ssid.@%s.ssid", aplists[2])/' \
+    -i /www/docroot/modals/wireless-modal.lp
+fi
+
+if grep -q '^mumimoList = {$' /www/docroot/modals/wireless-radio.lp \
+&& grep -q '^if content\["channelwidth"\] == "" or content\["channelwidth"\] == "Auto" or content\["channelwidth"\] == "auto" then$' /www/docroot/modals/wireless-radio.lp \
+&& ! grep -q 'tch-gui-unhide: list Auto width' /www/docroot/modals/wireless-radio.lp; then
+  echo -e "[$SCRIPT]: Fix channel width Auto being replaced by the current width on save"
+  # The width list has no Auto entry, so a configured Auto (the 20.4 default) was shown as the width in use and the
+  # next save of this page stored that fixed width. List Auto (wlan_mgr accepts "auto"; the EasyMesh mapping "Auto").
+  sed \
+    -e '/^mumimoList = {$/i\
+-- tch-gui-unhide: list Auto width\
+table.insert(cw_160,1,multiap_Enabled and {"Auto",T"Auto"} or {"auto",T"Auto"})\
+' \
+    -e 's/^if content\["channelwidth"\] == "" or content\["channelwidth"\] == "Auto" or content\["channelwidth"\] == "auto" then$/if content["channelwidth"] == "" then/' \
+    -i /www/docroot/modals/wireless-radio.lp
+fi
+
 echo -e "[$SCRIPT]: Fix Guest Split SSID when running as EasyMesh Agent role"
 sed \
   -e '/ui_helper.createSwitch(T"Split"/a\      else ngx.print(ui_helper.createSimpleInputHidden("split_ssid",split_ssid,{input={id="split_ssid"}}))' \
