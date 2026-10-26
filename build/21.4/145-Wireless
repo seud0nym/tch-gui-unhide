@@ -12,8 +12,10 @@ if grep -q '^  allowed_channels_5G = list5g\[content\["channelwidth"\]\] or list
   -- The list for each channel width offers only some primary channels (36 52 100 132 149 at 80MHz),\
   -- but any allowed channel can be configured. If the configured channel is missing, the select\
   -- shows Auto and setChannel() writes Auto on the next save, so add it to a copy of the list.\
+  -- With EasyMesh, Auto is listed as 0, and the configured channel is read from UCI (auto) when the\
+  -- controller reports no agent radio for this band. That auto is the listed Auto, not a missing channel.\
   local configured_channel = untaint(content["requested_channel"] or "")\
-  local channels,listed = {},configured_channel == ""\
+  local channels,listed = {},configured_channel == "" or (multiap_Enabled and configured_channel == "auto")\
   for i,v in ipairs(allowed_channels_5G) do\
     channels[i] = v\
     listed = listed or untaint(v[1]) == configured_channel\
