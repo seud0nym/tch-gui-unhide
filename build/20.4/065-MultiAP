@@ -76,3 +76,8 @@ if [ -f /airties-edge/usr/sbin/mesh_broker_launcher.sh ] && grep -q '^uci set me
   echo -e "[$SCRIPT]: Scoping the bare 'uci commit' in the mesh-broker launcher"
   sed -e 's/^\([ 	]*\)uci commit$/\1uci commit mesh_broker/' -i /airties-edge/usr/sbin/mesh_broker_launcher.sh
 fi
+
+if [ -f /etc/init.d/mesh-broker ] && grep -q '^[ 	]*/usr/lib/lua/tch/set_mesh_bandwidth.lua &$' /etc/init.d/mesh-broker; then
+  echo -e "[$SCRIPT]: Stopping set_mesh_bandwidth.lua from holding the mesh-broker procd lock"
+  sed -e 's|^\([ 	]*\)/usr/lib/lua/tch/set_mesh_bandwidth.lua &$|\1/usr/lib/lua/tch/set_mesh_bandwidth.lua 1000>\&- \&|' -i /etc/init.d/mesh-broker
+fi
