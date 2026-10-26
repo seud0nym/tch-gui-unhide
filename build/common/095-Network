@@ -60,3 +60,8 @@ if ! /etc/init.d/static-wan-routes-monitor enabled; then
   echo -e "[$SCRIPT]: Enabling static WAN routes monitor service"
   /etc/init.d/static-wan-routes-monitor enable
 fi
+
+if [ -f /usr/share/transformer/scripts/whitelist_update.lua ] && [ ! -x /usr/share/transformer/scripts/whitelist_update.lua ]; then
+  echo -e "[$SCRIPT]: Fix 'whitelist_update.lua' not executable (run by the network commitapply rule)"
+  chmod 755 /usr/share/transformer/scripts/whitelist_update.lua
+fi
