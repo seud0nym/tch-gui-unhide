@@ -703,8 +703,8 @@ filters:
     name: AdAway Default Blocklist
     id: 2
   - enabled: false
-    url: https://www.malwaredomainlist.com/hostslist/hosts.txt
-    name: MalwareDomainList.com Hosts List
+    url: https://netapi.com/api2/?method=compromised&dataset_type=url&format=hosts
+    name: NetAPI Compromised Domains
     id: 4
   - enabled: false
     url: https://someonewhocares.org/hosts/zero/hosts
