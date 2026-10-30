@@ -166,6 +166,70 @@ GUI_FIREWALL_.set = {
 
 register(GUI_FIREWALL_)
 
+-- The uci mappings declare proto and icmp_type as lists, so their value is missing when a section sets them as an
+-- option (e.g. option proto 'udp'). This object returns either form as a string, keyed like the uci mapping instance
+-- (the section name, or type[n] for an anonymous section).
+local protocols = {}
+
+local GUI_FW_PROTO_i_ = {
+  objectType = {
+    name = "rpc.gui.firewall.proto.@.",
+    access = "readOnly",
+    numEntriesParameter = "protoNumberOfEntries",
+    minEntries = 0,
+    maxEntries = math.huge,
+    parameters = {
+      proto = {
+        access = "readOnly",
+        type = "string",
+      },
+      icmp_type = {
+        access = "readOnly",
+        type = "string",
+      },
+    }
+  }
+}
+
+local function asString(value)
+  if type(value) == "table" then
+    return table.concat(value," ")
+  end
+  return value or ""
+end
+
+GUI_FW_PROTO_i_.entries = function(_)
+  local sections = {}
+  for _,s in pairs(uci_helper.getall_from_uci({config="firewall"})) do
+    if type(s) == "table" and s[".type"] then
+      sections[#sections+1] = s
+    end
+  end
+  table.sort(sections,function(a,b) return a[".index"] < b[".index"] end)
+  for k in pairs(protocols) do
+    protocols[k] = nil
+  end
+  local res = {}
+  local count = {}
+  for _,s in ipairs(sections) do
+    local t = s[".type"]
+    count[t] = (count[t] or -1) + 1
+    if s.proto or s.icmp_type then
+      local key = s[".anonymous"] and format("%s[%d]",t,count[t]) or s[".name"]
+      protocols[key] = { proto = asString(s.proto), icmp_type = asString(s.icmp_type) }
+      res[#res+1] = key
+    end
+  end
+  return res
+end
+
+GUI_FW_PROTO_i_.get = function(_,param,key)
+  local p = protocols[key]
+  return p and p[param] or ""
+end
+
+register(GUI_FW_PROTO_i_)
+
 local GUI_FW_IPTABLES_FILTER_i_ = {
   objectType = {
     name = "rpc.gui.firewall.iptables_filter.@.",

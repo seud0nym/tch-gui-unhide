@@ -7,6 +7,7 @@ gettext.textdomain('webui-core')
 local M = {}
 
 local ngx = ngx
+local proxy = require("datamodel")
 local post_helper = require("web.post_helper")
 local content_helper = require("web.content_helper")
 local portslist = require("portslist_helper")
@@ -14,7 +15,7 @@ local hosts_ac,hosts_ac_v6 = require("web.uinetwork_helper").getAutocompleteHost
 local concat,remove = table.concat,table.remove
 ---@diagnostic disable-next-line: undefined-field
 local untaint = string.untaint
-local find,match = string.find,string.match
+local find,match,gsub = string.find,string.match,string.gsub
 
 local vB = post_helper.validateBoolean
 local gVIES = post_helper.getValidateInEnumSelect
@@ -510,7 +511,20 @@ end
 function M.handleTableQuery(fwrule_options,fwrule_defaultObject)
   local fwrule_columns,fwrule_valid = M.getRuleColumns(fwrule_options)
   local fwrule_data,fwrule_helpmsg = post_helper.handleTableQuery(fwrule_columns,fwrule_options,nil,fwrule_defaultObject,fwrule_valid)
-  for _,v in ipairs(fwrule_data) do
+  -- The uci mappings only return proto and icmp_type when they are uci lists, so get option values (e.g. option proto 'udp') from rpc.gui.firewall.proto
+  local protocols,indexes
+  if find(fwrule_options.basepath,"^uci%.firewall%.") then
+    protocols = {}
+    for _,v in ipairs(proxy.get("rpc.gui.firewall.proto.") or {}) do
+      local key = match(v.path,"^rpc%.gui%.firewall%.proto%.@(.+)%.$")
+      if key then
+        protocols[key] = protocols[key] or {}
+        protocols[key][v.param] = untaint(v.value)
+      end
+    end
+    indexes = ngx.ctx.session:retrieve(fwrule_options.tableid..".allowedindexes") or {}
+  end
+  for i,v in ipairs(fwrule_data) do
     if v[1] == "" then
       v[1] = "1"
     end
@@ -518,6 +532,15 @@ function M.handleTableQuery(fwrule_options,fwrule_defaultObject)
       v[6] = concat(v[6],",")
       fwrule_columns[6].type = "text"
       fwrule_columns[6].values = nil
+    end
+    local p = protocols and indexes[i] and protocols[gsub(untaint(indexes[i].paramindex),"^@","")]
+    if p then
+      if v[5] == "" and p.proto ~= "" then
+        v[5] = p.proto
+      end
+      if v[6] == "" and p.icmp_type ~= "" then
+        v[6] = gsub(p.icmp_type," ",",")
+      end
     end
   end
 
