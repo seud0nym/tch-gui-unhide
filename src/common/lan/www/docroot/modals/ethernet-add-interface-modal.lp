@@ -80,6 +80,16 @@ local function addFirewallRule(name,src,proto,target,dest,dest_ip,dest_port,fami
   return okay,path
 end
 
+local function addICMPTypes(path,icmp_types)
+  for _,icmp_type in ipairs(icmp_types) do
+    local index = proxy_helper.add(path.."icmp_type.")
+    if not index or not proxy_helper.set(path.."icmp_type.@"..index..".value",icmp_type) then
+      return false
+    end
+  end
+  return true
+end
+
 local content = {
   cur_intf = "",
   ipaddr = "",
@@ -371,15 +381,16 @@ elseif ngx.var.request_method == "POST" then
     if okay then -- add firewall rules
       okay,paths[#paths+1] = addFirewallRule("Allow-"..content.cur_intf.."-ICMPv6",content.cur_intf,"icmp","ACCEPT",nil,nil,nil,"ipv6")
       okay = okay and proxy_helper.set(paths[#paths].."limit","1000/sec")
-      for _,icmp_type in ipairs({"echo-request", "echo-reply", "destination-unreachable", "packet-too-big", "time-exceeded", "bad-header", "unknown-header-type", "router-solicitation", "neighbour-solicitation", "router-advertisement", "neighbour-advertisement"}) do
-        local index = proxy_helper.add(paths[#paths].."icmp_type.")
-        if not index then
-          okay = false
-          break
-        else
-          okay = okay and proxy_helper.set(paths[#paths].."icmp_type.@"..index..".value",icmp_type)
-        end
-      end
+      okay = okay and addICMPTypes(paths[#paths],{"echo-reply", "destination-unreachable", "packet-too-big", "time-exceeded", "bad-header", "unknown-header-type", "router-solicitation", "neighbour-solicitation", "router-advertisement", "neighbour-advertisement"})
+    end
+    if okay then -- add firewall rules
+      -- Echo requests only to the router's own addresses on this interface (its link-local and the addresses of its
+      -- prefix), like Allow-<intf>-ICMPv4, which only allows the interface address. Without the match the router
+      -- would also answer at its LAN and other interfaces' addresses.
+      okay,paths[#paths+1] = addFirewallRule("Allow-"..content.cur_intf.."-ICMPv6-echo",content.cur_intf,"icmp","ACCEPT",nil,nil,nil,"ipv6")
+      okay = okay and proxy_helper.set(paths[#paths].."limit","1000/sec")
+      okay = okay and addICMPTypes(paths[#paths],{"echo-request"})
+      okay = okay and proxy_helper.set(paths[#paths].."extra","-m addrtype --dst-type LOCAL --limit-iface-in")
     end
     if okay then -- apply changes and redirect
       proxy.apply()
