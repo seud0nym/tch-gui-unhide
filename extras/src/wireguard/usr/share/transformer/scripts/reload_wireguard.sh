@@ -14,6 +14,10 @@ handle_interface() {
   if [ "$proto" = "wireguard" ]; then
     config_get log_level $interface log_level 
     [ "$log_level" = "debug" ] && DEBUG=y
+    if [ "$enabled" = "1" -a -e /lib/netifd/proto/wireguard.sh -a -z "$(ubus call network get_proto_handlers | jsonfilter -e '@.wireguard')" ]; then
+      /usr/bin/logger -t wireguard -p daemon.notice "reload_wireguard.handle_interface: Interface '$interface' enabled but the wireguard protocol handler is not loaded! Restarting network..."
+      NETWORK_ACTION="restart"
+    fi
     if /bin/grep -qE "^${interface}$" /tmp/.wg_uci_modified_ifnames; then
       [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: Interface '$interface' found in /tmp/.wg_uci_modified_ifnames [enabled=$enabled]"
       /bin/sed -e "/^${interface}$/d" -i /tmp/.wg_uci_modified_ifnames
@@ -48,7 +52,7 @@ handle_interface() {
   done
 
   uci commit dhcp
-  /etc/init.d/dnmasq reload
+  /etc/init.d/dnsmasq reload
   /etc/init.d/network $NETWORK_ACTION
 } 3>/var/lock/uci.wireguard.lock
 

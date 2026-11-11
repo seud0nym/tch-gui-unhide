@@ -270,6 +270,9 @@ if curintf == "wg0" then
   local function addServerAddress(v,d)
     local addr
     if find(v,":",1,true) then
+      if match(v,"^[Ff][CcDd]") then -- Unique local addresses (fc00::/7) cannot be reached from the Internet
+        return nil
+      end
       addr = format("[%s]",v)
     else
       addr = v
@@ -352,7 +355,7 @@ if curintf == "wg0" then
       proxy_helper.set("uci.wireguard.@"..curintf..".enabled",config.enabled)
     end
   else
-    config.server_address = server_addresses[1][0]
+    config.server_address = server_addresses[1][1]
   end
 end
 
