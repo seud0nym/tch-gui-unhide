@@ -146,6 +146,7 @@ local mapParams = {
   uci_wan6_reqaddress = "uci.network.interface.@wan6.reqaddress",
   uci_wan6_reqprefix = "uci.network.interface.@wan6.reqprefix",
   uci_wan6_noslaaconly = "uci.network.interface.@wan6.noslaaconly",
+  uci_wan6_sourcefilter = "uci.network.interface.@wan6.sourcefilter",
 }
 
 -- Shortcuts to validation helpers to make lines shorter
@@ -189,6 +190,18 @@ for prefix_len = 64,32,-1 do
   reqprefix_map[#reqprefix_map+1] = { tostring(prefix_len),T("/"..prefix_len) }
 end
 
+-- sourcefilter is on when the option is absent (netifd default): leave it absent when the switch stays on
+local function validateSourceFilter(value,object,key)
+  local valid,helpmsg = vB(value)
+  if valid and value == "1" then
+    local current = proxy.get("uci.network.interface.@wan6.sourcefilter")
+    if current and current[1].value == "" then
+      object[key] = ""
+    end
+  end
+  return valid,helpmsg
+end
+
 local mapValid = {
   uci_wan_auto = vB,
   uci_wan_masq = validateNat,
@@ -199,6 +212,7 @@ local mapValid = {
   uci_wan6_reqaddress = gVIES(reqaddress_map),
   uci_wan6_reqprefix = gVIES(reqprefix_map),
   uci_wan6_noslaaconly = vB,
+  uci_wan6_sourcefilter = validateSourceFilter,
 }
 
 local content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
@@ -214,6 +228,9 @@ if content["uci_wan6_auto"] ~= "0" then
 end
 if content["uci_wan6_reqprefix"] == "" then
   content["uci_wan6_reqprefix"] = "auto"
+end
+if content["uci_wan6_sourcefilter"] ~= "0" then
+  content["uci_wan6_sourcefilter"] = "1"
 end
 
 local wan_ppp_ll_intf = proxy.get("rpc.network.interface.@wan.ppp.ll_intf")
@@ -418,6 +435,7 @@ ngx.print(ui_helper.createMessages(message_helper.popMessages()))
   html[#html+1] = ui_helper.createInputSelect(T"IPv6 Prefix Request<span class='icon-question-sign' title='Behaviour for requesting prefixes (numbers denote hinted prefix length). Use \"No\" if you only want a single IPv6 address for the AP itself without a subnet for routing.'></span>","uci_wan6_reqprefix",reqprefix_map,content.uci_wan6_reqprefix,ipv6_input)
   html[#html+1] = ui_helper.createSwitch(T"IPv6 Force Prefix<span class='icon-question-sign' title='Require the presence of an IPv6 Prefix in received DHCP message.'></span>","uci_wan6_forceprefix",content.uci_wan6_forceprefix,ipv6_input)
   html[#html+1] = ui_helper.createSwitch(T"No SLAAC Only<span class='icon-question-sign' title='Do not allow configuration via SLAAC (RAs) only'></span>","uci_wan6_noslaaconly",content["uci_wan6_noslaaconly"])
+  html[#html+1] = ui_helper.createSwitch(T"IPv6 Source Filter<span class='icon-question-sign' title='On (the device default): the IPv6 default route only carries packets whose source address is in an address or prefix received from the RSP. Turn off if IPv6 stops working a few minutes after connecting.'></span>","uci_wan6_sourcefilter",content["uci_wan6_sourcefilter"],ipv6_input)
   if supervision_support then
     html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision","supervision_mode",supervision_modes,supervision_modes_content["supervision_mode"])
     html[#html+1] = ui_helper.createSwitch(T"Supervision Enabled","supervision_enabled",supervision_modes_content["supervision_enabled"])
