@@ -6,9 +6,24 @@ local message_helper = require("web.uimessage_helper")
 local proxy = require("datamodel")
 
 local ipairs,string = ipairs,string
-local format,gsub,sub = string.format,string.gsub,string.sub
+local format,gsub,lower,match,sub = string.format,string.gsub,string.lower,string.match,string.sub
 
 local M = {}
+
+-- Values of these parameters are secrets (keys, passwords), so they are not written to the log
+local secret_suffixes = { "key", "password", "passphrase", "secret", "psk", }
+
+local function printable(p,v)
+  if v and v ~= "" then
+    local param = lower(match(p,"([^.]*)$") or "")
+    for _,suffix in ipairs(secret_suffixes) do
+      if sub(param,-#suffix) == suffix then
+        return "<hidden>"
+      end
+    end
+  end
+  return v or "nil"
+end
 
 function M.add(p,v,quiet)
   log:notice("Adding '%s' to %s",v or "new section",p)
@@ -70,12 +85,12 @@ function M.add(p,v,quiet)
 end
 
 function M.set(p,v)
-  log:notice("Setting %s to '%s'",p,v or "nil")
+  log:notice("Setting %s to '%s'",p,printable(p,v))
   local success,errors = proxy.set(p,v)
   if not success then
     for _,err in ipairs(errors) do
-      log:error("Failed to set %s to '%s': %s (%s)",err.path,v,err.errmsg,err.errcode)
-      message_helper.pushMessage(T(format("Failed to set %s to '%s': %s (%s)",err.path,v,err.errmsg,err.errcode)),"error")
+      log:error("Failed to set %s to '%s': %s (%s)",err.path,printable(err.path or p,v),err.errmsg,err.errcode)
+      message_helper.pushMessage(T(format("Failed to set %s to '%s': %s (%s)",err.path,printable(err.path or p,v),err.errmsg,err.errcode)),"error")
     end
   end
   return success,errors
