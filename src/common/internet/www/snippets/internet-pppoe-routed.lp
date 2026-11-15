@@ -171,6 +171,7 @@ local mapParams = {
   uci_wan6_reqaddress = "uci.network.interface.@wan6.reqaddress",
   uci_wan6_reqprefix = "uci.network.interface.@wan6.reqprefix",
   uci_wan6_ifname = "uci.network.interface.@wan6.ifname",
+  uci_wan6_sourcefilter = "uci.network.interface.@wan6.sourcefilter",
 }
 
 local mapPPPstats = {
@@ -280,6 +281,18 @@ if ipv6ifname == "" or ipv6ifname == "@wan" or ipv6ifname == ipv4ifname then
   ifname_map[#ifname_map+1] = { ipv4ifname,T(ipv4ifname) }
 end
 
+-- sourcefilter is on when the option is absent (netifd default): leave it absent when the switch stays on
+local function validateSourceFilter(value,object,key)
+  local valid,helpmsg = vB(value)
+  if valid and value == "1" then
+    local current = proxy.get("uci.network.interface.@wan6.sourcefilter")
+    if current and current[1].value == "" then
+      object[key] = ""
+    end
+  end
+  return valid,helpmsg
+end
+
 -- Validation allows empty values if wan access disabled but will stil check for validity if the parameter is set
 -- if wan is enabled then it checks for validaty anyway
 local mapValid = {
@@ -302,6 +315,7 @@ local mapValid = {
   uci_wan6_reqaddress = gVIES(reqaddress_map),
   uci_wan6_reqprefix = gVIES(reqprefix_map),
   uci_wan6_ifname = gVIES(ifname_map),
+  uci_wan6_sourcefilter = validateSourceFilter,
 }
 
 local content,helpmsg = post_helper.handleQuery(mapParams,mapValid)
@@ -312,6 +326,9 @@ end
 
 if content["uci_wan6_ifname"] == "" then
   content["uci_wan6_ifname"] = ipv4ifname
+end
+if content["uci_wan6_sourcefilter"] ~= "0" then
+  content["uci_wan6_sourcefilter"] = "1"
 end
 
 local content_uci = {
@@ -514,6 +531,7 @@ html[#html+1] = ui_helper.createInputSelect(T"IPv6 Interface<span class='icon-qu
 html[#html+1] = ui_helper.createInputSelect(T"IPv6 Address Request<span class='icon-question-sign' title='Behaviour for requesting addresses. The device default is \"Force\",but some RSPs require it to be \"Try\".'></span>","uci_wan6_reqaddress",reqaddress_map,content.uci_wan6_reqaddress,ipv6_input)
 html[#html+1] = ui_helper.createInputSelect(T"IPv6 Prefix Request<span class='icon-question-sign' title='Behaviour for requesting prefixes (numbers denote hinted prefix length). Use \"None\" if you only want a single IPv6 address for the AP itself without a subnet for routing.'></span>","uci_wan6_reqprefix",reqprefix_map,content.uci_wan6_reqprefix,ipv6_input)
 html[#html+1] = ui_helper.createSwitch(T"IPv6 Force Prefix<span class='icon-question-sign' title='Require the presence of IPv6 Prefix in received DHCP message'></span>","uci_wan6_forceprefix",content.uci_wan6_forceprefix,ipv6_input)
+html[#html+1] = ui_helper.createSwitch(T"IPv6 Source Filter<span class='icon-question-sign' title='On (the device default): the IPv6 default route only carries packets whose source address is in an address or prefix received from the RSP. Turn off if IPv6 stops working a few minutes after connecting.'></span>","uci_wan6_sourcefilter",content["uci_wan6_sourcefilter"],ipv6_input)
 -- Supervision
 if supervision_support then
   html[#html+1] = ui_helper.createInputSelect(T"WAN Supervision","supervision_mode",supervision_modes,supervision_modes_content["supervision_mode"])
