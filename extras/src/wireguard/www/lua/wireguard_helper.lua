@@ -197,7 +197,9 @@ function M.getDNS(include_ipv6)
     if include_ipv6 == true then
       for _,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dns.",true)) do
         local ipv6_dns = untaint(proxy.get(v.path.."value")[1].value)
-        if dns == "" then
+        if match(lower(ipv6_dns),"^fe[89ab]%x:") then
+          -- A link-local address (fe80::/10) cannot be used across the tunnel
+        elseif dns == "" then
           dns = ipv6_dns
         else
           dns = format("%s,%s",dns,ipv6_dns)

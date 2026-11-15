@@ -992,6 +992,10 @@ handle_interface() {
   if [ "$proto" = "wireguard" ]; then
     config_get log_level $interface log_level 
     [ "$log_level" = "debug" ] && DEBUG=y
+    if [ "$enabled" = "1" -a -e /lib/netifd/proto/wireguard.sh -a -z "$(ubus call network get_proto_handlers | jsonfilter -e '@.wireguard')" ]; then
+      /usr/bin/logger -t wireguard -p daemon.notice "reload_wireguard.handle_interface: Interface '$interface' enabled but the wireguard protocol handler is not loaded! Restarting network..."
+      NETWORK_ACTION="restart"
+    fi
     if /bin/grep -qE "^${interface}$" /tmp/.wg_uci_modified_ifnames; then
       [ "$DEBUG" ] && /usr/bin/logger -t wireguard -p daemon.debug "reload_wireguard.handle_interface: Interface '$interface' found in /tmp/.wg_uci_modified_ifnames [enabled=$enabled]"
       /bin/sed -e "/^${interface}$/d" -i /tmp/.wg_uci_modified_ifnames
@@ -1026,7 +1030,7 @@ handle_interface() {
   done
 
   uci commit dhcp
-  /etc/init.d/dnmasq reload
+  /etc/init.d/dnsmasq reload
   /etc/init.d/network $NETWORK_ACTION
 } 3>/var/lock/uci.wireguard.lock
 
@@ -1395,6 +1399,9 @@ if curintf == "wg0" then
   local function addServerAddress(v,d)
     local addr
     if find(v,":",1,true) then
+      if match(v,"^[Ff][CcDd]") then -- Unique local addresses (fc00::/7) cannot be reached from the Internet
+        return nil
+      end
       addr = format("[%s]",v)
     else
       addr = v
@@ -1477,7 +1484,7 @@ if curintf == "wg0" then
       proxy_helper.set("uci.wireguard.@"..curintf..".enabled",config.enabled)
     end
   else
-    config.server_address = server_addresses[1][0]
+    config.server_address = server_addresses[1][1]
   end
 end
 
@@ -2091,7 +2098,9 @@ function M.getDNS(include_ipv6)
     if include_ipv6 == true then
       for _,v in pairs(proxy.getPN("uci.dhcp.dhcp.@lan.dns.",true)) do
         local ipv6_dns = untaint(proxy.get(v.path.."value")[1].value)
-        if dns == "" then
+        if match(lower(ipv6_dns),"^fe[89ab]%x:") then
+          -- A link-local address (fe80::/10) cannot be used across the tunnel
+        elseif dns == "" then
           dns = ipv6_dns
         else
           dns = format("%s,%s",dns,ipv6_dns)
