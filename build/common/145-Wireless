@@ -3,6 +3,13 @@ sed \
  -e 's/Mac address/MAC Address/' \
  -i /www/docroot/modals/wireless-modal.lp
 
+if [ -f /www/docroot/modals/wireless-modal.lp ] && grep -q 'pathRadius \.\. "' /www/docroot/modals/wireless-modal.lp && grep -q '^local pathradius = ' /www/docroot/modals/wireless-modal.lp; then
+  echo -e "[$SCRIPT]: Fix Wi-Fi settings failing to load when a RADIUS server is configured"
+  sed \
+    -e 's/pathRadius \.\. "/pathradius .. "/' \
+    -i /www/docroot/modals/wireless-modal.lp
+fi
+
 echo -e "[$SCRIPT]: Add WiFi QR Code button"
 sed \
   -e '/isguest ~= "1" and \(\(isExtRemman  ~= "1"\)\|isRadiusIncluded\)/i\    local not_security_none = {\
