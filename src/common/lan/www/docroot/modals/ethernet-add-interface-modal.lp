@@ -51,11 +51,16 @@ local function addFirewallRule(name,src,proto,target,dest,dest_ip,dest_port,fami
   end
   if okay then
     okay = okay and proxy_helper.set(path.."name",name)
+    local protos = type(proto) == "table" and proto or { proto }
     local index = proxy_helper.add(path.."proto.",nil,true)
     if not index then
-      okay = okay and proxy_helper.set(path.."proto",proto) -- FW 17.2
+      okay = okay and proxy_helper.set(path.."proto",table.concat(protos," ")) -- FW 17.2
     else
-      okay = okay and proxy_helper.set(path.."proto.@"..index..".value",proto)
+      okay = okay and proxy_helper.set(path.."proto.@"..index..".value",protos[1])
+      for i = 2,#protos do
+        index = proxy_helper.add(path.."proto.",nil,true)
+        okay = okay and index ~= nil and proxy_helper.set(path.."proto.@"..index..".value",protos[i])
+      end
     end
     okay = okay and proxy_helper.set(path.."src",src)
     if dest then
@@ -344,12 +349,10 @@ elseif ngx.var.request_method == "POST" then
       okay = okay and proxy_helper.set(paths[#paths].."src",content.cur_intf)
       okay = okay and proxy_helper.set(paths[#paths].."dest","wan")
     end
-    if okay then -- add firewall rules
-      okay,paths[#paths+1] = addFirewallRule("drop-lan-2-"..content.cur_intf,"lan","all","DROP",content.cur_intf)
-    end
-    if okay then -- add firewall rules
-      okay,paths[#paths+1] = addFirewallRule("drop-"..content.cur_intf.."-2-lan",content.cur_intf,"all","DROP","lan")
-    end
+    -- No drop rules between lan and the new zone: with the default FORWARD policy DROP, a zone's forward policy only
+    -- matches traffic out of its own devices, so nothing passes between them without a forwarding or a rule. An
+    -- explicit drop rule here would also sit ahead of every exception later added in Firewall Rules (fw3 places rules
+    -- in file order), so that exception would never match.
     if okay then -- add firewall rules
       okay,paths[#paths+1] = addFirewallRule("drop-lan-2-"..content.cur_intf.."_GW","lan","all","DROP",nil,content.ipaddr)
     end
@@ -360,7 +363,10 @@ elseif ngx.var.request_method == "POST" then
       okay,paths[#paths+1] = addFirewallRule("Allow-"..content.cur_intf.."-DHCP",content.cur_intf,"udp","ACCEPT",nil,nil,"67","ipv4")
     end
     if okay then -- add firewall rules
-      okay,paths[#paths+1] = addFirewallRule("Allow-"..content.cur_intf.."-DNS",content.cur_intf,"udp","ACCEPT",nil,nil,"53","ipv4")
+      okay,paths[#paths+1] = addFirewallRule("Allow-"..content.cur_intf.."-DNS",content.cur_intf,{"tcp","udp"},"ACCEPT",nil,nil,"53")
+    end
+    if okay then -- add firewall rules
+      okay,paths[#paths+1] = addFirewallRule("Allow-"..content.cur_intf.."-DHCPv6",content.cur_intf,"udp","ACCEPT",nil,nil,"547","ipv6")
     end
     if okay then -- add firewall rules
       okay,paths[#paths+1] = addFirewallRule("Allow-"..content.cur_intf.."-ICMPv6",content.cur_intf,"icmp","ACCEPT",nil,nil,nil,"ipv6")
