@@ -12,6 +12,11 @@ MODE=$2
 DOWN=/var/run/wifi-network-rebind.down
 LOCK=/var/lock/wifi-network-rebind
 
+# Nothing noted, so nothing to bring back up: a recover run then needs neither the lock nor the wait. (An
+# interface that a running move notes later is brought back up by that move itself, which reads the committed
+# ifname after it takes the interface down.)
+[ "$MODE" = "recover" ] && [ ! -f $DOWN ] && exit 0
+
 log() {
   logger -t wifi-network-rebind "$*"
 }
