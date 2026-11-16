@@ -59,12 +59,24 @@ if ngx.var.request_method == "POST" then
         mode2prog[format("%s",v.path)].prog = 0
       end
     end
+    -- Each delete renumbers the list entries after it (@1, @2, ...), so delete from the highest index down
+    local deletes = {}
+    for _,v in pairs(mode2prog) do
+      if v.prog == 0 and v.found ~= 0 then
+        deletes[#deletes+1] = v.found
+      end
+    end
+    local function index(path)
+      return tonumber(match(untaint(path),"@(%d+)%.$")) or 0
+    end
+    table.sort(deletes,function(a,b) return index(a) > index(b) end)
+    for _,path in ipairs(deletes) do
+      proxy.del(path)
+    end
     for k,v in pairs(mode2prog) do
       if v.prog == 1 and v.found == 0 then
         local addvalue = proxy.add("uci.xdsl.xdsl.@dsl0.multimode.")
         proxy.set("uci.xdsl.xdsl.@dsl0.multimode.@" .. addvalue .. ".value",k)
-      elseif v.prog == 0 and v.found then
-        proxy.del(v.found)
       end
     end
   end
