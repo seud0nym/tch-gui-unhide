@@ -19,6 +19,9 @@ local items = {
   {"ethernet-modal.lp",T"Interfaces"},
   {"ethernet-vlan-modal.lp",T"VLAN Filtering"},
 }
+if #proxy.getPN("uci.wireless.wifi-iface.",true) > 0 and require("ethernet-wifi_helper").supported() then
+  items[#items+1] = {"ethernet-wifi-modal.lp",T"Wi-Fi Networks"}
+end
 if dhcp then
   items[#items+1] = {"ethernet-static-leases-modal.lp",T"Static Leases"}
 end

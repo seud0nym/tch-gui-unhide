@@ -15,6 +15,7 @@ local proxy = require("datamodel")
 local proxy_helper = require("proxy_helper")
 local ui_helper = require("web.ui_helper")
 local vlan_helper = require("ethernet-vlan_helper")
+local wifi_helper = require("ethernet-wifi_helper")
 
 local ngx = ngx
 local session = ngx.ctx.session
@@ -30,8 +31,21 @@ if ngx.var.request_method == "POST" then
 end
 
 if post_data and post_data.del_intf then
+  -- SSIDs the Wi-Fi Networks tab lists and that use this interface (other SSIDs are left as before)
+  local ssids = {}
+  if wifi_helper.supported() then
+    local class,ifaces = wifi_helper.classify(proxy,{})
+    for iface,v in pairs(ifaces) do
+      if class[iface] and v.network == post_data.del_intf then
+        ssids[#ssids+1] = iface
+      end
+    end
+    table.sort(ssids)
+  end
   if post_data.del_intf == "lan" then
     message_helper.pushMessage(T"Cannot remove the 'lan' LAN Interface!","error")
+  elseif #ssids > 0 then
+    message_helper.pushMessage(T(format("Cannot remove LAN Interface '%s' while Wi-Fi networks use it (%s). Move them to another interface on the Wi-Fi Networks tab first.",post_data.del_intf,table.concat(ssids,", "))),"error")
   else
     local errors,partial = require("ethernet-del-interface_helper").delete_interface(untaint(post_data.del_intf))
     if errors == 0 then
@@ -266,7 +280,16 @@ local function validateInterfaceNames(value,object,key)
       end
     end
     object[key] = updated_ifnames
-    if cur_intf == "lan" or (find(cur_intf,"Guest",nil,true) and #ifnames > 0) or #ifnames > 1 then
+    -- SSIDs moved here on the Wi-Fi Networks tab join through their wifi-iface "network" option, not ifname
+    local nets = {}
+    if wifi_helper.supported() then
+      for _,v in ipairs(proxy.getPN("uci.wireless.wifi-iface.",true)) do
+        local network = proxy.get(v.path.."network")
+        nets[match(v.path,"@([^%.]+)%.$")] = network and untaint(network[1].value)
+      end
+    end
+    local devices = #ifnames + wifi_helper.count_ssids(nets,cur_intf)
+    if cur_intf == "lan" or (find(cur_intf,"Guest",nil,true) and #ifnames > 0) or devices > 1 then
       type = "bridge"
     end
     if object.type ~= type then
