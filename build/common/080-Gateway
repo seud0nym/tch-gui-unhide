@@ -56,6 +56,9 @@ sed \
     system_ntpfromdhcp = "uci.system.ntp.use_dhcp",' \
   -e '/system_timezone = function/i\  system_ntpserver = post_helper.validateBoolean,\
   system_ntpfromdhcp = post_helper.validateBoolean,' \
+  -e '/^local system_data/a\if system_data["system_ntpfromdhcp"] == "" then\
+  system_data["system_ntpfromdhcp"] = "1" -- sysntpd uses DHCP-advertised servers when use_dhcp is not set\
+end' \
   -e '/-- NTP servers/a\    html[#html + 1] = "<hr>"' \
   -e "/^ngx.print(html)/i\    html[#html + 1] = ui_helper.createSwitch(T\"Auto-Discover NTP<span class='icon-question-sign' title='Enable to add any NTP servers advertised via WAN DHCP'></span>\", \"system_ntpfromdhcp\", system_data[\"system_ntpfromdhcp\"], basic)\
     html[#html + 1] = ui_helper.createSwitch(T\"Enable NTP Server\", \"system_ntpserver\", system_data[\"system_ntpserver\"], basic)\
