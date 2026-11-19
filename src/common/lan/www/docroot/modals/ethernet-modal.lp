@@ -420,7 +420,7 @@ if not content.dhcpquiet or content.dhcpquiet == "" then
   content.dhcpquiet = "0"
 end
 if not content.dhcplogv6 or content.dhcplogv6 == "" then
-  content.dhcplogv6 = "6"
+  content.dhcplogv6 = "4" -- without loglevel, odhcpd logs no notice messages; 4 is the lowest level offered
 elseif (tonumber(content.dhcplogv6) or 0) < 4 then
   content.dhcplogv6 = "4"
 end
