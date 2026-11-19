@@ -17,9 +17,7 @@ sed \
   -e 's|<a href="%s" target="_self">|<a href="#" data-remote="%s">|' \
   -e 's|@wwan.up")\[1\].value|@wwan.up")|' \
   -e 's|if wwan_up|if wwan_up and wwan_up[1].value|' \
-  -e 's/count == 5/count < 5/' \
-  -e '/ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)/,/^\s*$/d' \
-  -e '/proxy.set("rpc.system.lock.free", "0")/i end' \
+  -e '/^if count == 5 then/,/^\s*$/d' \
   -e 's/\(iface_total\[v.iface  .. "_" .. direct\]\)/(tonumber(string.untaint(\1)) or 0)/' \
   /www/docroot/traffic.lp > /www/docroot/modals/diagnostics-traffic-modal.lp
 
@@ -44,7 +42,24 @@ if [ $? -eq 1 ]; then
   SRV_cron=$(( $SRV_cron + 1 ))
 fi
 
-echo -e "[$SCRIPT]: Only lock files for 600 seconds"
-sed -e 's/lfs.lock_dir(datadir)/lfs.lock_dir(datadir,600)/' -i /usr/share/transformer/mappings/rpc/system.lock.map
+if ! grep -q 'lkstale' /usr/share/transformer/mappings/rpc/system.lock.map; then
+  echo -e "[$SCRIPT]: Remove traffic monitor locks older than 600 seconds"
+  sed \
+    -e '/local lktmp = lfs.lock_dir(datadir)/i \            -- lfs.lock_dir ignores seconds_stale on Linux: remove a lock left behind by a killed process. A lock this map' \
+    -e '/local lktmp = lfs.lock_dir(datadir)/i \            -- still holds is released through its object, so that garbage collection cannot remove a newer lock later' \
+    -e '/local lktmp = lfs.lock_dir(datadir)/i \            local lkattr = lfs.symlinkattributes(datadir.."/lockfile.lfs")' \
+    -e '/local lktmp = lfs.lock_dir(datadir)/i \            local lkstale = lkattr and os.difftime(os.time(),lkattr.modification) > 600' \
+    -e '/local lktmp = lfs.lock_dir(datadir)/i \            if locker and (lkstale or not lkattr) then' \
+    -e '/local lktmp = lfs.lock_dir(datadir)/i \              locker:free()' \
+    -e '/local lktmp = lfs.lock_dir(datadir)/i \              locker = nil' \
+    -e '/local lktmp = lfs.lock_dir(datadir)/i \            elseif lkstale then' \
+    -e '/local lktmp = lfs.lock_dir(datadir)/i \              os.remove(datadir.."/lockfile.lfs")' \
+    -e '/local lktmp = lfs.lock_dir(datadir)/i \            end' \
+    -i /usr/share/transformer/mappings/rpc/system.lock.map
+fi
+if [ -f /etc/init.d/trafficmon ] && ! grep -q 'lockfile.lfs' /etc/init.d/trafficmon; then
+  echo -e "[$SCRIPT]: Remove a traffic monitor lock left behind by a reboot"
+  sed -e '/^[[:space:]]*trafficmon.lua -i$/i \    rm -f $DATA_DIR/lockfile.lfs' -i /etc/init.d/trafficmon
+fi
 SRV_transformer=$(( $SRV_transformer + 1 ))
 

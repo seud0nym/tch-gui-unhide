@@ -187,8 +187,16 @@ local function DataAggregator(datadir,histdir)
   end
 end
 
+-- lfs.lock_dir ignores its seconds_stale argument on Linux, so a lock left behind by a reboot or a killed process
+-- would stop the traffic monitor for good: remove a lock older than 90 seconds first
+local lockfile = datadir.."lockfile.lfs"
+local lockattr = lfs.symlinkattributes(lockfile)
+if lockattr and os.difftime(os.time(),lockattr.modification) > 90 then
+  os.remove(lockfile)
+  os.execute("logger -t traffichistory -p 132 Removed stale lock "..lockfile)
+end
 -- lock file directory
-local lock = lfs.lock_dir(datadir,90)
+local lock = lfs.lock_dir(datadir)
 if lock then
   pcall(DataAggregator,datadir,histdir)
   -- unlock file directory
