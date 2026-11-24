@@ -28,15 +28,10 @@ find_guest_zones() {
 }
 
 # Delete any existing rules
+# (the filter rules below are commented DNSv4-Hijacking-*, so match both; -S quotes each string that needs it)
 for table in mangle filter; do
-  ip6tables -t $table -S | grep "DNSv6-Hijacking" | while read action params; do
-    not_quoted=$(echo "$params" | cut -d'"' -f1)
-    quoted=$(echo "$params" | cut -d'"' -f2)
-    if [ "$not_quoted" = "$quoted" ]; then
-      ip6tables -t $table -D $not_quoted
-    else
-      ip6tables -t $table -D $not_quoted "$quoted"
-    fi
+  ip6tables -t $table -S | grep -E "DNSv[46]-Hijacking" | sed -e 's/^-A /-D /' | while read -r rule; do
+    eval "ip6tables -t $table $rule"
   done
 done
 
@@ -44,7 +39,7 @@ done
 config_load tproxy
 config_get _HIJACK6 "dnsv6" "enabled" "0"
 
-[ "$_HIJACK6" = "1" ] || exit
+[ "$_HIJACK6" = "1" ] || exit 0
 
 # Make sure the required IP sets exist and are populated
 for defn in doh6:ip hijack_xcptn:mac; do
