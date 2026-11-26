@@ -1,1 +1,1 @@
-^tproxy /etc/init.d/tproxy restart
+^tproxy /usr/share/tch-gui-unhide/tproxy-ipv6-dns

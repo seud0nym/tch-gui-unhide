@@ -57,15 +57,10 @@ find_ip_address() {
 }
 
 # Delete any existing rules
+# (-S quotes each string that needs it, e.g. a comment with a "/" and the log prefix, so let the shell parse the rule)
 for table in nat filter; do
-  iptables -t $table -S | grep "DNSv4-Hijacking" | while read action params; do
-    not_quoted=$(echo "$params" | cut -d'"' -f1)
-    quoted=$(echo "$params" | cut -d'"' -f2)
-    if [ "$not_quoted" = "$quoted" ]; then
-      iptables -t $table -D $not_quoted || echo -e "params=$params\ncommand=iptables -t $table -D $not_quoted"
-    else
-      iptables -t $table -D $not_quoted "$quoted" || echo -e "params=$params\ncommand=iptables -t $table -D $not_quoted $quoted"
-    fi
+  iptables -t $table -S | grep "DNSv4-Hijacking" | sed -e 's/^-A /-D /' | while read -r rule; do
+    eval "iptables -t $table $rule" || echo "command=iptables -t $table $rule"
   done
 done
 
@@ -73,7 +68,7 @@ done
 config_load dns_hijacking
 config_get _HIJACK4 "config" "enabled" "0"
   
-[ "$_HIJACK4" = "1" ] || exit
+[ "$_HIJACK4" = "1" ] || exit 0
 
 # Configure the NAT jump target
 config_get _DEST_PORT "config" "dest_port" "53"
