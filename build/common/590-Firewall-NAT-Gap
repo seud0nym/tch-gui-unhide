@@ -1,0 +1,25 @@
+# This runs after every step that can create a firewall include (the extras at 060, 115-Firewall, 116-DNS-Hijacking,
+# 117-Intrusion-Protection, 125-Devices), because fix_firewall_nat_gap has to be the last include (see the comments in
+# the script); and before 600-Theme-Common, so that a theme-only run skips it.
+chmod 755 /usr/share/tch-gui-unhide/fix-firewall-nat-gap
+nat_gap_changed=0
+if [ "$(uci -q get firewall.fix_firewall_nat_gap)" != "include" ]; then
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.fix_firewall_nat_gap"
+  exec_uci set firewall.fix_firewall_nat_gap='include'
+  exec_uci set firewall.fix_firewall_nat_gap.type='script'
+  exec_uci set firewall.fix_firewall_nat_gap.reload='1'
+  exec_uci set firewall.fix_firewall_nat_gap.enabled='1'
+  nat_gap_changed=1
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
+if [ "$(uci -q get firewall.fix_firewall_nat_gap.path)" != "/usr/share/tch-gui-unhide/fix-firewall-nat-gap" ]; then
+  exec_uci set firewall.fix_firewall_nat_gap.path='/usr/share/tch-gui-unhide/fix-firewall-nat-gap'
+  nat_gap_changed=1
+fi
+if [ "$(uci show firewall | sed -n -e 's/^firewall\.\([^.=]*\)=include$/\1/p' | tail -n 1)" != "fix_firewall_nat_gap" ]; then
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Moving firewall.fix_firewall_nat_gap after the other firewall includes"
+  exec_uci reorder firewall.fix_firewall_nat_gap=$(uci show firewall | grep -c '^firewall\.[^.]*=')
+  nat_gap_changed=1
+fi
+[ $nat_gap_changed -gt 0 ] && exec_uci commit firewall
+unset nat_gap_changed
