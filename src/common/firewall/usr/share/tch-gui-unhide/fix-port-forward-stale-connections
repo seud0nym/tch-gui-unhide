@@ -1,0 +1,303 @@
+#!/bin/sh
+# Firewall include (type script, reload 1): after a firewall start or reload, end the connections that a changed,
+# disabled or deleted port forward left behind.
+#
+# A reload rebuilds the DNAT rules, but conntrack keeps every existing translation. So a UDP flow (game console,
+# camera, VoIP, VPN peer) through a forward that was deleted, disabled or pointed at another LAN port or host keeps
+# reaching the old destination for as long as it keeps sending, and the change seems not to apply. The stock
+# delete_pfw.sh deletes only ESTABLISHED TCP, and only on delete or disable. A restart flushes all of conntrack, which
+# hides this but ends every busy NATed connection.
+#
+# It keeps the DNAT rules fw3 wrote in its zone prerouting chains (port forwards, DMZ, NAT reflection), in chain
+# order, in $STATE. When they differ from the previous run's:
+#  - a TCP/UDP entry with DNAT is stale when the previous rules made it and the current ones no longer would: the
+#    first previous rule of the entry's own zone chain that matches it (protocol, original source/destination address
+#    and port) translated it exactly so (reply source = its target, reply port in its target ports), and the first
+#    current rule of that chain that matches it doesn't (removed, changed, or another rule now comes first; iptables
+#    takes the first match). The chain is the one fw3's PREROUTING jumps send it to, from the device it came in on:
+#    the connected subnet of its source, else the device that owns its original destination, else the default
+#    route's. A DNAT rule in another chain (miniupnpd, DNS hijacking; they come first) that translates it the same
+#    way keeps it. Entries the zone rules never made (conntrack helpers, UPnP, REDIRECTs) are never touched.
+#  - an UNREPLIED TCP/UDP entry without any NAT, to an address of an added rule's zone, that the rule matches (a flow
+#    the router took before the forward existed) is deleted too.
+# Only the options fw3 writes for redirects are parsed (-p, -m tcp/udp, -s, -d, -i (matched against the device the
+# flow came in on), --dport, --to-destination, the DMZ's ! -p icmp); a rule with anything else (-m set, mac, time,
+# multiport, address ranges) never causes a deletion, and when current it keeps every entry translated to its target
+# address (or address range). A removed rule without ports (the DMZ) deletes nothing, and logs that, while a current
+# rule still targets the same host and the table holds a helper-tracked connection (helper=ftp, sip...) to or from
+# it: the helper makes DNATed entries (FTP data, SIP media) on other ports of that host. A removed port range always
+# deletes in its range (a helper connection that landed there goes too).
+# Inside fw3 (it waits for its includes) a change only leaves one background run of this ($SELF -w N), which scans
+# once no fw3 start/stop/reload runs (queries such as `fw3 -q network` don't count) and no other scan holds the lock
+# (it waits at most 60 s). A scan acts only on a complete nat table (a PREROUTING jump to prerouting_rule, unless
+# custom_chains is off, and at least one to a zone chain) and a complete conntrack dump; otherwise it changes
+# nothing, not even $STATE, and tries again in the background, $TRIES runs at most (then the next start or reload
+# does); an incomplete nat table only while another fw3 run is busy (else no zone is up yet: nothing to do). The next packet of a deleted flow makes a fresh entry that the current rules translate; a TCP connection
+# whose forward changed ends instead (with nf_conntrack_tcp_loose 0, as the stock delete_pfw.sh leaves it, its
+# mid-stream packets are dropped until it times out). The first run (boot, or the first after install) only records
+# the rules. At most $MAX deletions and about $SECS s of deleting per scan, and a scan stops when a fw3 run starts;
+# then $STATE is left as it was and the scan goes on in the background (when it deleted something or was cut short,
+# within the same $TRIES runs). Limits: rules in other chains and unparsed
+# rules keep entries without regard to their position or zone; zone jumps without -i are not followed; an added
+# rule ignores ACCEPT/REDIRECT exceptions placed before it (unreplied entries to such router ports are deleted and
+# re-created unchanged); each deletion lists the table again (conntrack-tools 1.4.2-1.4.6); IPv4 only.
+#
+# Usage: as a firewall include (fw3 sources it from `sh -c`, so $PPID is that fw3 run), or by hand (scans at once);
+# with -n it lists what it would delete, deletes nothing and keeps $STATE.
+DRY=; WAITED=; [ "$1" = -n ] && DRY=1; [ "$1" = -w ] && WAITED=${2:-1}   # -w N: the waiter's Nth run
+MAX=${FW_STALE_DNAT_MAX:-128}; SECS=20; TRIES=10
+STATE=${FW_STALE_DNAT_STATE:-/var/run/fix-port-forward-stale-connections.rules}
+SELF=${FW_STALE_DNAT_SELF:-/usr/share/tch-gui-unhide/fix-port-forward-stale-connections}
+PROC=${FW_STALE_DNAT_PROC:-/proc}
+PF=$STATE.wait
+TAG=fix-port-forward-stale-connections
+ME=$PPID
+INFW3=; [ -z "$DRY$WAITED" ] && [ "$(cat $PROC/$ME/comm 2>/dev/null)" = fw3 ] && INFW3=1
+up() { cut -d. -f1 /proc/uptime; }
+busy() { # fw3 processes other than $1 that start, stop or reload (queries: -q network/device/zone don't count)
+  for b in $(pidof fw3 2>/dev/null </dev/null); do
+    [ "$b" = "$1" ] && continue
+    [ "$(cut -d' ' -f3 $PROC/$b/stat 2>/dev/null)" = Z ] && continue      # exited (BusyBox 1.23 pidof lists zombies)
+    a=$(tr '\000' ' ' < $PROC/$b/cmdline 2>/dev/null) || continue        # gone
+    case " $a " in *" network "*|*" device "*|*" zone "*) ;; *) echo $b ;; esac
+  done
+}
+LK=$STATE.lock
+scanning() { # a scan holds the lock: its PID is alive and is this script (not a reused PID)
+  l=$(cat "$LK" 2>/dev/null); [ -n "$l" ] && kill -0 "$l" 2>/dev/null &&
+    tr '\000' ' ' < /proc/$l/cmdline 2>/dev/null | grep -qF "${SELF##*/}"
+}
+waiter() { # one background run of this ($SELF -w N) once no fw3 is busy and no scan runs (it waits at most 60 s)
+  [ -f "$SELF" ] || return 0
+  [ -s "$PF" ] && kill -0 "$(cat "$PF")" 2>/dev/null && return 0
+  ( [ -n "$WAITED" ] && { i=$((WAITED + 1)); [ $i -gt 5 ] && i=5; sleep $i; }   # a retry: back off N s (5 at most)
+    i=0; while { [ -n "$(busy x)" ] || scanning; } && [ $i -lt 60 ]; do sleep 1; i=$((i + 1)); done
+    rm -f "$PF"; exec /bin/sh "$SELF" -w $((${WAITED:-0} + 1)) ) </dev/null >/dev/null 2>&1 &
+  echo $! > "$PF"
+}
+skip() { # $1 = reason; tries again in the background, $TRIES times at most (silent inside fw3: it hands over)
+  [ -n "$INFW3" ] || logger -t $TAG "$1: skipped"
+  [ -n "$DRY" ] && exit 0
+  [ -n "$WAITED" ] && [ "$WAITED" -ge $TRIES ] && { logger -t $TAG "gave up after $WAITED tries: the next start or reload retries"; exit 0; }
+  waiter
+  exit 0
+}
+save() { # $1 = content; atomic, never leaves a partial file
+  { printf '%s\n' "$1" > "$STATE.$$" && mv -f "$STATE.$$" "$STATE"; } 2>/dev/null || rm -f "$STATE.$$"
+}
+NAT=$(iptables -t nat -S 2>/dev/null </dev/null) || skip "iptables -t nat -S failed"
+# A reload clears the tables before it repopulates them: act only on a complete table.
+# (there is no prerouting_rule jump when the custom chains are switched off)
+CC=$(uci -q get firewall.@defaults[0].custom_chains 2>/dev/null </dev/null)
+echo "$NAT" | awk -v cc="$CC" '$1 == "-A" && $2 == "PREROUTING" && / -j prerouting_rule$/ { p = 1 }
+  $1 == "-A" && $2 == "PREROUTING" && $NF ~ /^zone_.*_prerouting$/ { z = 1 }
+  END { exit !((p || cc ~ /^(0|no|off|false|disabled)$/) && z) }' || {
+  # being rebuilt by another fw3 run: try again; else (no zone up yet, early at boot) the next start or reload calls this
+  [ -n "$(busy "$ME")" ] && skip "nat table not complete"
+  [ -n "$INFW3" ] || logger -t $TAG "nat table not complete and no firewall run busy: nothing to do"
+  exit 0; }
+# Rule lines: comment removed (escaped quotes too), single spaces. Z: zone prerouting DNATs (diffed); X: others.
+RULES=$(echo "$NAT" | awk '$1 == "-A" {
+  gsub(/ -m comment --comment "([^"\\]|\\.)*"/, ""); gsub(/ -m comment --comment [^ "]+/, ""); $1 = $1
+  if (/ -j DNAT /) print ($2 ~ /^zone_.*_prerouting$/ ? "Z " : "X ") $0 }')
+CUR=$(echo "$RULES" | sed -n 's/^Z //p' | awk '!s[$0]++')   # in chain order: iptables takes the first match
+if [ ! -f "$STATE" ]; then
+  [ -n "$(busy "$ME")" ] && skip "another fw3 run is busy"
+  [ -z "$DRY" ] && save "$CUR"
+  exit 0
+fi
+PREV=$(sed '/^$/d' "$STATE" | awk '!s[$0]++')
+[ "$PREV" = "$CUR" ] && exit 0
+command -v conntrack >/dev/null 2>&1 || { [ -z "$DRY" ] && save "$CUR"; exit 0; }
+# The rules changed. Inside fw3 (which waits for its includes) only hand the scan to the waiter, which runs once the
+# firewall is done; by hand, or as the waiter, scan now (one scan at a time).
+[ -n "$INFW3" ] && { waiter; exit 0; }
+[ -n "$(busy "$ME")" ] && skip "another fw3 run is busy"
+if [ -z "$DRY" ]; then
+  scanning && skip "another scan is running"
+  echo $$ > "$LK" 2>/dev/null; trap 'rm -f "$LK"' EXIT
+fi
+# Zone jumps in PREROUTING order (chain=device=destination) and the device addresses with their prefix length: which
+# zone chain an entry went through, and the router's addresses for the added branch.
+ZDEV=$(echo "$NAT" | awk '$1 == "-A" && $2 == "PREROUTING" && $NF ~ /^zone_.*_prerouting$/ {
+  i = ""; d = ""; for (k = 3; k < NF; k++) { if ($k == "-i") i = $(k + 1); if ($k == "-d") d = ($(k - 1) == "!" ? "!" : "") $(k + 1) }
+  if (i != "") printf "%s=%s=%s ", $NF, i, d }')
+DADDR=$(ip -4 -o addr show 2>/dev/null </dev/null | awk '{ printf "%s=%s ", $2, $4 }')
+DEFDEV=$(ip -4 route show default 2>/dev/null </dev/null | awk '{ for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); exit } }')
+TMP=/tmp/fix-port-forward-stale-connections.$$
+conntrack -L -f ipv4 > "$TMP.ct" 2>/dev/null </dev/null || { rm -f "$TMP.ct"; skip "conntrack -L failed"; }
+{ printf '%s\n' "$PREV" | sed -n '/./s/^/P /p'; printf '%s\n' "$CUR" | sed -n '/./s/^/C /p'
+  printf '%s\n' "$RULES" | sed -n 's/^X /O /p'; } > "$TMP" 2>/dev/null ||
+  { rm -f "$TMP" "$TMP.ct"; logger -t $TAG "cannot write $TMP: skipped"; exit 0; }
+# hosts with a helper-tracked connection (helper=ftp, sip...) in either direction: its related connections (FTP data,
+# SIP media) are DNATed entries on other ports of that host
+HELPED=$(awk '/ helper=/ { for (i = 1; i <= NF; i++) if ($i ~ /^src=/) print substr($i, 5) }' "$TMP.ct" |
+  sort -u | tr '\n' ' ')
+awk -v rules="$TMP" -v zdev="$ZDEV" -v daddr="$DADDR" -v defdev="$DEFDEV" -v max="$MAX" -v helped=" $HELPED " '
+  function num(a,   q) { if (split(a, q, ".") != 4) return -1; return ((q[1] * 256 + q[2]) * 256 + q[3]) * 256 + q[4] }
+  function inaddr(a, spec,   s, b, m, ng, r) {   # spec: "" (any) or [!]A[/N]
+    if (spec == "") return 1
+    ng = (substr(spec, 1, 1) == "!"); s = ng ? substr(spec, 2) : spec
+    b = (split(s, m, "/") == 2) ? m[2] + 0 : 32
+    r = (int(num(a) / 2 ^ (32 - b)) == int(num(m[1]) / 2 ^ (32 - b)))
+    return ng ? !r : r }
+  function rule(line, k,   t, i, nt, r, d, c, pr, ng, o) {   # parse one rule into R[k, field]; R[k, "ok"] = parsed
+    nt = split(line, t, " ")
+    R[k, "ok"] = 1; R[k, "p"] = "any"; R[k, "lo"] = 0; R[k, "hi"] = 65535; R[k, "ip"] = ""; R[k, "tlo"] = -1
+    R[k, "thi"] = -1; R[k, "s"] = ""; R[k, "d"] = ""; R[k, "i"] = ""; R[k, "z"] = t[2]; ng = 0
+    for (i = 3; i <= nt; i++) {        # only the options fw3 writes for redirects; anything else: not parsed
+      o = t[i]
+      if (o == "!") { ng = 1; continue }
+      if (o == "-p") { i++
+        if (!ng) R[k, "p"] = t[i]
+        else if (t[i] == "icmp") R[k, "p"] = "any"               # DMZ: ! -p icmp = every TCP/UDP flow
+        else if (t[i] == "tcp") R[k, "p"] = "udp"
+        else if (t[i] == "udp") R[k, "p"] = "tcp"
+        else R[k, "ok"] = 0 }
+      else if (o == "-s" || o == "-d") { i++; R[k, substr(o, 2)] = (ng ? "!" : "") t[i] }
+      else if (o == "-i") { i++; if (ng) R[k, "ok"] = 0; else R[k, "i"] = t[i] }   # miniupnpd: -i WANDEV
+      else if (o == "-m") { i++; if (ng || (t[i] != "tcp" && t[i] != "udp")) R[k, "ok"] = 0 }   # set, mac, time, mark...
+      else if (o == "--dport") { i++
+        if (ng) R[k, "ok"] = 0
+        if (split(t[i], r, ":") == 2) { R[k, "lo"] = r[1] + 0; R[k, "hi"] = r[2] + 0 }
+        else { R[k, "lo"] = t[i] + 0; R[k, "hi"] = t[i] + 0 } }
+      else if (o == "-j") { i++; if (t[i] != "DNAT") R[k, "ok"] = 0 }
+      else if (o == "--to-destination") { i++
+        d = t[i]; c = index(d, ":")
+        R[k, "ip"] = c ? substr(d, 1, c - 1) : d
+        if (R[k, "ip"] ~ /-/ || num(R[k, "ip"]) < 0) R[k, "ok"] = 0
+        if (c) { pr = substr(d, c + 1)
+          if (split(pr, r, "-") == 2) { R[k, "tlo"] = r[1] + 0; R[k, "thi"] = r[2] + 0 }
+          else { R[k, "tlo"] = pr + 0; R[k, "thi"] = pr + 0 } } }
+      else R[k, "ok"] = 0                                         # --sport, --match-set, ! -i...
+      ng = 0 } }
+  function iprange(a, spec,   r) {          # spec: A-B (an address range target)
+    if (split(spec, r, "-") != 2 || num(r[1]) < 0) return 0
+    return num(a) >= num(r[1]) && num(a) <= num(r[2]) }
+  function targeted(a,   j) {               # does a current DNAT rule (parsed or not) translate to address a?
+    for (j = 1; j <= nc; j++) if (R["c" j, "ip"] == a || iprange(a, R["c" j, "ip"])) return 1
+    return 0 }
+  function matches(k, p, os, od, dp) {      # would rule k translate this original tuple (arriving on dv)?
+    return (R[k, "p"] == "any" || R[k, "p"] == p) && dp >= R[k, "lo"] && dp <= R[k, "hi"] && inaddr(os, R[k, "s"]) &&
+      inaddr(od, R[k, "d"]) && (R[k, "i"] == "" || devis(R[k, "i"], dv)) }
+  function target(k, dp, rs, rp) {
+    if (R[k, "ip"] != rs) return 0
+    if (R[k, "tlo"] < 0) return rp == dp
+    return rp >= R[k, "tlo"] && rp <= R[k, "thi"] }
+  function devis(spec, d) { return spec == d || (spec ~ /\+$/ && index(d, substr(spec, 1, length(spec) - 1)) == 1) }
+  function arrdev(os, od,   j, d, bl) {    # the device the flow came in on: the connected subnet of its source, else
+    d = ""; bl = -1                         # the device that owns its original destination, else the default route
+    for (j = 1; j <= nd; j++) if (AD[j] != "lo" && AM[j] < 32 && AM[j] > bl && inaddr(os, AA[j] "/" AM[j])) { d = AD[j]; bl = AM[j] }
+    if (d == "") for (j = 1; j <= nd; j++) if (AA[j] == od && AD[j] != "lo") { d = AD[j]; break }
+    return d != "" ? d : defdev }
+  function zoneof(d, od,   i) {             # the zone chain fw3 PREROUTING jumps send it to
+    if (d == "") return ""
+    for (i = 1; i <= nz; i++) if (devis(ZI[i], d) && inaddr(od, ZD[i])) return ZC[i]
+    return "" }
+  function firstp(p, os, od, dp, z,   j, k) {   # the previous rule of chain z that took this tuple first
+    for (j = 1; j <= npz; j++) { k = "p" j; if (R[k, "z"] != z) continue
+      if (!R[k, "ok"]) return "?"                # an unparsed rule may have come first: unknown
+      if (matches(k, p, os, od, dp)) return k }
+    return "" }
+  function fresh(p, os, od, dp, rs, rp, z,   j, k) {   # would a new packet of this flow get the same translation?
+    for (j = 1; j <= nc; j++) { k = "c" j
+      if (R[k, "x"] || !R[k, "ok"]) {     # other chains (they come before the zone chains) and unparsed rules: protect only
+        if (R[k, "ok"] ? (matches(k, p, os, od, dp) && target(k, dp, rs, rp)) : (R[k, "ip"] == rs || iprange(rs, R[k, "ip"]))) return 1
+        continue }
+      if (R[k, "z"] == z && matches(k, p, os, od, dp)) return target(k, dp, rs, rp) }   # the first match in its chain
+    return 0 }
+  function zoneaddr(z, a,   i, j) {         # is a an address of a device that jumps to zone chain z?
+    for (i = 1; i <= nz; i++) { if (ZC[i] != z) continue
+      for (j = 1; j <= nd; j++) if (AA[j] == a && devis(ZI[i], AD[j])) return 1 }
+    return 0 }
+  BEGIN {
+    nz = split(zdev, w, " "); for (i = 1; i <= nz; i++) { split(w[i], q, "="); ZC[i] = q[1]; ZI[i] = q[2]; ZD[i] = q[3] }
+    nd = split(daddr, w, " ")
+    for (i = 1; i <= nd; i++) { e = index(w[i], "="); AD[i] = substr(w[i], 1, e - 1); a = substr(w[i], e + 1)
+      AA[i] = a; AM[i] = 32; if (split(a, q, "/") == 2) { AA[i] = q[1]; AM[i] = q[2] + 0 } }
+    nr = nc = na = nm = np = no = nzc = npz = 0
+    while ((getline line < rules) > 0) { s = substr(line, 3); if (s == "") continue
+      t1 = substr(line, 1, 1)
+      if (t1 == "P") { if (!(s in P)) { P[s] = ++npz; PZ[npz] = s } }
+      else if (t1 == "C") { if (!(s in C)) { C[s] = ++nzc; CZ[nzc] = s } }
+      else if (!(s in O)) { O[s] = 1; OX[++no] = s } }
+    for (j = 1; j <= npz; j++) rule(PZ[j], "p" j)                               # previous zone rules, in chain order
+    for (j = 1; j <= no; j++) { nc++; rule(OX[j], "c" nc); R["c" nc, "x"] = 1 }   # other chains
+    for (j = 1; j <= nzc; j++) { s = CZ[j]; nc++; rule(s, "c" nc); R["c" nc, "x"] = 0   # current zone rules, in order
+      if (!(s in P)) { na++; rule(s, "a" na); if (!R["a" na, "ok"]) na-- } }
+    # removed rules: their targets pass the line filter; a removed DMZ is kept for a helper connection (see header)
+    for (j = 1; j <= npz; j++) { k = "p" j; if ((PZ[j] in C) || !R[k, "ok"]) continue
+      if (R[k, "lo"] == 0 && R[k, "hi"] == 65535 && targeted(R[k, "ip"]) && index(helped, " " R[k, "ip"] " ")) { print "K", R[k, "ip"]; XK[k] = 1 }
+      else { TG[R[k, "ip"]] = 1; nr++; RM[k] = 1 } }
+    # rules that may now come first for a flow an older rule took: new or moved, and before a rule that stays
+    for (j = 1; j <= nzc; j++) { k = "c" (no + j); if (!R[k, "ok"]) continue
+      for (i = j + 1; i <= nzc; i++) {
+        if (!(CZ[i] in P) || R["c" (no + i), "z"] != R[k, "z"]) continue
+        if (!(CZ[j] in P) || P[CZ[j]] > P[CZ[i]]) { if (R[k, "lo"] == R[k, "hi"]) MP[R[k, "lo"]] = 1; else mall = 1; SH[++nm] = k; break } } } }
+  END { if (nzu) print "U", nzu }
+  $1 != "tcp" && $1 != "udp" { next }
+  {
+    want = 0                                                      # cheap filter before splitting fields
+    if (nr) for (ip in TG) if (index($0, " src=" ip " ")) { want = 1; break }
+    if (!want && nm) { if (mall) want = 1; else for (pp in MP) if (index($0, " dport=" pp " ")) { want = 1; break } }
+    if (!want && !(na && /\[UNREPLIED\]/)) next
+    delete f; c = 0
+    for (i = 1; i <= NF; i++) {
+      eq = index($i, "="); if (!eq) continue; k = substr($i, 1, eq - 1); v = substr($i, eq + 1)
+      if (k == "src") c++
+      if (!((c, k) in f)) f[c, k] = v }
+    os = f[1, "src"]; od = f[1, "dst"]; sp = f[1, "sport"]; dp = f[1, "dport"] + 0
+    rs = f[2, "src"]; rp = f[2, "sport"] + 0
+    if (os == "" || os ~ /:/) next
+    dv = arrdev(os, od)
+    if (rs != od) {       # DNATed: stale when the previous rules made it and the first current match no longer does
+      if (!want) next
+      z = zoneof(dv, od); if (z == "") { nzu++; next }
+      hit = 0                       # cheap: only a removed rule or one now ahead of others, in its chain, can matter
+      for (k in RM) if (R[k, "z"] == z && matches(k, $1, os, od, dp)) { hit = 1; break }
+      if (!hit) for (j = 1; j <= nm; j++) if (R[SH[j], "z"] == z && matches(SH[j], $1, os, od, dp)) { hit = 1; break }
+      if (!hit) next
+      k = firstp($1, os, od, dp, z)
+      if (k == "" || k == "?" || (k in XK) || !target(k, dp, rs, rp)) next   # not made by them (helpers, REDIRECT, UPnP)
+      if (fresh($1, os, od, dp, rs, rp, z)) next
+      if (np++ >= max) { print "T"; exit }                                  # more candidates than one scan takes
+      print $1, os, od, sp, f[1, "dport"], rs, ((PZ[substr(k, 2) + 0] in C) ? "shadowed" : "removed")
+    } else if (na && /\[UNREPLIED\]/ && f[2, "dst"] == os && rp == dp) {
+      for (j = 1; j <= na; j++)
+        if (matches("a" j, $1, os, od, dp) && zoneaddr(R["a" j, "z"], od)) {
+          if (np++ >= max) { print "T"; exit }
+          print $1, os, od, sp, f[1, "dport"], rs, "added"; break }
+    } }' "$TMP.ct" | sort -u | {
+n=0; fail=0; over=; cut=; RC=; T0=; KEPT=; NZU=
+while read -r p s d a b r why; do
+  [ "$p" = K ] && { KEPT="$KEPT $s"; continue; }
+  [ "$p" = U ] && { NZU=$s; continue; }
+  [ "$p" = T ] && { over=1; continue; }
+  [ -n "$T0" ] || T0=$(up)
+  [ $n -ge $MAX ] || [ $(($(up) - T0)) -ge $SECS ] && { over=1; cut=1; break; }
+  [ -z "$DRY" ] && [ -n "$(busy x)" ] && { over=1; cut=1; break; }   # a fw3 run started: stop, its rules may differ
+  n=$((n + 1))
+  if [ -n "$DRY" ]; then echo "would delete: -p $p -s $s -d $d --sport $a --dport $b -r $r ($why)"
+  elif conntrack -D -p "$p" -s "$s" -d "$d" --sport "$a" --dport "$b" -r "$r" 2>&1 </dev/null | grep -q '[1-9][0-9]* flow entr'; then
+    RC="$RC $p:$s:$a>$b"
+  else fail=$((fail + 1)); fi
+done
+[ -n "$DRY" ] && [ -n "$KEPT" ] && echo "would keep the entries of a removed DMZ rule to$KEPT"
+if [ -z "$DRY" ]; then
+  # Over budget, more than $MAX candidates, or a fw3 run started: keep the previous rules and go on in the background.
+  [ -n "$over" ] || save "$CUR"
+  [ -n "$RC" ] && logger -t $TAG "deleted $(echo $RC | wc -w) entries of changed port forwards:$(echo "$RC" | cut -c1-400)"
+  [ $fail -gt 0 ] && logger -t $TAG "$fail deletions found nothing (already gone)"
+  [ -n "$KEPT" ] && logger -t $TAG "a removed DMZ rule to$KEPT: kept its entries (a forward to the host and a helper connection to it stay)"
+  [ -n "$NZU" ] && logger -t $TAG "$NZU entries to a changed forward's host came in on a device no zone jump matches: kept"
+  # Go on in the background only when this round deleted something or was cut short, $TRIES runs at most: entries
+  # that come back at once (a router port behind an exception) must not keep it running.
+  if [ -n "$over" ]; then
+    if [ "${WAITED:-0}" -lt $TRIES ] && [ -n "$RC$cut" ]; then
+      logger -t $TAG "stopped after $n entries (budget, or a firewall run started): continuing"; waiter
+    else logger -t $TAG "stopped after $n entries: the next start or reload goes on"; fi
+  fi
+fi
+}
+rm -f "$TMP" "$TMP.ct"
+exit 0
