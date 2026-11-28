@@ -1,0 +1,97 @@
+#!/bin/sh
+# Firewall include (type script, reload 1), kept as the LAST include by the installer.
+#
+# A firewall restart flushes conntrack and builds the nat table after the filter table, and a firewall reload clears
+# every table and fills filter before nat. A packet forwarded in either gap creates a conntrack entry without SNAT,
+# and MASQUERADE never revisits an existing entry, so a busy flow keeps sending its private source address out of
+# the WAN (where nothing can ever reply) until it is idle for the conntrack timeout.
+#
+# This deletes UNREPLIED TCP/UDP/ICMP entries that have no NAT at all (the reply is the original tuple swapped),
+# whose source and destination are not router addresses, and whose destination routes (from that source, in on its
+# own device) out of a device that the nat table masquerades. The next packet of a deleted flow creates a new entry
+# that MASQUERADE translates. NATed flows, port forwards and DNS hijacking (DNAT/REDIRECT), router sessions, IPv6,
+# and any flow that has had a reply (e.g. site-to-site IPsec) are left alone.
+#
+# It must be the last include, because other includes (IPsec nat exceptions, fullcone, miniupnpd, DNS hijacking)
+# restore their nat rules only when they run. The installer puts it last; if an enabled include has been added after
+# it since, it scans in the background once the firewall has finished instead (below). Policy routing by fwmark is
+# not modelled, and neither are masq_src or masq_dest. At most $MAX deletions and about $SECS seconds per run,
+# because the firewall waits for its includes (conntrack -D reads the whole table each time); anything left is caught
+# by the next start or reload.
+#
+# Usage: as a firewall include, or by hand; with -n it lists what it would delete and deletes nothing.
+# Inside the firewall, run only as the last enabled include. If one has been added after this one since the installer
+# ran, scan (-a) in the background once no fw3 is running any more: fw3 runs often come back to back (hotplug
+# reloads), and a scan inside the next run's gap could run before that run's later include restores its nat rules.
+# One waiter at a time; it gives up waiting after 60 s.
+SELF=/usr/share/tch-gui-unhide/fix-firewall-nat-gap
+if [ "$1" != -a ] && [ "$1" != -n ] && [ "$(cat /proc/$PPID/comm 2>/dev/null)" = fw3 ]; then
+  LAST=$(uci -q show firewall 2>/dev/null </dev/null | awk -F= -v q="'" '
+    $2 == "include" && $1 ~ /^firewall\.[^.]+$/ { s[++n] = substr($1, 10) }
+    $1 ~ /^firewall\.[^.]+\.(enabled|path)$/ { split($1, k, "."); v[k[2], k[3]] = $2 }
+    END { for (i = n; i > 0; i--) { e = v[s[i], "enabled"]   # fw3 skips an include without a path
+      if (v[s[i], "path"] != "" && e != q "0" q && e != q "no" q && e != q "off" q && e != q "false" q) {
+        print v[s[i], "path"]; exit } } }')
+  if [ -n "$LAST" ] && [ "$LAST" != "'$SELF'" ]; then
+    PF=/var/run/fix-firewall-nat-gap.pid
+    [ -s $PF ] && kill -0 "$(cat $PF)" 2>/dev/null && exit 0
+    ( i=0; while [ -n "$(pidof fw3)" ] && [ $i -lt 60 ]; do sleep 1; i=$((i + 1)); done
+      rm -f $PF; exec /bin/sh $SELF -a ) </dev/null >/dev/null 2>&1 &
+    echo $! > $PF
+    exit 0
+  fi
+fi
+DRY=; [ "$1" = -n ] && DRY=1
+MAX=128; SECS=5
+up() { cut -d. -f1 /proc/uptime; }
+T0=$(up)
+command -v conntrack >/dev/null 2>&1 || exit 0
+# Devices whose POSTROUTING jump leads to a zone chain with MASQUERADE (fw3: -o DEV -j zone_Z_postrouting). No -w:
+# the stock iptables already waits while another command holds the xtables lock (1.6.1 takes none), and fw3 has
+# released it by the time it runs its includes (the stock ones call iptables without -w too). Any failure skips the run.
+NAT=$(iptables -t nat -S 2>/dev/null </dev/null) || { logger -t fix-firewall-nat-gap "iptables -t nat -S failed: skipped"; exit 0; }
+MASQ=$(echo "$NAT" | awk '
+  $1 == "-A" && $2 ~ /^zone_.*_postrouting$/ && /-j MASQUERADE/ { m[$2] = 1 }
+  $1 == "-A" && $2 == "POSTROUTING" { for (i = 3; i < NF; i++) if ($i == "-o") o[$NF] = o[$NF] " " $(i + 1) }
+  END { for (z in m) if (z in o) printf "%s ", o[z] }')
+[ -n "$(echo $MASQ)" ] || exit 0
+masq_dev() { # $1 = device; fw3 writes a wildcard device as eth4+
+  for m in $MASQ; do case "$m" in *+) case "$1" in "${m%+}"*) return 0 ;; esac ;; "$1") return 0 ;; esac; done
+  return 1
+}
+LOCAL=$(ip -4 -o addr show 2>/dev/null </dev/null | awk '{ sub("/.*", "", $4); printf "%s ", $4 }')
+n=0; fail=0; over=; RC=; IN=
+conntrack -L -f ipv4 2>/dev/null </dev/null | awk -v loc="$LOCAL" '
+  BEGIN { n = split(loc, a, " "); for (i = 1; i <= n; i++) L[a[i]] = 1 }
+  $1 != "tcp" && $1 != "udp" && $1 != "icmp" { next }
+  /\[UNREPLIED\]/ {
+    delete f; c = 0
+    for (i = 1; i <= NF; i++) {
+      eq = index($i, "="); if (!eq) continue; k = substr($i, 1, eq - 1); v = substr($i, eq + 1)
+      if (k == "src") c++                        # the 2nd src= starts the reply tuple
+      if (!((c, k) in f)) f[c, k] = v }
+    os = f[1, "src"]; od = f[1, "dst"]
+    if (os == "" || os ~ /:/ || os in L || od in L) next          # IPv6 (-f is ignored on some builds), local
+    if (f[2, "src"] != od || f[2, "dst"] != os) next              # any NAT on the entry: not a gap leak
+    if ($1 == "icmp") print $1, os, od, f[1, "type"], f[1, "code"], f[1, "id"]
+    else if (f[2, "sport"] == f[1, "dport"] && f[2, "dport"] == f[1, "sport"]) print $1, os, od, f[1, "sport"], f[1, "dport"] }' |
+sort -u | {
+while read -r p s d a b c; do
+  [ $n -ge $MAX ] || [ $(($(up) - T0)) -ge $SECS ] && { over=1; break; }
+  # the source's input device, cached per source address
+  case " $IN " in *" $s="*) in=${IN##* $s=}; in=${in%% *} ;;
+    *) in=$(ip -4 route get "$s" 2>/dev/null </dev/null | sed -n 's/.* dev \([^ ]*\).*/\1/p;q'); IN="$IN $s=$in" ;; esac
+  [ -n "$in" ] || continue
+  out=$(ip -4 route get "$d" from "$s" iif "$in" 2>/dev/null </dev/null | sed -n 's/.* dev \([^ ]*\).*/\1/p;q')
+  masq_dev "$out" || continue
+  if [ "$p" = icmp ]; then set -- -p icmp -s "$s" -d "$d" --icmp-type "$a" --icmp-code "$b" --icmp-id "$c"
+  else set -- -p "$p" -s "$s" -d "$d" --sport "$a" --dport "$b"; fi
+  n=$((n + 1))
+  if [ -n "$DRY" ]; then echo "would delete: $* (out $out)"
+  elif conntrack -D "$@" 2>&1 </dev/null | grep -q '[1-9][0-9]* flow entr'; then RC="$RC $p:$s>$d"
+  else fail=$((fail + 1)); fi
+done
+[ -z "$DRY" ] && [ -n "$RC" ] && logger -t fix-firewall-nat-gap "deleted $(echo $RC | wc -w) un-NATed entries:$(echo "$RC" | cut -c1-400)"
+[ -z "$DRY" ] && [ -n "$over" ] && logger -t fix-firewall-nat-gap "budget reached after $n entries; the rest wait for the next start or reload"
+}
+exit 0
