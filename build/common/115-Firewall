@@ -85,6 +85,21 @@ if [ "$(uci -q get firewall.fix_guest_access_to_port_forwards)" != "include" ]; 
 fi
 exec_uci set firewall.fix_guest_access_to_port_forwards.path='/usr/share/tch-gui-unhide/fix-guest-access-to-port-forwards'
 
+# A firewall reload keeps the connections of a changed or deleted port forward; this include ends just those
+chmod +x /usr/share/tch-gui-unhide/fix-port-forward-stale-connections
+if [ "$(uci -q get firewall.fix_port_forward_stale_connections)" != "include" ]; then
+  [ -n "$VERBOSE" ] && echo -e "[$SCRIPT]: Creating configuration firewall.fix_port_forward_stale_connections"
+  exec_uci set firewall.fix_port_forward_stale_connections='include'
+  exec_uci set firewall.fix_port_forward_stale_connections.type='script'
+  exec_uci set firewall.fix_port_forward_stale_connections.reload='1'
+  exec_uci set firewall.fix_port_forward_stale_connections.enabled='1'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
+if [ "$(uci -q get firewall.fix_port_forward_stale_connections.path)" != "/usr/share/tch-gui-unhide/fix-port-forward-stale-connections" ]; then
+  exec_uci set firewall.fix_port_forward_stale_connections.path='/usr/share/tch-gui-unhide/fix-port-forward-stale-connections'
+  SRV_firewall=$(( $SRV_firewall + 1 ))
+fi
+
 [ $SRV_firewall -gt 0 ] && exec_uci commit firewall
 
 if [ -e /www/docroot/modals/dosprotect-modal.lp ]; then

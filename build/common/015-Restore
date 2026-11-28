@@ -31,6 +31,14 @@ if [ $RESTORE = y ]; then
       rmdir "$d"
     fi
   done
+  # The restore removes its script, so the firewall would report a failed include on every start and reload
+  if [ "$(uci -q get firewall.fix_port_forward_stale_connections)" = "include" ]; then
+    echo -e "[$SCRIPT]: Removing config entry firewall.fix_port_forward_stale_connections"
+    exec_uci -q delete firewall.fix_port_forward_stale_connections
+    exec_uci commit firewall
+    rm -f /var/run/fix-port-forward-stale-connections.rules /var/run/fix-port-forward-stale-connections.rules.wait \
+      /var/run/fix-port-forward-stale-connections.rules.lock /tmp/fix-port-forward-stale-connections.*
+  fi
   if [ -L /etc/rc.d/K88lsyslogd ]; then
     echo -e "[$SCRIPT]: Removing /etc/rc.d/K88lsyslogd"
     rm /etc/rc.d/K88lsyslogd
